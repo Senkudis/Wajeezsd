@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الكابتن | وَصِّلِي</title>
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a8754">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+    <!-- Bootstrap 5 RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Mobile App Overrides -->
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <script src="js/config.js"></script>
+</head>
+
+<body class="pb-5 mb-5 bg-light">
+
+    <!-- Header Section -->
+    <div class="app-header">
+        <div class="container pt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white rounded-circle p-2 shadow-sm">
+                        <img src="logo.png" alt="Logo" width="40" height="40" class="object-fit-contain">
+                    </div>
+                    <div>
+                        <h2 id="captainName" class="h5 fw-bold mb-0 text-white">مرحباً بك 👋</h2>
+                        <p class="small text-white-50 mb-0">لوحة التحكم الرئيسية</p>
+                    </div>
+                </div>
+                <button id="availabilityToggle"
+                    class="btn btn-light rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-2"
+                    onclick="checkOnboarding(true)">
+                    <i class="bi bi-wifi-off"></i> <span>غير متصل</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="container stats-grid">
+        <div class="card glass-card border-0 text-center p-3">
+            <i class="bi bi-wallet2 fs-2 text-primary mb-2"></i>
+            <h3 id="totalEarnings" class="h5 fw-bold text-dark mb-1">0</h3>
+            <p class="small text-muted mb-0">الأرباح (ج.س)</p>
+        </div>
+        <div class="card glass-card border-0 text-center p-3">
+            <i class="bi bi-box-seam fs-2 text-primary mb-2"></i>
+            <h3 id="completedOrders" class="h5 fw-bold text-dark mb-1">0</h3>
+            <p class="small text-muted mb-0">الطلبات</p>
+        </div>
+        <div class="card glass-card border-0 text-center p-3">
+            <i class="bi bi-star-fill fs-2 text-warning mb-2"></i>
+            <h3 id="rating-val" class="h5 fw-bold text-dark mb-1">5.0</h3>
+            <div id="rating-badge" class="mt-1"></div>
+            <p class="small text-muted mb-0">التقييم</p>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div class="container mt-4 mb-5 pb-5">
+        <h5 class="fw-bold mb-3 text-secondary px-2">القائمة الرئيسية</h5>
+
+        <div class="d-grid gap-3">
+            <a href="captain-orders.html" class="card glass-card card-hover border-0 text-decoration-none bg-white">
+                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+                            <i class="bi bi-bicycle fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-1">الطلبات المتاحة</h6>
+                            <p class="small text-muted mb-0">تصفح وقبول الطلبات الجديدة</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-left text-muted"></i>
+                </div>
+            </a>
+
+            <a href="captain-missions.html" class="card glass-card card-hover border-0 text-decoration-none bg-white">
+                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning">
+                            <i class="bi bi-list-check fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-1">مهامي الحالية</h6>
+                            <p class="small text-muted mb-0">متابعة الطلبات النشطة</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-left text-muted"></i>
+                </div>
+            </a>
+
+            <a href="captain-profile.html" class="card glass-card card-hover border-0 text-decoration-none bg-white">
+                <div class="card-body d-flex justify-content-between align-items-center p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                            <i class="bi bi-person-gear fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-1">الملف الشخصي</h6>
+                            <p class="small text-muted mb-0">إعدادات الحساب وتسجيل الخروج</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-left text-muted"></i>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="mobile-nav-glass">
+        <a href="captain-dashboard.html" class="nav-item-link active">
+            <i class="bi bi-house-door-fill"></i>
+        </a>
+        <a href="captain-orders.html" class="nav-item-link">
+            <i class="bi bi-bicycle"></i>
+        </a>
+        <a href="captain-missions.html" class="nav-item-link">
+            <i class="bi bi-card-checklist"></i>
+        </a>
+        <a href="captain-notifications.html" class="nav-item-link">
+            <i class="bi bi-bell-fill"></i>
+        </a>
+        <a href="captain-profile.html" class="nav-item-link">
+            <i class="bi bi-person-circle"></i>
+        </a>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+    <script src="notification-toast.js"></script>
+
+    <script>
+        // --- 1. GLOBAL VARIABLES & AUTH ---
+        // استخدام Auth Helper للتحقق
+        if (!window.Auth || !window.Auth.isAuthenticated()) {
+            window.location.href = 'captain-login.html';
+        }
+
+        const token = window.Auth.getToken(); // استخدام التوكن من الهيلبر
+
+        let userId = localStorage.getItem('userId');
+        let gpsInterval = null;
+        let isWorking = false;
+
+        // --- 2. ONBOARDING & PERMISSIONS ---
+        async function checkOnboarding(force = false) {
+            // If already asked this session and not forced by user, skip
+            if (!force && sessionStorage.getItem('workStatusAsked')) {
+                return;
+            }
+
+            if (!("geolocation" in navigator)) {
+                return Swal.fire('خطأ', 'المتصفح لا يدعم تحديد الموقع', 'error');
+            }
+
+            // Check Permissions
+            try {
+                const permission = await navigator.permissions.query({ name: 'geolocation' });
+                if (permission.state === 'denied') {
+                    return Swal.fire('تنبيه', 'يجب تفعيل الموقع للعمل', 'warning');
+                }
+            } catch (e) { console.log(e); }
+
+            sessionStorage.setItem('workStatusAsked', 'true');
+
+            Swal.fire({
+                title: 'هل تريد العمل الآن؟ 🚗',
+                text: 'سيتم تفعيل استقبال الطلبات',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، أنا جاهز ✅',
+                cancelButtonText: 'لا، لاحقاً ❌',
+                confirmButtonColor: '#0a8754',
+                cancelButtonColor: '#7f8c8d',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toggleStatus(true);
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    toggleStatus(false);
+                }
+            });
+        }
+
+        // --- 3. TOGGLE STATUS & UI ---
+        async function toggleStatus(forceState = null) {
+            try {
+                const res = await fetch(`${API_URL}/api/captain/toggle-availability`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ isActive: forceState })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    isWorking = data.isActive;
+                    updateUI(isWorking);
+
+                    if (isWorking) {
+                        startLocationTracking();
+                        if (forceState !== null) Swal.fire('تم التفعيل', 'أنت الآن متصل وتستقبل الطلبات', 'success');
+                    } else {
+                        stopLocationTracking();
+                    }
+                }
+            } catch (err) {
+                console.error("Status toggle error", err);
+            }
+        }
+
+        function updateUI(active) {
+            const badge = document.getElementById('availabilityToggle');
+            if (badge) {
+                if (active) {
+                    badge.className = 'btn btn-success text-white rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-2';
+                    badge.innerHTML = '<i class="bi bi-wifi"></i> <span>متصل</span>';
+                } else {
+                    badge.className = 'btn btn-secondary text-white rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-2';
+                    badge.innerHTML = '<i class="bi bi-wifi-off"></i> <span>غير متصل</span>';
+                }
+            }
+        }
+
+        // --- 4. GPS TRACKING VIA CAPTAIN SERVICE ---
+        async function startLocationTracking() {
+            // نستخدم الخدمة الجديدة التي تدعم الخلفية
+            if (window.CaptainService) {
+                await window.CaptainService.startTracking(userId);
+            } else {
+                console.warn("CaptainService not loaded yet");
+            }
+        }
+
+        async function stopLocationTracking() {
+            if (window.CaptainService) {
+                await window.CaptainService.stopTracking();
+            }
+        }
+
+        // Legacy function removed, handled by service
+        function sendLocation() { /* ... */ }
+
+        // --- 5. FETCH STATISTICS ---
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/captain/stats`, {
+                    headers: window.Auth.getAuthHeader()
+                });
+
+                if (!res.ok) throw new Error('Failed to fetch stats');
+
+                const data = await res.json();
+
+                // Update DOM safely
+                if (document.getElementById('completedOrders'))
+                    document.getElementById('completedOrders').innerText = data.completedCount || 0;
+
+                if (document.getElementById('totalEarnings'))
+                    document.getElementById('totalEarnings').innerText = (data.earnings || 0) + ' ج.س';
+
+                // ✅ Update Availability Toggle State
+                if (typeof data.isActive !== 'undefined') {
+                    isWorking = data.isActive;
+                    updateUI(isWorking);
+                }
+
+                // Rating Logic
+                const ratingCount = data.ratingCount || 0;
+                const badge = document.getElementById('rating-badge');
+
+                if (ratingCount === 0) {
+                    if (document.getElementById('rating-val')) document.getElementById('rating-val').innerText = '-';
+                    if (badge) {
+                        badge.className = 'badge bg-secondary';
+                        badge.innerText = 'لم يتم التقييم';
+                    }
+                } else {
+                    const rating = parseFloat(data.rating || 0).toFixed(1);
+                    if (document.getElementById('rating-val')) document.getElementById('rating-val').innerText = rating;
+
+                    if (badge) {
+                        if (rating >= 4.5) {
+                            badge.className = 'badge bg-success';
+                            badge.innerText = 'ممتاز 🌟';
+                        } else if (rating >= 3) {
+                            badge.className = 'badge bg-warning text-dark';
+                            badge.innerText = 'جيد';
+                        } else {
+                            badge.className = 'badge bg-danger';
+                            badge.innerText = 'يحتاج تحسين';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Stats Error:", error);
+            }
+        }
+
+        // --- INIT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchStats();
+            checkOnboarding();
+
+            // Initialize notification socket
+            if (userId && typeof initNotificationSocket === 'function') {
+                initNotificationSocket(userId);
+            }
+
+            // Set Captain Name
+            const name = localStorage.getItem('captainName');
+            if (name) {
+                document.getElementById('captainName').innerText = `مرحباً بك، ${name.split(' ')[0]} 👋`;
+            }
+        });
+    </script>
+
+    <!-- WhatsApp Subscription Modal -->
+
+
+    <!-- PWA Scripts -->
+    <script src="/sw-register.js"></script>
+    <script src="/install-prompt.js"></script>
+
+    <!-- 🚨 SOS Emergency Button -->
+    <button id="sos-btn"
+        style="position:fixed;bottom:80px;left:20px;width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;border:3px solid white;font-size:28px;box-shadow:0 5px 25px rgba(231,76,60,0.5);cursor:pointer;z-index:1000;"
+        onclick="triggerSOS()">🚨</button>
+    <script>
+        async function triggerSOS() { if (!confirm('⚠️ هل أنت في حالة طوارئ؟')) return; const btn = document.getElementById('sos-btn'); btn.disabled = true; btn.innerHTML = '⏳'; navigator.geolocation.getCurrentPosition(async (p) => { try { const res = await fetch('/api/emergency/alert', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ lat: p.coords.latitude, lng: p.coords.longitude }) }); if (res.ok) { btn.style.background = '#27ae60'; btn.innerHTML = '✅'; alert('✅ تم إرسال التنبيه!'); setTimeout(() => { btn.disabled = false; btn.innerHTML = '🚨'; btn.style.background = 'linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)' }, 3000) } } catch (e) { btn.disabled = false; btn.innerHTML = '🚨'; alert('❌ خطأ في الإرسال') } }, () => { btn.disabled = false; btn.innerHTML = '🚨'; alert('❌ خطأ GPS') }, { enableHighAccuracy: true }) }
+    </script>
+    <!-- Auth Helper & App Core -->
+    <script src="js/auth-helper.js"></script>
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+    <script type="module" src="js/captain-service.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دخول العملاء | وصل-لي</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a8754">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        .coming-soon-box {
+            background: linear-gradient(45deg, #ffc107, #ffdb4d);
+            color: #000;
+            font-weight: 800;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .rocket-anim {
+            display: inline-block;
+            animation: rocket-fly 2s infinite ease-in-out;
+        }
+
+        @keyframes rocket-fly {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-3px) rotate(-5deg);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+
+    <script src="js/config.js"></script>
+</head>
+
+<body class="bg-light">
+
+    <div class="auth-container">
+        <div class="auth-box glass-card card-hover p-4 p-md-5">
+            <div class="text-center mb-4">
+                <a href="index.html" class="d-inline-block transition-transform hover-scale">
+                    <img src="logo.png" alt="شعار وصل-لي" height="70">
+                </a>
+            </div>
+
+            <h2 class="text-center mb-4 fw-bold text-dark">
+                <i class="bi bi-person-check-fill text-primary ms-2"></i>
+                أهلاً بك!
+            </h2>
+
+            <div id="alert-box" class="alert d-none align-items-center mb-4" role="alert"></div>
+
+            <div class="mb-3 text-end">
+                <label for="email" class="form-label fw-bold small text-muted">
+                    <i class="bi bi-envelope-fill text-primary ms-1"></i> البريد الإلكتروني
+                </label>
+                <input type="email" id="email" class="form-control form-control-lg" placeholder="name@example.com"
+                    dir="ltr">
+            </div>
+
+            <div class="mb-4 text-end">
+                <label for="password" class="form-label fw-bold small text-muted">
+                    <i class="bi bi-lock-fill text-primary ms-1"></i> كلمة المرور
+                </label>
+                <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••">
+            </div>
+
+            <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="login()">
+                <i class="bi bi-box-arrow-in-right ms-2"></i> تسجيل الدخول
+            </button>
+
+            <div class="text-center mt-4">
+
+                <div class="coming-soon-box mb-4">
+                    <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                        <i class="bi bi-stars text-danger fs-5"></i>
+                        <span class="small">الاطلاق قريبا... وستتمكن من انشاء حسابك مجانا قريبا ان شاء الله</span>
+                        <i class="bi bi-rocket-takeoff-fill text-danger rocket-anim fs-5"></i>
+                    </div>
+                </div>
+
+                <div class="border-top pt-3 mt-3">
+                    <a href="index.html" class="text-secondary small text-decoration-none">
+                        <i class="bi bi-house-door-fill ms-1"></i> العودة للرئيسية
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // دالة لإظهار التنبيهات الملونة
+        function showAlert(msg, type) {
+            const box = document.getElementById('alert-box');
+            box.classList.remove('d-none', 'alert-success', 'alert-danger');
+            box.classList.add('d-flex');
+
+            if (type === 'success') {
+                box.classList.add('alert-success');
+                box.innerHTML = `<i class="bi bi-check-circle-fill fs-5 me-2 ms-2"></i> <div>${msg}</div>`;
+            } else {
+                box.classList.add('alert-danger');
+                box.innerHTML = `<i class="bi bi-exclamation-triangle-fill fs-5 me-2 ms-2"></i> <div>${msg}</div>`;
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.querySelector('button[onclick="login()"]');
+
+            document.getElementById('alert-box').classList.add('d-none');
+
+            if (!email || !password) {
+                showAlert("يرجى ملء جميع الحقول", "error");
+                return;
+            }
+
+            // Loading state
+            const originalBtnText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span> جاري التحقق...';
+            btn.disabled = true;
+
+            console.log(`Attempting to connect to: ${API_URL}`);
+
+            try {
+                // ✅ استخدام الرابط مع /api
+                const res = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    if (data.user.role === 'client' || data.user.role === 'customer') {
+                        showAlert("تم تسجيل الدخول بنجاح!", "success");
+
+                        console.log("📥 Login Response Data:", data);
+
+                        if (!data.user.phone) {
+                            console.error("⚠️ تحذير هام: كائن المستخدم لا يحتوي على رقم هاتف.");
+                        }
+
+                        // استخدام المساعد الموحد للتخزين
+                        window.Auth.setAuth(data.token, data.user);
+
+                        // استخدام replace بدلاً من href لمنع الرجوع لصفحة تسجيل الدخول
+                        setTimeout(() => {
+                            window.location.replace('client-my-orders.html');
+                        }, 800);
+                    } else {
+                        showAlert("عذراً، هذا الحساب ليس حساب عميل", "error");
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
+                    }
+                } else {
+                    showAlert(data.message || 'بيانات الدخول غير صحيحة', "error");
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showAlert(`خطأ في الاتصال: ${err.message}\n${API_URL}`, "error");
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+
+    <script src="/sw-register.js"></script>
+    <script src="/install-prompt.js"></script>
+
+
+
+    <script src="js/theme-manager.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+</body>
+
+</html>

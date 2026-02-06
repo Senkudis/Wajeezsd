@@ -1,0 +1,766 @@
+/* ========================================
+   تحسينات التصميم الاحترافي - وصل-لي
+   ======================================== */
+
+:root {
+    --primary-color: #0a8754;
+    --primary-dark: #086b42;
+    --primary-light: #e8f5f0;
+    --secondary-color: #dc3545;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-dark: #212529;
+    --text-muted: #6c757d;
+    --border-color: #e9ecef;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--bg-color);
+    padding-bottom: 90px;
+    color: var(--text-dark);
+}
+
+/* ========================================
+   Header المحسّن
+   ======================================== */
+.app-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    padding: 16px 20px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--primary-dark);
+}
+
+.app-header .btn-light {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    transition: var(--transition);
+}
+
+.app-header .btn-light:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.app-header h6 {
+    color: white;
+    font-weight: 700;
+    margin: 0;
+}
+
+.app-header small {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.app-header .bi-bell {
+    color: white;
+    transition: var(--transition);
+}
+
+.app-header .bi-bell:hover {
+    transform: scale(1.1);
+}
+
+/* ========================================
+   Cards المحسّنة
+   ======================================== */
+.section-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.section-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.section-title i {
+    font-size: 1.2rem;
+}
+
+.section-title.text-success i {
+    color: var(--primary-color);
+}
+
+.section-title.text-danger i {
+    color: var(--secondary-color);
+}
+
+/* ========================================
+   Form Controls المحسّنة
+   ======================================== */
+.form-control {
+    background-color: #f8f9fa;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    font-weight: 500;
+}
+
+.form-control:focus {
+    background-color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(10, 135, 84, 0.1);
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: #adb5bd;
+    font-weight: 400;
+}
+
+/* ========================================
+   Map Button المحسّن
+   ======================================== */
+.map-btn {
+    background: linear-gradient(135deg, var(--primary-light) 0%, #d4f1e8 100%);
+    color: var(--primary-dark);
+    border: 2px dashed var(--primary-color);
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.map-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s;
+}
+
+.map-btn:hover::before {
+    left: 100%;
+}
+
+.map-btn:hover {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.map-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* نفس الشيء للزر الأحمر */
+.map-btn[style*="color: #dc3545"] {
+    background: linear-gradient(135deg, #fdf2f2 0%, #fce4e4 100%);
+    color: #b02a37;
+    border-color: var(--secondary-color);
+}
+
+.map-btn[style*="color: #dc3545"]:hover {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #b02a37 100%);
+    color: white;
+    border-color: #b02a37;
+}
+
+/* ========================================
+   Pricing Section المحسّنة
+   ======================================== */
+.price-input {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    border: 3px solid var(--primary-color) !important;
+    color: var(--primary-dark) !important;
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    text-align: center !important;
+    padding: 16px !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 4px 12px rgba(10, 135, 84, 0.15) !important;
+}
+
+.price-input:focus {
+    box-shadow: 0 0 0 4px rgba(10, 135, 84, 0.2) !important;
+    transform: scale(1.02);
+}
+
+.form-select {
+    border: 2px solid var(--primary-color);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    font-weight: 600;
+    background-color: white;
+    transition: var(--transition);
+}
+
+.form-select:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 4px rgba(10, 135, 84, 0.1);
+}
+
+/* ========================================
+   Submit Button المحسّن
+   ======================================== */
+.btn-submit {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    font-weight: 800;
+    padding: 18px;
+    border-radius: 50px;
+    width: 100%;
+    border: none;
+    font-size: 1.15rem;
+    box-shadow: 0 6px 20px rgba(10, 135, 84, 0.3);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-submit::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-submit:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-submit:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(10, 135, 84, 0.4);
+}
+
+.btn-submit:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+.btn-submit:disabled {
+    background: linear-gradient(135deg, #adb5bd 0%, #6c757d 100%);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* --- Unified Mobile Bottom Nav (Premium Glass - Forced) --- */
+.mobile-nav-glass {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    display: -webkit-flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    padding: 8px 0 10px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.06) !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+}
+
+.nav-item-link {
+    color: #8e9196 !important;
+    text-decoration: none !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 6px 10px !important;
+    border-radius: 12px !important;
+    min-width: 65px !important;
+    background: transparent;
+    box-shadow: none !important;
+}
+
+.nav-item-link i {
+    display: block !important;
+    font-size: 1.4rem !important;
+    line-height: 1 !important;
+    transition: transform 0.25s ease !important;
+    margin-bottom: 0 !important;
+}
+
+.nav-item-link span {
+    font-size: 0.68rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    opacity: 0.9 !important;
+    display: block !important;
+}
+
+.nav-item-link:hover {
+    color: var(--primary-color) !important;
+    background: rgba(10, 135, 84, 0.06) !important;
+    transform: translateY(-1px);
+}
+
+.nav-item-link.active {
+    color: var(--primary-color) !important;
+    background: linear-gradient(135deg, rgba(10, 135, 84, 0.1) 0%, rgba(10, 135, 84, 0.15) 100%) !important;
+    box-shadow: 0 2px 8px rgba(10, 135, 84, 0.15) !important;
+    transform: none !important;
+}
+
+.nav-item-link.active i {
+    transform: scale(1.05) !important;
+}
+
+.nav-item-link.active span {
+    opacity: 1 !important;
+    font-weight: 700 !important;
+}
+
+/* ========================================
+   Offcanvas Sidebar المحسّن
+   ======================================== */
+.offcanvas-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border-bottom: 3px solid var(--primary-dark);
+}
+
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 16px 20px;
+    transition: var(--transition);
+    font-weight: 500;
+}
+
+.list-group-item:hover {
+    background: var(--primary-light);
+    padding-right: 25px;
+}
+
+.list-group-item i {
+    font-size: 1.2rem;
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.section-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.section-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.section-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.section-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.section-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+/* ========================================
+   Responsive Improvements
+   ======================================== */
+@media (max-width: 576px) {
+    .section-card {
+        padding: 20px 16px;
+    }
+
+    .section-title {
+        font-size: 0.95rem;
+    }
+
+    .btn-submit {
+        font-size: 1.05rem;
+        padding: 16px;
+    }
+}
+
+/* ========================================
+   Loading Spinner
+   ======================================== */
+.spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+}
+
+.spinner-lg {
+    width: 24px;
+    height: 24px;
+    border-width: 4px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-loading .btn-text {
+    opacity: 0;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    top: 50%;
+    left: 50%;
+    margin-left: -9px;
+    margin-top: -9px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ========================================
+   Skeleton Loaders
+   ======================================== */
+.skeleton {
+    background: linear-gradient(90deg,
+            #f0f0f0 25%,
+            #e0e0e0 50%,
+            #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+    border-radius: var(--radius-md);
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-text {
+    height: 16px;
+    margin-bottom: 8px;
+}
+
+.skeleton-title {
+    height: 24px;
+    width: 60%;
+    margin-bottom: 12px;
+}
+
+.skeleton-card {
+    height: 120px;
+    margin-bottom: 16px;
+}
+
+/* ========================================
+   New Map & Route Styles (Timeline View)
+   ======================================== */
+
+/* Map Card */
+.map-card-container {
+    height: 35vh;
+    min-height: 250px;
+    background: #e9ecef;
+}
+
+.map-view {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.map-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.map-control-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    color: var(--primary-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.map-control-btn:active {
+    transform: scale(0.9);
+    background: #f8f9fa;
+}
+
+.center-marker-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -100%);
+    z-index: 500;
+    pointer-events: none;
+    margin-top: -5px;
+    /* Offset for the pin tip */
+    animation: pinBounce 0.4s ease-out;
+}
+
+@keyframes pinBounce {
+    0% {
+        transform: translate(-50%, -150%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate(-50%, -100%);
+        opacity: 1;
+    }
+}
+
+.center-marker-overlay svg {
+    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.35));
+}
+
+/* Route Timeline Card */
+.route-card {
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: #fff;
+}
+
+.route-container {
+    display: flex;
+    gap: 15px;
+}
+
+.route-timeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 15px;
+    width: 20px;
+}
+
+.timeline-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px #e0e0e0;
+    z-index: 2;
+}
+
+.pickup-dot {
+    background: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.dropoff-dot {
+    background: var(--secondary-color);
+    box-shadow: 0 0 0 2px var(--secondary-color);
+}
+
+/* Location Picker Modal Improvements */
+#locationPickerModal .modal-content {
+    border-radius: var(--radius-lg);
+    border: none;
+    overflow: hidden;
+}
+
+#locationPickerModal .modal-header {
+    background: var(--primary-color);
+    color: white;
+    border-bottom: none;
+    padding: 15px 20px;
+}
+
+#locationPickerModal .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+#locationPickerModal .modal-footer {
+    border-top: none;
+    padding: 15px;
+    background: white;
+}
+
+#locationPickerModal .btn-confirm-loc {
+    background: var(--primary-color);
+    color: white;
+    border-radius: var(--radius-md);
+    padding: 12px;
+    font-weight: 700;
+    width: 100%;
+    transition: var(--transition);
+}
+
+#locationPickerModal .btn-confirm-loc:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.timeline-line {
+    flex-grow: 1;
+    width: 2px;
+    background: repeating-linear-gradient(to bottom, #ccc 0, #ccc 4px, transparent 4px, transparent 8px);
+    margin: 4px 0;
+}
+
+.input-wrapper {
+    position: relative;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.location-input {
+    padding-right: 45px !important;
+    font-weight: 700 !important;
+    background: #f8f9fa !important;
+    border: 1px solid #f1f3f5 !important;
+    height: 50px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.location-input:focus {
+    background: #fff !important;
+    border-color: var(--primary-color) !important;
+}
+
+.input-icon {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    z-index: 10;
+}
+
+/* ========================================
+   Leaflet Layer Control Styling (Premium Switcher)
+   ======================================== */
+.leaflet-control-layers {
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    margin-left: 15px !important;
+    margin-top: 15px !important;
+}
+
+.leaflet-control-layers-toggle {
+    width: 44px !important;
+    height: 44px !important;
+    background-size: 26px 26px !important;
+    border-radius: 12px !important;
+}
+
+.leaflet-control-layers-expanded {
+    padding: 12px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 16px !important;
+}
+
+.leaflet-control-layers-list {
+    font-family: 'Cairo', sans-serif !important;
+    font-size: 0.9rem !important;
+}
+
+.leaflet-control-layers-base label {
+    margin-bottom: 8px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.leaflet-control-layers-base input {
+    width: 18px !important;
+    height: 18px !important;
+    accent-color: var(--primary-color) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 380px) {
+    .map-card-container {
+        height: 30vh;
+    }
+}

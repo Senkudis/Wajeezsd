@@ -1,0 +1,20 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/elnakazf/wassili.site"
+PassengerBaseURI "/"
+PassengerNodejs "/home/elnakazf/nodevenv/wassili.site/24/bin/node"
+PassengerAppType node
+PassengerStartupFile index.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+SetEnv EMAIL_FROM_NAME تطبيق وصل-لي
+SetEnv EMAIL_PASS bCbjYijJpW3P249
+SetEnv EMAIL_PORT 465
+SetEnv EMAIL_SECURE true
+SetEnv EMAIL_USER wassili@wassili.site
+SetEnv JWT_SECRET wassili_secret_key_2025
+SetEnv MONGO_URI mongodb+srv://diaakardmash_db_user:t575rwL8lfCvGxRT@wassili-db.ty4o3dv.mongodb.net/?appName=wassili-db
+SetEnv PORT 5000
+SetEnv EMAIL_HOST wassili.site
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END

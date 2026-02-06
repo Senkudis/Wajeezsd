@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعدادات الأسعار | وصل-لي</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+        }
+
+        .settings-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-card h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            padding: 12px 15px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .back-btn {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .input-group-text {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-left: none;
+        }
+    </style>
+    <!-- Mobile App Overrides -->
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+</head>
+
+<body>
+    <div class="container">
+        <a href="admin.html" class="back-btn">
+            <i class="bi bi-arrow-right"></i> العودة للوحة التحكم
+        </a>
+
+        <div class="settings-card">
+            <h1><i class="bi bi-gear-fill text-primary"></i> إعدادات الأسعار الديناميكية</h1>
+            <p class="text-muted">تحكم في أسعار الرحلات بدون تعديل الكود</p>
+
+            <div class="info-box">
+                <i class="bi bi-info-circle-fill text-primary"></i>
+                <strong>ملاحظة:</strong> التغييرات ستؤثر على جميع الطلبات الجديدة فوراً
+            </div>
+
+            <form id="settingsForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-cash-coin"></i> السعر الأساسي (فتح العداد)
+                        </label>
+                        <div class="input-group">
+                            <input type="number" id="baseFare" class="form-control" min="0" step="0.1" required>
+                            <span class="input-group-text">ج.س</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-speedometer2"></i> السعر لكل كيلومتر
+                        </label>
+                        <div class="input-group">
+                            <input type="number" id="costPerKm" class="form-control" min="0" step="0.1" required>
+                            <span class="input-group-text">ج.س/كم</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-clock"></i> السعر لكل دقيقة
+                        </label>
+                        <div class="input-group">
+                            <input type="number" id="costPerMinute" class="form-control" min="0" step="0.1" required>
+                            <span class="input-group-text">ج.س/دقيقة</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-percent"></i> نسبة العمولة
+                        </label>
+                        <div class="input-group">
+                            <input type="number" id="commissionRate" class="form-control" min="0" max="1" step="0.01"
+                                required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-muted">مثال: 0.15 = 15%</small>
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-phone"></i> رقم الأدمن للطوارئ
+                        </label>
+                        <input type="tel" id="adminPhone" class="form-control" placeholder="249XXXXXXXXX" required>
+                        <small class="text-muted">سيتم إرسال تنبيهات SOS لهذا الرقم</small>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-save btn-lg">
+                        <i class="bi bi-check-circle"></i> حفظ الإعدادات
+                    </button>
+                </div>
+            </form>
+
+            <div id="currentSettings" class="mt-4 p-3 bg-light rounded" style="display: none;">
+                <h6 class="text-muted">آخر تحديث:</h6>
+                <small id="lastUpdate"></small>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin-settings.js"></script>
+    <!-- Auth Helper & App Core -->
+    <script src="js/auth-helper.js"></script>
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,78 @@
+{
+    "tech_stack": [
+        "JavaScript",
+        "Node.js",
+        "Express.js",
+        "MongoDB",
+        "Capacitor",
+        "HTML/CSS",
+        "Bootstrap",
+        "Socket.io"
+    ],
+    "features": [
+        {
+            "name": "Auth API",
+            "description": "User and Captain authentication endpoints",
+            "files": [
+                "routes/auth.js"
+            ],
+            "api_doc": {}
+        },
+        {
+            "name": "Orders API",
+            "description": "Order creation, tracking, and management",
+            "files": [
+                "routes/orders.js"
+            ],
+            "api_doc": {}
+        },
+        {
+            "name": "Captain API",
+            "description": "Captain specific operations and status management",
+            "files": [
+                "routes/captain.js"
+            ],
+            "api_doc": {}
+        },
+        {
+            "name": "Admin API",
+            "description": "Administrative functions and system management",
+            "files": [
+                "routes/admin.js"
+            ],
+            "api_doc": {}
+        },
+        {
+            "name": "Chat API",
+            "description": "Messaging system between users and captains",
+            "files": [
+                "routes/chat.js"
+            ],
+            "api_doc": {}
+        },
+        {
+            "name": "Notifications API",
+            "description": "Push notification management",
+            "files": [
+                "routes/notifications.js"
+            ],
+            "api_doc": {}
+        },
+        {
+            "name": "Complaints API",
+            "description": "User complaint handling",
+            "files": [
+                "routes/complaints.js"
+            ],
+            "api_doc": {}
+        },
+        {
+            "name": "Emergency API",
+            "description": "Emergency alert system",
+            "files": [
+                "routes/emergency.js"
+            ],
+            "api_doc": {}
+        }
+    ]
+}

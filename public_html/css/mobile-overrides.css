@@ -1,0 +1,66 @@
+/* =========================================
+   Mobile Optimization Overrides
+   لتحسين تجربة المستخدم كأنها تطبيق أصلي
+   ========================================= */
+
+:root {
+    --sat: env(safe-area-inset-top);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+    --sar: env(safe-area-inset-right);
+}
+
+/* 1. منع تحديد النصوص والصور (تجربة App-like) */
+body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    
+    /* منع سحب الصفحة في iOS */
+    overscroll-behavior-y: none;
+    
+    /* استخدام كامل المساحة */
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+}
+
+/* استثناء للحقول النصية */
+input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* 2. إخفاء أشرطة التمرير (Scrollbars) */
+::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    scrollbar-width: none; /* Firefox */
+}
+
+/* 3. إلغاء تأثير "الضغط الرمادي" في الموبايل */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 4. تحسين الأزرار للمس */
+button, .btn, a {
+    touch-action: manipulation; /* تسريع استجابة اللمس */
+}
+
+/* 5. شريط الحالة (Status Bar) */
+/* يمكننا تلوينه لاحقاً عبر Capacitor، لكن هنا نضمن عدم تداخل المحتوى */
+.navbar.fixed-top, .navbar.sticky-top {
+    padding-top: max(8px, var(--sat));
+}
+
+/* 6. تحسينات الـ PWA */
+@media all and (display-mode: standalone) {
+    body {
+        /* تحسينات خاصة عند الفتح كتطبيق */
+    }
+}

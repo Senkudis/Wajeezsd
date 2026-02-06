@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حساب جديد | وصل-لي</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Mobile App Overrides -->
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <script src="js/config.js"></script>
+    <script src="js/auth-helper.js"></script>
+</head>
+
+<body class="bg-light">
+
+    <div class="auth-container">
+        <div class="auth-box glass-card card-hover p-4 p-md-5">
+            <div class="text-center mb-4">
+                <a href="index.html" class="d-inline-block transition-transform hover-scale">
+                    <img src="logo.png" alt="وصل-لي" height="70">
+                </a>
+            </div>
+
+            <!-- Step 1: Register Form -->
+            <div id="register-step">
+                <h2 class="text-center mb-4 fw-bold text-dark">
+                    إنشاء حساب عميل <i class="bi bi-person-plus text-primary"></i>
+                </h2>
+
+                <div id="error" class="alert alert-danger d-none mb-3" role="alert"></div>
+
+                <div class="mb-3 text-end">
+                    <label for="name" class="form-label fw-bold small text-muted">الاسم</label>
+                    <input type="text" id="name" class="form-control" placeholder="محمد أحمد">
+                </div>
+
+                <div class="mb-3 text-end">
+                    <label for="phone" class="form-label fw-bold small text-muted">الهاتف (09 أو 01)</label>
+                    <input type="text" id="phone" class="form-control" placeholder="09xxxxxxxx" dir="ltr">
+                </div>
+
+                <div class="mb-3 text-end">
+                    <label for="email" class="form-label fw-bold small text-muted">الإيميل</label>
+                    <input type="email" id="email" class="form-control" placeholder="name@example.com" dir="ltr">
+                </div>
+
+                <div class="mb-4 text-end">
+                    <label for="password" class="form-label fw-bold small text-muted">كلمة المرور</label>
+                    <input type="password" id="password" class="form-control" placeholder="******">
+                </div>
+
+                <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="registerStep()">
+                    إنشاء الحساب وإرسال الكود
+                </button>
+
+                <div class="text-center mt-3">
+                    <p class="text-muted">لديك حساب؟
+                        <a href="client-login.html" class="text-primary fw-bold text-decoration-none">دخل الآن</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 2: Verification Form -->
+            <div id="verify-step" style="display: none;">
+                <h2 class="text-center mb-3 fw-bold text-dark">
+                    تأكيد الحساب <i class="bi bi-check-circle text-success"></i>
+                </h2>
+                <p class="text-center text-muted mb-4">
+                    أدخل الكود المرسل إلى واتساب:<br>
+                    <span id="display-phone" class="fw-bold text-dark"></span>
+                </p>
+
+                <div class="mb-4">
+                    <input type="text" id="verificationCode"
+                        class="form-control form-control-lg text-center fw-bold fs-3 text-primary" placeholder="xxxxxx"
+                        maxlength="6" style="letter-spacing: 5px;">
+                </div>
+
+                <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="verifyStep()">
+                    تفعيل الحساب <i class="bi bi-patch-check-fill ms-2"></i>
+                </button>
+
+                <div class="text-center mt-3">
+                    <button id="resendBtn" onclick="resendCode()" class="btn btn-link text-decoration-none text-muted"
+                        disabled>
+                        إعادة إرسال الكود (<span id="timer">30</span>)
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let countdownInterval;
+
+        // دالة تنظيف وتنسيق رقم الهاتف
+        function normalizePhone(phone) {
+            // إزالة كل شيء ماعدا الأرقام
+            let cleaned = phone.replace(/[^0-9]/g, '');
+
+            // حالة: 2490912345678 (خطأ شائع - 249 + 0 + رقم)
+            if (cleaned.startsWith('2490')) {
+                cleaned = cleaned.substring(4); // نحذف 2490
+                return '249' + cleaned; // نضيف 249 فقط
+            }
+
+            // حالة: 249912345678 (صحيح بالفعل)
+            if (cleaned.startsWith('249') && cleaned.length >= 12) {
+                return cleaned; // نرجعه كما هو
+            }
+
+            // حالة: 0912345678 أو 0123456789 (نحذف الصفر ونضيف 249)
+            if (cleaned.startsWith('0')) {
+                cleaned = cleaned.substring(1); // نحذف الصفر
+                return '249' + cleaned;
+            }
+
+            // حالة: 912345678 أو 123456789 (بدون 0 وبدون 249)
+            if (cleaned.length === 9) {
+                return '249' + cleaned;
+            }
+
+            // أي حالة تانية، نضيف 249
+            return '249' + cleaned;
+        }
+
+        // دالة العداد التنازلي
+        function startTimer() {
+            let timeLeft = 30; // 30 ثانية
+            const btn = document.getElementById('resendBtn');
+            const timerSpan = document.getElementById('timer');
+
+            btn.disabled = true;
+            btn.classList.add('text-muted');
+            btn.classList.remove('text-primary');
+            btn.innerHTML = `إعادة إرسال الكود (<span id="timer">${timeLeft}</span>)`;
+
+            clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                const timerElem = document.getElementById('timer');
+                if (timerElem) timerElem.innerText = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    btn.disabled = false;
+                    btn.classList.remove('text-muted');
+                    btn.classList.add('text-primary');
+                    btn.innerText = "إعادة إرسال الكود الآن 🔄";
+                }
+            }, 1000);
+        }
+
+        // 1️⃣ دالة التسجيل (لأول مرة)
+        async function registerStep() {
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+
+            // تحقق بسيط
+            if (!name || !phone || !email || !password) {
+                errorDiv.innerText = "الرجاء ملء جميع الحقول";
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            // Phone Validation: Must be 10 digits and start with 09 or 01
+            const phoneRegex = /^(09|01)\d{8}$/;
+            if (!phoneRegex.test(phone)) {
+                errorDiv.innerText = "رقم الهاتف يجب أن يكون 10 أرقام ويبدأ بـ 09 أو 01";
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            // تنظيف وتنسيق رقم الهاتف
+            const normalizedPhone = normalizePhone(phone);
+            console.log('Original phone:', phone);
+            console.log('Normalized phone:', normalizedPhone);
+
+            errorDiv.classList.add('d-none');
+
+            // زر تحميل
+            const regBtn = document.querySelector('#register-step button');
+            const oldText = regBtn.innerText;
+            regBtn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span> جاري المعالجة...';
+            regBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone: normalizedPhone, email, password, role: 'client' })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // إخفاء التسجيل وإظهار التحقق
+                    document.getElementById('register-step').style.display = 'none';
+                    document.getElementById('verify-step').style.display = 'block';
+                    document.getElementById('display-phone').innerText = normalizedPhone;
+
+                    Swal.fire({
+                        title: 'تم إرسال الكود!',
+                        html: 'راجع <strong>واتساب</strong> للحصول على كود التفعيل<br><small class="text-muted">الرقم: ' + normalizedPhone + '</small>',
+                        icon: 'success',
+                        confirmButtonColor: '#0a8754'
+                    });
+                    startTimer();
+                } else {
+                    errorDiv.innerText = data.message;
+                    errorDiv.classList.remove('d-none');
+                }
+            } catch (err) {
+                errorDiv.innerText = "خطأ في الاتصال بالسيرفر";
+                errorDiv.classList.remove('d-none');
+            } finally {
+                regBtn.innerText = oldText;
+                regBtn.disabled = false;
+            }
+        }
+
+        // 2️⃣ دالة إعادة الإرسال (التصحيح هنا) ✅
+        async function resendCode() {
+            const email = document.getElementById('email').value;
+            const btn = document.getElementById('resendBtn');
+            const originalText = btn.innerText;
+
+            btn.innerText = "جاري الإرسال...";
+
+            try {
+                // 👇 نستخدم رابط إعادة الإرسال وليس التسجيل
+                const res = await fetch(`${API_URL}/api/auth/resend-code`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    Swal.fire({
+                        title: 'تم!',
+                        text: 'تم إرسال كود جديد على واتساب.',
+                        icon: 'success',
+                        confirmButtonColor: '#0a8754'
+                    });
+                    startTimer(); // إعادة تشغيل العداد
+                } else {
+                    Swal.fire('خطأ', data.message, 'error');
+                    btn.innerText = originalText; // إرجاع النص في حال الخطأ
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire('خطأ', 'فشل الاتصال', 'error');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // 3️⃣ دالة تفعيل الحساب
+        async function verifyStep() {
+            const email = document.getElementById('email').value;
+            const code = document.getElementById('verificationCode').value;
+
+            if (!code) { Swal.fire('تنبيه', 'ادخل الكود', 'warning'); return; }
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // ✅ نجاح التفعيل + تسجيل دخول تلقائي
+                    // حفظ البيانات
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('userId', data.user._id);
+                        localStorage.setItem('userName', data.user.name);
+                        localStorage.setItem('userRole', data.user.role);
+                    }
+
+                    Swal.fire({
+                        title: 'تم تفعيل الحساب!',
+                        text: 'جاري الدخول للتطبيق...',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = 'index.html';
+                    });
+                } else {
+                    Swal.fire('خطأ', data.message || 'الكود غير صحيح', 'error');
+                }
+            } catch (err) {
+                Swal.fire('خطأ', 'حدث خطأ غير متوقع', 'error');
+            }
+        }
+    </script>
+
+    <!-- Auth Helper already loaded in head -->
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+</body>
+
+</html>

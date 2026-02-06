@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلب جديد | وصل-لي</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a8754">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' data: gap: content: 'unsafe-eval'; 
+        style-src 'self' 'unsafe-inline' https://*; 
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*; 
+        connect-src * ws: wss:; 
+        img-src * data: blob: content:; 
+        font-src 'self' data: https://*;
+    ">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
+    <style>
+        :root {
+            --primary-color: #0a8754;
+            --bg-color: #f4f6f8;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-color);
+            padding-bottom: 90px;
+        }
+
+        /* --- Strict English Numbers --- */
+        input[type="tel"],
+        input[type="number"],
+        .english-num,
+        .price-input {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            direction: ltr !important;
+            unicode-bidi: bidi-override !important;
+            text-align: right;
+        }
+
+        .price-input {
+            text-align: center !important;
+        }
+
+        /* --- Enhanced Header --- */
+        .app-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 16px 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(10, 135, 84, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Menu Toggle Button */
+        .menu-toggle-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 12px rgba(10, 135, 84, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .menu-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(10, 135, 84, 0.4);
+        }
+
+        .menu-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Logo Container */
+        .logo-container {
+            position: relative;
+            width: 48px;
+            height: 48px;
+        }
+
+        .app-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-color);
+            box-shadow: 0 4px 12px rgba(10, 135, 84, 0.2);
+            object-fit: cover;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .app-logo:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: 0 6px 16px rgba(10, 135, 84, 0.3);
+        }
+
+        /* Logo Pulse Effect */
+        .logo-pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            opacity: 0.3;
+            animation: pulse 2s infinite;
+            z-index: 1;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        /* Header Text */
+        .header-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .greeting-text {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            letter-spacing: -0.3px;
+        }
+
+        .subtitle-text {
+            font-size: 0.75rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        /* Notification Button */
+        .notification-btn {
+            position: relative;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #495057;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .notification-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(10, 135, 84, 0.3);
+        }
+
+        .notification-btn:active {
+            transform: scale(0.95);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 10px;
+            height: 10px;
+            background: #dc3545;
+            border: 2px solid white;
+            border-radius: 50%;
+            animation: badge-pulse 1.5s infinite;
+        }
+
+        @keyframes badge-pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        /* --- Cards & Inputs --- */
+        .section-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-control {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus {
+            background-color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(10, 135, 84, 0.1);
+        }
+
+        .map-btn {
+            background: #e8f5e9;
+            color: var(--primary-color);
+            border: 1px dashed var(--primary-color);
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+
+        .map-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* --- Map Modal --- */
+        #mapModal .modal-body {
+            padding: 0;
+            height: 60vh;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal-locate-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 999;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+
+        /* --- Pricing Section --- */
+        .price-input {
+            background: #f0fdf4 !important;
+            border: 2px solid #0a8754 !important;
+            color: #0a8754 !important;
+            font-weight: 800 !important;
+            font-size: 1.3rem !important;
+        }
+
+        /* --- Submit Button --- */
+        .btn-submit {
+            background: #0a8754;
+            color: white;
+            font-weight: 800;
+            padding: 16px;
+            border-radius: 50px;
+            width: 100%;
+            border: none;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(10, 135, 84, 0.3);
+            transition: 0.3s;
+        }
+
+        .btn-submit:disabled {
+            background: #ccc;
+            box-shadow: none;
+        }
+    </style>
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+
+    <div class="app-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#sideMenu">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <div class="logo-container">
+                    <img src="logo.png" alt="وصل-لي" class="app-logo">
+                    <div class="logo-pulse"></div>
+                </div>
+
+                <div class="header-text">
+                    <h6 class="greeting-text" id="greeting">مرحباً 👋</h6>
+                    <small class="subtitle-text">طلبك وين ماشي اليوم؟</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update greeting with user name if logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const userName = localStorage.getItem('userName');
+            if (userName) {
+                document.getElementById('greeting').innerHTML = `مرحباً ${userName} 👋`;
+            }
+        });
+    </script>
+
+    <div class="container">
+        <input type="hidden" id="pickup-lat">
+        <input type="hidden" id="pickup-lng">
+        <input type="hidden" id="dropoff-lat">
+        <input type="hidden" id="dropoff-lng">
+
+        <div class="section-card route-card px-3 pt-4 pb-3">
+            <div class="route-container">
+                <div class="route-timeline">
+                    <div class="timeline-dot pickup-dot"></div>
+                    <div class="timeline-line"></div>
+                    <div class="timeline-dot dropoff-dot"></div>
+                </div>
+
+                <div class="route-inputs w-100">
+
+                    <div class="mb-4 position-relative">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="text-muted small fw-bold">من وين؟ (موقع الاستلام)</label>
+                            <button class="btn btn-sm btn-outline-success border-0 py-0 px-2 fw-bold"
+                                onclick="openMapModal('pickup')">
+                                <i class="bi bi-map-fill me-1"></i>تحديد من الخريطة
+                            </button>
+                        </div>
+                        <div class="input-wrapper">
+                            <input type="text" class="form-control location-input" id="pickup-addr"
+                                placeholder="الموقع غير محدد (أو اكتب العنوان هنا)">
+                            <span class="input-icon text-success"><i class="bi bi-geo-alt-fill"></i></span>
+                        </div>
+                        <div class="row g-2 mt-1">
+                            <div class="col-7">
+                                <input type="text" id="pickup-name" class="form-control form-control-sm bg-white"
+                                    placeholder="اسم المرسل / المحل">
+                            </div>
+                            <div class="col-5">
+                                <input type="tel" id="pickup-phone"
+                                    class="form-control form-control-sm bg-white english-num" placeholder="رقم الهاتف">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-0 position-relative">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="text-muted small fw-bold">لوين؟ (موقع التسليم)</label>
+                            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold"
+                                onclick="openMapModal('dropoff')">
+                                <i class="bi bi-map-fill me-1"></i>تحديد من الخريطة
+                            </button>
+                        </div>
+                        <div class="input-wrapper">
+                            <input type="text" class="form-control location-input" id="dropoff-addr"
+                                placeholder="الوجهة غير محدد (أو اكتب العنوان هنا)">
+                            <span class="input-icon text-danger"><i class="bi bi-flag-fill"></i></span>
+                        </div>
+                        <div class="row g-2 mt-1">
+                            <div class="col-7">
+                                <input type="text" id="dropoff-name" class="form-control form-control-sm bg-white"
+                                    placeholder="اسم المستلم">
+                            </div>
+                            <div class="col-5">
+                                <input type="tel" id="dropoff-phone"
+                                    class="form-control form-control-sm bg-white english-num" placeholder="رقم الهاتف">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title">
+                <i class="bi bi-box-seam-fill"></i> تفاصيل الطلب
+            </div>
+            <textarea id="details" class="form-control mb-3" rows="2"
+                placeholder="وصف للأغراض (مثلاً: كيس ملابس، مستندات...)" maxlength="500"></textarea>
+
+            <label class="btn btn-outline-secondary w-100 border-dashed py-2 rounded-3" for="parcel-image">
+                <i class="bi bi-camera me-2"></i> صورة للطرد (اختياري)
+            </label>
+            <input type="file" id="parcel-image" class="d-none" accept="image/*" onchange="previewImage(this)">
+
+            <div id="img-preview" class="mt-2 d-none position-relative">
+                <img src="" class="rounded-3 object-fit-cover w-100" style="height: 120px;">
+                <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
+                    onclick="clearImage()">×</button>
+            </div>
+        </div>
+
+        <div class="section-card bg-light border-0">
+            <label class="section-title text-success mb-2">
+                <i class="bi bi-cash-stack"></i> تقدير السعر
+            </label>
+
+            <select id="distance-type" class="form-select mb-3 border-success text-success fw-bold"
+                onchange="calculatePrice()">
+                <option value="">كم تبعد المسافة تقريباً؟</option>
+                <option value="short">🚲 قريب (نفس الحي) - 3000 ج</option>
+                <option value="medium">🛵 وسط (حي مجاور) - 6000 ج</option>
+                <option value="long">🏎️ بعيد (مشوار طويل) - 10000 ج</option>
+                <option value="custom">✍️ سعر خاص (أدخل يدوياً)</option>
+            </select>
+
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-white border-success border-end-0 text-success fw-bold">ج.س</span>
+                <input type="number" id="price" class="form-control price-input" lang="en" dir="ltr" placeholder="0">
+            </div>
+
+            <button id="submit-btn" class="btn-submit" onclick="createOrder()">
+                <i class="bi bi-rocket-takeoff-fill me-2"></i> اطلب الكابتن الآن
+            </button>
+        </div>
+
+    </div>
+
+    <div class="modal fade" id="locationPickerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-sm-down">
+            <div class="modal-content border-0">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold" id="modalTitle">تحديد الموقع</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body position-relative p-0" style="height: 50vh; overflow: hidden;">
+                    <div id="pickerMap" style="width: 100%; height: 100%; min-height: 300px;"></div>
+
+                    <div class="center-marker-overlay">
+                        <svg width="40" height="50" viewBox="0 0 40 40" fill="none" class="drop-shadow">
+                            <path d="M20 0C11.163 0 4 7.163 4 16c0 11 16 24 16 24s16-13 16-24c0-8.837-7.163-16-16-16z"
+                                fill="#dc3545" />
+                            <circle cx="20" cy="16" r="6" fill="#fff" />
+                        </svg>
+                    </div>
+
+                    <button onclick="locateMe()" class="modal-locate-btn">
+                        <i class="bi bi-crosshair"></i>
+                    </button>
+                </div>
+                <div class="modal-footer border-0 p-3"
+                    style="position: sticky; bottom: 0; background: white; z-index: 1000;">
+                    <button type="button" class="btn btn-success w-100 py-3 fw-bold rounded-4"
+                        onclick="confirmLocationSelection()">
+                        تأكيد اختيار الموقع ✅
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="mobile-nav-glass">
+        <a href="index.html" class="nav-item-link active">
+            <i class="bi bi-house-door-fill"></i>
+            <span class="small d-block">الرئيسية</span>
+        </a>
+        <a href="client-my-orders.html" class="nav-item-link">
+            <i class="bi bi-box-seam"></i>
+            <span class="small d-block">طلباتي</span>
+        </a>
+        <a href="notifications.html" class="nav-item-link">
+            <i class="bi bi-bell"></i>
+            <span class="small d-block">الإشعارات</span>
+        </a>
+    </nav>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sideMenu" aria-labelledby="sideMenuLabel"
+        style="width: 80%;">
+        <div class="offcanvas-header bg-success text-white">
+            <div class="d-flex align-items-center gap-2">
+                <img src="logo.png" width="40" class="rounded-circle bg-white p-1">
+                <h5 class="offcanvas-title fw-bold" id="sideMenuLabel">وصل-لي</h5>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
+                aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <div class="list-group list-group-flush">
+                <div class="list-group-item p-3 bg-light border-bottom">
+                    <small class="text-muted d-block">الحساب</small>
+                    <h6 class="fw-bold mb-0" id="menu-username">زائر</h6>
+                </div>
+                <a href="client-login.html" id="menu-login-btn" class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-box-arrow-in-right me-3 text-primary"></i> تسجيل الدخول
+                </a>
+                <a href="client-my-orders.html" class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-clock-history me-3 text-success"></i> طلباتي السابقة
+                </a>
+                <a href="client-wallet.html" class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-wallet2 me-3 text-warning"></i> المحفظة
+                </a>
+                <a href="landing.html" class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-info-circle me-3 text-info"></i> عن وصل-لي
+                </a>
+                <a href="#" onclick="logout()" id="menu-logout-btn"
+                    class="list-group-item list-group-item-action py-3 text-danger d-none">
+                    <i class="bi bi-box-arrow-right me-3"></i> تسجيل الخروج
+                </a>
+            </div>
+            <div class="p-3 mt-4 text-center">
+                <p class="text-muted small">إصدار التطبيق 1.0.1</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Update Menu User State
+        function updateMenuState() {
+            const uName = localStorage.getItem('userName');
+            if (uName) {
+                document.getElementById('menu-username').innerText = uName;
+                document.getElementById('menu-login-btn').classList.add('d-none');
+                document.getElementById('menu-logout-btn').classList.remove('d-none');
+                // Also update greeting if element exists
+                const greetingEl = document.getElementById('greeting');
+                if (greetingEl) greetingEl.innerHTML = `مرحباً ${uName} 👋`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', updateMenuState);
+        // Force update when showing page (fixes back button issues)
+        window.addEventListener('pageshow', updateMenuState);
+    </script>
+
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="savedLocationsModal" style="height: 70vh;">
+        <div class="offcanvas-header bg-success text-white">
+            <h5 class="offcanvas-title">
+                <i class="bi bi-star-fill me-2"></i>المواقع المفضلة
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="saved-locations-list"></div>
+        </div>
+    </div>
+
+    <style>
+        #locationPickerModal .modal-dialog {
+            display: flex;
+            align-items: flex-end;
+            min-height: 100%;
+            margin: 0;
+        }
+
+        #locationPickerModal .modal-content {
+            border-radius: 20px 20px 0 0;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            /* Fixed height for stability */
+            max-height: 85vh;
+        }
+
+        #locationPickerModal .modal-body {
+            flex: 1;
+            /* Map takes all remaining space */
+            position: relative;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #pickerMap {
+            width: 100%;
+            height: 100% !important;
+        }
+
+        .modal-footer {
+            position: relative;
+            /* Sit strictly below the map */
+            width: 100%;
+            background: white;
+            z-index: 9999;
+            /* Ensure it stays on top of any map layers */
+            padding: 15px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+            /* Prevent shrinking */
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+            /* Visual separation from map */
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="js/notification-toast.js"></script>
+
+    <script src="js/config.js"></script>
+    <script src="js/console-cleaner.js"></script>
+    <script src="js/input-validator.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <script src="js/saved-locations.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="js/onboarding.js"></script>
+    <script type="module" src="js/native-dialogs.js"></script>
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+
+    <script src="js/home.js"></script>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+
+
+
+    <script src="/sw-register.js"></script>
+    <script src="/install-prompt.js"></script>
+
+    <script>
+        // Fix gray map issue when modal opens
+        document.getElementById('locationPickerModal').addEventListener('shown.bs.modal', function () {
+            // Trigger window resize event
+            window.dispatchEvent(new Event('resize'));
+
+            // Force Leaflet to recalculate map size
+            // The map variable might be called 'map' or 'pickerMap' depending on your home.js implementation
+            if (typeof map !== 'undefined' && map) {
+                setTimeout(() => map.invalidateSize(), 100);
+            }
+            if (typeof pickerMap !== 'undefined' && pickerMap) {
+                setTimeout(() => pickerMap.invalidateSize(), 100);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

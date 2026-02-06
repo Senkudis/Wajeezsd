@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رفع شكوى | وصل-لي</title>
+    <!-- Bootstrap 5 RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Mobile App Overrides -->
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <script src="js/config.js"></script>
+</head>
+
+<body class="pb-5 mb-5 bg-light">
+
+    <!-- Header Section -->
+    <div class="app-header">
+        <div class="container pt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white rounded-circle p-2 shadow-sm">
+                        <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0 text-white">رفع شكوى</h2>
+                        <p class="small text-white-50 mb-0">نحن هنا لمساعدتك</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complaint Form -->
+    <div class="container" style="margin-top: -30px;">
+        <div class="card glass-card border-0">
+            <div class="card-body p-4">
+                <form id="complaintForm" onsubmit="submitComplaint(event)">
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">رقم الطلب</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-hash"></i></span>
+                            <input type="text" id="orderId" class="form-control bg-light border-0" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">ما هي المشكلة؟</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i
+                                    class="bi bi-question-circle"></i></span>
+                            <select id="reason" class="form-select bg-light border-0" required>
+                                <option value="" selected disabled>اختر السبب...</option>
+                                <option value="Didn't receive">لم استلم الطلب</option>
+                                <option value="Damaged">الطلب تالف / ناقص</option>
+                                <option value="Wrong Item">سلعة خاطئة</option>
+                                <option value="Other">سبب آخر</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark">التفاصيل</label>
+                        <textarea id="description" class="form-control bg-light border-0" rows="5"
+                            placeholder="اشرح المشكلة بالتفصيل حتى نتمكن من مساعدتك..." required></textarea>
+                    </div>
+
+                    <div class="d-grid gap-3">
+                        <button type="submit" id="submitBtn" class="btn btn-danger py-3 fw-bold rounded-pill shadow-sm">
+                            <i class="bi bi-send-fill me-2"></i> إرسال الشكوى
+                        </button>
+                        <a href="client-my-orders.html"
+                            class="btn btn-outline-secondary py-3 fw-bold rounded-pill border-2">
+                            إلغاء وعودة
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="mobile-nav-glass">
+        <a href="client-orders.html" class="nav-item-link">
+            <i class="bi bi-house-door-fill"></i>
+        </a>
+        <a href="client-my-orders.html" class="nav-item-link">
+            <i class="bi bi-box2"></i>
+        </a>
+        <a href="notifications.html" class="nav-item-link">
+            <i class="bi bi-bell-fill"></i>
+        </a>
+        <a href="#" onclick="logout()" class="nav-item-link">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="notification-toast.js"></script>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('orderId');
+        const token = localStorage.getItem('token') || localStorage.getItem('clientToken');
+
+        if (!token) window.location.href = 'client-login.html';
+        if (orderId) document.getElementById('orderId').value = orderId;
+
+        async function submitComplaint(e) {
+            e.preventDefault();
+
+            const reason = document.getElementById('reason').value;
+            const description = document.getElementById('description').value;
+            const btn = document.getElementById('submitBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...';
+
+            try {
+                const res = await fetch(`${API_URL}/api/complaints`, {
+                    method: 'POST',
+                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId, reason, description })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    Swal.fire({
+                        title: 'تم الإرسال',
+                        text: 'سنقوم بمراجعة الشكوى والرد عليك قريباً.',
+                        icon: 'success',
+                        confirmButtonText: 'حسناً',
+                        confirmButtonColor: '#0a8754'
+                    }).then(() => window.location.href = 'client-my-orders.html');
+                } else {
+                    Swal.fire('خطأ', data.message || 'حدث خطأ ما', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-send-fill me-2"></i> إرسال الشكوى';
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire('خطأ', 'فشل الاتصال بالخادم', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send-fill me-2"></i> إرسال الشكوى';
+            }
+        }
+
+        function logout() {
+            if (confirm('تسجيل خروج؟')) {
+                localStorage.clear();
+                window.location.href = 'client-login.html';
+            }
+        }
+    </script>
+    <!-- Auth Helper & App Core -->
+    <script src="js/auth-helper.js"></script>
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+</body>
+
+</html>

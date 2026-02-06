@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>وصل-لي | خدمة توصيل سريعة واقتصادية في أم درمان</title>
+
+    <meta name="description"
+        content="اطلب خدمة وصل-لي (Wassili) في أم درمان. أسرع خدمة توصيل بالعجلات الكهربائية لتفادي الزحام وتوفير المال. تتبع طلبك لحظة بلحظة وادفع كاش عند الاستلام.">
+    <meta name="keywords"
+        content="وصل لي, Wassili, توصيل, دليفري, أم درمان, عجلات كهربائية, السودان, توصيل طلبات, تطبيق توصيل, توصيل سريع">
+    <meta name="author" content="Wassili Team">
+    <link rel="canonical" href="https://kedestore.store">
+
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content="وصل-لي | توصيل أسرع، تكلفة أقل">
+    <meta property="og:description"
+        content="أسرع خدمة توصيل في أم درمان بالعجلات الكهربائية. وفر وقتك وقروشك مع وصل-لي.">
+    <meta property="og:image" content="https://kedestore.store/icons/icon-192x192.png">
+    <meta property="og:url" content="https://kedestore.store">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="وصل-لي | توصيل أسرع، تكلفة أقل">
+    <meta name="twitter:description"
+        content="أسرع خدمة توصيل في أم درمان بالعجلات الكهربائية. وفر وقتك وقروشك مع وصل-لي.">
+    <meta name="twitter:image" content="https://kedestore.store/icons/icon-192x192.png">
+
+    <!-- JSON-LD Structured Data for Google Search Console (FAQ Schema) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "كيف أضمن وصول طلبي بأمان؟",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "جميع الكباتن في وصل-لي مسجلون ببياناتهم الرسمية (رقم وطني، رخصة)، ويمكنك تتبع الطلب لحظياً عبر الخريطة والتواصل المباشر."
+        }
+      }, {
+        "@type": "Question",
+        "name": "ماذا أفعل إذا حدثت مشكلة؟",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "تطبيقنا فيه نظام بلاغات فوري. أي مشكلة تواجهك اضغط زر بلاغ، وفريق الدعم بيتدخل طوالي ويحلها ليك."
+        }
+      }, {
+        "@type": "Question",
+        "name": "هل الخدمة شغالة في كل السودان؟",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "حالياً مركزين في أم درمان بالذات عشان نضمن السرعة والجودة، وقريب حنفتح في باقي الولايات بإذن الله."
+        }
+      }]
+    }
+    </script>
+
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a8754">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* شريط الاطلاق قريباً */
+        .coming-soon-bar {
+            background: linear-gradient(45deg, #ffc107, #ffdb4d);
+            color: #000;
+            font-weight: 800;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1031;
+        }
+
+        .rocket-anim {
+            display: inline-block;
+            animation: rocket-fly 2s infinite ease-in-out;
+        }
+
+        @keyframes rocket-fly {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-3px) rotate(-5deg);
+            }
+        }
+
+        /* تحسين زر القائمة (Toggle Button) */
+        .navbar-toggler {
+            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        /* تأثير الضغط المتكرر */
+        .navbar-toggler:active {
+            transform: scale(0.85) !important;
+            background-color: rgba(10, 135, 84, 0.2) !important;
+        }
+
+        .navbar-toggler:hover {
+            background-color: rgba(10, 135, 84, 0.1);
+            border-color: #0a8754;
+            transform: scale(1.05);
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: 0 0 0 0.25rem rgba(10, 135, 84, 0.25);
+            outline: none;
+        }
+
+        .navbar-toggler-icon {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
+            transform: rotate(90deg);
+        }
+
+        .nav-link {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+        }
+
+        .bg-darker {
+            background-color: #111 !important;
+        }
+
+        .dir-ltr {
+            direction: ltr;
+            display: inline-block;
+        }
+    </style>
+
+    <!-- Mobile App Overrides -->
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+
+    <!-- Mobile App Overrides -->
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+</head>
+
+<body data-bs-spy="scroll" data-bs-target=".navbar">
+
+    <div class="coming-soon-bar py-2 text-center fs-6">
+        <div class="container d-flex justify-content-center align-items-center gap-2">
+            <i class="bi bi-stars text-danger" aria-hidden="true"></i>
+            <span>الإطلاق قريباً.. خليكم جاهزين!</span>
+            <i class="bi bi-rocket-takeoff-fill text-danger rocket-anim" aria-hidden="true"></i>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg glass-nav sticky-top" aria-label="التنقل الرئيسي">
+        <div class="container">
+            <a class="navbar-brand logo" href="index.html">
+                <img src="logo.png" alt="شعار وصل-لي - خدمة توصيل في أم درمان" height="60">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                aria-controls="mainNav" aria-expanded="false" aria-label="تبديل القائمة">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-bold gap-3">
+                    <li class="nav-item"><a class="nav-link text-dark" href="#features">المميزات</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark" href="#how-it-works">كيف نعمل</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark" href="pricing.html">الأسعار</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark" href="#contact">تواصل معنا</a></li>
+                </ul>
+                <div class="d-flex gap-2 mt-3 mt-lg-0">
+                    <a href="admin-login.html" class="btn btn-outline-secondary btn-sm rounded-pill px-4">الإدارة</a>
+                    <a href="client-login.html" class="btn btn-primary rounded-pill px-4">دخول مجاني</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <header class="hero-wrapper text-center text-white position-relative">
+            <div class="container position-relative z-2">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <h1 class="display-3 fw-black mb-4">توصيل أسرع ..<br><span class="text-warning">تكلفة
+                                أقل!</span></h1>
+                        <p class="lead mb-5 opacity-90 fs-4">أول خدمة توصيل في أم درمان تعتمد على العجلات الكهربائية
+                            والهوائية لتفادي الزحمة | وفر وقتك، قروشك وريح بالك.</p>
+
+                        <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
+                            <a href="client-login.html" class="btn btn-primary btn-lg shadow-lg py-3 px-5 rounded-pill">
+                                <i class="bi bi-person-circle ms-2" aria-hidden="true"></i> اطلب توصيلة
+                            </a>
+                            <a href="captain-login.html"
+                                class="btn btn-light text-success btn-lg shadow-lg py-3 px-5 rounded-pill fw-bold">
+                                <i class="bi bi-bicycle ms-2" aria-hidden="true"></i> كابتن؟ خش هنا
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50 z-1"></div>
+        </header>
+
+        <section id="features" class="py-5 bg-white">
+            <div class="container py-5">
+                <div class="text-center mb-5">
+                    <p class="text-success fw-bold text-uppercase ls-2">لماذا نحن؟</p>
+                    <h2 class="display-5 fw-bold text-dark">مميزات بتفرق معاك</h2>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <article class="card h-100 card-hover glass-card text-center p-4 border-0">
+                            <div class="d-flex justify-content-center">
+                                <div class="feature-icon-box">
+                                    <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <h3 class="h4 fw-bold">سرعة صاروخية</h3>
+                            <p class="text-muted">بنستخدم مواتر وعجلات عشان نزوغ من الزحمة ونوصلك في وقت قياسي.</p>
+                        </article>
+                    </div>
+                    <div class="col-md-4">
+                        <article class="card h-100 card-hover glass-card text-center p-4 border-0">
+                            <div class="d-flex justify-content-center">
+                                <div class="feature-icon-box">
+                                    <i class="bi bi-wallet2" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <h3 class="h4 fw-bold">وفر قروشك</h3>
+                            <p class="text-muted">أسعارنا ما فيها مجاملة، اقتصادية وتناسب جيبك. والدفع كاش عند الاستلام.
+                            </p>
+                        </article>
+                    </div>
+                    <div class="col-md-4">
+                        <article class="card h-100 card-hover glass-card text-center p-4 border-0">
+                            <div class="d-flex justify-content-center">
+                                <div class="feature-icon-box">
+                                    <i class="bi bi-shield-check" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <h3 class="h4 fw-bold">أمان وموثوقية</h3>
+                            <p class="text-muted">كباتننا أولاد ناس وموثقين. وتقدر تتابع طلبك لحظة بلحظة على الخريطة.
+                            </p>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="py-5 bg-light">
+            <div class="container py-5">
+                <div class="text-center mb-5">
+                    <h2 class="display-5 fw-bold">كيف يعمل النظام؟</h2>
+                    <p class="text-muted lead">3 خطوات بسيطة وتوصلك حاجتك</p>
+                </div>
+
+                <div class="row g-4 text-center">
+                    <div class="col-md-4">
+                        <div class="position-relative">
+                            <div class="display-1 fw-bold text-success opacity-25 position-absolute top-0 start-50 translate-middle-x"
+                                style="z-index: 0;">1</div>
+                            <div class="position-relative z-1 pt-4">
+                                <i class="bi bi-pencil-square fs-1 text-primary mb-3" aria-hidden="true"></i>
+                                <h4 class="fw-bold">اكتب طلبك</h4>
+                                <p class="text-muted px-4">حدد مكان الاستلام والتسليم واكتب تفاصيل الغرض.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="position-relative">
+                            <div
+                                class="display-1 fw-bold text-success opacity-25 position-absolute top-0 start-50 translate-middle-x">
+                                2</div>
+                            <div class="position-relative z-1 pt-4">
+                                <i class="bi bi-chat-text-fill fs-1 text-primary mb-3" aria-hidden="true"></i>
+                                <h4 class="fw-bold">اتفاوض مع الكابتن</h4>
+                                <p class="text-muted px-4">الكباتن حيقدموا عروض، اختار السعر المناسب ليك.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="position-relative">
+                            <div
+                                class="display-1 fw-bold text-success opacity-25 position-absolute top-0 start-50 translate-middle-x">
+                                3</div>
+                            <div class="position-relative z-1 pt-4">
+                                <i class="bi bi-geo-alt-fill fs-1 text-primary mb-3" aria-hidden="true"></i>
+                                <h4 class="fw-bold">استلم وادفع</h4>
+                                <p class="text-muted px-4">تابع طلبك لايف وادفع للكابتن كاش لما يوصلك.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="py-5">
+            <div class="container py-5">
+                <h2 class="text-center fw-bold mb-5 display-6">الأسئلة الشائعة</h2>
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="accordion shadow-sm rounded-4 overflow-hidden" id="accordionFAQ">
+                            <!-- Question 1 -->
+                            <div class="accordion-item border-0 border-bottom">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button fw-bold collapsed text-start" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#c1">
+                                        <i class="bi bi-question-circle text-success me-2 ms-2"></i> كيف أضمن وصول طلبي
+                                        بأمان؟
+                                    </button>
+                                </h2>
+                                <div id="c1" class="accordion-collapse collapse" data-bs-parent="#accordionFAQ">
+                                    <div class="accordion-body text-muted">
+                                        جميع الكباتن في وصل-لي مسجلون ببياناتهم الرسمية (رقم وطني، رخصة)، ويمكنك تتبع
+                                        الطلب لحظياً عبر الخريطة والتواصل المباشر.
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Question 2 -->
+                            <div class="accordion-item border-0 border-bottom">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button fw-bold collapsed text-start" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#c2">
+                                        <i class="bi bi-exclamation-circle text-success me-2 ms-2"></i> ماذا أفعل إذا
+                                        حدثت مشكلة؟
+                                    </button>
+                                </h2>
+                                <div id="c2" class="accordion-collapse collapse" data-bs-parent="#accordionFAQ">
+                                    <div class="accordion-body text-muted">
+                                        تطبيقنا فيه نظام "بلاغات" فوري. أي مشكلة تواجهك اضغط زر بلاغ، وفريق الدعم بيتدخل
+                                        طوالي ويحلها ليك.
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Question 3 -->
+                            <div class="accordion-item border-0">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button fw-bold collapsed text-start" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#c3">
+                                        <i class="bi bi-geo text-success me-2 ms-2"></i> هل الخدمة شغالة في كل السودان؟
+                                    </button>
+                                </h2>
+                                <div id="c3" class="accordion-collapse collapse" data-bs-parent="#accordionFAQ">
+                                    <div class="accordion-body text-muted">
+                                        حالياً مركزين في <strong>أم درمان</strong> بالذات عشان نضمن السرعة والجودة،
+                                        وقريب حنفتح في باقي الولايات بإذن الله.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="py-5 bg-dark text-white text-center position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10"
+                style="background: url('https://www.transparenttextures.com/patterns/cubes.png');"></div>
+            <div class="container position-relative z-2 py-4">
+                <h2 class="display-5 fw-bold mb-3">تواصل معنا</h2>
+                <p class="lead mb-5 opacity-75">عندك استفسار؟ نحن هنا لخدمتك 24/7</p>
+                <div class="row g-4 justify-content-center">
+                    <div class="col-md-5 col-lg-4">
+                        <a href="https://wa.me/249112046348" target="_blank" class="text-decoration-none">
+                            <div class="card h-100 border-0 bg-success bg-gradient text-white shadow-lg card-hover">
+                                <div class="card-body p-4">
+                                    <i class="bi bi-whatsapp display-3 mb-3"></i>
+                                    <h3 class="h4 fw-bold">واتساب</h3>
+                                    <p class="mb-0 dir-ltr fs-5">0112 046 348</p>
+                                    <small class="opacity-75 d-block mt-2">اضغط للمحادثة المباشرة</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-5 col-lg-4">
+                        <a href="mailto:wasilli249@gmail.com" class="text-decoration-none">
+                            <div class="card h-100 border-0 bg-secondary bg-gradient text-white shadow-lg card-hover">
+                                <div class="card-body p-4">
+                                    <i class="bi bi-envelope-fill display-3 mb-3"></i>
+                                    <h3 class="h4 fw-bold">البريد الإلكتروني</h3>
+                                    <p class="mb-0 fs-5">wasilli249@gmail.com</p>
+                                    <small class="opacity-75 d-block mt-2">راسلنا وسنرد عليك قريباً</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-darker py-4 text-center text-white-50 border-top border-secondary">
+        <div class="container">
+            <p class="mb-0">&copy; 2025 نظام وصل-لي. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+
+    <script src="/sw-register.js"></script>
+    <script src="/install-prompt.js"></script>
+    <script src="/install-banner.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // تحسين تأثير الضغط على زر القائمة ليعمل في كل مرة
+        const toggler = document.querySelector('.navbar-toggler');
+        if (toggler) {
+            toggler.addEventListener('mousedown', function () {
+                this.style.transform = 'scale(0.85)';
+            });
+            toggler.addEventListener('mouseup', function () {
+                this.style.transform = 'scale(1.05)';
+            });
+            toggler.addEventListener('mouseleave', function () {
+                this.style.transform = '';
+            });
+            // لضمان العمل على الجوال أيضاً
+            toggler.addEventListener('touchstart', function () {
+                this.style.transform = 'scale(0.85)';
+            }, { passive: true });
+            toggler.addEventListener('touchend', function () {
+                this.style.transform = 'scale(1.05)';
+            }, { passive: true });
+        }
+    </script>
+
+    <!-- App Core (Native Functionality) -->
+    <script type="module" src="js/app-core.js"></script>
+
+    <!-- App Core (Native Functionality) -->
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+</body>
+
+</html>
