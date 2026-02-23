@@ -1,0 +1,149 @@
+/* ===== Premium Loading Splash Screen ===== */
+.app-splash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, #064e32 0%, #0a8754 40%, #0d9d63 70%, #065f3a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+/* Subtle animated background pattern */
+.app-splash::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
+    animation: splash-bg-shift 6s ease-in-out infinite;
+}
+
+.app-splash.loaded {
+    opacity: 0;
+    transform: scale(1.05);
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Logo container — no background, sits directly on the green gradient */
+.splash-logo-card {
+    position: relative;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0 20px;
+    animation: splash-card-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+}
+
+.splash-logo {
+    width: 220px;
+    height: auto;
+    /* Make the dark logo white on the green splash background */
+    filter: brightness(0) invert(1) drop-shadow(0 4px 20px rgba(255, 255, 255, 0.25));
+    animation: splash-logo-glow 3s ease-in-out infinite;
+}
+
+.splash-text {
+    color: white;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 900;
+    font-size: 1.8rem;
+    margin-top: 28px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    animation: splash-text-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+}
+
+.splash-subtitle {
+    color: rgba(255, 255, 255, 0.75);
+    font-family: 'Cairo', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-top: 6px;
+    opacity: 0;
+    animation: splash-text-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+}
+
+/* Progress bar */
+.splash-progress {
+    width: 160px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    margin-top: 32px;
+    overflow: hidden;
+    opacity: 0;
+    animation: splash-text-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+}
+
+.splash-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
+    border-radius: 10px;
+    animation: splash-progress-fill 1.8s cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards;
+}
+
+@keyframes splash-card-in {
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes splash-text-in {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes splash-logo-glow {
+
+    0%,
+    100% {
+        filter: brightness(0) invert(1) drop-shadow(0 4px 20px rgba(255, 255, 255, 0.25));
+    }
+
+    50% {
+        filter: brightness(0) invert(1) drop-shadow(0 4px 35px rgba(255, 255, 255, 0.5));
+    }
+}
+
+@keyframes splash-progress-fill {
+    0% {
+        width: 0%;
+    }
+
+    50% {
+        width: 70%;
+    }
+
+    100% {
+        width: 100%;
+    }
+}
+
+@keyframes splash-bg-shift {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    50% {
+        transform: translate(2%, 1%) rotate(1deg);
+    }
+}
