@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>الإشعارات | وصل-لي</title>
     <!-- Bootstrap 5 RTL -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
@@ -12,16 +13,34 @@
     <link rel="stylesheet" href="style.css">
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
     <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/splash.css">
     <script src="js/config.js"></script>
+    <script src="js/auth-helper.js"></script>
 </head>
 
 <body class="pb-5 mb-5 bg-light">
 
+    <!-- Loading Splash Screen (only on first app open) -->
+    <script>
+        if (!sessionStorage.getItem('splashShown')) {
+            document.write('<div class="app-splash" id="appSplash">' +
+                '<div class="splash-logo-card">' +
+                '<img src="logo-transparent.png" alt="وصل-لي" class="splash-logo app-logo">' +
+                '</div>' +
+                '<div class="splash-text">وصل-لي</div>' +
+                '<div class="splash-subtitle">خدمة التوصيل الذكية</div>' +
+                '<div class="splash-progress"><div class="splash-progress-bar"></div></div>' +
+                '</div>');
+        }
+    </script>
+    <script>window.addEventListener('DOMContentLoaded', () => { const s = document.getElementById('appSplash'); if (s) { setTimeout(() => { s.classList.add('loaded'); sessionStorage.setItem('splashShown', '1') }, 800) } });</script>
+
     <!-- Header Section -->
     <div class="app-header">
-        <div class="container pt-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="container pt-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="d-flex align-items-center gap-3">
                     <div class="bg-white rounded-circle p-2 shadow-sm">
                         <i class="bi bi-bell-fill text-primary fs-4"></i>
@@ -36,11 +55,11 @@
     </div>
 
     <!-- Notifications List -->
-    <div class="container" style="margin-top: -30px;">
+    <div class="container pt-4">
         <div id="notificationsList" class="d-flex flex-column gap-2">
             <div class="text-center py-5">
-                <div class="spinner-border text-light" role="status"></div>
-                <p class="mt-2 text-white fw-bold">جاري تحميل الإشعارات...</p>
+                <div class="spinner-border text-success" role="status"></div>
+                <p class="mt-2 text-muted fw-bold">جاري تحميل الإشعارات...</p>
             </div>
         </div>
     </div>
@@ -103,8 +122,8 @@
             if (!append) {
                 list.innerHTML = `
                 <div class="text-center py-5">
-                    <div class="spinner-border text-light" role="status"></div>
-                    <p class="mt-2 text-white fw-bold">جاري تحميل الإشعارات...</p>
+                    <div class="spinner-border text-success" role="status"></div>
+                    <p class="mt-2 text-muted fw-bold">جاري تحميل الإشعارات...</p>
                 </div>`;
             }
 
@@ -133,34 +152,45 @@
                 }
 
                 notifications.forEach(n => {
-                    let icon = 'bi-info-circle-fill';
-                    let iconColor = 'text-primary';
-                    let bgIcon = 'bg-primary';
+                    // ✅ FIX: استخدم n.type أولاً (أدق) ثم n.title كـ fallback
+                    const type = n.type || 'system';
+                    let icon, iconColor, bgColor, borderColor;
 
-                    if (n.title.includes('توصيل')) {
-                        icon = 'bi-check-circle-fill';
-                        iconColor = 'text-success';
-                        bgIcon = 'bg-success';
-                    }
-                    if (n.title.includes('قبول')) {
-                        icon = 'bi-bicycle';
-                        iconColor = 'text-info';
-                        bgIcon = 'bg-info';
+                    const iconMap = {
+                        'order_accepted': { icon: 'bi-bicycle', color: '#0d6efd', bg: '#e8f0fe' },
+                        'order_completed': { icon: 'bi-check-circle-fill', color: '#198754', bg: '#e8f5e9' },
+                        'order_update': { icon: 'bi-arrow-repeat', color: '#fd7e14', bg: '#fff3e0' },
+                        'chat': { icon: 'bi-chat-dots-fill', color: '#6f42c1', bg: '#f3e8ff' },
+                        'system': { icon: 'bi-bell-fill', color: '#0dcaf0', bg: '#e0f7fa' },
+                    };
+
+                    // Fallback من العنوان لو النوع system
+                    let mapped = iconMap[type] || iconMap['system'];
+                    if (type === 'system') {
+                        if (n.title.includes('توصيل') || n.title.includes('اكتمل'))
+                            mapped = iconMap['order_completed'];
+                        else if (n.title.includes('قبول') || n.title.includes('كابتن'))
+                            mapped = iconMap['order_accepted'];
+                        else if (n.title.includes('رسالة') || n.title.includes('chat'))
+                            mapped = iconMap['chat'];
+                        else if (n.title.includes('إلغاء') || n.title.includes('رفض'))
+                            mapped = { icon: 'bi-x-circle-fill', color: '#dc3545', bg: '#fdecea' };
                     }
 
-                    const unreadClass = !n.isRead ? 'border-primary' : '';
-                    const unreadDot = !n.isRead ? '<span class="position-absolute top-0 end-0 p-1 bg-danger border border-white rounded-circle mt-2 me-2"></span>' : '';
+                    const unreadBorder = !n.isRead ? 'border-start border-4 border-primary' : '';
+                    const unreadDot = !n.isRead ? '<span class="position-absolute top-0 end-0 p-1 bg-danger border border-white rounded-circle mt-2 me-2" style="width:10px;height:10px;"></span>' : '';
 
                     list.insertAdjacentHTML('beforeend', `
-            <div class="card glass-card border-0 card-hover overflow-hidden position-relative mb-2 ${unreadClass ? 'border-start border-4' : ''}" onclick="markAsRead('${n._id}', this)">
-                <div class="card-body p-3 d-flex gap-3 align-items-start">
-                    <div class="rounded-circle ${bgIcon} bg-opacity-10 p-2 ${iconColor} flex-shrink-0">
-                        <i class="bi ${icon} fs-4"></i>
+            <div class="card border-0 card-hover overflow-hidden position-relative mb-2 shadow-sm ${unreadBorder}" onclick="markAsRead('${n._id}', this)" style="cursor:pointer;">
+                <div class="card-body p-3 d-flex gap-3 align-items-center">
+                    <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
+                         style="width:46px;height:46px;background:${mapped.bg};border:2px solid ${mapped.color}30;">
+                        <i class="bi ${mapped.icon} fs-5" style="color:${mapped.color};"></i>
                     </div>
                     <div class="flex-grow-1">
                         <div class="d-flex justify-content-between align-items-start mb-1">
-                            <h6 class="fw-bold text-dark mb-0">${n.title}</h6>
-                            <small class="text-muted" style="font-size: 0.75rem;">
+                            <h6 class="fw-bold text-dark mb-0 lh-sm">${n.title}</h6>
+                            <small class="text-muted ms-2 text-nowrap" style="font-size:0.72rem;">
                                 ${new Date(n.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                             </small>
                         </div>
@@ -193,7 +223,8 @@
             const dot = element.querySelector('.position-absolute');
             if (dot) dot.remove();
 
-            await fetch(`/api/notifications/${id}/read`, {
+            const baseUrl = (typeof API_URL !== 'undefined') ? API_URL : '';
+            await fetch(`${baseUrl}/api/notifications/${id}/read`, {
                 method: 'PUT',
                 headers: window.Auth.getAuthHeader()
             });
@@ -210,7 +241,7 @@
     </script>
     <!-- Auth Helper & App Core -->
     <script src="js/theme-manager.js"></script>
-    <script src="js/auth-helper.js"></script>
+    <!-- Auth Helper already loaded in head -->
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
 </body>

@@ -1,7 +1,9 @@
 /* ========================================
    Dark Mode Styles - الوضع الليلي
+   Comprehensive support for all pages
    ======================================== */
 
+/* --- CSS Variables --- */
 body.dark-mode {
     --primary-color: #10b981;
     --primary-dark: #059669;
@@ -17,25 +19,128 @@ body.dark-mode {
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
+/* --- Body & Background --- */
 body.dark-mode {
-    background-color: var(--bg-color);
+    background-color: var(--bg-color) !important;
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .bg-light {
+    background-color: var(--bg-color) !important;
+}
+
+body.dark-mode .bg-white {
+    background-color: var(--card-bg) !important;
+}
+
+/* --- Typography - ALL text visible --- */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode p,
+body.dark-mode span,
+body.dark-mode label,
+body.dark-mode div,
+body.dark-mode li,
+body.dark-mode td,
+body.dark-mode th,
+body.dark-mode a:not(.btn):not(.nav-item-link) {
     color: var(--text-dark);
 }
 
-body.dark-mode .section-card {
-    background: var(--card-bg);
-    border-color: var(--border-color);
+body.dark-mode .text-dark {
+    color: var(--text-dark) !important;
 }
 
+body.dark-mode .text-secondary {
+    color: var(--text-muted) !important;
+}
+
+body.dark-mode .text-muted {
+    color: var(--text-muted) !important;
+}
+
+body.dark-mode .text-body {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .fw-bold,
+body.dark-mode .fw-semibold {
+    color: var(--text-dark);
+}
+
+body.dark-mode small {
+    color: var(--text-muted);
+}
+
+/* --- App Header --- */
 body.dark-mode .app-header {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-    border-bottom-color: var(--border-color);
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
 }
 
+body.dark-mode .app-header .text-white {
+    color: #f9fafb !important;
+}
+
+body.dark-mode .app-header .btn-light {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white !important;
+}
+
+/* --- Section Cards --- */
+body.dark-mode .section-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .section-title {
+    color: var(--text-dark) !important;
+}
+
+/* --- Glass Card --- */
+body.dark-mode .glass-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: var(--shadow-md);
+}
+
+/* --- Cards --- */
+body.dark-mode .card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .card-body {
+    color: var(--text-dark);
+}
+
+body.dark-mode .card-header {
+    background: #374151 !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .card-footer {
+    background: #374151 !important;
+    border-color: var(--border-color) !important;
+}
+
+/* --- Form Controls --- */
 body.dark-mode .form-control,
 body.dark-mode input,
 body.dark-mode textarea,
-body.dark-mode select {
+body.dark-mode select,
+body.dark-mode .form-select {
     background-color: #374151 !important;
     border-color: var(--border-color) !important;
     color: var(--text-dark) !important;
@@ -43,10 +148,12 @@ body.dark-mode select {
 
 body.dark-mode .form-control:focus,
 body.dark-mode input:focus,
-body.dark-mode textarea:focus {
+body.dark-mode textarea:focus,
+body.dark-mode .form-select:focus {
     background-color: #4b5563 !important;
     border-color: var(--primary-color) !important;
     color: var(--text-dark) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
 }
 
 body.dark-mode .form-control::placeholder,
@@ -56,6 +163,52 @@ body.dark-mode textarea::placeholder {
     opacity: 0.7;
 }
 
+body.dark-mode .form-label {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .form-check-label {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .input-group-text {
+    background-color: #374151;
+    border-color: var(--border-color);
+    color: var(--text-dark);
+}
+
+/* --- Buttons --- */
+body.dark-mode .btn-light {
+    background-color: #374151 !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .btn-outline-secondary {
+    border-color: var(--border-color);
+    color: var(--text-muted);
+}
+
+body.dark-mode .btn-outline-secondary:hover {
+    background-color: #374151;
+    color: var(--text-dark);
+}
+
+body.dark-mode .btn-outline-primary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+body.dark-mode .btn-outline-light {
+    border-color: var(--text-muted);
+    color: var(--text-muted);
+}
+
+body.dark-mode .btn-close {
+    filter: invert(1);
+}
+
+/* --- Map Buttons --- */
 body.dark-mode .map-btn {
     background: linear-gradient(135deg, #1a3a2e 0%, #0f2922 100%);
     color: var(--primary-color);
@@ -67,50 +220,356 @@ body.dark-mode .map-btn:hover {
     color: white;
 }
 
+body.dark-mode .map-select-btn-pickup {
+    background: linear-gradient(135deg, #1a3a2e 0%, #0f2922 100%);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+body.dark-mode .map-select-btn-pickup:hover {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+}
+
+body.dark-mode .map-select-btn-dropoff {
+    background: linear-gradient(135deg, #3a1a1a 0%, #2e0f0f 100%);
+    color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+body.dark-mode .map-select-btn-dropoff:hover {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #b02a37 100%);
+    color: white;
+}
+
+/* --- Parcel Upload Button --- */
+body.dark-mode .parcel-upload-btn {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    border-color: var(--border-color);
+    color: var(--text-muted);
+}
+
+body.dark-mode .parcel-upload-btn i {
+    color: var(--primary-color);
+}
+
+body.dark-mode .parcel-upload-btn:hover {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, #1a3a2e 0%, #0f2922 100%);
+    color: var(--text-dark);
+}
+
+/* --- Price Input --- */
 body.dark-mode .price-input {
     background: linear-gradient(135deg, #1a3a2e 0%, #0f2922 100%) !important;
     border-color: var(--primary-color) !important;
     color: var(--primary-color) !important;
 }
 
+/* --- Splash Screen --- */
+body.dark-mode .app-splash {
+    background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+}
+
+/* --- Mobile Nav --- */
 body.dark-mode .mobile-nav-glass {
-    background: rgba(31, 41, 55, 0.95);
+    background: rgba(31, 41, 55, 0.98) !important;
     backdrop-filter: blur(20px);
-    border-top-color: var(--border-color);
+    border-top-color: var(--border-color) !important;
+    box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.3);
 }
 
 body.dark-mode .nav-item-link {
-    color: var(--text-muted);
+    color: var(--text-muted) !important;
 }
 
-body.dark-mode .nav-item-link.active {
-    color: var(--primary-color);
+body.dark-mode .nav-item-link:hover {
+    color: var(--primary-color) !important;
     background: rgba(16, 185, 129, 0.1);
 }
 
+body.dark-mode .nav-item-link.active {
+    color: var(--primary-color) !important;
+    background: rgba(16, 185, 129, 0.15) !important;
+}
+
+body.dark-mode .nav-item-link span {
+    color: inherit !important;
+}
+
+/* --- Offcanvas / Side Menu --- */
 body.dark-mode .offcanvas {
-    background: var(--card-bg);
-    color: var(--text-dark);
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
 }
 
 body.dark-mode .offcanvas-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
 }
 
+body.dark-mode .offcanvas-body {
+    color: var(--text-dark);
+}
+
+/* --- List Groups --- */
 body.dark-mode .list-group-item {
     background: transparent;
-    border-color: var(--border-color);
-    color: var(--text-dark);
+    border-color: var(--border-color) !important;
+    color: var(--text-dark) !important;
 }
 
 body.dark-mode .list-group-item:hover {
     background: rgba(16, 185, 129, 0.1);
 }
 
-body.dark-mode .bg-light {
-    background-color: var(--bg-color) !important;
+body.dark-mode .list-group-item a,
+body.dark-mode .list-group-item span {
+    color: var(--text-dark) !important;
 }
 
+/* --- Modals --- */
+body.dark-mode .modal-content {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+    border-color: var(--border-color);
+}
+
+body.dark-mode .modal-header {
+    border-bottom-color: var(--border-color) !important;
+    color: var(--text-dark);
+}
+
+body.dark-mode .modal-footer {
+    border-top-color: var(--border-color) !important;
+}
+
+body.dark-mode .modal-confirm-footer {
+    background: var(--card-bg) !important;
+    border-top-color: var(--border-color) !important;
+}
+
+body.dark-mode .modal-title {
+    color: var(--text-dark) !important;
+}
+
+/* --- Alerts --- */
+body.dark-mode .alert {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .alert-success {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+body.dark-mode .alert-danger {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+body.dark-mode .alert-warning {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #fcd34d !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+body.dark-mode .alert-info {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    color: #93c5fd !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* --- Badges --- */
+body.dark-mode .badge.bg-light {
+    background-color: #374151 !important;
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .badge.bg-secondary {
+    background-color: #4b5563 !important;
+}
+
+/* --- Borders --- */
+body.dark-mode .border {
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .border-top {
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .border-bottom {
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .border-success {
+    border-color: var(--primary-color) !important;
+}
+
+body.dark-mode .border-start {
+    border-color: var(--border-color) !important;
+}
+
+/* --- Dropdown --- */
+body.dark-mode .dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .dropdown-item {
+    color: var(--text-dark);
+}
+
+body.dark-mode .dropdown-item:hover {
+    background-color: #374151;
+    color: var(--primary-color);
+}
+
+/* --- Tables --- */
+body.dark-mode table,
+body.dark-mode .table {
+    color: var(--text-dark);
+}
+
+body.dark-mode .table-bordered {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .table> :not(caption)>*>* {
+    background-color: transparent;
+    color: var(--text-dark);
+    border-color: var(--border-color);
+}
+
+/* --- Auth Pages (Login/Register) --- */
+body.dark-mode .auth-container {
+    background: linear-gradient(135deg, #111827 0%, #1f2937 100%) !important;
+}
+
+body.dark-mode .auth-box {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .coming-soon-box {
+    background: linear-gradient(45deg, #92400e, #b45309) !important;
+    color: #fef3c7 !important;
+}
+
+/* --- Order Status Cards (client-my-orders) --- */
+body.dark-mode .order-card,
+body.dark-mode .status-card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-dark);
+}
+
+body.dark-mode .order-item {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+/* --- Notifications Page --- */
+body.dark-mode #guest-view {
+    color: var(--text-dark);
+}
+
+body.dark-mode #notificationsList .card {
+    background: var(--card-bg) !important;
+}
+
+body.dark-mode .bg-opacity-10 {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* --- Tabs --- */
+body.dark-mode .nav-tabs {
+    border-color: var(--border-color);
+}
+
+body.dark-mode .nav-tabs .nav-link {
+    color: var(--text-muted);
+}
+
+body.dark-mode .nav-tabs .nav-link.active {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--primary-color);
+}
+
+/* --- Accordion --- */
+body.dark-mode .accordion-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+body.dark-mode .accordion-button {
+    background-color: var(--card-bg);
+    color: var(--text-dark);
+}
+
+body.dark-mode .accordion-button:not(.collapsed) {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--primary-color);
+}
+
+/* --- Skeleton Loading --- */
+body.dark-mode .skeleton {
+    background: linear-gradient(90deg,
+            #374151 25%,
+            #4b5563 50%, #374151 75%);
+}
+
+/* --- Scrollbar --- */
+body.dark-mode::-webkit-scrollbar {
+    width: 8px;
+}
+
+body.dark-mode::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+body.dark-mode::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+}
+
+/* --- Shadow overrides --- */
+body.dark-mode .shadow,
+body.dark-mode .shadow-sm {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* --- Route Card specific --- */
+body.dark-mode .route-card {
+    background: var(--card-bg) !important;
+}
+
+body.dark-mode .timeline-line {
+    background: var(--border-color);
+}
+
+body.dark-mode .route-label {
+    color: var(--text-muted);
+}
+
+/* --- Bottom Sheet / SweetAlert --- */
+body.dark-mode .swal2-popup {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .swal2-title {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .swal2-html-container {
+    color: var(--text-muted) !important;
+}
+
+/* --- Container helpers --- */
 body.dark-mode .container,
 body.dark-mode .row,
 body.dark-mode .col,
@@ -118,57 +577,9 @@ body.dark-mode [class*="col-"] {
     color: var(--text-dark);
 }
 
-body.dark-mode .card {
-    background: var(--card-bg);
-    border-color: var(--border-color);
-    color: var(--text-dark);
-}
-
-body.dark-mode .modal-content {
-    background: var(--card-bg);
-    color: var(--text-dark);
-}
-
-body.dark-mode .modal-header {
-    border-bottom-color: var(--border-color);
-}
-
-body.dark-mode .modal-footer {
-    border-top-color: var(--border-color);
-}
-
-body.dark-mode h1,
-body.dark-mode h2,
-body.dark-mode h3,
-body.dark-mode h4,
-body.dark-mode h5,
-body.dark-mode h6 {
-    color: var(--text-dark);
-}
-
-body.dark-mode p,
-body.dark-mode span,
-body.dark-mode label {
-    color: var(--text-dark);
-}
-
-body.dark-mode .btn-close {
-    filter: invert(1);
-}
-
-body.dark-mode .text-muted {
-    color: var(--text-muted) !important;
-}
-
-body.dark-mode .skeleton {
-    background: linear-gradient(90deg,
-            #374151 25%,
-            #4b5563 50%,
-            #374151 75%);
-}
-
-/* Dark Mode Toggle Button */
-/* Dark Mode Toggle Button */
+/* ========================================
+   Dark Mode Toggle Button
+   ======================================== */
 .theme-toggle {
     position: fixed;
     bottom: 110px;
@@ -176,16 +587,15 @@ body.dark-mode .skeleton {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    background: linear-gradient(135deg, var(--primary-color, #0a8754) 0%, var(--primary-dark, #065f3a) 100%);
     border: none;
     color: white;
     font-size: 1.3rem;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    transition: var(--transition);
+    transition: all 0.3s ease;
     z-index: 9999;
     display: flex !important;
-    /* Force Show */
     align-items: center;
     justify-content: center;
 }
@@ -208,6 +618,37 @@ body {
 .form-control,
 .map-btn,
 .mobile-nav-glass,
-.list-group-item {
+.list-group-item,
+.card,
+.glass-card,
+.modal-content,
+.offcanvas,
+.nav-item-link {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ========================================
+   App Logo — Light & Dark Mode
+   ======================================== */
+
+/* Base: transparent PNG logo — no special filter needed in light mode */
+.app-logo {
+    transition: filter 0.3s ease;
+    /* The transparent PNG looks great on any light background as-is */
+}
+
+/* Sidebar / offcanvas logo — always on green gradient → make it white */
+.app-logo--sidebar {
+    filter: brightness(0) invert(1);
+}
+
+/* Dark mode: invert colors so navy text becomes white/light */
+body.dark-mode .app-logo:not(.app-logo--sidebar) {
+    filter: brightness(0) invert(1);
+}
+
+/* Splash screen: logo is on a dark green gradient, so always invert */
+body.dark-mode .splash-logo.app-logo,
+.app-splash .app-logo {
+    filter: brightness(0) invert(1);
 }

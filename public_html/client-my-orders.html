@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>طلباتي | وصل-لي</title>
 
     <link rel="manifest" href="/manifest.json">
@@ -18,16 +19,34 @@
     <link rel="stylesheet" href="style.css">
 
     <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
     <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/splash.css">
 
     <script src="js/config.js"></script>
+    <script src="js/auth-helper.js"></script>
 </head>
 
 <body class="pb-5 mb-5 bg-light">
 
+    <!-- Loading Splash Screen (only on first app open) -->
+    <script>
+        if (!sessionStorage.getItem('splashShown')) {
+            document.write('<div class="app-splash" id="appSplash">' +
+                '<div class="splash-logo-card">' +
+                '<img src="logo-transparent.png" alt="وصل-لي" class="splash-logo app-logo">' +
+                '</div>' +
+                '<div class="splash-text">وصل-لي</div>' +
+                '<div class="splash-subtitle">خدمة التوصيل الذكية</div>' +
+                '<div class="splash-progress"><div class="splash-progress-bar"></div></div>' +
+                '</div>');
+        }
+    </script>
+    <script>window.addEventListener('DOMContentLoaded', () => { const s = document.getElementById('appSplash'); if (s) { setTimeout(() => { s.classList.add('loaded'); sessionStorage.setItem('splashShown', '1') }, 800) } });</script>
+
     <div class="app-header">
-        <div class="container pt-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="container pt-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="d-flex align-items-center gap-3">
                     <div class="bg-white rounded-circle p-2 shadow-sm">
                         <i class="bi bi-box2-fill text-primary fs-4"></i>
@@ -41,11 +60,11 @@
         </div>
     </div>
 
-    <div class="container" style="margin-top: -30px;">
+    <div class="container pt-4">
         <div id="orders-list" class="d-flex flex-column gap-3">
             <div class="text-center py-5" id="loading-spinner">
-                <div class="spinner-border text-light" role="status"></div>
-                <p class="mt-2 text-white fw-bold">جاري تحميل طلباتك...</p>
+                <div class="spinner-border text-success" role="status"></div>
+                <p class="mt-2 text-muted fw-bold">جاري تحميل طلباتك...</p>
             </div>
         </div>
     </div>
@@ -139,6 +158,7 @@
 
             const getStatusName = (s) => ({
                 'pending': '⏳ في الانتظار',
+                'negotiating': '💬 جاري التفاوض',
                 'accepted': '🚀 جاري التنفيذ',
                 'picked_up': '📦 تم الاستلام',
                 'delivered': '✅ تم التوصيل',
@@ -147,6 +167,7 @@
 
             const getStatusBadge = (s) => ({
                 'pending': 'bg-warning text-dark',
+                'negotiating': 'bg-info text-dark',
                 'accepted': 'bg-primary',
                 'picked_up': 'bg-info text-dark',
                 'delivered': 'bg-success',
@@ -219,7 +240,26 @@
 
                         let activeBtns = '';
                         if (order.status === 'pending') {
-                            activeBtns = `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
+                            // Check if there's an active negotiation
+                            if (order.negotiation && order.negotiation.isActive) {
+                                activeBtns = `
+                                <div class="alert alert-info p-2 rounded-3 mb-2 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="fw-bold d-block">💬 عرض سعر جديد</small>
+                                        <small>السعر المقترح: <strong class="text-success">${order.negotiation.proposedPrice} ج.س</strong></small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success flex-grow-1 rounded-pill fw-bold" onclick="respondToNegotiation('${order._id}', 'accept')">
+                                        <i class="bi bi-check-circle me-1"></i> قبول
+                                    </button>
+                                    <button class="btn btn-outline-danger flex-grow-1 rounded-pill fw-bold" onclick="respondToNegotiation('${order._id}', 'reject')">
+                                        <i class="bi bi-x-circle me-1"></i> رفض
+                                    </button>
+                                </div>`;
+                            } else {
+                                activeBtns = `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
+                            }
                         } else if (['accepted', 'picked_up'].includes(order.status) && order.captain) {
                             activeBtns = `
                             <div class="d-flex gap-2">
@@ -290,6 +330,36 @@
 
             window.chat = function (oid, cid) { window.location.href = `chat.html?orderId=${oid}&receiverId=${cid}`; }
 
+            // 💬 رد العميل على عرض التفاوض
+            window.respondToNegotiation = async function (orderId, action) {
+                try {
+                    const res = await fetch(`${SERVER_URL}/api/orders/${orderId}/negotiate-response`, {
+                        method: 'PUT',
+                        headers: authHeaders,
+                        body: JSON.stringify({ action })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        if (action === 'accept') {
+                            Swal.fire({
+                                title: '✅ قبلت السعر!',
+                                text: 'تم تأكيد الطلب والكابتن في الطريق.',
+                                icon: 'success',
+                                confirmButtonText: 'تتبع الطلب',
+                                confirmButtonColor: '#0a8754'
+                            }).then(() => loadOrders());
+                        } else {
+                            showToast('تم الرفض', 'الطلب لا يزال متاحاً لكابتن آخر', 'info');
+                            loadOrders();
+                        }
+                    } else {
+                        Swal.fire('خطأ', data.message, 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('خطأ', 'فشل الاتصال', 'error');
+                }
+            };
+
             window.cancelOrder = async function (id) {
                 if (confirm('هل أنت متأكد من إلغاء الطلب؟')) {
                     try {
@@ -337,7 +407,7 @@
 
                     if (status === 'accepted') {
                         Swal.fire({
-                            title: 'تم قبول طلبك! 🛵',
+                            title: 'تم قبول طلبك! 🛕',
                             text: 'الكابتن في الطريق إليك الآن.',
                             icon: 'success',
                             confirmButtonText: 'تتبع الطلب',
@@ -345,6 +415,46 @@
                         }).then(() => window.location.href = `tracking.html?orderId=${orderId}`);
                     }
                     loadOrders();
+                });
+
+                // 💬 إشعار بدء التفاوض (عرض سعر من الكابتن)
+                socket.on('negotiation_started', (data) => {
+                    const { orderId, captainName, originalPrice, proposedPrice, expiresAt } = data;
+                    const expiryTime = new Date(expiresAt);
+                    const minutesLeft = Math.round((expiryTime - Date.now()) / 60000);
+
+                    Swal.fire({
+                        title: '💬 عرض سعر جديد!',
+                        html: `
+                            <div class="text-center">
+                                <p class="mb-2">الكابتن <strong>${captainName}</strong> يقترح:</p>
+                                <div class="d-flex justify-content-center align-items-center gap-3 my-3">
+                                    <div class="text-center">
+                                        <small class="text-muted d-block">السعر الأصلي</small>
+                                        <span class="fw-bold text-secondary fs-5 text-decoration-line-through">${originalPrice} ج.س</span>
+                                    </div>
+                                    <i class="bi bi-arrow-left fs-4 text-muted"></i>
+                                    <div class="text-center">
+                                        <small class="text-muted d-block">السعر المقترح</small>
+                                        <span class="fw-bold text-success fs-3">${proposedPrice} ج.س</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted">العرض صالح لمدة ${minutesLeft} دقائق</small>
+                            </div>
+                        `,
+                        showDenyButton: true,
+                        confirmButtonText: '✅ قبول السعر',
+                        denyButtonText: '❌ رفض',
+                        confirmButtonColor: '#0a8754',
+                        denyButtonColor: '#d33',
+                        allowOutsideClick: false
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            await respondToNegotiation(orderId, 'accept');
+                        } else if (result.isDenied) {
+                            await respondToNegotiation(orderId, 'reject');
+                        }
+                    });
                 });
 
                 socket.on('delivery_attempted', (data) => confirmDelivery(data.orderId));
@@ -434,7 +544,7 @@
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>
     <script src="js/theme-manager.js"></script>
-    <script src="js/auth-helper.js"></script>
+    <!-- Auth Helper already loaded in head -->
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
 </body>

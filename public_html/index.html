@@ -3,8 +3,46 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>طلب جديد | وصل-لي</title>
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+
+    <!-- ✅ Role-Based Session Redirect: يعمل قبل أي شيء آخر -->
+    <script>
+        (function () {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return; // زائر — اعرض الصفحة الطبيعية
+
+                // تحقق من انتهاء الـ Token
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                    if (payload.exp && payload.exp < Date.now() / 1000) {
+                        // Token منتهي — احذفه واعرض الصفحة
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        return;
+                    }
+                }
+
+                const userStr = localStorage.getItem('user');
+                if (!userStr) return;
+                const user = JSON.parse(userStr);
+                const role = (user.role || '').toLowerCase();
+
+                if (role === 'captain') {
+                    window.location.replace('captain-dashboard.html');
+                } else if (role === 'admin') {
+                    window.location.replace('admin.html');
+                }
+                // العميل العادي يبقى في index.html
+            } catch (e) {
+                // أي خطأ → اعرض الصفحة الطبيعية
+            }
+        })();
+    </script>
 
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a8754">
@@ -59,223 +97,6 @@
             text-align: center !important;
         }
 
-        /* --- Enhanced Header --- */
-        .app-header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            padding: 16px 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-bottom: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid rgba(10, 135, 84, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        /* Menu Toggle Button */
-        .menu-toggle-btn {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            box-shadow: 0 4px 12px rgba(10, 135, 84, 0.3);
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .menu-toggle-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(10, 135, 84, 0.4);
-        }
-
-        .menu-toggle-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Logo Container */
-        .logo-container {
-            position: relative;
-            width: 48px;
-            height: 48px;
-        }
-
-        .app-logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border: 3px solid var(--primary-color);
-            box-shadow: 0 4px 12px rgba(10, 135, 84, 0.2);
-            object-fit: cover;
-            position: relative;
-            z-index: 2;
-            transition: all 0.3s ease;
-        }
-
-        .app-logo:hover {
-            transform: scale(1.05) rotate(5deg);
-            box-shadow: 0 6px 16px rgba(10, 135, 84, 0.3);
-        }
-
-        /* Logo Pulse Effect */
-        .logo-pulse {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--primary-color);
-            opacity: 0.3;
-            animation: pulse 2s infinite;
-            z-index: 1;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 0.3;
-            }
-
-            50% {
-                transform: translate(-50%, -50%) scale(1.2);
-                opacity: 0;
-            }
-        }
-
-        /* Header Text */
-        .header-text {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .greeting-text {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 700;
-            color: #2c3e50;
-            letter-spacing: -0.3px;
-        }
-
-        .subtitle-text {
-            font-size: 0.75rem;
-            color: #6c757d;
-            font-weight: 500;
-        }
-
-        /* Notification Button */
-        .notification-btn {
-            position: relative;
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #495057;
-            font-size: 1.3rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-
-        .notification-btn:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(10, 135, 84, 0.3);
-        }
-
-        .notification-btn:active {
-            transform: scale(0.95);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            width: 10px;
-            height: 10px;
-            background: #dc3545;
-            border: 2px solid white;
-            border-radius: 50%;
-            animation: badge-pulse 1.5s infinite;
-        }
-
-        @keyframes badge-pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            50% {
-                transform: scale(1.2);
-                opacity: 0.8;
-            }
-        }
-
-        /* --- Cards & Inputs --- */
-        .section-card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
-            margin-bottom: 15px;
-            border: 1px solid #eee;
-        }
-
-        .section-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #555;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .form-control {
-            background-color: #f9f9f9;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 0.95rem;
-        }
-
-        .form-control:focus {
-            background-color: white;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(10, 135, 84, 0.1);
-        }
-
-        .map-btn {
-            background: #e8f5e9;
-            color: var(--primary-color);
-            border: 1px dashed var(--primary-color);
-            width: 100%;
-            padding: 10px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: 0.2s;
-        }
-
-        .map-btn:active {
-            transform: scale(0.98);
-        }
-
         /* --- Map Modal --- */
         #mapModal .modal-body {
             padding: 0;
@@ -286,6 +107,16 @@
         #map {
             width: 100%;
             height: 100%;
+        }
+
+        .center-marker-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -100%);
+            z-index: 900;
+            pointer-events: none;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
         }
 
         .modal-locate-btn {
@@ -303,32 +134,204 @@
             font-size: 1.2rem;
         }
 
-        /* --- Pricing Section --- */
-        .price-input {
-            background: #f0fdf4 !important;
-            border: 2px solid #0a8754 !important;
-            color: #0a8754 !important;
-            font-weight: 800 !important;
-            font-size: 1.3rem !important;
-        }
-
-        /* --- Submit Button --- */
-        .btn-submit {
-            background: #0a8754;
-            color: white;
-            font-weight: 800;
-            padding: 16px;
-            border-radius: 50px;
+        /* --- Premium Loading Splash Screen --- */
+        .app-splash {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            border: none;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 15px rgba(10, 135, 84, 0.3);
-            transition: 0.3s;
+            height: 100%;
+            background: linear-gradient(160deg, #064e32 0%, #0a8754 40%, #0d9d63 70%, #065f3a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         }
 
-        .btn-submit:disabled {
-            background: #ccc;
-            box-shadow: none;
+        /* Subtle animated background pattern */
+        .app-splash::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 50%);
+            animation: splash-bg-shift 6s ease-in-out infinite;
+        }
+
+        .app-splash.loaded {
+            opacity: 0;
+            transform: scale(1.05);
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Glass card behind logo */
+        .splash-logo-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 32px 40px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 80px rgba(10, 135, 84, 0.15);
+            animation: splash-card-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+        }
+
+        .splash-logo {
+            width: 180px;
+            height: auto;
+            filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.2));
+            animation: splash-logo-glow 3s ease-in-out infinite;
+        }
+
+        .splash-text {
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 900;
+            font-size: 1.8rem;
+            margin-top: 28px;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            animation: splash-text-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+        }
+
+        .splash-subtitle {
+            color: rgba(255, 255, 255, 0.75);
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-top: 6px;
+            opacity: 0;
+            animation: splash-text-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+        }
+
+        /* Progress bar */
+        .splash-progress {
+            width: 160px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            margin-top: 32px;
+            overflow: hidden;
+            opacity: 0;
+            animation: splash-text-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+        }
+
+        .splash-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
+            border-radius: 10px;
+            animation: splash-progress-fill 1.8s cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards;
+        }
+
+        @keyframes splash-card-in {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes splash-text-in {
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes splash-logo-glow {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 4px 20px rgba(255, 255, 255, 0.2));
+            }
+
+            50% {
+                filter: drop-shadow(0 4px 30px rgba(255, 255, 255, 0.35));
+            }
+        }
+
+        @keyframes splash-progress-fill {
+            0% {
+                width: 0%;
+            }
+
+            50% {
+                width: 70%;
+            }
+
+            100% {
+                width: 100%;
+            }
+        }
+
+        @keyframes splash-bg-shift {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            50% {
+                transform: translate(2%, 1%) rotate(1deg);
+            }
+        }
+
+        /* --- Parcel Image Upload Button --- */
+        .parcel-upload-btn {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px dashed #ced4da;
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #6c757d;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .parcel-upload-btn i {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+        }
+
+        .parcel-upload-btn:hover {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            color: #2c3e50;
+        }
+
+        /* Captain marker pulse animation on map */
+        @keyframes captain-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(10, 135, 84, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 12px rgba(10, 135, 84, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(10, 135, 84, 0);
+            }
+        }
+
+        .captain-map-marker {
+            background: none !important;
+            border: none !important;
         }
     </style>
     <link rel="stylesheet" href="css/mobile-overrides.css">
@@ -341,22 +344,34 @@
 
 <body>
 
+    <!-- Loading Splash Screen (only on first app open) -->
+    <script>
+        if (!sessionStorage.getItem('splashShown')) {
+            document.write('<div class="app-splash" id="appSplash">' +
+                '<div class="splash-logo-card">' +
+                '<img src="logo-transparent.png" alt="وصل-لي" class="splash-logo app-logo">' +
+                '</div>' +
+                '<div class="splash-text">وصل-لي</div>' +
+                '<div class="splash-subtitle">خدمة التوصيل الذكية</div>' +
+                '<div class="splash-progress"><div class="splash-progress-bar"></div></div>' +
+                '</div>');
+        }
+    </script>
+
     <div class="app-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-3">
-                <button class="menu-toggle-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#sideMenu">
-                    <i class="bi bi-list"></i>
-                </button>
-
-                <div class="logo-container">
-                    <img src="logo.png" alt="وصل-لي" class="app-logo">
-                    <div class="logo-pulse"></div>
+        <div class="container pt-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-light rounded-circle p-2 shadow-sm" type="button" data-bs-toggle="offcanvas"
+                        data-bs-target="#sideMenu">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    <div>
+                        <h2 class="h5 fw-bold mb-0 text-white" id="greeting">مرحباً بك</h2>
+                        <p class="small text-white-50 mb-0">طلبك وين ماشي اليوم؟</p>
+                    </div>
                 </div>
-
-                <div class="header-text">
-                    <h6 class="greeting-text" id="greeting">مرحباً 👋</h6>
-                    <small class="subtitle-text">طلبك وين ماشي اليوم؟</small>
-                </div>
+                <img src="logo-transparent.png" alt="وصل-لي" height="44" class="app-logo" style="object-fit:contain;">
             </div>
         </div>
     </div>
@@ -366,12 +381,20 @@
         document.addEventListener('DOMContentLoaded', () => {
             const userName = localStorage.getItem('userName');
             if (userName) {
-                document.getElementById('greeting').innerHTML = `مرحباً ${userName} 👋`;
+                document.getElementById('greeting').innerHTML = `مرحباً ${userName}`;
+            }
+            // Dismiss splash screen & mark as shown
+            const splash = document.getElementById('appSplash');
+            if (splash) {
+                setTimeout(() => {
+                    splash.classList.add('loaded');
+                    sessionStorage.setItem('splashShown', '1');
+                }, 1000);
             }
         });
     </script>
 
-    <div class="container">
+    <div class="container pt-4">
         <input type="hidden" id="pickup-lat">
         <input type="hidden" id="pickup-lng">
         <input type="hidden" id="dropoff-lat">
@@ -388,13 +411,12 @@
                 <div class="route-inputs w-100">
 
                     <div class="mb-4 position-relative">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="text-muted small fw-bold">من وين؟ (موقع الاستلام)</label>
-                            <button class="btn btn-sm btn-outline-success border-0 py-0 px-2 fw-bold"
-                                onclick="openMapModal('pickup')">
-                                <i class="bi bi-map-fill me-1"></i>تحديد من الخريطة
-                            </button>
-                        </div>
+                        <label class="text-muted small fw-bold d-block mb-2">من وين؟ (موقع الاستلام)</label>
+                        <button class="btn map-select-btn map-select-btn-pickup w-100 mb-2"
+                            onclick="openMapModal('pickup')">
+                            <i class="bi bi-geo-alt-fill me-2"></i>تحديد من الخريطة
+                            <i class="bi bi-chevron-left ms-auto"></i>
+                        </button>
                         <div class="input-wrapper">
                             <input type="text" class="form-control location-input" id="pickup-addr"
                                 placeholder="الموقع غير محدد (أو اكتب العنوان هنا)">
@@ -413,13 +435,12 @@
                     </div>
 
                     <div class="mb-0 position-relative">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="text-muted small fw-bold">لوين؟ (موقع التسليم)</label>
-                            <button class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold"
-                                onclick="openMapModal('dropoff')">
-                                <i class="bi bi-map-fill me-1"></i>تحديد من الخريطة
-                            </button>
-                        </div>
+                        <label class="text-muted small fw-bold d-block mb-2">لوين؟ (موقع التسليم)</label>
+                        <button class="btn map-select-btn map-select-btn-dropoff w-100 mb-2"
+                            onclick="openMapModal('dropoff')">
+                            <i class="bi bi-flag-fill me-2"></i>تحديد من الخريطة
+                            <i class="bi bi-chevron-left ms-auto"></i>
+                        </button>
                         <div class="input-wrapper">
                             <input type="text" class="form-control location-input" id="dropoff-addr"
                                 placeholder="الوجهة غير محدد (أو اكتب العنوان هنا)">
@@ -428,7 +449,7 @@
                         <div class="row g-2 mt-1">
                             <div class="col-7">
                                 <input type="text" id="dropoff-name" class="form-control form-control-sm bg-white"
-                                    placeholder="اسم المستلم">
+                                    placeholder="اسم المستلم/المحل">
                             </div>
                             <div class="col-5">
                                 <input type="tel" id="dropoff-phone"
@@ -447,15 +468,16 @@
             <textarea id="details" class="form-control mb-3" rows="2"
                 placeholder="وصف للأغراض (مثلاً: كيس ملابس، مستندات...)" maxlength="500"></textarea>
 
-            <label class="btn btn-outline-secondary w-100 border-dashed py-2 rounded-3" for="parcel-image">
-                <i class="bi bi-camera me-2"></i> صورة للطرد (اختياري)
+            <label class="parcel-upload-btn w-100" for="parcel-image">
+                <i class="bi bi-camera-fill"></i>
+                <span>📷 صورة للطرد (اختياري)</span>
             </label>
             <input type="file" id="parcel-image" class="d-none" accept="image/*" onchange="previewImage(this)">
 
             <div id="img-preview" class="mt-2 d-none position-relative">
-                <img src="" class="rounded-3 object-fit-cover w-100" style="height: 120px;">
-                <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
-                    onclick="clearImage()">×</button>
+                <img src="" class="rounded-4 object-fit-cover w-100 shadow-sm" style="height: 140px;">
+                <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle shadow"
+                    onclick="clearImage()" style="width:30px;height:30px;padding:0;">×</button>
             </div>
         </div>
 
@@ -467,15 +489,31 @@
             <select id="distance-type" class="form-select mb-3 border-success text-success fw-bold"
                 onchange="calculatePrice()">
                 <option value="">كم تبعد المسافة تقريباً؟</option>
-                <option value="short">🚲 قريب (نفس الحي) - 3000 ج</option>
-                <option value="medium">🛵 وسط (حي مجاور) - 6000 ج</option>
-                <option value="long">🏎️ بعيد (مشوار طويل) - 10000 ج</option>
+                <option value="short">🚲 قريب (نفس الحي) - 3,000 ج.س</option>
+                <option value="medium">🛵 وسط (حي مجاور) - 6,000 ج.س</option>
+                <option value="long">🏎️ بعيد (مشوار طويل) - 10,000 ج.س</option>
                 <option value="custom">✍️ سعر خاص (أدخل يدوياً)</option>
             </select>
 
             <div class="input-group mb-3">
                 <span class="input-group-text bg-white border-success border-end-0 text-success fw-bold">ج.س</span>
                 <input type="number" id="price" class="form-control price-input" lang="en" dir="ltr" placeholder="0">
+            </div>
+
+            <!-- ⏰ Scheduling Toggle -->
+            <div class="mb-3">
+                <div class="form-check form-switch d-flex align-items-center gap-2 mb-2">
+                    <input class="form-check-input" type="checkbox" id="schedule-toggle" role="switch"
+                        onchange="document.getElementById('schedule-picker').classList.toggle('d-none', !this.checked)">
+                    <label class="form-check-label fw-bold text-muted" for="schedule-toggle">
+                        ⏰ جدولة الطلب لوقت لاحق
+                    </label>
+                </div>
+                <div id="schedule-picker" class="d-none">
+                    <input type="datetime-local" id="scheduled-at" class="form-control border-success" min=""
+                        style="direction:ltr;">
+                    <small class="text-muted">سيُنشر الطلب للكباتن في الوقت المحدد</small>
+                </div>
             </div>
 
             <button id="submit-btn" class="btn-submit" onclick="createOrder()">
@@ -492,30 +530,51 @@
                     <h6 class="modal-title fw-bold" id="modalTitle">تحديد الموقع</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body position-relative p-0" style="height: 50vh; overflow: hidden;">
-                    <div id="pickerMap" style="width: 100%; height: 100%; min-height: 300px;"></div>
+                <div class="modal-body p-0" style="flex: 1; min-height: 0; overflow: hidden;">
+                    <!-- Map wrapper — position:relative so the button anchors to the map -->
+                    <div style="position: relative; width: 100%; height: 100%; min-height: 300px;">
+                        <div id="pickerMap" style="width: 100%; height: 100%; min-height: 300px;"></div>
 
-                    <div class="center-marker-overlay">
-                        <svg width="40" height="50" viewBox="0 0 40 40" fill="none" class="drop-shadow">
-                            <path d="M20 0C11.163 0 4 7.163 4 16c0 11 16 24 16 24s16-13 16-24c0-8.837-7.163-16-16-16z"
-                                fill="#dc3545" />
-                            <circle cx="20" cy="16" r="6" fill="#fff" />
-                        </svg>
+                        <!-- Center pin overlay -->
+                        <div class="center-marker-overlay">
+                            <svg width="48" height="58" viewBox="0 0 48 58" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="pinGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#25d366" />
+                                        <stop offset="100%" stop-color="#0a8754" />
+                                    </linearGradient>
+                                    <filter id="pinShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000"
+                                            flood-opacity="0.35" />
+                                    </filter>
+                                </defs>
+                                <path
+                                    d="M24 0C14.06 0 6 8.06 6 18c0 12.75 18 28 18 28s18-15.25 18-28C42 8.06 33.94 0 24 0z"
+                                    fill="url(#pinGrad)" filter="url(#pinShadow)" />
+                                <circle cx="24" cy="18" r="8" fill="white" />
+                                <circle cx="24" cy="18" r="4" fill="#0a8754" />
+                            </svg>
+                        </div>
+
+                        <!-- Locate Me button — anchored to map wrapper (Top-Left) -->
+                        <button id="locate-me-btn" onclick="locateMe()" title="تحديد موقعي"
+                            style="position:absolute; top:12px; left:16px; z-index:9999; width:48px; height:48px; border-radius:50%; background:white; border:none; box-shadow:0 4px 16px rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:#0a8754; cursor:pointer;">
+                            <i class="bi bi-crosshair"></i>
+                        </button>
                     </div>
-
-                    <button onclick="locateMe()" class="modal-locate-btn">
-                        <i class="bi bi-crosshair"></i>
-                    </button>
-                </div>
-                <div class="modal-footer border-0 p-3"
-                    style="position: sticky; bottom: 0; background: white; z-index: 1000;">
-                    <button type="button" class="btn btn-success w-100 py-3 fw-bold rounded-4"
-                        onclick="confirmLocationSelection()">
-                        تأكيد اختيار الموقع ✅
-                    </button>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Confirm Location Button - FIXED position outside modal -->
+    <div id="confirmLocationOverlay"
+        style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:99999; padding:14px 20px; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, rgba(255,255,255,0.97) 35%);">
+        <button type="button" class="btn btn-success w-100 py-3 fw-bold rounded-4 shadow-lg"
+            style="font-size:17px; letter-spacing:0.5px;" onclick="confirmLocationSelection()">
+            تأكيد اختيار الموقع ✅
+        </button>
     </div>
 
     <nav class="mobile-nav-glass">
@@ -535,9 +594,10 @@
 
     <div class="offcanvas offcanvas-start" tabindex="-1" id="sideMenu" aria-labelledby="sideMenuLabel"
         style="width: 80%;">
-        <div class="offcanvas-header bg-success text-white">
+        <div class="offcanvas-header text-white" style="background: linear-gradient(135deg, #0a8754, #065f3a);">
             <div class="d-flex align-items-center gap-2">
-                <img src="logo.png" width="40" class="rounded-circle bg-white p-1">
+                <img src="logo-transparent.png" height="38" class="app-logo app-logo--sidebar"
+                    style="object-fit:contain;">
                 <h5 class="offcanvas-title fw-bold" id="sideMenuLabel">وصل-لي</h5>
             </div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
@@ -555,10 +615,8 @@
                 <a href="client-my-orders.html" class="list-group-item list-group-item-action py-3">
                     <i class="bi bi-clock-history me-3 text-success"></i> طلباتي السابقة
                 </a>
-                <a href="client-wallet.html" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-wallet2 me-3 text-warning"></i> المحفظة
-                </a>
-                <a href="landing.html" class="list-group-item list-group-item-action py-3">
+
+                <a href="https://wassili.site" target="_blank" class="list-group-item list-group-item-action py-3">
                     <i class="bi bi-info-circle me-3 text-info"></i> عن وصل-لي
                 </a>
                 <a href="#" onclick="logout()" id="menu-logout-btn"
@@ -566,8 +624,28 @@
                     <i class="bi bi-box-arrow-right me-3"></i> تسجيل الخروج
                 </a>
             </div>
+
+            <!-- بوابات الكابتن والأدمن -->
+            <div class="px-3 pt-3 pb-1">
+                <small class="text-muted fw-bold text-uppercase" style="font-size:11px;letter-spacing:1px;">بوابات
+                    أخرى</small>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="captain-login.html" class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-scooter me-3 text-success"></i> دخول الكابتن
+                </a>
+                <a href="#"
+                    onclick="Swal.fire('قريباً', 'خدمة تسجيل الكباتن ستعود للعمل قريباً إن شاء الله', 'info'); return false;"
+                    class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-person-plus-fill me-3 text-success"></i> سجّل ككابتن (قريباً)
+                </a>
+                <a href="admin-login.html" class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-shield-lock-fill me-3 text-danger"></i> دخول المسؤول
+                </a>
+            </div>
+
             <div class="p-3 mt-4 text-center">
-                <p class="text-muted small">إصدار التطبيق 1.0.1</p>
+                <p class="text-muted small">إصدار التطبيق 1.4.1</p>
             </div>
         </div>
     </div>
@@ -581,8 +659,20 @@
                 document.getElementById('menu-logout-btn').classList.remove('d-none');
                 // Also update greeting if element exists
                 const greetingEl = document.getElementById('greeting');
-                if (greetingEl) greetingEl.innerHTML = `مرحباً ${uName} 👋`;
+                if (greetingEl) greetingEl.innerHTML = `مرحباً ${uName} `;
             }
+        }
+
+        // ✅ دالة تسجيل الخروج
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('captainName');
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminName');
+            window.location.reload();
         }
 
         document.addEventListener('DOMContentLoaded', updateMenuState);
@@ -608,6 +698,7 @@
             align-items: flex-end;
             min-height: 100%;
             margin: 0;
+            padding: 0;
         }
 
         #locationPickerModal .modal-content {
@@ -615,14 +706,21 @@
             border: none;
             display: flex;
             flex-direction: column;
-            height: 85vh;
-            /* Fixed height for stability */
-            max-height: 85vh;
+            height: 90vh;
+            height: 90dvh;
+            max-height: 90vh;
+            max-height: 90dvh;
+            overflow: hidden;
+        }
+
+        #locationPickerModal .modal-header {
+            flex-shrink: 0;
+            z-index: 10;
         }
 
         #locationPickerModal .modal-body {
             flex: 1;
-            /* Map takes all remaining space */
+            min-height: 0;
             position: relative;
             padding: 0;
             overflow: hidden;
@@ -633,19 +731,20 @@
             height: 100% !important;
         }
 
-        .modal-footer {
-            position: relative;
-            /* Sit strictly below the map */
+        .modal-confirm-footer {
+            flex-shrink: 0;
             width: 100%;
             background: white;
             z-index: 9999;
-            /* Ensure it stays on top of any map layers */
-            padding: 15px;
+            padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
             border-top: 1px solid #eee;
-            flex-shrink: 0;
-            /* Prevent shrinking */
-            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
-            /* Visual separation from map */
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .modal-confirm-footer .btn {
+            font-size: 16px;
+            padding: 14px;
         }
     </style>
 
@@ -657,7 +756,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <script src="js/notification-toast.js"></script>
+    <script src="notification-toast.js"></script>
 
     <script src="js/config.js"></script>
     <script src="js/console-cleaner.js"></script>
@@ -681,19 +780,26 @@
     <script src="/install-prompt.js"></script>
 
     <script>
-        // Fix gray map issue when modal opens
-        document.getElementById('locationPickerModal').addEventListener('shown.bs.modal', function () {
-            // Trigger window resize event
-            window.dispatchEvent(new Event('resize'));
+        // Show/hide confirm button overlay with modal
+        const locModal = document.getElementById('locationPickerModal');
+        const confirmOverlay = document.getElementById('confirmLocationOverlay');
 
-            // Force Leaflet to recalculate map size
-            // The map variable might be called 'map' or 'pickerMap' depending on your home.js implementation
-            if (typeof map !== 'undefined' && map) {
+        locModal.addEventListener('shown.bs.modal', function () {
+            confirmOverlay.style.display = 'block';
+            // Fix gray map issue
+            window.dispatchEvent(new Event('resize'));
+            if (typeof map !== 'undefined' && map && map.invalidateSize) {
                 setTimeout(() => map.invalidateSize(), 100);
+                setTimeout(() => map.invalidateSize(), 500);
             }
-            if (typeof pickerMap !== 'undefined' && pickerMap) {
-                setTimeout(() => pickerMap.invalidateSize(), 100);
-            }
+            // ✅ Start captain marker auto-refresh
+            if (typeof startCaptainRefresh === 'function') startCaptainRefresh();
+        });
+
+        locModal.addEventListener('hide.bs.modal', function () {
+            confirmOverlay.style.display = 'none';
+            // ✅ Stop captain marker refresh
+            if (typeof stopCaptainRefresh === 'function') stopCaptainRefresh();
         });
     </script>
 

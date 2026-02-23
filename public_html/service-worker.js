@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wassili-static-v1';
+const CACHE_NAME = 'wassili-static-v5';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -12,9 +12,12 @@ const ASSETS_TO_CACHE = [
     '/css/dark-mode.css',
     '/js/app-core.js',
     '/js/config.js',
-    '/js/notification-toast.js',
+    '/notification-toast.js',
     '/js/native-notifications.js',
     '/logo.png',
+    '/logo-transparent.png',
+    '/icons/icon-192x192.png',
+    '/icons/icon-512x512.png',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
     'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap'
@@ -26,7 +29,12 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             console.log('[ServiceWorker] Caching core assets');
-            return cache.addAll(ASSETS_TO_CACHE);
+            // Cache each asset individually so one failure doesn't break everything
+            return Promise.allSettled(
+                ASSETS_TO_CACHE.map(url =>
+                    cache.add(url).catch(err => console.warn('[ServiceWorker] Failed to cache:', url, err.message))
+                )
+            );
         })
     );
 });
@@ -82,8 +90,110 @@ self.addEventListener('fetch', (event) => {
                 return response;
             }).catch((error) => {
                 console.error('[ServiceWorker] Fetch failed:', error);
-                // Optional: Return offline page here
+                // Return a generic error response to prevent "Failed to convert value to Response"
+                return new Response(JSON.stringify({ error: 'Network Error' }), {
+                    status: 408,
+                    headers: { 'Content-Type': 'application/json' }
+                });
             });
+        })
+    );
+});
+
+// =====================================================
+// 🔔 PUSH NOTIFICATION — Rich display with Wassili logo
+// =====================================================
+self.addEventListener('push', (event) => {
+    let payload = {
+        title: 'وصل-لي 🚀',
+        body: 'لديك إشعار جديد',
+        type: 'general',
+        url: '/'
+    };
+
+    if (event.data) {
+        try {
+            const raw = event.data.json();
+            payload = {
+                title: (raw.notification && raw.notification.title) || raw.title || payload.title,
+                body: (raw.notification && raw.notification.body) || raw.body || payload.body,
+                type: (raw.data && raw.data.type) || raw.type || 'general',
+                url: (raw.data && raw.data.url) || raw.url || '/'
+            };
+        } catch (_) {
+            payload.body = event.data.text();
+        }
+    }
+
+    const options = {
+        body: payload.body,
+
+        // ✅ App logo as the notification icon
+        icon: '/icons/icon-192x192.png',
+
+        // ✅ Small badge shown in Android status bar
+        badge: '/icons/icon-192x192.png',
+
+        // ✅ Large branded image banner (expanded notification view)
+        image: '/logo-transparent.png',
+
+        data: {
+            url: payload.url || '/',
+            type: payload.type || 'general'
+        },
+
+        // Brand vibration pattern
+        vibrate: [200, 100, 200],
+
+        requireInteraction: false,
+
+        // Action buttons in notification shade
+        actions: [
+            { action: 'open', title: '📲 فتح التطبيق' },
+            { action: 'dismiss', title: '✕ إغلاق' }
+        ],
+
+        // Tag prevents duplicate notifications of same type
+        tag: 'wassili-' + (payload.type || 'general'),
+        renotify: true
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(payload.title, options)
+    );
+});
+
+// =====================================================
+// 👆 NOTIFICATION CLICK — Deep link to correct page
+// =====================================================
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    if (event.action === 'dismiss') return;
+
+    const data = event.notification.data || {};
+    let targetUrl = '/';
+
+    if (data.url && data.url !== '/') {
+        targetUrl = data.url;
+    } else if (data.type === 'chat') {
+        targetUrl = '/client-my-orders.html';
+    } else if (data.type === 'order_accepted' || data.type === 'order_update') {
+        targetUrl = '/client-my-orders.html';
+    }
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+            for (var i = 0; i < clientList.length; i++) {
+                var client = clientList[i];
+                if (client.url.includes(self.location.origin) && 'focus' in client) {
+                    if (client.navigate) client.navigate(targetUrl);
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
         })
     );
 });

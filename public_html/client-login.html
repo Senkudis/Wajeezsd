@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>دخول العملاء | وصل-لي</title>
 
     <link rel="manifest" href="/manifest.json">
@@ -15,36 +16,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 
     <style>
-        .coming-soon-box {
-            background: linear-gradient(45deg, #ffc107, #ffdb4d);
-            color: #000;
-            font-weight: 800;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .rocket-anim {
-            display: inline-block;
-            animation: rocket-fly 2s infinite ease-in-out;
-        }
-
-        @keyframes rocket-fly {
-
-            0%,
-            100% {
-                transform: translateY(0) rotate(0deg);
-            }
-
-            50% {
-                transform: translateY(-3px) rotate(-5deg);
-            }
-        }
+        /* Unused Animation Styles Removed */
     </style>
     <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
 
     <script src="js/config.js"></script>
 </head>
@@ -55,7 +34,8 @@
         <div class="auth-box glass-card card-hover p-4 p-md-5">
             <div class="text-center mb-4">
                 <a href="index.html" class="d-inline-block transition-transform hover-scale">
-                    <img src="logo.png" alt="شعار وصل-لي" height="70">
+                    <img src="logo-transparent.png" alt="شعار وصل-لي" height="70" class="app-logo"
+                        style="object-fit:contain;">
                 </a>
             </div>
 
@@ -87,12 +67,11 @@
 
             <div class="text-center mt-4">
 
-                <div class="coming-soon-box mb-4">
-                    <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
-                        <i class="bi bi-stars text-danger fs-5"></i>
-                        <span class="small">الاطلاق قريبا... وستتمكن من انشاء حسابك مجانا قريبا ان شاء الله</span>
-                        <i class="bi bi-rocket-takeoff-fill text-danger rocket-anim fs-5"></i>
-                    </div>
+                <div class="mb-4">
+                    <p class="text-muted mb-2">ليس لديك حساب؟</p>
+                    <a href="client-register.html" class="btn btn-outline-primary w-100 py-2 fw-bold">
+                        <i class="bi bi-person-plus-fill me-2"></i> إنشاء حساب جديد
+                    </a>
                 </div>
 
                 <div class="border-top pt-3 mt-3">
