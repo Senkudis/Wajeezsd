@@ -20,44 +20,68 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// إعدادات Socket.io
+// إعدادات Socket.io (مع معالجة أخطاء الاتصال والانقطاع للموبايل)
 const io = socketIo(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket', 'polling']
 });
 
-app.use(cors());
+// ✅ CORS — يجب أن يكون قبل كل شيء آخر
+// Capacitor Android WebView يستخدم origin: https://localhost
+// Capacitor iOS يستخدم capacitor://localhost
+const corsOptions = {
+    origin: ['https://wassili.site', 'https://localhost', 'http://localhost', 'capacitor://localhost'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+// ✅ CRITICAL: Handle OPTIONS preflight explicitly BEFORE any other middleware
+app.options('*', cors(corsOptions));
+// ✅ Apply CORS to ALL routes
+app.use(cors(corsOptions));
 
 // 🔥 Security Middleware
 app.use(helmet({
-    contentSecurityPolicy: false
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false, // Fix: prevents ERR_BLOCKED_BY_RESPONSE.NotSameOrigin for images
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false  // Allow images to load cross-origin
 }));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// ✅✅✅ الحل اليدوي لمشكلة Node v24 (بديل المكتبات) ✅✅✅
-// هذه الدالة تنظف البيانات من أي علامة $ (لمنع MongoDB Injection)
-// دون أن تحاول استبدال الـ req.query وتسبب الخطأ
+// ✅ Fallback to ensure req.body is never undefined (prevents destructuring crashes)
 app.use((req, res, next) => {
-    const clean = (obj) => {
-        if (obj && typeof obj === 'object') {
-            for (const key in obj) {
-                if (key.startsWith('$')) {
-                    delete obj[key]; // حذف المفاتيح الخطرة فقط
-                } else {
-                    clean(obj[key]); // تنظيف متداخل
-                }
+    if (!req.body) req.body = {};
+    next();
+});
+
+// ✅✅✅ الحماية من NoSQL Injection (متوافق مع Express v5) ✅✅✅
+// في Express v5، المتغيرات (req.query, req.params) هي getters للقراءة فقط ولا يمكن إعادة تعيينها.
+// لذا نقوم بتعديل الحقول الداخلية بشكل مباشر بدلاً من استخدام express-mongo-sanitize الذي يسبب Crash.
+const sanitizeObject = (obj) => {
+    if (obj instanceof Object) {
+        for (const key in obj) {
+            if (/^\$/.test(key)) {
+                delete obj[key]; // حذف المفاتيح التي تبدأ بـ $ (مثل $gt او $ne)
+            } else if (typeof obj[key] === 'object') {
+                sanitizeObject(obj[key]);
             }
         }
-    };
+    }
+};
 
-    if (req.body) clean(req.body);
-    if (req.query) clean(req.query);
-    if (req.params) clean(req.params);
-
+app.use((req, res, next) => {
+    if (req.body) sanitizeObject(req.body);
+    if (req.query) sanitizeObject(req.query);
+    if (req.params) sanitizeObject(req.params);
     next();
 });
 // ---------------------------------------------------------
@@ -68,8 +92,12 @@ console.log("🚀 Server is starting...");
 // جعل مجلد public متاحاً
 app.use(express.static(path.join(__dirname, 'public_html')));
 
-// 🖼️ Serve uploaded images from /uploads/
-app.use('/uploads', express.static(path.join(__dirname, 'public_html', 'uploads')));
+// 🖼️ Serve uploaded images — allow cross-origin access
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+}, express.static(path.join(__dirname, 'public_html', 'uploads')));
 
 // 2. التحقق من رابط قاعدة البيانات
 const dbUri = process.env.MONGO_URI;
@@ -99,6 +127,7 @@ apiRoutes.use('/notifications', require('./routes/notifications'));
 apiRoutes.use('/captain', captainRoutes);
 apiRoutes.use('/emergency', require('./routes/emergency'));
 apiRoutes.use('/upload', require('./routes/upload'));
+apiRoutes.use('/places', require('./routes/places'));
 
 // ✅ Serve logo-transparent.png from embedded base64 (Render-safe)
 app.use('/logo-transparent.png', require('./routes/logo-transparent'));
@@ -115,21 +144,22 @@ const globalLimiter = rateLimit({
     validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
 });
 
-// 👇 انسخ السطرين ديل بدل السطر الواحد القديم
-// ده عشان لو السيبانل مرر الرابط كامل (/api/auth/...)
+// Mount the API router
 app.use('/api', globalLimiter, apiRoutes);
 
-// وده عشان لو السيبانل قص الرابط ووصلنا بس (/auth/...)
-app.use('/', apiRoutes);
-
-// Make io accessible to routes
+// Make io and chatRooms accessible to routes
 app.set('io', io);
+app.set('chatRooms', chatRooms);
 
 // تشغيل المهام المجدولة
 startScheduler(app);
 
 // Socket.io connection handling
 const activeUsers = {};
+// chatRooms: { userId (string) → Set<orderId (string)> }
+// Tracks which users are currently viewing which order chat.
+// Used to suppress FCM push when the receiver is already reading the messages.
+const chatRooms = {};
 
 io.on('connection', (socket) => {
     console.log(`✅ User connected: ${socket.id}`);
@@ -143,16 +173,33 @@ io.on('connection', (socket) => {
         console.log(`👤 User ${userId} is now online and joined room: ${userId}`);
     });
 
+    // ✅ Chat room presence tracking — frontend emits this when chat.html opens
+    socket.on('join_chat_room', (orderId) => {
+        if (!socket.userId || !orderId) return;
+        if (!chatRooms[socket.userId]) chatRooms[socket.userId] = new Set();
+        chatRooms[socket.userId].add(String(orderId));
+        console.log(`💬 User ${socket.userId} joined chat room for order ${orderId}`);
+    });
+
+    // ✅ Frontend emits this on beforeunload / visibilitychange hidden
+    socket.on('leave_chat_room', (orderId) => {
+        if (!socket.userId || !orderId) return;
+        if (chatRooms[socket.userId]) {
+            chatRooms[socket.userId].delete(String(orderId));
+        }
+        console.log(`💬 User ${socket.userId} left chat room for order ${orderId}`);
+    });
+
     socket.on('send_message', async (data) => {
         try {
             const sender = data.sender || data.senderId;
             const receiver = data.receiver || data.receiverId;
             const order = data.order || data.orderId;
 
-            // ✅ FIX 1: تحقق مرن - socket.userId قد يكون غير مضبوط لو الـ join تأخر
-            if (socket.userId && socket.userId !== String(sender).trim()) {
-                console.warn(`[Chat] userId mismatch: socket=${socket.userId}, data=${sender}`);
-                return socket.emit('message_error', { error: 'Unauthorized' });
+            // ✅ FIX 1: تحقق صارم لمنع انتحال الشخصية في السوكت
+            if (!socket.userId || socket.userId !== String(sender).trim()) {
+                console.warn(`[Chat] Security Blocked: socket.userId=${socket.userId} tried to send as ${sender}`);
+                return socket.emit('message_error', { error: 'Unauthorized sender ID' });
             }
 
             if (!sender || !receiver || !order || !data.text) {
@@ -164,7 +211,7 @@ io.on('connection', (socket) => {
             const orderDocId = mongoose.Types.ObjectId.isValid(order) ? new mongoose.Types.ObjectId(order) : order;
 
             const message = await Message.create({
-                sender, receiver, order: orderDocId, text: data.text, isRead: false
+                sender, receiver, order: orderDocId, text: data.text, tempId: data.tempId, isRead: false
             });
             console.log(`✅ Message saved: id=${message._id}, order=${order}, sender=${sender}`);
 
@@ -179,6 +226,7 @@ io.on('connection', (socket) => {
 
             const messageData = {
                 _id: message._id,
+                tempId: data.tempId, // ✅ Included so receiver's UI can de-duplicate
                 sender: { _id: sender, name: data.senderName },
                 text: data.text,
                 createdAt: message.createdAt,
@@ -192,25 +240,32 @@ io.on('connection', (socket) => {
             io.to(String(receiver)).emit('new_notification', newNotif);
 
             // ✅ FIX 3: أرسل message_sent فقط للمرسل (ليس new_message ثانية لتفادي التكرار)
-            socket.emit('message_sent', { success: true, messageId: message._id });
+            socket.emit('message_sent', { success: true, messageId: message._id, tempId: data.tempId });
 
-            // 🔔 FCM Push for chat messages (even if app is closed)
+            // 🔔 FCM Push — only if receiver is NOT actively in this chat room
             try {
-                const { sendPush } = require('./utils/firebasePush');
-                const User = require('./models/User');
-                const receiverUser = await User.findById(receiver).select('fcmToken');
-                if (receiverUser && receiverUser.fcmToken) {
-                    await sendPush(
-                        receiverUser.fcmToken,
-                        `💬 رسالة من ${data.senderName || 'مستخدم'}`,
-                        data.text.substring(0, 100),
-                        {
-                            type: 'chat',
-                            orderId: order.toString(),
-                            senderId: String(sender),    // ✅ المرسل (= receiverId في الشات)
-                            senderName: data.senderName || 'مستخدم'
-                        }
-                    );
+                const receiverInRoom = chatRooms[String(receiver)] &&
+                    chatRooms[String(receiver)].has(String(order));
+
+                if (!receiverInRoom) {
+                    const { sendPush } = require('./utils/firebasePush');
+                    const User = require('./models/User');
+                    const receiverUser = await User.findById(receiver).select('fcmToken');
+                    if (receiverUser && receiverUser.fcmToken) {
+                        await sendPush(
+                            receiverUser.fcmToken,
+                            `💬 رسالة من ${data.senderName || 'مستخدم'}`,
+                            data.text.substring(0, 100),
+                            {
+                                type: 'chat',
+                                orderId: order.toString(),
+                                senderId: String(sender),
+                                senderName: data.senderName || 'مستخدم'
+                            }
+                        );
+                    }
+                } else {
+                    console.log(`[Chat] Skipping FCM push — receiver ${receiver} is live in chat room ${order}`);
                 }
             } catch (pushErr) {
                 console.error('⚠️ Chat FCM push failed:', pushErr.message);
@@ -288,14 +343,15 @@ io.on('connection', (socket) => {
     socket.on('disconnect', async () => {
         if (socket.userId) {
             delete activeUsers[socket.userId];
+            // Clean up all chat room presence for this user
+            delete chatRooms[socket.userId];
             io.emit('user_status', { userId: socket.userId, status: 'offline' });
             console.log(`👤 User ${socket.userId} is now offline`);
 
             // ✅ FIX: Do NOT auto-set captain offline when they disconnect.
             // This prevents "tab switching" from making them offline.
-            // They strictly go offline if they press "Offline" or Logout.
-
-            // Only remove from activeUsers list (already done above)
+            // A long-polling or heartbeat system would be better for accurate online status,
+            // but for now we only remove from active socket list.
         }
     });
 });
@@ -308,6 +364,15 @@ app.use('/api', (req, res) => {
 // SPA catch-all — only for non-API routes (frontend routing)
 app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public_html', 'index.html'));
+});
+
+// 🛡️ Global Error Handler - يمنع السيرفر من التوقف عند حدوث خطأ برمجي غير متوقع
+app.use((err, req, res, next) => {
+    console.error('❌ Unhandled Server Error:', err.message || err);
+    res.status(500).json({
+        message: 'حدث خطأ غير متوقع في الخادم',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
 });
 
 const PORT = process.env.PORT || 5000;

@@ -12,6 +12,10 @@ const protect = async (req, res, next) => {
     else if (req.cookies && req.cookies.token) {
         token = req.cookies.token;
     }
+    // 3. Try to get token from request body (used by navigator.sendBeacon which cannot set headers)
+    else if (req.body && req.body._token) {
+        token = req.body._token;
+    }
 
     // Validation: Missing token
     if (!token) {
@@ -31,6 +35,11 @@ const protect = async (req, res, next) => {
             return res.status(401).json({ message: 'المستخدم غير موجود' });
         }
 
+        // 🔒 Security: Verify role consistency between JWT and DB
+        if (decoded.role && decoded.role !== req.user.role) {
+            return res.status(401).json({ message: 'Token role mismatch — please login again' });
+        }
+
         next();
     } catch (error) {
         // Return 401 instead of throwing
@@ -38,16 +47,32 @@ const protect = async (req, res, next) => {
     }
 };
 
-// --- هذا هو الجزء الذي كان ناقصاً عندك ---
+// ==========================================
+// 🔒 Role-Based Access Middleware
+// ==========================================
+
 const adminOnly = (req, res, next) => {
-    // نتحقق مما إذا كان المستخدم موجوداً، وأن دوره هو 'admin'
-    // ملاحظة: تأكد أن اسم الحقل في الداتابيز هو 'role' وقيمته 'admin'
     if (req.user && req.user.role === 'admin') {
         next();
     } else {
         res.status(403).json({ message: 'غير مصرح، هذه الصلاحية للمسؤولين فقط' });
     }
 };
-// ---------------------------------------
 
-module.exports = { protect, adminOnly };
+const captainOnly = (req, res, next) => {
+    if (req.user && req.user.role === 'captain') {
+        next();
+    } else {
+        res.status(403).json({ message: 'غير مصرح، هذه الصلاحية للكباتن فقط' });
+    }
+};
+
+const clientOnly = (req, res, next) => {
+    if (req.user && (req.user.role === 'client' || req.user.role === 'customer')) {
+        next();
+    } else {
+        res.status(403).json({ message: 'غير مصرح، هذه الصلاحية للعملاء فقط' });
+    }
+};
+
+module.exports = { protect, adminOnly, captainOnly, clientOnly };
