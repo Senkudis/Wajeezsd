@@ -62,6 +62,8 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/s" />
                 <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/s" />
+                <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/p" />
+                <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/p" />
             </intent-filter>
         </activity>
 

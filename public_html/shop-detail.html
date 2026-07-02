@@ -115,20 +115,21 @@
         .cart-drawer-footer { padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #f0f0f0; }
 
         .cart-fab {
-            position: fixed; bottom: 20px; left: 20px; z-index: 999;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white; border: none; border-radius: 30px; padding: 12px 20px;
-            font-weight: 800; font-size: 15px; cursor: pointer;
-            box-shadow: 0 6px 24px rgba(245,158,11,0.4);
-            display: flex; align-items: center; gap: 8px;
+            position: fixed; bottom: 20px; left: 20px; right: 20px; z-index: 999;
+            background: linear-gradient(135deg, #04553A, #086b43);
+            color: white; border: none; border-radius: 16px; padding: 14px 20px;
+            cursor: pointer; box-shadow: 0 8px 30px rgba(4,85,58,0.3);
+            display: flex; align-items: center; justify-content: space-between;
             transition: all 0.3s;
         }
-        .cart-fab.hidden { transform: translateY(120px); }
+        .cart-fab.hidden { transform: translateY(150px); }
+        .cart-fab-info { display: flex; align-items: center; gap: 12px; }
         .cart-count-badge {
-            background: white; color: #d97706; border-radius: 50%;
-            width: 22px; height: 22px; display: flex; align-items: center;
-            justify-content: center; font-size: 12px; font-weight: 900;
+            background: #f59e0b; color: white; border-radius: 8px;
+            padding: 4px 10px; font-size: 13px; font-weight: 900;
         }
+        .cart-fab-total { font-size: 15px; font-weight: 800; }
+        .cart-fab-action { font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px; }
         .cart-item {
             display: flex; align-items: center; gap: 10px;
             padding: 10px 0; border-bottom: 1px solid #f8fafc;
@@ -233,11 +234,15 @@
 <!-- Cart Overlay -->
 <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
 
-<!-- Cart FAB -->
+<!-- Cart FAB (Floating Checkout Bar) -->
 <button class="cart-fab hidden" id="cartFab" onclick="openCart()">
-    <i class="bi bi-cart-fill"></i>
-    <span>السلة</span>
-    <div class="cart-count-badge" id="cartCount">0</div>
+    <div class="cart-fab-info">
+        <div class="cart-count-badge"><span id="cartCount">0</span> عناصر</div>
+        <div class="cart-fab-total" id="cartFabTotal">0 ج.س</div>
+    </div>
+    <div class="cart-fab-action">
+        عرض السلة <i class="bi bi-arrow-left-short fs-4" style="margin-right:-6px;"></i>
+    </div>
 </button>
 
 <!-- Cart Drawer -->
@@ -468,7 +473,7 @@
             // Hero
             const heroEl = document.getElementById('shopHeroContainer');
             if (shopData.image_url) {
-                heroEl.outerHTML = `<img src="${getFullImageUrl(shopData.image_url)}" class="shop-hero-img" id="shopHeroContainer" alt="${shopData.name}">`;
+                heroEl.outerHTML = `<img src="${getFullImageUrl(shopData.image_url)}" class="shop-hero-img" id="shopHeroContainer" alt="${escapeHtml(shopData.name)}">`;
             }
             document.getElementById('shopName').textContent = shopData.name;
             document.getElementById('shopAddress').textContent = shopData.address || '';
@@ -563,9 +568,9 @@
         grid.innerHTML = products.map(p => buildProductCard(p)).join('');
     }
 
-    // 🔦 يمرّر إلى المنتج المحدّد في الرابط ويُبرزه (قادم من بحث "تسوق")
+    // 🔦 يمرّر إلى المنتج المحدّد في الرابط ويُبرزه (قادم من بحث "تسوق" أو رابط المشاركة القصير)
     function _highlightProductFromUrl() {
-        const pid = new URLSearchParams(window.location.search).get('product');
+        const pid = new URLSearchParams(window.location.search).get('product') || window.__SHARED_PRODUCT_ID;
         if (!pid) return;
         // قد لا يكون المنتج ظاهراً إن كانت فئة أخرى محدّدة → اعرض الكل أولاً
         setTimeout(() => {
@@ -582,7 +587,6 @@
         }, 350);
     }
 
-    // 🖼️ فتح صورة المنتج بالحجم الكامل عند الضغط عليها
     function openProductImage(src, event) {
         if (event) event.stopPropagation();
         if (!src) return;
@@ -600,6 +604,34 @@
     }
     window.openProductImage = openProductImage;
 
+    // تهريب HTML — أسماء وأوصاف المنتجات تأتي من التجار ولا يجوز حقنها خاماً في الصفحة
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // 🔗 Share Product Feature
+    function shareProduct(productId, event) {
+        if (event) event.stopPropagation();
+        const product = allProducts.find(p => p._id === productId);
+        const productName = product ? product.name : 'منتج';
+        const baseUrl = window.API_URL || 'https://wajeezsd.com';
+        const shortUrl = `${baseUrl}/p/${productId}`;
+        const title = `تسوق ${productName} من متجر ${shopData ? shopData.name : 'وجيز'}`;
+        const text = `شاهد هذا المنتج الرائع وأضفه إلى سلتك على وجيز!`;
+        
+        if (navigator.share) {
+            navigator.share({ title, text, url: shortUrl }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(shortUrl);
+            Swal.fire({ toast: true, position: 'bottom-end', text: 'تم نسخ رابط المنتج', icon: 'success', timer: 2000, showConfirmButton: false });
+        }
+    }
+
     function buildProductCard(p) {
         const inCart = cart[p._id];
         const outOfStock = p.stock !== null && p.stock !== undefined && p.stock === 0;
@@ -611,8 +643,14 @@
 
         const imgSrc = getFullImageUrl(p.image);
         const imgHtml = imgSrc
-            ? `<img src="${imgSrc}" alt="${p.name}" style="cursor:zoom-in" onclick="openProductImage('${imgSrc}', event)" onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-box-seam-fill&quot;&gt;&lt;/i&gt;'">`
+            ? `<img src="${imgSrc}" alt="${escapeHtml(p.name)}" style="cursor:zoom-in" onclick="openProductImage('${imgSrc}', event)" onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-box-seam-fill&quot;&gt;&lt;/i&gt;'">`
             : `<i class="bi bi-box-seam-fill"></i>`;
+
+        const shareBtnHtml = `<button onclick="shareProduct('${p._id}', event)"
+            class="btn btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm d-flex align-items-center justify-content-center"
+            style="width:32px; height:32px; padding:0; z-index:2;">
+            <i class="bi bi-share-fill text-primary" style="font-size:14px;"></i>
+        </button>`;
 
         let actionHtml;
         if (outOfStock) {
@@ -633,10 +671,13 @@
 
         return `
         <div class="product-card" id="pc-${p._id}">
-            <div class="product-card-img">${imgHtml}</div>
+            <div class="product-card-img position-relative">
+                ${imgHtml}
+                ${shareBtnHtml}
+            </div>
             <div class="product-card-body">
-                <div class="product-name">${p.name}</div>
-                ${p.description ? `<div class="product-desc">${p.description}</div>` : ''}
+                <div class="product-name">${escapeHtml(p.name)}</div>
+                ${p.description ? `<div class="product-desc">${escapeHtml(p.description)}</div>` : ''}
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
                     <div class="product-price">${p.price} ج.س</div>
                     <div style="display:flex;align-items:center;gap:3px;">
@@ -654,7 +695,23 @@
     // ─── Cart Logic ─────────────────────────────────────────
     function addToCart(productId, event) {
         if (event) event.stopPropagation();
-        if (!token) { Swal.fire('تنبيه', 'يجب تسجيل الدخول أولاً', 'warning'); return; }
+        if (!token) {
+            Swal.fire({
+                title: 'مرحباً بك في وجيز 👋',
+                text: 'الرجاء تسجيل الدخول أولاً لإضافة المنتجات لسلتك!',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'تسجيل الدخول / إنشاء حساب',
+                cancelButtonText: 'تصفح كزائر',
+                confirmButtonColor: '#2563eb'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.setItem('returnUrl', window.location.href);
+                    window.location.href = 'client-login.html';
+                }
+            });
+            return;
+        }
         const product = allProducts.find(p => p._id === productId);
         if (!product) return;
         // Check stock
@@ -664,6 +721,17 @@
         }
         cart[productId] = { product, qty: 1 };
         updateCart();
+        
+        // Success Toast
+        Swal.fire({
+            toast: true,
+            position: 'top',
+            text: `تمت الإضافة: ${product.name}`,
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { popup: 'rounded-pill' }
+        });
     }
 
     function changeQty(productId, delta, event) {
@@ -689,6 +757,8 @@
 
         document.getElementById('cartCount').textContent = count;
         document.getElementById('cartTotal').textContent = `${total} ج.س`;
+        const fabTotalEl = document.getElementById('cartFabTotal');
+        if (fabTotalEl) fabTotalEl.textContent = `${total} ج.س`;
 
         const fab = document.getElementById('cartFab');
         if (count > 0) fab.classList.remove('hidden');
@@ -710,7 +780,7 @@
         if (!items.length) { body.innerHTML = '<p class="text-muted text-center py-3">السلة فارغة</p>'; return; }
         body.innerHTML = items.map(({ product, qty }) => `
             <div class="cart-item">
-                <div class="cart-item-name">${product.name}</div>
+                <div class="cart-item-name">${escapeHtml(product.name)}</div>
                 <div class="qty-control" style="margin:0;gap:6px;">
                     <button class="qty-btn" style="width:24px;height:24px;font-size:12px;" onclick="changeQty('${product._id}', -1)">−</button>
                     <span class="qty-num" style="font-size:14px;">${qty}</span>
@@ -839,7 +909,7 @@
 
         document.getElementById('orderSummary').innerHTML = items.map(({ product, qty }) =>
             `<div class="d-flex justify-content-between small py-1">
-                <span>${qty}x ${product.name}</span>
+                <span>${qty}x ${escapeHtml(product.name)}</span>
                 <span class="fw-bold">${product.price * qty} ج.س</span>
             </div>`
         ).join('');
@@ -915,14 +985,32 @@
                 const discountMsg = data.order?.discountAmount > 0
                     ? `<br><span style="color:#16a34a;">🎉 وفّرت ${data.order.discountAmount} ج.س بالكوبون!</span>`
                     : '';
-                await Swal.fire({
-                    icon: 'success',
-                    title: '✅ تم إرسال طلبك!',
-                    html: `طلبك وصل للمتجر وينتظر موافقتهم.${discountMsg}<br><small class="text-muted">رقم الطلب: #${data.order._id.slice(-4)}</small>`,
-                    confirmButtonText: 'متابعة طلباتي',
-                    confirmButtonColor: '#04553A'
-                });
-                window.location.href = 'client-my-orders.html';
+                
+                if (!window.Capacitor) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'الآن تم الطلب!',
+                        html: `الرجاء متابعة الطلب والتواصل مع المندوب عبر تطبيق وجيز.${discountMsg}<br><small class="text-muted">رقم الطلب: #${data.order._id.slice(-4)}</small>`,
+                        confirmButtonText: 'تحميل التطبيق ومتابعة الطلب',
+                        confirmButtonColor: '#2563eb',
+                        allowOutsideClick: false
+                    });
+                    // رابط المتجر القصير /s/ مسجل في intent-filter بالتطبيق المنشور، بعكس /p/ الذي يتوقع معرف منتج
+                    if (shopData && shopData.shareCode) {
+                        window.location.href = 'intent://wajeezsd.com/s/' + shopData.shareCode + '#Intent;scheme=https;package=com.wajeezsd.app;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.wajeezsd.app;end';
+                    } else {
+                        window.location.href = 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
+                    }
+                } else {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: '✅ تم إرسال طلبك!',
+                        html: `طلبك وصل للمتجر وينتظر موافقتهم.${discountMsg}<br><small class="text-muted">رقم الطلب: #${data.order._id.slice(-4)}</small>`,
+                        confirmButtonText: 'متابعة طلباتي',
+                        confirmButtonColor: '#04553A'
+                    });
+                    window.location.href = 'client-my-orders.html';
+                }
             } else {
                 Swal.fire('خطأ', data.message, 'error');
                 btn.disabled = false;

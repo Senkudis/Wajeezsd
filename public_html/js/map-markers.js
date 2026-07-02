@@ -71,7 +71,7 @@
     function captainPin(status, highlighted) {
         var colors = { available: '#16a34a', busy: '#d97706', offline: '#6b7280' };
         var fill = highlighted ? '#f59e0b' : (colors[status] || colors.available);
-        var w = highlighted ? 56 : 48, h = highlighted ? 68 : 58;
+        var w = highlighted ? 42 : 34, h = highlighted ? 52 : 44;
         var r = w / 2, topR = r - 2;
         var shadowEl = '<ellipse cx="' + r + '" cy="' + (h - 2) + '" rx="' + (r * 0.55) + '" ry="3.5" fill="rgba(0,0,0,0.22)"/>';
         var pinPath = 'M' + r + ',' + (h - 5) +
@@ -145,22 +145,22 @@
 
         /** نقطة الاستلام A — خضراء */
         pickup: function () {
-            return teardropPin('#04553A', 'A', { w: 46, h: 56, fontSize: 16 });
+            return teardropPin('#10b981', 'A', { w: 34, h: 44, fontSize: 13 });
         },
 
         /** نقطة التسليم B — حمراء */
         dropoff: function () {
-            return teardropPin('#e63946', 'B', { w: 46, h: 56, fontSize: 16 });
+            return teardropPin('#e63946', 'B', { w: 34, h: 44, fontSize: 13 });
         },
 
         /** موقع المتجر — أخضر مع أيقونة متجر */
         store: function (label) {
-            return teardropPin('#04553A', label || '🏪', { w: 48, h: 58, fontSize: 15 });
+            return teardropPin('#04553A', label || '🏪', { w: 34, h: 44, fontSize: 12 });
         },
 
         /** موقع منشأة قابل للسحب — أخضر مع دبوس */
         place: function () {
-            return teardropPin('#04553A', '📍', { w: 44, h: 54, fontSize: 14 });
+            return teardropPin('#04553A', '📍', { w: 32, h: 40, fontSize: 12 });
         },
 
         /** موقع المستخدم الحالي — نقطة دائرية خضراء */

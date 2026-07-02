@@ -193,6 +193,9 @@ app.use('/logo-transparent.png', require('./routes/logo-transparent'));
 // 🔗 روابط المتاجر القصيرة — wajeezsd.com/s/<code> (صفحة المتجر + معاينة OG لواتساب)
 app.use('/s', require('./routes/share'));
 
+// 🔗 روابط المنتجات القصيرة — wajeezsd.com/p/<code> (صفحة المتجر تفتح على المنتج مباشرة)
+app.use('/p', require('./routes/product-share'));
+
 // 🤖 Android App Links verification — express.static يتجاهل مجلدات النقطة
 // (dotfiles:'ignore' افتراضياً) فكان الملف يرجع 404 رغم وجوده. نخدمه صراحةً.
 app.get('/.well-known/assetlinks.json', (req, res) => {

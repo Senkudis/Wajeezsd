@@ -181,14 +181,32 @@ const AppCore = {
         try {
             await App.addListener('appUrlOpen', async ({ url }) => {
                 try {
-                    const m = String(url || '').match(/\/s\/([2-9A-HJ-NP-Za-km-z]{4,12})/);
-                    if (!m) return;
                     const apiUrl = window.API_URL || 'https://wajeezsd.com';
-                    const res = await fetch(`${apiUrl}/api/places/resolve/${m[1]}`);
-                    if (!res.ok) return;
-                    const data = await res.json();
-                    if (data.placeId) {
-                        window.location.href = `shop-detail.html?placeId=${data.placeId}`;
+                    
+                    // Match Product Short Link: /p/24hex
+                    const pMatch = String(url || '').match(/\/p\/([0-9a-fA-F]{24})/);
+                    if (pMatch) {
+                        const res = await fetch(`${apiUrl}/api/places/resolve-product/${pMatch[1]}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.placeId) {
+                                window.location.href = `shop-detail.html?placeId=${data.placeId}&product=${data.productId}`;
+                                return;
+                            }
+                        }
+                    }
+
+                    // Match Shop Short Link: /s/code
+                    const sMatch = String(url || '').match(/\/s\/([2-9A-HJ-NP-Za-km-z]{4,12})/);
+                    if (sMatch) {
+                        const res = await fetch(`${apiUrl}/api/places/resolve/${sMatch[1]}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.placeId) {
+                                window.location.href = `shop-detail.html?placeId=${data.placeId}`;
+                                return;
+                            }
+                        }
                     }
                 } catch (err) {
                     console.warn('Deep link resolution failed:', err.message || err);
