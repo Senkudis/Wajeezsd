@@ -193,6 +193,14 @@ app.use('/logo-transparent.png', require('./routes/logo-transparent'));
 // 🔗 روابط المتاجر القصيرة — wajeezsd.com/s/<code> (صفحة المتجر + معاينة OG لواتساب)
 app.use('/s', require('./routes/share'));
 
+// 🤖 Android App Links verification — express.static يتجاهل مجلدات النقطة
+// (dotfiles:'ignore' افتراضياً) فكان الملف يرجع 404 رغم وجوده. نخدمه صراحةً.
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    res.type('application/json');
+    // dotfiles:'allow' ضروري هنا أيضاً — sendFile يرفض مسارات النقطة افتراضياً مثل static
+    res.sendFile(path.join(__dirname, 'public_html', '.well-known', 'assetlinks.json'), { dotfiles: 'allow' });
+});
+
 // ✅ FIX #18: حُذف تعريف /api/auth/app-config المكرر من هنا
 // هذا الـ endpoint مُعرَّف بشكل صحيح داخل routes/auth.js
 // ويُستدعى عبر apiRoutes المُنضمة على /api
