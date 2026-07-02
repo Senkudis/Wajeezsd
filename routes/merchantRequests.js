@@ -264,6 +264,12 @@ router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
 
             await newPlace.save();
 
+            // 🔗 كود مشاركة قصير للمتجر الجديد — wajeezsd.com/s/<code>
+            try {
+                const { ensureShareCode } = require('../utils/shareCode');
+                await ensureShareCode(newPlace);
+            } catch (scErr) { logger.error('shareCode generation failed:', scErr.message); }
+
             // 🔔 إشعار للمستخدم بقبول طلبه وتحويله لتاجر
             try {
                 const { sendNotification } = require('../utils/notificationHelper');

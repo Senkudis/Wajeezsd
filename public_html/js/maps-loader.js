@@ -66,7 +66,13 @@
 
                 var params = new URLSearchParams();
                 params.set('key', key);
-                if (opts.libraries) params.set('libraries', opts.libraries);
+                var libraries = opts.libraries || '';
+                if (libraries && libraries.indexOf('marker') === -1) {
+                    libraries += ',marker';
+                } else if (!libraries) {
+                    libraries = 'marker';
+                }
+                params.set('libraries', libraries);
                 if (opts.callback)  params.set('callback', opts.callback);
                 params.set('loading', 'async');
                 if (opts.extra) {
@@ -87,6 +93,51 @@
         });
     }
 
+    // إنشاء دبوس حديث (AdvancedMarkerElement) إذا كان متاحاً، مع الحفاظ على التوافق الخلفي
+    function createModernMarker(opts) {
+        opts = opts || {};
+        if (window.google && window.google.maps && window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
+            try {
+                if (opts.map && opts.map.getMapCapabilities && opts.map.getMapCapabilities().isAdvancedMarkersAvailable) {
+                    var advOpts = {
+                        map: opts.map,
+                        position: opts.position,
+                        title: opts.title || '',
+                        gmpDraggable: !!opts.draggable,
+                        zIndex: opts.zIndex || 1
+                    };
+                    // 🎨 دعم أيقونات WajeezMarkers ({url, scaledSize}) — الدبوس الحديث لا يفهم
+                    // خاصية icon، فنحوّلها لعنصر <img> يُمرَّر كـ content ليحافظ على هوية الدبابيس
+                    if (opts.icon && opts.icon.url) {
+                        var img = document.createElement('img');
+                        img.src = opts.icon.url;
+                        if (opts.icon.scaledSize) {
+                            img.style.width = opts.icon.scaledSize.width + 'px';
+                            img.style.height = opts.icon.scaledSize.height + 'px';
+                        }
+                        advOpts.content = img;
+                    }
+                    var advMarker = new google.maps.marker.AdvancedMarkerElement(advOpts);
+                    // 🔒 توافق خلفي: position قد يكون literal بلا دوال lat()/lng() —
+                    // كل النداءات القائمة تستعمل getPosition().lat() فنعيد كائناً موحّداً دائماً
+                    advMarker.getPosition = function() {
+                        var p = this.position;
+                        if (!p) return null;
+                        var la = (typeof p.lat === 'function') ? p.lat() : p.lat;
+                        var ln = (typeof p.lng === 'function') ? p.lng() : p.lng;
+                        return { lat: function() { return la; }, lng: function() { return ln; } };
+                    };
+                    advMarker.setPosition = function(pos) { this.position = pos; };
+                    advMarker.setIcon = function() {};
+                    return advMarker;
+                }
+            } catch(e) {}
+        }
+        return new google.maps.Marker(opts);
+    }
+
     window.getMapsApiKey = getMapsApiKey;
     window.loadGoogleMaps = loadGoogleMaps;
+    window.createModernMarker = createModernMarker;
 })();
+

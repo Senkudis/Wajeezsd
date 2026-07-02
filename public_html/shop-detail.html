@@ -383,9 +383,10 @@
     const token = window.Auth?.getToken() || localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    // Get and validate placeId from URL
+    // Get and validate placeId from URL — or from the short share link (/s/<code>)
+    // where the server injects window.__SHARED_PLACE_ID instead of a query param
     const params = new URLSearchParams(window.location.search);
-    const placeId = params.get('placeId');
+    const placeId = params.get('placeId') || window.__SHARED_PLACE_ID;
     // Ensure placeId is a valid MongoDB ObjectId (24 hex characters)
     if (!placeId || !/^[0-9a-fA-F]{24}$/.test(placeId)) {
         window.location.href = 'client-order.html';
@@ -810,7 +811,28 @@
 
     // ─── Checkout ────────────────────────────────────────────
     function proceedToOrder() {
-        if (!token) { Swal.fire('تنبيه', 'يجب تسجيل الدخول أولاً لإتمام الطلب', 'warning'); return; }
+        if (!token) {
+            Swal.fire({
+                title: 'تسجيل الدخول مطلوب',
+                text: 'لإتمام طلبك وتتبع الكابتن مباشرة، يرجى تحميل تطبيق وجيز أو تسجيل الدخول للمتابعة.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-google-play"></i> تحميل التطبيق',
+                cancelButtonText: 'الدخول من المتصفح',
+                confirmButtonColor: '#04553A',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // رابط تطبيق وجيز على متجر بلاي
+                    window.open('https://play.google.com/store/apps/details?id=com.wajeezsd.app', '_blank');
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    // توجيه لصفحة الدخول مع حفظ مسار العودة للمتجر
+                    localStorage.setItem('returnUrl', `shop-detail.html?placeId=${placeId}`);
+                    window.location.href = `client-login.html`;
+                }
+            });
+            return;
+        }
         closeCart();
         const items = Object.values(cart);
         const total = items.reduce((sum, { product, qty }) => sum + product.price * qty, 0);
@@ -1100,8 +1122,8 @@
                 map: shopMap,
                 // ✅ FIX #2: zIndex عالي جداً لضمان ظهور الـ marker فوق أي عنصر آخر
                 zIndex: 9999,
-                icon: {
-                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"><circle cx="12" cy="9" r="9" fill="#fff" opacity="0.9"/><path fill="#f59e0b" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`),
+                icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.store() : {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"><circle cx="12" cy="9" r="9" fill="#fff" opacity="0.9"/><path fill="#f59e0b" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>'),
                     scaledSize: new google.maps.Size(40, 40),
                     anchor: new google.maps.Point(20, 40)
                 },
@@ -1351,7 +1373,7 @@
                 '<circle cx="14" cy="14" r="6.5" fill="none" stroke="#25d366" stroke-width="1.5"/></svg>'),
             scaledSize: new google.maps.Size(28, 28), anchor: new google.maps.Point(14, 14)
         };
-        if (!_suMarker) _suMarker = new google.maps.Marker({ map: shopMap, position: pos, icon: dotIcon, zIndex: 3, clickable: false, title: 'موقعك الحالي' });
+        if (!_suMarker) _suMarker = new google.maps.Marker({ map: shopMap, position: pos, icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.userDot() : dotIcon, zIndex: 3, clickable: false, title: 'موقعك الحالي' });
         else { _suMarker.setPosition(pos); _suMarker.setIcon(dotIcon); }
 
         if (!_suPulse) _suPulse = new google.maps.Circle({ map: shopMap, center: pos, radius: 8, strokeColor: '#25d366', strokeOpacity: 0.7, strokeWeight: 2, fillColor: '#25d366', fillOpacity: 0.15, clickable: false, zIndex: 2 });
@@ -1628,6 +1650,7 @@
 </div>
 
 <script src="js/maps-loader.js"></script>
+<script src="js/map-markers.js"></script>
 <script>loadGoogleMaps({ libraries: 'places,geometry', callback: '__googleMapsReady' });</script>
 </body>
 </html>

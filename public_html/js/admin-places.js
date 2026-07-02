@@ -134,11 +134,13 @@ async function initAdminPlaceMap(lat, lng) {
         mapElement.innerHTML = '';
         const webMap = new google.maps.Map(mapElement, {
             center: { lat, lng }, zoom: 16,
-            gestureHandling: 'greedy', disableDefaultUI: false
+            gestureHandling: 'greedy', disableDefaultUI: false,
+            mapId: 'WAJEEZ_ADMIN_MAP'
         });
-        const marker = new google.maps.Marker({
-            position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل'
-        });
+        const marker = (typeof window.createModernMarker === 'function')
+            ? window.createModernMarker({ position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل', icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.place() : undefined })
+            : new google.maps.Marker({ position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل', icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.place() : undefined });
+
         marker.addListener('dragend', () => {
             const pos = marker.getPosition();
             document.getElementById('placeLat').value = pos.lat().toFixed(6);
@@ -158,7 +160,13 @@ async function initAdminPlaceMap(lat, lng) {
             google.maps.event.trigger(webMap, 'resize');
             webMap.setCenter({ lat, lng });
         }, 250);
-        adminPlaceMapInstance = { destroy: function() {} };
+        adminPlaceMapInstance = {
+            destroy: function() {
+                if (marker) marker.setMap(null);
+                if (webMap) google.maps.event.clearInstanceListeners(webMap);
+            }
+        };
+
     } else {
         console.warn('No map provider available for adminPlaceMap');
     }
@@ -417,11 +425,13 @@ async function openEditPlaceModal(id) {
                 mapElement.innerHTML = '';
                 const webMap = new google.maps.Map(mapElement, {
                     center: { lat, lng }, zoom: 16,
-                    gestureHandling: 'greedy', disableDefaultUI: false
+                    gestureHandling: 'greedy', disableDefaultUI: false,
+                    mapId: 'WAJEEZ_EDIT_PLACE_MAP'
                 });
-                const marker = new google.maps.Marker({
-                    position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل'
-                });
+                const marker = (typeof window.createModernMarker === 'function')
+                    ? window.createModernMarker({ position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل', icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.place() : undefined })
+                    : new google.maps.Marker({ position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل', icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.place() : undefined });
+
                 marker.addListener('dragend', () => {
                     const pos = marker.getPosition();
                     document.getElementById('editPlaceLat').value = pos.lat().toFixed(6);
@@ -439,7 +449,13 @@ async function openEditPlaceModal(id) {
                     google.maps.event.trigger(webMap, 'resize');
                     webMap.setCenter({ lat, lng });
                 }, 250);
-                editPlaceMapInstance = { destroy: function() {} };
+                editPlaceMapInstance = {
+                    destroy: function() {
+                        if (marker) marker.setMap(null);
+                        if (webMap) google.maps.event.clearInstanceListeners(webMap);
+                    }
+                };
+
             } else {
                 console.warn('No map provider available for editPlaceMap');
             }

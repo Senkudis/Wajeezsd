@@ -118,6 +118,7 @@
 
 <!-- Google Maps — key served centrally from env via /api/config -->
 <script src="js/maps-loader.js"></script>
+<script src="js/map-markers.js"></script>
 <script>loadGoogleMaps();</script>
 <!-- SweetAlert2 -->
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
@@ -288,8 +289,12 @@ function initOrderMap(o) {
         styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
     });
 
-    new google.maps.Marker({ position: { lat: o.pickup.lat, lng: o.pickup.lng }, map, label: { text: 'A', color: 'white', fontWeight: '800' } });
-    new google.maps.Marker({ position: { lat: o.dropoff.lat, lng: o.dropoff.lng }, map, label: { text: 'B', color: 'white', fontWeight: '800' } });
+    (typeof WajeezMarkers !== 'undefined')
+        ? new google.maps.Marker({ position: { lat: o.pickup.lat, lng: o.pickup.lng }, map, title: 'نقطة الاستلام', icon: WajeezMarkers.pickup(), zIndex: 2 })
+        : new google.maps.Marker({ position: { lat: o.pickup.lat, lng: o.pickup.lng }, map, label: { text: 'A', color: 'white', fontWeight: '800' } });
+    (typeof WajeezMarkers !== 'undefined')
+        ? new google.maps.Marker({ position: { lat: o.dropoff.lat, lng: o.dropoff.lng }, map, title: 'نقطة التسليم', icon: WajeezMarkers.dropoff(), zIndex: 2 })
+        : new google.maps.Marker({ position: { lat: o.dropoff.lat, lng: o.dropoff.lng }, map, label: { text: 'B', color: 'white', fontWeight: '800' } });
 
     const bounds = new google.maps.LatLngBounds();
     bounds.extend({ lat: o.pickup.lat, lng: o.pickup.lng });

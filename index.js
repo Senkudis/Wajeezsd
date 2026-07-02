@@ -190,6 +190,9 @@ apiRoutes.use('/referral', require('./routes/referral'));
 // ✅ Serve logo-transparent.png from embedded base64 (Render-safe)
 app.use('/logo-transparent.png', require('./routes/logo-transparent'));
 
+// 🔗 روابط المتاجر القصيرة — wajeezsd.com/s/<code> (صفحة المتجر + معاينة OG لواتساب)
+app.use('/s', require('./routes/share'));
+
 // ✅ FIX #18: حُذف تعريف /api/auth/app-config المكرر من هنا
 // هذا الـ endpoint مُعرَّف بشكل صحيح داخل routes/auth.js
 // ويُستدعى عبر apiRoutes المُنضمة على /api

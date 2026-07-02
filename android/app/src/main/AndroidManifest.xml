@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
     <!-- ✅ PERMISSIONS (CRITICAL for Map Tiles & GPS) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -10,10 +11,11 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    
-    <!-- GPS Hardware Feature -->
-    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
-    
+
+    <!-- GPS Hardware Feature (Force false to prevent device incompatibility on Google Play) -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" tools:replace="android:required" />
+    <uses-feature android:name="android.hardware.location.network" android:required="false" tools:node="replace" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -21,9 +23,25 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/AppTheme">
-        
+        <!-- 🔔 Notification Icon & Color -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_wassili"
+        />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorPrimary"
+        />
+
+        <!-- ✅ Google Maps API Key (Android SDK restriction) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBdmDp3AjoBrVyXuKBUbsaJiO8p14Kg_74"
+        />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -35,7 +53,26 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- 🔗 App Links: روابط المتاجر القصيرة wajeezsd.com/s/... تفتح داخل التطبيق.
+                 autoVerify يتطلب https://wajeezsd.com/.well-known/assetlinks.json
+                 ببصمة SHA256 لمفتاح التوقيع (انظر public_html/.well-known/assetlinks.json) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/s" />
+                <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/s" />
+            </intent-filter>
         </activity>
+
+        <!-- 🔔 BigText FCM Service — expands notifications like WhatsApp -->
+        <service
+            android:name=".WassiliFCMService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

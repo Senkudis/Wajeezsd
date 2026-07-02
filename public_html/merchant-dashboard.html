@@ -182,13 +182,14 @@
 
 <div class="container-fluid px-3 pt-3">
     <!-- 🔊 بنر تفعيل التنبيه الصوتي للتاجر -->
-    <div id="shop-sound-banner" class="alert alert-warning d-flex align-items-center justify-content-between mb-3 shadow-sm py-2 px-3" style="border-radius: 12px;">
+    <div id="shop-sound-banner" class="alert alert-warning d-none align-items-center justify-content-between mb-3 shadow-sm py-2 px-3" style="border-radius: 12px;">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-volume-up-fill fs-4 text-warning"></i>
             <span style="font-size: 13px; font-weight: 700;">فعّل الصوت لسماع تنبيهات الطلبات الجديدة فوراً</span>
         </div>
         <button class="btn btn-sm btn-dark fw-bold px-3" onclick="enableShopAudio()">تفعيل</button>
     </div>
+
 
     <!-- 📦 بنر تنبيه نقص المخزون -->
     <div id="lowStockBanner" class="alert alert-danger d-none align-items-center justify-content-between mb-3 shadow-sm py-2 px-3" style="border-radius: 12px; border-right: 4px solid #dc3545;">
@@ -231,13 +232,61 @@
             </a>
         </div>
     </div>
-    <!-- Row 2: Order Captain -->
+    <!-- Row 2: Order Captain + Share Store -->
     <div class="row g-2 mb-4">
-        <div class="col-12">
-            <a href="index.html?from=merchant" class="quick-btn quick-btn-special d-flex flex-row gap-3 py-3" style="height:auto;">
-                <i class="bi bi-bicycle" style="font-size:1.8rem;"></i>
-                <span style="font-size:14px;">اطلب كابتن</span>
+        <div class="col-6">
+            <a href="index.html?from=merchant" class="quick-btn quick-btn-special d-flex flex-row gap-2 py-3" style="height:auto;">
+                <i class="bi bi-bicycle" style="font-size:1.6rem;"></i>
+                <span style="font-size:13px;">اطلب كابتن</span>
             </a>
+        </div>
+        <div class="col-6">
+            <a href="javascript:void(0)" onclick="openShareModal()" class="quick-btn d-flex flex-row gap-2 py-3" style="height:auto;background:linear-gradient(135deg,#04553A,#086b42);color:#fff;">
+                <i class="bi bi-share-fill" style="font-size:1.5rem;color:#fff;"></i>
+                <span style="font-size:13px;color:#fff;">شارك متجرك</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 🔗 Share Store Modal -->
+    <div id="shareModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeShareModal()">
+        <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px 18px calc(env(safe-area-inset-bottom,0px) + 22px);box-shadow:0 -8px 40px rgba(0,0,0,0.25);">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-share-fill text-success"></i> شارك رابط متجرك</h6>
+                <button class="btn btn-sm btn-light rounded-circle" style="width:32px;height:32px;padding:0;" onclick="closeShareModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <!-- الرابط + نسخ -->
+            <div class="d-flex align-items-center gap-2 mb-3" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;">
+                <i class="bi bi-link-45deg text-success fs-5"></i>
+                <span id="shareLinkText" dir="ltr" style="flex:1;font-size:13.5px;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                <button class="btn btn-sm btn-success fw-bold" onclick="copyShareLink()"><i class="bi bi-clipboard"></i> نسخ</button>
+            </div>
+
+            <!-- أزرار المشاركة -->
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <button class="btn w-100 fw-bold text-white" style="background:#25D366;border-radius:12px;padding:10px;" onclick="shareViaWhatsApp()">
+                        <i class="bi bi-whatsapp"></i> واتساب
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button class="btn w-100 fw-bold btn-outline-success" style="border-radius:12px;padding:10px;" onclick="shareViaSystem()">
+                        <i class="bi bi-box-arrow-up"></i> مشاركة
+                    </button>
+                </div>
+            </div>
+
+            <!-- QR -->
+            <div class="text-center">
+                <div id="shareQr" style="display:inline-block;background:#fff;padding:10px;border:1.5px solid #e2e8f0;border-radius:14px;"></div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="downloadShareQr()">
+                        <i class="bi bi-download"></i> تحميل صورة QR
+                    </button>
+                </div>
+                <div class="text-muted mt-2" style="font-size:11.5px;">اطبع الرمز في محلك — العميل يمسحه ليفتح متجرك مباشرة</div>
+            </div>
         </div>
     </div>
 
@@ -273,6 +322,7 @@
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 <script src="vendor/socket.io/socket.io.min.js"></script>
+<script src="vendor/qrcode/qrcode.min.js"></script>
 <script src="notification-toast.js"></script>
 <script>
     const token = window.Auth?.getToken() || localStorage.getItem('token');
@@ -310,6 +360,10 @@
                 currentIsOpenOverride = data.place.isOpenOverride ?? null;
                 const isOpen = data.place.isOpenOverride !== false && data.place.is_open !== false;
                 updateStatusUI(isOpen);
+                // 🔗 بيانات رابط المشاركة (الكود يُولَّد تلقائياً في السيرفر عند أول طلب بروفايل)
+                if (data.place.shareCode) {
+                    _shareInfo = { code: data.place.shareCode, name: data.place.name };
+                }
             }
 
             const ordersRes = await fetch(`${API_URL}/api/merchant/orders`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -363,6 +417,98 @@
             if (container) container.innerHTML = '<div class="text-center text-danger py-3"><i class="bi bi-wifi-off fs-3"></i><div class="mt-2 fw-bold">تعذّر تحميل البيانات</div><button class="btn btn-sm btn-outline-warning mt-2" onclick="loadDashboard()">إعادة المحاولة</button></div>';
         }
     }
+
+    // =====================================
+    // 🔗 مشاركة رابط المتجر
+    // =====================================
+    let _shareInfo = null;   // { code, name } — يُملأ من loadDashboard
+    let _shareQrDone = false;
+
+    function shareUrl() {
+        return _shareInfo ? `https://wajeezsd.com/s/${_shareInfo.code}` : '';
+    }
+
+    function openShareModal() {
+        if (!_shareInfo) {
+            Swal.fire({ icon: 'info', title: 'لحظة...', text: 'جاري تجهيز رابط متجرك، أعد المحاولة بعد ثوانٍ', timer: 2500, showConfirmButton: false });
+            loadDashboard(); // يجلب البروفايل مجدداً (السيرفر يولّد الكود تلقائياً)
+            return;
+        }
+        document.getElementById('shareLinkText').textContent = shareUrl();
+        // توليد QR مرة واحدة (المكتبة المحلية vendor/qrcode)
+        if (!_shareQrDone && typeof QRCode !== 'undefined') {
+            new QRCode(document.getElementById('shareQr'), {
+                text: shareUrl(), width: 180, height: 180,
+                colorDark: '#04553A', colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            _shareQrDone = true;
+        }
+        document.getElementById('shareModal').style.display = 'flex';
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareModal').style.display = 'none';
+    }
+
+    function copyShareLink() {
+        navigator.clipboard.writeText(shareUrl()).then(() => {
+            Swal.fire({ title: 'تم نسخ الرابط', icon: 'success', toast: true, position: 'top-end', timer: 1800, showConfirmButton: false });
+        }).catch(() => {
+            Swal.fire('خطأ', 'تعذّر النسخ — انسخ الرابط يدوياً', 'error');
+        });
+    }
+
+    function shareViaWhatsApp() {
+        const msg = `تفضل متجر ${_shareInfo.name} على وجيز — تصفح المنتجات واطلب توصيل سريع:\n${shareUrl()}`;
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    }
+
+    async function shareViaSystem() {
+        const msg = `تفضل متجر ${_shareInfo.name} على وجيز`;
+        if (navigator.share) {
+            try { await navigator.share({ title: _shareInfo.name, text: msg, url: shareUrl() }); } catch (_) {}
+        } else {
+            copyShareLink(); // بديل: نسخ
+        }
+    }
+
+    async function downloadShareQr() {
+        const canvas = document.querySelector('#shareQr canvas');
+        const img = document.querySelector('#shareQr img');
+        let dataUrl = null;
+        if (canvas) dataUrl = canvas.toDataURL('image/png');
+        else if (img && img.src) dataUrl = img.src;
+        if (!dataUrl) return;
+
+        const fileName = `wajeez-qr-${_shareInfo ? _shareInfo.code : 'store'}.png`;
+
+        // محاولة استخدام مشاركة الملفات (Web Share API) لبيئة التطبيق (Capacitor/Android)
+        try {
+            if (navigator.share && navigator.canShare) {
+                const res = await fetch(dataUrl);
+                const blob = await res.blob();
+                const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'QR Code',
+                        text: `رمز QR لمتجر ${_shareInfo ? _shareInfo.name : ''}`
+                    });
+                    return; // نجحت المشاركة (المستخدم يمكنه حفظها لمعرض الصور من القائمة)
+                }
+            }
+        } catch (err) {
+            console.warn('Share API failed for file:', err);
+        }
+
+        // الطريقة التقليدية (تعمل في متصفحات الويب العادية)
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = fileName;
+        a.click();
+    }
+
 
     function updateStatusUI(isOpen) {
         const dot = document.getElementById('statusDot');
@@ -448,13 +594,20 @@
     }
 
     function enableShopAudio() {
+        localStorage.setItem('shop_audio_enabled', 'true');
+        const banner = document.getElementById('shop-sound-banner');
+        if (banner) {
+            banner.classList.remove('d-flex');
+            banner.classList.add('d-none');
+        }
         const audio = new Audio('/sounds/wajeezsd-bell.wav');
         audio.volume = 0.3;
         audio.play().then(() => {
-            const banner = document.getElementById('shop-sound-banner');
-            if (banner) banner.classList.add('d-none');
             showToast('🔊 تم تفعيل الصوت', 'ستسمع تنبيهاً فور وصول طلب جديد', 'success');
-        }).catch(e => console.log('Audio unlock failed:', e));
+        }).catch(e => {
+            console.log('Audio unlock failed:', e);
+            showToast('🔊 تم تفعيل التنبيهات', 'تم حفظ إعداد صوت الطلبات', 'success');
+        });
     }
 
     function playShopOrderAlert() {
@@ -463,9 +616,32 @@
             audio.volume = 1.0;
             audio.play().catch(() => {
                 const banner = document.getElementById('shop-sound-banner');
-                if (banner) banner.classList.remove('d-none');
+                if (banner && localStorage.getItem('shop_audio_enabled') !== 'true') {
+                    banner.classList.remove('d-none');
+                    banner.classList.add('d-flex');
+                }
             });
         } catch (e) {}
+    }
+
+    function playOutOfStockAlert() {
+        try {
+            if (localStorage.getItem('shop_audio_enabled') !== 'true') return;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+            osc.frequency.setValueAtTime(440.00, ctx.currentTime + 0.15); // A4
+            gain.gain.setValueAtTime(0.35, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.4);
+        } catch(e) {
+            try { new Audio('/sounds/wajeezsd-bell.wav').play(); } catch(_) {}
+        }
     }
 
     socket.on('new_shop_order', (data) => {
@@ -474,7 +650,24 @@
         loadDashboard();
     });
 
+    socket.on('out_of_stock_alert', (data) => {
+        playOutOfStockAlert();
+        showToast('⚠️ نفاد المخزون!', `تنبيه: لقد نفد للتو مخزون المنتج "${data.productName}"!`, 'warning');
+        loadDashboard();
+    });
+
+
+    // إظهار بنر التنبيه الصوتي فقط إذا لم يفعل التاجر الصوت سابقاً
+    if (localStorage.getItem('shop_audio_enabled') !== 'true') {
+        const banner = document.getElementById('shop-sound-banner');
+        if (banner) {
+            banner.classList.remove('d-none');
+            banner.classList.add('d-flex');
+        }
+    }
+
     loadDashboard();
+
 
     // ===== Unread conversations badge =====
     async function loadUnreadBadge() {

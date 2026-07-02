@@ -182,6 +182,24 @@ router.get('/search', async (req, res) => {
 });
 
 // ============================================================
+// @route   GET /api/places/resolve/:code
+// @desc    Public: حلّ كود المشاركة القصير إلى معرّف المتجر
+//          يستخدمه معالج الـ deep link في تطبيق أندرويد.
+//          ⚠️ يجب تعريفه قبل /:id حتى لا يلتقطه مسار المعرّف.
+// ============================================================
+router.get('/resolve/:code', async (req, res) => {
+    try {
+        const code = String(req.params.code || '').trim();
+        if (!code || code.length > 20) return res.status(400).json({ message: 'كود غير صالح' });
+        const place = await Place.findOne({ shareCode: code, isActive: true }).select('_id name').lean();
+        if (!place) return res.status(404).json({ message: 'المتجر غير موجود' });
+        res.json({ placeId: place._id, name: place.name });
+    } catch (err) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// ============================================================
 // @route   GET /api/places/:id
 // @desc    Get a single place by ID
 // ============================================================
@@ -329,6 +347,12 @@ router.post('/', protect, async (req, res) => {
             isOpenOverride: true,
             deliveryAvailable: true
         });
+
+        // 🔗 كود مشاركة قصير للمتجر الجديد — wajeezsd.com/s/<code>
+        try {
+            const { ensureShareCode } = require('../utils/shareCode');
+            await ensureShareCode(place);
+        } catch (scErr) { logger.error('shareCode generation failed:', scErr.message); }
 
         res.status(201).json(place.toJSON());
     } catch (err) {
