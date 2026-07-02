@@ -51,6 +51,9 @@
         <button class="gv-nav-item" data-perm="manage_stores" onclick="location.href='admin-merchant-requests.html'">
             <i class="fas fa-shop-lock"></i><span>طلبات المتاجر</span>
         </button>
+        <button class="gv-nav-item" data-perm="view_orders" onclick="location.href='admin-shop-orders.html'">
+            <i class="fas fa-cart-shopping"></i><span>طلبات التسوق</span>
+        </button>
         <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-zone-builder.html'" id="navZones">
             <i class="fas fa-draw-polygon"></i><span>مناطق التوصيل</span>
         </button>
@@ -398,6 +401,8 @@
     window.initAdminMap = function() { window._gvMapReady = true; if(window._gvMapInit) window._gvMapInit(); };
 </script>
 <script src="js/maps-loader.js"></script>
+<script src="js/map-markers.js"></script>
+
 <script>loadGoogleMaps({ callback: 'initAdminMap' });</script>
 
 <!-- SweetAlert2 -->

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>طلبات التسوق | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        :root {
+            --brand: #04553A; --amber: #f59e0b;
+            --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --bg: #f1f5f9;
+        }
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: var(--bg); min-height: 100vh; padding-bottom: 40px; }
+
+        .topbar {
+            background: #fff; border-bottom: 1px solid var(--line);
+            padding: 0 18px; height: 60px; display: flex; align-items: center;
+            justify-content: space-between; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 10px rgba(15,23,42,0.05);
+        }
+        .topbar-title { font-weight: 800; font-size: 16px; color: var(--ink); display: flex; align-items: center; gap: 10px; }
+        .live-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+            display: inline-block; animation: lp 2s infinite;
+        }
+        .live-dot.off { background: #cbd5e1; animation: none; }
+        @keyframes lp { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.45)} 70%{box-shadow:0 0 0 7px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+        .topbar-back {
+            display: flex; align-items: center; gap: 6px; color: var(--muted);
+            font-size: 13px; font-weight: 700; text-decoration: none;
+            padding: 7px 14px; border-radius: 24px; border: 1px solid var(--line);
+        }
+
+        .wrap { max-width: 1100px; margin: 18px auto; padding: 0 16px; }
+
+        .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
+        .chips::-webkit-scrollbar { display: none; }
+        .chip {
+            white-space: nowrap; padding: 7px 14px; border-radius: 20px;
+            font-size: 12.5px; font-weight: 800; cursor: pointer;
+            background: #fff; border: 1.5px solid var(--line); color: var(--muted);
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .chip .cnt { background: var(--bg); border-radius: 10px; padding: 0 7px; font-size: 11px; min-width: 20px; text-align: center; }
+        .chip.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .chip.active .cnt { background: rgba(255,255,255,0.22); color: #fff; }
+
+        .city-select {
+            border: 1.5px solid var(--line); border-radius: 12px; padding: 6px 12px;
+            font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 12.5px;
+            color: var(--ink); background: #fff; outline: none;
+        }
+
+        .so-card {
+            background: #fff; border-radius: 15px; padding: 14px 16px; margin-bottom: 10px;
+            box-shadow: 0 2px 10px rgba(15,23,42,0.05); border: 1px solid #f1f5f9;
+            display: grid; grid-template-columns: 1fr auto; gap: 8px;
+            animation: cardIn 0.3s ease both;
+        }
+        @keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .so-card.flash { animation: flashNew 1.6s ease; }
+        @keyframes flashNew { 0% { background: #fef9c3; } 100% { background: #fff; } }
+        .so-shop { font-weight: 800; font-size: 14.5px; color: var(--ink); }
+        .so-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .so-meta a { color: #2563eb; text-decoration: none; }
+        .badges { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .pill { font-size: 11px; padding: 3px 11px; border-radius: 20px; font-weight: 800; white-space: nowrap; }
+        .pay-pill { font-size: 10.5px; padding: 2px 9px; border-radius: 20px; font-weight: 700; }
+
+        .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty i { font-size: 3.4rem; display: block; margin-bottom: 12px; opacity: 0.5; }
+        .load-more { display: block; margin: 14px auto; }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-title">
+        <i class="bi bi-cart-check-fill" style="color:var(--brand);"></i>
+        طلبات التسوق (المحلات)
+        <small style="font-weight:700;font-size:11px;color:var(--muted);">
+            <span class="live-dot" id="liveDot"></span> <span id="liveLbl">لحظي</span>
+        </small>
+    </div>
+    <a href="admin.html" class="topbar-back"><i class="bi bi-arrow-right"></i> الرئيسية</a>
+</div>
+
+<div class="wrap">
+    <div class="d-flex align-items-center justify-content-between gap-2 mb-1 flex-wrap">
+        <div class="chips" id="chips" style="flex:1;"></div>
+        <select class="city-select" id="citySel" onchange="reload()">
+            <option value="all">كل المدن</option>
+            <option value="Khartoum">الخرطوم</option>
+            <option value="PortSudan">بورتسودان</option>
+        </select>
+    </div>
+    <div id="list">
+        <div class="empty"><div class="spinner-border" style="color:var(--brand);"></div><div class="mt-2 fw-bold">جاري التحميل...</div></div>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm load-more" id="moreBtn" style="display:none;" onclick="loadMore()">عرض المزيد</button>
+</div>
+
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="vendor/socket.io/socket.io.min.js"></script>
+<script>
+    // ── حراسة الأدمن (نمط admin-dashboard.js) ──
+    const token = localStorage.getItem('adminToken');
+    let userObj = null;
+    try { userObj = JSON.parse(localStorage.getItem('user')); } catch (e) {}
+    if (!token || !userObj || userObj.role !== 'admin') window.location.href = 'admin-login.html';
+
+    const statusLabels = {
+        shop_pending: 'جديد عند التاجر', shop_preparing: 'قيد التنفيذ',
+        ready_for_pickup: 'بانتظار كابتن', captain_assigned: 'مع الكابتن',
+        picked_up: 'في الطريق', delivered: 'مكتمل', cancelled: 'ملغي'
+    };
+    const pillStyle = {
+        shop_pending: 'background:#fef3c7;color:#92400e;',
+        shop_preparing: 'background:#dbeafe;color:#1d4ed8;',
+        ready_for_pickup: 'background:#e0e7ff;color:#4338ca;',
+        captain_assigned: 'background:#cffafe;color:#0e7490;',
+        picked_up: 'background:#cffafe;color:#0e7490;',
+        delivered: 'background:#dcfce7;color:#15803d;',
+        cancelled: 'background:#fee2e2;color:#b91c1c;'
+    };
+    const payLabels = { pending: 'لم يدفع', receipt_sent: 'أرسل الإيصال', confirmed: 'دفع مؤكد', failed: 'فشل الدفع' };
+    const payStyle = {
+        pending: 'background:#f1f5f9;color:#64748b;',
+        receipt_sent: 'background:#fef3c7;color:#92400e;',
+        confirmed: 'background:#dcfce7;color:#15803d;',
+        failed: 'background:#fee2e2;color:#b91c1c;'
+    };
+    const CHIP_DEFS = [
+        { key: 'all', label: 'الكل' },
+        { key: 'shop_pending', label: 'جديد' },
+        { key: 'shop_preparing', label: 'قيد التنفيذ' },
+        { key: 'ready_for_pickup', label: 'بانتظار كابتن' },
+        { key: 'picked_up', label: 'في الطريق' },
+        { key: 'delivered', label: 'مكتمل' },
+        { key: 'cancelled', label: 'ملغي' }
+    ];
+
+    let currentStatus = 'all';
+    let currentPage = 1;
+    let totalPages = 1;
+    let counts = {};
+    let orders = [];
+
+    function esc(s) { return (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s)); }
+    function timeAgo(d) {
+        const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+        if (s < 60) return 'الآن';
+        const m = Math.floor(s / 60); if (m < 60) return `منذ ${m} د`;
+        const h = Math.floor(m / 60); if (h < 24) return `منذ ${h} س`;
+        return new Date(d).toLocaleDateString('ar-SD', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderChips() {
+        const totalAll = Object.values(counts).reduce((a, b) => a + b, 0);
+        document.getElementById('chips').innerHTML = CHIP_DEFS.map(c => {
+            const n = c.key === 'all' ? totalAll : (counts[c.key] || 0);
+            return `<div class="chip ${currentStatus === c.key ? 'active' : ''}" onclick="setStatus('${c.key}')">${c.label} <span class="cnt">${n}</span></div>`;
+        }).join('');
+    }
+
+    function setStatus(k) { currentStatus = k; reload(); }
+
+    function cardHtml(o, flash) {
+        const shop = o.place ? esc(o.place.name) : 'متجر محذوف';
+        const city = o.place?.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم';
+        const client = esc(o.client?.name || 'عميل');
+        const clientPhone = o.client?.phone || '';
+        const cap = o.captain?.name ? ` · الكابتن: ${esc(o.captain.name)}` : '';
+        return `
+        <div class="so-card ${flash ? 'flash' : ''}" id="so-${o._id}">
+            <div>
+                <div class="so-shop"><i class="bi bi-shop" style="color:var(--brand);"></i> ${shop}
+                    <span style="font-size:11px;font-weight:700;color:var(--muted);">(${city})</span></div>
+                <div class="so-meta">
+                    #${o._id.slice(-5)} · ${timeAgo(o.createdAt)} · ${client}
+                    ${clientPhone ? ` · <a href="tel:${clientPhone}"><i class="bi bi-telephone-fill"></i> ${clientPhone}</a>` : ''}
+                </div>
+                <div class="so-meta">${(o.items || []).length} منتج · بضاعة ${o.itemsTotal || 0} ج.س · إجمالي ${o.totalAmount || 0} ج.س${cap}</div>
+            </div>
+            <div class="badges">
+                <span class="pill" style="${pillStyle[o.status] || ''}">${statusLabels[o.status] || o.status}</span>
+                <span class="pay-pill" style="${payStyle[o.paymentStatus] || ''}">${payLabels[o.paymentStatus] || o.paymentStatus || ''}</span>
+            </div>
+        </div>`;
+    }
+
+    function renderList() {
+        const el = document.getElementById('list');
+        if (!orders.length) {
+            el.innerHTML = `<div class="empty"><i class="bi bi-bag-x"></i><div class="fw-bold">لا توجد طلبات في هذه الفئة</div></div>`;
+        } else {
+            el.innerHTML = orders.map(o => cardHtml(o)).join('');
+        }
+        document.getElementById('moreBtn').style.display = currentPage < totalPages ? 'block' : 'none';
+    }
+
+    async function fetchPage(page) {
+        const city = document.getElementById('citySel').value;
+        const qs = new URLSearchParams({ status: currentStatus, city, page, limit: 30 });
+        const res = await fetch(`${API_URL}/api/admin/shop-orders?${qs}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401 || res.status === 403) { window.location.href = 'admin-login.html'; throw new Error('auth'); }
+        if (!res.ok) throw new Error('server');
+        return res.json();
+    }
+
+    async function reload() {
+        currentPage = 1;
+        try {
+            const data = await fetchPage(1);
+            orders = data.orders || [];
+            counts = data.counts || {};
+            totalPages = data.totalPages || 1;
+            renderChips();
+            renderList();
+        } catch (e) {
+            if (e.message !== 'auth')
+                document.getElementById('list').innerHTML = `<div class="empty"><i class="bi bi-wifi-off"></i>
+                    <div class="fw-bold">تعذر التحميل</div>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="reload()">إعادة المحاولة</button></div>`;
+        }
+    }
+
+    async function loadMore() {
+        try {
+            currentPage++;
+            const data = await fetchPage(currentPage);
+            orders = orders.concat(data.orders || []);
+            totalPages = data.totalPages || totalPages;
+            renderList();
+        } catch (e) { currentPage--; }
+    }
+
+    // ── تحديث لحظي: shop_order_admin_update من السيرفر ──
+    function setLive(on) {
+        document.getElementById('liveDot').classList.toggle('off', !on);
+        document.getElementById('liveLbl').textContent = on ? 'لحظي' : 'دوري';
+    }
+    let reloadTimer = null;
+    function debouncedReload() {
+        clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(reload, 600);
+    }
+    try {
+        const socket = io(API_URL, { transports: ['polling', 'websocket'], auth: { token } });
+        socket.on('connect', () => {
+            const uid = userObj._id || userObj.id || localStorage.getItem('userId');
+            if (uid) socket.emit('user_join', uid);
+            // admin_join يتحقق من الدور في السيرفر بعد user_join
+            setTimeout(() => socket.emit('admin_join'), 600);
+            setLive(true);
+        });
+        socket.on('disconnect', () => setLive(false));
+        socket.on('connect_error', () => setLive(false));
+        socket.on('shop_order_admin_update', (data) => {
+            debouncedReload();
+        });
+    } catch (e) { setLive(false); }
+
+    setInterval(reload, 30000); // احتياطي
+    reload();
+</script>
+</body>
+</html>

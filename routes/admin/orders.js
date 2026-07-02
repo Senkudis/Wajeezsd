@@ -1,0 +1,476 @@
+// routes/admin/orders.js — مُولّد من تقسيم admin.js الأصلي.
+// كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
+const express = require('express');
+const router = express.Router();
+const mongoose = require('mongoose');
+const User = require('../../models/User');
+const Order = require('../../models/Order');
+const Settings = require('../../models/Settings');
+const AdminLog = require('../../models/AdminLog');
+const PromoCode = require('../../models/PromoCode');
+const Rating = require('../../models/Rating');
+const Banner = require('../../models/Banner');
+const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
+const { logAdminAction } = require('../../utils/adminLogger');
+const { normalizePhone } = require('../../utils/phoneNormalizer');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+const logger = require('../../utils/logger');
+
+const SessionRequest = require('../../models/SessionRequest');
+
+router.get('/orders/live', protect, requirePermission('view_orders'), async (req, res) => {
+    try {
+        // 🌍 sub_admin يرى طلبات مدينته فقط
+        const cityFilter = getAdminCityFilter(req);
+        const liveStatuses = ['pending', 'scheduled', 'accepted', 'picked_up'];
+        const orders = await Order.find({ status: { $in: liveStatuses }, ...cityFilter })
+            .select('status price pickup dropoff createdAt client captain type city')
+            .populate('client', 'name phone')
+            .populate('captain', 'name phone')
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean();
+        res.json(orders);
+    } catch (error) {
+        logger.error("Live Orders Error:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   GET /api/admin/shop-orders
+// @desc    🛒 مراقبة طلبات المحلات — كانت الإدارة عمياء تماماً عن مرحلة المتجر
+//          (جديد/تجهيز/دفع)؛ لا يظهر لها الطلب إلا بعد الجاهزية كطلب توصيل.
+//          يُرجع القائمة مع فلترة الحالة + عدّادات لكل حالة + عزل المدينة.
+router.get('/shop-orders', protect, requirePermission('view_orders'), async (req, res) => {
+    try {
+        const ShopOrder = require('../../models/ShopOrder');
+        const Place = require('../../models/Place');
+
+        const page  = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, parseInt(req.query.limit) || 30);
+        const skip  = (page - 1) * limit;
+
+        // 🌍 عزل المدينة: ShopOrder بلا حقل city — نشتقه من متجره
+        const cityFilter = getAdminCityFilter(req);
+        const reqCity = req.query.city && req.query.city !== 'all' ? req.query.city : null;
+        const effectiveCity = cityFilter.city || reqCity; // صلاحية الـ sub_admin تسبق اختيار الفلتر
+        let placeScope = null;
+        if (effectiveCity) {
+            const cityPlaces = await Place.find({ city: effectiveCity }).select('_id').lean();
+            placeScope = cityPlaces.map(p => p._id);
+        }
+
+        const filter = { status: { $ne: 'chat_initiated' } }; // محادثات بلا طلب لا تُعرض
+        if (placeScope) filter.place = { $in: placeScope };
+        if (req.query.status && req.query.status !== 'all') filter.status = req.query.status;
+
+        const countFilter = { ...filter };
+        delete countFilter.status;
+        countFilter.status = { $ne: 'chat_initiated' };
+
+        const [orders, total, countsAgg] = await Promise.all([
+            ShopOrder.find(filter)
+                .populate('client', 'name phone')
+                .populate('place', 'name city phone')
+                .populate('captain', 'name phone')
+                .sort({ createdAt: -1 })
+                .skip(skip).limit(limit)
+                .lean(),
+            ShopOrder.countDocuments(filter),
+            ShopOrder.aggregate([
+                { $match: countFilter },
+                { $group: { _id: '$status', n: { $sum: 1 } } }
+            ])
+        ]);
+
+        const counts = {};
+        countsAgg.forEach(c => { counts[c._id] = c.n; });
+
+        res.json({ orders, total, counts, currentPage: page, totalPages: Math.ceil(total / limit) });
+    } catch (error) {
+        logger.error('Admin shop-orders error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   GET /api/admin/orders/:id
+// @desc    جلب طلب واحد بالتفصيل (لصفحة تفاصيل الطلب)
+
+router.get('/orders/:id', protect, requirePermission('view_orders'), async (req, res) => {
+    try {
+        // نتحقق من أن الـ id أوبجكت صحيح لتفادي كراش
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(404).json({ message: 'Not found' });
+        }
+        const order = await Order.findById(req.params.id)
+            .populate('client', 'name phone')
+            .populate('captain', 'name phone');
+        if (!order) return res.status(404).json({ message: 'Not found' });
+        // 🌍 sub_admin لا يرى طلباً خارج مدينته
+        if (req.user.adminRole === 'sub_admin' && order.city !== req.user.city) {
+            return res.status(403).json({ message: 'غير مصرح — هذا الطلب خارج مدينتك' });
+        }
+        res.json(order);
+    } catch (error) {
+        logger.error("Order Details Error:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   GET /api/admin/orders
+// @desc    جلب جميع الطلبات (مع فلتر اختياري بالمدينة)
+// 🌍 ?city=Khartoum | PortSudan (optional)
+
+router.get('/orders', protect, requirePermission('view_orders'), async (req, res) => {
+    try {
+        // 🌍 sub_admin يرى طلبات مدينته فقط
+        const cityFilter = getAdminCityFilter(req);
+        const orders = await Order.find(cityFilter)
+            .select('status price pickup dropoff createdAt client captain type totalAmount city')
+            .populate('client', 'name phone')
+            .populate('captain', 'name phone')
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .lean();
+
+        res.json(orders);
+    } catch (error) {
+        logger.error("Orders Error:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// =========================================================
+// 🚩 الجزء الرابع: الشكاوى
+// =========================================================
+
+// @route   GET /api/admin/complaints
+// @desc    جلب الطلبات التي بها شكاوى
+
+router.put('/orders/:id/cancel-force', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        if (order.status === 'delivered') {
+            return res.status(400).json({ message: 'لا يمكن إلغاء طلب تم توصيله بالفعل' });
+        }
+        if (order.status === 'cancelled') {
+            return res.status(400).json({ message: 'الطلب ملغي مسبقاً' });
+        }
+
+        // 🚀 FIX 4: Send all missing notifications on admin force-cancel
+        const io = req.app.get('io');
+        const { sendNotification } = require('../../utils/notificationHelper');
+        
+        order.status = 'cancelled';
+        
+        // Notify negotiating captains — collect capIds first, emit AFTER save
+        const pendingCapIds = [];
+        if (order.negotiations && order.negotiations.length > 0) {
+            for (let i = 0; i < order.negotiations.length; i++) {
+                if (order.negotiations[i].status === 'pending') {
+                    order.negotiations[i].status = 'rejected';
+                    const capId = order.negotiations[i].captainId;
+                    if (capId) pendingCapIds.push(capId);
+                }
+            }
+        }
+        await order.save();
+
+        // BUG #18 FIX: All socket emits and notifications are now AFTER save
+        for (const capId of pendingCapIds) {
+            if (io) {
+                io.to(capId.toString()).emit('negotiation_resolved', {
+                    orderId: order._id,
+                    result: 'order_taken'
+                });
+            }
+        }
+
+        // Notify client
+        if (order.client) {
+            if (io) io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
+            await sendNotification(req.app, {
+                userId: order.client,
+                title: '⚠️ تم إلغاء الطلب إدارياً',
+                message: `قامت الإدارة بإلغاء طلبك رقم ${order._id.toString().slice(-6)}.`,
+                type: 'order_update',
+                relatedId: order._id
+            });
+        }
+        
+        // Notify assigned captain if any
+        if (order.captain) {
+            if (io) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
+            await sendNotification(req.app, {
+                userId: order.captain,
+                title: '⚠️ تم إلغاء الطلب إدارياً',
+                message: `قامت الإدارة بإلغاء الطلب الذي تم تعيينه لك.`,
+                type: 'order_update',
+                relatedId: order._id
+            });
+        }
+        
+        // Broadcast to admin panel only (not to all clients)
+        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
+
+        await logAdminAction(req, 'delete_order', `إلغاء طلب إدارياً`, order._id, `طلب #${order._id.toString().slice(-6)}`);
+
+        res.json({ message: 'تم إلغاء الطلب إجبارياً بواسطة الإدارة وإشعار الأطراف', order });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// =========================================================
+// 🔄 تبديل الكابتن على طلب نشط (Admin Reassign)
+// @route   PUT /api/admin/orders/:id/reassign-captain
+// body: { newCaptainId: '...' }
+// =========================================================
+
+router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const { sendNotification } = require('../../utils/notificationHelper');
+        const { newCaptainId } = req.body;
+        if (!newCaptainId) return res.status(400).json({ message: 'يرجى تحديد الكابتن الجديد' });
+
+        const order = await Order.findById(req.params.id).populate('captain', 'name');
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        if (!['accepted', 'picked_up'].includes(order.status)) {
+            return res.status(400).json({ message: 'لا يمكن تبديل الكابتن إلا في طلبات نشطة (مقبول / قيد التوصيل)' });
+        }
+
+        const newCaptain = await User.findById(newCaptainId).select('name phone role is_blocked');
+        if (!newCaptain || newCaptain.role !== 'captain') {
+            return res.status(404).json({ message: 'الكابتن الجديد غير موجود' });
+        }
+
+        // 🚀 FIX 5: Prevent reassigning to a blocked captain
+        if (newCaptain.is_blocked) {
+            return res.status(400).json({ message: 'لا يمكن إسناد الطلب لهذا الكابتن لأن حسابه محظور (تجاوز الحد الائتماني)' });
+        }
+
+        const oldCaptainId = order.captain?._id;
+        const oldCaptainName = order.captain?.name || 'الكابتن السابق';
+
+        // Reassign
+        order.captain = newCaptainId;
+        await order.save();
+
+        const io = req.app.get('io');
+
+        // Notify OLD captain
+        if (oldCaptainId) {
+            if (io) {
+                io.to(oldCaptainId.toString()).emit('order_status_updated', {
+                    orderId: order._id,
+                    status: 'reassigned'
+                });
+            }
+            await sendNotification(req.app, {
+                userId: oldCaptainId,
+                title: '⚠️ تم نقل الطلب',
+                message: `قامت الإدارة بنقل الطلب #${order._id.toString().slice(-6)} إلى كابتن آخر.`,
+                type: 'order_update',
+                relatedId: order._id
+            });
+        }
+
+        // Notify NEW captain
+        if (io) {
+            io.to(newCaptainId.toString()).emit('order_reassigned', {
+                orderId: order._id,
+                message: 'تم تعيينك على طلب من قِبل الإدارة'
+            });
+        }
+        await sendNotification(req.app, {
+            userId: newCaptainId,
+            title: '🚀 تم تعيينك على طلب',
+            message: `قامت الإدارة بتعيينك على الطلب #${order._id.toString().slice(-6)}.`,
+            type: 'order_accepted',
+            relatedId: order._id
+        });
+
+        // Notify client
+        if (io) {
+            io.to(order.client.toString()).emit('new_notification', {
+                title: '🔄 تم تغيير الكابتن',
+                message: `قامت الإدارة بتعيين الكابتن ${newCaptain.name} على طلبك.`,
+                type: 'order_update'
+            });
+        }
+
+        res.json({ message: `تم تحويل الطلب من ${oldCaptainName} إلى ${newCaptain.name} بنجاح`, order });
+    } catch (error) {
+        logger.error({ err: error }, 'Reassign Captain Error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// =========================================================
+// 💳 إدارة مديونية كابتن (تصفير / نقص جزء / إضافة دين) — Admin Debt Adjust
+// @route   PUT /api/admin/captains/:id/adjust-debt
+// body: { mode: 'zero' | 'partial' | 'add', amount?: number, note?: string }
+// =========================================================
+// mode=zero   => reset balance to 0
+// mode=partial => reduce debt by `amount` (bring closer to 0)
+// mode=add     => add debt by `amount` (push balance further negative)
+
+router.delete('/orders/:id', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const order = await Order.findByIdAndDelete(req.params.id);
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        // ✅ Emit socket events — city-scoped for captain broadcasts, admin_room for admin feed
+        const io = req.app.get('io');
+        if (io) {
+            // Refresh captain list for THIS city only
+            io.to(`room_${order.city || 'Khartoum'}`).emit('new_order_available');
+            if (order.client) io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'deleted' });
+            if (order.captain) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: 'deleted' });
+            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'deleted', city: order.city });
+        }
+
+        res.json({ message: 'تم حذف الطلب بنجاح' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   PUT /api/admin/orders/:id
+// @desc    تعديل بيانات الطلب شاملة
+
+router.put('/orders/:id', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        const oldStatus = order.status; // ✅ Track old status to detect changes
+
+        // تحديث الحقول المسموح بها
+        if (req.body.status) order.status = req.body.status;
+        if (req.body.price !== undefined) {
+            order.price = req.body.price;
+            // ✅ FIX #9: Auto-recalculate appFee & netRevenue when price changes
+            try {
+                // 🌍 Use the order's city to get the correct commission rate
+                const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
+                const commissionRate = liveSettings.commissionRate ?? 0.15;
+                order.appFee = order.price * commissionRate;
+                order.netRevenue = order.price - order.appFee;
+            } catch (settingsErr) {
+                logger.warn('Could not load settings for fee recalculation, keeping existing fees');
+            }
+
+        }
+        // Only allow explicit appFee override if price was NOT changed
+        if (req.body.appFee !== undefined && req.body.price === undefined) order.appFee = req.body.appFee;
+
+        // تحديث تفاصيل الاستلام والتسليم إذا وجدت
+        if (req.body.pickup) order.pickup = { ...order.pickup, ...req.body.pickup };
+        if (req.body.dropoff) order.dropoff = { ...order.dropoff, ...req.body.dropoff };
+
+        await order.save();
+
+        // ✅ Emit socket event and notify if status changed (e.g. restored from cancelled)
+        if (oldStatus !== order.status) {
+            
+            // 💰 Commission Deduction & Refund Logic (When Admin manually completes/cancels an order)
+            if ((order.status === 'completed' || order.status === 'delivered') && order.captain && oldStatus !== 'completed' && oldStatus !== 'delivered') {
+                try {
+                    const commissionAmount = order.appFee || 0;
+                    if (commissionAmount > 0) {
+                        const updatedCaptain = await User.findByIdAndUpdate(
+                            order.captain,
+                            { $inc: { wallet_balance: -commissionAmount } },
+                            { new: true }
+                        );
+                        if (updatedCaptain) {
+                            logger.info({ admin: req.user._id, captainId: updatedCaptain._id, orderId: order._id, deducted: commissionAmount, newBalance: updatedCaptain.wallet_balance }, 'Admin completed order — Commission deducted');
+                            
+                            const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
+
+                            const creditLimit = liveSettings?.defaultCreditLimit ?? -5000;
+                            if (updatedCaptain.wallet_balance <= creditLimit && !updatedCaptain.is_blocked) {
+                                updatedCaptain.is_blocked = true;
+                                await updatedCaptain.save();
+                                const ioForBlock = req.app.get('io');
+                                if (ioForBlock) {
+                                    ioForBlock.to(updatedCaptain._id.toString()).emit('wallet_limit_reached', {
+                                        wallet_balance: updatedCaptain.wallet_balance,
+                                        credit_limit: creditLimit,
+                                        message: 'تجاوزت الحد الائتماني — تم إيقاف حسابك.'
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } catch (err) { logger.error({ err, orderId: order._id }, 'Failed to deduct commission on admin update'); }
+            } else if ((oldStatus === 'completed' || oldStatus === 'delivered') && (order.status === 'cancelled' || order.status === 'pending') && order.captain) {
+                // 🔄 Refund if admin reverts a completed order
+                try {
+                    const commissionAmount = order.appFee || 0;
+                    if (commissionAmount > 0) {
+                        const updatedCaptain = await User.findByIdAndUpdate(
+                            order.captain,
+                            { $inc: { wallet_balance: commissionAmount } },
+                            { new: true }
+                        );
+                        if (updatedCaptain) {
+                            logger.info({ admin: req.user._id, captainId: updatedCaptain._id, orderId: order._id, refunded: commissionAmount, newBalance: updatedCaptain.wallet_balance }, 'Admin reverted completed order — Commission refunded');
+                            
+                            const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
+                            const creditLimit = liveSettings?.defaultCreditLimit ?? -5000;
+                            if (updatedCaptain.wallet_balance > creditLimit && updatedCaptain.is_blocked) {
+                                updatedCaptain.is_blocked = false;
+                                await updatedCaptain.save();
+                            }
+                        }
+                    }
+                } catch (err) { logger.error({ err, orderId: order._id }, 'Failed to refund commission on admin update'); }
+            }
+
+            const io = req.app.get('io');
+            const { sendNotification } = require('../../utils/notificationHelper');
+            
+            if (io) {
+                io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
+                if (order.status === 'pending' || order.status === 'scheduled') {
+                    // Reopen: notify captains in THIS city only
+                    io.to(`room_${order.city || 'Khartoum'}`).emit('new_order_available');
+                }
+            }
+            
+            if (order.client) {
+                if (io) io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: order.status });
+                await sendNotification(req.app, {
+                    userId: order.client,
+                    title: 'تحديث حالة الطلب',
+                    message: `تم تغيير حالة طلبك رقم ${order._id.toString().slice(-6)} إدارياً إلى: ${order.status}`,
+                    type: 'order_update',
+                    relatedId: order._id
+                });
+            }
+            if (order.captain) {
+                if (io) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: order.status });
+                await sendNotification(req.app, {
+                    userId: order.captain,
+                    title: 'تحديث حالة الطلب',
+                    message: `تم تغيير حالة الطلب رقم ${order._id.toString().slice(-6)} إدارياً إلى: ${order.status}`,
+                    type: 'order_update',
+                    relatedId: order._id
+                });
+            }
+        }
+
+        res.json({ message: 'تم تحديث الطلب بنجاح', order });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+module.exports = router;

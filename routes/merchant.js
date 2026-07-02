@@ -9,6 +9,26 @@ const PromoCode = require('../models/PromoCode');
 const { sendNotification, notifyAdmins } = require('../utils/notificationHelper');
 const logger = require('../utils/logger');
 
+// 📡 بث تحديث طلب المتجر للوحة الأدمن الحية — كانت الإدارة عمياء تماماً عن
+// مرحلة المتجر (جديد/تجهيز/دفع)؛ هذا الحدث يغذي صفحة admin-shop-orders لحظياً.
+function emitShopOrderAdminUpdate(app, order, place, clientName) {
+    try {
+        const io = app.get('io');
+        if (!io || !order) return;
+        io.to('admin_room').emit('shop_order_admin_update', {
+            orderId: String(order._id),
+            status: order.status,
+            paymentStatus: order.paymentStatus,
+            shopName: place ? place.name : '',
+            city: place ? place.city : '',
+            clientName: clientName || '',
+            itemsTotal: order.itemsTotal,
+            totalAmount: order.totalAmount,
+            updatedAt: new Date()
+        });
+    } catch (e) { logger.error('emitShopOrderAdminUpdate error:', e.message); }
+}
+
 // ──────────────────────────────────────────────
 // 📦 PRODUCTS (Merchant manages their own products)
 // ──────────────────────────────────────────────
@@ -243,6 +263,7 @@ router.put('/orders/:id/accept', protect, merchantOnly, async (req, res) => {
 
         const io = req.app.get('io');
         if (io) io.to(order.client.toString()).emit('shop_order_updated', { orderId: order._id, status: 'shop_preparing' });
+        emitShopOrderAdminUpdate(req.app, order, place);
 
         res.json({ message: 'تم قبول الطلب', order });
     } catch (err) {
@@ -380,6 +401,7 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
         }
 
 
+        emitShopOrderAdminUpdate(req.app, order, place);
         res.json({ message: 'تم تحديد الطلب كجاهز', order });
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
@@ -447,6 +469,7 @@ router.put('/orders/:id/reject', protect, merchantOnly, async (req, res) => {
         const io = req.app.get('io');
         if (io) io.to(order.client.toString()).emit('shop_order_updated', { orderId: order._id, status: 'cancelled' });
 
+        emitShopOrderAdminUpdate(req.app, order, place);
         res.json({ message: 'تم رفض الطلب', order });
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
@@ -832,6 +855,7 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             type: 'admin_order_alert',
             relatedId: order._id
         });
+        emitShopOrderAdminUpdate(req.app, order, place, req.user.name);
 
         res.status(201).json({ message: 'تم إرسال الطلب للمتجر', order });
     } catch (err) {
@@ -888,6 +912,7 @@ router.put('/client/orders/:id/payment-receipt', protect, async (req, res) => {
             const io = req.app.get('io');
             if (io) io.to(place.ownerId.toString()).emit('shop_order_updated', { orderId: order._id, status: 'receipt_sent' });
         }
+        emitShopOrderAdminUpdate(req.app, order, place, req.user.name);
         res.json({ message: 'تم إرسال إشعار الدفع', order });
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
@@ -914,6 +939,7 @@ router.put('/orders/:id/confirm-payment', protect, merchantOnly, async (req, res
             type: 'payment_confirmed',
             relatedId: order._id
         });
+        emitShopOrderAdminUpdate(req.app, order, place);
         res.json({ message: 'تم تأكيد الدفع', order });
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });

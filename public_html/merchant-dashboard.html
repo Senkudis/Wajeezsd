@@ -603,10 +603,10 @@
         const audio = new Audio('/sounds/wajeezsd-bell.wav');
         audio.volume = 0.3;
         audio.play().then(() => {
-            showToast('🔊 تم تفعيل الصوت', 'ستسمع تنبيهاً فور وصول طلب جديد', 'success');
+            showToast('تم تفعيل الصوت', 'ستسمع تنبيهاً فور وصول طلب جديد', 'success');
         }).catch(e => {
             console.log('Audio unlock failed:', e);
-            showToast('🔊 تم تفعيل التنبيهات', 'تم حفظ إعداد صوت الطلبات', 'success');
+            showToast('تم تفعيل التنبيهات', 'تم حفظ إعداد صوت الطلبات', 'success');
         });
     }
 
@@ -646,13 +646,13 @@
 
     socket.on('new_shop_order', (data) => {
         playShopOrderAlert();
-        showToast('🛒 طلب جديد!', `طلب جديد بقيمة ${data.total} ج.س`, 'info');
+        showToast('طلب جديد', `طلب جديد بقيمة ${data.total} ج.س`, 'info');
         loadDashboard();
     });
 
     socket.on('out_of_stock_alert', (data) => {
         playOutOfStockAlert();
-        showToast('⚠️ نفاد المخزون!', `تنبيه: لقد نفد للتو مخزون المنتج "${data.productName}"!`, 'warning');
+        showToast('نفاد المخزون', `تنبيه: لقد نفد للتو مخزون المنتج "${data.productName}"!`, 'warning');
         loadDashboard();
     });
 

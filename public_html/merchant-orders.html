@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>إدارة الطلبات | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        :root {
+            --amber: #f59e0b; --amber-dark: #d97706;
+            --green: #16a34a; --green-bg: #ecfdf5;
+            --ink: #0f172a; --muted: #64748b;
+            --line: #e2e8f0; --bg: #f1f5f9;
+        }
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: var(--bg); min-height: 100vh; padding-bottom: 90px; }
+
+        /* ── الهيدر ── */
+        .page-header {
+            background: #fff; color: var(--ink);
+            padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 0;
+            position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid var(--line);
+            box-shadow: 0 2px 12px rgba(15,23,42,0.05);
+        }
+        .live-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #22c55e; display: inline-block;
+            box-shadow: 0 0 0 rgba(34,197,94,0.5);
+            animation: livePulse 2s infinite;
+        }
+        .live-dot.off { background: #cbd5e1; animation: none; }
+        @keyframes livePulse {
+            0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.45); }
+            70% { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+
+        /* ── تبويبات الفلترة ── */
+        .filter-tabs {
+            display: flex; gap: 8px; overflow-x: auto;
+            padding: 12px 0 14px; scrollbar-width: none;
+        }
+        .filter-tabs::-webkit-scrollbar { display: none; }
+        .filter-tab {
+            white-space: nowrap; padding: 7px 14px; border-radius: 20px;
+            font-size: 12.5px; font-weight: 800; cursor: pointer;
+            background: var(--bg); border: 1.5px solid var(--line); color: var(--muted);
+            transition: all 0.18s; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .filter-tab .cnt {
+            background: #fff; border-radius: 10px; padding: 0 7px;
+            font-size: 11px; color: var(--muted); min-width: 20px; text-align: center;
+        }
+        .filter-tab.active { background: var(--amber); border-color: var(--amber); color: #fff; }
+        .filter-tab.active .cnt { background: rgba(255,255,255,0.25); color: #fff; }
+        .filter-tab.has-new { border-color: var(--amber); color: var(--amber-dark); }
+        .filter-tab.has-new .cnt { background: var(--amber); color: #fff; }
+
+        /* ── بطاقة الطلب ── */
+        .order-card {
+            background: #fff; border-radius: 18px;
+            box-shadow: 0 2px 14px rgba(15,23,42,0.06);
+            margin-bottom: 14px; overflow: hidden;
+            border: 1.5px solid transparent;
+        }
+        .order-card.is-new {
+            border-color: var(--amber);
+            animation: newGlow 2.2s ease-in-out infinite;
+        }
+        @keyframes newGlow {
+            0%, 100% { box-shadow: 0 2px 14px rgba(245,158,11,0.15); }
+            50% { box-shadow: 0 4px 24px rgba(245,158,11,0.42); }
+        }
+        .new-ribbon {
+            background: linear-gradient(90deg, var(--amber), var(--amber-dark));
+            color: #fff; text-align: center; font-size: 12px; font-weight: 800;
+            padding: 6px; letter-spacing: 0.3px;
+        }
+        .order-head {
+            padding: 12px 16px 10px;
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+        }
+        .client-name { font-weight: 800; font-size: 15px; color: var(--ink); }
+        .order-meta { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+        .status-pill {
+            font-size: 11px; padding: 4px 11px; border-radius: 20px;
+            font-weight: 800; white-space: nowrap;
+        }
+
+        /* ── المنتجات ── */
+        .items-box { padding: 0 16px; }
+        .product-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 0; border-bottom: 1px dashed #eef2f7; font-size: 13px;
+        }
+        .product-item:last-child { border-bottom: none; }
+        .qty-chip {
+            background: var(--bg); border-radius: 8px; padding: 1px 8px;
+            font-weight: 800; font-size: 12px; color: var(--ink); margin-left: 8px;
+        }
+
+        /* ── صندوق المبلغ ── */
+        .money-box {
+            margin: 10px 16px; padding: 10px 14px; border-radius: 13px;
+            background: var(--green-bg); border: 1px solid #bbf7d0;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .money-box .lbl { font-weight: 800; font-size: 12.5px; color: #065f46; }
+        .money-box .val { font-weight: 900; font-size: 19px; color: #059669; }
+        .money-box .val small { font-size: 11px; font-weight: 700; color: #34d399; }
+
+        /* ── العنوان ── */
+        .addr-box {
+            margin: 0 16px 10px; padding: 9px 12px; border-radius: 11px;
+            background: var(--bg); font-size: 12.5px; color: var(--ink);
+        }
+
+        /* ── الإيصال ── */
+        .receipt-box {
+            margin: 0 16px 10px; padding: 10px 12px; border-radius: 12px;
+            background: #fffbeb; border: 1.5px solid #fde68a;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .receipt-box.ok { background: var(--green-bg); border-color: #bbf7d0; }
+        .receipt-img {
+            width: 52px; height: 52px; border-radius: 9px; object-fit: cover;
+            border: 2px solid var(--amber); cursor: pointer; flex-shrink: 0;
+        }
+
+        /* ── شريط الخطوات ── */
+        .steps-wrap { padding: 12px 18px 4px; }
+        .steps {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            position: relative;
+        }
+        .steps::before {
+            content: ''; position: absolute; top: 15px; right: 12%; left: 12%;
+            height: 3px; background: var(--line); border-radius: 2px; z-index: 0;
+        }
+        .step { position: relative; z-index: 1; text-align: center; flex: 1; }
+        .step-dot {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #fff; border: 2.5px solid var(--line); color: #94a3b8;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 900;
+        }
+        .step-lbl { font-size: 10.5px; font-weight: 800; color: #94a3b8; margin-top: 4px; }
+        .step.done .step-dot { background: var(--green); border-color: var(--green); color: #fff; }
+        .step.done .step-lbl { color: var(--green); }
+        .step.active .step-dot {
+            background: #fff; border-color: var(--amber); color: var(--amber-dark);
+            animation: stepPulse 1.6s infinite;
+        }
+        .step.active .step-lbl { color: var(--amber-dark); }
+        @keyframes stepPulse {
+            0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+            100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+        }
+
+        /* ── منطقة الإجراء التالي ── */
+        .next-action { padding: 6px 16px 16px; }
+        .next-hint {
+            font-size: 12px; color: var(--muted); text-align: center;
+            margin-bottom: 8px; font-weight: 600;
+        }
+        .btn-primary-step {
+            width: 100%; border: none; border-radius: 13px; padding: 13px;
+            font-weight: 800; font-size: 14.5px; color: #fff; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: transform 0.12s, filter 0.12s;
+        }
+        .btn-primary-step:active { transform: scale(0.98); }
+        .btn-primary-step:disabled { opacity: 0.65; }
+        .btn-green { background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 4px 14px rgba(22,163,74,0.3); }
+        .btn-amber { background: linear-gradient(135deg, var(--amber), var(--amber-dark)); box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
+        .secondary-row { display: flex; gap: 8px; margin-top: 8px; }
+        .btn-sec {
+            flex: 1; border: 1.5px solid var(--line); background: #fff; color: var(--muted);
+            border-radius: 11px; padding: 9px; font-weight: 800; font-size: 12.5px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-sec.danger { color: #ef4444; border-color: #fecaca; }
+        .btn-sec.chat { color: #059669; border-color: #a7f3d0; }
+
+        /* ── حالة انتظار الكابتن / التتبع ── */
+        .track-box {
+            margin: 6px 16px 16px; padding: 12px; border-radius: 13px;
+            text-align: center; font-weight: 800; font-size: 13px;
+        }
+        .track-box.waiting { background: #eff6ff; color: #1d4ed8; border: 1.5px dashed #93c5fd; }
+        .track-box.moving { background: var(--green-bg); color: #047857; border: 1.5px solid #a7f3d0; }
+        .spinner-mini {
+            width: 14px; height: 14px; border: 2px solid #bfdbfe; border-top-color: #1d4ed8;
+            border-radius: 50%; display: inline-block; vertical-align: -2px;
+            animation: spin 0.9s linear infinite; margin-left: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── بطاقة مكتملة/ملغاة (مضغوطة) ── */
+        .order-card.finished .order-head { padding-bottom: 12px; }
+
+        /* ── التنقل السفلي ── */
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #fff; border-top: 1px solid var(--line);
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(15,23,42,0.07);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0 8px; font-size: 11px; font-weight: 700; color: #94a3b8;
+            text-decoration: none;
+        }
+        .merchant-nav a.active { color: var(--amber); }
+        .merchant-nav a i { font-size: 1.35rem; margin-bottom: 2px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state i { font-size: 3.6rem; margin-bottom: 14px; display: block; opacity: 0.5; }
+
+        /* Skeleton */
+        .sk { background: linear-gradient(90deg,#eef2f7 25%,#f8fafc 50%,#eef2f7 75%); background-size: 200% 100%; animation: shine 1.3s infinite; border-radius: 10px; }
+        @keyframes shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .sk-card { background: #fff; border-radius: 18px; padding: 16px; margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+            <a href="merchant-dashboard.html" class="text-decoration-none fs-5" style="color:var(--ink);">
+                <i class="bi bi-arrow-right"></i>
+            </a>
+            <div>
+                <h5 class="fw-bold mb-0" style="font-size:17px;">إدارة الطلبات</h5>
+                <small style="color:var(--muted);font-size:11.5px;">
+                    <span class="live-dot" id="liveDot"></span>
+                    <span id="liveLabel">تحديث لحظي</span>
+                </small>
+            </div>
+        </div>
+        <button class="btn btn-sm" style="background:var(--bg);border-radius:10px;font-weight:800;font-size:12px;color:var(--muted);" onclick="loadOrders()">
+            <i class="bi bi-arrow-clockwise"></i> تحديث
+        </button>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs" id="filterTabs"></div>
+</div>
+
+<!-- Orders List -->
+<div class="container-fluid px-3 pt-3" id="ordersContainer">
+    <div class="sk-card"><div class="sk" style="height:16px;width:45%;margin-bottom:10px;"></div><div class="sk" style="height:12px;width:70%;margin-bottom:8px;"></div><div class="sk" style="height:44px;width:100%;"></div></div>
+    <div class="sk-card"><div class="sk" style="height:16px;width:55%;margin-bottom:10px;"></div><div class="sk" style="height:12px;width:60%;margin-bottom:8px;"></div><div class="sk" style="height:44px;width:100%;"></div></div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imgModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-body p-0"><img src="" id="fullImg" class="w-100"></div>
+            <div class="modal-footer border-0 pb-3">
+                <button class="btn btn-secondary w-100 rounded-pill" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
+    <a href="merchant-orders.html" class="active"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
+    <a href="merchant-conversations.html"><i class="bi bi-chat-dots-fill"></i> رسائل</a>
+    <a href="merchant-notifications.html"><i class="bi bi-bell"></i> إشعارات</a>
+    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');"><i class="bi bi-box-arrow-right"></i> خروج</a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="vendor/socket.io/socket.io.min.js"></script>
+<script src="notification-toast.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) { window.location.href = 'client-login.html'; throw new Error('no token'); }
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.role || user.role !== 'merchant') { window.location.href = 'index.html'; throw new Error('not merchant'); }
+
+    let allOrders = [];
+    let currentFilter = 'active';
+    let knownPendingIds = new Set(); // للكشف عن طلبات جديدة (صوت + توست)
+    let firstLoadDone = false;
+
+    // ── أدوات ──────────────────────────────────────────────
+    if (typeof showToast === 'undefined') {
+        window.showToast = (title, msg, type) => Swal.fire({ toast: true, position: 'top',
+            title, text: msg, icon: type || 'info', timer: 3000, showConfirmButton: false });
+    }
+    if (typeof window.escapeHtml !== 'function') {
+        window.escapeHtml = (u) => (u || '').toString()
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    function playNewOrderSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+        } catch (e) {}
+    }
+
+    function timeAgo(d) {
+        const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+        if (s < 60) return 'الآن';
+        const m = Math.floor(s / 60);
+        if (m < 60) return `منذ ${m} د`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `منذ ${h} س`;
+        return new Date(d).toLocaleDateString('ar-SD', { day: 'numeric', month: 'short' });
+    }
+
+    // ── الحالات ─────────────────────────────────────────────
+    const statusLabels = {
+        shop_pending: 'جديد', shop_preparing: 'قيد التنفيذ',
+        ready_for_pickup: 'بانتظار كابتن', captain_assigned: 'مع الكابتن',
+        picked_up: 'في الطريق', delivered: 'مكتمل', cancelled: 'ملغي',
+        chat_initiated: 'محادثة'
+    };
+    const statusPillStyle = {
+        shop_pending: 'background:#fef3c7;color:#92400e;',
+        shop_preparing: 'background:#dbeafe;color:#1d4ed8;',
+        ready_for_pickup: 'background:#e0e7ff;color:#4338ca;',
+        captain_assigned: 'background:#cffafe;color:#0e7490;',
+        picked_up: 'background:#cffafe;color:#0e7490;',
+        delivered: 'background:#dcfce7;color:#15803d;',
+        cancelled: 'background:#fee2e2;color:#b91c1c;',
+        chat_initiated: 'background:#f1f5f9;color:#64748b;'
+    };
+
+    // مجموعات التبويبات — "نشط" يجمع كل ما يتطلب انتباه التاجر
+    const TABS = [
+        { key: 'active',   label: 'نشط',        match: o => ['shop_pending','shop_preparing','ready_for_pickup','captain_assigned','picked_up'].includes(o.status) },
+        { key: 'shop_pending', label: 'جديد',   match: o => o.status === 'shop_pending' },
+        { key: 'shop_preparing', label: 'قيد التنفيذ', match: o => o.status === 'shop_preparing' },
+        { key: 'with_captain', label: 'مع الكابتن', match: o => ['ready_for_pickup','captain_assigned','picked_up'].includes(o.status) },
+        { key: 'delivered', label: 'مكتمل',     match: o => o.status === 'delivered' },
+        { key: 'cancelled', label: 'ملغي',      match: o => o.status === 'cancelled' },
+        { key: 'all',       label: 'الكل',      match: () => true }
+    ];
+
+    function renderTabs() {
+        const el = document.getElementById('filterTabs');
+        el.innerHTML = TABS.map(t => {
+            const n = allOrders.filter(o => o.status !== 'chat_initiated' && t.match(o)).length;
+            const isNew = t.key === 'shop_pending' && n > 0;
+            return `<div class="filter-tab ${currentFilter === t.key ? 'active' : ''} ${isNew ? 'has-new' : ''}"
+                onclick="filterOrders('${t.key}', this)">${t.label} <span class="cnt">${n}</span></div>`;
+        }).join('');
+    }
+
+    function filterOrders(key) {
+        currentFilter = key;
+        renderTabs();
+        renderOrders();
+    }
+
+    // ── شريط الخطوات: القبول ← الدفع ← التجهيز ← التسليم ──
+    function buildSteps(o) {
+        const afterAccept = ['shop_preparing','ready_for_pickup','captain_assigned','picked_up','delivered'].includes(o.status);
+        const payDone = o.paymentStatus === 'confirmed';
+        const readyDone = ['ready_for_pickup','captain_assigned','picked_up','delivered'].includes(o.status);
+        const deliveredDone = o.status === 'delivered';
+
+        const steps = [
+            { lbl: 'القبول',   done: afterAccept, active: o.status === 'shop_pending' },
+            { lbl: 'الدفع',    done: payDone,     active: afterAccept && !payDone && !readyDone },
+            { lbl: 'التجهيز',  done: readyDone,   active: o.status === 'shop_preparing' && payDone },
+            { lbl: 'التسليم',  done: deliveredDone, active: readyDone && !deliveredDone }
+        ];
+        return `<div class="steps-wrap"><div class="steps">` + steps.map((s, i) => `
+            <div class="step ${s.done ? 'done' : ''} ${s.active ? 'active' : ''}">
+                <div class="step-dot">${s.done ? '<i class="bi bi-check-lg"></i>' : (i + 1)}</div>
+                <div class="step-lbl">${s.lbl}</div>
+            </div>`).join('') + `</div></div>`;
+    }
+
+    // ── الإجراء التالي الوحيد ────────────────────────────────
+    function buildNextAction(o) {
+        const id = o._id;
+        const clientId = o.client?._id || o.client;
+
+        // زرا المساندة (يظهران دائماً في الطلبات النشطة)
+        const secondary = `
+            <div class="secondary-row">
+                <button class="btn-sec chat" onclick="openClientChat('${id}','${clientId}')">
+                    <i class="bi bi-chat-dots-fill"></i> محادثة العميل
+                </button>
+                ${o.status === 'shop_pending' ? `
+                <button class="btn-sec danger" onclick="rejectOrder('${id}')">
+                    <i class="bi bi-x-circle"></i> رفض الطلب
+                </button>` : ''}
+            </div>`;
+
+        // 1) طلب جديد — الخطوة: القبول
+        if (o.status === 'shop_pending') {
+            const hint = o.paymentStatus === 'confirmed'
+                ? 'الدفع مؤكد مسبقاً — بعد القبول ابدأ التجهيز مباشرة'
+                : 'بعد القبول سيُطلب من العميل تحويل مبلغ البضاعة';
+            return `<div class="next-action">
+                <div class="next-hint"><i class="bi bi-arrow-down-circle"></i> الخطوة التالية: ${hint}</div>
+                <button class="btn-primary-step btn-green" onclick="acceptOrder('${id}', this)">
+                    <i class="bi bi-check-circle-fill"></i> قبول الطلب
+                </button>
+                ${secondary}
+            </div>`;
+        }
+
+        // 2) قيد التنفيذ + الدفع غير مؤكد
+        if (o.status === 'shop_preparing' && o.paymentStatus !== 'confirmed') {
+            // وصل إيصال → الخطوة: تأكيد الدفع
+            if (o.paymentStatus === 'receipt_sent' && o.paymentReceiptImage) {
+                return `<div class="next-action">
+                    <div class="next-hint"><i class="bi bi-arrow-up-circle"></i> الخطوة التالية: راجع إشعار الدفع أعلاه ثم أكّد الاستلام</div>
+                    <button class="btn-primary-step btn-green" onclick="confirmPayment('${id}', this)">
+                        <i class="bi bi-patch-check-fill"></i> تأكيد استلام الدفع
+                    </button>
+                    ${secondary}
+                </div>`;
+            }
+            // لا إيصال بعد → الخطوة: تذكير
+            return `<div class="next-action">
+                <div class="next-hint"><i class="bi bi-hourglass-split"></i> بانتظار تحويل العميل — ذكّره إن تأخر</div>
+                <button class="btn-primary-step btn-amber" onclick="remindPayment('${id}','${clientId}', this)">
+                    <i class="bi bi-bell-fill"></i> تذكير العميل بالدفع
+                </button>
+                ${secondary}
+            </div>`;
+        }
+
+        // 3) قيد التنفيذ + الدفع مؤكد → الخطوة: جاهز
+        if (o.status === 'shop_preparing' && o.paymentStatus === 'confirmed') {
+            return `<div class="next-action">
+                <div class="next-hint"><i class="bi bi-arrow-down-circle"></i> الخطوة التالية: عند اكتمال التجهيز اضغط الزر — سيُفتح الطلب للكباتن فوراً</div>
+                <button class="btn-primary-step btn-green" onclick="markReady('${id}', this)">
+                    <i class="bi bi-box-seam-fill"></i> الطلب جاهز للاستلام
+                </button>
+                ${secondary}
+            </div>`;
+        }
+
+        // 4) مراحل الكابتن — تتبع بلا إجراءات
+        if (o.status === 'ready_for_pickup') {
+            return `<div class="track-box waiting">
+                <span class="spinner-mini"></span> بانتظار كابتن قريب لاستلام الطلب
+            </div>
+            <div class="next-action" style="padding-top:0;">${secondary}</div>`;
+        }
+        if (o.status === 'captain_assigned' || o.status === 'picked_up') {
+            const cap = o.captain?.name ? window.escapeHtml(o.captain.name) : 'الكابتن';
+            const capPhone = o.captain?.phone || '';
+            const label = o.status === 'captain_assigned'
+                ? `${cap} في الطريق إليك لاستلام الطلب`
+                : `${cap} استلم الطلب وهو في الطريق للعميل`;
+            return `<div class="track-box moving">
+                <i class="bi bi-bicycle"></i> ${label}
+                ${capPhone ? `<a href="tel:${capPhone}" class="d-block mt-1" style="font-size:12px;color:#047857;">
+                    <i class="bi bi-telephone-fill"></i> ${capPhone}</a>` : ''}
+            </div>
+            <div class="next-action" style="padding-top:0;">${secondary}</div>`;
+        }
+
+        return '';
+    }
+
+    // ── بطاقة الطلب ─────────────────────────────────────────
+    function buildOrderCard(o) {
+        const finished = ['delivered', 'cancelled'].includes(o.status);
+        const isNew = o.status === 'shop_pending';
+
+        const goodsAmount = o.promoAppliesTo === 'products'
+            ? Math.max(0, o.itemsTotal - (o.discountAmount || 0))
+            : o.itemsTotal;
+
+        const itemsList = (o.items || []).map(item => `
+            <div class="product-item">
+                <span><span class="qty-chip">${item.quantity}x</span>${window.escapeHtml(item.name)}</span>
+                <span class="fw-bold" style="color:var(--green);">${item.subtotal || (item.price * item.quantity)} ج.س</span>
+            </div>`).join('');
+
+        const receiptHtml = o.paymentReceiptImage ? `
+            <div class="receipt-box ${o.paymentStatus === 'confirmed' ? 'ok' : ''}">
+                <img src="${getFullImageUrl(o.paymentReceiptImage)}" class="receipt-img"
+                    onclick="viewImage('${getFullImageUrl(o.paymentReceiptImage)}')">
+                <div style="font-size:12px;font-weight:800;color:${o.paymentStatus === 'confirmed' ? '#047857' : '#92400e'};">
+                    <i class="bi ${o.paymentStatus === 'confirmed' ? 'bi-patch-check-fill' : 'bi-receipt'}"></i>
+                    ${o.paymentStatus === 'confirmed' ? 'الدفع مؤكد' : 'إشعار دفع بانتظار مراجعتك'}
+                    <span class="d-block mt-1" style="font-weight:600;color:var(--muted);">اضغط الصورة للتكبير</span>
+                </div>
+            </div>` : '';
+
+        // بطاقة مضغوطة للمكتمل/الملغي
+        if (finished) {
+            return `
+            <div class="order-card finished" id="order-${o._id}">
+                <div class="order-head">
+                    <div>
+                        <span class="client-name">${window.escapeHtml(o.client?.name || 'عميل')}</span>
+                        <div class="order-meta">#${o._id.slice(-5)} · ${timeAgo(o.createdAt)} · ${(o.items || []).length} منتج · ${goodsAmount} ج.س</div>
+                        ${o.status === 'cancelled' && o.cancelReason ? `<div class="order-meta" style="color:#b91c1c;">السبب: ${window.escapeHtml(o.cancelReason)}</div>` : ''}
+                    </div>
+                    <span class="status-pill" style="${statusPillStyle[o.status]}">${statusLabels[o.status]}</span>
+                </div>
+            </div>`;
+        }
+
+        return `
+        <div class="order-card ${isNew ? 'is-new' : ''}" id="order-${o._id}">
+            ${isNew ? '<div class="new-ribbon"><i class="bi bi-stars"></i> طلب جديد بانتظار قرارك</div>' : ''}
+            <div class="order-head">
+                <div>
+                    <span class="client-name">${window.escapeHtml(o.client?.name || 'عميل')}</span>
+                    <div class="order-meta">#${o._id.slice(-5)} · ${timeAgo(o.createdAt)}</div>
+                </div>
+                <span class="status-pill" style="${statusPillStyle[o.status] || ''}">${statusLabels[o.status] || o.status}</span>
+            </div>
+
+            <div class="items-box">${itemsList}</div>
+
+            <div class="money-box">
+                <div>
+                    <div class="lbl"><i class="bi bi-cash-stack"></i> تستلمه من العميل</div>
+                    ${(o.discountAmount > 0 && o.promoAppliesTo === 'products')
+                        ? `<div style="font-size:11px;color:#059669;font-weight:700;">بعد خصم ${o.discountAmount} ج.س (${window.escapeHtml(o.promoCode || 'كوبون')})</div>` : ''}
+                </div>
+                <div class="val">${goodsAmount} <small>ج.س</small></div>
+            </div>
+
+            <div class="addr-box">
+                <i class="bi bi-geo-alt-fill" style="color:#ef4444;"></i>
+                <strong>التوصيل إلى:</strong> ${window.escapeHtml(o.dropoff?.address || 'غير محدد')}
+                <span class="d-block mt-1" style="color:var(--muted);">
+                    <i class="bi bi-person-fill"></i> ${window.escapeHtml(o.dropoff?.receiverName || '')}
+                    &nbsp;·&nbsp;<a href="tel:${o.dropoff?.receiverPhone}" style="color:#2563eb;text-decoration:none;">
+                        <i class="bi bi-telephone-fill"></i> ${o.dropoff?.receiverPhone || ''}</a>
+                </span>
+            </div>
+
+            ${o.notes ? `<div class="addr-box" style="background:#fffbeb;"><i class="bi bi-chat-left-text-fill" style="color:var(--amber);"></i> ${window.escapeHtml(o.notes)}</div>` : ''}
+            ${receiptHtml}
+            ${buildSteps(o)}
+            ${buildNextAction(o)}
+        </div>`;
+    }
+
+    function renderOrders() {
+        const tab = TABS.find(t => t.key === currentFilter) || TABS[0];
+        const filtered = allOrders
+            .filter(o => o.status !== 'chat_initiated')
+            .filter(tab.match);
+
+        const container = document.getElementById('ordersContainer');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="empty-state">
+                <i class="bi bi-bag-x"></i>
+                <div class="fw-bold fs-6 mb-1">لا توجد طلبات هنا</div>
+                <div style="font-size:13px;">الطلبات الجديدة ستظهر فوراً مع تنبيه صوتي</div>
+            </div>`;
+            return;
+        }
+        container.innerHTML = filtered.map(buildOrderCard).join('');
+    }
+
+    // ── جلب البيانات ────────────────────────────────────────
+    async function loadOrders(isAutoRefresh = false) {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Server error');
+            const data = await res.json();
+            const orders = Array.isArray(data) ? data : (data.orders || []);
+
+            // تنبيه صوتي عند طلب جديد لم نره من قبل
+            const pendingNow = orders.filter(o => o.status === 'shop_pending');
+            if (firstLoadDone) {
+                const fresh = pendingNow.filter(o => !knownPendingIds.has(o._id));
+                if (fresh.length) {
+                    playNewOrderSound();
+                    showToast('طلب جديد', 'وصلك طلب جديد يحتاج قرارك', 'info');
+                }
+            }
+            knownPendingIds = new Set(pendingNow.map(o => o._id));
+            firstLoadDone = true;
+
+            allOrders = orders;
+            renderTabs();
+            renderOrders();
+        } catch (err) {
+            if (!isAutoRefresh) {
+                document.getElementById('ordersContainer').innerHTML =
+                    `<div class="alert alert-danger m-3">فشل تحميل الطلبات
+                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="loadOrders()">إعادة المحاولة</button>
+                    </div>`;
+            }
+        }
+    }
+
+    // ── الإجراءات (نفس الـ endpoints القائمة) ────────────────
+    function busyBtn(btn, txt) {
+        if (!btn) return;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${txt}`;
+    }
+
+    async function acceptOrder(id, btn) {
+        busyBtn(btn, 'جاري القبول...');
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders/${id}/accept`, {
+                method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            if (res.ok) { showToast('تم القبول', 'انتقل الطلب لخطوة الدفع', 'success'); loadOrders(true); }
+            else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل قبول الطلب', 'error'); loadOrders(true); }
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); loadOrders(true); }
+    }
+
+    async function markReady(id, btn) {
+        busyBtn(btn, 'جاري الإبلاغ...');
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders/${id}/ready`, {
+                method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            if (res.ok) { showToast('الطلب جاهز', 'تم إشعار العميل وفتح الطلب للكباتن', 'success'); loadOrders(true); }
+            else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل تحديث الحالة', 'error'); loadOrders(true); }
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); loadOrders(true); }
+    }
+
+    async function confirmPayment(id, btn) {
+        busyBtn(btn, 'جاري التأكيد...');
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders/${id}/confirm-payment`, {
+                method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            if (res.ok) { showToast('تم تأكيد الدفع', 'الخطوة التالية: التجهيز', 'success'); loadOrders(true); }
+            else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل تأكيد الدفع', 'error'); loadOrders(true); }
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); loadOrders(true); }
+    }
+
+    async function rejectOrder(id) {
+        const result = await Swal.fire({
+            title: 'رفض الطلب', input: 'text',
+            inputLabel: 'سبب الرفض (يظهر للعميل)',
+            inputPlaceholder: 'مثال: المنتج غير متوفر حالياً',
+            showCancelButton: true, confirmButtonText: 'رفض الطلب',
+            cancelButtonText: 'تراجع', confirmButtonColor: '#ef4444'
+        });
+        if (!result.isConfirmed) return;
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders/${id}/reject`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: result.value || 'رفض التاجر' })
+            });
+            if (res.ok) { showToast('تم الرفض', 'تم إشعار العميل', 'info'); loadOrders(true); }
+            else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل رفض الطلب', 'error'); }
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); }
+    }
+
+    async function remindPayment(orderId, clientId, btn) {
+        busyBtn(btn, 'جاري الإرسال...');
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders/${orderId}/remind-payment`, {
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            if (res.ok) { showToast('تم التذكير', 'أُرسل تنبيه للعميل بإكمال الدفع', 'success'); }
+            else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل إرسال التذكير', 'error'); }
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); }
+        loadOrders(true);
+    }
+
+    function viewImage(src) {
+        document.getElementById('fullImg').src = src;
+        new bootstrap.Modal(document.getElementById('imgModal')).show();
+    }
+
+    function openClientChat(orderId, clientId) {
+        window.location.href = `chat.html?orderId=${orderId}&receiverId=${clientId}`;
+    }
+
+    // ── تحديث لحظي عبر Socket (مع polling احتياطي) ──────────
+    let socket = null;
+    function setLive(on) {
+        document.getElementById('liveDot').classList.toggle('off', !on);
+        document.getElementById('liveLabel').textContent = on ? 'تحديث لحظي' : 'تحديث كل 20 ثانية';
+    }
+    try {
+        socket = io(API_URL, { transports: ['polling', 'websocket'], auth: { token } });
+        socket.on('connect', () => {
+            const uid = user._id || user.id;
+            if (uid) socket.emit('user_join', uid);
+            setLive(true);
+        });
+        socket.on('disconnect', () => setLive(false));
+        socket.on('connect_error', () => setLive(false));
+        // طلب جديد أو تحديث (إيصال دفع...) → جلب فوري
+        socket.on('new_shop_order', () => loadOrders(true));
+        socket.on('shop_order_updated', () => loadOrders(true));
+    } catch (e) { setLive(false); }
+
+    // Polling احتياطي كل 20 ثانية (لو السوكت انقطع)
+    setInterval(() => loadOrders(true), 20000);
+
+    // ── الإقلاع + تمييز طلب قادم من إشعار ───────────────────
+    loadOrders().then(() => {
+        const highlightId = new URLSearchParams(window.location.search).get('highlight');
+        if (highlightId) {
+            setTimeout(() => {
+                const card = document.getElementById(`order-${highlightId}`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.style.transition = 'box-shadow 0.4s, transform 0.4s';
+                    card.style.boxShadow = '0 0 0 4px rgba(245,158,11,0.5), 0 10px 30px rgba(245,158,11,0.3)';
+                    card.style.transform = 'scale(1.01)';
+                    setTimeout(() => { card.style.boxShadow = ''; card.style.transform = ''; }, 3000);
+                }
+            }, 400);
+        }
+    });
+
+    // تحديث عند العودة للتطبيق
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') loadOrders(true);
+    });
+</script>
+</body>
+</html>
