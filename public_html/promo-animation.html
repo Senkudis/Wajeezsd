@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>وجيز — فيديو ميزة رابط المتجر</title>
+
+    <!-- مكتبات محلية (نفس المستخدمة في التطبيق) لضمان الثبات أثناء التسجيل -->
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            background: #020617;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        /* ════════════ المسرح (بمقاس الفيديو الحقيقي، يتحجم ليملأ النافذة) ════════════ */
+        #stageWrapper {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #stage {
+            position: relative;
+            background: radial-gradient(circle at 50% 35%, #1e293b 0%, #020617 75%);
+            overflow: hidden;
+            flex: none;
+            transform-origin: center center;
+        }
+        /* عمودي 9:16 */
+        #stage.v { width: 1080px; height: 1920px; }
+        /* أفقي 16:9 */
+        #stage.h { width: 1920px; height: 1080px; }
+
+        /* توهج خفيف بتدرج جاهز بدل filter:blur — أخف كثيراً على المعالج أثناء التسجيل */
+        .glow {
+            position: absolute;
+            width: 1400px; height: 1400px;
+            background: radial-gradient(circle, rgba(4,85,58,0.5) 0%, rgba(4,85,58,0.22) 35%, transparent 68%);
+            border-radius: 50%;
+            left: 50%; top: 45%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        /* ════════════ حزام النصوص التسويقية (لا يتداخل مع الهاتف أبداً) ════════════ */
+        .text-band {
+            position: absolute;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50;
+        }
+        #stage.v .text-band { top: 70px; right: 60px; left: 60px; height: 290px; }
+        #stage.h .text-band { top: 0; bottom: 0; right: 80px; width: 640px; }
+
+        .marketing-text {
+            position: absolute;
+            color: white;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1.7;
+            opacity: 0;
+            text-shadow: 0 6px 30px rgba(0,0,0,0.8);
+            width: 100%;
+        }
+        #stage.v .marketing-text { font-size: 46px; }
+        #stage.h .marketing-text { font-size: 44px; }
+        .marketing-text .step-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 58px; height: 58px; border-radius: 50%;
+            background: #04553A; color: #fff;
+            font-size: 30px; font-weight: 800;
+            margin-bottom: 14px;
+            border: 2px solid rgba(255,255,255,0.35);
+        }
+
+        /* ════════════ موضع الهاتف حسب المقاس ════════════ */
+        .phone-slot {
+            position: absolute;
+            z-index: 10;
+            transform-style: preserve-3d;
+        }
+        #stage.v .phone-slot { left: 50%; top: 420px; transform: translateX(-50%) scale(1.55); transform-origin: top center; }
+        #stage.h .phone-slot { left: 240px; top: 50%; transform: translateY(-50%) scale(1.13); transform-origin: center; }
+
+        .device-container {
+            transform: rotateY(15deg) rotateX(5deg) scale(0.92);
+            transform-style: preserve-3d;
+        }
+
+        .device-frame {
+            width: 375px; height: 812px;
+            background: #f0f2f5;
+            border-radius: 45px;
+            border: 14px solid #111;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.8), inset 0 0 0 2px #333, -20px 20px 40px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* العلامة السفلية */
+        .watermark {
+            position: absolute;
+            z-index: 50;
+            color: rgba(255,255,255,0.55);
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        #stage.v .watermark { bottom: 46px; left: 50%; transform: translateX(-50%); font-size: 30px; }
+        #stage.h .watermark { bottom: 34px; left: 50%; transform: translateX(-50%); font-size: 26px; }
+        .watermark img { height: 44px; }
+
+        /* ════════════ مؤشر اللمس ════════════ */
+        #cursor {
+            width: 40px; height: 40px;
+            background: rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 9999;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0;
+        }
+        #cursor::after { content: ''; width: 10px; height: 10px; background: white; border-radius: 50%; }
+        .ripple {
+            position: absolute;
+            width: 40px; height: 40px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            transform: scale(0);
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        /* ════════════ الشاشات داخل الهاتف ════════════ */
+        .screen {
+            position: absolute; inset: 0;
+            display: none;
+            flex-direction: column;
+            background: #f8fafc;
+        }
+        .screen.active { display: flex; }
+
+        .status-bar {
+            height: 44px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 22px;
+            font-size: 13px; font-weight: 600;
+            position: absolute; top: 0; width: 100%;
+            z-index: 100;
+            color: #111;
+        }
+        .notch {
+            position: absolute; top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 150px; height: 28px;
+            background: #111;
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 18px;
+        }
+
+        /* ─── مشهد 0: لوحة التاجر ─── */
+        .merchant-screen { background: #f1f5f9; }
+        .merchant-header {
+            background: #04553A; color: white;
+            padding: 54px 18px 18px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .merchant-header .title { font-weight: 800; font-size: 17px; }
+        .merchant-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+        .store-card {
+            background: white; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.07);
+        }
+        .store-card img { width: 100%; height: 130px; object-fit: cover; }
+        .store-card-body { padding: 14px; }
+        .store-card-name { font-weight: 800; font-size: 16px; color: #0f172a; }
+        .store-card-status { font-size: 12px; color: #16a34a; font-weight: 700; margin-top: 2px; }
+        .btn-copy-link {
+            background: #04553A; color: white; border: none;
+            width: 100%; padding: 13px; border-radius: 12px;
+            font-weight: 800; font-size: 15px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 6px 16px rgba(4,85,58,0.3);
+        }
+        .merchant-stats { display: flex; gap: 10px; }
+        .stat-box {
+            flex: 1; background: white; border-radius: 12px; padding: 12px;
+            text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .stat-box .num { font-weight: 800; font-size: 18px; color: #04553A; }
+        .stat-box .lbl { font-size: 11px; color: #64748b; }
+        .copy-toast {
+            position: absolute; bottom: 40px; left: 20px; right: 20px;
+            background: #0f172a; color: white;
+            padding: 13px 16px; border-radius: 12px;
+            font-size: 13px; font-weight: 700;
+            display: flex; align-items: center; gap: 8px;
+            opacity: 0; transform: translateY(60px);
+            z-index: 200;
+        }
+        .copy-toast i { color: #4ade80; }
+
+        /* ─── مشهد 1: واتساب ─── */
+        .whatsapp-bg {
+            background-color: #e5ddd5;
+            background-image: radial-gradient(circle at 20% 30%, rgba(0,0,0,0.025) 0, rgba(0,0,0,0.025) 6px, transparent 6px),
+                              radial-gradient(circle at 70% 65%, rgba(0,0,0,0.02) 0, rgba(0,0,0,0.02) 9px, transparent 9px),
+                              radial-gradient(circle at 45% 85%, rgba(0,0,0,0.025) 0, rgba(0,0,0,0.025) 5px, transparent 5px);
+            background-size: 140px 140px, 190px 190px, 160px 160px;
+        }
+        .chat-header {
+            background: #075e54; color: white;
+            padding: 48px 15px 12px;
+            display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .chat-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .chat-header .info { display: flex; flex-direction: column; }
+        .chat-header .name { font-weight: bold; font-size: 16px; }
+        .chat-header .typing { font-size: 12px; color: #1bd741; font-weight: normal; opacity: 0; }
+        .chat-container { padding: 15px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; height: 100%; }
+
+        .bubble {
+            max-width: 82%; padding: 8px 12px; border-radius: 12px;
+            font-size: 15px; position: relative;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            opacity: 0; transform: scale(0.8) translateY(20px);
+        }
+        .bubble .time { font-size: 10px; color: rgba(0,0,0,0.4); text-align: left; display: block; margin-top: 4px; margin-left: 20px; }
+        .bubble.sent { background: #dcf8c6; align-self: flex-start; border-top-right-radius: 0; }
+        .bubble.sent::after { content: ''; position: absolute; top: 0; right: -8px; border: 8px solid transparent; border-top-color: #dcf8c6; border-right: 0; border-top-width: 12px; }
+        .bubble.received { background: #ffffff; align-self: flex-end; border-top-left-radius: 0; }
+        .bubble.received::after { content: ''; position: absolute; top: 0; left: -8px; border: 8px solid transparent; border-top-color: #ffffff; border-left: 0; border-top-width: 12px; }
+        .chat-link { color: #039be5; text-decoration: underline; direction: ltr; display: inline-block; font-size: 13.5px; }
+
+        .link-preview { background: #f0f2f5; border-radius: 8px; overflow: hidden; margin-top: 5px; cursor: pointer; border: 1px solid #ddd; }
+        .link-preview img { width: 100%; height: 140px; object-fit: cover; }
+        .link-preview .content { padding: 12px; background: #f8f9fa; }
+        .link-preview .title { font-weight: bold; color: #111; font-size: 14px; }
+        .link-preview .desc { font-size: 12px; color: #666; margin-top: 4px; }
+        .link-preview .domain { font-size: 11px; color: #888; margin-top: 6px; text-transform: uppercase; }
+
+        /* ─── مشهد 2: صفحة المتجر ─── */
+        .store-screen { background: #f8fafc; }
+        .shop-hero {
+            position: relative; height: 180px;
+            background: url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80') center/cover;
+        }
+        .shop-info-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            padding: 30px 15px 15px;
+            color: white;
+        }
+        .cat-tabs { display: flex; gap: 10px; padding: 15px; background: white; border-bottom: 1px solid #eee; overflow-x: auto; }
+        .cat-tab { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; white-space: nowrap; background: #f1f5f9; color: #475569; }
+        .cat-tab.active { background: #04553A; color: white; }
+
+        .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
+        .product-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; opacity: 0; transform: translateY(20px); }
+        .product-card img { width: 100%; height: 120px; object-fit: cover; }
+        .product-card-body { padding: 10px; }
+        .product-card-title { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+        .product-card-desc { font-size: 11px; color: #64748b; height: 32px; overflow: hidden; }
+        .product-card-price { font-size: 14px; font-weight: 800; color: #04553A; margin: 8px 0; }
+        .add-to-cart-btn { background: #04553A; color: white; border: none; width: 100%; padding: 6px; border-radius: 8px; font-weight: bold; font-size: 12px; }
+
+        .cart-fab {
+            position: absolute; bottom: 20px; left: 20px; right: 20px;
+            background: #04553A; color: white; border-radius: 16px;
+            padding: 15px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 25px rgba(4,85,58,0.4);
+            transform: translateY(150px);
+            z-index: 150;
+        }
+
+        /* درج السلة السفلي (مطابق للتطبيق الفعلي) */
+        .cart-drawer {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: white;
+            border-radius: 22px 22px 0 0;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
+            transform: translateY(110%);
+            z-index: 300;
+            padding-bottom: 16px;
+        }
+        .cart-drawer-handle { width: 44px; height: 5px; background: #e2e8f0; border-radius: 3px; margin: 10px auto 4px; }
+        .cart-drawer-header { padding: 8px 20px 10px; border-bottom: 1px solid #f0f0f0; font-weight: 800; font-size: 15px; color: #0f172a; }
+        .cart-drawer-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 20px; border-bottom: 1px solid #f8fafc; font-size: 14px;
+        }
+        .qty-pill { background: #f1f5f9; border-radius: 8px; padding: 3px 12px; font-weight: 800; color: #04553A; }
+        .cart-drawer-total { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-weight: 800; font-size: 15px; }
+        .btn-checkout {
+            background: #04553A; color: white; border: none;
+            margin: 8px 20px 0; padding: 13px; border-radius: 12px;
+            font-weight: 800; font-size: 15px;
+            width: calc(100% - 40px);
+        }
+
+        /* ─── مشهد 3: Play Store ─── */
+        .play-store { background: white; align-items: center; padding-top: 80px; }
+        .play-store-header { border-bottom: 1px solid #eee; width: 100%; padding: 15px 20px; display: flex; align-items: center; gap: 15px; font-size: 18px; }
+        .app-icon-img {
+            width: 100px; height: 100px; border-radius: 22px;
+            margin: 40px auto 20px; display: block;
+            box-shadow: 0 10px 25px rgba(4,85,58,0.25);
+            background: white;
+        }
+        .btn-install {
+            background: #01875f; color: white; border: none;
+            width: 85%; padding: 14px; border-radius: 30px;
+            font-weight: bold; font-size: 16px;
+            margin: 24px auto 0; display: block;
+            box-shadow: 0 4px 10px rgba(1,135,95,0.3);
+        }
+        .app-tagline { color: #64748b; font-size: 14px; text-align: center; margin-top: 4px; }
+        .app-badges { display: flex; justify-content: center; gap: 22px; margin-top: 22px; color: #475569; font-size: 12px; text-align: center; }
+        .app-badges .b { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+        .app-badges i { font-size: 18px; color: #04553A; }
+
+        /* ════════════ الخاتمة (على مستوى المسرح كاملاً) ════════════ */
+        #endCard {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 34px;
+            z-index: 500;
+            opacity: 0; pointer-events: none;
+        }
+        .end-logo-card {
+            background: white;
+            border-radius: 30px;
+            padding: 50px 70px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+        }
+        #stage.v .end-logo-card img { width: 640px; }
+        #stage.h .end-logo-card img { width: 560px; }
+        .end-line { color: white; font-weight: 800; text-align: center; line-height: 1.8; }
+        #stage.v .end-line { font-size: 46px; }
+        #stage.h .end-line { font-size: 40px; }
+        .end-domain {
+            color: #F5A623; font-weight: 800; letter-spacing: 2px;
+            direction: ltr;
+        }
+        #stage.v .end-domain { font-size: 40px; }
+        #stage.h .end-domain { font-size: 34px; }
+
+        /* ════════════ طبقة التحكم (تختفي أثناء التشغيل ولا تُسجَّل) ════════════ */
+        #controls {
+            position: absolute; inset: 0;
+            background: rgba(2,6,23,0.94);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 26px;
+            z-index: 2000;
+            color: white; text-align: center;
+        }
+        #controls h1 { font-size: 30px; font-weight: 800; margin: 0; }
+        #controls .hint { color: #94a3b8; font-size: 15px; max-width: 480px; line-height: 1.9; margin: 0; }
+        .mode-switch { display: flex; gap: 10px; }
+        .mode-btn {
+            background: transparent; color: #cbd5e1;
+            border: 2px solid #334155; border-radius: 14px;
+            padding: 10px 26px; font-family: inherit; font-weight: 800; font-size: 15px;
+            cursor: pointer;
+        }
+        .mode-btn.active { background: #04553A; border-color: #04553A; color: white; }
+        #btnPlay {
+            background: #04553A; color: white; border: none;
+            width: 96px; height: 96px; border-radius: 50%;
+            font-size: 38px; cursor: pointer;
+            box-shadow: 0 10px 40px rgba(4,85,58,0.5);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s;
+        }
+        #btnPlay:hover { transform: scale(1.08); }
+        #btnPlay:disabled { opacity: 0.5; cursor: wait; }
+        #btnReplay {
+            background: transparent; color: #94a3b8;
+            border: 2px solid #334155; border-radius: 14px;
+            padding: 10px 30px; font-family: inherit; font-weight: 800; font-size: 15px;
+            cursor: pointer;
+            position: absolute; bottom: 4%; left: 50%; transform: translateX(-50%);
+            z-index: 3000;
+            opacity: 0; pointer-events: none;
+        }
+
+        /* العد التنازلي */
+        #countdown {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1500;
+            color: white; font-size: 220px; font-weight: 800;
+            text-shadow: 0 10px 60px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="stageWrapper">
+    <div id="stage" class="v">
+        <div class="glow"></div>
+
+        <!-- حزام النصوص -->
+        <div class="text-band">
+            <div class="marketing-text" id="text1">
+                <div><span class="step-num">١</span></div>
+                شارك رابط متجرك مع عملائك عبر واتساب أو أي وسيلة تواصل
+            </div>
+            <div class="marketing-text" id="text2">
+                <div><span class="step-num">٢</span></div>
+                العميل يتصفح ويطلب مباشرة من المتصفح، بدون تحميل التطبيق
+            </div>
+            <div class="marketing-text" id="text3">
+                <div><span class="step-num">٣</span></div>
+                وبعد الطلب يتابع التوصيل ويتواصل مع المندوب عبر تطبيق وجيز
+            </div>
+        </div>
+
+        <!-- الهاتف -->
+        <div class="phone-slot" id="phoneSlot">
+            <div class="device-container" id="deviceContainer">
+                <div class="device-frame" id="deviceFrame">
+                    <div class="status-bar" id="statusBar">
+                        <span>9:41</span>
+                        <div class="notch"></div>
+                        <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                    </div>
+
+                    <!-- مشهد 0: لوحة التاجر -->
+                    <div id="scene0" class="screen active merchant-screen">
+                        <div class="merchant-header">
+                            <i class="bi bi-shop fs-5"></i>
+                            <span class="title">وجيز — لوحة التاجر</span>
+                            <i class="bi bi-bell ms-auto"></i>
+                        </div>
+                        <div class="merchant-body">
+                            <div class="store-card">
+                                <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="">
+                                <div class="store-card-body">
+                                    <div class="store-card-name">البرجر الذهبي</div>
+                                    <div class="store-card-status">مفتوح الآن — يستقبل الطلبات</div>
+                                </div>
+                            </div>
+                            <div class="merchant-stats">
+                                <div class="stat-box"><div class="num">42</div><div class="lbl">طلب هذا الأسبوع</div></div>
+                                <div class="stat-box"><div class="num">318</div><div class="lbl">زيارة للمتجر</div></div>
+                            </div>
+                            <button class="btn-copy-link" id="btnCopyLink">
+                                <i class="bi bi-link-45deg fs-5"></i> نسخ رابط متجري
+                            </button>
+                        </div>
+                        <div class="copy-toast" id="copyToast">
+                            <i class="bi bi-check-circle-fill"></i> تم نسخ رابط متجرك — شاركه مع عملائك الآن
+                        </div>
+                    </div>
+
+                    <!-- مشهد 1: واتساب -->
+                    <div id="scene1" class="screen whatsapp-bg">
+                        <div class="chat-header">
+                            <i class="bi bi-arrow-left"></i>
+                            <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80" alt="">
+                            <div class="info">
+                                <span class="name">البرجر الذهبي</span>
+                                <span class="typing" id="typingIndicator">يكتب الآن...</span>
+                            </div>
+                        </div>
+                        <div class="chat-container">
+                            <div class="bubble sent" id="msg1">
+                                السلام عليكم، المنتجات العندكم شنو؟
+                                <span class="time">9:41 <i class="bi bi-check2-all text-primary"></i></span>
+                            </div>
+                            <div class="bubble received" id="msg2">
+                                وعليكم السلام، تقدر تتصفح كل منتجاتنا وتطلب مباشرة من متجرنا في وجيز
+                                <br><span class="chat-link">wajeezsd.com/s/Gx7Kq</span>
+                                <div class="link-preview" id="linkPreview">
+                                    <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="">
+                                    <div class="content">
+                                        <div class="title">البرجر الذهبي — وجيز</div>
+                                        <div class="desc">تصفح المنيو واطلب الآن مع توصيل وجيز</div>
+                                        <div class="domain">WAJEEZSD.COM</div>
+                                    </div>
+                                </div>
+                                <span class="time">9:42</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- مشهد 2: صفحة المتجر -->
+                    <div id="scene2" class="screen store-screen">
+                        <div class="shop-hero">
+                            <div class="shop-info-overlay">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="bi bi-arrow-right fs-5"></i>
+                                    <span style="background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.5);color:#86efac;padding:2px 8px;border-radius:20px;font-size:11px;">
+                                        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-left:4px;"></span> مفتوح
+                                    </span>
+                                </div>
+                                <h2 class="fw-bold mb-0" style="font-size:1.4rem;">البرجر الذهبي</h2>
+                                <div class="text-white-50 small">الخرطوم — الرياض</div>
+                            </div>
+                        </div>
+                        <div class="cat-tabs">
+                            <div class="cat-tab active">الكل</div>
+                            <div class="cat-tab">وجبات التوفير</div>
+                            <div class="cat-tab">مشروبات</div>
+                        </div>
+                        <div class="product-grid">
+                            <div class="product-card" id="product1">
+                                <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="">
+                                <div class="product-card-body">
+                                    <div class="product-card-title">وجبة برجر دبل</div>
+                                    <div class="product-card-desc">شريحتين لحم + جبنة + بطاطس</div>
+                                    <div class="product-card-price">6,500 ج.س</div>
+                                    <button class="add-to-cart-btn" id="btnAddToCart">
+                                        <i class="bi bi-cart-plus"></i> أضف للسلة
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="product-card" id="product2">
+                                <img src="https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="">
+                                <div class="product-card-body">
+                                    <div class="product-card-title">برجر الدجاج المقرمش</div>
+                                    <div class="product-card-desc">دجاج كرسبي مع صوص حار</div>
+                                    <div class="product-card-price">5,000 ج.س</div>
+                                    <button class="add-to-cart-btn">
+                                        <i class="bi bi-cart-plus"></i> أضف للسلة
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cart-fab" id="floatingCart">
+                            <div>
+                                <div class="fw-bold" style="font-size:14px;"><span id="cartCountBadge" style="background:white;color:#04553A;border-radius:50%;padding:2px 8px;margin-left:6px;">1</span> عناصر</div>
+                                <div style="font-size:16px;font-weight:bold;margin-top:2px;">6,500 ج.س</div>
+                            </div>
+                            <div style="font-weight:bold;" id="btnViewCart">
+                                عرض السلة <i class="bi bi-arrow-left-short fs-4" style="margin-right:-6px;vertical-align:middle;"></i>
+                            </div>
+                        </div>
+
+                        <!-- درج السلة (مطابق للتطبيق) -->
+                        <div class="cart-drawer" id="cartDrawer">
+                            <div class="cart-drawer-handle"></div>
+                            <div class="cart-drawer-header">سلة المشتريات</div>
+                            <div class="cart-drawer-item">
+                                <span class="fw-bold">وجبة برجر دبل</span>
+                                <span class="qty-pill">1 ×</span>
+                                <span class="fw-bold" style="color:#04553A;">6,500 ج.س</span>
+                            </div>
+                            <div class="cart-drawer-total">
+                                <span>الإجمالي</span>
+                                <span style="color:#04553A;">6,500 ج.س</span>
+                            </div>
+                            <button class="btn-checkout" id="btnCheckout">إتمام الطلب</button>
+                        </div>
+                    </div>
+
+                    <!-- مشهد 3: Play Store -->
+                    <div id="scene3" class="screen play-store">
+                        <div class="play-store-header">
+                            <i class="bi bi-arrow-left"></i>
+                            <span class="fw-bold ms-2">Google Play</span>
+                            <i class="bi bi-search ms-auto text-muted"></i>
+                        </div>
+                        <img class="app-icon-img" src="icons/icon-512x512.png" alt="وجيز">
+                        <h3 class="fw-bold text-center mb-1">وجيز — Wajeez</h3>
+                        <div class="app-tagline">توصيل وجيز لكل ما تحتاجه</div>
+                        <div class="app-badges">
+                            <div class="b"><i class="bi bi-bicycle"></i> تتبع المندوب مباشرة</div>
+                            <div class="b"><i class="bi bi-chat-dots"></i> تواصل داخل التطبيق</div>
+                            <div class="b"><i class="bi bi-bell"></i> إشعارات الطلب أولاً بأول</div>
+                        </div>
+                        <button class="btn-install" id="btnInstall">تثبيت</button>
+                    </div>
+
+                    <div id="cursor"></div>
+                    <div id="rippleContainer" style="position:absolute; inset:0; pointer-events:none; z-index:9998;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- العلامة السفلية -->
+        <div class="watermark"><span>wajeezsd.com</span></div>
+
+        <!-- الخاتمة -->
+        <div id="endCard">
+            <div class="end-logo-card"><img src="logo-transparent.png" alt="وجيز"></div>
+            <div class="end-line">شارك رابط متجرك وابدأ البيع اليوم</div>
+            <div class="end-domain">wajeezsd.com</div>
+        </div>
+
+        <!-- العد التنازلي -->
+        <div id="countdown"></div>
+    </div>
+</div>
+
+<!-- طبقة التحكم (خارج المسرح حتى لا تتأثر بالتحجيم) -->
+<div id="controls">
+    <h1>فيديو ميزة رابط المتجر</h1>
+    <p class="hint">اختر مقاس الفيديو، ابدأ تسجيل الشاشة على منطقة المسرح، ثم اضغط زر التشغيل. سيبدأ عد تنازلي قصير قبل الأنيميشن، وفي النهاية تظهر شاشة الخاتمة وتثبت — أوقف التسجيل عندها.</p>
+    <div class="mode-switch">
+        <button class="mode-btn active" data-mode="v">عمودي 9:16 (واتساب وريلز)</button>
+        <button class="mode-btn" data-mode="h">أفقي 16:9 (يوتيوب)</button>
+    </div>
+    <button id="btnPlay" title="تشغيل"><i class="bi bi-play-fill"></i></button>
+</div>
+<button id="btnReplay">إعادة التشغيل</button>
+
+<script>
+    const stage = document.getElementById('stage');
+    const cursor = document.getElementById('cursor');
+    const rippleContainer = document.getElementById('rippleContainer');
+    const deviceFrame = document.getElementById('deviceFrame');
+
+    /* ═══ تحجيم المسرح ليملأ النافذة مع الحفاظ على مقاس الفيديو ═══ */
+    function fitStage() {
+        const w = stage.classList.contains('v') ? 1080 : 1920;
+        const h = stage.classList.contains('v') ? 1920 : 1080;
+        const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
+        stage.style.transform = `scale(${scale})`;
+    }
+    window.addEventListener('resize', fitStage);
+    fitStage();
+
+    /* ═══ تبديل المقاس ═══ */
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            stage.classList.remove('v', 'h');
+            stage.classList.add(btn.dataset.mode);
+            fitStage();
+        });
+    });
+
+    /* ═══ تحميل الصور مسبقاً حتى لا تظهر فارغة أثناء التسجيل ═══ */
+    const IMAGES = [
+        'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80',
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+        'icons/icon-512x512.png',
+        'logo-transparent.png'
+    ];
+    function preloadImages() {
+        return Promise.all(IMAGES.map(src => new Promise(resolve => {
+            const img = new Image();
+            img.onload = img.onerror = resolve;
+            img.src = src;
+            setTimeout(resolve, 6000); // لا نعلق التشغيل لو تأخر رابط
+        })));
+    }
+
+    /* ═══ مؤشر اللمس (يعمل تحت أي تحجيم لأنه يقسم على معامل القياس الفعلي) ═══ */
+    function frameScale() {
+        return deviceFrame.getBoundingClientRect().width / deviceFrame.offsetWidth;
+    }
+    const moveCursor = (targetId, duration = 1, offsetX = 0, offsetY = 0) => {
+        return gsap.to(cursor, {
+            duration,
+            ease: 'power3.inOut',
+            x: () => {
+                const t = document.getElementById(targetId).getBoundingClientRect();
+                const f = deviceFrame.getBoundingClientRect();
+                return (t.left - f.left + t.width / 2) / frameScale() + offsetX;
+            },
+            y: () => {
+                const t = document.getElementById(targetId).getBoundingClientRect();
+                const f = deviceFrame.getBoundingClientRect();
+                return (t.top - f.top + t.height / 2) / frameScale() + offsetY;
+            }
+        });
+    };
+
+    const clickCursor = (targetId) => {
+        const tl = gsap.timeline();
+        tl.call(() => {
+            const x = gsap.getProperty(cursor, 'x');
+            const y = gsap.getProperty(cursor, 'y');
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.left = `${x - 20}px`;
+            ripple.style.top = `${y - 20}px`;
+            rippleContainer.appendChild(ripple);
+            gsap.to(ripple, { scale: 2.5, opacity: 0, duration: 0.5, ease: 'power2.out', onComplete: () => ripple.remove() });
+        });
+        tl.to(cursor, { scale: 0.7, opacity: 0.8, duration: 0.1 })
+          .to(cursor, { scale: 1, opacity: 1, duration: 0.1 });
+        if (targetId) {
+            const target = document.getElementById(targetId);
+            tl.to(target, { scale: 0.95, duration: 0.1 }, '-=0.2')
+              .to(target, { scale: 1, duration: 0.1 });
+        }
+        return tl;
+    };
+
+    const switchScreen = (outId, inId) => {
+        const tl = gsap.timeline();
+        tl.to(`#${outId}`, { opacity: 0, scale: 0.95, duration: 0.3 })
+          .set(`#${outId}`, { display: 'none' })
+          .set(`#${inId}`, { display: 'flex', opacity: 0, scale: 1.05 })
+          .to(`#${inId}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, '<')
+          .to('#statusBar', { color: inId === 'scene2' ? 'white' : '#111', duration: 0.3 }, '<');
+        return tl;
+    };
+
+    /* تبديل النص التسويقي: يخفي الحالي ويظهر التالي في نفس المكان */
+    const showText = (id) => gsap.timeline()
+        .to(id, { opacity: 1, y: 0, duration: 0.9, ease: 'back.out(1.4)' });
+    const hideText = (id) => gsap.timeline()
+        .to(id, { opacity: 0, y: -30, duration: 0.5 });
+
+    /* ═══ السيناريو الكامل ═══ */
+    function playCinematicPromo() {
+        const tl = gsap.timeline();
+        gsap.set('.marketing-text', { y: 40 });
+
+        // دخول ثلاثي الأبعاد
+        tl.to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.8, ease: 'power4.out' })
+          .set(cursor, { x: 190, y: 700, opacity: 0 }, '<')
+          .to(cursor, { opacity: 1, duration: 0.4 }, '-=0.5');
+
+        // ── مشهد 0: التاجر ينسخ رابط متجره ──
+        tl.add(showText('#text1'), '-=0.8');
+        tl.add(moveCursor('btnCopyLink', 1.2), '+=0.6')
+          .add(clickCursor('btnCopyLink'));
+        tl.to('#copyToast', { opacity: 1, y: 0, duration: 0.5, ease: 'back.out(1.4)' })
+          .to('#copyToast', { opacity: 0, y: 40, duration: 0.4 }, '+=1.6');
+
+        // ── مشهد 1: واتساب ──
+        tl.add(switchScreen('scene0', 'scene1'));
+        tl.to('#msg1', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.7)' }, '+=0.4');
+        tl.to('#typingIndicator', { opacity: 1, duration: 0.3 }, '+=0.4')
+          .to('#typingIndicator', { opacity: 0, duration: 0.3 }, '+=1.1');
+        tl.to('#msg2', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.5)' });
+
+        tl.add(moveCursor('linkPreview', 1.2, 0, 30), '+=1.2')
+          .add(clickCursor('linkPreview'));
+
+        // ── مشهد 2: صفحة المتجر ──
+        tl.add(hideText('#text1'))
+          .add(switchScreen('scene1', 'scene2'), '<');
+        tl.add(showText('#text2'));
+
+        tl.to('#product1', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '+=0.2')
+          .to('#product2', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.4');
+
+        tl.add(moveCursor('btnAddToCart', 1.4), '+=0.8')
+          .add(clickCursor('btnAddToCart'));
+
+        // نافذة تسجيل الدخول (بنفس نص التطبيق الفعلي)
+        tl.call(() => {
+            Swal.fire({
+                title: 'مرحباً بك في وجيز',
+                text: 'الرجاء تسجيل الدخول أولاً لإضافة المنتجات لسلتك!',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'تسجيل الدخول / إنشاء حساب',
+                cancelButtonText: 'تصفح كزائر',
+                confirmButtonColor: '#2563eb',
+                backdrop: 'rgba(0,0,0,0.5)',
+                target: '#deviceFrame',
+                customClass: { container: 'position-absolute', popup: 'rounded-4' },
+                animation: false
+            });
+            gsap.fromTo('.swal2-popup', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(1.5)' });
+        });
+
+        tl.add(moveCursor('deviceFrame', 1, -20, 60), '+=1.8');
+        tl.add(clickCursor());
+        tl.call(() => Swal.close(), null, '+=0.2');
+
+        // فلاش تسجيل الدخول والعودة
+        tl.to('#scene2', { opacity: 0, duration: 0.2 })
+          .to('#scene2', { opacity: 1, duration: 0.3 }, '+=0.3');
+
+        // الزر يتحول لعداد + ظهور السلة العائمة
+        tl.call(() => {
+            document.getElementById('btnAddToCart').innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%; font-size:14px; padding:0 10px;">
+                    <span style="font-size:18px;">−</span>
+                    <span style="background:white; color:#04553A; padding:2px 10px; border-radius:6px;">1</span>
+                    <span style="font-size:18px;">+</span>
+                </div>`;
+        })
+        .to('#btnAddToCart', { backgroundColor: '#16a34a', duration: 0.3 })
+        .to('#floatingCart', { y: 0, duration: 0.5, ease: 'back.out(1.2)' });
+
+        // فتح درج السلة (مطابق للتطبيق) ثم إتمام الطلب
+        tl.add(moveCursor('btnViewCart', 1.2, 40), '+=1.2')
+          .add(clickCursor('btnViewCart'));
+        tl.to('#cartDrawer', { y: 0, duration: 0.55, ease: 'power3.out' })
+          .to('#floatingCart', { opacity: 0, duration: 0.2 }, '<');
+
+        tl.add(moveCursor('btnCheckout', 1.1), '+=1.4')
+          .add(clickCursor('btnCheckout'));
+        tl.to('#cartDrawer', { y: '110%', duration: 0.4, ease: 'power2.in' });
+
+        // نافذة نجاح الطلب (بنفس نص التطبيق الفعلي)
+        tl.call(() => {
+            Swal.fire({
+                icon: 'success',
+                title: 'الآن تم الطلب!',
+                html: `الرجاء متابعة الطلب والتواصل مع المندوب عبر تطبيق وجيز.<br><small class="text-muted mt-2 d-block">رقم الطلب: #1234</small>`,
+                confirmButtonText: 'تحميل التطبيق ومتابعة الطلب',
+                confirmButtonColor: '#2563eb',
+                allowOutsideClick: false,
+                backdrop: 'rgba(0,0,0,0.5)',
+                target: '#deviceFrame',
+                customClass: { container: 'position-absolute', popup: 'rounded-4' },
+                animation: false
+            });
+            gsap.fromTo('.swal2-popup', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.7)' });
+        });
+
+        // النص الثالث
+        tl.add(hideText('#text2'));
+        tl.add(showText('#text3'), '+=0.3');
+
+        tl.add(moveCursor('deviceFrame', 1.4, 0, 85), '+=1.8')
+          .add(clickCursor());
+        tl.call(() => Swal.close(), null, '+=0.2');
+
+        // ── مشهد 3: Play Store ──
+        tl.add(switchScreen('scene2', 'scene3'), '+=0.1');
+        tl.add(moveCursor('btnInstall', 1.4), '+=0.6')
+          .add(clickCursor('btnInstall'));
+
+        // ── الخاتمة ──
+        tl.add(hideText('#text3'), '+=1');
+        tl.to(cursor, { opacity: 0, duration: 0.3 }, '<');
+        tl.to('#phoneSlot', { opacity: 0, scale: '-=0.06', duration: 0.7, ease: 'power2.in' }, '<')
+          .to('.watermark', { opacity: 0, duration: 0.4 }, '<'); // الخاتمة تعرض النطاق بنفسها
+        tl.set('#endCard', { pointerEvents: 'auto' })
+          .fromTo('#endCard', { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.9, ease: 'power3.out' })
+          .fromTo('.end-line', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.3')
+          .fromTo('.end-domain', { opacity: 0 }, { opacity: 1, duration: 0.7 }, '-=0.2');
+
+        // زر إعادة التشغيل (خارج المسرح — لا يظهر في التسجيل إذا سُجل المسرح فقط)
+        tl.to('#btnReplay', { opacity: 1, pointerEvents: 'auto', duration: 0.5 }, '+=1.5');
+
+        return tl;
+    }
+
+    /* ═══ التشغيل: تحميل مسبق ← إخفاء التحكم ← عد تنازلي ← الأنيميشن ═══ */
+    const btnPlay = document.getElementById('btnPlay');
+    btnPlay.addEventListener('click', async () => {
+        btnPlay.disabled = true;
+        await preloadImages();
+        document.fonts && await document.fonts.ready;
+
+        gsap.to('#controls', { opacity: 0, duration: 0.4, onComplete: () => {
+            document.getElementById('controls').style.display = 'none';
+        }});
+
+        const cd = document.getElementById('countdown');
+        const counts = ['3', '2', '1'];
+        const cdTl = gsap.timeline();
+        counts.forEach(n => {
+            cdTl.call(() => { cd.textContent = n; })
+                .fromTo(cd, { opacity: 0, scale: 1.6 }, { opacity: 1, scale: 1, duration: 0.35 })
+                .to(cd, { opacity: 0, duration: 0.3 }, '+=0.35');
+        });
+        cdTl.call(() => { cd.textContent = ''; playCinematicPromo(); });
+    });
+
+    document.getElementById('btnReplay').addEventListener('click', () => location.reload());
+</script>
+</body>
+</html>
