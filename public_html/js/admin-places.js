@@ -119,40 +119,18 @@ async function initAdminPlaceMap(lat, lng) {
     const mapElement = document.getElementById('adminPlaceMap');
     if (!mapElement) return;
 
-    // 🗺️ نفضّل JS SDK (يرسم داخل الـ WebView فيظهر في النوافذ) — البلوجن الأصلي يرسم خلف الـ WebView ويختفي داخل المودال
-    const _hasWebMaps = (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function');
-    const GoogleMap = _hasWebMaps ? null : ((window.Capacitor && window.Capacitor.Plugins)
-        ? (window.Capacitor.Plugins.GoogleMap || window.Capacitor.Plugins.CapacitorGoogleMaps)
-        : null);
+    // 🗺️ Web SDK حصرياً. مسار البلوجن الأصلي (Capacitor) حُذف نهائياً لأنه:
+    //   1. يرسم خلف الـ WebView بإحداثيات شاشة ثابتة → دبوس "شبحي" في مكان عشوائي
+    //   2. لم يكن يُدمَّر عند الإغلاق → يتراكم دبوسان فأكثر عند إعادة الفتح
+    //   3. بلا مستمعي سحب/نقر → تعذّر تعديل الموقع من التطبيق أصلاً
+    // ننتظر تحميل الـ SDK (idempotent) بدل السقوط للبلوجن في سباق التحميل.
+    try {
+        if (typeof window.loadGoogleMaps === 'function') {
+            await window.loadGoogleMaps({ libraries: 'places' });
+        }
+    } catch (e) { console.error('Maps SDK load failed:', e); }
 
-    if (GoogleMap) {
-        // Native App path
-        try {
-            mapElement.style.display = 'block';
-            mapElement.style.width = '100%';
-            mapElement.style.minHeight = '400px';
-            await new Promise(r => requestAnimationFrame(r));
-            const rect = mapElement.getBoundingClientRect();
-            const newMap = await GoogleMap.create({
-                id: 'wajeezsd-native-map-admin-place',
-                element: mapElement,
-                apiKey: await window.getMapsApiKey(),
-                config: {
-                    width: Math.round(rect.width || window.innerWidth),
-                    height: Math.round(rect.height || 400),
-                    x: Math.round(rect.x || 0),
-                    y: Math.round(rect.y || 0),
-                    center: { lat, lng }, zoom: 17
-                },
-            });
-            if (newMap) {
-                await newMap.addMarker({ coordinate: { lat, lng }, title: 'Wajeez Location' });
-                adminPlaceMapInstance = newMap;
-            }
-        } catch (error) { console.error('Native Map Error:', error); }
-
-    } else if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
-        // Web Browser fallback — standard Google Maps JS API
+    if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
         mapElement.innerHTML = '';
         const webMap = new google.maps.Map(mapElement, {
             center: { lat, lng }, zoom: 16,
@@ -413,46 +391,29 @@ async function openEditPlaceModal(id) {
 
         // Init map after modal shown
         setTimeout(async () => {
-            const lat = p.location?.lat || 15.6445;
-            const lng = p.location?.lng || 32.4777;
+            // 🌍 لو المتجر بلا موقع محفوظ: مركز الخريطة يتبع مدينته المختارة
+            // (كان الافتراضي دائماً وسط الخرطوم → دبوس "عشوائي" لمتاجر بورتسودان)
+            const hasSavedLoc = Number.isFinite(Number(p.location?.lat)) && Number.isFinite(Number(p.location?.lng));
+            const cityCenters = {
+                Khartoum:  { lat: 15.5007, lng: 32.5599 },
+                PortSudan: { lat: 19.6158, lng: 37.2164 }
+            };
+            const fallback = cityCenters[p.city] || cityCenters.Khartoum;
+            const lat = hasSavedLoc ? Number(p.location.lat) : fallback.lat;
+            const lng = hasSavedLoc ? Number(p.location.lng) : fallback.lng;
 
             const mapElement = document.getElementById('editPlaceMap');
             if (!mapElement) return;
 
-            // 🗺️ نفضّل JS SDK ليظهر داخل النافذة (البلوجن الأصلي يرسم خلف الـ WebView)
-            const _hasWebMaps = (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function');
-            const GoogleMap = _hasWebMaps ? null : ((window.Capacitor && window.Capacitor.Plugins)
-                ? (window.Capacitor.Plugins.GoogleMap || window.Capacitor.Plugins.CapacitorGoogleMaps)
-                : null);
+            // 🗺️ Web SDK حصرياً — مسار البلوجن الأصلي حُذف (يرسم خلف الـ WebView،
+            // لا يُدمَّر عند الإغلاق فيراكم دبابيس شبحية، وبلا مستمعي سحب/نقر)
+            try {
+                if (typeof window.loadGoogleMaps === 'function') {
+                    await window.loadGoogleMaps({ libraries: 'places' });
+                }
+            } catch (e) { console.error('Maps SDK load failed:', e); }
 
-            if (GoogleMap) {
-                // Native App path
-                try {
-                    mapElement.style.display = 'block';
-                    mapElement.style.width = '100%';
-                    mapElement.style.minHeight = '400px';
-                    await new Promise(r => requestAnimationFrame(r));
-                    const rect = mapElement.getBoundingClientRect();
-                    const newMap = await GoogleMap.create({
-                        id: 'wajeezsd-native-map-edit-place',
-                        element: mapElement,
-                        apiKey: await window.getMapsApiKey(),
-                        config: {
-                            width: Math.round(rect.width || window.innerWidth),
-                            height: Math.round(rect.height || 400),
-                            x: Math.round(rect.x || 0),
-                            y: Math.round(rect.y || 0),
-                            center: { lat, lng }, zoom: 17,
-                        },
-                    });
-                    if (newMap) {
-                        await newMap.addMarker({ coordinate: { lat, lng }, title: 'Wajeez Location' });
-                        editPlaceMapInstance = newMap;
-                    }
-                } catch (error) { console.error('Native Map Error:', error); }
-
-            } else if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
-                // Web Browser fallback
+            if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
                 mapElement.innerHTML = '';
                 const webMap = new google.maps.Map(mapElement, {
                     center: { lat, lng }, zoom: 16,
@@ -491,6 +452,10 @@ async function openEditPlaceModal(id) {
 
 function closeEditPlaceModal() {
     document.getElementById('editPlaceModal').classList.remove('show');
+    // 🧹 تنظيف فعلي للخريطة عند الإغلاق — كان يُصفَّر المتغير فقط دون تدمير،
+    // فيبقى دبوس الفتحة السابقة ويظهر دبوسان عند إعادة الفتح
+    const mapEl = document.getElementById('editPlaceMap');
+    if (mapEl) mapEl.innerHTML = '';
     editPlaceMapInstance = null;
     editingPlaceId = null;
     clearEditMenuImage();
@@ -512,13 +477,18 @@ async function submitEditPlace(e) {
         address: document.getElementById('editPlaceAddress').value.trim(),
         notes: document.getElementById('editPlaceNotes').value.trim(),
         city: document.getElementById('editPlaceCity').value, // 🌍 City field
-        location: { lat: isNaN(lat) ? 15.5007 : lat, lng: isNaN(lng) ? 32.5599 : lng },
         workingHours: {
             open: document.getElementById('editPlaceOpen').value,
             close: document.getElementById('editPlaceClose').value,
             days: [0, 1, 2, 3, 4, 5, 6]
         }
     };
+
+    // 🗺️ أرسل الموقع فقط إن كان صالحاً — وإلا يبقى المحفوظ في القاعدة كما هو.
+    // (كان الفارغ يُستبدل بصمت بوسط الخرطوم فيطمس مواقع صحيحة → دبابيس عشوائية)
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        payload.location = { lat, lng };
+    }
 
     setSubmitLoading(btn, true);
 
@@ -994,7 +964,14 @@ async function createPlace(e) {
         return;
     }
 
-    const location = { lat: isNaN(lat) ? 15.5007 : lat, lng: isNaN(lng) ? 32.5599 : lng };
+    // 🗺️ الموقع إلزامي عند الإنشاء — نرفض بدل الافتراضي الصامت (وسط الخرطوم)
+    // الإحداثيات تُستخرج تلقائياً من رابط خرائط جوجل أو بتحريك الدبوس على الخريطة
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        Swal.fire('تنبيه', 'حدد موقع المتجر: الصق رابط خرائط جوجل كاملاً (تُستخرج الإحداثيات تلقائياً) أو حرّك الدبوس على الخريطة', 'warning');
+        setSubmitLoading(btn, false);
+        return;
+    }
+    const location = { lat, lng };
 
     const payload = {
         name, category, image_url, phone, whatsapp, address, map_url,

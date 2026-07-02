@@ -428,19 +428,23 @@
                     try { await reqMapInstance.destroy(); } catch(e){}
                     reqMapInstance = null;
                 }
-                const lat = req.location?.lat || 15.6445;
-                const lng = req.location?.lng || 32.4777;
-                
+                // ⚠️ الموقع الافتراضي هو نقطة بداية للعرض فقط — حقول dLat/dLng لا تُملأ منه،
+                // والموافقة بلا موقع حقيقي مرفوضة الآن من السيرفر برسالة واضحة.
+                const hasLoc = Number.isFinite(Number(req.location?.lat)) && Number.isFinite(Number(req.location?.lng));
+                const lat = hasLoc ? Number(req.location.lat) : 15.5007;
+                const lng = hasLoc ? Number(req.location.lng) : 32.5599;
+
                 const mapElement = document.getElementById('reqMap');
 
-                // ✅ FIX: نستخدم Google Maps JS API أولاً (متاحة دائماً في الأدمن عبر script tag في الـ head)
-                // ونلجأ لـ Capacitor Native plugin فقط إذا لم تكن google.maps موجودة
-                const useGoogleMapsJS = (typeof google !== 'undefined' && google.maps);
-                const GoogleMap = !useGoogleMapsJS && window.Capacitor && window.Capacitor.Plugins
-                    ? (window.Capacitor.Plugins.GoogleMap || window.Capacitor.Plugins.CapacitorGoogleMaps)
-                    : null;
+                // 🗺️ Web SDK حصرياً — ننتظر المحمّل المركزي بدل السقوط لبلوجن Capacitor
+                // (البلوجن يرسم خلف الـ WebView ولا يُدمَّر عند الإغلاق → دبابيس شبحية متراكمة)
+                try {
+                    if (typeof window.loadGoogleMaps === 'function') {
+                        await window.loadGoogleMaps({ libraries: 'places' });
+                    }
+                } catch (e) { console.error('Maps SDK load failed:', e); }
 
-                if (useGoogleMapsJS) {
+                if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
                     // ── Google Maps JS API (Web / Admin) ──
                     function doInitGoogleMap() {
                         try {
@@ -490,61 +494,8 @@
 
                     doInitGoogleMap();
 
-                } else if (GoogleMap) {
-                    // ── Capacitor Native GoogleMap (Mobile App only) ──
-                    try {
-                        const rect = mapElement.getBoundingClientRect();
-                        reqMapInstance = await GoogleMap.create({
-                            id: 'wajeezsd-req-map',
-                            element: mapElement,
-                            apiKey: await window.getMapsApiKey(),
-                            config: {
-                                width: Math.round(rect.width),
-                                height: Math.round(rect.height),
-                                x: Math.round(rect.x),
-                                y: Math.round(rect.y),
-                                center: { lat: lat, lng: lng },
-                                zoom: 17,
-                            },
-                        });
-
-                        if (reqMapInstance) {
-                            reqMapInstance.setOnCameraIdleListener(async () => {
-                                try {
-                                    const bounds = await reqMapInstance.getMapBounds();
-                                    const centerLat = (bounds.northeast.lat + bounds.southwest.lat) / 2;
-                                    const centerLng = (bounds.northeast.lng + bounds.southwest.lng) / 2;
-                                    document.getElementById('dLat').value = centerLat;
-                                    document.getElementById('dLng').value = centerLng;
-                                } catch(e){}
-                            });
-                        }
-                    } catch(e) { console.error('Capacitor Map init error', e); }
                 } else {
-                    // ── Fallback: Google Maps not loaded yet, wait for callback ──
-                    window.__pendingMapInit = function doInitGoogleMap() {
-                        try {
-                            mapElement.innerHTML = '';
-                            reqMapInstance = new google.maps.Map(mapElement, {
-                                center: { lat: lat, lng: lng },
-                                zoom: 15,
-                                gestureHandling: 'greedy'
-                            });
-                            const marker = new google.maps.Marker({
-                                position: { lat: lat, lng: lng },
-                                map: reqMapInstance,
-                                draggable: true
-                            });
-                            google.maps.event.addListener(marker, 'dragend', () => {
-                                document.getElementById('dLat').value = marker.getPosition().lat();
-                                document.getElementById('dLng').value = marker.getPosition().lng();
-                            });
-                            setTimeout(() => {
-                                google.maps.event.trigger(reqMapInstance, 'resize');
-                                reqMapInstance.setCenter({ lat: lat, lng: lng });
-                            }, 250);
-                        } catch(e) { console.error('Fallback Map init error', e); }
-                    };
+                    console.warn('Google Maps JS SDK unavailable for reqMap');
                 }
 
             }, 300);
@@ -647,7 +598,10 @@
                     
                     let lat = parseFloat(document.getElementById('dLat').value);
                     let lng = parseFloat(document.getElementById('dLng').value);
-                    requestBody.location = { lat, lng };
+                    // 🗺️ أرسل الموقع فقط إن كان صالحاً — NaN يصير null في JSON ويطمس الموقع المحفوظ
+                    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                        requestBody.location = { lat, lng };
+                    }
                 }
 
                 const res = await fetch(`${API_URL}/api/merchant-requests/admin/${id}/status`, {
