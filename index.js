@@ -257,12 +257,6 @@ io.on('connection', (socket) => {
         socket.userId = cleanId;
         socket.join(cleanId); // Personal room for direct messages (chat, notifications)
 
-        // Clear any pending offline timeouts (prevents page-refresh from marking captain offline)
-        if (global.offlineTimeouts && global.offlineTimeouts[cleanId]) {
-            clearTimeout(global.offlineTimeouts[cleanId]);
-            delete global.offlineTimeouts[cleanId];
-        }
-
         // 🌍 City Room — fetch from DB and join city-specific broadcast room.
         // This ensures captains/clients ONLY receive order events for their city.
         // Runs on every connect AND reconnect (new socket ID = must rejoin all rooms).
@@ -585,30 +579,11 @@ io.on('connection', (socket) => {
             delete activeUsers[socket.userId];
             delete chatRooms[socket.userId];
 
-            // ✅ When captain disconnects, mark them offline AFTER a delay (allows for page refresh)
-            try {
-                const disconnectedUser = await User.findById(socket.userId).select('role isAvailableForWork');
-                if (disconnectedUser?.role === 'captain' && disconnectedUser.isAvailableForWork) {
-                    const uId = socket.userId;
-                    if (!global.offlineTimeouts) global.offlineTimeouts = {};
-                    
-                    global.offlineTimeouts[uId] = setTimeout(async () => {
-                        try {
-                            await User.findByIdAndUpdate(uId, { isAvailableForWork: false });
-                            io.to('admin_room').emit('captain_status_changed', {
-                                userId: uId,
-                                isAvailableForWork: false
-                            });
-                            logger.debug({ userId: uId }, 'Captain auto-set offline after timeout');
-                        } catch(e) {
-                            logger.error({ err: e }, 'Error setting captain offline in timeout');
-                        }
-                        delete global.offlineTimeouts[uId];
-                    }, 90000); // 90 seconds grace period — enough for app restart/network switch
-                }
-            } catch (err) {
-                logger.error({ err }, 'Error auto-setting captain offline on disconnect');
-            }
+            // 🔒 حالة توفّر الكابتن (isAvailableForWork) يتحكم فيها الكابتن وحده.
+            // كان هنا مؤقّت 90 ثانية يُطفئ الكابتن تلقائياً عند انقطاع السوكت
+            // (قفل الشاشة / خروج مؤقت من التطبيق) — فيفقد الطلبات دون علمه.
+            // أُزيل: الانقطاع لا يغيّر الحالة؛ فقط زر الحالة أو تسجيل الخروج يغيّرانها.
+            // إشعارات FCM تصل أصلاً لكل كباتن المدينة بغضّ النظر عن حالة السوكت.
         }
     });
 });
