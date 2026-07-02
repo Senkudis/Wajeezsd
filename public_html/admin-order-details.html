@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>تفاصيل الطلب | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; direction: rtl; color: #1e293b; min-height: 100vh; }
+
+        .od-container { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+
+        .od-back {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 18px; border-radius: 10px;
+            background: white; border: 1px solid #e2e8f0;
+            color: #64748b; font-weight: 700; font-size: 13px;
+            cursor: pointer; margin-bottom: 20px; transition: all 0.2s;
+        }
+        .od-back:hover { border-color: #6366f1; color: #6366f1; }
+
+        .od-header {
+            background: white; border-radius: 16px; padding: 24px;
+            border: 1px solid #e2e8f0; margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+        }
+        .od-header-right h1 { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
+        .od-header-right p { font-size: 13px; color: #64748b; }
+        .od-status-badge {
+            padding: 8px 18px; border-radius: 10px; font-weight: 800; font-size: 14px;
+        }
+        .od-status-badge.pending { background: rgba(245,158,11,0.12); color: #b45309; }
+        .od-status-badge.accepted { background: rgba(99,102,241,0.12); color: #4f46e5; }
+        .od-status-badge.picked_up { background: rgba(6,182,212,0.12); color: #0891b2; }
+        .od-status-badge.delivered { background: rgba(16,185,129,0.12); color: #059669; }
+        .od-status-badge.cancelled { background: rgba(239,68,68,0.12); color: #dc2626; }
+        .od-status-badge.scheduled { background: rgba(139,92,246,0.12); color: #7c3aed; }
+
+        .od-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .od-grid { grid-template-columns: 1fr; } }
+
+        .od-card {
+            background: white; border-radius: 14px; padding: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        .od-card-title {
+            font-size: 13px; font-weight: 800; color: #64748b;
+            margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .od-card-title i {
+            width: 28px; height: 28px; border-radius: 8px;
+            background: rgba(99,102,241,0.1); color: #6366f1;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+
+        .od-field { margin-bottom: 12px; }
+        .od-field label { font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px; }
+        .od-field span { font-size: 14px; font-weight: 700; color: #1e293b; }
+
+        .od-map { width: 100%; height: 250px; border-radius: 12px; overflow: hidden; margin-top: 12px; }
+
+        .od-timeline { padding: 0; list-style: none; }
+        .od-timeline li {
+            position: relative; padding: 0 30px 20px 0;
+            border-right: 2px solid #e2e8f0;
+        }
+        .od-timeline li:last-child { border-right: none; padding-bottom: 0; }
+        .od-timeline li::before {
+            content: ''; position: absolute; right: -6px; top: 4px;
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #6366f1; border: 2px solid white;
+            box-shadow: 0 0 0 2px #6366f1;
+        }
+        .od-timeline li.done::before { background: #10b981; box-shadow: 0 0 0 2px #10b981; }
+        .od-timeline li .tl-title { font-size: 13px; font-weight: 700; }
+        .od-timeline li .tl-time { font-size: 11px; color: #94a3b8; }
+
+        .od-actions {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;
+        }
+        .od-btn {
+            padding: 10px 20px; border-radius: 10px; font-weight: 700;
+            font-size: 13px; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .od-btn-primary { background: #6366f1; color: white; }
+        .od-btn-primary:hover { background: #4f46e5; }
+        .od-btn-danger { background: #ef4444; color: white; }
+        .od-btn-warning { background: #f59e0b; color: #1e293b; }
+        .od-btn-ghost { background: white; border: 1px solid #e2e8f0; color: #64748b; }
+
+        .od-loading { text-align: center; padding: 60px; color: #6366f1; }
+        .od-loading i { font-size: 32px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .od-img-preview {
+            max-width: 200px; border-radius: 10px; margin-top: 8px;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .od-img-preview:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div class="od-container" id="mainContainer">
+    <div class="od-loading" id="loadingState">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p style="margin-top:12px;font-weight:700;">جاري تحميل تفاصيل الطلب...</p>
+    </div>
+</div>
+
+<!-- Google Maps — key served centrally from env via /api/config -->
+<script src="js/maps-loader.js"></script>
+<script>loadGoogleMaps();</script>
+<!-- SweetAlert2 -->
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+
+<script>
+const token = localStorage.getItem('adminToken');
+let userObj = null;
+try { userObj = JSON.parse(localStorage.getItem('user')); } catch(e) {}
+if (!token || !userObj || userObj.role !== 'admin') window.location.href = 'admin-login.html';
+
+const BASE = window.API_URL || 'https://wajeezsd.com';
+const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+// 🖼️ Helper: build full image URL from relative path or absolute URL
+function getFullImageUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('data:image')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const base = (window.API_URL && window.API_URL !== '') ? window.API_URL : 'https://wajeezsd.com';
+    const clean = url.replace(/\\/g, '/');
+    const withSlash = clean.startsWith('/') ? clean : '/' + clean;
+    // على السيرفر الحي، الصور موجودة تحت /api/uploads
+    const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+    if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
+    return base + withSlash;
+}
+
+const orderId = new URLSearchParams(window.location.search).get('id');
+if (!orderId) { document.getElementById('mainContainer').innerHTML = '<p style="text-align:center;padding:40px;">لم يتم تحديد طلب</p>'; }
+
+const statusMap = {
+    pending: 'قيد الانتظار', accepted: 'مقبول', picked_up: 'قيد التوصيل',
+    delivered: 'مكتمل', cancelled: 'ملغي', scheduled: 'مجدول'
+};
+const distanceMap = { short: 'قريب', medium: 'متوسط', long: 'بعيد', custom: 'مخصص' };
+
+async function loadOrder() {
+    try {
+        const res = await fetch(`${BASE}/api/admin/orders/${orderId}`, { headers });
+        if (!res.ok) throw new Error('Failed');
+        const order = await res.json();
+        if (!order) throw new Error('Not found');
+        renderOrder(order);
+    } catch(e) {
+        document.getElementById('mainContainer').innerHTML = `
+            <button class="od-back" onclick="history.back()"><i class="fas fa-arrow-right"></i> رجوع</button>
+            <div style="text-align:center;padding:40px;"><p style="font-weight:700;color:#ef4444;">فشل تحميل الطلب</p></div>
+        `;
+    }
+}
+
+function renderOrder(o) {
+    const container = document.getElementById('mainContainer');
+    const createdDate = new Date(o.createdAt).toLocaleString('ar-SA');
+
+    container.innerHTML = `
+        <button class="od-back" onclick="history.back()"><i class="fas fa-arrow-right"></i> رجوع للوحة التحكم</button>
+
+        <div class="od-header">
+            <div class="od-header-right">
+                <h1><i class="fas fa-receipt" style="color:#6366f1;"></i> طلب #${o._id.slice(-6).toUpperCase()}</h1>
+                <p>تم الإنشاء: ${createdDate}</p>
+            </div>
+            <span class="od-status-badge ${o.status}">${statusMap[o.status] || o.status}</span>
+        </div>
+
+        <div class="od-grid">
+            <!-- Client Info -->
+            <div class="od-card">
+                <div class="od-card-title"><i class="fas fa-user"></i> بيانات العميل</div>
+                <div class="od-field"><label>الاسم</label><span>${o.client?.name || '—'}</span></div>
+                <div class="od-field"><label>الهاتف</label><span dir="ltr">${o.client?.phone || '—'}</span></div>
+            </div>
+
+            <!-- Captain Info -->
+            <div class="od-card">
+                <div class="od-card-title"><i class="fas fa-motorcycle"></i> بيانات الكابتن</div>
+                ${o.captain ? `
+                    <div class="od-field"><label>الاسم</label><span>${o.captain.name}</span></div>
+                    <div class="od-field"><label>الهاتف</label><span dir="ltr">${o.captain.phone || '—'}</span></div>
+                ` : '<p style="color:#94a3b8;font-size:13px;">لم يتم تعيين كابتن بعد</p>'}
+            </div>
+
+            <!-- Pickup -->
+            <div class="od-card">
+                <div class="od-card-title"><i class="fas fa-map-pin" style="color:#10b981;"></i> نقطة الاستلام</div>
+                <div class="od-field"><label>العنوان</label><span>${o.pickup?.address || '—'}</span></div>
+                <div class="od-field"><label>اسم جهة الاتصال</label><span>${o.pickup?.contactName || '—'}</span></div>
+                <div class="od-field"><label>هاتف جهة الاتصال</label><span dir="ltr">${o.pickup?.contactPhone || '—'}</span></div>
+            </div>
+
+            <!-- Dropoff -->
+            <div class="od-card">
+                <div class="od-card-title"><i class="fas fa-flag-checkered" style="color:#ef4444;"></i> نقطة التسليم</div>
+                <div class="od-field"><label>العنوان</label><span>${o.dropoff?.address || '—'}</span></div>
+                <div class="od-field"><label>اسم المستلم</label><span>${o.dropoff?.receiverName || '—'}</span></div>
+                <div class="od-field"><label>هاتف المستلم</label><span dir="ltr">${o.dropoff?.receiverPhone || '—'}</span></div>
+            </div>
+        </div>
+
+        <!-- Pricing & Details -->
+        <div class="od-grid">
+            <div class="od-card">
+                <div class="od-card-title"><i class="fas fa-coins"></i> التسعير</div>
+                <div class="od-field"><label>السعر الإجمالي</label><span style="font-size:18px;color:#10b981;">${o.price} ج.س</span></div>
+                <div class="od-field"><label>عمولة التطبيق</label><span>${o.appFee || 0} ج.س</span></div>
+                <div class="od-field"><label>صافي الكابتن</label><span>${o.netRevenue || (o.price - (o.appFee || 0))} ج.س</span></div>
+                <div class="od-field"><label>نوع المسافة</label><span>${distanceMap[o.distanceType] || o.distanceType}</span></div>
+                <div class="od-field"><label>نوع الطلب</label><span>${o.orderType === 'shop' ? '🛒 طلب من محل' : '📦 توصيل عادي'}</span></div>
+            </div>
+
+            <div class="od-card">
+                <div class="od-card-title"><i class="fas fa-info-circle"></i> تفاصيل إضافية</div>
+                <div class="od-field"><label>ملاحظات</label><span>${o.details || 'لا توجد'}</span></div>
+                ${o.shopName ? `<div class="od-field"><label>المحل</label><span>${o.shopName}</span></div>` : ''}
+                ${o.items && o.items.length ? `<div class="od-field"><label>العناصر</label><span>${o.items.join('، ')}</span></div>` : ''}
+                ${o.scheduledAt ? `<div class="od-field"><label>موعد التسليم</label><span>${new Date(o.scheduledAt).toLocaleString('ar-SA')}</span></div>` : ''}
+                ${o.rating?.score ? `<div class="od-field"><label>التقييم</label><span>⭐ ${o.rating.score}/5 ${o.rating.comment ? '— ' + o.rating.comment : ''}</span></div>` : ''}
+                ${o.complaint?.text ? `<div class="od-field"><label>شكوى</label><span style="color:#ef4444;">${o.complaint.text} (${o.complaint.status})</span></div>` : ''}
+            </div>
+        </div>
+
+        <!-- Images -->
+        ${o.parcelImage || o.receiptImage ? `
+        <div class="od-card" style="margin-bottom:20px;">
+            <div class="od-card-title"><i class="fas fa-image"></i> الصور المرفقة</div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                ${o.parcelImage ? `<img src="${getFullImageUrl(o.parcelImage)}" class="od-img-preview" onclick="window.open(this.src)" alt="صورة الطرد" onerror="this.style.display='none'">` : ''}
+                ${o.receiptImage ? `<img src="${getFullImageUrl(o.receiptImage)}" class="od-img-preview" onclick="window.open(this.src)" alt="إيصال الدفع" onerror="this.style.display='none'">` : ''}
+            </div>
+        </div>` : ''}
+
+        <!-- Map -->
+        ${(o.pickup?.lat && o.dropoff?.lat) ? `
+        <div class="od-card" style="margin-bottom:20px;">
+            <div class="od-card-title"><i class="fas fa-route"></i> مسار التوصيل</div>
+            <div class="od-map" id="orderMap"></div>
+        </div>` : ''}
+
+        <!-- Actions -->
+        <div class="od-card">
+            <div class="od-card-title"><i class="fas fa-tools"></i> إجراءات الإدارة</div>
+            <div class="od-actions">
+                <button class="od-btn od-btn-primary" onclick="changeStatus('${o._id}')"><i class="fas fa-exchange-alt"></i> تغيير الحالة</button>
+                <button class="od-btn od-btn-warning" onclick="editPrice('${o._id}', ${o.price})"><i class="fas fa-edit"></i> تعديل السعر</button>
+                ${['accepted','picked_up'].includes(o.status) ? `<button class="od-btn" style="background:#8b5cf6;color:white;" onclick="reassignCaptain('${o._id}')"><i class="fas fa-sync-alt"></i> تبديل الكابتن</button>` : ''}
+                ${o.status !== 'cancelled' ? `<button class="od-btn od-btn-danger" onclick="forceCancel('${o._id}')"><i class="fas fa-ban"></i> إلغاء إجباري</button>` : ''}
+                <button class="od-btn od-btn-ghost" onclick="deleteOrder('${o._id}')"><i class="fas fa-trash"></i> حذف</button>
+            </div>
+
+        </div>
+    `;
+
+    // Init map if coordinates exist
+    if (o.pickup?.lat && o.dropoff?.lat) {
+        setTimeout(() => initOrderMap(o), 500);
+    }
+}
+
+function initOrderMap(o) {
+    if (!window.google?.maps) { setTimeout(() => initOrderMap(o), 500); return; }
+    const el = document.getElementById('orderMap');
+    if (!el) return;
+
+    const map = new google.maps.Map(el, {
+        center: { lat: o.pickup.lat, lng: o.pickup.lng }, zoom: 13,
+        disableDefaultUI: true, zoomControl: true,
+        styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+    });
+
+    new google.maps.Marker({ position: { lat: o.pickup.lat, lng: o.pickup.lng }, map, label: { text: 'A', color: 'white', fontWeight: '800' } });
+    new google.maps.Marker({ position: { lat: o.dropoff.lat, lng: o.dropoff.lng }, map, label: { text: 'B', color: 'white', fontWeight: '800' } });
+
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: o.pickup.lat, lng: o.pickup.lng });
+    bounds.extend({ lat: o.dropoff.lat, lng: o.dropoff.lng });
+    map.fitBounds(bounds, 50);
+
+    // Draw line
+    new google.maps.Polyline({
+        path: [{ lat: o.pickup.lat, lng: o.pickup.lng }, { lat: o.dropoff.lat, lng: o.dropoff.lng }],
+        map, strokeColor: '#6366f1', strokeWeight: 3, strokeOpacity: 0.7
+    });
+}
+
+// ── Admin Actions ──
+async function changeStatus(id) {
+    const { value: status } = await Swal.fire({
+        title: 'تغيير حالة الطلب', input: 'select',
+        inputOptions: { pending: 'قيد الانتظار', accepted: 'مقبول', picked_up: 'قيد التوصيل', delivered: 'مكتمل', cancelled: 'ملغي' },
+        showCancelButton: true, confirmButtonText: 'تحديث', cancelButtonText: 'إلغاء'
+    });
+    if (!status) return;
+    try {
+        const res = await fetch(`${BASE}/api/admin/orders/${id}`, {
+            method: 'PUT', headers, body: JSON.stringify({ status })
+        });
+        if (res.ok) { Swal.fire('تم', 'تم تحديث الحالة', 'success'); loadOrder(); }
+        else { const d = await res.json(); Swal.fire('خطأ', d.message, 'error'); }
+    } catch(e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+}
+
+async function editPrice(id, currentPrice) {
+    const { value: price } = await Swal.fire({
+        title: 'تعديل السعر', input: 'number', inputValue: currentPrice,
+        inputAttributes: { min: 0 }, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء'
+    });
+    if (!price) return;
+    try {
+        await fetch(`${BASE}/api/admin/orders/${id}`, { method: 'PUT', headers, body: JSON.stringify({ price: Number(price) }) });
+        Swal.fire('تم', 'تم تحديث السعر', 'success'); loadOrder();
+    } catch(e) { Swal.fire('خطأ', 'فشل', 'error'); }
+}
+
+async function forceCancel(id) {
+    const result = await Swal.fire({ title: 'إلغاء إجباري؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'نعم', cancelButtonText: 'لا', confirmButtonColor: '#ef4444' });
+    if (!result.isConfirmed) return;
+    try {
+        await fetch(`${BASE}/api/admin/orders/${id}/cancel-force`, { method: 'PUT', headers });
+        Swal.fire('تم', 'تم إلغاء الطلب', 'success'); loadOrder();
+    } catch(e) { Swal.fire('خطأ', 'فشل', 'error'); }
+}
+
+async function deleteOrder(id) {
+    const result = await Swal.fire({ title: 'حذف الطلب نهائياً؟', text: 'لا يمكن التراجع', icon: 'error', showCancelButton: true, confirmButtonText: 'احذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#ef4444' });
+    if (!result.isConfirmed) return;
+    try {
+        await fetch(`${BASE}/api/admin/orders/${id}`, { method: 'DELETE', headers });
+        Swal.fire('تم', 'تم حذف الطلب', 'success').then(() => history.back());
+    } catch(e) { Swal.fire('خطأ', 'فشل', 'error'); }
+}
+
+// Start
+if (orderId) loadOrder();
+
+// ========================================
+// 🔄 تبديل الكابتن على طلب نشط
+async function reassignCaptain(orderId) {
+    // 1. Fetch active captains
+    let captains = [];
+    try {
+        const res = await fetch(`${BASE}/api/admin/captains`, { headers });
+        if (res.ok) {
+            const data = await res.json();
+            captains = (data.captains || data).filter(c => c.isActive && c.approvalStatus === 'approved');
+        }
+    } catch(e) {}
+
+    if (!captains.length) {
+        Swal.fire('تنبيه', 'لا يوجد كباتن متاحين حالياً', 'warning');
+        return;
+    }
+
+    // 2. Build select dropdown
+    const optionsHtml = captains.map(c =>
+        `<option value="${c._id}">${c.name} — ${c.phone || 'لا يوجد رقم'} ${c.vehicleType ? '(' + c.vehicleType + ')' : ''}</option>`
+    ).join('');
+
+    const { value: newCaptainId, isConfirmed } = await Swal.fire({
+        title: '🔄 تبديل الكابتن',
+        html: `
+            <p style="color:#64748b;font-size:13px;margin-bottom:14px;">
+                اختر الكابتن الجديد. سيُبلَّغ الكابتن الحالي بنقل الطلب ويُبلَّغ الكابتن الجديد بالتعيين.
+            </p>
+            <select id="captainSelectModal" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid #e2e8f0;font-family:Cairo,sans-serif;font-size:14px;font-weight:700;color:#1e293b;">
+                <option value="">— اختر كابتن —</option>
+                ${optionsHtml}
+            </select>`,
+        showCancelButton: true,
+        confirmButtonText: 'تحويل الطلب 🚀',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#8b5cf6',
+        cancelButtonColor: '#64748b',
+        preConfirm: () => {
+            const val = document.getElementById('captainSelectModal').value;
+            if (!val) { Swal.showValidationMessage('يرجى اختيار كابتن'); return false; }
+            return val;
+        }
+    });
+
+    if (!isConfirmed || !newCaptainId) return;
+
+    try {
+        const res = await fetch(`${BASE}/api/admin/orders/${orderId}/reassign-captain`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({ newCaptainId })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            Swal.fire({
+                title: '✅ تم التبديل بنجاح',
+                text: data.message,
+                icon: 'success',
+                confirmButtonColor: '#8b5cf6'
+            }).then(() => loadOrder());
+        } else {
+            Swal.fire('خطأ', data.message, 'error');
+        }
+    } catch(e) {
+        Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error');
+    }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>سجل النشاط | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/auth-helper.js"></script>
+
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --brand:      #04553A;
+            --surface:    #ffffff;
+            --bg:         #f0f4f8;
+            --border:     #e2e8f0;
+            --text:       #1a202c;
+            --muted:      #718096;
+            --radius:     16px;
+            --shadow:     0 4px 24px rgba(0,0,0,0.07);
+        }
+
+        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        .topbar {
+            background: white; border-bottom: 1px solid var(--border);
+            padding: 0 28px; height: 64px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 18px; }
+        .topbar-back {
+            display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; font-weight: 600;
+            text-decoration: none; padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border);
+        }
+
+        .container-main { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .header-actions h2 { font-weight: 800; font-size: 24px; margin: 0; }
+
+        .filter-card { background: white; border-radius: var(--radius); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+        .filter-group { flex: 1; min-width: 200px; }
+        .filter-group label { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; display: block; }
+        .filter-group select, .filter-group input { width: 100%; border-radius: 10px; border: 1px solid var(--border); padding: 10px 14px; font-size: 14px; font-family: 'Cairo'; }
+        
+        .btn-brand { background: var(--brand); color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 700; height: 42px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+
+        .timeline { position: relative; max-width: 100%; margin: 0 auto; }
+        .timeline::after { content: ''; position: absolute; width: 2px; background-color: var(--border); top: 0; bottom: 0; right: 24px; margin-right: -1px; }
+
+        .tl-item { padding: 10px 40px 20px 0; position: relative; background: inherit; width: 100%; }
+        .tl-icon {
+            position: absolute; width: 32px; height: 32px; right: 8px; background-color: white; border: 4px solid var(--brand); top: 15px;
+            border-radius: 50%; z-index: 1; display: flex; align-items: center; justify-content: center; color: var(--brand); font-size: 12px;
+        }
+        .tl-icon.danger { border-color: #ef4444; color: #ef4444; }
+        .tl-icon.warning { border-color: #f59e0b; color: #f59e0b; }
+        
+        .tl-content {
+            padding: 20px; background-color: white; position: relative; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border: 1px solid var(--border);
+        }
+        .tl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .tl-title { font-weight: 800; font-size: 15px; color: var(--text); }
+        .tl-time { font-size: 12px; color: var(--muted); font-weight: 600; }
+        .tl-admin { font-size: 13px; color: #4338ca; font-weight: 700; margin-bottom: 8px; display: inline-block; background: #e0e7ff; padding: 2px 8px; border-radius: 6px; }
+        .tl-desc { font-size: 14px; color: #475569; line-height: 1.5; }
+
+        .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 30px; }
+        .page-btn { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-weight: 700; cursor: pointer; color: var(--text); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="topbar-brand">
+            <span class="dot"></span>
+            لوحة التحكم / سجل النشاط
+        </div>
+        <a href="admin.html" class="topbar-back">
+            <i class="fas fa-arrow-right"></i> العودة للرئيسية
+        </a>
+    </div>
+
+    <div class="container-main">
+        <div class="header-actions">
+            <h2>سجل عمليات الإدارة</h2>
+        </div>
+
+        <div class="filter-card">
+            <div class="filter-group">
+                <label>نوع العملية</label>
+                <select id="fAction">
+                    <option value="">الكل</option>
+                    <option value="create_captain">إضافة كابتن</option>
+                    <option value="approve_captain">قبول كابتن</option>
+                    <option value="reject_captain">رفض كابتن</option>
+                    <option value="delete_order">إلغاء طلب</option>
+                    <option value="debt_add">إضافة مديونية</option>
+                    <option value="debt_partial">تخفيض مديونية</option>
+                    <option value="debt_zero">تصفير مديونية</option>
+                    <option value="update_settings">تحديث الإعدادات</option>
+                    <option value="create_sub_admin">إضافة أدمن</option>
+                    <option value="update_sub_admin">تعديل أدمن</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>من تاريخ</label>
+                <input type="date" id="fFrom">
+            </div>
+            <div class="filter-group">
+                <label>إلى تاريخ</label>
+                <input type="date" id="fTo">
+            </div>
+            <button class="btn-brand" onclick="loadLogs(1)">
+                <i class="fas fa-filter"></i> تطبيق الفلتر
+            </button>
+        </div>
+
+        <div class="timeline" id="logTimeline">
+            <!-- Populated via JS -->
+            <div class="text-center text-muted" style="padding: 40px;">جاري التحميل...</div>
+        </div>
+
+        <div class="pagination">
+            <button class="page-btn" id="btnPrev" onclick="loadLogs(currentPage - 1)"><i class="fas fa-chevron-right"></i> السابق</button>
+            <span style="align-self:center; font-weight:700; color:var(--muted);" id="pageInfo">صفحة 1</span>
+            <button class="page-btn" id="btnNext" onclick="loadLogs(currentPage + 1)">التالي <i class="fas fa-chevron-left"></i></button>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = 'admin-login.html';
+
+        const BASE = window.API_URL || 'https://wajeezsd.com';
+
+        let currentPage = 1;
+        let totalPages = 1;
+
+        async function loadLogs(page = 1) {
+            if (page < 1 || (page > totalPages && totalPages > 0)) return;
+            currentPage = page;
+
+            const action = document.getElementById('fAction').value;
+            const from = document.getElementById('fFrom').value;
+            const to = document.getElementById('fTo').value;
+
+            const tl = document.getElementById('logTimeline');
+            tl.innerHTML = '<div class="text-center text-muted" style="padding: 40px;"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+
+            try {
+                let url = `${BASE}/api/admin/activity-log?page=${page}&limit=30`;
+                if (action) url += `&action=${action}`;
+                if (from) url += `&from=${from}`;
+                if (to) url += `&to=${to}`;
+
+                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                
+                totalPages = data.pages || 1;
+                document.getElementById('pageInfo').innerText = `صفحة ${currentPage} من ${totalPages}`;
+                document.getElementById('btnPrev').disabled = currentPage === 1;
+                document.getElementById('btnNext').disabled = currentPage === totalPages;
+
+                if (!data.logs.length) {
+                    tl.innerHTML = '<div class="text-center text-muted" style="padding: 40px;">لا يوجد سجلات تطابق الفلتر</div>';
+                    return;
+                }
+
+                tl.innerHTML = data.logs.map(log => {
+                    const date = new Date(log.createdAt);
+                    const timeStr = date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    const dateStr = date.toLocaleDateString('en-GB'); // DD/MM/YYYY
+                    
+                    let iconCls = 'fa-info';
+                    let colorCls = '';
+                    if (log.action.includes('delete') || log.action.includes('reject')) { iconCls = 'fa-times'; colorCls = 'danger'; }
+                    else if (log.action.includes('create') || log.action.includes('approve') || log.action.includes('zero')) { iconCls = 'fa-check'; }
+                    else if (log.action.includes('add')) { iconCls = 'fa-exclamation'; colorCls = 'warning'; }
+
+                    const adminRole = log.admin?.adminRole === 'super_admin' ? 'رئيسي' : 'مساعد';
+                    const adminName = log.admin?.name || log.adminName || 'مجهول';
+
+                    return `
+                        <div class="tl-item">
+                            <div class="tl-icon ${colorCls}"><i class="fas ${iconCls}"></i></div>
+                            <div class="tl-content">
+                                <div class="tl-header">
+                                    <div class="tl-title">${log.description}</div>
+                                    <div class="tl-time">${dateStr} - ${timeStr}</div>
+                                </div>
+                                <div class="tl-admin"><i class="fas fa-user-shield"></i> ${adminName} (${adminRole})</div>
+                                ${log.targetName ? `<div class="tl-desc"><strong>العنصر المتأثر:</strong> ${log.targetName}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (e) {
+                tl.innerHTML = '<div class="text-center text-danger" style="padding: 40px;">حدث خطأ في تحميل البيانات</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => loadLogs(1));
+    </script>
+</body>
+</html>

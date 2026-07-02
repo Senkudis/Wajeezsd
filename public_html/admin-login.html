@@ -3,10 +3,27 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دخول الإدارة | وَصِّلِي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>دخول الإدارة | وجيز</title>
+
+    <!-- ✅ إذا الأدمن مسجّل بالفعل، خذه مباشرةً للوحة التحكم -->
+    <script>
+        (function () {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                    if (payload.exp && payload.exp < Date.now() / 1000) return; // منتهي
+                }
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (user.role === 'admin') window.location.replace('admin.html');
+            } catch (e) { }
+        })();
+    </script>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -16,7 +33,7 @@
 
         body {
             font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #04553A 0%, #0a2e1f 60%, #1a3a2a 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -40,7 +57,7 @@
             display: block;
             width: 20px;
             height: 20px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.06);
             animation: float 25s infinite;
             bottom: -150px;
         }
@@ -134,6 +151,35 @@
             }
         }
 
+        /* ─────────── WAITING SCREEN ─────────── */
+        .waiting-icon {
+            position: relative; width: 80px; height: 80px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 4px;
+        }
+        .waiting-ring {
+            position: absolute; inset: 0; border-radius: 50%;
+            border: 4px solid transparent;
+            border-top-color: #f59e0b;
+            border-right-color: #f59e0b;
+            animation: spin 1.2s linear infinite;
+        }
+        .waiting-ring::before {
+            content: ''; position: absolute; inset: 6px; border-radius: 50%;
+            background: rgba(245,158,11,0.12);
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .dots-loading { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+        .dots-loading span {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #f59e0b; animation: bounce 1.4s infinite ease-in-out;
+        }
+        .dots-loading span:nth-child(1) { animation-delay: 0s; }
+        .dots-loading span:nth-child(2) { animation-delay: 0.2s; }
+        .dots-loading span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%,80%,100% { transform: scale(0.6); opacity:.4; } 40% { transform: scale(1); opacity:1; } }
+
         .login-container {
             position: relative;
             z-index: 1;
@@ -171,7 +217,7 @@
         .logo-icon {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #04553A 0%, #0A6E47 100%);
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -180,6 +226,7 @@
             color: white;
             margin-bottom: 15px;
             animation: pulse 2s infinite;
+            box-shadow: 0 8px 25px rgba(4, 85, 58, 0.5);
         }
 
         @keyframes pulse {
@@ -218,7 +265,7 @@
             right: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: #667eea;
+            color: #04553A;
             font-size: 18px;
         }
 
@@ -235,15 +282,15 @@
 
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #04553A;
             background: white;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 4px rgba(4, 85, 58, 0.12);
         }
 
         button {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #04553A 0%, #0A6E47 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -273,7 +320,7 @@
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 30px rgba(4, 85, 58, 0.45);
         }
 
         button:active {
@@ -320,7 +367,7 @@
 
         .back-link {
             text-decoration: none;
-            color: #667eea;
+            color: #04553A;
             font-size: 14px;
             display: inline-flex;
             align-items: center;
@@ -329,7 +376,7 @@
         }
 
         .back-link:hover {
-            color: #764ba2;
+            color: #0A6E47;
             gap: 10px;
         }
 
@@ -371,6 +418,9 @@
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <script src="js/password-toggle.js"></script>
 </head>
 
 <body>
@@ -394,13 +444,13 @@
                     <i class="fas fa-crown"></i>
                 </div>
                 <h2>لوحة التحكم</h2>
-                <p class="subtitle">تسجيل دخول المدير العام</p>
+                <p class="subtitle">تسجيل دخول المدير / الأدمن المساعد</p>
             </div>
 
             <form id="loginForm">
                 <div class="input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="email" placeholder="البريد الإلكتروني أو رقم الهاتف" required autocomplete="username" dir="ltr" style="text-align:right;">
                 </div>
 
                 <div class="input-group">
@@ -423,6 +473,24 @@
                 </a>
             </div>
         </div>
+
+        <!-- ✅ شاشة انتظار الموافقة -->
+        <div class="login-box" id="waitingBox" style="display:none;">
+            <div class="waiting-icon">
+                <div class="waiting-ring"></div>
+                <i class="fas fa-shield-alt" style="position:relative;z-index:1;font-size:32px;color:#f59e0b;"></i>
+            </div>
+            <h3 style="font-weight:800;margin:16px 0 8px;color:#1a202c;">جهاز جديد!</h3>
+            <p style="color:#718096;font-size:14px;line-height:1.7;margin-bottom:20px;">
+                تم اكتشاف محاولة دخول من جهاز لم يُوافَق عليه من قبل.<br>
+                <strong style="color:#1a202c;">في انتظار موافقة المدير الرئيسي...</strong>
+            </p>
+            <div class="dots-loading">
+                <span></span><span></span><span></span>
+            </div>
+            <div id="waitingTimer" style="margin-top:14px;font-size:13px;color:#94a3b8;">⏳ انتهاء الصلاحية خلال: <strong id="timerCountdown">05:00</strong></div>
+            <button onclick="cancelWaiting()" style="margin-top:20px;background:none;border:1px solid #e2e8f0;border-radius:12px;padding:10px 24px;cursor:pointer;font-family:Cairo;font-size:13px;color:#718096;">إلغاء وإعادة المحاولة</button>
+        </div>
     </div>
 
     <script>
@@ -430,40 +498,191 @@
         const loginBtn = document.getElementById('loginBtn');
         const errorMsg = document.getElementById('error-msg');
 
+        // ═══════════════════════════════════════════
+        // 🔑 Device Fingerprint (بصمة الجهاز)
+        // ═══════════════════════════════════════════
+        function getDeviceId() {
+            let id = localStorage.getItem('_device_id');
+            if (!id) {
+                // توليد معرّف فريد للجهاز بناءً على خصائص المتصفح
+                const raw = [
+                    navigator.userAgent,
+                    screen.width + 'x' + screen.height,
+                    navigator.language,
+                    new Date().getTimezoneOffset()
+                ].join('|');
+                // hash بسيط
+                let hash = 0;
+                for (let i = 0; i < raw.length; i++) {
+                    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+                    hash |= 0;
+                }
+                id = Math.abs(hash).toString(16) + '-' + Date.now().toString(36);
+                localStorage.setItem('_device_id', id);
+            }
+            return id;
+        }
+
+        function getDeviceInfo() {
+            const ua = navigator.userAgent;
+            let browser = 'متصفح', os = 'نظام غير معروف';
+            if (/Chrome/i.test(ua))  browser = 'Chrome';
+            else if (/Firefox/i.test(ua)) browser = 'Firefox';
+            else if (/Safari/i.test(ua))  browser = 'Safari';
+            else if (/Edge/i.test(ua))    browser = 'Edge';
+            if (/Windows/i.test(ua))  os = 'Windows';
+            else if (/Android/i.test(ua)) os = 'Android';
+            else if (/iPhone|iPad/i.test(ua)) os = 'iOS';
+            else if (/Linux/i.test(ua))   os = 'Linux';
+            else if (/Mac/i.test(ua))     os = 'Mac';
+            return `${browser} على ${os}`;
+        }
+
+        // ═══════════════════════════════════════════
+        // ⏳ Polling & Waiting Screen
+        // ═══════════════════════════════════════════
+        let _pollInterval = null;
+        let _timerInterval = null;
+        let _pendingRequestId = null;
+        let _pendingToken = null;
+        let _pendingUser = null;
+        let _timeLeft = 300; // 5 دقائق
+
+        function showWaitingScreen(requestId, token, user) {
+            _pendingRequestId = requestId;
+            _pendingToken = token;
+            _pendingUser = user;
+            _timeLeft = 300;
+
+            document.getElementById('loginBox') && (document.getElementById('loginBox').style.display = 'none');
+            document.querySelector('.login-box:first-of-type').style.display = 'none';
+            document.getElementById('waitingBox').style.display = 'block';
+
+            // عداد تنازلي
+            _timerInterval = setInterval(() => {
+                _timeLeft--;
+                const m = Math.floor(_timeLeft / 60).toString().padStart(2,'0');
+                const s = (_timeLeft % 60).toString().padStart(2,'0');
+                const el = document.getElementById('timerCountdown');
+                if (el) el.textContent = `${m}:${s}`;
+                if (_timeLeft <= 0) cancelWaiting();
+            }, 1000);
+
+            // polling كل 4 ثوانٍ
+            _pollInterval = setInterval(() => checkApprovalStatus(requestId), 4000);
+        }
+
+        async function checkApprovalStatus(requestId) {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/session-requests/${requestId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.status === 'approved') {
+                    clearInterval(_pollInterval);
+                    clearInterval(_timerInterval);
+                    completeLogin(_pendingToken, _pendingUser);
+                } else if (data.status === 'rejected') {
+                    clearInterval(_pollInterval);
+                    clearInterval(_timerInterval);
+                    document.getElementById('waitingBox').style.display = 'none';
+                    document.querySelector('.login-box:first-of-type').style.display = 'block';
+                    showError('❌ تم رفض طلب الدخول من المدير الرئيسي');
+                }
+            } catch (e) { /* تجاهل أخطاء الشبكة المؤقتة */ }
+        }
+
+        function cancelWaiting() {
+            clearInterval(_pollInterval);
+            clearInterval(_timerInterval);
+            _pendingRequestId = null;
+            document.getElementById('waitingBox').style.display = 'none';
+            document.querySelector('.login-box:first-of-type').style.display = 'block';
+        }
+
+        function completeLogin(token, user) {
+            if (window.Auth && window.Auth.setAuth) {
+                window.Auth.setAuth(token, user);
+            } else {
+                localStorage.setItem('token', token);
+            }
+            localStorage.setItem('adminToken', token);
+            localStorage.setItem('adminName', user.name);
+            localStorage.setItem('user', JSON.stringify(user));
+
+            // FCM sync
+            const storedFcmToken = localStorage.getItem('fcmToken');
+            if (storedFcmToken) {
+                fetch(`${API_URL}/api/auth/update-fcm`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fcmToken: storedFcmToken })
+                }).catch(() => {});
+            }
+            registerAdminWebPush(token).catch(() => {});
+
+            document.getElementById('waitingBox').style.display = 'none';
+            const successHtml = `
+                <div style="text-align:center;padding:30px 0;">
+                    <div style="width:70px;height:70px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                        <i class="fas fa-check" style="color:white;font-size:28px;"></i>
+                    </div>
+                    <h3 style="font-weight:800;color:#16a34a;">تمت الموافقة!</h3>
+                    <p style="color:#718096;font-size:14px;">جارٍ تسجيل الدخول...</p>
+                </div>`;
+            document.querySelector('.login-container').innerHTML = successHtml;
+            setTimeout(() => window.location.href = 'admin.html', 1200);
+        }
+
+        // ═══════════════════════════════════════════
+        // 🚀 Login Form Submit
+        // ═══════════════════════════════════════════
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const email = document.getElementById('email').value;
+            const identifier = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
 
-            // Hide previous errors
-            errorMsg.style.display = 'none';
+            const isPhone = /^[0-9+\-\s]+$/.test(identifier);
+            const loginPayload = isPhone
+                ? { phone: identifier, password }
+                : { email: identifier, password };
 
-            // Show loading state
+            // ✅ إضافة بصمة الجهاز
+            loginPayload.deviceId   = getDeviceId();
+            loginPayload.deviceInfo = getDeviceInfo();
+
+            errorMsg.style.display = 'none';
             loginBtn.classList.add('loading');
             loginBtn.disabled = true;
 
             try {
-                const res = await fetch(`${API_URL}/api/auth/login`, {
+                const res = await fetch(`${API_URL}/api/admin/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify(loginPayload)
                 });
 
                 const data = await res.json();
 
                 if (res.ok) {
-                    if (data.user.role === 'admin') {
-                        localStorage.setItem('adminToken', data.token);
-                        localStorage.setItem('adminName', data.user.name);
+                    const role = data.user?.role;
+                    if (role === 'admin' || role === 'sub_admin') {
 
-                        // Success animation
+                        // ✅ تحقق: هل يحتاج موافقة؟
+                        if (data.requiresApproval && data.requestId) {
+                            loginBtn.classList.remove('loading');
+                            loginBtn.disabled = false;
+                            showWaitingScreen(data.requestId, data.token, data.user);
+                            return;
+                        }
+
+                        // دخول مباشر (جهاز موثوق)
+                        completeLogin(data.token, data.user);
+
                         loginBtn.innerHTML = '<i class="fas fa-check"></i> تم بنجاح';
                         loginBtn.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
 
-                        setTimeout(() => {
-                            window.location.href = 'admin.html';
-                        }, 500);
                     } else {
                         showError('عذراً، هذا الحساب ليس حساب مسؤول!');
                     }
@@ -485,8 +704,8 @@
         }
     </script>
 
-    <!-- Auth Helper & App Core -->
-    <script src="js/auth-helper.js"></script>
+    <!-- Auth Helper already loaded in head -->
+    <script src="js/admin-web-push.js"></script>
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
 </body>

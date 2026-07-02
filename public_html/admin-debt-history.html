@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>سجل تعديلات المديونية | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/auth-helper.js"></script>
+
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --brand:      #04553A;
+            --brand-dark: #076b43;
+            --brand-glow: rgba(10,135,84,0.18);
+            --danger:     #e53e3e;
+            --warning:    #d97706;
+            --success:    #16a34a;
+            --info:       #3182ce;
+            --surface:    #ffffff;
+            --bg:         #f0f4f8;
+            --border:     #e2e8f0;
+            --text:       #1a202c;
+            --muted:      #718096;
+            --radius:     16px;
+            --shadow:     0 4px 24px rgba(0,0,0,0.07);
+            --shadow-lg:  0 8px 40px rgba(0,0,0,0.12);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* TOPBAR */
+        .topbar {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 0 28px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 18px; }
+        .topbar-brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); display: inline-block; }
+        .topbar-back {
+            display: flex; align-items: center; gap: 8px;
+            color: var(--muted); font-size: 14px; font-weight: 600;
+            text-decoration: none; padding: 8px 16px; border-radius: 30px;
+            border: 1px solid var(--border); transition: all .2s;
+        }
+        .topbar-back:hover { background: var(--brand); color: white; border-color: var(--brand); }
+
+        /* LAYOUT */
+        .page-wrap { max-width: 1200px; margin: 0 auto; padding: 32px 20px 60px; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 26px; font-weight: 900; }
+        .page-header p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+        /* KPI */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 18px; margin-bottom: 28px; }
+        .kpi-card {
+            background: white; border-radius: var(--radius);
+            padding: 22px; box-shadow: var(--shadow);
+            border-top: 4px solid var(--border);
+            transition: transform .2s, box-shadow .2s;
+        }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        .kpi-card.green  { border-top-color: var(--brand); }
+        .kpi-card.red    { border-top-color: var(--danger); }
+        .kpi-card.orange { border-top-color: var(--warning); }
+        .kpi-card.blue   { border-top-color: var(--info); }
+        .kpi-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 14px; }
+        .kpi-icon.green  { background: rgba(10,135,84,0.1);  color: var(--brand); }
+        .kpi-icon.red    { background: rgba(229,62,62,0.1);  color: var(--danger); }
+        .kpi-icon.orange { background: rgba(217,119,6,0.1);  color: var(--warning); }
+        .kpi-icon.blue   { background: rgba(49,130,206,0.1); color: var(--info); }
+        .kpi-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .3px; }
+        .kpi-value { font-size: 26px; font-weight: 900; margin-top: 4px; }
+        .kpi-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+        /* SECTION CARD */
+        .section-card {
+            background: white; border-radius: var(--radius);
+            box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden;
+        }
+        .section-card-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+        }
+        .section-card-header h2 { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .section-card-header h2 i { color: var(--brand); }
+        .section-card-body { padding: 20px 24px; }
+
+        /* FILTERS */
+        .filters-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .field-group { display: flex; flex-direction: column; gap: 6px; }
+        .field-label { font-size: 12px; font-weight: 700; color: var(--muted); }
+        .field-input {
+            border: 2px solid var(--border); border-radius: 10px;
+            padding: 10px 14px; font-size: 14px; font-family: 'Cairo',sans-serif;
+            outline: none; transition: border-color .2s, box-shadow .2s;
+            width: 100%; direction: rtl; background: #fafafa;
+        }
+        .field-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-glow); background: white; }
+
+        .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pill {
+            padding: 6px 16px; border-radius: 30px; font-size: 13px; font-weight: 600;
+            border: 2px solid var(--border); cursor: pointer; transition: all .2s;
+            background: white; color: var(--muted);
+        }
+        .pill.active { background: var(--brand); color: white; border-color: var(--brand); }
+        .pill:hover:not(.active) { border-color: var(--brand); color: var(--brand); }
+
+        /* BUTTONS */
+        .btn-brand {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: white; border: none; border-radius: 30px;
+            padding: 10px 24px; font-size: 14px; font-weight: 700;
+            font-family: 'Cairo',sans-serif; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: opacity .2s, transform .15s; box-shadow: 0 4px 14px var(--brand-glow);
+        }
+        .btn-brand:hover  { opacity: .92; transform: translateY(-1px); }
+        .btn-brand:active { transform: scale(.97); }
+
+        .btn-ghost {
+            background: white; color: var(--muted);
+            border: 1.5px solid var(--border); border-radius: 30px;
+            padding: 9px 22px; font-size: 13px; font-weight: 700;
+            font-family: 'Cairo',sans-serif; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: all .2s;
+        }
+        .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+        /* TABLE */
+        .table-wrap { overflow-x: auto; }
+        .pay-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+        .pay-table thead tr { background: #f8fafc; }
+        .pay-table th {
+            padding: 12px 16px; font-size: 12px; font-weight: 700;
+            color: var(--muted); text-align: right; letter-spacing: .3px;
+            border-bottom: 2px solid var(--border); white-space: nowrap;
+        }
+        .pay-table td {
+            padding: 14px 16px; font-size: 14px; font-weight: 500;
+            border-bottom: 1px solid var(--border); vertical-align: middle;
+        }
+        .pay-table tbody tr:hover { background: #f8fafc; }
+        .pay-table tbody tr:last-child td { border-bottom: none; }
+
+        .captain-cell { display: flex; align-items: center; gap: 10px; }
+        .captain-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg,#04553A,#0A6E47);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px; color: white; flex-shrink: 0;
+        }
+        .captain-name  { font-weight: 700; font-size: 14px; }
+        .captain-phone { font-size: 12px; color: var(--muted); }
+
+        /* mode badges */
+        .mode-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+        }
+        .mode-badge.add     { background: rgba(34,197,94,0.1); color: var(--success); }
+        .mode-badge.zero    { background: rgba(229,62,62,0.1); color: var(--danger); }
+        .mode-badge.partial { background: rgba(217,119,6,0.1); color: var(--warning); }
+
+        .amount-add     { color: var(--success); font-weight: 800; }
+        .amount-forgive { color: var(--danger);  font-weight: 800; }
+
+        /* states */
+        .empty-state, .loading-state {
+            text-align: center; padding: 50px 20px;
+            color: var(--muted); font-size: 14px;
+        }
+        .empty-state i, .loading-state i { font-size: 36px; margin-bottom: 12px; display: block; color: var(--border); }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* responsive */
+        @media (max-width: 600px) {
+            .page-wrap { padding: 20px 14px 40px; }
+            .topbar { padding: 0 14px; height: 56px; }
+            .page-header h1 { font-size: 22px; }
+            .kpi-value { font-size: 22px; }
+            .section-card-body { padding: 16px; }
+            .pay-table th, .pay-table td { padding: 10px 12px; font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+    <div class="topbar-brand">
+        <span class="dot"></span>
+        <span>وجيز · سجل المديونيات</span>
+    </div>
+    <a href="admin-finance.html" class="topbar-back">
+        <i class="fas fa-arrow-right"></i> رجوع للمالية
+    </a>
+</header>
+
+<div class="page-wrap">
+
+    <div class="page-header">
+        <h1><i class="fas fa-history" style="color:var(--brand);"></i> سجل تعديلات المديونية</h1>
+        <p>عرض كامل لكل عمليات تعديل أرصدة الكباتن من الإدارة، مع التأثير على الأرباح.</p>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi-card green">
+            <div class="kpi-icon green"><i class="fas fa-plus-circle"></i></div>
+            <div class="kpi-label">مديونيات مُضافة (إيرادات)</div>
+            <div class="kpi-value" id="kpiAdded">0 ج.س</div>
+            <div class="kpi-sub" id="kpiAddedCount">0 عملية</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-icon red"><i class="fas fa-minus-circle"></i></div>
+            <div class="kpi-label">مديونيات مُعفاة (خسائر)</div>
+            <div class="kpi-value" id="kpiForgiven">0 ج.س</div>
+            <div class="kpi-sub" id="kpiForgivenCount">0 عملية</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-icon blue"><i class="fas fa-balance-scale"></i></div>
+            <div class="kpi-label">الصافي</div>
+            <div class="kpi-value" id="kpiNet">0 ج.س</div>
+            <div class="kpi-sub">المُضاف − المُعفَى</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-icon orange"><i class="fas fa-list-ol"></i></div>
+            <div class="kpi-label">عدد العمليات</div>
+            <div class="kpi-value" id="kpiCount">0</div>
+            <div class="kpi-sub">في النطاق المُحدّد</div>
+        </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2><i class="fas fa-filter"></i> الفلاتر</h2>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn-ghost" onclick="resetFilters()"><i class="fas fa-undo"></i> إعادة تعيين</button>
+                <button class="btn-brand" onclick="applyFilters()"><i class="fas fa-search"></i> تطبيق</button>
+            </div>
+        </div>
+        <div class="section-card-body">
+            <div class="filters-row">
+                <div class="field-group">
+                    <label class="field-label">من تاريخ</label>
+                    <input type="date" id="filterFrom" class="field-input">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">إلى تاريخ</label>
+                    <input type="date" id="filterTo" class="field-input">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">رقم/اسم الكابتن</label>
+                    <input type="text" id="filterCaptain" class="field-input" placeholder="بحث..." oninput="filterClientSide()">
+                </div>
+            </div>
+            <div style="margin-top:14px;">
+                <label class="field-label" style="display:block; margin-bottom:8px;">نوع العملية</label>
+                <div class="filter-pills" id="modePills">
+                    <span class="pill active" data-mode="">الكل</span>
+                    <span class="pill" data-mode="add">إضافة دين</span>
+                    <span class="pill" data-mode="zero">تصفير كامل</span>
+                    <span class="pill" data-mode="partial">تخفيض جزئي</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h2><i class="fas fa-table"></i> العمليات</h2>
+            <span id="resultsCount" style="font-size:13px; color:var(--muted);"></span>
+        </div>
+        <div class="section-card-body" style="padding:0;">
+            <div class="table-wrap">
+                <table class="pay-table">
+                    <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الكابتن</th>
+                        <th>النوع</th>
+                        <th>المبلغ</th>
+                        <th>الرصيد قبل</th>
+                        <th>الرصيد بعد</th>
+                        <th>الإدارة</th>
+                        <th>ملاحظة</th>
+                    </tr>
+                    </thead>
+                    <tbody id="historyTbody">
+                    <tr><td colspan="8" class="loading-state"><i class="fas fa-circle-notch spin"></i> جارِ التحميل...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const adminTokenAuth = localStorage.getItem('adminToken');
+let userObj = null;
+try { userObj = JSON.parse(localStorage.getItem('user')); } catch(e) {}
+if (!adminTokenAuth || !userObj || userObj.role !== 'admin') window.location.href = 'admin-login.html';
+
+const API = window.API_BASE_URL || window.API_URL || '';
+let cachedEntries = [];
+let currentMode   = '';  // 🔧 FIX: was missing — caused ReferenceError
+
+function H() {
+    const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+    };
+}
+
+function fmt(n)      { return Math.round(Number(n) || 0).toLocaleString('en-US'); }
+function initials(name) {
+    if (!name) return '؟';
+    const parts = String(name).trim().split(/\s+/);
+    return (parts[0]?.[0] || '') + (parts[1]?.[0] || '');
+}
+function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString('ar-EG', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+function modeLabel(m) {
+    if (m === 'add')     return { label: 'إضافة دين',   cls: 'add'     };
+    if (m === 'zero')    return { label: 'تصفير كامل', cls: 'zero'    };
+    if (m === 'partial') return { label: 'تخفيض جزئي', cls: 'partial' };
+    return { label: m || '—', cls: '' };
+}
+
+// ── pills handling
+document.querySelectorAll('#modePills .pill').forEach(p => {
+    p.addEventListener('click', () => {
+        document.querySelectorAll('#modePills .pill').forEach(x => x.classList.remove('active'));
+        p.classList.add('active');
+        currentMode = p.dataset.mode;
+        applyFilters();
+    });
+});
+
+function resetFilters() {
+    document.getElementById('filterFrom').value = '';
+    document.getElementById('filterTo').value = '';
+    document.getElementById('filterCaptain').value = '';
+    document.querySelectorAll('#modePills .pill').forEach(x => x.classList.remove('active'));
+    document.querySelector('#modePills .pill[data-mode=""]').classList.add('active');
+    currentMode = '';
+    applyFilters();
+}
+
+async function applyFilters() {
+    const from = document.getElementById('filterFrom').value;
+    const to   = document.getElementById('filterTo').value;
+
+    const tbody = document.getElementById('historyTbody');
+    tbody.innerHTML = `<tr><td colspan="8" class="loading-state"><i class="fas fa-circle-notch spin"></i> جارِ التحميل...</td></tr>`;
+
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to)   params.set('to', to + 'T23:59:59');
+    if (currentMode) params.set('mode', currentMode);
+    params.set('limit', '500');
+
+    try {
+        const r = await fetch(`${API}/api/admin/debt-adjustments?${params.toString()}`, { headers: H() });
+        if (!r.ok) throw new Error('فشل تحميل البيانات');
+        const data = await r.json();
+
+        // KPIs
+        const s = data.summary || {};
+        document.getElementById('kpiAdded').textContent       = fmt(s.debtAdded)    + ' ج.س';
+        document.getElementById('kpiForgiven').textContent    = fmt(s.debtForgiven) + ' ج.س';
+        const net = (s.debtAdded || 0) - (s.debtForgiven || 0);
+        document.getElementById('kpiNet').textContent         = (net >= 0 ? '+' : '') + fmt(net) + ' ج.س';
+        document.getElementById('kpiNet').style.color         = net >= 0 ? 'var(--success)' : 'var(--danger)';
+        const counts = s.counts || {};
+        document.getElementById('kpiAddedCount').textContent     = (counts.add  || 0) + ' عملية';
+        document.getElementById('kpiForgivenCount').textContent  = ((counts.zero || 0) + (counts.partial || 0)) + ' عملية';
+        document.getElementById('kpiCount').textContent          = counts.total || 0;
+
+        cachedEntries = Array.isArray(data.entries) ? data.entries : [];
+        filterClientSide();
+    } catch (err) {
+        console.error('Load history error:', err);
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="fas fa-exclamation-circle"></i> حدث خطأ في تحميل البيانات: ${err.message}</td></tr>`;
+    }
+}
+
+function filterClientSide() {
+    const q = (document.getElementById('filterCaptain').value || '').trim().toLowerCase();
+    let entries = cachedEntries;
+    if (q) {
+        entries = entries.filter(e => {
+            const name  = (e.captain?.name  || '').toLowerCase();
+            const phone = (e.captain?.phone || '').toLowerCase();
+            return name.includes(q) || phone.includes(q);
+        });
+    }
+    renderTable(entries);
+    document.getElementById('resultsCount').textContent =
+        entries.length ? `${entries.length} نتيجة` : '';
+}
+
+function renderTable(entries) {
+    const tbody = document.getElementById('historyTbody');
+    if (!entries.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="fas fa-inbox"></i> لا توجد عمليات في هذا النطاق</td></tr>`;
+        return;
+    }
+
+    const rows = entries.map(e => {
+        const m = modeLabel(e.mode);
+        const captainName  = window.escapeHtml ? window.escapeHtml(e.captain?.name || 'محذوف') : e.captain?.name || 'محذوف';
+        const captainPhone = e.captain?.phone || '—';
+        const adminName    = window.escapeHtml ? window.escapeHtml(e.admin?.name || '—') : e.admin?.name || '—';
+        const isAdd = e.mode === 'add';
+        const amountClass = isAdd ? 'amount-add' : 'amount-forgive';
+        const amountSign  = isAdd ? '+' : '−';
+
+        return `
+            <tr>
+                <td style="white-space:nowrap; font-size:12.5px;">${formatDate(e.createdAt)}</td>
+                <td>
+                    <div class="captain-cell">
+                        <div class="captain-avatar">${initials(captainName)}</div>
+                        <div>
+                            <div class="captain-name">${captainName}</div>
+                            <div class="captain-phone">${captainPhone}</div>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="mode-badge ${m.cls}">${m.label}</span></td>
+                <td><span class="${amountClass}">${amountSign}${fmt(e.amount)} ج.س</span></td>
+                <td style="color:var(--muted);">${fmt(e.previousBalance)} ج.س</td>
+                <td style="font-weight:700;">${fmt(e.newBalance)} ج.س</td>
+                <td style="font-size:13px;">${adminName}</td>
+                <td style="color:var(--muted); font-size:13px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${window.escapeHtml ? window.escapeHtml(e.note || '') : e.note || ''}">${window.escapeHtml ? window.escapeHtml(e.note || '—') : e.note || '—'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    tbody.innerHTML = rows;
+}
+
+// initial load
+document.addEventListener('DOMContentLoaded', applyFilters);
+</script>
+</body>
+</html>

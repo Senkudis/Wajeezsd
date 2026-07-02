@@ -5,19 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>دخول العملاء | وصل-لي</title>
+    <title>دخول العملاء | وجيز</title>
 
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a8754">
+    <meta name="theme-color" content="#04553A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="css/dark-mode.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
 
     <style>
         /* Unused Animation Styles Removed */
@@ -26,6 +26,9 @@
     <link rel="stylesheet" href="css/enhanced-styles.css">
 
     <script src="js/config.js"></script>
+    <script src="js/city-service.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/password-toggle.js"></script>
 </head>
 
 <body class="bg-light">
@@ -34,7 +37,7 @@
         <div class="auth-box glass-card card-hover p-4 p-md-5">
             <div class="text-center mb-4">
                 <a href="index.html" class="d-inline-block transition-transform hover-scale">
-                    <img src="logo-transparent.png" alt="شعار وصل-لي" height="70" class="app-logo"
+                    <img src="logo-transparent.png" alt="شعار وجيز" height="70" class="app-logo"
                         style="object-fit:contain;">
                 </a>
             </div>
@@ -48,49 +51,231 @@
 
             <div class="mb-3 text-end">
                 <label for="email" class="form-label fw-bold small text-muted">
-                    <i class="bi bi-envelope-fill text-primary ms-1"></i> البريد الإلكتروني
+                    <i class="bi bi-person-fill text-primary ms-1"></i> رقم الهاتف أو البريد الإلكتروني
                 </label>
-                <input type="email" id="email" class="form-control form-control-lg" placeholder="name@example.com"
-                    dir="ltr">
+                <input type="text" id="email" class="form-control form-control-lg"
+                    placeholder="09xxxxxxxx أو name@example.com" dir="ltr">
             </div>
 
             <div class="mb-4 text-end">
                 <label for="password" class="form-label fw-bold small text-muted">
                     <i class="bi bi-lock-fill text-primary ms-1"></i> كلمة المرور
                 </label>
-                <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••">
+                <div class="input-group">
+                    <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••">
+                    <button class="btn btn-outline-secondary" type="button"
+                        onclick="togglePasswordVisibility('password', this)" tabindex="-1">
+                        <i class="bi bi-eye-fill"></i>
+                    </button>
+                </div>
+                <div class="text-start mt-2">
+                    <a href="#" onclick="openForgotPassword()"
+                        class="text-primary small text-decoration-none fw-bold">نسيت كلمة المرور؟</a>
+                </div>
             </div>
 
             <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="login()">
                 <i class="bi bi-box-arrow-in-right ms-2"></i> تسجيل الدخول
             </button>
 
-            <div class="text-center mt-4">
+            <!-- ✅ Google Sign-In Divider — مخفي مؤقتاً -->
+            <!-- <div class="d-flex align-items-center my-3">
+                <hr class="flex-grow-1">
+                <span class="px-3 text-muted small fw-bold">أو</span>
+                <hr class="flex-grow-1">
+            </div>
+            <button id="google-signin-btn"
+                class="btn w-100 py-3 mb-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+                onclick="loginWithGoogle()"
+                style="background:#fff; border:2px solid #dadce0; color:#3c4043; border-radius:12px;">
+                الدخول بواسطة جوجل
+            </button> -->
 
+            <!-- Register + Back links -->
+            <div class="text-center mt-4">
                 <div class="mb-4">
                     <p class="text-muted mb-2">ليس لديك حساب؟</p>
                     <a href="client-register.html" class="btn btn-outline-primary w-100 py-2 fw-bold">
                         <i class="bi bi-person-plus-fill me-2"></i> إنشاء حساب جديد
                     </a>
                 </div>
-
                 <div class="border-top pt-3 mt-3">
                     <a href="index.html" class="text-secondary small text-decoration-none">
                         <i class="bi bi-house-door-fill ms-1"></i> العودة للرئيسية
                     </a>
                 </div>
             </div>
+        </div><!-- /.auth-box -->
+    </div><!-- /.auth-container -->
+
+    <!-- ✅ Forgot Password Modal -->
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+        aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:20px; border:none; overflow:hidden;">
+                <div class="modal-header"
+                    style="background:linear-gradient(135deg,#e53935,#e35d5b); border:none; padding:20px 24px;">
+                    <h5 class="modal-title text-white fw-bold" id="forgotPasswordModalLabel">
+                        <i class="bi bi-key-fill ms-2"></i> استعادة كلمة المرور
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-end">
+                    <p class="text-muted mb-3" style="font-size:14px;" id="forgot-modal-greeting">
+                        الرجاء إدخال رقم هاتفك لإرسال رمز إعادة التعيين.
+                    </p>
+                    <div id="forgot-modal-alert" class="alert d-none mb-3" role="alert"></div>
+
+                    <!-- Step 1: Request OTP -->
+                    <div id="forgot-step-1" class="mb-3">
+                        <label for="forgot-identifier" class="form-label fw-bold small text-muted">
+                            <i class="bi bi-person-badge-fill text-danger ms-1"></i>رقم الهاتف
+                        </label>
+                        <input type="text" id="forgot-identifier" class="form-control form-control-lg"
+                            placeholder="09xxxxxxxx أو user@mail.com" dir="ltr">
+                        <button id="send-forgot-btn" class="btn btn-danger w-100 py-3 mt-4 fw-bold shadow-sm"
+                            onclick="sendForgotOtp()">
+                            <i class="bi bi-send-fill ms-2"></i> إرسال الكود
+                        </button>
+                    </div>
+
+                    <!-- Step 2: Verify & Reset -->
+                    <div id="forgot-step-2" class="mb-3 d-none">
+                        <label for="forgot-code" class="form-label fw-bold small text-muted">
+                            <i class="bi bi-shield-lock-fill text-danger ms-1"></i> كود التحقق (6 أرقام)
+                        </label>
+                        <input type="text" id="forgot-code" class="form-control form-control-lg text-center mb-3"
+                            placeholder="------" dir="ltr" maxlength="6"
+                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;">
+
+                        <label for="forgot-new-password" class="form-label fw-bold small text-muted">
+                            <i class="bi bi-lock-fill text-danger ms-1"></i> كلمة المرور الجديدة
+                        </label>
+                        <input type="password" id="forgot-new-password" class="form-control form-control-lg"
+                            placeholder="••••••••">
+
+                        <button id="reset-password-btn" class="btn btn-primary w-100 py-3 mt-4 fw-bold shadow-sm"
+                            onclick="resetPassword()">
+                            <i class="bi bi-check-circle-fill ms-2"></i> تغيير كلمة المرور
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ✅ Activation Modal — تفعيل الحساب عند محاولة الدخول بحساب غير مفعّل -->
+    <div class="modal fade" id="activationModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+        aria-labelledby="activationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:20px; border:none; overflow:hidden;">
+                <div class="modal-header"
+                    style="background:linear-gradient(135deg,#f57c00,#ff9800); border:none; padding:20px 24px;">
+                    <h5 class="modal-title text-white fw-bold" id="activationModalLabel">
+                        <i class="bi bi-shield-lock-fill ms-2"></i> تفعيل الحساب
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-end">
+                    <p class="text-muted mb-3" style="font-size:14px;">
+                        <i class="bi bi-info-circle-fill text-warning ms-1"></i>
+                        تم إرسال كود تفعيل جديد إلى هاتفك وبريدك الإلكتروني. أدخله أدناه لتفعيل حسابك والدخول تلقائياً.
+                    </p>
+
+                    <div id="activation-modal-alert" class="alert d-none mb-3" role="alert"></div>
+
+                    <!-- حقل مخفي لحفظ الـ identifier -->
+                    <input type="hidden" id="activation-identifier">
+
+                    <div class="mb-3">
+                        <label for="activation-code" class="form-label fw-bold small text-muted">
+                            <i class="bi bi-shield-check text-warning ms-1"></i> كود التفعيل (6 أرقام)
+                        </label>
+                        <input type="text" id="activation-code" class="form-control form-control-lg text-center"
+                            placeholder="------" dir="ltr" maxlength="6" inputmode="numeric"
+                            style="letter-spacing:6px; font-weight:bold; font-size:22px;"
+                            onkeypress="if(event.key==='Enter') verifyActivationCode()">
+                    </div>
+
+                    <button id="activation-verify-btn" class="btn btn-warning w-100 py-3 mb-3 fw-bold shadow-sm"
+                        style="color:#fff;" onclick="verifyActivationCode()">
+                        <i class="bi bi-check-circle-fill ms-2"></i> تحقق وفعّل الحساب
+                    </button>
+
+                    <div class="text-center">
+                        <button id="activation-resend-btn"
+                            class="btn btn-link text-muted small p-0 text-decoration-none"
+                            onclick="resendActivationCode()">
+                            <i class="bi bi-arrow-repeat ms-1"></i> أعد إرسال الكود
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ OTP Phone Modal (For Google Sign-in flow) -->
+    <div class="modal fade" id="otpModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+        aria-labelledby="otpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:20px; border:none; overflow:hidden;">
+                <div class="modal-header"
+                    style="background:linear-gradient(135deg,#04553A,#0d9d63); border:none; padding:20px 24px;">
+                    <h5 class="modal-title text-white fw-bold" id="otpModalLabel">
+                        <i class="bi bi-phone-fill ms-2"></i> التحقق من رقم الهاتف
+                    </h5>
+                    <!-- Allow closing if it's explicitly triggered -->
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                        onclick="_pendingGoogleData=null;"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted mb-3" style="font-size:14px;" id="otp-modal-greeting">
+                        يرجى إدخال رقم هاتفك لتلقي كود التحقق (OTP).
+                    </p>
+                    <div id="otp-modal-alert" class="alert d-none mb-3" role="alert"></div>
+
+                    <!-- Step 1: Phone Input -->
+                    <div id="otp-step-1" class="mb-3">
+                        <label for="otp-phone" class="form-label fw-bold small text-muted">
+                            <i class="bi bi-telephone-fill text-success ms-1"></i> رقم الهاتف
+                        </label>
+                        <input type="tel" id="otp-phone" class="form-control form-control-lg"
+                            placeholder="09xxxxxxxx أو 01xxxxxxxx" dir="ltr" maxlength="15">
+                        <button id="send-otp-btn" class="btn btn-success w-100 py-3 mt-4 fw-bold shadow-sm"
+                            onclick="requestOTP()">
+                            <i class="bi bi-send-fill ms-2"></i> إرسال رمز التحقق
+                        </button>
+                    </div>
+
+                    <!-- Step 2: OTP Input (Hidden Initially) -->
+                    <div id="otp-step-2" class="mb-3 d-none">
+                        <label for="otp-code" class="form-label fw-bold small text-muted">
+                            <i class="bi bi-shield-lock-fill text-success ms-1"></i> رمز الـ OTP (6 أرقام)
+                        </label>
+                        <input type="text" id="otp-code" class="form-control form-control-lg text-center"
+                            placeholder="------" dir="ltr" maxlength="6"
+                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;">
+                        <button id="verify-otp-btn" class="btn btn-primary w-100 py-3 mt-4 fw-bold shadow-sm"
+                            onclick="verifyOTP()">
+                            <i class="bi bi-check-circle-fill ms-2"></i> تحقق ودخول مجاني
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script>
-        // دالة لإظهار التنبيهات الملونة
+        // =============================================
+        // Shared alert helper
+        // =============================================
         function showAlert(msg, type) {
             const box = document.getElementById('alert-box');
             box.classList.remove('d-none', 'alert-success', 'alert-danger');
             box.classList.add('d-flex');
-
             if (type === 'success') {
                 box.classList.add('alert-success');
                 box.innerHTML = `<i class="bi bi-check-circle-fill fs-5 me-2 ms-2"></i> <div>${msg}</div>`;
@@ -100,6 +285,21 @@
             }
         }
 
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye-fill', 'bi-eye-slash-fill');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash-fill', 'bi-eye-fill');
+            }
+        }
+
+        // =============================================
+        // Standard email/password login
+        // =============================================
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -112,69 +312,485 @@
                 return;
             }
 
-            // Loading state
             const originalBtnText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span> جاري التحقق...';
             btn.disabled = true;
 
-            console.log(`Attempting to connect to: ${API_URL}`);
-
             try {
-                // ✅ استخدام الرابط مع /api
                 const res = await fetch(`${API_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-
                 const data = await res.json();
 
                 if (res.ok) {
                     if (data.user.role === 'client' || data.user.role === 'customer') {
                         showAlert("تم تسجيل الدخول بنجاح!", "success");
-
-                        console.log("📥 Login Response Data:", data);
-
-                        if (!data.user.phone) {
-                            console.error("⚠️ تحذير هام: كائن المستخدم لا يحتوي على رقم هاتف.");
-                        }
-
-                        // استخدام المساعد الموحد للتخزين
+                        if (typeof CityService !== 'undefined' && data.user.city) CityService.setCity(data.user.city);
                         window.Auth.setAuth(data.token, data.user);
-
-                        // استخدام replace بدلاً من href لمنع الرجوع لصفحة تسجيل الدخول
-                        setTimeout(() => {
-                            window.location.replace('client-my-orders.html');
-                        }, 800);
+                        localStorage.setItem('role', data.user.role);
+                        const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                        localStorage.removeItem('returnUrl');
+                        setTimeout(() => { window.location.replace(returnUrl); }, 800);
+                    } else if (data.user.role === 'merchant') {
+                        showAlert("مرحباً يا تاجر! جاري التحويل...", "success");
+                        if (typeof CityService !== 'undefined' && data.user.city) CityService.setCity(data.user.city);
+                        window.Auth.setAuth(data.token, data.user);
+                        localStorage.setItem('role', 'merchant');
+                        setTimeout(() => { window.location.replace('merchant-dashboard.html'); }, 800);
                     } else {
-                        showAlert("عذراً، هذا الحساب ليس حساب عميل", "error");
+                        showAlert("عذراً، هذا الحساب ليس حساب عميل أو تاجر", "error");
                         btn.innerHTML = originalBtnText;
                         btn.disabled = false;
                     }
                 } else {
+                    // ✅ لو الحساب غير مفعّل — افتح شاشة التفعيل تلقائياً
+                    if (data.code === 'ACCOUNT_NOT_VERIFIED') {
+                        showAlert(data.message, 'error');
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
+                        setTimeout(() => openActivationModal(data.email, email), 600);
+                        return;
+                    }
                     showAlert(data.message || 'بيانات الدخول غير صحيحة', "error");
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                 }
             } catch (err) {
                 console.error(err);
-                showAlert(`خطأ في الاتصال: ${err.message}\n${API_URL}`, "error");
+                showAlert(`خطأ في الاتصال: ${err.message}`, "error");
                 btn.innerHTML = originalBtnText;
                 btn.disabled = false;
             }
         }
 
         document.getElementById('password').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                login();
-            }
+            if (e.key === 'Enter') login();
         });
+
+        // =============================================
+        // 🔓 Activation Modal — فتح شاشة إدخال كود التفعيل
+        // =============================================
+        let _activationEmail = null;
+
+        function openActivationModal(email, identifier) {
+            _activationEmail = email;
+            // تعبئة رقم الهاتف/الإيميل في الحقل المخفي
+            document.getElementById('activation-identifier').value = identifier || email || '';
+            document.getElementById('activation-code').value = '';
+            document.getElementById('activation-modal-alert').className = 'alert d-none mb-3';
+            const modal = new bootstrap.Modal(document.getElementById('activationModal'));
+            modal.show();
+        }
+
+        async function verifyActivationCode() {
+            const code = document.getElementById('activation-code').value.trim();
+            const identifier = document.getElementById('activation-identifier').value.trim();
+            const alertEl = document.getElementById('activation-modal-alert');
+            const btn = document.getElementById('activation-verify-btn');
+
+            alertEl.className = 'alert d-none mb-3';
+
+            if (!code || code.length < 6) {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'يرجى إدخال الكود المكوّن من 6 أرقام';
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2" role="status"></span> جاري التحقق...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: _activationEmail, code })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = data.message || 'الكود غير صحيح أو منتهي الصلاحية';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // ✅ تم التفعيل وتسجيل الدخول
+                bootstrap.Modal.getInstance(document.getElementById('activationModal')).hide();
+                window.Auth.setAuth(data.token, data.user);
+                showAlert('تم تفعيل حسابك وتسجيل الدخول بنجاح! 🎉', 'success');
+                setTimeout(() => { window.location.replace('client-my-orders.html'); }, 800);
+
+            } catch (err) {
+                console.error('Activation verify error:', err);
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'خطأ في الاتصال، يرجى التحقق من الشبكة.';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function resendActivationCode() {
+            const alertEl = document.getElementById('activation-modal-alert');
+            const btn = document.getElementById('activation-resend-btn');
+
+            if (!_activationEmail) return;
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري الإرسال...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/resend-code`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: _activationEmail })
+                });
+                const data = await res.json();
+
+                alertEl.className = `alert ${res.ok ? 'alert-success' : 'alert-danger'} mb-3`;
+                alertEl.textContent = data.message;
+
+            } catch (err) {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'خطأ في الاتصال.';
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        // =============================================
+        // Google Sign-In — Step 1
+        // =============================================
+        let _pendingGoogleData = null;
+        let _GoogleAuth = null; // cached after first load
+
+        async function loginWithGoogle() {
+            const btn = document.getElementById('google-signin-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الاتصال بجوجل...';
+            btn.disabled = true;
+
+            try {
+                // 1. Lazy-load the plugin (guarantees it is ready before signIn)
+                if (!_GoogleAuth) {
+                    const mod = await import('https://cdn.jsdelivr.net/npm/@codetrix-studio/capacitor-google-auth@3.4.0-rc.4/+esm');
+                    _GoogleAuth = mod.GoogleAuth;
+                    // Initialize for web platform (no-op on Android native)
+                    await _GoogleAuth.initialize({
+                        clientId: '168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com',
+                        scopes: ['profile', 'email'],
+                        grantOfflineAccess: true
+                    });
+                }
+
+                // 2. Force account chooser by signing out first, then sign in
+                try { await _GoogleAuth.signOut(); } catch (_) { /* ignore - might not have active session */ }
+                const googleUser = await _GoogleAuth.signIn();
+                const idToken = googleUser?.authentication?.idToken;
+
+                if (!idToken) {
+                    showAlert('لم نتمكن من الحصول على بيانات جوجل. حاول مجدداً.', 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // 3. Send to backend for verification
+                const res = await fetch(`${API_URL}/api/auth/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert(data.message || 'فشل التحقق من جوجل.', 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                if (data.requiresPhone) {
+                    _pendingGoogleData = data.googleData;
+                    // Reset UI
+                    document.getElementById('otp-modal-greeting').innerHTML = `مرحباً <strong>${data.googleData.name || ''}</strong>! 👋<br>نحتاج لتأكيد رقم هاتفك لإكمال تسجيل الدخول.`;
+                    document.getElementById('otp-phone').value = '';
+                    document.getElementById('otp-code').value = '';
+                    document.getElementById('otp-step-1').classList.remove('d-none');
+                    document.getElementById('otp-step-2').classList.add('d-none');
+                    document.getElementById('otp-modal-alert').classList.add('d-none');
+
+                    const modal = new bootstrap.Modal(document.getElementById('otpModal'));
+                    modal.show();
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Existing user — sign in immediately
+                if (typeof CityService !== 'undefined' && data.user && data.user.city) CityService.setCity(data.user.city);
+                window.Auth.setAuth(data.token, data.user);
+                showAlert('تم تسجيل الدخول بنجاح! 🎉', 'success');
+                setTimeout(() => { window.location.replace('client-my-orders.html'); }, 700);
+
+            } catch (err) {
+                // 🐛 DEBUG: Show raw error for Release APK debugging
+                alert('[Google Auth Debug]\nCode: ' + (err?.code || 'N/A') + '\nMessage: ' + (err?.message || JSON.stringify(err)));
+                console.error('Google sign-in error:', err);
+                if (err.message && (err.message.toLowerCase().includes('cancel') || err.message.toLowerCase().includes('dismiss'))) {
+                    showAlert('تم إلغاء تسجيل الدخول بجوجل.', 'error');
+                } else {
+                    showAlert('خطأ في تسجيل الدخول بجوجل. تأكد من الاتصال وحاول مجدداً.', 'error');
+                }
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // =============================================
+        // 🔑 Forgot Password Flow
+        // =============================================
+        function openForgotPassword() {
+            document.getElementById('forgot-identifier').value = '';
+            document.getElementById('forgot-code').value = '';
+            document.getElementById('forgot-new-password').value = '';
+            document.getElementById('forgot-step-1').classList.remove('d-none');
+            document.getElementById('forgot-step-2').classList.add('d-none');
+            document.getElementById('forgot-modal-alert').classList.add('d-none');
+            const modal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+            modal.show();
+        }
+
+        async function sendForgotOtp() {
+            const identifier = document.getElementById('forgot-identifier').value.trim();
+            const alertEl = document.getElementById('forgot-modal-alert');
+            const btn = document.getElementById('send-forgot-btn');
+
+            alertEl.className = 'alert d-none mb-3';
+            if (!identifier) {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني.';
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري الإرسال...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = data.message || 'حدث خطأ، يرجى المحاولة مجدداً.';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                alertEl.className = 'alert alert-success mb-3';
+                alertEl.textContent = data.message;
+
+                setTimeout(() => {
+                    document.getElementById('forgot-step-1').classList.add('d-none');
+                    document.getElementById('forgot-step-2').classList.remove('d-none');
+                    alertEl.classList.add('d-none');
+                }, 1500);
+
+            } catch (err) {
+                console.error('Forgot password error:', err);
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'خطأ في الاتصال، يرجى التحقق من الشبكة.';
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        async function resetPassword() {
+            const identifier = document.getElementById('forgot-identifier').value.trim();
+            const code = document.getElementById('forgot-code').value.trim();
+            const newPassword = document.getElementById('forgot-new-password').value;
+            const alertEl = document.getElementById('forgot-modal-alert');
+            const btn = document.getElementById('reset-password-btn');
+
+            alertEl.className = 'alert d-none mb-3';
+
+            if (!code || !newPassword) {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'يرجى إدخال الكود وكلمة المرور الجديدة.';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري التغيير...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier, code, newPassword })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = data.message || 'حدث خطأ، يرجى المحاولة مجدداً.';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal')).hide();
+                showAlert('تم تغيير كلمة المرور بنجاح! يمكنك إدخال كلمة المرور لتسجيل الدخول.', 'success');
+
+                // Fill the password field automatically with the new password for convenience
+                document.getElementById('email').value = identifier.includes('@') ? identifier : '';
+                document.getElementById('password').value = newPassword;
+
+            } catch (err) {
+                console.error('Reset password error:', err);
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'خطأ في الاتصال، يرجى التحقق من الشبكة.';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // =============================================
+        // OTP Step 1: Request OTP (Send SMS)
+        // =============================================
+        async function requestOTP() {
+            const phone = document.getElementById('otp-phone').value.trim();
+            const alertEl = document.getElementById('otp-modal-alert');
+            const btn = document.getElementById('send-otp-btn');
+
+            alertEl.className = 'alert d-none mb-3';
+            if (!phone) {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'يرجى إدخال رقم الهاتف';
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري الإرسال...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/auth/send-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber: phone })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = data.message || 'حدث خطأ، يرجى المحاولة مجدداً.';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Proceed to Step 2
+                alertEl.className = 'alert alert-success mb-3';
+                alertEl.textContent = 'تم إرسال كود التحقق لجوالك عبر رسالة نصية (SMS)';
+
+                // Switch UI Steps
+                setTimeout(() => {
+                    document.getElementById('otp-step-1').classList.add('d-none');
+                    document.getElementById('otp-step-2').classList.remove('d-none');
+                }, 1000);
+
+            } catch (err) {
+                console.error('Send OTP error:', err);
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'خطأ في الاتصال، يرجى التحقق من الشبكة.';
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        // =============================================
+        // OTP Step 2: Verify OTP & Login
+        // =============================================
+        async function verifyOTP() {
+            const phone = document.getElementById('otp-phone').value.trim();
+            const otpCode = document.getElementById('otp-code').value.trim();
+            const alertEl = document.getElementById('otp-modal-alert');
+            const btn = document.getElementById('verify-otp-btn');
+
+            alertEl.className = 'alert d-none mb-3';
+
+            if (!otpCode) {
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'يرجى إدخال رمز التحقق المستلم';
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري التحقق...';
+            btn.disabled = true;
+
+            try {
+                // Pass _pendingGoogleData if this is a Google 2-Step flow, otherwise it will be null for standalone
+                const reqBody = { phoneNumber: phone, otp: otpCode };
+                if (_pendingGoogleData) {
+                    reqBody.googleData = _pendingGoogleData;
+                    reqBody.city = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
+                }
+
+                const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alertEl.className = 'alert alert-danger mb-3';
+                    alertEl.textContent = data.message || 'حدث خطأ، يرجى المحاولة مجدداً.';
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Success — close modal, save auth and redirect
+                _pendingGoogleData = null;
+                bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide();
+                if (typeof CityService !== 'undefined' && data.user && data.user.city) CityService.setCity(data.user.city);
+                window.Auth.setAuth(data.token, data.user);
+                showAlert('تم تسجيل الدخول بنجاح! 🎉', 'success');
+                setTimeout(() => { window.location.replace('client-my-orders.html'); }, 700);
+
+            } catch (err) {
+                console.error('Verify OTP error:', err);
+                alertEl.className = 'alert alert-danger mb-3';
+                alertEl.textContent = 'خطأ في الاتصال، يرجى التحقق من الشبكة.';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>
-
-
 
     <script src="js/theme-manager.js"></script>
     <script src="js/auth-helper.js"></script>

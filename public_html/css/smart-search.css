@@ -1,0 +1,435 @@
+/* ============================================================
+   Smart Search — بحث ذكّي عن المنتجات (الصفحة الرئيسية للعميل)
+   تصميم احترافي + حركات حصرية
+   ============================================================ */
+
+:root {
+    --ss-green: #04553A;
+    --ss-green-2: #086b42;
+    --ss-gold: #D4A843;
+}
+
+/* ── زر البحث في الرئيسية (Pill) ──────────────────────────── */
+.ss-trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 13px 16px;
+    border: none;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.14);
+    cursor: pointer;
+    overflow: hidden;
+    font-family: 'Cairo', sans-serif;
+    text-align: right;
+    -webkit-tap-highlight-color: transparent;
+    animation: ssTriggerIn 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* بريق يمرّ عبر الزر (حصري) */
+.ss-trigger::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 45%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(4, 85, 58, 0.10), transparent);
+    transform: skewX(-20deg);
+    animation: ssShimmer 3.4s ease-in-out infinite;
+}
+.ss-trigger:active { transform: scale(0.985); }
+
+.ss-trigger-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--ss-green), var(--ss-green-2));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    box-shadow: 0 3px 10px rgba(4, 85, 58, 0.32);
+    animation: ssIconPulse 2.6s ease-in-out infinite;
+}
+.ss-trigger-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    color: #6b7280;
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.ss-trigger-text b { color: var(--ss-green); font-weight: 800; }
+/* النص الدوّار (تأثير الكتابة) + مؤشّر وامض */
+#ss-trigger-hint { color: #111827; font-weight: 700; }
+#ss-trigger-hint::after {
+    content: '|';
+    color: var(--ss-gold);
+    font-weight: 400;
+    animation: ssCaret 1s steps(1) infinite;
+}
+
+/* ── الطبقة (Overlay) ─────────────────────────────────────── */
+#ss-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    visibility: hidden;
+    pointer-events: none;
+}
+#ss-overlay.ss-open { visibility: visible; pointer-events: auto; }
+
+.ss-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.32);
+    opacity: 0;
+    transition: opacity 0.28s ease;
+}
+#ss-overlay.ss-open .ss-backdrop { opacity: 1; }
+
+.ss-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #f6f8f7;
+    border-radius: 0 0 22px 22px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+    transform: translateY(-102%);
+    transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+    height: 100%;
+    font-family: 'Cairo', sans-serif;
+}
+#ss-overlay.ss-open .ss-panel { transform: translateY(0); }
+
+/* الشريط العلوي */
+.ss-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px;
+    background: linear-gradient(135deg, var(--ss-green), var(--ss-green-2));
+    box-shadow: 0 4px 16px rgba(4, 85, 58, 0.25);
+}
+.ss-back {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 1.15rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.ss-back:active { background: rgba(255, 255, 255, 0.28); }
+
+.ss-inputwrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 13px;
+    padding: 0 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+.ss-inicon { color: var(--ss-green); font-size: 15px; }
+#ss-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 13px 10px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #111827;
+    direction: rtl;
+}
+#ss-input::placeholder { color: #9ca3af; font-weight: 500; }
+.ss-clear {
+    border: none;
+    background: none;
+    color: #cbd5e1;
+    font-size: 17px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+}
+.ss-clear:active { color: #94a3b8; }
+
+/* منطقة النتائج */
+.ss-results {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+/* الحالة الخاملة */
+.ss-idle-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #64748b;
+    margin: 4px 2px 10px;
+}
+.ss-idle-head i { color: var(--ss-green); }
+.ss-clearrecent {
+    border: none;
+    background: none;
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ss-recent { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.ss-recent-chip {
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.ss-recent-chip i { color: #94a3b8; font-size: 11px; }
+.ss-recent-chip:active { transform: scale(0.95); }
+.ss-recent-chip.ss-suggest { border-color: #d1fae5; background: #f0fdf4; color: var(--ss-green); }
+.ss-recent-chip.ss-suggest i { color: var(--ss-green); }
+
+/* شريط الترشيح */
+.ss-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 4px;
+    scrollbar-width: none;
+}
+.ss-chips::-webkit-scrollbar { display: none; }
+.ss-chip {
+    flex-shrink: 0;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.ss-chip span {
+    background: #eef2f7;
+    color: #64748b;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 11px;
+}
+.ss-chip.active {
+    background: linear-gradient(135deg, var(--ss-green), var(--ss-green-2));
+    border-color: var(--ss-green);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(4, 85, 58, 0.28);
+}
+.ss-chip.active span { background: rgba(255, 255, 255, 0.24); color: #fff; }
+
+/* عناوين الأقسام داخل النتائج */
+.ss-sec {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #94a3b8;
+    margin: 14px 2px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ss-sec i { color: var(--ss-gold); }
+
+.ss-list { display: flex; flex-direction: column; }
+
+/* بطاقة النتيجة */
+.ss-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-radius: 15px;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: transform 0.14s, box-shadow 0.14s;
+    border: 1px solid #f1f5f9;
+}
+.ss-card:active { transform: scale(0.98); box-shadow: 0 4px 16px rgba(4, 85, 58, 0.14); }
+.ss-img {
+    flex-shrink: 0;
+    width: 58px;
+    height: 58px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #f1f5f9;
+}
+.ss-body { flex: 1; min-width: 0; }
+.ss-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ss-shop {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748b;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.ss-shop i { color: var(--ss-green); font-size: 10px; }
+.ss-subrow { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.ss-rate, .ss-dist, .ss-open, .ss-closed {
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.ss-rate { color: var(--ss-gold); }
+.ss-dist { color: #94a3b8; }
+.ss-open { color: #16a34a; }
+.ss-closed { color: #ef4444; }
+.ss-statdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: inline-block; }
+.ss-price {
+    flex-shrink: 0;
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--ss-green);
+    text-align: center;
+    line-height: 1.1;
+}
+.ss-price small { display: block; font-size: 9px; font-weight: 700; color: #94a3b8; }
+.ss-arrow { color: #cbd5e1; font-size: 1.1rem; flex-shrink: 0; }
+
+/* أقسام كـ chips */
+.ss-cats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.ss-cat {
+    border: 1.5px solid #d1fae5;
+    background: #f0fdf4;
+    border-radius: 14px;
+    padding: 9px 14px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--ss-green);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.14s;
+}
+.ss-cat:active { transform: scale(0.95); }
+
+/* الظهور المتدرّج للنتائج (حصري) */
+.ss-in { opacity: 0; animation: ssItemIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* الحالة الفارغة */
+.ss-empty { text-align: center; padding: 48px 20px; color: #94a3b8; }
+.ss-empty-ic { font-size: 48px; margin-bottom: 10px; animation: ssBob 1.8s ease-in-out infinite; }
+.ss-empty h6 { font-size: 15px; font-weight: 800; color: #475569; margin-bottom: 4px; }
+.ss-empty p { font-size: 13px; }
+
+/* هيكل التحميل (Skeleton) */
+.ss-skel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-radius: 15px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.ss-skel-img, .ss-skel-l1, .ss-skel-l2 {
+    background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%);
+    background-size: 200% 100%;
+    animation: ssShine 1.3s ease-in-out infinite;
+    border-radius: 8px;
+}
+.ss-skel-img { width: 58px; height: 58px; border-radius: 12px; flex-shrink: 0; }
+.ss-skel-lines { flex: 1; }
+.ss-skel-l1 { height: 13px; width: 60%; margin-bottom: 8px; }
+.ss-skel-l2 { height: 11px; width: 40%; }
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes ssTriggerIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ssShimmer {
+    0% { left: -60%; }
+    60%, 100% { left: 130%; }
+}
+@keyframes ssIconPulse {
+    0%, 100% { box-shadow: 0 3px 10px rgba(4, 85, 58, 0.32); }
+    50% { box-shadow: 0 3px 18px rgba(4, 85, 58, 0.55); }
+}
+@keyframes ssCaret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes ssItemIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ssBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes ssShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* دعم الوضع الليلي */
+body.dark-mode .ss-panel { background: #0f172a; }
+body.dark-mode .ss-inputwrap { background: #1e293b; }
+body.dark-mode #ss-input { color: #f1f5f9; }
+body.dark-mode .ss-card { background: #1e293b; border-color: #263449; }
+body.dark-mode .ss-name { color: #f1f5f9; }
+body.dark-mode .ss-recent-chip,
+body.dark-mode .ss-chip { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+body.dark-mode .ss-skel { background: #1e293b; }
+
+/* تقليل الحركة لمن يفضّل ذلك */
+@media (prefers-reduced-motion: reduce) {
+    .ss-trigger::after, .ss-trigger-icon, .ss-in, .ss-empty-ic, .ss-skel-img, .ss-skel-l1, .ss-skel-l2 { animation: none; }
+    .ss-in { opacity: 1; }
+    #ss-trigger-hint::after { animation: none; }
+}

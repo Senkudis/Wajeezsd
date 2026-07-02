@@ -4,13 +4,12 @@
  * Note: Requires backend WebSocket support
  */
 
+
+
 const LiveTracking = {
     trackingMap: null,
-    captainMarker: null,
-    clientMarker: null,
-    routeLine: null,
-    updateInterval: null,
-    orderId: null,
+
+    socketHandler: null,
 
     /**
      * بدء التتبع
@@ -27,155 +26,133 @@ const LiveTracking = {
         this.updateCaptainLocation(captainLocation);
         this.updateClientLocation(clientLocation);
 
-        // بدء التحديث الدوري (كل 5 ثواني)
-        this.updateInterval = setInterval(() => {
-            this.fetchCaptainLocation();
-        }, 5000);
+        // الاستماع لتحديثات الموقع الحية عبر المقبس (Socket.IO)
+        if (window.socket) {
+            this.socketHandler = (data) => {
+                if (data.orderId === this.orderId) {
+                    this.updateCaptainLocation({ lat: data.lat, lng: data.lng });
+                    this.checkProximity();
+                }
+            };
+            window.socket.on('captain_location_updated', this.socketHandler);
+        } else {
+            console.warn('Socket is not connected. Live tracking defaults to initial location.');
+        }
     },
 
     /**
      * إيقاف التتبع
      */
     stopTracking: function () {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
+        if (window.socket && this.socketHandler) {
+            window.socket.off('captain_location_updated', this.socketHandler);
+            this.socketHandler = null;
         }
     },
 
     /**
      * تهيئة خريطة التتبع
      */
-    initTrackingMap: function () {
+    initTrackingMap: async function () {
         const mapElement = document.getElementById('tracking-map');
         if (!mapElement) return;
 
-        // إنشاء الخريطة
-        this.trackingMap = L.map('tracking-map').setView([15.5007, 32.5599], 13);
+        const GoogleMap = (window.Capacitor && window.Capacitor.Plugins)
+            ? (window.Capacitor.Plugins.GoogleMap || window.Capacitor.Plugins.CapacitorGoogleMaps)
+            : null;
 
-        // إضافة طبقة الخريطة
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(this.trackingMap);
+        if (!GoogleMap) {
+            console.error('Critical Error: GoogleMap plugin is not registered in Capacitor.Plugins.');
+            return;
+        }
+
+        try {
+            // Force layout so the plugin can measure the element
+            mapElement.style.display = 'block';
+            mapElement.style.width = '100%';
+            mapElement.style.minHeight = '400px';
+            await new Promise(r => requestAnimationFrame(r));
+            await new Promise(r => requestAnimationFrame(r));
+            await new Promise(r => setTimeout(r, 100)); // settle لـ native layer
+
+            const rect = mapElement.getBoundingClientRect();
+            const mapWidth  = Math.round(rect.width  || window.innerWidth);
+            const mapHeight = Math.round(rect.height || 400);
+            const mapX      = Math.round(rect.x || 0);
+            const mapY      = Math.round(rect.y || 0);
+
+            // ID فريد لكل session — يتجنب deadlock مع instances قديمة
+            const sessionId = 'wajeezsd-map-tracking-' + Date.now();
+
+            // timeout أمان 8 ثوانٍ — لا تعليق أبداً
+            const newMap = await Promise.race([
+                GoogleMap.create({
+                    id: sessionId,
+                    element: mapElement,
+                    apiKey: (window.getMapsApiKey ? await window.getMapsApiKey() : ''),
+                    config: {
+                        width:  mapWidth,
+                        height: mapHeight,
+                        x:      mapX,
+                        y:      mapY,
+                        center: { lat: 15.6445, lng: 32.4777 },
+                        zoom: 13,
+                        androidLiteMode: false,
+                    },
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('MAP_CREATION_TIMEOUT')), 8000))
+            ]);
+
+            await newMap.addMarker({
+                coordinate: { lat: 15.6445, lng: 32.4777 },
+                title: 'Wajeez Location',
+            });
+
+            this.trackingMap = newMap;
+            console.log('✅ Tracking map created:', sessionId);
+
+        } catch (error) {
+            if (error.message === 'MAP_CREATION_TIMEOUT') {
+                console.error('⏰ Tracking map creation timed out — UI protected from freeze.');
+            } else {
+                console.error('Error creating Native Google Map:', error);
+            }
+        }
     },
 
     /**
      * تحديث موقع الكابتن
      */
     updateCaptainLocation: function (location) {
-        if (!this.trackingMap) return;
-
-        const { lat, lng } = location;
-
-        // إنشاء أو تحديث علامة الكابتن
-        if (!this.captainMarker) {
-            const captainIcon = L.divIcon({
-                className: 'captain-marker',
-                html: '<div style="background: #0a8754; color: white; padding: 8px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"><i class="bi bi-person-fill"></i></div>',
-                iconSize: [40, 40]
-            });
-
-            this.captainMarker = L.marker([lat, lng], { icon: captainIcon })
-                .addTo(this.trackingMap)
-                .bindPopup('الكابتن 🚗');
-        } else {
-            // تحريك العلامة بسلاسة
-            this.captainMarker.setLatLng([lat, lng]);
-        }
-
-        // تحديث الخط
-        this.updateRoute();
-
-        // تحديث العرض
-        this.fitBounds();
+        // Disabled Leaflet logic
     },
 
     /**
      * تحديث موقع العميل
      */
     updateClientLocation: function (location) {
-        if (!this.trackingMap) return;
-
-        const { lat, lng } = location;
-
-        if (!this.clientMarker) {
-            const clientIcon = L.divIcon({
-                className: 'client-marker',
-                html: '<div style="background: #dc3545; color: white; padding: 8px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"><i class="bi bi-geo-alt-fill"></i></div>',
-                iconSize: [40, 40]
-            });
-
-            this.clientMarker = L.marker([lat, lng], { icon: clientIcon })
-                .addTo(this.trackingMap)
-                .bindPopup('موقعك 📍');
-        }
+        // Disabled Leaflet logic
     },
 
     /**
      * تحديث الخط بين الكابتن والعميل
      */
     updateRoute: function () {
-        if (!this.captainMarker || !this.clientMarker) return;
-
-        const captainPos = this.captainMarker.getLatLng();
-        const clientPos = this.clientMarker.getLatLng();
-
-        if (this.routeLine) {
-            this.trackingMap.removeLayer(this.routeLine);
-        }
-
-        this.routeLine = L.polyline([captainPos, clientPos], {
-            color: '#0a8754',
-            weight: 3,
-            opacity: 0.7,
-            dashArray: '10, 10'
-        }).addTo(this.trackingMap);
+        // Disabled Leaflet logic
     },
 
     /**
      * ضبط العرض ليشمل جميع العلامات
      */
     fitBounds: function () {
-        if (!this.captainMarker || !this.clientMarker) return;
-
-        const group = L.featureGroup([this.captainMarker, this.clientMarker]);
-        this.trackingMap.fitBounds(group.getBounds().pad(0.1));
-    },
-
-    /**
-     * جلب موقع الكابتن من السيرفر
-     */
-    fetchCaptainLocation: async function () {
-        if (!this.orderId) return;
-
-        try {
-            // هنا يجب الاتصال بالـ API
-            // const response = await fetch(`/api/orders/${this.orderId}/captain-location`);
-            // const data = await response.json();
-            // this.updateCaptainLocation(data.location);
-
-            // مثال تجريبي (حركة عشوائية)
-            if (this.captainMarker) {
-                const currentPos = this.captainMarker.getLatLng();
-                const newLat = currentPos.lat + (Math.random() - 0.5) * 0.001;
-                const newLng = currentPos.lng + (Math.random() - 0.5) * 0.001;
-                this.updateCaptainLocation({ lat: newLat, lng: newLng });
-            }
-        } catch (error) {
-            console.error('Error fetching captain location:', error);
-        }
+        // Disabled Leaflet logic
     },
 
     /**
      * حساب المسافة المتبقية
      */
     getDistance: function () {
-        if (!this.captainMarker || !this.clientMarker) return 0;
-
-        const captainPos = this.captainMarker.getLatLng();
-        const clientPos = this.clientMarker.getLatLng();
-
-        return (captainPos.distanceTo(clientPos) / 1000).toFixed(2); // بالكيلومتر
+        return 0;
     },
 
     /**

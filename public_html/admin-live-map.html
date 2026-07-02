@@ -1,184 +1,341 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الخريطة المباشرة | وصل-لي</title>
-
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- Bootstrap RTL -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>الخريطة المباشرة | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', sans-serif; overflow: hidden; }
 
-        body {
-            font-family: 'Cairo', sans-serif;
-            overflow: hidden;
-        }
+        #map { width: 100%; height: 100vh; }
 
-        #map {
-            width: 100%;
-            height: 100vh;
-        }
-
+        /* ── Header panel ── */
         .map-header {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            background: white;
-            padding: 15px 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            position: absolute; top: 16px; right: 16px; z-index: 1000;
+            background: white; border-radius: 16px;
+            padding: 14px 20px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            min-width: 230px;
         }
-
         .map-header h1 {
-            font-size: 20px;
-            margin: 0;
-            color: #2c3e50;
+            font-size: 17px; font-weight: 900; color: #1a202c;
+            display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
         }
+        .map-header h1 i { color: #04553A; }
+        #connectionStatus {
+            font-size: 12px; font-weight: 700; color: #22c55e;
+            display: flex; align-items: center; gap: 5px;
+        }
+        #connectionStatus::before {
+            content: ''; display: inline-block;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: currentColor; animation: blink 1.4s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+        /* ── Stats panel ── */
         .stats-panel {
+            position: absolute; top: 16px; left: 16px; z-index: 1000;
+            background: white; border-radius: 16px; padding: 16px 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15); min-width: 170px;
+        }
+        .stats-panel h6 {
+            font-size: 11px; font-weight: 700; color: #718096;
+            letter-spacing: .5px; text-transform: uppercase; margin-bottom: 12px;
+        }
+        .stat-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+        }
+        .stat-row:last-child { margin-bottom: 0; }
+        .stat-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+        }
+        .stat-dot.green  { background: #22c55e; }
+        .stat-dot.gray   { background: #9ca3af; }
+        .stat-dot.all    { background: #3b82f6; }
+        .stat-label { font-size: 13px; color: #555; flex: 1; }
+        .stat-value { font-size: 20px; font-weight: 900; color: #1a202c; }
+
+        /* ── Legend ── */
+        .legend {
+            position: absolute; bottom: 70px; right: 16px; z-index: 1000;
+            background: white; border-radius: 14px; padding: 12px 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12); font-size: 12px;
+        }
+        .legend h6 { font-size: 11px; font-weight: 700; color: #718096; margin-bottom: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+        .legend-item:last-child { margin-bottom: 0; }
+        .leg-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+        /* ── Back button ── */
+        .back-btn {
+            position: absolute; bottom: 20px; right: 16px; z-index: 1000;
+            background: #1a202c; color: white; border: none; border-radius: 30px;
+            padding: 12px 22px; font-size: 14px; font-weight: 700;
+            font-family: 'Cairo',sans-serif; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            transition: background .2s;
+        }
+        .back-btn:hover { background: #2d3748; }
+
+        /* ── Refresh button ── */
+        .refresh-btn {
+            position: absolute; bottom: 20px; left: 16px; z-index: 1000;
+            background: #04553A; color: white; border: none; border-radius: 50%;
+            width: 48px; height: 48px; font-size: 18px; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(10,135,84,0.35);
+            transition: transform .2s, background .2s;
+        }
+        .refresh-btn:hover { transform: rotate(180deg); background: #076b43; }
+
+        /* Loading overlay */
+        #mapLoader {
+            position: absolute; inset: 0; background: rgba(255,255,255,0.8);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 500; font-family: 'Cairo',sans-serif;
+            font-size: 15px; color: #555;
+        }
+        #mapLoader i { font-size: 36px; color: #04553A; margin-bottom: 12px; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ══════════════════════════════════════════
+           🔍 SEARCH BAR
+        ══════════════════════════════════════════ */
+        #searchBar {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 1000;
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-            min-width: 200px;
+            width: min(380px, calc(100vw - 380px));
         }
 
-        .stat-item {
+        .search-box {
             display: flex;
             align-items: center;
+            background: white;
+            border-radius: 16px;
+            padding: 10px 16px;
             gap: 10px;
-            margin-bottom: 10px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+            border: 2px solid transparent;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .search-box:focus-within {
+            border-color: #04553A;
+            box-shadow: 0 8px 30px rgba(10,135,84,0.25);
         }
 
-        .stat-item:last-child {
-            margin-bottom: 0;
-        }
+        .search-box i { color: #9ca3af; font-size: 15px; flex-shrink: 0; }
+        .search-box i.searching { color: #04553A; animation: spin .7s linear infinite; }
 
-        .stat-icon {
-            width: 40px;
-            height: 40px;
+        #captainSearchInput {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-family: 'Cairo', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a202c;
+            background: transparent;
+            direction: rtl;
+        }
+        #captainSearchInput::placeholder { color: #9ca3af; font-weight: 400; }
+
+        #searchClearBtn {
+            display: none;
+            background: #f1f5f9;
+            border: none;
             border-radius: 50%;
-            display: flex;
+            width: 26px; height: 26px;
+            font-size: 12px;
+            color: #64748b;
+            cursor: pointer;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            flex-shrink: 0;
+            transition: background .15s;
         }
+        #searchClearBtn:hover { background: #e2e8f0; }
+        #searchClearBtn.visible { display: flex; }
 
-        .stat-icon.online {
-            background: #d4edda;
-            color: #155724;
+        /* Dropdown */
+        #searchDropdown {
+            display: none;
+            margin-top: 8px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+            max-height: 280px;
+            overflow-y: auto;
         }
+        #searchDropdown.open { display: block; }
 
-        .stat-icon.offline {
-            background: #f8d7da;
-            color: #721c24;
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .15s;
         }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover,
+        .search-result-item.highlighted { background: #f0fdf4; }
 
-        .back-btn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
+        .sri-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
         }
+        .sri-avatar.available { background: #dcfce7; }
+        .sri-avatar.busy      { background: #fef3c7; }
+        .sri-avatar.offline   { background: #f1f5f9; }
 
-        .leaflet-popup-content-wrapper {
-            border-radius: 10px;
-            font-family: 'Cairo', sans-serif;
+        .sri-info { flex: 1; min-width: 0; }
+        .sri-name {
+            font-weight: 700; font-size: 14px; color: #1a202c;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
+        .sri-name mark {
+            background: #bbf7d0; color: #065f46; border-radius: 3px;
+            padding: 0 2px;
+        }
+        .sri-phone { font-size: 12px; color: #6b7280; }
+        .sri-status-badge {
+            font-size: 11px; font-weight: 700; border-radius: 20px;
+            padding: 2px 8px; flex-shrink: 0;
+        }
+        .sri-status-badge.available { background: #dcfce7; color: #16a34a; }
+        .sri-status-badge.busy      { background: #fef3c7; color: #d97706; }
+        .sri-status-badge.offline   { background: #f1f5f9; color: #6b7280; }
 
-        .captain-popup {
+        .search-no-result {
+            padding: 20px 16px;
             text-align: center;
-            padding: 10px;
+            color: #9ca3af;
+            font-size: 13px;
         }
+        .search-no-result i { display: block; font-size: 24px; margin-bottom: 6px; opacity: .4; }
 
-        .captain-popup h5 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-        }
-
-        .captain-popup .status {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .captain-popup .status.available {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .captain-popup .status.busy {
-            background: #fff3cd;
-            color: #856404;
+        /* ── Highlighted captain pulse ring ── */
+        @keyframes pulseRing {
+            0%   { transform: scale(1);   opacity: .8; }
+            70%  { transform: scale(2.2); opacity: 0;  }
+            100% { transform: scale(2.2); opacity: 0;  }
         }
     </style>
-    <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css">
+
+    <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/auth-helper.js"></script>
 </head>
-
 <body>
-    <div class="map-header">
-        <h1><i class="bi bi-geo-alt-fill text-primary"></i> الخريطة المباشرة للكباتن</h1>
-        <small class="text-muted">تحديث فوري لمواقع الكباتن النشطين</small>
-    </div>
 
-    <div class="stats-panel">
-        <div class="stat-item">
-            <div class="stat-icon online">
-                <i class="bi bi-check-circle-fill"></i>
-            </div>
-            <div>
-                <div style="font-size: 24px; font-weight: bold; color: #27ae60;" id="onlineCount">0</div>
-                <small class="text-muted">متصل</small>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-icon offline">
-                <i class="bi bi-x-circle-fill"></i>
-            </div>
-            <div>
-                <div style="font-size: 24px; font-weight: bold; color: #e74c3c;" id="offlineCount">0</div>
-                <small class="text-muted">غير متصل</small>
-            </div>
-        </div>
-    </div>
-
-    <button class="btn btn-primary back-btn" onclick="window.location.href='admin.html'">
-        <i class="bi bi-arrow-right"></i> العودة للوحة التحكم
-    </button>
-
+    <!-- Map Container -->
     <div id="map"></div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Loading Overlay -->
+    <div id="mapLoader">
+        <i class="fas fa-spinner"></i>
+        جاري تحميل الخريطة...
+    </div>
+
+    <!-- Header Panel -->
+    <div class="map-header">
+        <h1><i class="fas fa-satellite-dish"></i> الخريطة المباشرة</h1>
+        <div id="connectionStatus">متصل</div>
+        <select id="liveCitySelector" onchange="changeLiveCity()" style="margin-top: 10px; width: 100%; padding: 6px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
+            <option value="Khartoum">الخرطوم - أم درمان</option>
+            <option value="PortSudan">البحر الأحمر - بورتسودان</option>
+        </select>
+    </div>
+
+    <!-- Stats Panel -->
+    <div class="stats-panel">
+        <h6>إحصائيات</h6>
+        <div class="stat-row">
+            <div class="stat-dot green"></div>
+            <div class="stat-label">نشط على الخريطة</div>
+            <div class="stat-value" id="onlineCount">0</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-dot gray"></div>
+            <div class="stat-label">غير متصل</div>
+            <div class="stat-value" id="offlineCount">0</div>
+        </div>
+        <div class="stat-row">
+            <div class="stat-dot all"></div>
+            <div class="stat-label">إجمالي الكباتن</div>
+            <div class="stat-value" id="totalCount">—</div>
+        </div>
+    </div>
+
+    <!-- 🔍 Search Bar -->
+    <div id="searchBar">
+        <div class="search-box">
+            <i class="fas fa-search" id="searchIcon"></i>
+            <input
+                type="text"
+                id="captainSearchInput"
+                placeholder="ابحث عن كابتن بالاسم أو رقم الهاتف..."
+                autocomplete="off"
+                spellcheck="false"
+            >
+            <button id="searchClearBtn" title="مسح البحث" onclick="clearSearch()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="searchDropdown"></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <h6>دلالة الألوان</h6>
+        <div class="legend-item"><div class="leg-dot" style="background:#16a34a;"></div> متاح</div>
+        <div class="legend-item"><div class="leg-dot" style="background:#d97706;"></div> مشغول</div>
+        <div class="legend-item"><div class="leg-dot" style="background:#6b7280;"></div> غير متصل</div>
+        <div class="legend-item"><div class="leg-dot" style="background:#f59e0b;border:2px solid #92400e;"></div> مُحدَّد ⭐</div>
+    </div>
+
+    <!-- Back Button -->
+    <button class="back-btn" onclick="window.location.href='admin.html'">
+        <i class="fas fa-arrow-right"></i> لوحة التحكم
+    </button>
+
+    <!-- Refresh Button -->
+    <button class="refresh-btn" onclick="loadInitialCaptains()" title="تحديث المواقع">
+        <i class="fas fa-sync-alt"></i>
+    </button>
 
     <!-- Socket.io -->
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
 
+    <!-- Google Maps callback setup -->
+    <script>
+        window.initAdminMap = function () {
+            window._adminMapReady = true;
+            // Hide loader
+            const loader = document.getElementById('mapLoader');
+            if (loader) loader.style.display = 'none';
+            if (window._adminMapInit) window._adminMapInit();
+        };
+    </script>
+
+    <!-- Google Maps JS API — key served centrally from env via /api/config -->
+    <script src="js/maps-loader.js"></script>
+    <script>loadGoogleMaps({ callback: 'initAdminMap' });</script>
+
+    <!-- Admin Map Logic -->
     <script src="js/admin-live-map.js"></script>
-    <!-- Auth Helper & App Core -->
-    <script src="js/auth-helper.js"></script>
-    <script type="module" src="js/app-core.js"></script>
-    <script type="module" src="js/native-notifications.js"></script>
-</body>
 
+</body>
 </html>

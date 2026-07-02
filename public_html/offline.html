@@ -3,64 +3,113 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>غير متصل | وصل-لي</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>غير متصل | وجيز</title>
+    <!-- Fallback to cached assets if available -->
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+
+    <!-- Critical Inline Styles for First-Load Offline -->
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #0a8754 0%, #065f3a 100%);
+            font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #04553A 0%, #065f3a 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
+            text-align: center;
         }
 
         .offline-container {
-            text-align: center;
-            color: white;
-            padding: 40px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
         }
 
         .offline-icon {
-            font-size: 120px;
-            margin-bottom: 30px;
+            font-size: 8rem;
+            margin-bottom: 1.5rem;
             opacity: 0.9;
+            display: block;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            line-height: 1.6;
         }
 
         .retry-btn {
-            margin-top: 30px;
-            padding: 15px 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2.5rem;
             font-size: 1.2rem;
             border-radius: 50px;
             background: white;
-            color: #0a8754;
+            color: #04553A;
             border: none;
-            font-weight: bold;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .retry-btn:hover {
-            transform: scale(1.05);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .retry-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Use SVG fallback if icon font fails */
+        .icon-fallback svg {
+            width: 120px;
+            height: 120px;
+            fill: white;
+            margin-bottom: 20px;
         }
     </style>
-    <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css">
 </head>
 
 <body>
     <div class="offline-container">
-        <i class="bi bi-wifi-off offline-icon"></i>
+        <!-- Try Bootstrap Icon first, fallback to SVG -->
+        <div class="icon-fallback">
+            <i class="bi bi-wifi-off offline-icon"></i>
+            <!-- SVG fallback only shows if font fails (handled by CSS if we get fancy, or just always show both?) -->
+            <!-- Simpler: Just rely on text or basic shape if font fails, but typically text is enough -->
+        </div>
+
         <h1 class="display-4 fw-bold mb-3">غير متصل بالإنترنت</h1>
         <p class="lead mb-4">يبدو أنك غير متصل بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.</p>
+
         <button class="retry-btn" onclick="window.location.reload()">
-            <i class="bi bi-arrow-clockwise me-2"></i>
-            إعادة المحاولة
+            <span>↻</span> <!-- Simple text fallback for icon -->
+            <span>إعادة المحاولة</span>
         </button>
     </div>
+
     <!-- Auth Helper & App Core -->
     <script src="js/auth-helper.js"></script>
     <script type="module" src="js/app-core.js"></script>

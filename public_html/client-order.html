@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>تسوق | وجيز</title>
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#04553A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/splash.css">
+
+    <script src="js/config.js"></script>
+    <script src="js/auth-helper.js"></script>
+
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f0f4f8; padding-bottom: 90px; margin: 0; }
+
+        /* ─── Hero Section ─── */
+        .order-hero {
+            background: linear-gradient(160deg, #0a1628 0%, #0d3b2e 45%, #04553A 100%);
+            padding: 52px 20px 70px;
+            position: relative;
+            overflow: hidden;
+        }
+        .order-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .order-hero::after {
+            content: '';
+            position: absolute; bottom: -1px; left: 0; right: 0; height: 48px;
+            background: #f0f4f8;
+            clip-path: ellipse(55% 100% at 50% 100%);
+        }
+        .hero-logo {
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .hero-logo img { height: 48px; width: auto; object-fit: contain; }
+        .hero-greeting { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 600; }
+        .hero-title { font-size: 26px; font-weight: 900; color: #fff; line-height: 1.2; margin: 4px 0 2px; }
+        .hero-subtitle { font-size: 13px; color: rgba(255,255,255,0.55); }
+
+        /* ─── Search Bar ─── */
+        .hero-search {
+            margin-top: 20px;
+            position: relative;
+        }
+        .hero-search input {
+            width: 100%;
+            padding: 14px 50px 14px 18px;
+            border: none;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(12px);
+            color: #fff;
+            font-size: 14px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            outline: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .hero-search input::placeholder { color: rgba(255,255,255,0.5); }
+        .hero-search .search-icon {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.6); font-size: 18px;
+        }
+
+        /* ─── Content Area ─── */
+        .content-area {
+            margin-top: -20px;
+            padding: 0 16px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ─── Section Label ─── */
+        .section-label {
+            font-size: 16px; font-weight: 800; color: #1a2332;
+            margin: 20px 0 12px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .section-label::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(90deg, #e2e8f0, transparent);
+        }
+
+        /* ─── Category Grid ─── */
+        .cats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding-bottom: 4px;
+        }
+        @media (max-width: 340px) {
+            .cats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        .cat-chip {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 6px; padding: 14px 8px;
+            border-radius: 18px; cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            position: relative; overflow: hidden;
+            width: 100%;
+        }
+        .cat-chip:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .cat-chip:active { transform: scale(0.96); }
+        .cat-chip.active {
+            border-color: #04553A;
+            background: linear-gradient(135deg, #04553A, #0d5c3a);
+            box-shadow: 0 8px 24px rgba(10,135,84,0.35);
+            transform: translateY(-3px) scale(1.04);
+        }
+        .cat-chip .chip-icon {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; transition: transform 0.25s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .cat-chip.active .chip-icon { transform: scale(1.15); filter: brightness(10); }
+        .cat-chip .chip-label {
+            font-size: 11px; font-weight: 700; color: #374151;
+            text-align: center; line-height: 1.3;
+            word-break: break-word;
+            transition: color 0.25s;
+        }
+        .cat-chip.active .chip-label { color: #fff; }
+
+        /* ─── Category Note Banner ─── */
+        .cat-note-banner {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 1px solid #fde68a;
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex; align-items: flex-start; gap: 10px;
+            margin-bottom: 16px;
+            font-size: 13px; color: #92400e;
+        }
+
+        /* ─── Banners ─── */
+        #banners-section .carousel-item { border-radius: 16px; overflow: hidden; }
+        .banner-img, .home-banner-img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* ─── Place Cards — Premium Vertical ─── */
+        #places-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .place-card {
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+        }
+        .place-card:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .place-card-cover {
+            position: relative;
+            width: 100%;
+            height: 124px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .place-card-cover img {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: transform 0.4s;
+        }
+        .place-card:hover .place-card-cover img { transform: scale(1.06); }
+        /* تدرّج خفيف أسفل الصورة لإبراز الشارات */
+        .place-card-cover-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 45%);
+            pointer-events: none;
+        }
+        /* شارة الحالة: حبّة في الزاوية العلوية */
+        .place-card-status {
+            position: absolute; top: 8px; inset-inline-end: 8px;
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; font-size: 10px; font-weight: 800;
+            border-radius: 999px; color: #fff;
+            backdrop-filter: blur(4px); letter-spacing: 0.3px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        }
+        .place-card-status .status-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: #fff;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.35);
+        }
+        .place-card-status.open { background: rgba(10,135,84,0.92); }
+        .place-card-status.closed { background: rgba(220,38,38,0.9); }
+
+        .place-card-body {
+            display: flex; flex-direction: column;
+            padding: 11px 11px 13px;
+            flex-grow: 1;
+        }
+        .place-card-name {
+            font-size: 14px; font-weight: 800; color: #1f2937;
+            margin-bottom: 7px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+        /* صف المعلومات: تقييم · مشاهدات · مسافة */
+        .place-card-meta {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+            font-size: 11.5px; color: #6b7280; font-weight: 700;
+            margin-bottom: 11px;
+        }
+        .place-card-meta .meta-item {
+            display: inline-flex; align-items: center; gap: 3px;
+        }
+        .place-card-meta .meta-item i { font-size: 12px; }
+        .place-card-meta .meta-item.rating { color: #b45309; }
+        .place-card-meta .meta-item.rating i { color: #f59e0b; }
+        .place-card-meta .meta-item.views i { color: #6366f1; }
+        .place-card-meta .meta-item.dist i { color: #04553A; }
+        .place-card-meta .meta-item.is-new {
+            color: #04553A; background: #ecfdf5; border-radius: 999px;
+            padding: 1px 8px; font-size: 10.5px;
+        }
+        .place-card-meta .meta-dot { color: #d1d5db; }
+
+        .place-card-footer {
+            display: flex; align-items: center; gap: 6px;
+            margin-top: auto;
+        }
+        .place-card-cta {
+            flex: 1;
+            background: linear-gradient(135deg, #04553A, #059669);
+            color: white;
+            border: none; border-radius: 10px;
+            padding: 7px 10px; font-size: 12px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center; gap: 4px;
+            transition: all 0.2s; cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+        }
+        .place-card-cta:active { transform: scale(0.97); }
+        .place-card-menu-btn {
+            background: #fffbeb; color: #d97706; border: 1.5px solid #fde68a;
+            border-radius: 10px; padding: 7px 8px; font-size: 11px; font-weight: 700;
+            display: flex; align-items: center; gap: 3px; cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* ─── Skeleton Loading ─── */
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e5e5e5 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+        .skeleton-chip {
+            height: 95px; border-radius: 18px;
+        }
+        .skeleton-card {
+            border-radius: 20px; overflow: hidden; margin-bottom: 14px;
+        }
+        .skeleton-cover { height: 160px; width: 100%; }
+        .skeleton-body { padding: 14px 16px; display: flex; gap: 10px; flex-direction: column; }
+        .skeleton-line { height: 14px; border-radius: 6px; }
+
+        /* ─── Back Button in places header ─── */
+        .places-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 18px 0 4px;
+        }
+        .back-btn {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: white; border: none;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            color: #04553A; font-size: 18px; cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .back-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(10,135,84,0.2); }
+        .places-title {
+            font-size: 20px; font-weight: 900; color: #1a2332;
+        }
+        .places-count {
+            font-size: 13px; color: #6b7280; font-weight: 600; margin-right: auto;
+            background: #f1f5f9; padding: 3px 10px; border-radius: 10px;
+        }
+
+        /* ─── Empty State ─── */
+        .empty-state {
+            text-align: center; padding: 48px 24px;
+        }
+        .empty-state .empty-icon {
+            font-size: 56px; margin-bottom: 16px; opacity: 0.3;
+        }
+        .empty-state h6 { font-size: 17px; font-weight: 800; color: #374151; }
+        .empty-state p { font-size: 14px; color: #9ca3af; }
+
+        /* ─── Guest View ─── */
+        .guest-card {
+            background: white; border-radius: 24px;
+            padding: 36px 24px; text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            margin-top: 8px;
+        }
+        .guest-icon-wrap {
+            width: 80px; height: 80px; border-radius: 24px;
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 36px;
+        }
+
+        /* ─── Place Details Bottom Sheet ─── */
+        .modal.bottom-sheet .modal-dialog {
+            margin: 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 100%;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .modal.bottom-sheet.show .modal-dialog {
+            transform: translateY(0);
+        }
+        .modal.bottom-sheet .modal-content {
+            border-radius: 28px 28px 0 0;
+            border: none;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        .modal-drag-handle {
+            width: 40px; height: 4px; border-radius: 2px;
+            background: #e2e8f0;
+            margin: 12px auto 4px;
+        }
+
+        /* ─── Contact Buttons in modal ─── */
+        .contact-btn {
+            border-radius: 14px; padding: 12px 16px;
+            font-size: 13px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            border: none; cursor: pointer; transition: all 0.2s; flex: 1;
+        }
+        .contact-btn.call {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            color: #1d4ed8;
+        }
+        .contact-btn.whatsapp {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            color: #166534;
+        }
+        .contact-btn.maps {
+            background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+            color: #991b1b;
+        }
+        .contact-btn.menu {
+            background: linear-gradient(135deg, #fffbeb, #fef9c3);
+            color: #92400e;
+        }
+        .contact-btn:hover { filter: brightness(0.95); transform: translateY(-1px); }
+
+        /* ─── How to Order Steps ─── */
+        .how-steps { padding: 4px 0; }
+        .how-step {
+            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px;
+        }
+        .step-num {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(135deg, #04553A, #0d5c3a);
+            color: white; font-size: 12px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px;
+        }
+        .step-text { font-size: 13px; color: #374151; line-height: 1.5; font-weight: 600; }
+        .step-text b { color: #04553A; }
+
+        /* ─── Order Form Card ─── */
+        .order-form-card {
+            background: #f8fafc;
+            border-radius: 18px;
+            padding: 18px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* ─── Upload Label ─── */
+        .upload-label {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 8px;
+            padding: 20px 16px; border-radius: 16px;
+            border: 2px dashed #04553A;
+            background: rgba(10,135,84,0.04);
+            cursor: pointer; min-height: 100px;
+            transition: all 0.2s;
+        }
+        .upload-label:hover {
+            background: rgba(10,135,84,0.08);
+            border-color: #0d5c3a;
+        }
+
+        /* ─── Submit Button ─── */
+        .btn-submit-order {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px; font-weight: 900;
+            border: none; border-radius: 18px; cursor: pointer;
+            background: linear-gradient(135deg, #04553A, #0d5c3a);
+            color: white;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 8px 24px rgba(10,135,84,0.4);
+            transition: all 0.2s;
+        }
+        .btn-submit-order:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(10,135,84,0.5); }
+        .btn-submit-order:active { transform: scale(0.98); }
+
+        /* ─── No search results message ─── */
+        .no-results-msg {
+            text-align: center; padding: 20px;
+            font-size: 14px; color: #9ca3af; font-weight: 600;
+        }
+
+        /* ─── 🔎 Unified Search Results (تسوق) ─── */
+        /* يمتدّ على كامل عرض الشبكة (#places-list grid) ويتدفّق عمودياً بسلاسة */
+        .search-results-wrap { grid-column: 1 / -1; display:block; }
+        .srf-bar { display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px; margin-bottom:4px; -webkit-overflow-scrolling:touch; }
+        .srf-bar::-webkit-scrollbar { display:none; }
+        .srf-chip {
+            flex:0 0 auto; border:1.5px solid #e5e7eb; background:#fff; color:#475569;
+            border-radius:99px; padding:6px 14px; font-size:12.5px; font-weight:800;
+            font-family:'Cairo',sans-serif; cursor:pointer; transition:all .15s; white-space:nowrap;
+        }
+        .srf-chip span { background:#f1f5f9; color:#64748b; border-radius:99px; padding:0 7px; font-size:11px; margin-right:3px; }
+        .srf-chip.active { background:#04553A; border-color:#04553A; color:#fff; }
+        .srf-chip.active span { background:rgba(255,255,255,0.25); color:#fff; }
+        .search-section-title { font-size:13px; font-weight:800; color:#04553A; margin:14px 2px 8px; display:flex; align-items:center; gap:6px; }
+        .srf-cats { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
+        .srf-cat {
+            border:1.5px solid #d1fae5; background:#ecfdf5; color:#04553A;
+            border-radius:12px; padding:8px 14px; font-size:13px; font-weight:700;
+            font-family:'Cairo',sans-serif; cursor:pointer; transition:all .15s;
+        }
+        .srf-cat:active { transform:scale(0.96); }
+        .search-result-card {
+            display:flex; align-items:center; gap:13px; background:#fff; border:1px solid #eef0f2;
+            border-radius:16px; padding:11px; margin-bottom:10px; cursor:pointer;
+            box-shadow:0 2px 12px rgba(0,0,0,0.05); transition:transform .12s, box-shadow .15s, border-color .15s;
+        }
+        .search-result-card:active { transform:scale(0.98); box-shadow:0 1px 5px rgba(0,0,0,0.06); }
+        .search-result-card:hover { border-color:#cbeadd; box-shadow:0 4px 16px rgba(4,85,58,0.1); }
+        .sr-img { width:62px; height:62px; border-radius:14px; object-fit:cover; flex-shrink:0; background:#f1f5f9; }
+        .sr-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+        .sr-name { font-size:14.5px; font-weight:800; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .sr-shop { font-size:12px; color:#64748b; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .sr-shop i { color:#94a3b8; font-size:11px; }
+        .sr-sub { font-size:11.5px; color:#64748b; font-weight:700; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .sr-dist { color:#04553A; }
+        .sr-rate { color:#b45309; }
+        .sr-rate i { color:#f59e0b; }
+        .sr-dot { display:inline-block; width:7px; height:7px; border-radius:50%; vertical-align:middle; }
+        .sr-open { color:#059669; font-weight:800; display:inline-flex; align-items:center; gap:4px; }
+        .sr-open .sr-dot { background:#22c55e; }
+        .sr-closed { color:#dc2626; font-weight:800; display:inline-flex; align-items:center; gap:4px; }
+        .sr-closed .sr-dot { background:#ef4444; }
+        .sr-price {
+            flex-shrink:0; font-size:15px; font-weight:900; color:#04553A; text-align:center;
+            background:#ecfdf5; border:1px solid #d1fae5; border-radius:12px; padding:7px 11px; line-height:1.1;
+        }
+        .sr-price small { display:block; font-size:9px; color:#65a30d; font-weight:700; margin-top:1px; }
+        .sr-arrow { color:#cbd5e1; font-size:15px; flex-shrink:0; }
+
+        /* Dark mode */
+        body.dark-mode .srf-chip { background:#1f2937; border-color:#374151; color:#9ca3af; }
+        body.dark-mode .srf-chip span { background:#374151; color:#cbd5e1; }
+        body.dark-mode .srf-chip.active { background:#10b981; border-color:#10b981; color:#06281d; }
+        body.dark-mode .srf-cat { background:#0f2922; border-color:#1a3a2e; color:#34d399; }
+        body.dark-mode .search-section-title { color:#34d399; }
+        body.dark-mode .search-result-card { background:#1f2937; border-color:#374151; box-shadow:0 2px 10px rgba(0,0,0,0.3); }
+        body.dark-mode .search-result-card:hover { border-color:#10b981; }
+        body.dark-mode .sr-name { color:#f9fafb; }
+        body.dark-mode .sr-shop { color:#9ca3af; }
+        body.dark-mode .sr-sub { color:#9ca3af; }
+        body.dark-mode .sr-dist { color:#34d399; }
+        body.dark-mode .sr-price { background:#0f2922; border-color:#1a3a2e; color:#34d399; }
+        body.dark-mode .sr-price small { color:#6ee7b7; }
+
+        /* ─── 🕘 Recent searches ─── */
+        #recent-searches-row { margin-bottom:14px; }
+        .recent-head { display:flex; align-items:center; justify-content:space-between; margin:2px 2px 8px; }
+        .recent-head span { font-size:13px; font-weight:800; color:#475569; display:flex; align-items:center; gap:6px; }
+        .recent-clear { background:none; border:none; color:#9ca3af; font-size:12px; font-weight:700; cursor:pointer; font-family:'Cairo',sans-serif; }
+        .recent-chips { display:flex; flex-wrap:wrap; gap:8px; }
+        .recent-chip {
+            border:1.5px solid #e5e7eb; background:#fff; color:#475569; border-radius:99px;
+            padding:7px 13px; font-size:12.5px; font-weight:700; font-family:'Cairo',sans-serif;
+            cursor:pointer; display:flex; align-items:center; gap:5px; transition:all .15s;
+        }
+        .recent-chip:active { transform:scale(0.96); }
+        .recent-chip i { color:#94a3b8; font-size:11px; }
+        body.dark-mode .recent-head span { color:#cbd5e1; }
+        body.dark-mode .recent-chip { background:#1f2937; border-color:#374151; color:#cbd5e1; }
+        body.dark-mode .recent-chip i { color:#6b7280; }
+
+        /* ─── Animations ─── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.35s ease forwards;
+        }
+        .fade-in-up:nth-child(1) { animation-delay: 0.05s; }
+        .fade-in-up:nth-child(2) { animation-delay: 0.10s; }
+        .fade-in-up:nth-child(3) { animation-delay: 0.15s; }
+        .fade-in-up:nth-child(4) { animation-delay: 0.20s; }
+        .fade-in-up:nth-child(5) { animation-delay: 0.25s; }
+
+        /* --- 💰 أزرار رفع/تنزيل السعر (±100) --- */
+        .price-input { text-align: center !important; font-weight: 800 !important; color: #04553A !important; }
+        .price-stepper .btn-price-step {
+            background: #04553A; color: #fff; border: none; width: 52px; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s ease, transform .08s ease;
+        }
+        .price-stepper .btn-price-step:hover { background: #086b43; }
+        .price-stepper .btn-price-step:active { transform: scale(0.92); background: #065a38; }
+        .price-stepper .btn-price-step:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .price-stepper .input-group-text { border-left: none; border-right: none; }
+        @keyframes priceBump { 0% { background-color: #d1fae5; } 100% { background-color: #fff; } }
+        .price-input.bumped { animation: priceBump .35s ease; }
+    </style>
+</head>
+
+<body>
+
+    <!-- ✅ FIX: إخفاء فوري للـ grid قبل DOMContentLoaded لمنع الفراغ المحرج للزائر -->
+    <script>
+        (function () {
+            if (!localStorage.getItem('token')) {
+                document.addEventListener('DOMContentLoaded', function () {
+                    const grid = document.getElementById('categories-grid');
+                    if (grid) grid.style.minHeight = '0';
+                });
+                // لا نُخفي الصفحة كلها — فقط نمنع الـ flash للـ grid
+                const styleEl = document.createElement('style');
+                styleEl.textContent = '#categories-grid { visibility: hidden; } #featured-section { min-height: 180px; }';
+                document.head.appendChild(styleEl);
+                // نُزيل الستايل المؤقت بعد DOMContentLoaded
+                window.addEventListener('DOMContentLoaded', () => styleEl.remove(), { once: true });
+            }
+        })();
+    </script>
+
+    <!-- Loading Splash Screen -->
+    <script>
+        if (!sessionStorage.getItem('splashShown')) {
+            document.write('<div class="app-splash" id="appSplash">' +
+                '<div class="splash-logo-card">' +
+                '<img src="logo-transparent.png" alt="وجيز" class="splash-logo app-logo">' +
+                '</div>' +
+                '<div class="splash-text">وجيز</div>' +
+                '<div class="splash-subtitle">خدمة التوصيل الذكية</div>' +
+                '<div class="splash-progress"><div class="splash-progress-bar"></div></div>' +
+                '<div class="splash-dots"><span></span><span></span><span></span></div>' +
+                '</div>');
+        }
+    </script>
+
+    <script>window.addEventListener('DOMContentLoaded', () => { const s = document.getElementById('appSplash'); if (s) { setTimeout(() => { s.classList.add('loaded'); sessionStorage.setItem('splashShown', '1') }, 800) } });</script>
+
+    <!-- ═══ HERO SECTION ═══ -->
+    <div class="order-hero">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <div>
+                <div class="hero-greeting">مرحباً</div>
+                <div class="hero-title">تسوّق من<br>المحلات القريبة</div>
+                <div class="hero-subtitle">توصيل سريع لباب بيتك</div>
+            </div>
+            <div class="hero-logo">
+                <img src="logo-mark-white.png" alt="وجيز">
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="hero-search">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" id="globalSearchInput"
+                placeholder="ابحث عن منتج أو متجر أو قسم..."
+                oninput="handleGlobalSearch(this.value)">
+        </div>
+    </div>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <div class="content-area">
+
+        <!-- Banners Slider -->
+        <div id="banners-section" style="display: none; margin-bottom: 24px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+            <div id="bannersCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3500">
+                <div class="carousel-inner" id="bannersInner">
+                    <!-- Banners injected here -->
+                </div>
+                <div class="carousel-indicators" id="bannersIndicators" style="margin-bottom: 0;"></div>
+            </div>
+        </div>
+
+        <!-- Categories View -->
+        <div id="categories-view">
+            <!-- 🕘 آخر عمليات بحثك (يُملأ من localStorage) -->
+            <div id="recent-searches-row" style="display:none;"></div>
+
+            <div class="section-label">
+                <i class="bi bi-grid-fill text-success" style="font-size:14px;"></i>
+                التصنيفات
+            </div>
+
+            <!-- Categories Grid (shows all at once) -->
+            <div class="cats-grid" id="categories-grid">
+                <!-- Skeletons -->
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+                <div class="skeleton skeleton-chip"></div>
+            </div>
+
+            <!-- Featured / All Places below categories when no category selected -->
+            <div id="featured-section" class="mt-3">
+                <!-- Populated by JS when no filter active -->
+            </div>
+        </div>
+
+        <!-- Places List View -->
+        <div id="places-view" class="d-none">
+            <div class="places-header">
+                <button class="back-btn" onclick="showCategories()">
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <div class="places-title" id="places-category-title">المحلات</div>
+                <div class="places-count" id="places-count-badge" style="display:none;"></div>
+            </div>
+            <div id="places-list">
+                <!-- Populated by loadPlaces() -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══ PLACE DETAILS BOTTOM SHEET ═══ -->
+    <div class="modal bottom-sheet fade" id="placeDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Drag Handle -->
+                <div class="modal-drag-handle"></div>
+
+                <!-- Cover Image -->
+                <div class="position-relative" style="height:200px; overflow:hidden;">
+                    <img src="" id="placeModalImage" class="w-100 h-100"
+                        style="object-fit:cover;" alt="Cover"
+                        onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800'">
+                    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 60%);"></div>
+                    <!-- Close -->
+                    <button type="button" data-bs-dismiss="modal"
+                        style="position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.4);border:none;color:white;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <!-- Status Badge -->
+                    <span id="placeModalStatus" class="position-absolute"
+                        style="bottom:14px;left:14px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;"></span>
+                    <!-- Name -->
+                    <h4 id="placeModalName"
+                        style="position:absolute;bottom:14px;right:14px;color:white;font-weight:900;margin:0;font-size:20px;text-shadow:0 2px 8px rgba(0,0,0,0.5);max-width:65%;">
+                        اسم المحل</h4>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body p-0">
+                    <!-- Distance Row -->
+                    <div style="padding:14px 18px 0;display:flex;align-items:center;gap:6px;">
+                        <i class="bi bi-geo-alt-fill text-success"></i>
+                        <span id="placeModalDistance" style="font-size:13px;color:#6b7280;font-weight:600;">يبعد -- كم</span>
+                        <span id="placeModalAddress" class="d-none" style="font-size:12px;color:#9ca3af;margin-right:auto;">
+                            <span class="address-text"></span>
+                        </span>
+                    </div>
+
+                    <!-- Action Buttons — Chat + Browse Products + Map -->
+                    <div style="padding:14px 18px;display:flex;gap:10px;">
+                        <button type="button" id="placeModalChatBtn" class="contact-btn" onclick="openMerchantChat()" style="background:linear-gradient(135deg, #f3f4f6, #e5e7eb);color:#1f2937;flex:1;">
+                            <i class="bi bi-chat-dots-fill"></i> محادثة التاجر
+                        </button>
+                        <a href="#" id="placeModalMap" target="_blank" class="contact-btn maps" style="flex:1;">
+                            <i class="bi bi-map-fill"></i> الموقع على الخريطة
+                        </a>
+                    </div>
+                    <div style="padding:0 18px 14px;display:flex;gap:10px;">
+                        <button type="button" id="btnBrowseProducts" class="contact-btn" onclick="goToShopDetail()" style="display:none;background:linear-gradient(135deg, #04553A, #065f3a);color:white;flex:1;font-size:14px;font-weight:800;">
+                            <i class="bi bi-box-seam-fill"></i> تصفح المنتجات واطلب
+                        </button>
+                        <div id="placeModalMenuContainer" class="d-none" style="flex:1;">
+                            <button type="button" id="placeModalMenuBtn" class="contact-btn menu w-100">
+                                <i class="bi bi-card-image"></i> المنيو
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Hidden inputs still needed for JS -->
+                    <input type="hidden" id="shopOrderPlaceId" value="">
+                    <input type="hidden" id="shopOrderDetails" value="">
+                    <input type="file" id="receiptImageInput" accept="image/*" style="display:none;" onchange="previewReceiptImage(this)">
+                    <div id="receiptPreviewContainer" class="d-none"></div>
+                    <img id="receiptPreview" src="" class="d-none">
+
+                    <!-- Divider -->
+                    <div style="height:8px;background:#f8fafc;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;"></div>
+
+                    <!-- How to Order Steps — updated flow -->
+                    <div style="padding:18px 18px 24px;">
+                        <div style="font-size:14px;font-weight:800;color:#1a2332;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+                            <i class="bi bi-list-ol text-success"></i> كيف تطلب؟
+                        </div>
+                        <div class="how-steps">
+                            <div class="how-step">
+                                <div class="step-num">1</div>
+                                <div class="step-text">اضغط <b>تصفح المنتجات</b> واختر ما تريده من المتجر</div>
+                            </div>
+                            <div class="how-step">
+                                <div class="step-num">2</div>
+                                <div class="step-text">تواصل مع المتجر عبر <b>محادثة التاجر</b> واتفق على السعر</div>
+                            </div>
+                            <div class="how-step">
+                                <div class="step-num">3</div>
+                                <div class="step-text">حوّل المبلغ مسبقاً واحفظ <b>إشعار الدفع</b></div>
+                            </div>
+                            <div class="how-step">
+                                <div class="step-num">4</div>
+                                <div class="step-text">ارجع لصفحة المنتجات واضغط <b>"اطلب"</b> وأرفق الإشعار</div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- end modal-body -->
+            </div><!-- end modal-content -->
+        </div><!-- end modal-dialog -->
+    </div><!-- end #placeDetailsModal -->
+
+    <!-- 🟢 Full Screen Map Overlay for Shop Orders -->
+    <div id="shop-map-overlay" class="d-none" style="position: fixed; inset: 0; z-index: 2147483647; background: #f4f6f8; overflow: hidden;">
+        <div id="shopOrderMapActual" style="position: absolute; inset: 0; width: 100vw; height: 100vh;"></div>
+
+        <!-- Search Bar (TOP of map) -->
+        <div style="position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 10003; width: 90%; max-width: 400px;">
+            <div class="input-group shadow-sm" style="border-radius: 50px; overflow: hidden;">
+                <span class="input-group-text bg-white border-0 ps-3"><i class="bi bi-search text-success"></i></span>
+                <input type="text" id="shopMapSearchInput" class="form-control border-0 fw-bold" placeholder="ابحث عن حي أو شارع..." style="font-size: 14px;" oninput="window.searchShopMapLocation(this.value)">
+                <button class="btn btn-success border-0 px-3 fw-bold" onclick="window.searchShopMapLocation(document.getElementById('shopMapSearchInput').value)" style="font-size:13px;">بحث</button>
+            </div>
+            <div id="shopMapSearchResults" style="display:none; max-height:180px; overflow-y:auto; border-radius:12px; margin-top:6px; background:white; box-shadow: 0 4px 16px rgba(0,0,0,0.15);"></div>
+        </div>
+
+        <!-- Geofence Warning Banner -->
+        <div id="shop-geofence-banner" style="display: none; position: absolute; top: 130px; left: 50%; transform: translateX(-50%); z-index: 10003; background-color: rgba(220, 53, 69, 0.95); color: white; padding: 12px 24px; border-radius: 50px; font-weight: bold; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); backdrop-filter: blur(4px);">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <span class="small" style="line-height: 1.4; display: inline-block;">عفواً، الموقع خارج منطقة التوصيل حالياً.</span>
+        </div>
+
+        <!-- Close Button -->
+        <div style="position: absolute; top: 20px; left: 20px; z-index: 10004;">
+            <button class="btn btn-light rounded-pill shadow" onclick="window.closeShopMapUI()">
+                <i class="bi bi-x-lg text-danger"></i> إغلاق
+            </button>
+        </div>
+
+        <!-- Shop Badge -->
+        <div id="shopMapBadge" style="position: absolute; top: 20px; right: 20px; z-index: 10004; background: white; border-radius: 50px; padding: 8px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; max-width: 180px;">
+            <i class="bi bi-shop-window text-success" style="font-size: 1.1rem;"></i>
+            <span id="shopMapBadgeName" style="font-size: 11px; font-weight: 700; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">المتجر</span>
+        </div>
+
+        <!-- Center Pin -->
+        <div class="position-absolute start-50 translate-middle" style="top: 50%; z-index: 10001; pointer-events: none; margin-top: -24px;">
+            <i class="bi bi-geo-alt-fill text-danger drop-shadow" style="font-size: 3rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));"></i>
+        </div>
+
+        <!-- Locate Me Button -->
+        <button onclick="window.shopMapLocateMe && window.shopMapLocateMe()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: #04553A; padding: 10px 16px;">
+            <i class="bi bi-crosshair2 fs-5"></i>
+            <span style="font-size: 12px;">موقعي</span>
+        </button>
+
+        <!-- Bottom Sheet -->
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: white; z-index: 10002; border-radius: 20px 20px 0 0; padding: 25px 20px; box-shadow: 0 -8px 25px rgba(0,0,0,0.15);">
+            <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill text-success me-2"></i> تأكيد موقع التوصيل والتفاصيل</h6>
+
+            <label class="form-label fw-bold small text-muted"><i class="bi bi-telephone-fill me-1 text-success"></i> رقم هاتف المستلم (للتواصل)</label>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-phone text-success"></i></span>
+                <input type="tel" id="shopOverlayPhone" class="form-control border-start-0 fw-bold" placeholder="09xxxxxxxx" oninput="if(window.pendingShopOrder) window.pendingShopOrder.dropoff.receiverPhone = this.value || '0000000000'">
+            </div>
+
+            <label class="form-label fw-bold small text-muted"><i class="bi bi-cash-coin me-1 text-success"></i> سعر التوصيل (قابل للتفاوض)</label>
+            <div class="input-group price-stepper input-group-lg mb-2">
+                <button type="button" id="shop-price-minus" class="btn btn-price-step" aria-label="إنقاص 100" title="إنقاص 100">
+                    <i class="bi bi-dash-lg"></i>
+                </button>
+                <input type="number" id="shopOverlayPrice" class="form-control price-input fw-bold text-success fs-5"
+                    inputmode="numeric" value="0" min="0" step="100">
+                <span class="input-group-text bg-white fw-bold text-muted">جنيه</span>
+                <button type="button" id="shop-price-plus" class="btn btn-price-step" aria-label="زيادة 100" title="زيادة 100">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+            <div class="text-center text-muted small mb-3" style="margin-top:-2px;">
+                <i class="bi bi-info-circle"></i> اضغط + أو − لتعديل السعر بمقدار 100 ج.س
+            </div>
+
+            <button id="btnFinalizeShopOrder" class="btn btn-success w-100 rounded-pill py-3 fw-bold shadow" onclick="submitFinalShopOrder()">
+                <i class="bi bi-check-circle-fill me-1"></i> تأكيد الموقع وإرسال الطلب
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="mobile-nav-glass">
+        <a href="index.html" class="nav-item-link">
+            <i class="bi bi-house-door"></i>
+            <span class="small d-block">الرئيسية</span>
+        </a>
+        <a href="client-order.html" class="nav-item-link active">
+            <i class="bi bi-shop"></i>
+            <span class="small d-block">تسوق</span>
+        </a>
+        <a href="client-my-orders.html" class="nav-item-link">
+            <i class="bi bi-box-seam"></i>
+            <span class="small d-block">طلباتي</span>
+        </a>
+        <a href="notifications.html" class="nav-item-link">
+            <i class="bi bi-bell"></i>
+            <span class="small d-block">الإشعارات</span>
+        </a>
+    </nav>
+
+    <script src="js/maps-loader.js"></script>
+    <script>loadGoogleMaps({ libraries: 'geometry,places' });</script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="notification-toast.js"></script>
+    <script src="vendor/image-compression/browser-image-compression.js"></script>
+    <script src="js/console-cleaner.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="js/city-service.js"></script>
+    <script type="module" src="js/app-core.js"></script>
+    <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/order-feature.js"></script>
+    <script src="js/home-banners.js"></script>
+
+    <script>
+        // ── Init ──
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const grid = document.getElementById('categories-grid');
+
+            // 🕘 اعرض آخر عمليات البحث (إن وُجدت)
+            _renderRecentSearches();
+
+            // ✅ البانرات تظهر للجميع بغض النظر عن تسجيل الدخول
+            if (typeof loadBanners === 'function') loadBanners();
+
+            if (!token) {
+                grid.innerHTML = '';
+                document.getElementById('featured-section').innerHTML = `
+                    <div class="guest-card">
+                        <div class="guest-icon-wrap">🛍️</div>
+                        <h5 class="fw-bold text-dark mb-2">تصفح المحلات</h5>
+                        <p class="text-muted mb-4" style="font-size:14px;">
+                            يجب عليك تسجيل الدخول أو إنشاء حساب لعرض المحلات وتقديم الطلبات
+                        </p>
+                        <div class="d-flex gap-2 justify-content-center flex-wrap">
+                            <a href="client-login.html" class="btn btn-success rounded-pill px-4 fw-bold">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>تسجيل الدخول
+                            </a>
+                            <a href="client-register.html" class="btn btn-outline-success rounded-pill px-4 fw-bold">
+                                <i class="bi bi-person-plus me-2"></i>إنشاء حساب
+                            </a>
+                        </div>
+                    </div>`;
+            } else {
+                fetchCategories();
+            }
+        });
+
+        // ── Global Search ──
+        let _allCats = [];
+        let _searchDebounce = null;
+
+        let _lastSearchData = null;   // آخر نتائج بحث (للترشيح بدون إعادة طلب)
+        let _lastSearchQuery = '';
+        let _searchFilter = 'all';    // all | products | places | categories
+
+        // ─── 🕘 آخر عمليات البحث (localStorage) + الرائج ───
+        const _RECENT_KEY = 'wajeezsd_recent_searches';
+        function _getRecent() {
+            try { return JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]'); } catch (_) { return []; }
+        }
+        function _saveRecent(term) {
+            term = (term || '').trim();
+            if (term.length < 2) return;
+            let list = _getRecent().filter(t => t !== term);
+            list.unshift(term);
+            list = list.slice(0, 8); // احتفظ بآخر 8 فقط
+            try { localStorage.setItem(_RECENT_KEY, JSON.stringify(list)); } catch (_) {}
+        }
+        window.clearRecentSearches = function() {
+            try { localStorage.removeItem(_RECENT_KEY); } catch (_) {}
+            _renderRecentSearches();
+        };
+        window._pickRecent = function(term) {
+            const input = document.getElementById('globalSearchInput');
+            input.value = term;
+            _runGlobalSearch(term);
+        };
+        function _renderRecentSearches() {
+            const row = document.getElementById('recent-searches-row');
+            if (!row) return;
+            const recent = _getRecent();
+            if (recent.length === 0) { row.style.display = 'none'; row.innerHTML = ''; return; }
+            row.style.display = '';
+            row.innerHTML = `
+                <div class="recent-head">
+                    <span><i class="bi bi-clock-history"></i> آخر عمليات بحثك</span>
+                    <button onclick="clearRecentSearches()" class="recent-clear">مسح</button>
+                </div>
+                <div class="recent-chips">
+                    ${recent.map(t => `<button class="recent-chip" onclick="_pickRecent('${escapeHtml(t).replace(/'/g,'&#39;')}')"><i class="bi bi-arrow-counterclockwise"></i> ${escapeHtml(t)}</button>`).join('')}
+                </div>`;
+        }
+
+        window.handleGlobalSearch = function(q) {
+            clearTimeout(_searchDebounce);
+            const term = q.trim();
+            // بحث تنبّؤي سريع (250ms)
+            _searchDebounce = setTimeout(() => _runGlobalSearch(term), 250);
+        };
+
+        async function _runGlobalSearch(q) {
+            const catView = document.getElementById('categories-view');
+            const placesView = document.getElementById('places-view');
+            const listEl = document.getElementById('places-list');
+
+            if (!q) {
+                if (_allCats.length > 0) renderCategoryChips(_allCats);
+                _renderRecentSearches();
+                catView.classList.remove('d-none');
+                placesView.classList.add('d-none');
+                _lastSearchData = null;
+                return;
+            }
+
+            // أظهر منطقة النتائج + حالة تحميل
+            catView.classList.add('d-none');
+            placesView.classList.remove('d-none');
+            document.getElementById('places-category-title').textContent = `نتائج: "${q}"`;
+            document.getElementById('places-count-badge').style.display = 'none';
+            listEl.innerHTML = `<div class="search-results-wrap"><div class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm text-success"></div>
+                <div class="small mt-2">جارٍ البحث…</div></div></div>`;
+
+            // المدينة + الموقع (للترتيب بالأقرب)
+            const city = (typeof CityService !== 'undefined') ? CityService.getCity() : 'Khartoum';
+            const loc = window.userLocation;
+            let url = `${API_URL}/api/places/search?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}`;
+            if (loc && loc.lat) url += `&lat=${loc.lat}&lng=${loc.lng}`;
+            // اطلب الموقع للمرّات القادمة (لا يحجب البحث الحالي)
+            if (!loc && typeof getUserLocation === 'function') { try { getUserLocation(); } catch (_) {} }
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                // تجاهل لو تغيّر النص أثناء الجلب (سباق)
+                if ((document.getElementById('globalSearchInput').value || '').trim() !== q) return;
+                _lastSearchData = data;
+                _lastSearchQuery = q;
+                _searchFilter = 'all';
+                // احفظ المصطلح كبحث أخير عند وجود نتائج
+                if ((data.products || []).length + (data.places || []).length + (data.categories || []).length > 0) {
+                    _saveRecent(q);
+                }
+                _renderUnifiedResults();
+            } catch (e) {
+                listEl.innerHTML = `<div class="search-results-wrap"><div class="empty-state"><div class="empty-icon">⚠️</div>
+                    <h6>تعذّر البحث</h6><p>تحقّق من اتصالك وحاول مجدداً</p></div></div>`;
+            }
+        }
+
+        // ترشيح النتائج المعروضة (بدون إعادة طلب من السيرفر)
+        window.setSearchFilter = function(f) {
+            _searchFilter = f;
+            _renderUnifiedResults();
+        };
+
+        function _renderUnifiedResults() {
+            const data = _lastSearchData || {};
+            const listEl = document.getElementById('places-list');
+            const q = _lastSearchQuery;
+            const cats = data.categories || [];
+            const places = data.places || [];
+            const products = data.products || [];
+            const total = cats.length + places.length + products.length;
+
+            const badge = document.getElementById('places-count-badge');
+            badge.style.display = '';
+            badge.textContent = `${total} نتيجة`;
+
+            if (total === 0) {
+                listEl.innerHTML = `<div class="search-results-wrap"><div class="empty-state"><div class="empty-icon">🔍</div>
+                    <h6>لا توجد نتائج لـ "${escapeHtml(q)}"</h6>
+                    <p>جرّب اسم منتج أو متجر أو قسم آخر</p></div></div>`;
+                return;
+            }
+
+            const defaultImg = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80';
+            const f = _searchFilter;
+            const fmtPrice = (n) => Number(n || 0).toLocaleString('en-US');
+            const ratingHtml = (avg) => (avg > 0)
+                ? `<span class="sr-rate"><i class="bi bi-star-fill"></i> ${Number(avg).toFixed(1)}</span>` : '';
+
+            // شريط الترشيح
+            const chip = (key, label, n) => n > 0
+                ? `<button class="srf-chip ${f === key ? 'active' : ''}" onclick="setSearchFilter('${key}')">${label} <span>${n}</span></button>`
+                : '';
+            let html = `<div class="srf-bar">
+                ${chip('all', 'الكل', total)}
+                ${chip('products', 'منتجات', products.length)}
+                ${chip('places', 'متاجر', places.length)}
+                ${chip('categories', 'أقسام', cats.length)}
+            </div>`;
+
+            // الأقسام (كلمات عامة) — chips قابلة للنقر تفتح القسم
+            if (cats.length && (f === 'all' || f === 'categories')) {
+                html += `<div class="search-section-title"><i class="bi bi-grid-fill"></i> أقسام</div>`;
+                html += `<div class="srf-cats">` + cats.map(c =>
+                    `<button class="srf-cat" onclick="loadPlaces('${c._id}','${escapeHtml(c.name).replace(/'/g, "&#39;")}')">
+                        <i class="bi ${c.icon || 'bi-shop'}"></i> ${escapeHtml(c.name)}
+                    </button>`).join('') + `</div>`;
+            }
+
+            // المنتجات أولاً (المطلوب: تظهر المنتجات عند البحث)
+            if (products.length && (f === 'all' || f === 'products')) {
+                html += `<div class="search-section-title"><i class="bi bi-bag-heart-fill"></i> منتجات</div>`;
+                html += products.map(pr => {
+                    const img = getFullImageUrl(pr.image) || defaultImg;
+                    const dist = (pr.distanceKm != null) ? `<span class="sr-dist"><i class="bi bi-geo-alt-fill"></i> ${pr.distanceKm} كم</span>` : '';
+                    return `
+                    <div class="search-result-card" onclick="location.href='shop-detail.html?placeId=${pr.place._id}&product=${pr._id}'">
+                        <img src="${img}" onerror="this.src='${defaultImg}'" class="sr-img" loading="lazy">
+                        <div class="sr-body">
+                            <div class="sr-name">${escapeHtml(pr.name)}</div>
+                            <div class="sr-shop"><i class="bi bi-shop"></i> ${escapeHtml(pr.place.name)}</div>
+                            <div class="sr-sub">${ratingHtml(pr.ratingAvg)} ${dist}</div>
+                        </div>
+                        <div class="sr-price">${fmtPrice(pr.price)}<small>ج.س</small></div>
+                    </div>`;
+                }).join('');
+            }
+
+            // المتاجر
+            if (places.length && (f === 'all' || f === 'places')) {
+                html += `<div class="search-section-title"><i class="bi bi-shop-window"></i> متاجر</div>`;
+                html += places.map(pl => {
+                    const img = getFullImageUrl(pl.image_url) || defaultImg;
+                    const dist = (pl.distanceKm != null) ? `<span class="sr-dist"><i class="bi bi-geo-alt-fill"></i> ${pl.distanceKm} كم</span>` : '';
+                    const status = pl.is_open
+                        ? `<span class="sr-open"><span class="sr-dot"></span> مفتوح</span>`
+                        : `<span class="sr-closed"><span class="sr-dot"></span> مغلق</span>`;
+                    return `
+                    <div class="search-result-card" onclick="location.href='shop-detail.html?placeId=${pl._id}'">
+                        <img src="${img}" onerror="this.src='${defaultImg}'" class="sr-img" loading="lazy">
+                        <div class="sr-body">
+                            <div class="sr-name">${escapeHtml(pl.name)}</div>
+                            <div class="sr-sub">${status} ${ratingHtml(pl.ratingAvg)} ${dist}</div>
+                        </div>
+                        <i class="bi bi-chevron-left sr-arrow"></i>
+                    </div>`;
+                }).join('');
+            }
+
+            listEl.innerHTML = `<div class="search-results-wrap">${html}</div>`;
+        }
+    </script>
+
+    <script src="/sw-register.js"></script>
+    <script src="/install-prompt.js"></script>
+
+</body>
+
+</html>

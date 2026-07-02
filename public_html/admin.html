@@ -1,1704 +1,611 @@
 <!DOCTYPE html>
-<html lang="ar">
-
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم | وصل-لي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/countup@1.8.2/dist/countUp.min.js"></script>
-
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Cairo', sans-serif;
-            background: #f5f7fa;
-            direction: rtl;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            height: 100vh;
-            position: fixed;
-            right: 0;
-            top: 0;
-            padding: 0;
-            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .sidebar-header {
-            padding: 30px 20px;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 24px;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .sidebar-header p {
-            font-size: 14px;
-            opacity: 0.7;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar button {
-            width: 100%;
-            padding: 15px 25px;
-            background: transparent;
-            color: white;
-            border: none;
-            text-align: right;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Cairo', sans-serif;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-right: 3px solid transparent;
-        }
-
-        .sidebar button:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-right-color: #3498db;
-            padding-right: 30px;
-        }
-
-        .sidebar button i {
-            width: 25px;
-            font-size: 18px;
-        }
-
-        .sidebar .logout {
-            position: absolute;
-            bottom: 20px;
-            width: calc(100% - 40px);
-            margin: 0 20px;
-            background: rgba(231, 76, 60, 0.2);
-            border: 1px solid rgba(231, 76, 60, 0.5);
-            border-radius: 8px;
-        }
-
-        .sidebar .logout:hover {
-            background: rgba(231, 76, 60, 0.3);
-        }
-
-        /* Main Content */
-        .content {
-            margin-right: 280px;
-            padding: 30px;
-            min-height: 100vh;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--card-color), transparent);
-        }
-
-        .stat-card.customers {
-            --card-color: #3498db;
-        }
-
-        .stat-card.captains {
-            --card-color: #e67e22;
-        }
-
-        .stat-card.orders {
-            --card-color: #9b59b6;
-        }
-
-        .stat-card.revenue {
-            --card-color: #27ae60;
-        }
-
-        .stat-card h3 {
-            font-size: 16px;
-            color: #7f8c8d;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .stat-card .number {
-            font-size: 36px;
-            font-weight: 900;
-            color: var(--card-color);
-            margin-bottom: 10px;
-        }
-
-        .stat-card .icon {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 60px;
-            opacity: 0.1;
-            color: var(--card-color);
-        }
-
-        /* Charts Section */
-        .charts-section {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .chart-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .chart-card h3 {
-            margin-bottom: 20px;
-            color: #2c3e50;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Section Headers */
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 40px 0 20px;
-        }
-
-        .section-title {
-            font-size: 24px;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .add-btn {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-        }
-
-        /* DataTables Custom Styling */
-        .dataTables_wrapper {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        table.dataTable {
-            width: 100% !important;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        table.dataTable thead th {
-            background: #34495e;
-            color: white;
-            padding: 15px;
-            font-weight: 600;
-            border: none;
-        }
-
-        table.dataTable tbody td {
-            padding: 15px;
-            border-bottom: 1px solid #ecf0f1;
-        }
-
-        table.dataTable tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        /* Status Badges */
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .active-badge {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .inactive-badge {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        /* Buttons */
-        .btn-toggle {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-active {
-            background: #fee;
-            color: #c33;
-        }
-
-        .btn-inactive {
-            background: #efe;
-            color: #3c3;
-        }
-
-        .btn-toggle:hover {
-            transform: scale(1.05);
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 40px;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: slideDown 0.3s;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .close {
-            color: #aaa;
-            float: left;
-            font-size: 32px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .close:hover {
-            color: #000;
-        }
-
-        .modal h2 {
-            color: #2c3e50;
-            margin-bottom: 25px;
-            text-align: center;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            text-align: right;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-family: 'Cairo', sans-serif;
-            font-size: 15px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #3498db;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #27ae60, #229954);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: 700;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            transition: all 0.3s ease;
-        }
-
-        .btn-submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-        }
-
-        /* Settings Card */
-        .settings-card {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            max-width: 600px;
-            margin-top: 20px;
-        }
-
-        .settings-card h3 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .settings-input-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .settings-input-group input {
-            width: 120px;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 18px;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .settings-input-group span {
-            font-size: 20px;
-            font-weight: 700;
-            color: #f39c12;
-        }
-
-        .settings-description {
-            color: #7f8c8d;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        /* Loading Animation */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
-        }
-
-        .loading i {
-            font-size: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* --- NEW: Mobile & Responsiveness Enhancements --- */
-
-        /* 1. Hamburger Button (Hidden on Desktop) */
-        .hamburger-btn {
-            display: none;
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            z-index: 2001;
-            /* Above sidebar */
-            background: var(--dark-blue, #2c3e50);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        /* 2. Table Scrolling Wrapper */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            /* Smooth scroll on iOS */
-            margin-bottom: 20px;
-            border-radius: 15px;
-            /* Matches wrapper */
-        }
-
-        /* 3. Overlay for Mobile Sidebar */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            /* Below sidebar, above content */
-            backdrop-filter: blur(3px);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-        }
-
-        /* 4. Updated Mobile Styles */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 260px;
-                height: 100vh;
-                position: fixed;
-                right: -280px;
-                /* Hide off-screen */
-                top: 0;
-                transition: right 0.3s ease;
-                box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
-                z-index: 1000;
-            }
-
-            .sidebar.active {
-                right: 0;
-            }
-
-            .content {
-                margin-right: 0;
-                padding: 20px;
-                padding-top: 70px;
-                /* Space for hamburger */
-            }
-
-            .hamburger-btn {
-                display: block;
-            }
-
-            .charts-section {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-                /* Full width cards */
-            }
-
-            /* Adjust modals for mobile */
-            .modal-content {
-                width: 95%;
-                margin: 10% auto;
-                padding: 20px;
-            }
-        }
-    </style>
-    <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>لوحة التحكم | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="css/admin-panel.css">
     <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/vehicle-types.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <script src="js/password-toggle.js"></script>
 </head>
-
 <body>
-    <!-- Mobile Elements -->
-    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-    <button class="hamburger-btn" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-    </button>
 
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2><i class="fas fa-crown"></i> لوحة التحكم</h2>
-            <p id="adminName">المدير العام</p>
-        </div>
-
-        <div class="sidebar-menu">
-            <button onclick="scrollToSection('stats')">
-                <i class="fas fa-chart-line"></i>
-                <span>الإحصائيات</span>
-            </button>
-            <button onclick="scrollToSection('charts')">
-                <i class="fas fa-chart-pie"></i>
-                <span>الرسوم البيانية</span>
-            </button>
-            <button onclick="scrollToSection('users')">
-                <i class="fas fa-users"></i>
-                <span>إدارة المستخدمين</span>
-            </button>
-            <button onclick="scrollToSection('orders')">
-                <i class="fas fa-box"></i>
-                <span>آخر الطلبات</span>
-            </button>
-            <button onclick="scrollToSection('allOrders')">
-                <i class="fas fa-list"></i>
-                <span>سجل كل الطلبات</span>
-            </button>
-            <button onclick="location.href='admin-complaints.html'">
-                <i class="fas fa-flag"></i>
-                <span>الشكاوى والتقييمات</span>
-            </button>
-            <button onclick="location.href='admin-live-map.html'">
-                <i class="fas fa-map-marked-alt"></i>
-                <span>الخريطة الحية</span>
-            </button>
-            <button onclick="location.href='admin-settings.html'">
-                <i class="fas fa-sliders-h"></i>
-                <span>إعدادات الأسعار</span>
-            </button>
-            <button onclick="scrollToSection('settings')">
-                <i class="fas fa-cog"></i>
-                <span>الإعدادات</span>
-            </button>
-        </div>
-
-        <button class="logout" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>تسجيل خروج</span>
+<!-- Sidebar -->
+<aside class="gv-sidebar" id="gvSidebar">
+    <div class="brand">و</div>
+    <div class="nav-items">
+        <button class="gv-nav-item active" data-page="overview" onclick="switchPage('overview')">
+            <i class="fas fa-th-large"></i><span>نظرة عامة</span>
+        </button>
+        <button class="gv-nav-item" data-page="orders" data-perm="view_orders" onclick="switchPage('orders')">
+            <i class="fas fa-box-open"></i><span>الطلبات</span>
+            <div class="badge-dot" id="ordersBadge" style="display:none;"></div>
+        </button>
+        <button class="gv-nav-item" data-page="livemap" data-perm="view_map" onclick="switchPage('livemap')">
+            <i class="fas fa-map-marked-alt"></i><span>الخريطة الحية</span>
+        </button>
+        <button class="gv-nav-item" data-page="captains" data-perm="view_captains" onclick="switchPage('captains')">
+            <i class="fas fa-motorcycle"></i><span>الكباتن</span>
+            <div class="badge-dot" id="captainsBadge" style="display:none;"></div>
+        </button>
+        <button class="gv-nav-item" data-page="users" data-perm="view_users" onclick="switchPage('users')" id="navUsers">
+            <i class="fas fa-users"></i><span>المستخدمين</span>
+        </button>
+        <button class="gv-nav-item" data-page="broadcast" data-perm="send_notifications" onclick="switchPage('broadcast')">
+            <i class="fas fa-bullhorn"></i><span>البث</span>
+        </button>
+        <button class="gv-nav-item" data-perm="view_finance" onclick="location.href='admin-finance.html'" id="navFinance">
+            <i class="fas fa-wallet"></i><span>المالية</span>
+        </button>
+        <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-complaints.html'">
+            <i class="fas fa-flag"></i><span>الشكاوى</span>
+        </button>
+        <button class="gv-nav-item" data-perm="view_stores" onclick="location.href='admin-places.html'">
+            <i class="fas fa-store"></i><span>المحلات</span>
+        </button>
+        <button class="gv-nav-item" data-perm="manage_stores" onclick="location.href='admin-merchant-requests.html'">
+            <i class="fas fa-shop-lock"></i><span>طلبات المتاجر</span>
+        </button>
+        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-zone-builder.html'" id="navZones">
+            <i class="fas fa-draw-polygon"></i><span>مناطق التوصيل</span>
+        </button>
+        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-settings.html'" id="navSettings">
+            <i class="fas fa-cog"></i><span>الإعدادات</span>
+        </button>
+        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-promo-codes.html'" id="navPromo">
+            <i class="fas fa-ticket-alt"></i><span>كوبونات الخصم</span>
+        </button>
+        <button class="gv-nav-item" data-perm="manage_banners" onclick="location.href='admin-banners.html'" id="navBanners">
+            <i class="fas fa-images"></i><span>البانرات الإعلانية</span>
+        </button>
+        <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-complaints.html'" id="navComplaints">
+            <i class="fas fa-headset"></i><span>الدعم الفني</span>
+        </button>
+        <hr style="border:none;border-top:1px solid #334155;margin:10px 15px;" id="navDivider1">
+        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-sub-admins.html'" id="navSubAdmins">
+            <i class="fas fa-user-shield"></i><span>الأدمن المساعد</span>
+        </button>
+        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-activity.html'" id="navActivity">
+            <i class="fas fa-history"></i><span>سجل النشاط</span>
         </button>
     </div>
+    <div class="nav-footer">
+        <button class="gv-logout-btn" onclick="logout()">
+            <i class="fas fa-power-off"></i><span>خروج</span>
+        </button>
+    </div>
+</aside>
 
-    <div class="content">
-        <!-- Statistics Section -->
-        <div id="stats">
-            <h1 class="section-title"><i class="fas fa-chart-bar"></i> نظرة عامة</h1>
-            <div class="stats-grid">
-                <div class="stat-card customers">
-                    <h3><i class="fas fa-users"></i> عدد العملاء</h3>
-                    <div class="number" id="count-customers">0</div>
-                    <i class="fas fa-users icon"></i>
-                </div>
-                <div class="stat-card captains">
-                    <h3><i class="fas fa-motorcycle"></i> عدد الكباتن</h3>
-                    <div class="number" id="count-captains">0</div>
-                    <i class="fas fa-motorcycle icon"></i>
-                </div>
-                <div class="stat-card orders">
-                    <h3><i class="fas fa-box"></i> إجمالي الطلبات</h3>
-                    <div class="number" id="count-orders">0</div>
-                    <i class="fas fa-box icon"></i>
-                </div>
-                <div class="stat-card revenue">
-                    <h3><i class="fas fa-dollar-sign"></i> الأرباح المحققة</h3>
-                    <div class="number" id="total-revenue">0 ج.س</div>
-                    <i class="fas fa-dollar-sign icon"></i>
-                </div>
-            </div>
+
+<!-- Notification Overlay -->
+<div class="gv-overlay" id="notifOverlay" onclick="toggleNotifPanel(false)"></div>
+
+<!-- Notification Panel -->
+<div class="gv-notif-panel" id="notifPanel">
+    <div class="gv-notif-header">
+        <h3><i class="fas fa-bell"></i> الإشعارات</h3>
+        <button class="gv-btn gv-btn-ghost gv-btn-sm" onclick="toggleNotifPanel(false)">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="gv-notif-list" id="notifList">
+        <div class="gv-empty"><i class="fas fa-bell-slash"></i><p>لا توجد إشعارات</p></div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="gv-main">
+    <!-- Top Bar -->
+    <div class="gv-topbar">
+        <div class="gv-topbar-right">
+            <button class="gv-topbar-btn" onclick="toggleMobileSidebar()" style="display:none;" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <span class="page-title" id="pageTitle">نظرة عامة</span>
         </div>
-
-        <!-- Charts Section -->
-        <div id="charts">
-            <h2 class="section-title"><i class="fas fa-chart-pie"></i> الرسوم البيانية</h2>
-            <div class="charts-section">
-                <div class="chart-card">
-                    <h3><i class="fas fa-chart-line"></i> توزيع حالات الطلبات</h3>
-                    <canvas id="ordersChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h3><i class="fas fa-chart-pie"></i> نسبة المستخدمين</h3>
-                    <canvas id="usersChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Users Management -->
-        <div class="section-header" id="users">
-            <h2 class="section-title"><i class="fas fa-users-cog"></i> إدارة المستخدمين</h2>
-            <button class="add-btn" onclick="openModal()">
-                <i class="fas fa-plus"></i>
-                <span>إضافة كابتن جديد</span>
+        <div class="gv-topbar-left">
+            <button class="gv-topbar-btn" onclick="toggleNotifPanel(true)" id="notifBtn">
+                <i class="fas fa-bell"></i>
+                <span class="notif-count" id="notifCount" style="display:none;">0</span>
+            </button>
+            <button class="gv-topbar-btn" onclick="refreshCurrentPage()" title="تحديث">
+                <i class="fas fa-sync-alt"></i>
             </button>
         </div>
-        <div class="table-responsive">
-            <table id="usersTable" class="display">
-                <thead>
-                    <tr>
-                        <th>الاسم</th>
-                        <th>الهاتف</th>
-                        <th>الدور</th>
-                        <th>الحالة</th>
-                        <th>إجراء</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="5" class="loading"><i class="fas fa-spinner"></i> جاري التحميل...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    </div>
 
-        <!-- Recent Orders -->
-        <h2 class="section-title" id="orders" style="margin-top: 50px;">
-            <i class="fas fa-clock"></i> آخر 5 طلبات في النظام
-        </h2>
-        <div class="table-responsive">
-            <table id="ordersTable" class="display">
-                <thead>
-                    <tr>
-                        <th>العميل</th>
-                        <th>الكابتن</th>
-                        <th>من</th>
-                        <th>إلى</th>
-                        <th>السعر</th>
-                        <th>الحالة</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="6" class="loading"><i class="fas fa-spinner"></i> جاري التحميل...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <!-- Content -->
+    <div class="gv-content">
 
-        <!-- All Orders -->
-        <h2 class="section-title" id="allOrders" style="margin-top: 50px;">
-            <i class="fas fa-list-ul"></i> سجل كافة الطلبات
-        </h2>
-        <div class="table-responsive">
-            <table id="allOrdersTable" class="display">
-                <thead>
-                    <tr>
-                        <th>العميل</th>
-                        <th>الكابتن</th>
-                        <th>من</th>
-                        <th>إلى</th>
-                        <th>السعر</th>
-                        <th>الحالة</th>
-                        <th>إجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="7" class="loading"><i class="fas fa-spinner"></i> جاري التحميل...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Settings Section -->
-        <div id="settings">
-            <h2 class="section-title" style="margin-top: 50px;">
-                <i class="fas fa-cog"></i> إعدادات النظام
-            </h2>
-            <div class="settings-card">
-                <h3><i class="fas fa-percentage"></i> نسبة ربح التطبيق</h3>
-                <div class="settings-input-group">
-                    <input type="number" id="profitPercentage" min="0" max="100" placeholder="0">
-                    <span>%</span>
-                    <button class="btn-submit" onclick="saveSettings()" style="width: auto; padding: 12px 30px;">
-                        <i class="fas fa-save"></i> حفظ التعديل
-                    </button>
+        <!-- ═══════ PAGE: Overview ═══════ -->
+        <div class="gv-page active" id="page-overview">
+            <!-- Stats Cards -->
+            <div class="gv-stats-grid">
+                <div class="gv-stat-card" id="cardClients">
+                    <div class="gv-stat-icon blue"><i class="fas fa-users"></i></div>
+                    <div class="gv-stat-info"><h4>العملاء</h4><h2 id="stat-clients">0</h2></div>
                 </div>
-                <p class="settings-description">
-                    سيتم تطبيق هذه النسبة على جميع الطلبات الجديدة وحساب حصة التطبيق منها تلقائياً.
-                </p>
+                <div class="gv-stat-card">
+                    <div class="gv-stat-icon amber"><i class="fas fa-motorcycle"></i></div>
+                    <div class="gv-stat-info"><h4>الكباتن</h4><h2 id="stat-captains">0</h2></div>
+                </div>
+                <div class="gv-stat-card">
+                    <div class="gv-stat-icon green"><i class="fas fa-box-open"></i></div>
+                    <div class="gv-stat-info"><h4>الطلبات</h4><h2 id="stat-orders">0</h2></div>
+                </div>
+                <div class="gv-stat-card" id="cardRevenue">
+                    <div class="gv-stat-icon red"><i class="fas fa-coins"></i></div>
+                    <div class="gv-stat-info"><h4>الأرباح</h4><h2 id="stat-revenue">0</h2></div>
+                </div>
+                <div class="gv-stat-card">
+                    <div class="gv-stat-icon cyan"><i class="fas fa-satellite-dish"></i></div>
+                    <div class="gv-stat-info"><h4>كباتن نشطين</h4><h2 id="stat-online">0</h2></div>
+                </div>
+            </div>
+
+            <!-- 🌍 City Breakdown Panel -->
+            <div class="gv-panel" style="margin-bottom:20px;">
+                <div class="gv-panel-header">
+                    <div class="gv-panel-title"><i class="fas fa-city text-primary"></i> إحصائيات المدن</div>
+                </div>
+                <div class="gv-panel-body">
+                    <div id="cityBreakdownContainer" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div class="gv-loading"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Distribution Bar (like a health dashboard) -->
+            <div class="gv-panel" style="margin-bottom:20px;">
+                <div class="gv-panel-header">
+                    <div class="gv-panel-title"><i class="fas fa-chart-bar"></i> توزيع حالات الطلبات</div>
+                </div>
+                <div class="gv-panel-body">
+                    <div class="gv-status-bar" id="statusBar">
+                        <div class="gv-loading"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Orders + Mini Map -->
+            <div class="gv-grid-3">
+                <div class="gv-panel">
+                    <div class="gv-panel-header">
+                        <div class="gv-panel-title"><i class="fas fa-bolt"></i> الطلبات الحية</div>
+                        <span id="liveOrdersCount" style="font-size:12px;color:var(--gv-dark-2);font-weight:700;">0 طلب</span>
+                    </div>
+                    <div class="gv-panel-body">
+                        <div class="gv-orders-feed" id="liveOrdersFeed">
+                            <div class="gv-loading"><i class="fas fa-spinner fa-spin"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="gv-panel">
+                    <div class="gv-panel-header">
+                        <div class="gv-panel-title"><i class="fas fa-map"></i> الخريطة</div>
+                        <div style="display:flex;gap:5px;">
+                            <button onclick="switchMapCity('miniMap','Khartoum')" id="miniMapCityKhartoum" style="padding:3px 8px;border-radius:6px;border:2px solid #2563eb;background:#2563eb;color:#fff;font-family:inherit;font-weight:700;font-size:11px;cursor:pointer;">
+                                <i class="fas fa-city" style="margin-left:4px;"></i> الخرطوم
+                            </button>
+                            <button onclick="switchMapCity('miniMap','PortSudan')" id="miniMapCityPortSudan" style="padding:3px 8px;border-radius:6px;border:2px solid #64748b;background:#f8fafc;color:#64748b;font-family:inherit;font-weight:700;font-size:11px;cursor:pointer;">
+                                <i class="fas fa-anchor" style="margin-left:4px;"></i> بورتسودان
+                            </button>
+                        </div>
+                    </div>
+                    <div class="gv-panel-body" style="padding:0;">
+                        <div class="gv-minimap" id="miniMap"></div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Add Captain Modal -->
-    <div id="captainModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h2><i class="fas fa-user-plus"></i> إضافة كابتن جديد</h2>
-            <form id="addCaptainForm" onsubmit="createCaptain(event)">
-                <div class="form-group">
-                    <label>الاسم الكامل</label>
-                    <input type="text" id="capName" required placeholder="أدخل اسم الكابتن">
+        <!-- ═══════ PAGE: Orders ═══════ -->
+        <div class="gv-page" id="page-orders">
+            <div class="gv-panel">
+                <div class="gv-panel-header">
+                    <div class="gv-panel-title"><i class="fas fa-box-open"></i> جميع الطلبات</div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <input type="text" id="orderSearch" placeholder="بحث..." oninput="filterOrders()"
+                            style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;width:160px;">
+                        <select id="orderStatusFilter" onchange="filterOrders()"
+                            style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;">
+                            <option value="all">كل الحالات</option>
+                            <option value="pending">قيد الانتظار</option>
+                            <option value="accepted">مقبول</option>
+                            <option value="picked_up">قيد التوصيل</option>
+                            <option value="delivered">مكتمل</option>
+                            <option value="cancelled">ملغي</option>
+                            <option value="scheduled">مجدول</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>البريد الإلكتروني</label>
-                    <input type="email" id="capEmail" required placeholder="example@mail.com">
+                <div class="gv-panel-body" style="overflow-x:auto;">
+                    <table class="gv-table">
+                        <thead>
+                            <tr>
+                                <th>العميل</th><th>الكابتن</th>
+                                <th>من</th><th>إلى</th><th>السعر</th>
+                                <th>الحالة</th><th>التاريخ</th><th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="allOrdersBody">
+                            <tr><td colspan="8"><div class="gv-loading"><i class="fas fa-spinner fa-spin"></i></div></td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="form-group">
-                    <label>رقم الهاتف</label>
-                    <input type="tel" id="capPhone" required placeholder="09xxxxxxxx">
-                </div>
-                <div class="form-group">
-                    <label>نوع المركبة</label>
-                    <select id="capVehicle">
-                        <option value="motorcycle">دراجة نارية (موتور)</option>
-                        <option value="bicycle">دراجة هوائية (عجلة)</option>
-                        <option value="electric">سكوتر / كهربائية</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="capPassword" required minlength="6" placeholder="******">
-                </div>
-                <button type="submit" class="btn-submit">
-                    <i class="fas fa-save"></i> حفظ الكابتن
-                </button>
-            </form>
+            </div>
         </div>
-    </div>
 
-    <!-- Edit User Modal -->
-    <div id="editUserModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeEditUserModal()">&times;</span>
-            <h2><i class="fas fa-user-edit"></i> تعديل بيانات المستخدم</h2>
-            <form id="editUserForm" onsubmit="updateUser(event)">
-                <input type="hidden" id="editUserId">
-                <div class="form-group">
-                    <label>الاسم الكامل</label>
-                    <input type="text" id="editUserName" required>
+        <!-- ═══════ PAGE: Live Map ═══════ -->
+        <div class="gv-page" id="page-livemap">
+            <div class="gv-panel" style="height: calc(100vh - 140px);">
+                <div class="gv-panel-header" style="flex-direction:column; align-items:start; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; width:100%;">
+                        <div class="gv-panel-title"><i class="fas fa-satellite-dish"></i> تتبع الكباتن</div>
+                        <span id="mapOnlineCount" style="font-size:12px;color:var(--gv-success);font-weight:700;">
+                            <i class="fas fa-circle" style="font-size:8px;"></i> 0 نشط
+                        </span>
+                    </div>
+                    <!-- City Filter Buttons -->
+                    <div style="display:flex; gap:6px; width:100%;">
+                        <button id="fullMapCityKhartoum" onclick="switchMapCity('fullMap','Khartoum')" style="flex:1;padding:6px 0;border-radius:8px;border:2px solid #2563eb;background:#2563eb;color:#fff;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;">
+                            <i class="fas fa-city" style="margin-left:6px;"></i> الخرطوم
+                        </button>
+                        <button id="fullMapCityPortSudan" onclick="switchMapCity('fullMap','PortSudan')" style="flex:1;padding:6px 0;border-radius:8px;border:2px solid #64748b;background:#f8fafc;color:#64748b;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;">
+                            <i class="fas fa-anchor" style="margin-left:6px;"></i> بورتسودان
+                        </button>
+                    </div>
+                    <div style="width:100%; display:flex; gap:8px;">
+                        <input type="text" id="mapCaptainSearch" placeholder="ابحث عن كابتن بالاسم أو رقم الهاتف..." oninput="highlightMapCaptain()"
+                            style="flex:1; padding:8px 12px; border:1px solid var(--gv-border); border-radius:8px; font-family:inherit; font-size:13px;">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>البريد الإلكتروني</label>
-                    <input type="email" id="editUserEmail" required>
+                <div class="gv-panel-body" style="padding:0;height:calc(100% - 60px);">
+                    <div id="fullMap" style="width:100%;height:100%;"></div>
                 </div>
-                <div class="form-group">
-                    <label>رقم الهاتف</label>
-                    <input type="tel" id="editUserPhone" required>
-                </div>
-                <div class="form-group">
-                    <label>الدور</label>
-                    <select id="editUserRole" onchange="toggleVehicleField()">
-                        <option value="client">عميل</option>
-                        <option value="captain">كابتن</option>
-                        <option value="admin">مسؤول (Admin)</option>
-                    </select>
-                </div>
-                <div class="form-group" id="editVehicleGroup" style="display:none;">
-                    <label>نوع المركبة</label>
-                    <select id="editUserVehicle">
-                        <option value="motorcycle">دراجة نارية (موتور)</option>
-                        <option value="bicycle">دراجة هوائية (عجلة)</option>
-                        <option value="electric">سكوتر / كهربائية</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>كلمة المرور (اتركها فارغة لعدم التغيير)</label>
-                    <input type="password" id="editUserPassword" placeholder="******">
-                </div>
-                <button type="submit" class="btn-submit">
-                    <i class="fas fa-save"></i> حفظ التغييرات
-                </button>
-            </form>
+            </div>
         </div>
-    </div>
 
-    <!-- Edit Order Modal -->
-    <div id="editOrderModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeEditOrderModal()">&times;</span>
-            <h2><i class="fas fa-edit"></i> تعديل بيانات الطلب</h2>
-            <form id="editOrderForm" onsubmit="updateOrder(event)">
-                <input type="hidden" id="editOrderId">
-                <div class="form-group">
-                    <label>حالة الطلب</label>
-                    <select id="editOrderStatus">
-                        <option value="pending">معلق (Pending)</option>
-                        <option value="accepted">مقبول (Accepted)</option>
-                        <option value="picked_up">تم الاستلام (Picked Up)</option>
-                        <option value="delivered">تم التسليم (Delivered)</option>
-                        <option value="cancelled">ملغي (Cancelled)</option>
-                    </select>
+        <!-- ═══════ PAGE: Captains ═══════ -->
+        <div class="gv-page" id="page-captains">
+            <!-- Pending Approvals -->
+            <div class="gv-panel" id="pendingPanel">
+                <div class="gv-panel-header">
+                    <div class="gv-panel-title"><i class="fas fa-user-clock"></i> طلبات انضمام معلقة</div>
                 </div>
-                <div class="form-group">
-                    <label>السعر الإجمالي</label>
-                    <input type="number" id="editOrderPrice" required>
+                <div class="gv-panel-body" id="pendingCaptainsBody"></div>
+            </div>
+            <!-- All Captains -->
+            <div class="gv-panel">
+                <div class="gv-panel-header" style="flex-wrap:wrap;gap:10px;">
+                    <div class="gv-panel-title"><i class="fas fa-motorcycle"></i> جميع الكباتن</div>
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <select id="captainCityFilter" onchange="loadCaptains()"
+                            style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;">
+                            <option value="all">كل المدن</option>
+                            <option value="Khartoum">الخرطوم - أم درمان</option>
+                            <option value="PortSudan">بورتسودان</option>
+                        </select>
+                        <input type="text" id="captainSearch" placeholder="بحث بالاسم أو الهاتف..." oninput="filterCaptains()"
+                            style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;width:220px;">
+                        <button class="gv-btn gv-btn-primary gv-btn-sm" onclick="openAddCaptainModal()">
+                            <i class="fas fa-plus"></i> إضافة كابتن
+                        </button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>عنوان الاستلام</label>
-                    <input type="text" id="editOrderPickup" required>
+                <div class="gv-panel-body" style="overflow-x:auto;">
+                    <table class="gv-table">
+                        <thead><tr><th></th><th>الاسم</th><th>الهاتف</th><th>المركبة</th><th>الرصيد</th><th>الحالة</th><th></th></tr></thead>
+                        <tbody id="captainsBody"></tbody>
+                    </table>
                 </div>
-                <div class="form-group">
-                    <label>عنوان التسليم</label>
-                    <input type="text" id="editOrderDropoff" required>
-                </div>
-                <button type="submit" class="btn-submit">
-                    <i class="fas fa-save"></i> تحديث الطلب
-                </button>
-            </form>
+            </div>
         </div>
-    </div>
 
-    <script>
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
+        <!-- ═══════ PAGE: Users ═══════ -->
+        <div class="gv-page" id="page-users">
+            <div class="gv-panel">
+                <div class="gv-panel-header" style="flex-wrap:wrap;gap:10px;">
+                    <div class="gv-panel-title"><i class="fas fa-users"></i> جميع المستخدمين</div>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <select id="userCityFilter" onchange="filterUsers()" style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;">
+                            <option value="all">الكل (المدن)</option>
+                            <option value="Khartoum">الخرطوم - أم درمان</option>
+                            <option value="PortSudan">بورتسودان</option>
+                        </select>
+                        <input type="text" id="userSearch" placeholder="بحث بالاسم أو الهاتف..." oninput="filterUsers()"
+                            style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;width:220px;">
+                    </div>
+                </div>
+                <div class="gv-panel-body" style="overflow-x:auto;">
+                    <table class="gv-table">
+                        <thead><tr><th>الاسم</th><th>الهاتف</th><th>الدور</th><th>الحالة</th><th></th></tr></thead>
+                        <tbody id="usersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ PAGE: Broadcast ═══════ -->
+        <div class="gv-page" id="page-broadcast">
+            <div class="gv-panel" style="max-width:600px;">
+                <div class="gv-panel-header">
+                    <div class="gv-panel-title"><i class="fas fa-bullhorn"></i> إرسال إشعار جماعي</div>
+                </div>
+                <div class="gv-panel-body">
+                    <div style="margin-bottom:16px;">
+                        <label style="font-size:13px;font-weight:700;color:var(--gv-dark-2);margin-bottom:6px;display:block;">الفئة المستهدفة</label>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="gv-btn gv-btn-primary gv-btn-sm broadcast-target active" data-target="all">الكل</button>
+                            <button class="gv-btn gv-btn-ghost gv-btn-sm broadcast-target" data-target="clients">العملاء</button>
+                            <button class="gv-btn gv-btn-ghost gv-btn-sm broadcast-target" data-target="captains">الكباتن</button>
+                            <button class="gv-btn gv-btn-ghost gv-btn-sm broadcast-target" data-target="merchants" style="background:linear-gradient(135deg,rgba(10,135,84,0.1),transparent);border:1px solid #04553A;color:#04553A;">🏪 التجار</button>
+                            <button class="gv-btn gv-btn-ghost gv-btn-sm broadcast-target" data-target="user">مستخدم محدد</button>
+                        </div>
+                        <!-- بحث عن مستخدم محدد -->
+                        <div id="userSearchContainer" style="display:none;margin-top:12px;">
+                            <input type="text" id="broadcastUserSearch" placeholder="ابحث بالاسم أو رقم الهاتف..."
+                                oninput="searchBroadcastUser(this.value)"
+                                style="width:100%;padding:12px 16px;border:2px solid var(--gv-border);border-radius:10px;font-family:inherit;font-size:14px;transition:border-color .2s;"
+                                onfocus="this.style.borderColor='var(--gv-primary)'" onblur="this.style.borderColor='var(--gv-border)'">
+                            <!-- نتائج البحث -->
+                            <div id="broadcastUserResults" style="max-height:220px;overflow-y:auto;border:1px solid var(--gv-border);border-radius:10px;margin-top:6px;display:none;background:var(--gv-card);box-shadow:0 4px 12px rgba(0,0,0,.15);"></div>
+                            <!-- رسالة إذا ما لقاش -->
+                            <div id="broadcastUserNotFound" style="display:none;margin-top:8px;padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#dc2626;font-size:13px;text-align:center;">
+                                <i class="fas fa-exclamation-circle" style="margin-left:6px;"></i> لا يوجد مستخدم بهذا الاسم أو الرقم
+                            </div>
+                            <!-- المستخدم المختار -->
+                            <div id="selectedUserBadge" style="display:none;margin-top:8px;padding:12px 16px;background:linear-gradient(135deg,rgba(10,135,84,.08),rgba(10,135,84,.04));border-radius:10px;border:1.5px solid var(--gv-primary);display:none;align-items:center;justify-content:space-between;">
+                                <div>
+                                    <div id="selectedUserName" style="font-weight:700;font-size:14px;"></div>
+                                    <div id="selectedUserInfo" style="font-size:12px;color:var(--gv-dark-2);margin-top:2px;"></div>
+                                </div>
+                                <button class="gv-btn gv-btn-ghost gv-btn-sm" onclick="clearSelectedUser()" style="color:var(--gv-danger);"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <input type="text" id="broadcastTitle" placeholder="عنوان الإشعار"
+                            style="width:100%;padding:12px 16px;border:1px solid var(--gv-border);border-radius:10px;font-family:inherit;font-size:14px;">
+                    </div>
+                    <div style="margin-bottom:16px;">
+                        <textarea id="broadcastMsg" placeholder="نص الرسالة..." rows="4"
+                            style="width:100%;padding:12px 16px;border:1px solid var(--gv-border);border-radius:10px;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+                    </div>
+                    <button class="gv-btn gv-btn-primary" onclick="sendBroadcast()" style="width:100%;justify-content:center;padding:14px;">
+                        <i class="fas fa-paper-plane"></i> إرسال الإشعار
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /gv-content -->
+</div><!-- /gv-main -->
+
+<!-- Toast -->
+<div class="gv-toast" id="gvToast"><i class="fas fa-bell"></i><span id="gvToastText"></span></div>
+
+<!-- Socket.io -->
+<script src="vendor/socket.io/socket.io.min.js"></script>
+
+<!-- Google Maps -->
+<script>
+    window.initAdminMap = function() { window._gvMapReady = true; if(window._gvMapInit) window._gvMapInit(); };
+</script>
+<script src="js/maps-loader.js"></script>
+<script>loadGoogleMaps({ callback: 'initAdminMap' });</script>
+
+<!-- SweetAlert2 -->
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="vendor/chartjs/chart.umd.min.js"></script>
+<script src="js/admin-dashboard.js?v=20260619"></script>
+<script src="js/admin-panel.js?v=20260621b"></script>
+<script src="js/admin-web-push.js"></script>
+<script type="module" src="js/app-core.js"></script>
+<script type="module" src="js/native-notifications.js"></script>
+
+<script>
+    // ✅ عند فتح الداشبورد: أعد إرسال FCM token للسيرفر (في حالة تجدد التوكن)
+    document.addEventListener('DOMContentLoaded', () => {
+        const authToken = localStorage.getItem('adminToken');
+        let userObj = null;
+        try { userObj = JSON.parse(localStorage.getItem('user')); } catch(e) {}
+        if (!authToken || !userObj || userObj.role !== 'admin') {
             window.location.href = 'admin-login.html';
+            return;
+        }
+        const fcmToken  = localStorage.getItem('fcmToken');
+        if (authToken && fcmToken) {
+            fetch(`${window.API_URL || 'https://wajeezsd.com'}/api/auth/update-fcm`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fcmToken })
+            })
+            .then(r => r.ok && console.log('✅ Admin FCM token refreshed on dashboard load'))
+            .catch(() => {});
         }
 
-        // Display admin name
-        const adminName = localStorage.getItem('adminName');
-        if (adminName) {
-            document.getElementById('adminName').textContent = adminName;
+        // للمتصفح (web): حاول Web Push إن كان مُفعّل
+        if (window.refreshAdminWebPushToken) {
+            window.refreshAdminWebPushToken().catch(() => {});
         }
+    });
 
-        // Charts
-        let ordersChart, usersChart;
+    // ══════════════════════════════════════════════════
+    // 📣 Broadcast Notification Logic
+    // ══════════════════════════════════════════════════
+    const _API  = window.API_URL || 'https://wajeezsd.com';
+    const _hdr  = () => ({ 'Authorization': `Bearer ${localStorage.getItem('adminToken')||localStorage.getItem('token')||''}`, 'Content-Type': 'application/json' });
 
-        // Modal Functions
-        const modal = document.getElementById("captainModal");
-        function openModal() { modal.style.display = "block"; }
-        function closeModal() {
-            modal.style.display = "none";
-            document.getElementById('addCaptainForm').reset();
-        }
-        window.onclick = function (event) {
-            if (event.target == modal) { closeModal(); }
-        }
+    let _broadcastTarget   = 'all';
+    let _selectedUserId    = null;
+    let _searchTimeout     = null;
 
-        // دالة تنظيف رقم الهاتف
-        function normalizePhone(phone) {
-            let cleaned = phone.replace(/[^0-9]/g, '');
-            if (cleaned.startsWith('2490')) {
-                cleaned = cleaned.substring(4);
-                return '249' + cleaned;
+    // Pill toggle
+    document.querySelectorAll('.broadcast-target').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.broadcast-target').forEach(b => {
+                b.classList.remove('gv-btn-primary');
+                b.classList.add('gv-btn-ghost');
+            });
+            btn.classList.remove('gv-btn-ghost');
+            btn.classList.add('gv-btn-primary');
+            _broadcastTarget = btn.dataset.target;
+
+            const searchBox = document.getElementById('userSearchContainer');
+            if (_broadcastTarget === 'user') {
+                searchBox.style.display = 'block';
+                document.getElementById('broadcastUserSearch').focus();
+            } else {
+                searchBox.style.display = 'none';
+                clearSelectedUser();
             }
-            if (cleaned.startsWith('249') && cleaned.length >= 12) {
-                return cleaned;
-            }
-            if (cleaned.startsWith('0')) {
-                cleaned = cleaned.substring(1);
-                return '249' + cleaned;
-            }
-            if (cleaned.length === 9) {
-                return '249' + cleaned;
-            }
-            return '249' + cleaned;
-        }
+        });
+    });
 
-        // Create Captain
-        async function createCaptain(e) {
-            e.preventDefault();
+    // ── Live user search ─────────────────────────────────
+    function searchBroadcastUser(val) {
+        clearTimeout(_searchTimeout);
+        const q = (val || document.getElementById('broadcastUserSearch').value || '').trim();
+        const resultsEl  = document.getElementById('broadcastUserResults');
+        const notFoundEl = document.getElementById('broadcastUserNotFound');
 
-            const submitBtn = e.target.querySelector('button');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
-            submitBtn.disabled = true;
+        // Reset
+        resultsEl.style.display  = 'none';
+        notFoundEl.style.display = 'none';
+        document.getElementById('selectedUserBadge').style.display = 'none';
+        _selectedUserId = null;
 
-            // تنظيف رقم الهاتف
-            const rawPhone = document.getElementById('capPhone').value;
-            const normalizedPhone = normalizePhone(rawPhone);
+        if (q.length < 2) { resultsEl.style.display = 'none'; return; }
 
-            const captainData = {
-                name: document.getElementById('capName').value,
-                email: document.getElementById('capEmail').value,
-                phone: normalizedPhone,
-                vehicleType: document.getElementById('capVehicle').value,
-                password: document.getElementById('capPassword').value
-            };
-
-            console.log('Creating captain with normalized phone:', normalizedPhone);
-
+        _searchTimeout = setTimeout(async () => {
             try {
-                const res = await fetch('/api/admin/create-captain', {
-                    method: 'POST',
-                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify(captainData)
-                });
+                const res  = await fetch(`${_API}/api/admin/users/search?q=${encodeURIComponent(q)}`, { headers: _hdr() });
+                const list = await res.json();
 
-                const data = await res.json();
-
-                if (res.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم بنجاح!',
-                        text: 'تم إضافة الكابتن بنجاح',
-                        confirmButtonText: 'حسناً'
-                    });
-                    closeModal();
-                    loadUsers();
-                    loadDashboard();
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: data.message || 'حدث خطأ',
-                        confirmButtonText: 'حسناً'
-                    });
-                }
-            } catch (err) {
-                console.error(err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'خطأ في الاتصال بالسيرفر',
-                    confirmButtonText: 'حسناً'
-                });
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        }
-
-        function getStatusHtml(status) {
-            const map = {
-                'pending': { text: '⏳ انتظار', color: '#f39c12' },
-                'accepted': { text: '🚴‍♂️ جاري التوصيل', color: '#2980b9' },
-                'delivered': { text: '✅ تم التسليم', color: '#27ae60' },
-                'cancelled': { text: '❌ ملغي', color: '#c0392b' }
-            };
-            const info = map[status] || { text: status, color: '#333' };
-            return `<span style="color:${info.color}; font-weight:bold;">${info.text}</span>`;
-        }
-
-        // Count Up Animation
-        function animateValue(id, start, end, duration, suffix = '') {
-            const obj = document.getElementById(id);
-            const range = end - start;
-            const increment = end > start ? 1 : -1;
-            const stepTime = Math.abs(Math.floor(duration / range));
-            let current = start;
-
-            const timer = setInterval(() => {
-                current += increment;
-                obj.textContent = current.toLocaleString() + suffix;
-                if (current == end) {
-                    clearInterval(timer);
-                }
-            }, stepTime);
-        }
-
-        async function loadDashboard() {
-            try {
-                const resStats = await fetch('/api/admin/dashboard', {
-                    headers: window.Auth.getAuthHeader()
-                });
-
-                if (resStats.status === 403) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'غير مصرح',
-                        text: 'غير مصرح لك بالدخول!',
-                        confirmButtonText: 'حسناً'
-                    }).then(() => logout());
+                if (!list || list.length === 0) {
+                    resultsEl.style.display  = 'none';
+                    notFoundEl.style.display = 'block';
                     return;
                 }
 
-                const data = await resStats.json();
-
-                if (data.stats) {
-                    // Animate counters
-                    animateValue('count-customers', 0, data.stats.customers || 0, 1000);
-                    animateValue('count-captains', 0, data.stats.captains || 0, 1000);
-                    animateValue('count-orders', 0, data.stats.orders || 0, 1000);
-
-                    const revenue = data.stats.revenue || 0;
-                    document.getElementById('total-revenue').textContent = revenue.toLocaleString() + ' ج.س';
-
-                    // Update charts
-                    updateCharts(data);
-                }
-
-                // Load recent orders (non-DataTable)
-                const ordersBody = document.querySelector('#ordersTable tbody');
-                ordersBody.innerHTML = '';
-
-                if (data.recentOrders && data.recentOrders.length > 0) {
-                    data.recentOrders.forEach(order => {
-                        const row = createOrderRow(order);
-                        ordersBody.innerHTML += row;
-                    });
-                } else {
-                    ordersBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">لا توجد طلبات حديثة</td></tr>';
-                }
-
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        function updateCharts(data) {
-            // Orders Status Chart
-            const ordersCtx = document.getElementById('ordersChart').getContext('2d');
-
-            if (ordersChart) ordersChart.destroy();
-
-            ordersChart = new Chart(ordersCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['قيد الانتظار', 'جاري التوصيل', 'تم التسليم', 'ملغي'],
-                    datasets: [{
-                        label: 'عدد الطلبات',
-                        data: [
-                            data.ordersByStatus?.pending || 0,
-                            data.ordersByStatus?.accepted || 0,
-                            data.ordersByStatus?.delivered || 0,
-                            data.ordersByStatus?.cancelled || 0
-                        ],
-                        backgroundColor: [
-                            'rgba(243, 156, 18, 0.8)',
-                            'rgba(41, 128, 185, 0.8)',
-                            'rgba(39, 174, 96, 0.8)',
-                            'rgba(192, 57, 43, 0.8)'
-                        ],
-                        borderColor: [
-                            'rgba(243, 156, 18, 1)',
-                            'rgba(41, 128, 185, 1)',
-                            'rgba(39, 174, 96, 1)',
-                            'rgba(192, 57, 43, 1)'
-                        ],
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Users Chart
-            const usersCtx = document.getElementById('usersChart').getContext('2d');
-
-            if (usersChart) usersChart.destroy();
-
-            usersChart = new Chart(usersCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['العملاء', 'الكباتن'],
-                    datasets: [{
-                        data: [data.stats?.customers || 0, data.stats?.captains || 0],
-                        backgroundColor: [
-                            'rgba(52, 152, 219, 0.8)',
-                            'rgba(230, 126, 34, 0.8)'
-                        ],
-                        borderColor: [
-                            'rgba(52, 152, 219, 1)',
-                            'rgba(230, 126, 34, 1)'
-                        ],
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        }
-
-        async function loadAllOrders() {
-            try {
-                const res = await fetch('/api/admin/orders', {
-                    headers: window.Auth.getAuthHeader()
-                });
-
-                const orders = await res.json();
-
-                // Initialize DataTable
-                if ($.fn.DataTable.isDataTable('#allOrdersTable')) {
-                    $('#allOrdersTable').DataTable().destroy();
-                }
-
-                const tableData = orders.map(order => {
-                    const clientName = order.client?.name || order.customer?.name || 'غير معروف';
-                    const captainName = order.captain?.name || '---';
-                    const pickup = order.pickup?.address || order.pickupLocation || 'غير محدد';
-                    const dropoff = order.dropoff?.address || order.dropoffLocation || 'غير محدد';
-
-                    // Encode for buttons
-                    const orderStr = encodeURIComponent(JSON.stringify(order));
-
-                    // ✅ FIX: Added the 7th column (Actions) to match the table header
-                    const actionsHtml = `
-                        <div style="display:flex; gap:5px; justify-content:center;">
-                            <button class="btn-toggle" style="background:#f39c12; color:white;" 
-                                onclick="openEditOrderModal('${orderStr}')" title="تعديل">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-toggle" style="background:#c0392b; color:white;" 
-                                onclick="deleteOrder('${order._id}')" title="حذف">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                const roleLabel = r => r === 'captain' ? '🏍️ كابتن' : r === 'merchant' ? '🏪 تاجر' : '👤 عميل';
+                resultsEl.innerHTML = list.map(u => `
+                    <div data-id="${u._id}" data-name="${(u.name||'').replace(/"/g, '&quot;')}" data-phone="${u.phone||''}" data-role="${u.role||''}"
+                        onclick="selectBroadcastUser(this.dataset.id, this.dataset.name, this.dataset.phone, this.dataset.role)"
+                        style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--gv-border);display:flex;align-items:center;gap:10px;transition:background .15s;"
+                        onmouseover="this.style.background='rgba(10,135,84,.07)'" onmouseout="this.style.background='transparent'">
+                        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#04553A,#0A6E47);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;">
+                            ${(u.name||'؟').charAt(0)}
                         </div>
-                    `;
-
-                    return [
-                        clientName,
-                        captainName,
-                        pickup,
-                        dropoff,
-                        order.price + ' ج.س',
-                        getStatusHtml(order.status),
-                        actionsHtml // 7th Column
-                    ];
-                });
-
-                $('#allOrdersTable').DataTable({
-                    data: tableData,
-                    language: {
-                        // ✅ FIX: Embedded Arabic translation to avoid CORS errors
-                        "sProcessing": "جارٍ التحميل...",
-                        "sLengthMenu": "أظهر _MENU_ مدخلات",
-                        "sZeroRecords": "لم يعثر على أية سجلات",
-                        "sInfo": "إظهار _START_ إلى _END_ من أصل _TOTAL_ مدخل",
-                        "sInfoEmpty": "يعرض 0 إلى 0 من أصل 0 سجل",
-                        "sInfoFiltered": "(منتقاة من مجموع _MAX_ مُدخل)",
-                        "sInfoPostFix": "",
-                        "sSearch": "ابحث:",
-                        "sUrl": "",
-                        "oPaginate": {
-                            "sFirst": "الأول",
-                            "sPrevious": "السابق",
-                            "sNext": "التالي",
-                            "sLast": "الأخير"
-                        }
-                    },
-                    pageLength: 10,
-                    order: [[0, 'desc']]
-                });
-
-            } catch (err) {
-                console.error("Error loading all orders:", err);
-            }
-        }
-
-        function createOrderRow(order) {
-            const clientName = order.client?.name || order.customer?.name || 'غير معروف';
-            const captainName = order.captain?.name || '---';
-            const pickup = order.pickup?.address || order.pickupLocation || 'غير محدد';
-            const dropoff = order.dropoff?.address || order.dropoffLocation || 'غير محدد';
-
-            return `
-                <tr>
-                    <td>${clientName}</td>
-                    <td>${captainName}</td>
-                    <td style="font-size:0.9em; color:#555;">${pickup}</td>
-                    <td style="font-size:0.9em; color:#555;">${dropoff}</td>
-                    <td style="font-weight:bold;">${order.price} ج.س</td>
-                    <td>${getStatusHtml(order.status)}</td>
-                </tr>
-            `;
-        }
-
-        async function loadUsers() {
-            try {
-                const resUsers = await fetch('/api/admin/users', {
-                    headers: window.Auth.getAuthHeader()
-                });
-                const users = await resUsers.json();
-
-                const usersList = Array.isArray(users) ? users : (users.users || []);
-                // const filteredUsers = usersList.filter(user => user.role !== 'admin'); // Admin CAN see other admins now
-
-                // Initialize DataTable
-                if ($.fn.DataTable.isDataTable('#usersTable')) {
-                    $('#usersTable').DataTable().destroy();
-                }
-
-                const tableData = usersList.map(user => {
-                    const roleHtml = `<span style="font-weight:bold; color:${user.role === 'captain' ? '#d35400' : (user.role === 'admin' ? '#8e44ad' : '#2980b9')}">
-                        ${user.role === 'captain' ? '🚴‍♂️ كابتن' : (user.role === 'admin' ? '👑 أدمن' : '👤 عميل')}
-                    </span>`;
-
-                    const statusHtml = `<span class="status-badge ${user.isActive ? 'active-badge' : 'inactive-badge'}">
-                        ${user.isActive ? 'نشط' : 'معطل'}
-                    </span>`;
-
-                    // Actions: Toggle, Edit, Delete
-                    // Use encodeURIComponent to safely pass JSON string
-                    const userStr = encodeURIComponent(JSON.stringify(user));
-
-                    let actionHtml = `
-                        <div style="display:flex; gap:5px; justify-content:center;">
-                            <button class="btn-toggle ${user.isActive ? 'btn-active' : 'btn-inactive'}" 
-                                onclick="toggleUserStatus('${user._id}')" title="تجميد/تفعيل">
-                                <i class="fas ${user.isActive ? 'fa-ban' : 'fa-check'}"></i>
-                            </button>
-                            <button class="btn-toggle" style="background:#f39c12; color:white;" 
-                                onclick="openEditUserModal('${userStr}')" title="تعديل">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-toggle" style="background:#c0392b; color:white;" 
-                                onclick="deleteUser('${user._id}')" title="حذف نهائي">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <div>
+                            <div style="font-weight:700;font-size:14px;">${u.name || '—'}</div>
+                            <div style="font-size:12px;color:var(--gv-dark-2);">${u.phone || ''} · ${roleLabel(u.role)}</div>
                         </div>
-                    `;
-
-                    return [
-                        user.name,
-                        user.phone || user.email || '---',
-                        roleHtml,
-                        statusHtml,
-                        actionHtml
-                    ];
-                });
-
-                $('#usersTable').DataTable({
-                    data: tableData,
-                    language: {
-                        // ✅ FIX: Embedded Arabic translation
-                        "sProcessing": "جارٍ التحميل...",
-                        "sLengthMenu": "أظهر _MENU_ مدخلات",
-                        "sZeroRecords": "لم يعثر على أية سجلات",
-                        "sInfo": "إظهار _START_ إلى _END_ من أصل _TOTAL_ مدخل",
-                        "sInfoEmpty": "يعرض 0 إلى 0 من أصل 0 سجل",
-                        "sInfoFiltered": "(منتقاة من مجموع _MAX_ مُدخل)",
-                        "sInfoPostFix": "",
-                        "sSearch": "ابحث:",
-                        "sUrl": "",
-                        "oPaginate": {
-                            "sFirst": "الأول",
-                            "sPrevious": "السابق",
-                            "sNext": "التالي",
-                            "sLast": "الأخير"
-                        }
-                    },
-                    pageLength: 10,
-                    order: [[0, 'asc']]
-                });
-
-            } catch (err) {
-                console.error(err);
+                    </div>
+                `).join('');
+                notFoundEl.style.display = 'none';
+                resultsEl.style.display  = 'block';
+            } catch(e) {
+                console.error('User search failed:', e);
             }
+        }, 350);
+    }
+
+    function selectBroadcastUser(id, name, phone, role) {
+        _selectedUserId = id;
+        document.getElementById('selectedUserName').textContent = name;
+        document.getElementById('selectedUserInfo').textContent = `${phone} · ${role === 'captain' ? 'كابتن' : role === 'merchant' ? 'تاجر' : 'عميل'}`;
+        document.getElementById('selectedUserBadge').style.display = 'flex';
+        document.getElementById('broadcastUserResults').style.display = 'none';
+        document.getElementById('broadcastUserNotFound').style.display = 'none';
+        document.getElementById('broadcastUserSearch').value = name;
+    }
+
+    function clearSelectedUser() {
+        _selectedUserId = null;
+        document.getElementById('broadcastUserSearch').value = '';
+        document.getElementById('selectedUserBadge').style.display = 'none';
+        document.getElementById('broadcastUserResults').style.display = 'none';
+        document.getElementById('broadcastUserNotFound').style.display = 'none';
+    }
+
+    // ── Send broadcast ────────────────────────────────────
+    async function sendBroadcast() {
+        const title   = (document.getElementById('broadcastTitle').value || '').trim();
+        const message = (document.getElementById('broadcastMsg').value   || '').trim();
+
+        if (!title || !message) {
+            Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'الرجاء إدخال عنوان ونص الرسالة', confirmButtonColor: '#04553A' });
+            return;
         }
 
-        async function toggleUserStatus(id) {
-            const result = await Swal.fire({
-                title: 'هل أنت متأكد؟',
-                text: 'هل تريد تغيير حالة هذا المستخدم؟',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'نعم',
-                cancelButtonText: 'إلغاء'
+        if (_broadcastTarget === 'user' && !_selectedUserId) {
+            Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'الرجاء اختيار مستخدم من نتائج البحث أولاً', confirmButtonColor: '#04553A' });
+            return;
+        }
+
+        const targetLabels = { all: 'الجميع', clients: 'العملاء', captains: 'الكباتن', merchants: 'التجار', user: document.getElementById('selectedUserName').textContent || 'مستخدم محدد' };
+        const { isConfirmed } = await Swal.fire({
+            icon: 'question',
+            title: 'تأكيد الإرسال',
+            html: `سيتم إرسال الإشعار إلى: <b>${targetLabels[_broadcastTarget] || _broadcastTarget}</b><br><br><b>${title}</b><br><small>${message}</small>`,
+            showCancelButton: true,
+            confirmButtonText: 'إرسال',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#04553A'
+        });
+        if (!isConfirmed) return;
+
+        const sendBtn = document.querySelector('[onclick="sendBroadcast()"]');
+        const origHtml = sendBtn.innerHTML;
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> جارِ الإرسال...';
+
+        try {
+            const body = { target: _broadcastTarget, title, message };
+            if (_broadcastTarget === 'user') body.userId = _selectedUserId;
+
+            const res  = await fetch(`${_API}/api/admin/broadcast`, {
+                method: 'POST',
+                headers: _hdr(),
+                body: JSON.stringify(body)
             });
+            const data = await res.json();
 
-            if (!result.isConfirmed) return;
-
-            try {
-                const res = await fetch(`/api/admin/user/${id}/status`, {
-                    method: 'PUT',
-                    headers: window.Auth.getAuthHeader()
-                });
-
-                if (res.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم بنجاح',
-                        text: 'تم تغيير حالة المستخدم',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                    loadUsers();
-                    loadDashboard();
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: 'حدث خطأ',
-                        confirmButtonText: 'حسناً'
-                    });
+            if (res.ok) {
+                let errorDetails = '';
+                if (data.errors && data.errors.length > 0) {
+                    errorDetails = `<div style="margin-top:10px; padding:10px; background:#f8d7da; color:#721c24; border-radius:5px; font-size:12px; text-align:right;">
+                        <b>سبب الفشل (FCM):</b><br> ${data.errors.join('<br>')}
+                    </div>`;
                 }
-            } catch (err) {
+
                 Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'خطأ في الاتصال',
-                    confirmButtonText: 'حسناً'
+                    icon: 'success',
+                    title: '✅ تم الإرسال!',
+                    html: `<b>الإجمالي:</b> ${data.total || 0} مستخدم<br><b>نجح (Push):</b> ${data.success || 0} · <b>فشل:</b> ${data.failure || 0}${errorDetails}`,
+                    confirmButtonColor: '#04553A'
                 });
-            }
-        }
-
-        function scrollToSection(id) {
-            const element = document.getElementById(id);
-            if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function logout() {
-            localStorage.removeItem('adminToken');
-            localStorage.removeItem('adminName');
-            window.location.href = 'admin-login.html';
-        }
-
-        async function loadSettings() {
-            try {
-                const res = await fetch(`${API_URL}/api/admin/settings`, {
-                    headers: window.Auth.getAuthHeader()
-                });
-                const data = await res.json();
-                if (data && data.value !== undefined) {
-                    document.getElementById('profitPercentage').value = data.value;
-                }
-            } catch (err) {
-                console.error("Error loading settings", err);
-            }
-        }
-
-        async function saveSettings() {
-            const val = document.getElementById('profitPercentage').value;
-            if (!val || val < 0 || val > 100) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'تنبيه',
-                    text: 'يرجى إدخال نسبة صحيحة بين 0 و 100',
-                    confirmButtonText: 'حسناً'
-                });
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/admin/settings', {
-                    method: 'PUT',
-                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: 'profitPercentage', value: val })
-                });
-
-                if (res.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم بنجاح',
-                        text: 'تم حفظ الإعدادات بنجاح',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: 'خطأ في الحفظ',
-                        confirmButtonText: 'حسناً'
-                    });
-                }
-            } catch (err) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'خطأ في الاتصال',
-                    confirmButtonText: 'حسناً'
-                });
-            }
-        }
-
-        // Initialize
-        loadDashboard();
-        loadUsers();
-        loadAllOrders();
-        loadSettings();
-
-        // New Helper Functions for Edit/Delete
-
-        // --- Users ---
-        function openEditUserModal(userStr) {
-            const user = JSON.parse(decodeURIComponent(userStr));
-            document.getElementById('editUserId').value = user._id;
-            document.getElementById('editUserName').value = user.name;
-            document.getElementById('editUserEmail').value = user.email || '';
-            document.getElementById('editUserPhone').value = user.phone || '';
-            document.getElementById('editUserRole').value = user.role;
-            document.getElementById('editUserPassword').value = ''; // Reset password field
-
-            toggleVehicleField();
-            if (user.vehicleType) {
-                document.getElementById('editUserVehicle').value = user.vehicleType;
-            }
-
-            document.getElementById('editUserModal').style.display = 'block';
-        }
-
-        function closeEditUserModal() {
-            document.getElementById('editUserModal').style.display = 'none';
-        }
-
-        function toggleVehicleField() {
-            const role = document.getElementById('editUserRole').value;
-            const vehicleGroup = document.getElementById('editVehicleGroup');
-            if (role === 'captain') {
-                vehicleGroup.style.display = 'block';
+                document.getElementById('broadcastTitle').value = '';
+                document.getElementById('broadcastMsg').value   = '';
+                clearSelectedUser();
             } else {
-                vehicleGroup.style.display = 'none';
+                throw new Error(data.message || 'فشل الإرسال');
             }
+        } catch(err) {
+            Swal.fire({ icon: 'error', title: 'خطأ', text: err.message, confirmButtonColor: '#dc3545' });
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = origHtml;
         }
+    }
+</script>
 
-        async function updateUser(e) {
-            e.preventDefault();
-            const id = document.getElementById('editUserId').value;
-            const body = {
-                name: document.getElementById('editUserName').value,
-                email: document.getElementById('editUserEmail').value,
-                phone: document.getElementById('editUserPhone').value,
-                role: document.getElementById('editUserRole').value,
-                password: document.getElementById('editUserPassword').value || undefined
-            };
-            if (body.role === 'captain') {
-                body.vehicleType = document.getElementById('editUserVehicle').value;
-            }
-
-            try {
-                const res = await fetch(`/api/admin/users/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                });
-
-                if (res.ok) {
-                    Swal.fire('تم بنجاح', 'تم تحديث بيانات المستخدم', 'success');
-                    closeEditUserModal();
-                    loadUsers();
-                } else {
-                    Swal.fire('خطأ', 'فشل التحديث', 'error');
-                }
-            } catch (err) {
-                Swal.fire('خطأ', 'خطأ في الاتصال', 'error');
-            }
-        }
-
-        async function deleteUser(id) {
-            const result = await Swal.fire({
-                title: 'هل أنت متأكد؟',
-                text: 'سوف يتم حذف هذا المستخدم نهائياً! لا يمكن التراجع.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'نعم، احذف',
-                cancelButtonText: 'إلغاء'
-            });
-
-            if (!result.isConfirmed) return;
-
-            try {
-                const res = await fetch(`/api/admin/users/${id}`, {
-                    method: 'DELETE',
-                    headers: window.Auth.getAuthHeader()
-                });
-
-                if (res.ok) {
-                    Swal.fire('تم الحذف', 'تم حذف المستخدم بنجاح', 'success');
-                    loadUsers();
-                } else {
-                    const data = await res.json();
-                    Swal.fire('خطأ', data.message || 'فشل الحذف', 'error');
-                }
-            } catch (err) {
-                Swal.fire('خطأ', 'خطأ في الاتصال', 'error');
-            }
-        }
-
-        // --- Orders ---
-        function openEditOrderModal(orderStr) {
-            const order = JSON.parse(decodeURIComponent(orderStr));
-            document.getElementById('editOrderId').value = order._id;
-            document.getElementById('editOrderStatus').value = order.status;
-            document.getElementById('editOrderPrice').value = order.price;
-            document.getElementById('editOrderPickup').value = order.pickup?.address || order.pickupLocation || '';
-            document.getElementById('editOrderDropoff').value = order.dropoff?.address || order.dropoffLocation || '';
-
-            document.getElementById('editOrderModal').style.display = 'block';
-        }
-
-        function closeEditOrderModal() {
-            document.getElementById('editOrderModal').style.display = 'none';
-        }
-
-        async function updateOrder(e) {
-            e.preventDefault();
-            const id = document.getElementById('editOrderId').value;
-            const body = {
-                status: document.getElementById('editOrderStatus').value,
-                price: document.getElementById('editOrderPrice').value,
-                pickup: { address: document.getElementById('editOrderPickup').value },
-                dropoff: { address: document.getElementById('editOrderDropoff').value }
-            };
-
-            try {
-                const res = await fetch(`/api/admin/orders/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                });
-
-                if (res.ok) {
-                    Swal.fire('تم بنجاح', 'تم تحديث بيانات الطلب', 'success');
-                    closeEditOrderModal();
-                    loadAllOrders();
-                    loadDashboard(); // Update stats
-                } else {
-                    Swal.fire('خطأ', 'فشل التحديث', 'error');
-                }
-            } catch (err) {
-                Swal.fire('خطأ', 'خطأ في الاتصال', 'error');
-            }
-        }
-
-        async function deleteOrder(id) {
-            const result = await Swal.fire({
-                title: 'هل أنت متأكد؟',
-                text: 'سوف يتم حذف هذا الطلب نهائياً!',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'نعم، احذف',
-                cancelButtonText: 'إلغاء'
-            });
-
-            if (!result.isConfirmed) return;
-
-            try {
-                const res = await fetch(`/api/admin/orders/${id}`, {
-                    method: 'DELETE',
-                    headers: window.Auth.getAuthHeader()
-                });
-
-                if (res.ok) {
-                    Swal.fire('تم الحذف', 'تم حذف الطلب بنجاح', 'success');
-                    loadAllOrders();
-                    loadDashboard();
-                } else {
-                    Swal.fire('خطأ', 'فشل الحذف', 'error');
-                }
-            } catch (err) {
-                Swal.fire('خطأ', 'خطأ في الاتصال', 'error');
-            }
-        }
-
-        // Helper to toggle sidebar
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-
-            sidebar.classList.toggle('active');
-
-            if (sidebar.classList.contains('active')) {
-                overlay.style.display = 'block';
-                setTimeout(() => overlay.classList.add('active'), 10);
-            } else {
-                overlay.classList.remove('active');
-                setTimeout(() => overlay.style.display = 'none', 300);
-            }
-        }
-    </script>
-
-    <!-- Auth Helper & App Core -->
-    <script src="js/auth-helper.js"></script>
-    <script type="module" src="js/app-core.js"></script>
-    <script type="module" src="js/native-notifications.js"></script>
 </body>
-
 </html>

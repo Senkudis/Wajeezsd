@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>تسوق من المتجر | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js?v=2.2"></script>
+    <script src="js/safe-area.js?v=2.2"></script>
+    <script src="js/fetch-retry.js?v=2.2"></script>
+    <script src="js/auth-helper.js?v=2.2"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 100px; }
+
+        .shop-hero {
+            position: relative; min-height: 200px; overflow: hidden;
+        }
+        .shop-hero-img {
+            width: 100%; height: 200px; object-fit: cover;
+            filter: brightness(0.6);
+        }
+        .shop-hero-fallback {
+            width: 100%; height: 200px;
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 4rem; color: rgba(255,255,255,0.3);
+        }
+        .shop-info-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 16px;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
+            color: white;
+        }
+        .open-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+        }
+
+        .cat-tabs {
+            display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px;
+            background: white; border-bottom: 1px solid #f0f0f0;
+            scrollbar-width: none; position: sticky; top: 0; z-index: 10;
+        }
+        .cat-tab {
+            white-space: nowrap; padding: 6px 16px; border-radius: 20px;
+            font-size: 13px; font-weight: 700; cursor: pointer;
+            background: #f8fafc; border: 2px solid #e2e8f0; color: #64748b;
+            transition: all 0.2s;
+        }
+        .cat-tab.active { background: #f59e0b; border-color: #f59e0b; color: white; }
+
+        .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px; }
+        .product-card {
+            background: white; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07); transition: transform 0.2s;
+        }
+        .product-card:hover { transform: translateY(-2px); }
+        /* 🔦 إبراز المنتج القادم من البحث */
+        .product-card.product-highlight {
+            animation: productPulse 1.3s ease 2;
+            box-shadow: 0 0 0 3px #04553A, 0 6px 24px rgba(4,85,58,0.35);
+        }
+        @keyframes productPulse {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(4,85,58,0.55), 0 6px 24px rgba(4,85,58,0.25); }
+            50%      { box-shadow: 0 0 0 6px rgba(4,85,58,0.15), 0 8px 30px rgba(4,85,58,0.4); }
+        }
+        .product-card-img {
+            width: 100%; height: 120px; object-fit: cover; background: #f8fafc;
+            display: flex; align-items: center; justify-content: center;
+            color: #94a3b8; font-size: 2.5rem;
+        }
+        .product-card-img img { width: 100%; height: 100%; object-fit: cover; }
+        .product-card-body { padding: 10px; }
+        .product-name { font-weight: 800; font-size: 14px; line-height: 1.3; margin-bottom: 4px; }
+        .product-desc { font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .product-price { font-size: 15px; font-weight: 900; color: #04553A; }
+        .add-to-cart-btn {
+            width: 100%; border: none; border-radius: 10px; padding: 8px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; font-weight: 800; font-size: 13px;
+            cursor: pointer; transition: all 0.2s; margin-top: 8px;
+        }
+        .add-to-cart-btn:hover { filter: brightness(1.1); }
+        .qty-control {
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; margin-top: 8px;
+        }
+        .qty-btn {
+            width: 28px; height: 28px; border-radius: 50%; border: none;
+            font-weight: 900; font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            background: #f59e0b; color: white; transition: all 0.2s;
+        }
+        .qty-num { font-weight: 800; font-size: 15px; min-width: 20px; text-align: center; }
+
+        /* Cart Drawer */
+        .cart-drawer {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+            background: white; border-radius: 24px 24px 0 0;
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.2);
+            transform: translateY(100%); transition: transform 0.3s ease;
+            max-height: 85vh; display: flex; flex-direction: column;
+        }
+        .cart-drawer.open { transform: translateY(0); }
+        .cart-drawer-handle {
+            width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px;
+            margin: 12px auto 0;
+        }
+        .cart-drawer-header { padding: 12px 20px; border-bottom: 1px solid #f0f0f0; }
+        .cart-drawer-body { flex: 1; overflow-y: auto; padding: 12px 20px; }
+        .cart-drawer-footer { padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #f0f0f0; }
+
+        .cart-fab {
+            position: fixed; bottom: 20px; left: 20px; z-index: 999;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; border: none; border-radius: 30px; padding: 12px 20px;
+            font-weight: 800; font-size: 15px; cursor: pointer;
+            box-shadow: 0 6px 24px rgba(245,158,11,0.4);
+            display: flex; align-items: center; gap: 8px;
+            transition: all 0.3s;
+        }
+        .cart-fab.hidden { transform: translateY(120px); }
+        .cart-count-badge {
+            background: white; color: #d97706; border-radius: 50%;
+            width: 22px; height: 22px; display: flex; align-items: center;
+            justify-content: center; font-size: 12px; font-weight: 900;
+        }
+        .cart-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 0; border-bottom: 1px solid #f8fafc;
+        }
+        .cart-item-name { flex: 1; font-weight: 700; font-size: 14px; }
+        .cart-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .cart-overlay.show { opacity: 1; pointer-events: all; }
+
+        /* --- 💰 أزرار رفع/تنزيل السعر (±100) --- */
+        .price-input { text-align: center !important; font-weight: 800 !important; color: #04553A !important; }
+        .price-stepper .btn-price-step {
+            background: #04553A; color: #fff; border: none; width: 52px; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s ease, transform .08s ease;
+        }
+        .price-stepper .btn-price-step:hover { background: #086b43; }
+        .price-stepper .btn-price-step:active { transform: scale(0.92); background: #065a38; }
+        .price-stepper .btn-price-step:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .price-stepper .input-group-text { border-left: none; border-right: none; }
+        @keyframes priceBump { 0% { background-color: #d1fae5; } 100% { background-color: #fff; } }
+        .price-input.bumped { animation: priceBump .35s ease; }
+    </style>
+</head>
+<body>
+
+<!-- Shop Hero -->
+<div class="shop-hero">
+    <div id="shopHeroContainer" class="shop-hero-fallback"><i class="bi bi-shop"></i></div>
+    <div class="shop-info-overlay">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <a href="javascript:history.back()" class="text-white text-decoration-none"><i class="bi bi-arrow-right fs-5"></i></a>
+            <span id="shopBadge" class="open-badge" style="background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.5);color:#86efac;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></span> مفتوح
+            </span>
+        </div>
+        <h2 class="fw-bold mb-0" id="shopName" style="font-size:1.4rem;">جاري التحميل...</h2>
+        <div class="text-white-50 small" id="shopAddress"></div>
+        <!-- ⭐ تقييم المتجر -->
+        <div id="shopRatingBar" style="display:none;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div id="shopStarsEl" style="color:#f59e0b;font-size:14px;letter-spacing:1px;"></div>
+            <span id="shopRatingText" style="color:rgba(255,255,255,.8);font-size:12px;font-weight:700;"></span>
+            <span id="shopViewsEl" style="color:rgba(255,255,255,.55);font-size:11px;"></span>
+        </div>
+        <div class="d-flex gap-3 mt-1" id="shopContact"></div>
+    </div>
+</div>
+
+<!-- 🔎 In-store product search -->
+<div class="px-3 pt-2">
+    <div class="position-relative">
+        <i class="bi bi-search position-absolute" style="right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;"></i>
+        <input type="text" id="storeProductSearch" oninput="searchStoreProducts(this.value)" autocomplete="off"
+            placeholder="ابحث في منتجات هذا المتجر..."
+            class="form-control" style="padding:11px 42px 11px 14px;border-radius:13px;font-weight:600;border:1px solid #e2e8f0;">
+    </div>
+</div>
+
+<!-- Category Tabs -->
+<div class="cat-tabs" id="catTabs">
+    <div class="cat-tab active" data-cat="all" onclick="filterCat('all', this)">الكل</div>
+</div>
+
+<!-- Products Grid -->
+<div class="product-grid" id="productsGrid">
+    <div class="product-card skeleton">
+        <div class="skeleton-avatar skeleton" style="width:100%; height:120px; border-radius:12px 12px 0 0;"></div>
+        <div class="p-2">
+            <div class="skeleton-title skeleton" style="width:80%"></div>
+            <div class="skeleton-text skeleton" style="width:40%"></div>
+            <div class="skeleton-btn skeleton mt-2" style="width:100%"></div>
+        </div>
+    </div>
+    <div class="product-card skeleton">
+        <div class="skeleton-avatar skeleton" style="width:100%; height:120px; border-radius:12px 12px 0 0;"></div>
+        <div class="p-2">
+            <div class="skeleton-title skeleton" style="width:80%"></div>
+            <div class="skeleton-text skeleton" style="width:40%"></div>
+            <div class="skeleton-btn skeleton mt-2" style="width:100%"></div>
+        </div>
+    </div>
+    <div class="product-card skeleton">
+        <div class="skeleton-avatar skeleton" style="width:100%; height:120px; border-radius:12px 12px 0 0;"></div>
+        <div class="p-2">
+            <div class="skeleton-title skeleton" style="width:80%"></div>
+            <div class="skeleton-text skeleton" style="width:40%"></div>
+            <div class="skeleton-btn skeleton mt-2" style="width:100%"></div>
+        </div>
+    </div>
+    <div class="product-card skeleton">
+        <div class="skeleton-avatar skeleton" style="width:100%; height:120px; border-radius:12px 12px 0 0;"></div>
+        <div class="p-2">
+            <div class="skeleton-title skeleton" style="width:80%"></div>
+            <div class="skeleton-text skeleton" style="width:40%"></div>
+            <div class="skeleton-btn skeleton mt-2" style="width:100%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Cart Overlay -->
+<div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
+
+<!-- Cart FAB -->
+<button class="cart-fab hidden" id="cartFab" onclick="openCart()">
+    <i class="bi bi-cart-fill"></i>
+    <span>السلة</span>
+    <div class="cart-count-badge" id="cartCount">0</div>
+</button>
+
+<!-- Cart Drawer -->
+<div class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-handle"></div>
+    <div class="cart-drawer-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0"><i class="bi bi-cart-fill text-warning me-2"></i>سلة مشترياتك</h6>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="closeCart()">إغلاق</button>
+        </div>
+    </div>
+    <div class="cart-drawer-body" id="cartBody">
+        <!-- Cart items rendered here -->
+    </div>
+    <div class="cart-drawer-footer">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-bold">الإجمالي:</span>
+            <span class="fw-bold text-success fs-5" id="cartTotal">0 ج.س</span>
+        </div>
+        <button class="btn btn-success w-100 py-3 fw-bold rounded-3" onclick="proceedToOrder()">
+            <i class="bi bi-arrow-left-circle-fill me-2"></i>متابعة الطلب
+        </button>
+    </div>
+</div>
+
+<!-- Order Form Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header border-0" style="background:linear-gradient(135deg,#04553A,#0d9d63);color:white;">
+                <h6 class="modal-title fw-bold">
+                    <i class="bi bi-bag-check-fill me-2"></i>تأكيد الطلب
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Order Summary -->
+                <div class="mb-3 p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                    <div class="fw-bold mb-2 small text-muted">ملخص طلبك:</div>
+                    <div id="orderSummary"></div>
+                    <div class="border-top mt-2 pt-2 d-flex justify-content-between fw-bold">
+                        <span>إجمالي المنتجات</span>
+                        <span class="text-success" id="orderItemsTotal"></span>
+                    </div>
+                </div>
+
+                <!-- Delivery Info -->
+                <div class="mb-4">
+                    <label class="text-muted small fw-bold d-block mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> عنوان التوصيل *</label>
+                    <button type="button" class="btn w-100 mb-2 d-flex align-items-center" onclick="openShopMap()" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;color:#0f172a;font-weight:700;">
+                        <i class="bi bi-map-fill text-danger me-2"></i> تحديد من الخريطة
+                        <i class="bi bi-chevron-left ms-auto text-muted"></i>
+                    </button>
+                    <div style="position:relative;">
+                        <input type="text" id="deliveryAddress" class="form-control" placeholder="الوجهة غير محددة (اختر من الخريطة)" readonly onclick="openShopMap()" style="cursor: pointer; background: white; border-radius:12px; padding-right:40px;">
+                        <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#dc3545;"><i class="bi bi-geo-alt-fill"></i></span>
+                    </div>
+                    <input type="hidden" id="deliveryLat">
+                    <input type="hidden" id="deliveryLng">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="text-muted small fw-bold d-block mb-2"><i class="bi bi-cash-coin text-success me-1"></i> سعر التوصيل (قابل للتفاوض) *</label>
+                    <div class="input-group price-stepper input-group-lg">
+                        <button type="button" id="shop-price-minus" class="btn btn-price-step" aria-label="إنقاص 100" title="إنقاص 100">
+                            <i class="bi bi-dash-lg"></i>
+                        </button>
+                        <input type="number" id="deliveryFee" class="form-control price-input fw-bold text-success fs-5" inputmode="numeric" value="0" oninput="handleManualPriceEdit()" min="0" step="100">
+                        <span class="input-group-text bg-white fw-bold text-muted">جنيه</span>
+                        <button type="button" id="shop-price-plus" class="btn btn-price-step" aria-label="زيادة 100" title="زيادة 100">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted d-block mt-2" id="deliveryFeeHint">سيظهر السعر المقترح عند تحديد موقعك على الخريطة. استخدم + و − للتعديل بمقدار 100.</small>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">اسم المستلم *</label>
+                        <input type="text" id="receiverName" class="form-control" placeholder="اسمك الكامل">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">رقم هاتفه *</label>
+                        <input type="tel" id="receiverPhone" class="form-control" placeholder="09xxxxxxxx">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small"><i class="bi bi-chat-text me-1"></i>ملاحظات إضافية</label>
+                    <textarea id="orderNotes" class="form-control" rows="2" placeholder="مثال: لا ثوم، أو طلب خاص..."></textarea>
+                </div>
+
+                <!-- Promo Code -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold small"><i class="bi bi-ticket-perforated-fill text-warning me-1"></i>كوبون الخصم (اختياري)</label>
+                    <div class="input-group">
+                        <input type="text" id="promoCodeInput" class="form-control" placeholder="أدخل الكود هنا" style="text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+                        <button class="btn btn-outline-success fw-bold" onclick="applyPromo()" id="applyPromoBtn" type="button">تطبيق</button>
+                    </div>
+                    <div id="promoResult" style="margin-top:6px;font-size:13px;"></div>
+                </div>
+
+                <!-- ملخص الطلب: تفصيل واضح للمبالغ -->
+                <div id="orderSummaryBox" class="p-3 rounded-3 mb-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                    <div class="d-flex justify-content-between mb-1" style="font-size:14px;">
+                        <span class="text-muted"><i class="bi bi-box-seam me-1"></i> مبلغ البضاعة</span>
+                        <span class="fw-bold" id="sumProducts">0 ج.س</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1" style="font-size:14px;">
+                        <span class="text-muted"><i class="bi bi-truck me-1"></i> سعر التوصيل</span>
+                        <span class="fw-bold" id="sumDelivery">0 ج.س</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 text-success fw-bold" id="sumDiscountRow" style="font-size:14px;display:none;">
+                        <span><i class="bi bi-ticket-perforated-fill me-1"></i> <span id="sumDiscountLabel">الخصم</span></span>
+                        <span id="sumDiscount">- 0 ج.س</span>
+                    </div>
+                    <div class="d-flex justify-content-between fw-bold border-top mt-2 pt-2" style="font-size:16px;">
+                        <span>الإجمالي</span>
+                        <span class="text-success" id="sumTotal">0 ج.س</span>
+                    </div>
+                </div>
+
+                <!-- ⚠️ توضيح الدفع: التوصيل كاش للكابتن وليس للتاجر -->
+                <div class="rounded-3 mb-3 p-3" style="background:#fffbeb;border:1px solid #fde68a;font-size:12.5px;line-height:1.8;">
+                    <div class="fw-bold mb-1" style="color:#92400e;"><i class="bi bi-exclamation-triangle-fill me-1"></i> توضيح مهم للدفع</div>
+                    <div style="color:#92400e;">
+                        • <b>مبلغ البضاعة</b> (<span id="payProducts">0</span> ج.س) يُحوَّل <b>للمتجر</b> وترفق إشعار الدفع عبر المحادثة.<br>
+                        • <b>سعر التوصيل</b> (<span id="payDelivery">0</span> ج.س) يُدفع <b>كاش للكابتن</b> عند الاستلام، <b>ولا يُحوَّل للمتجر</b>.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 flex-column gap-2">
+                <button class="btn btn-success w-100 py-3 fw-bold rounded-3" onclick="placeOrder()">
+                    <i class="bi bi-check-circle-fill me-2"></i>إرسال الطلب للمتجر
+                </button>
+                <button class="btn btn-outline-secondary w-100 rounded-3" data-bs-dismiss="modal">تعديل الطلب</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // Get and validate placeId from URL
+    const params = new URLSearchParams(window.location.search);
+    const placeId = params.get('placeId');
+    // Ensure placeId is a valid MongoDB ObjectId (24 hex characters)
+    if (!placeId || !/^[0-9a-fA-F]{24}$/.test(placeId)) {
+        window.location.href = 'client-order.html';
+    }
+
+    let shopData = null;
+    let allProducts = [];
+    let cart = {}; // { productId: { product, qty } }
+    let pricingConfig = null;
+    let isPriceManuallyEdited = false;
+    let appliedPromo = null; // { code, discountAmount, finalTotal }
+
+    // ──── Feature 3: Cart Persistence — حفظ واسترجاع السلة تلقائياً ──────────────
+    const CART_KEY = `wajeez_cart_${placeId}`;
+    const CART_TTL = 2 * 60 * 60 * 1000; // صالحة ساعتين فقط
+
+    function saveCartToStorage() {
+        try {
+            const serialized = Object.entries(cart).map(([id, {product, qty}]) => ({
+                id, qty, name: product.name, price: product.price, image: product.image || null
+            }));
+            localStorage.setItem(CART_KEY, JSON.stringify({ items: serialized, savedAt: Date.now(), placeId }));
+        } catch (e) {}
+    }
+
+    function loadCartFromStorage() {
+        try {
+            const raw = localStorage.getItem(CART_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (!data.items || !data.savedAt || Date.now() - data.savedAt > CART_TTL) {
+                localStorage.removeItem(CART_KEY); return null;
+            }
+            return data;
+        } catch (e) { return null; }
+    }
+
+    function clearCartStorage() { localStorage.removeItem(CART_KEY); }
+
+    // دالة مشتركة لتحويل مسار الصورة إلى رابط كامل
+    function getFullImageUrl(url) {
+        if (!url) return '';
+        if (url.startsWith('data:image')) return url;
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        const base = (window.API_URL && window.API_URL !== '') ? window.API_URL : 'https://wajeezsd.com';
+        const clean = url.replace(/\\/g, '/');
+        const withSlash = clean.startsWith('/') ? clean : '/' + clean;
+        // على السيرفر الحي، الصور موجودة تحت /api/uploads
+        const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+        if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
+        return base + withSlash;
+    }
+
+    // Load Settings (city-aware)
+    async function loadSettings() {
+        try {
+            const token = localStorage.getItem('token');
+            const city = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
+            const res = await fetch(`${API_URL}/api/orders/price-config?city=${encodeURIComponent(city)}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
+            if (res.ok) {
+                pricingConfig = await res.json();
+            }
+        } catch (err) {
+            console.error('Failed to load settings', err);
+        }
+    }
+    loadSettings();
+
+    // ─── Load Shop & Products ───────────────────────────────
+    async function loadShop() {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/shop/${placeId}/products`);
+            const data = await res.json();
+            shopData = data.place;
+            allProducts = data.products || [];
+
+            // Hero
+            const heroEl = document.getElementById('shopHeroContainer');
+            if (shopData.image_url) {
+                heroEl.outerHTML = `<img src="${getFullImageUrl(shopData.image_url)}" class="shop-hero-img" id="shopHeroContainer" alt="${shopData.name}">`;
+            }
+            document.getElementById('shopName').textContent = shopData.name;
+            document.getElementById('shopAddress').textContent = shopData.address || '';
+
+            // Contact links
+            const contacts = [];
+            if (shopData.phone) contacts.push(`<a href="tel:${shopData.phone}" class="text-white-50 text-decoration-none small"><i class="bi bi-telephone-fill me-1"></i>${shopData.phone}</a>`);
+            document.getElementById('shopContact').innerHTML = contacts.join('');
+
+            // Open/closed — respect isOpenOverride (merchant manual toggle)
+            const isActuallyOpen = shopData.isOpenOverride !== false && shopData.is_open !== false;
+            if (!isActuallyOpen) {
+                document.getElementById('shopBadge').style.cssText = 'background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.5);color:#fca5a5;';
+                document.getElementById('shopBadge').innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></span> مغلق حالياً';
+            }
+
+            // Categories
+            const cats = [...new Set(allProducts.map(p => p.category || 'عام'))];
+            const tabsEl = document.getElementById('catTabs');
+            cats.forEach(cat => {
+                const el = document.createElement('div');
+                el.className = 'cat-tab';
+                el.dataset.cat = cat;
+                el.textContent = cat;
+                el.onclick = () => filterCat(cat, el);
+                tabsEl.appendChild(el);
+            });
+
+            // ⭐ عرض تقييم ومشاهدات المتجر في الهيرو
+            const ratingBar = document.getElementById('shopRatingBar');
+            const avg = shopData.ratingAvg || 0;
+            const cnt = shopData.ratingCount || 0;
+            const views = shopData.viewsCount || 0;
+            
+            const fullStars  = Math.floor(avg);
+            const halfStar   = avg - fullStars >= 0.5;
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= fullStars)         starsHtml += '<i class="bi bi-star-fill"></i>';
+                else if (i === fullStars+1 && halfStar) starsHtml += '<i class="bi bi-star-half"></i>';
+                else                        starsHtml += '<i class="bi bi-star" style="opacity:.4;"></i>';
+            }
+            document.getElementById('shopStarsEl').innerHTML   = starsHtml;
+            document.getElementById('shopRatingText').textContent = `${avg > 0 ? avg : 'جديد'} (${cnt} تقييم)`;
+            document.getElementById('shopViewsEl').textContent = `• شوهد ${views.toLocaleString('ar-EG')} مرة`;
+            ratingBar.style.display = 'flex';
+
+            document.getElementById('productsGrid').innerHTML = '';
+            renderProducts(allProducts);
+
+            // 🔦 إبراز المنتج القادم من نتائج البحث (shop-detail.html?placeId=..&product=..)
+            _highlightProductFromUrl();
+
+            // Auto-track page view (fire & forget)
+            fetch(`${API_URL}/api/places/${placeId}/view`, { method: 'POST' }).catch(() => {});
+        } catch (err) {
+            console.error(err);
+            document.getElementById('productsGrid').innerHTML = '<p class="text-center text-danger p-4">فشل تحميل المتجر</p>';
+        }
+    }
+
+    let _storeCat = 'all';
+    let _storeSearch = '';
+
+    function filterCat(cat, el) {
+        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        _storeCat = cat;
+        _applyStoreFilters();
+    }
+
+    // 🔎 بحث داخل المتجر — يُدمج مع تصنيف التبويب الحالي
+    window.searchStoreProducts = function(q) {
+        _storeSearch = (q || '').trim().toLowerCase();
+        _applyStoreFilters();
+    };
+
+    function _applyStoreFilters() {
+        let list = _storeCat === 'all' ? allProducts : allProducts.filter(p => (p.category || 'عام') === _storeCat);
+        if (_storeSearch) {
+            list = list.filter(p => `${p.name || ''} ${p.description || ''}`.toLowerCase().includes(_storeSearch));
+        }
+        renderProducts(list);
+    }
+
+    function renderProducts(products) {
+        const grid = document.getElementById('productsGrid');
+        if (!products.length) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;"><i class="bi bi-box-seam" style="font-size:3rem;"></i><div class="fw-bold mt-2">لا توجد منتجات في هذه الفئة</div></div>';
+            return;
+        }
+        grid.innerHTML = products.map(p => buildProductCard(p)).join('');
+    }
+
+    // 🔦 يمرّر إلى المنتج المحدّد في الرابط ويُبرزه (قادم من بحث "تسوق")
+    function _highlightProductFromUrl() {
+        const pid = new URLSearchParams(window.location.search).get('product');
+        if (!pid) return;
+        // قد لا يكون المنتج ظاهراً إن كانت فئة أخرى محدّدة → اعرض الكل أولاً
+        setTimeout(() => {
+            let card = document.getElementById('pc-' + pid);
+            if (!card) {
+                const allTab = document.querySelector('.cat-tab');
+                if (allTab) { renderProducts(allProducts); card = document.getElementById('pc-' + pid); }
+            }
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('product-highlight');
+                setTimeout(() => card.classList.remove('product-highlight'), 2600);
+            }
+        }, 350);
+    }
+
+    // 🖼️ فتح صورة المنتج بالحجم الكامل عند الضغط عليها
+    function openProductImage(src, event) {
+        if (event) event.stopPropagation();
+        if (!src) return;
+        let ov = document.getElementById('imgLightbox');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'imgLightbox';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;padding:20px;';
+            ov.onclick = () => { ov.style.display = 'none'; };
+            ov.innerHTML = '<img id="imgLightboxImg" alt="صورة المنتج" style="max-width:100%;max-height:100%;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);">';
+            document.body.appendChild(ov);
+        }
+        document.getElementById('imgLightboxImg').src = src;
+        ov.style.display = 'flex';
+    }
+    window.openProductImage = openProductImage;
+
+    function buildProductCard(p) {
+        const inCart = cart[p._id];
+        const outOfStock = p.stock !== null && p.stock !== undefined && p.stock === 0;
+        const stockLabel = (p.stock !== null && p.stock !== undefined)
+            ? (p.stock === 0
+                ? `<span style="font-size:11px;color:#ef4444;font-weight:700;"><i class="bi bi-x-circle-fill me-1"></i>نفدت الكمية</span>`
+                : `<span style="font-size:11px;color:#f59e0b;font-weight:600;"><i class="bi bi-boxes me-1"></i>${p.stock} متبقية</span>`)
+            : '';
+
+        const imgSrc = getFullImageUrl(p.image);
+        const imgHtml = imgSrc
+            ? `<img src="${imgSrc}" alt="${p.name}" style="cursor:zoom-in" onclick="openProductImage('${imgSrc}', event)" onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-box-seam-fill&quot;&gt;&lt;/i&gt;'">`
+            : `<i class="bi bi-box-seam-fill"></i>`;
+
+        let actionHtml;
+        if (outOfStock) {
+            actionHtml = `<button class="add-to-cart-btn" disabled style="background:#94a3b8;cursor:not-allowed;opacity:0.7;">
+                <i class="bi bi-slash-circle me-1"></i>نفد من المخزون
+               </button>`;
+        } else if (inCart) {
+            actionHtml = `<div class="qty-control">
+                <button class="qty-btn" onclick="changeQty('${p._id}', -1, event)">−</button>
+                <span class="qty-num">${inCart.qty}</span>
+                <button class="qty-btn" onclick="changeQty('${p._id}', 1, event)">+</button>
+               </div>`;
+        } else {
+            actionHtml = `<button class="add-to-cart-btn" onclick="addToCart('${p._id}', event)">
+                <i class="bi bi-cart-plus-fill me-1"></i>أضف للسلة
+               </button>`;
+        }
+
+        return `
+        <div class="product-card" id="pc-${p._id}">
+            <div class="product-card-img">${imgHtml}</div>
+            <div class="product-card-body">
+                <div class="product-name">${p.name}</div>
+                ${p.description ? `<div class="product-desc">${p.description}</div>` : ''}
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                    <div class="product-price">${p.price} ج.س</div>
+                    <div style="display:flex;align-items:center;gap:3px;">
+                        <i class="bi bi-star-fill" style="color:#f59e0b;font-size:11px;"></i>
+                        <span style="font-size:11px;font-weight:800;color:#374151;">${p.ratingAvg > 0 ? p.ratingAvg : 'جديد'}</span>
+                        <span style="font-size:10px;color:#94a3b8;">(${p.ratingCount||0})</span>
+                    </div>
+                </div>
+                ${stockLabel}
+                ${actionHtml}
+            </div>
+        </div>`;
+    }
+
+    // ─── Cart Logic ─────────────────────────────────────────
+    function addToCart(productId, event) {
+        if (event) event.stopPropagation();
+        if (!token) { Swal.fire('تنبيه', 'يجب تسجيل الدخول أولاً', 'warning'); return; }
+        const product = allProducts.find(p => p._id === productId);
+        if (!product) return;
+        // Check stock
+        if (product.stock !== null && product.stock !== undefined && product.stock === 0) {
+            Swal.fire({ toast:true, position:'top', text:'نفدت الكمية من المخزون', icon:'warning', timer:2000, showConfirmButton:false });
+            return;
+        }
+        cart[productId] = { product, qty: 1 };
+        updateCart();
+    }
+
+    function changeQty(productId, delta, event) {
+        if (event) event.stopPropagation();
+        if (!cart[productId]) return;
+        const product = cart[productId].product;
+        const newQty = cart[productId].qty + delta;
+        // Enforce stock limit
+        if (delta > 0 && product.stock !== null && product.stock !== undefined) {
+            if (newQty > product.stock) {
+                Swal.fire({ toast:true, position:'top', text:`الكمية المتاحة ${product.stock} قطعة فقط`, icon:'warning', timer:2000, showConfirmButton:false });
+                return;
+            }
+        }
+        cart[productId].qty = newQty;
+        if (cart[productId].qty <= 0) delete cart[productId];
+        updateCart();
+    }
+
+    function updateCart() {
+        const total = Object.values(cart).reduce((sum, { product, qty }) => sum + product.price * qty, 0);
+        const count = Object.values(cart).reduce((sum, { qty }) => sum + qty, 0);
+
+        document.getElementById('cartCount').textContent = count;
+        document.getElementById('cartTotal').textContent = `${total} ج.س`;
+
+        const fab = document.getElementById('cartFab');
+        if (count > 0) fab.classList.remove('hidden');
+        else fab.classList.add('hidden');
+
+        // Re-render product cards to show qty controls
+        const currentCat = document.querySelector('.cat-tab.active')?.dataset.cat || 'all';
+        const filtered = currentCat === 'all' ? allProducts : allProducts.filter(p => (p.category || 'عام') === currentCat);
+        renderProducts(filtered);
+
+        // Update cart body
+        renderCartBody();
+        saveCartToStorage(); // ✅ Feature 3: حفظ السلة بعد كل تغيير
+    }
+
+    function renderCartBody() {
+        const body = document.getElementById('cartBody');
+        const items = Object.values(cart);
+        if (!items.length) { body.innerHTML = '<p class="text-muted text-center py-3">السلة فارغة</p>'; return; }
+        body.innerHTML = items.map(({ product, qty }) => `
+            <div class="cart-item">
+                <div class="cart-item-name">${product.name}</div>
+                <div class="qty-control" style="margin:0;gap:6px;">
+                    <button class="qty-btn" style="width:24px;height:24px;font-size:12px;" onclick="changeQty('${product._id}', -1)">−</button>
+                    <span class="qty-num" style="font-size:14px;">${qty}</span>
+                    <button class="qty-btn" style="width:24px;height:24px;font-size:12px;" onclick="changeQty('${product._id}', 1)">+</button>
+                </div>
+                <span class="fw-bold text-success" style="min-width:70px;text-align:left;">${product.price * qty} ج.س</span>
+            </div>
+        `).join('');
+    }
+
+    function openCart() {
+        renderCartBody();
+        document.getElementById('cartDrawer').classList.add('open');
+        document.getElementById('cartOverlay').classList.add('show');
+    }
+    function closeCart() {
+        document.getElementById('cartDrawer').classList.remove('open');
+        document.getElementById('cartOverlay').classList.remove('show');
+    }
+
+    // ─── ملخص الطلب: يحسب ويعرض تفصيل المبالغ (بضاعة / توصيل / خصم / إجمالي) ───
+    function getCartTotal() {
+        return Object.values(cart).reduce((sum, { product, qty }) => sum + product.price * qty, 0);
+    }
+    function renderOrderSummary() {
+        const products = getCartTotal();
+        const delivery = parseFloat(document.getElementById('deliveryFee').value) || 0;
+        const scope = appliedPromo ? (appliedPromo.appliesTo || 'total') : null;
+        const discount = appliedPromo ? (appliedPromo.discountAmount || 0) : 0;
+
+        // المبلغ الصافي لكل جزء حسب نطاق الخصم
+        const netProducts = scope === 'products' ? Math.max(0, products - discount) : products;
+        const netDelivery = scope === 'delivery' ? Math.max(0, delivery - discount) : delivery;
+        const total = Math.max(0, products + delivery - discount);
+
+        const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        setTxt('sumProducts', `${products} ج.س`);
+        setTxt('sumDelivery', `${delivery} ج.س`);
+        setTxt('sumTotal', `${total} ج.س`);
+
+        const dRow = document.getElementById('sumDiscountRow');
+        if (dRow) {
+            if (discount > 0) {
+                dRow.style.display = 'flex';
+                const lbl = { products: 'خصم المنتجات', delivery: 'خصم التوصيل', total: 'الخصم' }[scope] || 'الخصم';
+                setTxt('sumDiscountLabel', `${lbl} (${appliedPromo.code})`);
+                setTxt('sumDiscount', `- ${discount} ج.س`);
+            } else {
+                dRow.style.display = 'none';
+            }
+        }
+
+        // أرقام توضيح الدفع (تعكس الخصم على الجزء المعني)
+        setTxt('payProducts', netProducts);
+        setTxt('payDelivery', netDelivery);
+    }
+
+    // ─── Promo Code ──────────────────────────────────────────
+    async function applyPromo() {
+        const code = document.getElementById('promoCodeInput').value.trim().toUpperCase();
+        if (!code) return;
+
+        const productsTotal = getCartTotal();
+        const deliveryFee = parseFloat(document.getElementById('deliveryFee').value) || 0;
+        if (deliveryFee <= 0) {
+            document.getElementById('promoResult').innerHTML = `<span style="color:#dc2626;"><i class="bi bi-exclamation-circle-fill me-1"></i>حدّد موقعك على الخريطة أولاً لحساب التوصيل قبل تطبيق الكود</span>`;
+            return;
+        }
+
+        const btn = document.getElementById('applyPromoBtn');
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        try {
+            const res  = await fetch(`${API_URL}/api/orders/apply-promo`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, productsTotal, deliveryFee })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                document.getElementById('promoResult').innerHTML = `<span style="color:#dc2626;"><i class="bi bi-x-circle-fill me-1"></i>${data.message}</span>`;
+                appliedPromo = null;
+            } else {
+                appliedPromo = { code, discountAmount: data.discount, appliesTo: data.appliesTo, scopeLabel: data.scopeLabel };
+                const scopeMsg = { products: 'على المنتجات', delivery: 'على التوصيل', total: 'على الإجمالي' }[data.appliesTo] || '';
+                document.getElementById('promoResult').innerHTML = `<span style="color:#16a34a;"><i class="bi bi-check-circle-fill me-1"></i>✅ تم تطبيق الكوبون ${scopeMsg} (-${data.discount} ج.س)</span>`;
+            }
+            renderOrderSummary();
+        } catch {
+            document.getElementById('promoResult').innerHTML = `<span style="color:#dc2626;">فشل الاتصال</span>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'تطبيق';
+        }
+    }
+
+    // ─── Checkout ────────────────────────────────────────────
+    function proceedToOrder() {
+        if (!token) { Swal.fire('تنبيه', 'يجب تسجيل الدخول أولاً لإتمام الطلب', 'warning'); return; }
+        closeCart();
+        const items = Object.values(cart);
+        const total = items.reduce((sum, { product, qty }) => sum + product.price * qty, 0);
+
+        document.getElementById('orderSummary').innerHTML = items.map(({ product, qty }) =>
+            `<div class="d-flex justify-content-between small py-1">
+                <span>${qty}x ${product.name}</span>
+                <span class="fw-bold">${product.price * qty} ج.س</span>
+            </div>`
+        ).join('');
+        document.getElementById('orderItemsTotal').textContent = `${total} ج.س`;
+
+        // Reset promo state
+        appliedPromo = null;
+        document.getElementById('promoCodeInput').value = '';
+        document.getElementById('promoResult').innerHTML = '';
+
+        // يبدأ سعر التوصيل بـ 0 — تملؤه الخريطة بالمبلغ المقترح عند تحديد الموقع
+        if (!isPriceManuallyEdited) {
+            document.getElementById('deliveryFee').value = 0;
+        }
+
+        // Pre-fill user info
+        if (user.name) document.getElementById('receiverName').value = user.name;
+        if (user.phone) document.getElementById('receiverPhone').value = user.phone;
+
+        renderOrderSummary(); // اعرض تفصيل المبالغ فور فتح النافذة
+        new bootstrap.Modal(document.getElementById('orderModal')).show();
+    }
+
+    async function placeOrder() {
+        const address = document.getElementById('deliveryAddress').value.trim();
+        const receiverName = document.getElementById('receiverName').value.trim();
+        const receiverPhone = document.getElementById('receiverPhone').value.trim();
+        const notes = document.getElementById('orderNotes').value.trim();
+        const deliveryFeeInputRaw = document.getElementById('deliveryFee').value;
+        const deliveryFeeVal = parseFloat(deliveryFeeInputRaw);
+
+        if (!address || !receiverName || !receiverPhone || deliveryFeeInputRaw === '' || isNaN(deliveryFeeVal) || deliveryFeeVal <= 0) {
+            Swal.fire('تنبيه', 'يرجى تحديد موقعك على الخريطة لحساب سعر التوصيل، وإدخال عنوان التوصيل واسم ورقم المستلم', 'warning');
+            return;
+        }
+
+        const items = Object.values(cart).map(({ product, qty }) => ({
+            productId: product._id,
+            name: product.name,
+            price: product.price,
+            quantity: qty
+        }));
+
+        const btn = document.querySelector('#orderModal .btn-success');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الإرسال...';
+
+        try {
+            const body = {
+                items,
+                dropoff: { address, receiverName, receiverPhone },
+                deliveryFee: deliveryFeeVal,
+                notes
+            };
+            // أضف بيانات الكوبون إن وُجد
+            if (appliedPromo) {
+                body.promoCode      = appliedPromo.code;
+                body.discountAmount = appliedPromo.discountAmount;
+            }
+
+            const res = await fetch(`${API_URL}/api/merchant/shop/${placeId}/order`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
+                clearCartStorage(); // ✅ Feature 3: امسح السلة بعد إرسال الطلب بنجاح
+                cart = {};
+                appliedPromo = null;
+                updateCart();
+                const discountMsg = data.order?.discountAmount > 0
+                    ? `<br><span style="color:#16a34a;">🎉 وفّرت ${data.order.discountAmount} ج.س بالكوبون!</span>`
+                    : '';
+                await Swal.fire({
+                    icon: 'success',
+                    title: '✅ تم إرسال طلبك!',
+                    html: `طلبك وصل للمتجر وينتظر موافقتهم.${discountMsg}<br><small class="text-muted">رقم الطلب: #${data.order._id.slice(-4)}</small>`,
+                    confirmButtonText: 'متابعة طلباتي',
+                    confirmButtonColor: '#04553A'
+                });
+                window.location.href = 'client-my-orders.html';
+            } else {
+                Swal.fire('خطأ', data.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>إرسال الطلب للمتجر';
+            }
+        } catch (err) {
+            Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>إرسال الطلب للمتجر';
+        }
+    }
+
+    function handleManualPriceEdit() {
+        // 🐛 إصلاح: لا نثبّت السعر كـ"يدوي" إلا بعد تحديد موقع التسليم على الخريطة
+        // وبوجود قيمة فعلية. الكتابة قبل تحديد الموقع — أو تفريغ الحقل — يجب ألا توقف
+        // التسعير التلقائي (كان يتجمّد سابقاً).
+        const _fee = document.getElementById('deliveryFee');
+        if (document.getElementById('deliveryLat').value && _fee.value.trim() !== '') {
+            isPriceManuallyEdited = true;
+        }
+        document.getElementById('deliveryFee').classList.remove('border-warning', 'border-2');
+        // تغيّر سعر التوصيل يُبطل أي كوبون مُطبَّق (الخصم حُسب على القيمة القديمة)
+        resetPromoOnChange();
+        renderOrderSummary();
+    }
+
+    // يُلغي الكوبون المُطبَّق عند تغيّر المبالغ (سلة/توصيل) لتفادي خصم قديم غير صحيح
+    function resetPromoOnChange() {
+        if (appliedPromo) {
+            appliedPromo = null;
+            const pr = document.getElementById('promoResult');
+            if (pr) pr.innerHTML = '<span style="color:#64748b;font-size:12px;"><i class="bi bi-info-circle me-1"></i>تغيّر المبلغ — أعد تطبيق الكود إن رغبت</span>';
+        }
+    }
+
+    // Haversine Formula with Tortuosity Factor
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth radius in KM
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const straightDistance = R * c;
+        return straightDistance * 1.4; // Tortuosity Factor
+    }
+
+    // ============================================
+    // MAP LOGIC
+    // ============================================
+    let shopMap = null;
+    let mapInitialized = false;
+    let storeMarkerRef = null; // ✅ FIX: متاح لـ confirmShopMap
+
+    // ══════════════════════════════════════════════════════
+    // 📍 Smart Address Resolution — وصف دقيق لموقع التسليم (يعتمد عليه الكابتن)
+    // ══════════════════════════════════════════════════════
+    let _shopCenterAddress = '';
+    let _shopCenterKey = '';
+    window._shopSelectedSearch = null; // { text, lat, lng } عند اختيار نتيجة بحث
+
+    function _metersBetween(lat1, lng1, lat2, lng2) {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // reverse geocode: Google أولاً (أدق في السودان)، ثم Nominatim، ثم الإحداثيات
+    function _resolveAddress(lat, lng) {
+        return new Promise((resolve) => {
+            try {
+                if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+                    new google.maps.Geocoder().geocode(
+                        { location: { lat, lng }, language: 'ar', region: 'SD' },
+                        (results, status) => {
+                            if (status === 'OK' && results && results[0]) {
+                                let addr = (results[0].formatted_address || '').replace(/،?\s*السودان\s*$/, '').trim();
+                                resolve(addr || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+                            } else {
+                                _resolveAddressNominatim(lat, lng).then(resolve);
+                            }
+                        }
+                    );
+                    return;
+                }
+            } catch (_) { /* fall through */ }
+            _resolveAddressNominatim(lat, lng).then(resolve);
+        });
+    }
+
+    function _resolveAddressNominatim(lat, lng) {
+        return fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=ar&lat=${lat}&lon=${lng}`)
+            .then(r => r.json())
+            .then(d => {
+                const a = d?.address || {};
+                const parts = [a.road, a.neighbourhood || a.suburb, a.city || a.town || a.village].filter(Boolean);
+                return parts.join('، ') || (d?.display_name?.split(',').slice(0, 2).join('،')) || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            })
+            .catch(() => `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    }
+
+    function _updateShopCenterAddress() {
+        if (!shopMap) return;
+        const c = shopMap.getCenter();
+        const lat = c.lat(), lng = c.lng();
+        const previewEl = document.getElementById('map-address-preview');
+
+        if (window._shopSelectedSearch) {
+            const d = _metersBetween(lat, lng, window._shopSelectedSearch.lat, window._shopSelectedSearch.lng);
+            if (d < 45) {
+                _shopCenterAddress = window._shopSelectedSearch.text;
+                _shopCenterKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+                if (previewEl) previewEl.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> ${_shopCenterAddress}`;
+                return;
+            }
+            window._shopSelectedSearch = null;
+        }
+
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        if (key === _shopCenterKey) return;
+        _shopCenterKey = key;
+        if (previewEl) previewEl.innerHTML = `<span style="opacity:.55;">جارٍ تحديد العنوان…</span>`;
+        _resolveAddress(lat, lng).then(addr => {
+            const c2 = shopMap.getCenter();
+            if (`${c2.lat().toFixed(4)},${c2.lng().toFixed(4)}` !== key) return;
+            _shopCenterAddress = addr;
+            if (previewEl) previewEl.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> ${addr}`;
+        });
+    }
+
+    function openShopMap() {
+        // Hide order modal to prevent z-index issues
+        const modalEl = document.getElementById('orderModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+
+        // 📍 صفّر حالة العنوان والعلامة لكل فتح جديد
+        _shopCenterAddress = '';
+        _shopCenterKey = '';
+        window._shopSelectedSearch = null;
+        const _pv = document.getElementById('map-address-preview');
+        if (_pv) _pv.innerHTML = '<span style="opacity:.55;">حرّك الخريطة لتحديد موقعك بدقة…</span>';
+
+        document.getElementById('static-map-container').style.display = 'block';
+        
+        if (!mapInitialized) {
+            if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
+                initShopMap();
+            }
+            // If not ready, __googleMapsReady callback will init it automatically
+        }
+    }
+
+    function closeShopMap() {
+        document.getElementById('static-map-container').style.display = 'none';
+        // Re-show modal
+        const modalEl = document.getElementById('orderModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modalInstance.show();
+    }
+
+    window.__googleMapsReady = function() {
+        // Google Maps loaded — init map if container is visible
+        if (document.getElementById('static-map-container').style.display === 'block') {
+            initShopMap();
+        }
+    };
+
+    function initShopMap() {
+        const mapEl = document.getElementById('map');
+        if (!mapEl || typeof google === 'undefined' || !google.maps) return;
+
+        // 🌍 مركز الخريطة حسب موقع المتجر/المدينة (وليس الخرطوم دائماً)
+        const _shopCity = (shopData && shopData.city)
+            || (typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum');
+        const _shopCenter = (shopData && shopData.location && shopData.location.lat && shopData.location.lng)
+            ? { lat: shopData.location.lat, lng: shopData.location.lng }
+            : (_shopCity === 'PortSudan' ? { lat: 19.6151, lng: 37.2164 } : { lat: 15.6445, lng: 32.4777 });
+
+        shopMap = new google.maps.Map(mapEl, {
+            center: _shopCenter,
+            zoom: 16,
+            disableDefaultUI: true,
+            gestureHandling: 'greedy'
+        });
+
+        // ✅ FIX #2: لا نُنشئ dirService/dirRenderer هنا
+        // سيُنشآن مرة واحدة فقط داخل confirmShopMap عند الضغط على التأكيد
+        let storeMarker = null;
+        if (shopData && shopData.location && shopData.location.lat && shopData.location.lng) {
+            storeMarker = new google.maps.Marker({
+                position: { lat: shopData.location.lat, lng: shopData.location.lng },
+                map: shopMap,
+                // ✅ FIX #2: zIndex عالي جداً لضمان ظهور الـ marker فوق أي عنصر آخر
+                zIndex: 9999,
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"><circle cx="12" cy="9" r="9" fill="#fff" opacity="0.9"/><path fill="#f59e0b" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`),
+                    scaledSize: new google.maps.Size(40, 40),
+                    anchor: new google.maps.Point(20, 40)
+                },
+                title: shopData.name
+            });
+            if (!document.getElementById('deliveryLat').value) {
+                shopMap.setCenter(storeMarker.getPosition());
+            }
+            storeMarkerRef = storeMarker; // ✅ احفظ المرجع للنطاق الخارجي
+        }
+
+        // Search Box Logic
+        const input = document.getElementById('map-search-input');
+        const searchBtn = document.getElementById('map-search-btn');
+        const resultsDiv = document.getElementById('map-search-results');
+        const warningBanner = document.getElementById('geofence-warning-banner');
+        const warningText = document.getElementById('geofence-warning-text');
+        
+        let searchTimeout;
+        let autocompleteService = new google.maps.places.AutocompleteService();
+        let geocoder = new google.maps.Geocoder();
+        let placesService = new google.maps.places.PlacesService(shopMap);
+
+        function showWarning(msg) {
+            if(warningText) warningText.textContent = msg;
+            if(warningBanner) warningBanner.style.display = 'flex';
+            setTimeout(() => { if(warningBanner) warningBanner.style.display = 'none'; }, 3000);
+        }
+
+        function performSearch() {
+            const query = input.value.trim();
+            if (query.length < 2) { resultsDiv.style.display = 'none'; return; }
+            
+            autocompleteService.getPlacePredictions({ input: query, componentRestrictions: { country: 'sd' }, types: ['establishment', 'geocode'] }, (predictions, status) => {
+                if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions || predictions.length === 0) {
+                    resultsDiv.style.display = 'none';
+                    showWarning('عفواً، لم يتم العثور على نتائج. جرب اسماً آخر.');
+                    return;
+                }
+                resultsDiv.innerHTML = predictions.slice(0, 6).map(p => {
+                    const isEstablishment = (p.types || []).includes('establishment') || (p.types || []).includes('point_of_interest');
+                    const icon = isEstablishment ? 'bi-shop' : 'bi-geo-alt-fill';
+                    const iconColor = isEstablishment ? '#b45309' : '#04553A';
+                    return `
+                    <div onclick="window._selectShopSearch('${p.place_id}')"
+                        style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:11px;">
+                        <i class="bi ${icon}" style="color:${iconColor};font-size:17px;flex-shrink:0;"></i>
+                        <div style="flex:1;overflow:hidden;font-size:13px;font-weight:700;">${p.structured_formatting.main_text}
+                          <div style="font-size:11px;color:#64748b;font-weight:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.structured_formatting.secondary_text || ''}</div>
+                        </div>
+                        <i class="bi bi-arrow-up-left" style="color:#cbd5e1;font-size:13px;flex-shrink:0;"></i>
+                    </div>`;
+                }).join('');
+                resultsDiv.style.display = 'block';
+            });
+        }
+
+        if (input) {
+            input.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 300);
+            });
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                    geocoder.geocode({ address: input.value + ' السودان' }, (results, status) => {
+                        if (status === 'OK' && results[0]) {
+                            shopMap.panTo(results[0].geometry.location);
+                            shopMap.setZoom(17);
+                            resultsDiv.style.display = 'none';
+                            updateRoute(results[0].geometry.location);
+                        } else {
+                            showWarning('عفواً، لم يتم العثور على المكان. جرب اختيار نتيجة من القائمة.');
+                        }
+                    });
+                }
+            });
+            input.addEventListener('blur', () => setTimeout(() => resultsDiv.style.display='none', 250));
+            input.addEventListener('focus', () => { if(resultsDiv.innerHTML.trim()) resultsDiv.style.display='block'; });
+        }
+        
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => {
+                input.blur();
+                geocoder.geocode({ address: input.value + ' السودان' }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        shopMap.panTo(results[0].geometry.location);
+                        shopMap.setZoom(17);
+                        resultsDiv.style.display = 'none';
+                        updateRoute(results[0].geometry.location);
+                    } else {
+                        showWarning('عفواً، لم يتم العثور على المكان. جرب اختيار نتيجة من القائمة.');
+                    }
+                });
+            });
+        }
+
+        window._selectShopSearch = function(placeId) {
+            placesService.getDetails({ placeId: placeId, fields: ['geometry', 'name', 'formatted_address'] }, (place, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && place.geometry) {
+                    const loc = place.geometry.location;
+                    const lat = loc.lat(), lng = loc.lng();
+                    shopMap.panTo(loc);
+                    shopMap.setZoom(17);
+                    resultsDiv.style.display = 'none';
+
+                    // 📍 خزّن وصفاً دقيقاً (اسم المكان + العنوان) ليصل للكابتن
+                    const nm = place.name || '';
+                    const fa = (place.formatted_address || '').replace(/،?\s*السودان\s*$/, '').trim();
+                    const finalText = [nm, fa].filter(Boolean).join('، ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    window._shopSelectedSearch = { text: finalText, lat, lng };
+                    const pv = document.getElementById('map-address-preview');
+                    if (pv) pv.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> ${finalText}`;
+
+                    updateRoute(loc);
+                }
+            });
+        };
+        
+        function updateRoute(destinationPoint) {
+            // ✅ هذه الدالة لم تعد تُستدعى من dragend
+            // ستُرسم المسار مرة واحدة فقط من confirmShopMap
+        }
+
+        // 📍 معاينة العنوان النصّي حيّاً عند توقّف الحركة (reverse geocode)
+        shopMap.addListener('idle', _updateShopCenterAddress);
+        // ✅ FIX #1: لا نستدعي DirectionsService مع كل حركة drag — المسار يُرسم عند التأكيد فقط
+
+        mapInitialized = true;
+        locateMeOnMap();
+        initDeliveryZone();
+    }
+
+    let deliveryZonePolygon = null;
+    const MIN_ZOOM_LEVEL = 16;
+    
+    async function initDeliveryZone() {
+        // 🌍 نطاق الخرطوم الافتراضي — يُستخدم فقط للخرطوم عند غياب نطاق من السيرفر
+        const KHARTOUM_ZONE = [
+            { lat: 15.750, lng: 32.400 },
+            { lat: 15.750, lng: 32.650 },
+            { lat: 15.450, lng: 32.650 },
+            { lat: 15.450, lng: 32.400 },
+        ];
+        // 🌍 مدينة المتجر/العميل — لجلب النطاق الصحيح (الخرطوم أو بورتسودان)
+        const city = (shopData && shopData.city)
+            || (typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum');
+
+        let zoneCoords = null;
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/api/admin/delivery-zone?city=${encodeURIComponent(city)}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.deliveryZone && data.deliveryZone.length >= 3) {
+                    zoneCoords = data.deliveryZone;
+                }
+            }
+        } catch (e) {}
+
+        // احتياطي: نطاق الخرطوم فقط للخرطوم. أما المدن الأخرى (بورتسودان) بلا نطاق مُعرّف
+        // فلا نرسم مضلّعاً ولا نمنع أي موقع — حتى لا يُرفض العميل خطأً بنطاق الخرطوم.
+        if (!zoneCoords) {
+            if (city === 'Khartoum') {
+                zoneCoords = KHARTOUM_ZONE;
+            } else {
+                deliveryZonePolygon = null;
+                if (typeof window.checkShopDeliveryZone !== 'function') {
+                    window.checkShopDeliveryZone = function () {};
+                }
+                return; // لا تقييد جغرافي لهذه المدينة
+            }
+        }
+
+        deliveryZonePolygon = new google.maps.Polygon({
+            paths: zoneCoords,
+            strokeColor: '#04553A',
+            strokeOpacity: 0.15,
+            strokeWeight: 2,
+            fillColor: '#04553A',
+            fillOpacity: 0.04,
+            map: shopMap,
+            clickable: false
+        });
+
+        window.checkShopDeliveryZone = function() {
+            if (!google.maps.geometry || !google.maps.geometry.poly || !deliveryZonePolygon) return;
+            const center = shopMap.getCenter();
+            const currentZoom = shopMap.getZoom();
+            const isInside = google.maps.geometry.poly.containsLocation(center, deliveryZonePolygon);
+            
+            const banner = document.getElementById('geofence-warning-banner');
+            const confirmBtn = document.getElementById('map-confirm-btn');
+            
+            let bannerText = "";
+            let shouldBlock = false;
+
+            if (!isInside) {
+                shouldBlock = true;
+                bannerText = "عفواً، الموقع خارج منطقة التوصيل حالياً.";
+            } else if (currentZoom < MIN_ZOOM_LEVEL) {
+                shouldBlock = true;
+                bannerText = "الرجاء تقريب الخريطة (Zoom in) لتحديد موقعك بدقة.";
+            }
+
+            if (shouldBlock) {
+                if (banner) {
+                    banner.style.display = 'flex';
+                    const spanEl = banner.querySelector('span');
+                    if(spanEl) spanEl.textContent = bannerText;
+                }
+                if (confirmBtn) {
+                    confirmBtn.disabled = true;
+                    confirmBtn.style.opacity = '0.5';
+                }
+            } else {
+                if (banner) banner.style.display = 'none';
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                }
+            }
+        };
+
+        shopMap.addListener('dragend', window.checkShopDeliveryZone);
+        shopMap.addListener('zoom_changed', window.checkShopDeliveryZone);
+        setTimeout(window.checkShopDeliveryZone, 500);
+    }
+
+    // 📍💚 نقطة "موقعك الحالي" بلمسة وجيز على خريطة المتجر
+    let _suMarker = null, _suCircle = null, _suPulse = null, _suTimer = null;
+    function _showShopUserDot(lat, lng, accuracy) {
+        if (!shopMap || typeof google === 'undefined' || !google.maps) return;
+        const pos = { lat, lng };
+        if (!_suCircle) {
+            _suCircle = new google.maps.Circle({ map: shopMap, center: pos, radius: Math.max(15, accuracy || 30),
+                strokeColor: '#04553A', strokeOpacity: 0.30, strokeWeight: 1, fillColor: '#04553A', fillOpacity: 0.08, clickable: false, zIndex: 1 });
+        } else { _suCircle.setCenter(pos); _suCircle.setRadius(Math.max(15, accuracy || 30)); }
+
+        const dotIcon = {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28">' +
+                '<circle cx="14" cy="14" r="9" fill="#fff" opacity="0.95"/>' +
+                '<circle cx="14" cy="14" r="6.5" fill="#04553A"/>' +
+                '<circle cx="14" cy="14" r="6.5" fill="none" stroke="#25d366" stroke-width="1.5"/></svg>'),
+            scaledSize: new google.maps.Size(28, 28), anchor: new google.maps.Point(14, 14)
+        };
+        if (!_suMarker) _suMarker = new google.maps.Marker({ map: shopMap, position: pos, icon: dotIcon, zIndex: 3, clickable: false, title: 'موقعك الحالي' });
+        else { _suMarker.setPosition(pos); _suMarker.setIcon(dotIcon); }
+
+        if (!_suPulse) _suPulse = new google.maps.Circle({ map: shopMap, center: pos, radius: 8, strokeColor: '#25d366', strokeOpacity: 0.7, strokeWeight: 2, fillColor: '#25d366', fillOpacity: 0.15, clickable: false, zIndex: 2 });
+        else _suPulse.setCenter(pos);
+        if (_suTimer) clearInterval(_suTimer);
+        let r = 8;
+        _suTimer = setInterval(() => { r += 2; if (r > 46) r = 8; const t = (r - 8) / 38; _suPulse.setRadius(r); _suPulse.setOptions({ strokeOpacity: 0.7 * (1 - t), fillOpacity: 0.15 * (1 - t) }); }, 80);
+    }
+
+    function locateMeOnMap() {
+        const locateBtn = document.getElementById('locateMeBtn');
+        if (locateBtn) {
+            locateBtn.innerHTML = '<span class="spinner-border spinner-border-sm text-success" role="status" aria-hidden="true"></span>';
+        }
+        
+        const resetBtn = () => {
+            if (locateBtn) locateBtn.innerHTML = '<i class="bi bi-crosshair2 fs-5"></i>';
+        };
+
+        if (navigator.geolocation && shopMap) {
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    shopMap.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    shopMap.setZoom(17);
+                    // 📍 أظهر نقطة موقع العميل الحالي
+                    _showShopUserDot(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                    resetBtn();
+                },
+                err => {
+                    console.error("Geolocation error:", err);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ toast: true, position: 'top', text: 'تعذر الوصول لموقعك. يرجى تفعيل الـ GPS', icon: 'error', timer: 3000, showConfirmButton: false });
+                    }
+                    resetBtn();
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        } else {
+            resetBtn();
+        }
+    }
+
+    async function confirmShopMap() {
+        const c = shopMap.getCenter();
+        const lat = c.lat();
+        const lng = c.lng();
+        
+        document.getElementById('deliveryLat').value = lat;
+        document.getElementById('deliveryLng').value = lng;
+
+        // 📍 وصف دقيق للكابتن: العنوان المحلول (بحث/geocode)
+        let _resolved = '';
+        if (window._shopSelectedSearch &&
+            _metersBetween(lat, lng, window._shopSelectedSearch.lat, window._shopSelectedSearch.lng) < 45) {
+            _resolved = window._shopSelectedSearch.text;
+        } else if (_shopCenterAddress && _shopCenterKey === `${lat.toFixed(4)},${lng.toFixed(4)}`) {
+            _resolved = _shopCenterAddress;
+        }
+        const _addrEl = document.getElementById('deliveryAddress');
+        _addrEl.value = _resolved || 'موقع محدد من الخريطة';
+        
+        // ✅ FIX #1: أظهر سبينر على الزر أثناء جلب المسار
+        const confirmBtn = document.getElementById('map-confirm-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري حساب المسافة...';
+
+        // ✅ FIX #1: رسم المسار مرة واحدة فقط عند التأكيد
+        if (storeMarkerRef) {
+            await new Promise((resolve) => {
+                const dirService = new google.maps.DirectionsService();
+                const dirRenderer = new google.maps.DirectionsRenderer({
+                    map: shopMap, suppressMarkers: true,
+                    polylineOptions: { strokeColor: '#04553A', strokeWeight: 4, strokeOpacity: 0.8 }
+                });
+                dirService.route({
+                    origin: storeMarkerRef.getPosition(),
+                    destination: { lat, lng },
+                    travelMode: google.maps.TravelMode.DRIVING
+                }, (response, status) => {
+                    if (status === 'OK') dirRenderer.setDirections(response);
+                    resolve();
+                });
+            });
+        }
+
+        // لو لم يكن لدينا عنوان محلول مسبقاً (لم يكتمل البحث/المعاينة) → حُلّه الآن في الخلفية
+        if (!_resolved) {
+            _resolveAddress(lat, lng).then(addr => {
+                _addrEl.value = addr;
+            });
+        }
+
+        // حساب سعر التوصيل
+        if (shopData && shopData.location && shopData.location.lat && shopData.location.lng) {
+            if (!isPriceManuallyEdited) {
+                const distKm = calculateDistance(lat, lng, shopData.location.lat, shopData.location.lng);
+                const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
+                const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
+                let finalPrice = baseFare + (distKm * perKm);
+                finalPrice = Math.ceil(finalPrice / 100) * 100;
+
+                const feeInput = document.getElementById('deliveryFee');
+                feeInput.value = finalPrice;
+                feeInput.classList.add('border-warning', 'border-2');
+                document.getElementById('deliveryFeeHint').textContent = `المسافة التقديرية للمتجر: ${distKm.toFixed(1)} كم`;
+                // تغيّر سعر التوصيل المقترح يُبطل أي كوبون ويحدّث الملخص
+                resetPromoOnChange();
+                renderOrderSummary();
+            }
+        }
+
+        closeShopMap();
+    }
+
+    // 💰 أزرار رفع/تنزيل سعر التوصيل بمقدار 100 ج.س
+    (function setupPriceStepper() {
+        const STEP = 100;
+        function step(direction) {
+            const input = document.getElementById('deliveryFee');
+            if (!input) return;
+            const current = parseInt(input.value, 10) || 0;
+            const snapped = Math.round(current / STEP) * STEP;
+            let next = snapped + (direction * STEP);
+            if (next < 0) next = 0;
+            input.value = next;
+            handleManualPriceEdit(); // يُثبّت السعر فلا تعيد الخريطة حسابه
+            input.classList.remove('bumped');
+            void input.offsetWidth;
+            input.classList.add('bumped');
+            const minus = document.getElementById('shop-price-minus');
+            if (minus) minus.disabled = (next <= 0);
+        }
+        const minus = document.getElementById('shop-price-minus');
+        const plus = document.getElementById('shop-price-plus');
+        if (minus) minus.addEventListener('click', () => step(-1));
+        if (plus) plus.addEventListener('click', () => step(1));
+    })();
+
+    // ─── Feature 3: Cart Recovery — استرجاع السلة بعد تحميل المنتجات ───
+    loadShop().then(() => {
+        const savedCart = loadCartFromStorage();
+        if (!savedCart || !savedCart.items || !savedCart.items.length) return;
+        const validItems = savedCart.items.filter(item => {
+            const product = allProducts.find(p => p._id === item.id);
+            return product && product.isAvailable;
+        });
+        if (!validItems.length) { clearCartStorage(); return; }
+
+        // عرض بنر استرجاع جذاب أسفل الشاشة
+        const styleTag = document.createElement('style');
+        styleTag.textContent = '@keyframes slideUpCart{from{transform:translateY(80px);opacity:0}to{transform:translateY(0);opacity:1}}';
+        document.head.appendChild(styleTag);
+
+        const banner = document.createElement('div');
+        banner.id = 'cart-recovery-banner';
+        banner.style.cssText = 'position:fixed;bottom:80px;left:12px;right:12px;background:linear-gradient(135deg,#1a1a2e,#0f3460);color:white;border-radius:16px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,0.35);z-index:9999;display:flex;align-items:center;gap:12px;animation:slideUpCart 0.4s cubic-bezier(0.34,1.56,0.64,1);';
+        banner.innerHTML = `
+            <i class="bi bi-cart-check-fill" style="font-size:1.8rem;color:#fbbf24;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:800;font-size:14px;">لديك سلة محفوظة!</div>
+                <div style="font-size:12px;opacity:0.8;">${validItems.length} منتج من جلسة سابقة</div>
+            </div>
+            <button id="restoreCartBtn" style="background:#f59e0b;border:none;color:white;font-weight:800;padding:8px 14px;border-radius:10px;font-family:Cairo,sans-serif;font-size:13px;cursor:pointer;white-space:nowrap;">استرجاع</button>
+            <button id="dismissCartBtn" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:8px;border-radius:8px;cursor:pointer;flex-shrink:0;"><i class="bi bi-x-lg"></i></button>
+        `;
+        document.body.appendChild(banner);
+
+        document.getElementById('restoreCartBtn').onclick = () => {
+            let restored = 0;
+            savedCart.items.forEach(item => {
+                const product = allProducts.find(p => p._id === item.id);
+                if (product && product.isAvailable) {
+                    cart[item.id] = { product, qty: Math.min(item.qty, product.stock ?? item.qty) };
+                    restored++;
+                }
+            });
+            updateCart();
+            banner.remove();
+            if (restored > 0) {
+                Swal.fire({ toast:true, position:'top', icon:'success', text:`✅ تم استرجاع ${restored} منتج في سلتك`, timer:2500, showConfirmButton:false });
+            }
+        };
+        document.getElementById('dismissCartBtn').onclick = () => { banner.remove(); clearCartStorage(); };
+    });
+
+    // ─── Feature 1: Real-time Stock Updates — تحديث المخزون فوراً بدون Refresh ───
+    if (typeof io !== 'undefined') {
+        const _stockSocket = io(API_URL, {
+            transports: ['polling', 'websocket'],
+            auth: { token: localStorage.getItem('token') || '' }
+        });
+        _stockSocket.on('connect', () => {
+            _stockSocket.emit('join_shop_room', placeId);
+        });
+        _stockSocket.on('product_stock_changed', (data) => {
+            const idx = allProducts.findIndex(p => p._id === data.productId);
+            if (idx === -1) return;
+            allProducts[idx].stock = data.stock;
+            allProducts[idx].isAvailable = data.isAvailable;
+            // إذا نفد منتج موجود في السلة → أزله وأخطر العميل
+            if (!data.isAvailable && cart[data.productId]) {
+                delete cart[data.productId];
+                updateCart();
+                Swal.fire({ toast:true, position:'top', icon:'warning', text:'عذراً! نفدت كمية أحد منتجات سلتك وتم حذفه', timer:3500, showConfirmButton:false });
+            } else {
+                const currentCat = document.querySelector('.cat-tab.active')?.dataset.cat || 'all';
+                const filtered = currentCat === 'all' ? allProducts : allProducts.filter(p => (p.category || 'عام') === currentCat);
+                renderProducts(filtered);
+            }
+        });
+    }
+</script>
+
+<!-- 🗺️ Map Container (Hidden by default) -->
+<div id="static-map-container" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647; overflow: hidden; background: #e0f2eb;">
+    <div id="map" style="width: 100%; height: 100%;"></div>
+    
+    <div id="map-ui-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100000;">
+        <!-- Top Header & Close -->
+        <div style="position: absolute; top: 20px; left: 20px; z-index: 10004; pointer-events:auto;">
+            <button class="btn btn-light rounded-pill shadow" onclick="closeShopMap()">
+                <i class="bi bi-x-lg text-danger"></i> إغلاق
+            </button>
+        </div>
+        
+        <!-- Shop Badge -->
+        <div id="shopMapBadge" style="position: absolute; top: 20px; right: 20px; z-index: 10004; pointer-events:auto; background: white; border-radius: 50px; padding: 8px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; max-width: 180px;">
+            <i class="bi bi-shop-window text-success" style="font-size: 1.1rem;"></i>
+            <span id="shopMapBadgeName" style="font-size: 11px; font-weight: 700; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">موقع التوصيل</span>
+        </div>
+
+        <!-- Search Bar & Banner -->
+        <div style="pointer-events:auto;position:absolute;top:70px;left:16px;right:16px;z-index:100001;">
+            <div style="position:relative;display:flex;align-items:center;">
+                <input type="text" id="map-search-input" placeholder="ابحث عن مكان أو عنوان..."
+                    style="width:100%;padding:14px 48px 14px 16px;border:none;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:600;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.12);outline:none;direction:rtl;"
+                    autocomplete="off">
+                <button type="button" id="map-search-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#04553A;color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            <!-- Search Results Dropdown -->
+            <div id="map-search-results"
+                style="display:none;margin-top:6px;background:white;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,0.15);max-height:240px;overflow-y:auto;font-family:'Cairo',sans-serif;">
+            </div>
+            <!-- ⚠️ Geofence Warning Banner (Moved here to show below search results) -->
+            <div id="geofence-warning-banner"
+                style="display: none; margin-top: 6px; background: #dc3545; color: white; padding: 12px 16px; border-radius: 12px; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 13px; align-items: center; gap: 10px; box-shadow: 0 4px 16px rgba(220, 53, 69, 0.4); pointer-events: auto;">
+                <i class="bi bi-exclamation-triangle-fill fs-5" style="margin-left: 5px;"></i>
+                <span id="geofence-warning-text">عفواً، الموقع خارج منطقة التوصيل حالياً.</span>
+            </div>
+        </div>
+
+        <!-- Locate Me -->
+        <button type="button" id="locateMeBtn" onclick="locateMeOnMap()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="pointer-events:auto;top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: #04553A; padding: 10px 16px;">
+            <i class="bi bi-crosshair2 fs-5"></i>
+            <span style="font-size: 12px;">موقعي</span>
+        </button>
+
+        <!-- Floating Bottom Sheet -->
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: white; z-index: 10002; border-radius: 20px 20px 0 0; padding: 25px 20px; box-shadow: 0 -8px 25px rgba(0,0,0,0.15); pointer-events:auto; text-align:center;">
+            <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill text-success me-2"></i> تأكيد موقع التوصيل</h6>
+            <div id="map-address-preview" style="font-family:'Cairo',sans-serif;font-size:13.5px;font-weight:700;color:#04553A;margin-bottom:10px;line-height:1.5;min-height:18px;"><span style="opacity:.55;">حرّك الخريطة لتحديد موقعك بدقة…</span></div>
+            <button id="map-confirm-btn" onclick="confirmShopMap()" class="btn btn-success w-100 rounded-pill py-3 fw-bold shadow">
+                <i class="bi bi-check-circle-fill me-1"></i> تأكيد وحساب مسافة التوصيل
+            </button>
+        </div>
+    </div>
+    
+    <!-- Center Pin -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;z-index:99;margin-top:-12px;">
+        <i class="bi bi-geo-alt-fill text-danger drop-shadow" style="font-size:3rem; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4));"></i>
+    </div>
+</div>
+
+<script src="js/maps-loader.js"></script>
+<script>loadGoogleMaps({ libraries: 'places,geometry', callback: '__googleMapsReady' });</script>
+</body>
+</html>

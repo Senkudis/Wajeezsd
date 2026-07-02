@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>لوحة التاجر | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 80px; }
+        .merchant-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 20px 16px 28px;
+            position: relative; overflow: hidden;
+        }
+        .merchant-header::before {
+            content: ''; position: absolute; top: -40px; left: -40px;
+            width: 160px; height: 160px;
+            background: rgba(245,158,11,0.15);
+            border-radius: 50%;
+        }
+        .merchant-header::after {
+            content: ''; position: absolute; bottom: -30px; right: -20px;
+            width: 120px; height: 120px;
+            background: rgba(245,158,11,0.1);
+            border-radius: 50%;
+        }
+        .stat-card {
+            background: white; border-radius: 16px; padding: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            text-align: center; border: 1px solid rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-num { font-size: 2rem; font-weight: 900; line-height: 1; }
+        .stat-label { font-size: 12px; color: #888; font-weight: 600; margin-top: 4px; }
+        .quick-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: white; border-radius: 16px; padding: 20px 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            text-decoration: none; color: #1a1a2e;
+            transition: all 0.2s; border: 2px solid transparent;
+            height: 100%;
+        }
+        .quick-btn:hover { transform: translateY(-3px); }
+        .quick-btn i { font-size: 2rem; margin-bottom: 8px; }
+        .quick-btn span { font-size: 13px; font-weight: 700; text-align: center; }
+        .quick-btn-special {
+            border-color: #f59e0b;
+            color: #f59e0b;
+            box-shadow: 0 4px 15px rgba(245,158,11,0.15);
+        }
+        .quick-btn-special i { color: #f59e0b; font-size: 2.2rem; }
+        .quick-btn-special span { color: #f59e0b; font-size: 14px; }
+        .order-badge {
+            font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 700;
+        }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        .section-title {
+            font-size: 16px; font-weight: 800; color: #1a1a2e;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .order-row {
+            background: white; border-radius: 14px; padding: 12px 14px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            margin-bottom: 10px; border-right: 4px solid #f59e0b;
+            transition: transform 0.15s, box-shadow 0.15s;
+            animation: rowIn 0.35s ease both;
+        }
+        .order-row:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.10); }
+        @keyframes rowIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 🔢 Header stat tiles */
+        .hstat {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 10px 4px; text-align: center;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .hstat:active { transform: scale(0.95); }
+        .hstat i { font-size: 0.95rem; opacity: 0.6; display: block; margin-bottom: 4px; color: #fff; }
+        .hstat-num { font-size: 1.5rem; font-weight: 900; line-height: 1; color: #fff; }
+        .hstat-lbl { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+        .hstat-accent { background: rgba(245,158,11,0.22); border-color: rgba(245,158,11,0.38); }
+        .hstat-accent i, .hstat-accent .hstat-num { color: #fbbf24; }
+        .hstat-pulse { position: relative; }
+        .hstat-pulse::after {
+            content: ''; position: absolute; top: 8px; left: 10px;
+            width: 7px; height: 7px; border-radius: 50%; background: #fbbf24;
+            box-shadow: 0 0 0 rgba(251,191,36,0.6); animation: hpulse 1.8s infinite;
+        }
+        @keyframes hpulse {
+            0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+            100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+        }
+
+        /* 👤 Order client avatar + amount pill */
+        .ord-avatar {
+            width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 16px; color: #b45309;
+            background: linear-gradient(135deg, #fde68a, #fcd34d);
+        }
+        .ord-amount { font-size: 13px; font-weight: 800; color: #16a34a; white-space: nowrap; }
+
+        /* 💀 Skeleton loader */
+        .sk-row {
+            display: flex; align-items: center; gap: 12px;
+            background: white; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+        }
+        .sk { background: linear-gradient(90deg,#eef1f5 25%,#e2e8f0 37%,#eef1f5 63%);
+            background-size: 400% 100%; animation: sksh 1.3s ease infinite; border-radius: 8px; }
+        @keyframes sksh { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+    </style>
+</head>
+<body>
+
+<div class="merchant-header">
+    <div class="d-flex justify-content-between align-items-start position-relative" style="z-index:1">
+        <div>
+            <p class="mb-0 text-white-50" style="font-size:12px;">مرحباً،</p>
+            <h2 class="fw-bold mb-0 text-white" id="merchantName" style="font-size:1.4rem;">جاري التحميل...</h2>
+            <span class="badge mt-1" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);">
+                <i class="bi bi-shop me-1"></i><span id="shopName">متجرك</span>
+            </span>
+        </div>
+        <div class="d-flex align-items-center gap-2" onclick="toggleShopStatus()" style="cursor:pointer; background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; transition:all 0.2s;">
+            <div id="statusDot" style="width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;"></div>
+            <span id="statusText" style="font-size:12px;color:#86efac;user-select:none;">مفتوح</span>
+        </div>
+    </div>
+    <div class="row g-2 mt-3 position-relative" style="z-index:1">
+        <div class="col-3">
+            <div class="hstat" id="tile-pending">
+                <i class="bi bi-bell-fill"></i>
+                <div class="hstat-num" id="stat-pending">-</div>
+                <div class="hstat-lbl">جديد</div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="hstat">
+                <i class="bi bi-fire"></i>
+                <div class="hstat-num" id="stat-preparing">-</div>
+                <div class="hstat-lbl">تجهيز</div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="hstat">
+                <i class="bi bi-bag-check-fill"></i>
+                <div class="hstat-num" id="stat-ready">-</div>
+                <div class="hstat-lbl">جاهز</div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="hstat hstat-accent">
+                <i class="bi bi-graph-up-arrow"></i>
+                <div class="hstat-num" id="stat-today">-</div>
+                <div class="hstat-lbl">اليوم</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-3 pt-3">
+    <!-- 🔊 بنر تفعيل التنبيه الصوتي للتاجر -->
+    <div id="shop-sound-banner" class="alert alert-warning d-flex align-items-center justify-content-between mb-3 shadow-sm py-2 px-3" style="border-radius: 12px;">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-volume-up-fill fs-4 text-warning"></i>
+            <span style="font-size: 13px; font-weight: 700;">فعّل الصوت لسماع تنبيهات الطلبات الجديدة فوراً</span>
+        </div>
+        <button class="btn btn-sm btn-dark fw-bold px-3" onclick="enableShopAudio()">تفعيل</button>
+    </div>
+
+    <!-- 📦 بنر تنبيه نقص المخزون -->
+    <div id="lowStockBanner" class="alert alert-danger d-none align-items-center justify-content-between mb-3 shadow-sm py-2 px-3" style="border-radius: 12px; border-right: 4px solid #dc3545;">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-4 text-danger"></i>
+            <div>
+                <div style="font-size: 13px; font-weight: 800;">تنبيه: منتجات قاربت على النفاد!</div>
+                <div id="lowStockText" style="font-size: 11px; opacity: 0.85;">يوجد منتجات بمخزون أقل من 5 قطع</div>
+            </div>
+        </div>
+        <a href="merchant-products.html" class="btn btn-sm btn-outline-danger fw-bold">إدارة المخزون</a>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-title"><i class="bi bi-grid-3x3-gap-fill text-warning"></i> الإجراءات السريعة</div>
+    <div class="row g-2 mb-4 align-items-stretch">
+        <div class="col-3">
+            <a href="merchant-profile.html" class="quick-btn">
+                <i class="bi bi-person-circle text-success"></i>
+                <span>الملف</span>
+            </a>
+        </div>
+        <div class="col-3">
+            <a href="merchant-products.html" class="quick-btn">
+                <i class="bi bi-box-seam-fill text-primary"></i>
+                <span>المنتجات</span>
+            </a>
+        </div>
+        <div class="col-3">
+            <a href="merchant-orders.html" class="quick-btn">
+                <i class="bi bi-bag-check-fill text-warning"></i>
+                <span>الطلبات</span>
+            </a>
+        </div>
+        <div class="col-3">
+            <a href="merchant-conversations.html" class="quick-btn" style="position:relative;">
+                <i class="bi bi-chat-dots-fill" style="color:#f59e0b;"></i>
+                <span>الرسائل</span>
+                <span id="dashConvBadge" style="display:none;position:absolute;top:8px;right:8px;background:#ef4444;color:white;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:10px;"></span>
+            </a>
+        </div>
+    </div>
+    <!-- Row 2: Order Captain -->
+    <div class="row g-2 mb-4">
+        <div class="col-12">
+            <a href="index.html?from=merchant" class="quick-btn quick-btn-special d-flex flex-row gap-3 py-3" style="height:auto;">
+                <i class="bi bi-bicycle" style="font-size:1.8rem;"></i>
+                <span style="font-size:14px;">اطلب كابتن</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="section-title"><i class="bi bi-clock-history text-warning"></i> آخر الطلبات</div>
+    <div id="recentOrders">
+        <div class="sk-row"><div class="sk" style="width:42px;height:42px;"></div><div class="flex-grow-1"><div class="sk mb-2" style="width:55%;height:13px;"></div><div class="sk" style="width:35%;height:11px;"></div></div><div class="sk" style="width:48px;height:22px;border-radius:20px;"></div></div>
+        <div class="sk-row"><div class="sk" style="width:42px;height:42px;"></div><div class="flex-grow-1"><div class="sk mb-2" style="width:45%;height:13px;"></div><div class="sk" style="width:30%;height:11px;"></div></div><div class="sk" style="width:48px;height:22px;border-radius:20px;"></div></div>
+    </div>
+
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html" class="active">
+        <i class="bi bi-house-door-fill"></i> الرئيسية
+    </a>
+    <a href="merchant-orders.html">
+        <i class="bi bi-bag-check"></i> الطلبات
+    </a>
+    <a href="merchant-conversations.html" style="position:relative;">
+        <i class="bi bi-chat-dots-fill"></i> رسائل
+        <span id="navConvBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+    </a>
+    <a href="merchant-notifications.html" style="position:relative;">
+        <i class="bi bi-bell"></i> إشعارات
+        <span id="navNotifBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+    </a>
+    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');">
+        <i class="bi bi-box-arrow-right"></i> خروج
+    </a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="vendor/socket.io/socket.io.min.js"></script>
+<script src="notification-toast.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) { window.location.href = 'client-login.html'; throw new Error('no token'); }
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.role || user.role !== 'merchant') { window.location.href = 'index.html'; throw new Error('not merchant'); }
+
+    // دالة escapeHtml - Fallback لو config.js ما اشتغل
+    const escapeHtml = window.escapeHtml || function(s) {
+        if (!s) return '';
+        return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    };
+
+    document.getElementById('merchantName').textContent = user.name || 'التاجر';
+
+    const statusLabels = {
+        shop_pending: 'جديد', shop_preparing: 'يُجهَّز', ready_for_pickup: 'جاهز',
+        captain_assigned: 'مع الكابتن', picked_up: 'في الطريق', delivered: 'مُسلَّم', cancelled: 'ملغي'
+    };
+    const statusColors = {
+        shop_pending: 'bg-warning text-dark', shop_preparing: 'bg-primary text-white',
+        ready_for_pickup: 'bg-success text-white', captain_assigned: 'bg-info text-dark',
+        picked_up: 'bg-info text-dark', delivered: 'bg-success text-white', cancelled: 'bg-danger text-white'
+    };
+
+    let currentIsOpenOverride = null;
+
+    async function loadDashboard() {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) throw new Error('Failed to load profile');
+            const data = await res.json();
+            if (data.place) {
+                document.getElementById('shopName').textContent = data.place.name;
+                currentIsOpenOverride = data.place.isOpenOverride ?? null;
+                const isOpen = data.place.isOpenOverride !== false && data.place.is_open !== false;
+                updateStatusUI(isOpen);
+            }
+
+            const ordersRes = await fetch(`${API_URL}/api/merchant/orders`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!ordersRes.ok) throw new Error('Failed to load orders');
+            const orders = await ordersRes.json();
+            // ⚠️ /api/merchant/orders يُرجع { orders, total, ... } وليس مصفوفة مباشرة.
+            // كان الكود يتوقّع مصفوفة فقط → ordersList = [] دائماً → الإحصائيات صفر أبداً
+            // رغم عمل الـ auto-refresh والسوكت. نقرأ orders.orders كما في merchant-orders.html.
+            const ordersList = Array.isArray(orders) ? orders : (orders.orders || []);
+
+            // Stats
+            const today = new Date().toDateString();
+            const pendingCount = ordersList.filter(o => o.status === 'shop_pending').length;
+            document.getElementById('stat-pending').textContent = pendingCount;
+            document.getElementById('stat-preparing').textContent = ordersList.filter(o => o.status === 'shop_preparing').length;
+            document.getElementById('stat-ready').textContent = ordersList.filter(o => o.status === 'ready_for_pickup').length;
+            document.getElementById('stat-today').textContent = ordersList.filter(o => new Date(o.createdAt).toDateString() === today).length;
+            // نبضة تنبيه على بطاقة "جديد" عند وجود طلبات غير مقروءة
+            document.getElementById('tile-pending')?.classList.toggle('hstat-pulse', pendingCount > 0);
+
+            // Recent orders
+            const container = document.getElementById('recentOrders');
+            if (!ordersList.length) {
+                container.innerHTML = `
+                <div class="empty-state-card">
+                    <div class="empty-state-icon"><i class="bi bi-bag-check"></i></div>
+                    <div class="empty-state-title">لا توجد طلبات جارية</div>
+                    <div class="empty-state-desc">ستظهر طلبات متجرك هنا فور وصولها من العملاء، تأكد من فتح المتجر لاستقبال الطلبات!</div>
+                </div>`;
+            } else {
+                container.innerHTML = ordersList.slice(0, 6).map(o => {
+                    const name = escapeHtml(o.client?.name || 'عميل');
+                    const initial = (o.client?.name || 'ع').trim().charAt(0);
+                    return `
+                    <div class="order-row d-flex justify-content-between align-items-center gap-3" onclick="window.location.href='merchant-orders.html'" style="cursor:pointer">
+                        <div class="ord-avatar">${escapeHtml(initial)}</div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-truncate" style="font-size:14px;">${name} <span class="text-muted" style="font-size:12px;">#${o._id.slice(-4)}</span></div>
+                            <div class="text-muted" style="font-size:12px;">${o.items?.length || 0} منتج · <span class="ord-amount">${o.itemsTotal || 0} ج.س</span></div>
+                        </div>
+                        <span class="order-badge ${statusColors[o.status] || 'bg-secondary text-white'}">${statusLabels[o.status] || o.status}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // فحص المخزون المنخفض في الخلفية
+            checkLowStockAlert();
+        } catch (err) {
+            console.error('Dashboard load error:', err);
+            const container = document.getElementById('recentOrders');
+            if (container) container.innerHTML = '<div class="text-center text-danger py-3"><i class="bi bi-wifi-off fs-3"></i><div class="mt-2 fw-bold">تعذّر تحميل البيانات</div><button class="btn btn-sm btn-outline-warning mt-2" onclick="loadDashboard()">إعادة المحاولة</button></div>';
+        }
+    }
+
+    function updateStatusUI(isOpen) {
+        const dot = document.getElementById('statusDot');
+        const txt = document.getElementById('statusText');
+        if (isOpen) {
+            dot.style.background = '#22c55e';
+            dot.style.boxShadow = '0 0 6px #22c55e';
+            txt.textContent = 'مفتوح';
+            txt.style.color = '#86efac';
+        } else {
+            dot.style.background = '#ef4444';
+            dot.style.boxShadow = '0 0 6px #ef4444';
+            txt.textContent = 'مغلق';
+            txt.style.color = '#fca5a5';
+        }
+    }
+
+    async function toggleShopStatus() {
+        try {
+            // منطق صحيح: null = تابع للجدول, true = مفتوحح, false = مغلق
+            const newStatus = currentIsOpenOverride !== true; // toggle: true ↔ false/null → true
+
+            // Optimistic update
+            updateStatusUI(newStatus);
+            currentIsOpenOverride = newStatus;
+
+            const res = await fetch(`${API_URL}/api/merchant/profile/status`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isOpenOverride: newStatus })
+            });
+
+            if (!res.ok) throw new Error('فشل التحديث');
+            const data = await res.json();
+            currentIsOpenOverride = data.isOpenOverride ?? newStatus;
+
+        } catch (e) {
+            // إظهار خطأ بدون Swal إذا لم يتوفر
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('خطأ', 'تعذّر تغيير حالة المتجر، تأكد من الاتصال بالإنترنت', 'error');
+            } else {
+                showToast('خطأ', 'تعذّر تغيير حالة المتجر', 'error');
+            }
+            loadDashboard(); // revert on fail
+        }
+    }
+
+    function logout() {
+        if (window.Auth) {
+            window.Auth.logout('client-login.html');
+        } else {
+            localStorage.clear();
+            window.location.href = 'client-login.html';
+        }
+    }
+
+    // Real-time: connect socket to merchant room (with auth token)
+    const socket = io(API_URL, {
+        transports: ['polling', 'websocket'],
+        auth: { token }
+    });
+    socket.on('connect', () => {
+        const uid = user._id || localStorage.getItem('userId');
+        if (uid) socket.emit('user_join', uid);
+    });
+    socket.on('connect_error', (err) => {
+        console.warn('Socket connect error:', err.message);
+    });
+    async function checkLowStockAlert() {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/products`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) return;
+            const data = await res.json();
+            const productsList = Array.isArray(data.products) ? data.products : (Array.isArray(data) ? data : []);
+            const lowCount = productsList.filter(p => p.stock !== null && p.stock !== undefined && p.stock <= 5).length;
+            const banner = document.getElementById('lowStockBanner');
+            if (banner && lowCount > 0) {
+                document.getElementById('lowStockText').textContent = `يوجد ${lowCount} منتج بمخزون منخفض أو نافد يحتاج لتحديث`;
+                banner.classList.remove('d-none');
+                banner.classList.add('d-flex');
+            }
+        } catch (_) {}
+    }
+
+    function enableShopAudio() {
+        const audio = new Audio('/sounds/wajeezsd-bell.wav');
+        audio.volume = 0.3;
+        audio.play().then(() => {
+            const banner = document.getElementById('shop-sound-banner');
+            if (banner) banner.classList.add('d-none');
+            showToast('🔊 تم تفعيل الصوت', 'ستسمع تنبيهاً فور وصول طلب جديد', 'success');
+        }).catch(e => console.log('Audio unlock failed:', e));
+    }
+
+    function playShopOrderAlert() {
+        try {
+            const audio = new Audio('/sounds/wajeezsd-bell.wav');
+            audio.volume = 1.0;
+            audio.play().catch(() => {
+                const banner = document.getElementById('shop-sound-banner');
+                if (banner) banner.classList.remove('d-none');
+            });
+        } catch (e) {}
+    }
+
+    socket.on('new_shop_order', (data) => {
+        playShopOrderAlert();
+        showToast('🛒 طلب جديد!', `طلب جديد بقيمة ${data.total} ج.س`, 'info');
+        loadDashboard();
+    });
+
+    loadDashboard();
+
+    // ===== Unread conversations badge =====
+    async function loadUnreadBadge() {
+        try {
+            const res = await fetch(`${API_URL}/api/chat/conversations`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            const total = data.reduce((s, c) => s + (c.unreadCount || 0), 0);
+
+            const dashBadge = document.getElementById('dashConvBadge');
+            const navBadge  = document.getElementById('navConvBadge');
+            if (total > 0) {
+                if (dashBadge) { dashBadge.textContent = total; dashBadge.style.display = 'inline-block'; }
+                if (navBadge)  { navBadge.textContent  = total; navBadge.style.display  = 'inline-block'; }
+            } else {
+                if (dashBadge) dashBadge.style.display = 'none';
+                if (navBadge)  navBadge.style.display  = 'none';
+            }
+        } catch (_) {}
+    }
+    loadUnreadBadge();
+    setInterval(loadUnreadBadge, 15000);
+
+    // 🔄 Auto-refresh dashboard stats periodically (socket 'new_shop_order' is primary).
+    setInterval(loadDashboard, 30000);
+
+    // 🔄 Refresh immediately when the merchant returns to the tab.
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            loadDashboard();
+            loadUnreadBadge();
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>تحليلاتي - وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="vendor/fonts/fonts.css">
+    <script src="vendor/chartjs/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #04553A;
+            --primary-light: #25d366;
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text: #1a1a2e;
+            --text-muted: #6c757d;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', sans-serif;
+            color: var(--text);
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: none;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .period-btn {
+            border-radius: 20px;
+            font-size: 0.85rem;
+            padding: 6px 16px;
+        }
+
+        .period-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .header-gradient {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border-radius: 0 0 24px 24px;
+            padding: 20px 16px 30px;
+        }
+
+        .trip-row {
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-right: 4px solid var(--primary);
+        }
+
+        .bottom-nav {
+            height: 70px;
+        }
+
+        .bottom-nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div class="header-gradient">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <a href="captain-home.html" class="text-white text-decoration-none">
+                <i class="bi bi-arrow-right fs-4"></i>
+            </a>
+            <div>
+                <h5 class="mb-0 fw-bold">📊 تحليلاتي</h5>
+                <small class="opacity-75">إحصائياتك ومكاسبك</small>
+            </div>
+        </div>
+
+        <!-- Period Selector -->
+        <div class="d-flex gap-2">
+            <button class="btn btn-light period-btn active" onclick="setPeriod('today', this)">اليوم</button>
+            <button class="btn btn-outline-light period-btn" onclick="setPeriod('week', this)">الأسبوع</button>
+            <button class="btn btn-outline-light period-btn" onclick="setPeriod('month', this)">الشهر</button>
+            <button class="btn btn-outline-light period-btn" onclick="setPeriod('all', this)">الكل</button>
+        </div>
+    </div>
+
+    <div class="container px-3 mt-3">
+
+        <!-- Stats Grid -->
+        <div class="row g-3 mb-3">
+            <div class="col-6">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success mb-2">💰</div>
+                    <div class="stat-value text-success" id="stat-earnings">--</div>
+                    <div class="stat-label">إجمالي الأرباح (ج.س)</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-2">📦</div>
+                    <div class="stat-value text-primary" id="stat-orders">--</div>
+                    <div class="stat-label">طلبات مكتملة</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="stat-card">
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning mb-2">⭐</div>
+                    <div class="stat-value text-warning" id="stat-rating">--</div>
+                    <div class="stat-label">متوسط التقييم</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="stat-card">
+                    <div class="stat-icon bg-info bg-opacity-10 text-info mb-2">📈</div>
+                    <div class="stat-value text-info" id="stat-avg">--</div>
+                    <div class="stat-label">متوسط الطلب (ج.س)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Earnings Chart -->
+        <div class="chart-card mb-3">
+            <h6 class="fw-bold mb-3">📈 الأرباح خلال الفترة</h6>
+            <canvas id="earningsChart" height="160"></canvas>
+        </div>
+
+        <!-- Recent Trips -->
+        <div class="chart-card mb-3">
+            <h6 class="fw-bold mb-3">🕐 آخر الرحلات</h6>
+            <div id="trips-list">
+                <div class="text-center text-muted py-3">
+                    <div class="spinner-border spinner-border-sm"></div>
+                    <span class="ms-2">جاري التحميل...</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="bottom-nav"></div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav-bar">
+        <div class="d-flex justify-content-around align-items-center py-2">
+            <a href="captain-home.html" class="text-center text-decoration-none text-muted">
+                <i class="bi bi-house-fill d-block fs-5"></i><small>الرئيسية</small>
+            </a>
+            <a href="captain-orders.html" class="text-center text-decoration-none text-muted">
+                <i class="bi bi-list-ul d-block fs-5"></i><small>الطلبات</small>
+            </a>
+            <a href="captain-analytics.html" class="text-center text-decoration-none" style="color: var(--primary)">
+                <i class="bi bi-bar-chart-fill d-block fs-5"></i><small class="fw-bold">تحليلات</small>
+            </a>
+            <a href="captain-history.html" class="text-center text-decoration-none text-muted">
+                <i class="bi bi-clock-history d-block fs-5"></i><small>السجل</small>
+            </a>
+            <a href="captain-profile.html" class="text-center text-decoration-none text-muted">
+                <i class="bi bi-person-fill d-block fs-5"></i><small>حسابي</small>
+            </a>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <script>
+        const token = Auth.getToken();
+        if (!token) window.location.href = 'captain-login.html';
+
+        let currentPeriod = 'today';
+        let earningsChart = null;
+        let allTrips = [];
+        let commissionRate = 0.15; // ✅ default fallback, overridden by server
+
+        function setPeriod(period, btn) {
+            currentPeriod = period;
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active', 'btn-light'));
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.add('btn-outline-light'));
+            btn.classList.add('active', 'btn-light');
+            btn.classList.remove('btn-outline-light');
+            renderStats();
+        }
+
+        function filterTripsByPeriod(trips, period) {
+            const now = new Date();
+            return trips.filter(t => {
+                const d = new Date(t.createdAt);
+                if (period === 'today') return d.toDateString() === now.toDateString();
+                if (period === 'week') return (now - d) <= 7 * 86400000;
+                if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                return true; // all
+            });
+        }
+
+        function renderStats() {
+            const filtered = filterTripsByPeriod(allTrips, currentPeriod);
+            // ✅ Use live commission rate (not hardcoded 10%)
+            const totalEarnings = filtered.reduce((s, t) => s + (t.netRevenue || t.price * (1 - commissionRate)), 0);
+            const avgOrder = filtered.length ? totalEarnings / filtered.length : 0;
+
+            document.getElementById('stat-earnings').textContent = Math.round(totalEarnings).toLocaleString();
+            document.getElementById('stat-orders').textContent = filtered.length;
+            document.getElementById('stat-avg').textContent = Math.round(avgOrder).toLocaleString();
+
+            renderChart(filtered);
+            renderTripsList(filtered.slice(0, 10));
+        }
+
+        function renderChart(trips) {
+            // Group by day
+            const groups = {};
+            trips.forEach(t => {
+                const day = new Date(t.createdAt).toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric' });
+                groups[day] = (groups[day] || 0) + (t.netRevenue || t.price * (1 - commissionRate));
+            });
+
+            const labels = Object.keys(groups).slice(-7);
+            const data = labels.map(l => Math.round(groups[l]));
+
+            if (earningsChart) earningsChart.destroy();
+            const ctx = document.getElementById('earningsChart').getContext('2d');
+            earningsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'الأرباح (ج.س)',
+                        data,
+                        backgroundColor: 'rgba(10, 135, 84, 0.7)',
+                        borderColor: '#04553A',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderTripsList(trips) {
+            const el = document.getElementById('trips-list');
+            if (!trips.length) {
+                el.innerHTML = '<p class="text-center text-muted py-3">لا توجد رحلات في هذه الفترة</p>';
+                return;
+            }
+            el.innerHTML = trips.map(t => `
+            <div class="trip-row">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <small class="fw-bold d-block">${t.pickup?.address || 'غير محدد'}</small>
+                        <small class="text-muted">→ ${t.dropoff?.address || 'غير محدد'}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold text-success">${Math.round(t.netRevenue || t.price * (1 - commissionRate))} ج.س</span>
+                        <small class="text-muted d-block">${new Date(t.createdAt).toLocaleDateString('ar-SA')}</small>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        }
+
+        async function loadData() {
+            try {
+                // Load stats
+                const statsRes = await fetchWithRetry(`${API_URL}/api/captain/stats`, {
+                    headers: Auth.getAuthHeader()
+                });
+                if (statsRes.ok) {
+                    const stats = await statsRes.json();
+                    document.getElementById('stat-rating').textContent =
+                        Math.min(5, stats.rating || 5.0).toFixed(1) + ' / 5 ⭐';
+                }
+
+                // ✅ Load live commission rate for accurate earnings display
+                try {
+                    const pricingRes = await fetchWithRetry(`${API_URL}/api/admin/pricing`, {
+                        headers: Auth.getAuthHeader()
+                    });
+                    if (pricingRes.ok) {
+                        const p = await pricingRes.json();
+                        if (typeof p.commissionRate === 'number') commissionRate = p.commissionRate;
+                    }
+                } catch (e) { console.warn('Pricing fetch failed, using 15%'); }
+
+                // Load trips for chart & list
+                const tripsRes = await fetchWithRetry(`${API_URL}/api/captain/trips?limit=100`, {
+                    headers: Auth.getAuthHeader()
+                });
+                if (tripsRes.ok) {
+                    const data = await tripsRes.json();
+                    allTrips = data.trips || [];
+                    renderStats();
+                }
+            } catch (e) {
+                console.error('Analytics load error:', e);
+            }
+        }
+
+        loadData();
+    </script>
+
+</body>
+
+</html>

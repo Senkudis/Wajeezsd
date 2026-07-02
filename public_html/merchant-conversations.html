@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>رسائل العملاء | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+
+        body {
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* ===== HEADER ===== */
+        .merchant-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            padding: 16px 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title { font-size: 1.2rem; font-weight: 900; margin: 0; }
+        .header-sub { font-size: 0.75rem; opacity: 0.65; }
+
+        .back-btn {
+            width: 38px; height: 38px;
+            background: rgba(255,255,255,0.12);
+            border: none; border-radius: 50%;
+            color: white; display: flex; align-items: center; justify-content: center;
+            text-decoration: none; font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+        .unread-total-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 20px;
+            display: none;
+        }
+
+        /* ===== SEARCH ===== */
+        .search-bar {
+            background: white;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .search-input {
+            background: #f3f4f6;
+            border: none;
+            border-radius: 50px;
+            padding: 8px 14px 8px 14px;
+            font-size: 0.88rem;
+            width: 100%;
+            outline: none;
+            color: #1f2937;
+        }
+        .search-input::placeholder { color: #9ca3af; }
+
+        /* ===== CONVERSATION LIST ===== */
+        #convList { background: white; }
+
+        .conv-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: background 0.15s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .conv-item:hover { background: #f9fafb; }
+        .conv-item.unread-conv { background: #fefce8; }
+        .conv-item.unread-conv:hover { background: #fef9c3; }
+
+        /* Avatar */
+        .avatar {
+            width: 52px; height: 52px; min-width: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            font-weight: 900;
+            font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+
+        .online-dot {
+            width: 13px; height: 13px;
+            background: #22c55e;
+            border: 2.5px solid white;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 1px; left: 1px;
+        }
+
+        /* Text content */
+        .conv-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        .conv-last-msg {
+            font-size: 0.8rem;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        .conv-last-msg.mine { color: #9ca3af; }
+
+        /* Meta right */
+        .conv-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            min-width: 50px;
+        }
+        .conv-time {
+            font-size: 0.7rem;
+            color: #9ca3af;
+        }
+        .conv-time.has-unread { color: #f59e0b; }
+
+        .unread-badge {
+            background: #f59e0b;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ===== STATES ===== */
+        .state-box {
+            padding: 50px 20px;
+            text-align: center;
+            color: #9ca3af;
+        }
+        .state-box i { font-size: 3.5rem; display: block; margin-bottom: 12px; }
+        .state-box p { margin: 0; font-size: 0.9rem; }
+
+        /* ===== LOADING SKELETON ===== */
+        .skeleton-item {
+            display: flex; gap: 12px; padding: 14px 16px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .skel-avatar {
+            width: 52px; height: 52px; min-width: 52px;
+            border-radius: 50%;
+            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite;
+        }
+        .skel-line {
+            height: 12px; border-radius: 8px; margin-bottom: 8px;
+            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* ===== BOTTOM NAV ===== */
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 8px 0 12px;
+            z-index: 200;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+        }
+        .merchant-nav a {
+            display: flex; flex-direction: column; align-items: center;
+            color: #9ca3af; text-decoration: none;
+            font-size: 0.65rem; font-weight: 600; gap: 2px;
+            transition: color 0.2s;
+        }
+        .merchant-nav a i { font-size: 1.3rem; }
+        .merchant-nav a.active { color: #f59e0b; }
+        .merchant-nav a:hover { color: #f59e0b; }
+
+        /* Nav badge */
+        .nav-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 0.55rem;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 10px;
+            position: absolute;
+            top: -4px; left: 50%;
+            transform: translateX(-50%) translateX(10px);
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div class="merchant-header">
+        <div class="d-flex align-items-center gap-3">
+            <a href="merchant-dashboard.html" class="back-btn">
+                <i class="bi bi-arrow-right"></i>
+            </a>
+            <div class="flex-grow-1">
+                <div class="header-title">
+                    <i class="bi bi-chat-dots-fill me-1" style="color:#f59e0b;"></i> رسائل العملاء
+                </div>
+                <div class="header-sub">جميع محادثاتك مرتبة بالأحدث</div>
+            </div>
+            <span class="unread-total-badge" id="unreadTotalBadge">0 جديد</span>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar">
+        <input
+            type="text"
+            class="search-input"
+            id="searchInput"
+            placeholder="🔍  ابحث باسم العميل أو الرسالة..."
+            oninput="filterConversations(this.value)"
+        >
+    </div>
+
+    <!-- Conversations List -->
+    <div id="convList">
+        <!-- Skeleton -->
+        <div id="skeletonLoader">
+            <div class="skeleton-item" style="background:white">
+                <div class="skel-avatar"></div>
+                <div class="flex-grow-1">
+                    <div class="skel-line" style="width:60%;"></div>
+                    <div class="skel-line" style="width:85%;"></div>
+                </div>
+            </div>
+            <div class="skeleton-item" style="background:white">
+                <div class="skel-avatar"></div>
+                <div class="flex-grow-1">
+                    <div class="skel-line" style="width:45%;"></div>
+                    <div class="skel-line" style="width:70%;"></div>
+                </div>
+            </div>
+            <div class="skeleton-item" style="background:white">
+                <div class="skel-avatar"></div>
+                <div class="flex-grow-1">
+                    <div class="skel-line" style="width:55%;"></div>
+                    <div class="skel-line" style="width:80%;"></div>
+                </div>
+            </div>
+        </div>
+        <div id="convItems"></div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="merchant-nav">
+        <a href="merchant-dashboard.html">
+            <i class="bi bi-house-door"></i>
+            الرئيسية
+        </a>
+        <a href="merchant-orders.html">
+            <i class="bi bi-bag-check"></i>
+            الطلبات
+        </a>
+        <a href="merchant-conversations.html" class="active" style="position:relative;">
+            <i class="bi bi-chat-dots-fill"></i>
+            رسائل
+            <span class="nav-badge" id="navUnreadBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+        </a>
+        <a href="merchant-notifications.html" style="position:relative;">
+            <i class="bi bi-bell"></i>
+            إشعارات
+            <span id="navNotifBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+        </a>
+        <a href="client-login.html" onclick="event.preventDefault(); doLogout();">
+            <i class="bi bi-box-arrow-right"></i>
+            خروج
+        </a>
+    </nav>
+
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="notification-toast.js"></script>
+    <script>
+        // Auth guard
+        const token = window.Auth?.getToken() || localStorage.getItem('token');
+        if (!token) window.location.href = 'client-login.html';
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+        const myId = user.id || user._id;
+        const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
+        const authHeader = { 'Authorization': `Bearer ${token}` };
+
+        // دالة escapeHtml - Fallback لو config.js ما اشتغل
+        const escapeHtml = window.escapeHtml || function(s) {
+            if (!s) return '';
+            return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        };
+
+        let allConversations = [];
+        let socket = null;
+        let activeUsers = {};
+
+        // ===== Format time =====
+        function formatTime(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - d;
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffDays === 0) {
+                return d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
+            } else if (diffDays === 1) {
+                return 'أمس';
+            } else if (diffDays < 7) {
+                const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                return days[d.getDay()];
+            } else {
+                return d.toLocaleDateString('ar-SA', { day: '2-digit', month: '2-digit' });
+            }
+        }
+
+        // ===== Initials =====
+        function getInitials(name) {
+            if (!name) return '?';
+            return name.trim().split(/\s+/).map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        // ===== Render conversations =====
+        function renderConversations(list) {
+            const container = document.getElementById('convItems');
+            document.getElementById('skeletonLoader').style.display = 'none';
+
+            if (!list || list.length === 0) {
+                container.innerHTML = `
+                    <div class="state-box">
+                        <i class="bi bi-chat-square-dots" style="color:#d1d5db;"></i>
+                        <p>لا توجد محادثات من عملاء بعد</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Count total unread
+            const totalUnread = list.reduce((s, c) => s + (c.unreadCount || 0), 0);
+            const badge = document.getElementById('unreadTotalBadge');
+            const navBadge = document.getElementById('navUnreadBadge');
+            if (totalUnread > 0) {
+                badge.textContent = totalUnread + ' جديد';
+                badge.style.display = 'inline-block';
+                navBadge.textContent = totalUnread;
+                navBadge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+                navBadge.style.display = 'none';
+            }
+
+            container.innerHTML = list.map(conv => {
+                const isOnline = activeUsers[conv.userId?.toString()] === 'online';
+                const initials = getInitials(conv.user?.name);
+                const isMine = conv.lastSender?.toString() === myId?.toString();
+                const timeStr = formatTime(conv.lastMessageAt);
+                const hasUnread = (conv.unreadCount || 0) > 0;
+
+                return `
+                <a class="conv-item ${hasUnread ? 'unread-conv' : ''}"
+                   href="chat.html?orderId=${conv.orderId || ''}&receiverId=${conv.userId}">
+                    <div class="avatar">
+                        ${initials}
+                        ${isOnline ? '<span class="online-dot"></span>' : ''}
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="conv-name">${escapeHtml(conv.user?.name || 'عميل')}</div>
+                        <div class="conv-last-msg ${isMine ? 'mine' : ''}">
+                            ${isMine ? '<i class="bi bi-check2-all me-1" style="color:#60a5fa;font-size:0.75rem;"></i>' : ''}
+                            ${escapeHtml(conv.lastMessage || 'بدأ المحادثة')}
+                        </div>
+                    </div>
+                    <div class="conv-meta">
+                        <span class="conv-time ${hasUnread ? 'has-unread' : ''}">${timeStr}</span>
+                        ${hasUnread ? `<span class="unread-badge">${conv.unreadCount}</span>` : ''}
+                    </div>
+                </a>`;
+            }).join('');
+        }
+
+        // ===== Filter =====
+        function filterConversations(query) {
+            if (!query.trim()) {
+                renderConversations(allConversations);
+                return;
+            }
+            const q = query.toLowerCase();
+            const filtered = allConversations.filter(c =>
+                (c.user?.name || '').toLowerCase().includes(q) ||
+                (c.lastMessage || '').toLowerCase().includes(q)
+            );
+            renderConversations(filtered);
+        }
+
+        // ===== Load =====
+        async function loadConversations() {
+            try {
+                const res = await fetch(`${apiBase}/api/chat/conversations`, {
+                    headers: authHeader
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                // Keep only conversations with clients (not captains or admins)
+                allConversations = data.filter(c => {
+                    const role = c.user?.role;
+                    return !role || role === 'client' || role === 'customer';
+                });
+
+                // Sort newest first
+                allConversations.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+
+                renderConversations(allConversations);
+            } catch (err) {
+                console.error('[Merchant Conversations]', err);
+                document.getElementById('skeletonLoader').style.display = 'none';
+                document.getElementById('convItems').innerHTML = `
+                    <div class="state-box">
+                        <i class="bi bi-wifi-off" style="color:#fca5a5;"></i>
+                        <p>تعذّر تحميل الرسائل<br><small>تحقق من اتصالك بالإنترنت</small></p>
+                    </div>`;
+            }
+        }
+
+        // ===== Socket.IO =====
+        function initSocket() {
+            socket = io(apiBase, { reconnection: true, transports: ['polling', 'websocket'] });
+
+            socket.on('connect', () => {
+                if (myId) socket.emit('user_join', myId);
+                console.log('[Socket] Connected as merchant:', myId);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('[Socket] Disconnected — will reconnect');
+            });
+
+            // ✅ FIX: backend emits 'new_message' not 'new_message_notification'
+            socket.on('new_message', (data) => {
+                // Refresh list whenever a new message arrives (sent or received)
+                loadConversations();
+            });
+
+            // ✅ Also listen to new_notification for chat messages
+            socket.on('new_notification', (data) => {
+                if (data?.type === 'chat' || data?.type === 'chat_message') {
+                    loadConversations();
+                }
+            });
+
+            socket.on('user_status', (data) => {
+                activeUsers[data.userId] = data.status;
+                renderConversations(allConversations);
+            });
+
+            // ✅ When merchant sends a message and comes back to this page
+            socket.on('messages_read', () => {
+                loadConversations();
+            });
+        }
+
+        // ===== Page Visibility: refresh immediately when tab gets focus or returning via Back button =====
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                loadConversations();
+            }
+        });
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                // Page was restored from the back-forward cache
+                loadConversations();
+            } else {
+                // Even if not from bfcache, triggering a reload ensures fresh data if navigating back normally
+                loadConversations();
+            }
+        });
+
+        // ===== Logout =====
+        function doLogout() {
+            if (window.Auth) {
+                window.Auth.logout('client-login.html');
+            } else {
+                localStorage.clear();
+                window.location.href = 'client-login.html';
+            }
+        }
+
+        // ===== Init =====
+        initSocket();
+        loadConversations();
+        // Fallback polling every 8 seconds (socket is primary, this is backup)
+        setInterval(loadConversations, 8000);
+    </script>
+</body>
+</html>

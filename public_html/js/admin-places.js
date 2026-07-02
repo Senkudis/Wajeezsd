@@ -1,6 +1,7 @@
 // public_html/js/admin-places.js
 // Admin Panel: Places & Categories Management
 
+
 const adminToken = () => localStorage.getItem('token');
 const headers = () => ({ 'Authorization': `Bearer ${adminToken()}`, 'Content-Type': 'application/json' });
 
@@ -47,6 +48,7 @@ function autoExtractCoords(url) {
             const lng = parseFloat(match[2]);
             document.getElementById('placeLat').value = lat.toFixed(6);
             document.getElementById('placeLng').value = lng.toFixed(6);
+            adminReverseFillAddress(lat, lng);
             statusEl.style.display = 'block';
             statusEl.style.background = '#f0fdf4';
             statusEl.style.border = '1px solid #bbf7d0';
@@ -71,65 +73,125 @@ function autoExtractCoords(url) {
     }
 }
 
+// 📍 يملأ "الوصف الجغرافي" تلقائياً من الموقع المحدّد (إن كان فارغاً) — سلاسة الإضافة.
+// reverse-geocode عبر Google ثم Nominatim. لا يطمس ما كتبه الأدمن يدوياً.
+function adminReverseFillAddress(lat, lng) {
+    const field = document.getElementById('placeAddress');
+    if (!field || field.value.trim()) return; // لا تطمس الإدخال اليدوي
+    const apply = (addr) => { if (addr && !field.value.trim()) field.value = addr; };
+    try {
+        if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+            new google.maps.Geocoder().geocode(
+                { location: { lat, lng }, language: 'ar', region: 'SD' },
+                (results, status) => {
+                    if (status === 'OK' && results && results[0]) {
+                        apply((results[0].formatted_address || '').replace(/،?\s*السودان\s*$/, '').trim());
+                    } else { adminReverseFillNominatim(lat, lng, apply); }
+                }
+            );
+            return;
+        }
+    } catch (_) {}
+    adminReverseFillNominatim(lat, lng, apply);
+}
+function adminReverseFillNominatim(lat, lng, apply) {
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=ar&lat=${lat}&lon=${lng}`)
+        .then(r => r.json())
+        .then(d => {
+            const a = d?.address || {};
+            apply([a.road, a.neighbourhood || a.suburb, a.city || a.town || a.village].filter(Boolean).join('، '));
+        }).catch(() => {});
+}
+
 // =====================================
 // 🗺️ Admin Place Map — خريطة قمر صناعي كالتطبيق
 // =====================================
-function initAdminPlaceMap(lat, lng) {
-    const wrapper = document.getElementById('adminPlaceMapWrapper');
-    wrapper.style.display = 'block';
-
-    // إتلاف الخريطة القديمة إن وجدت
-    if (adminPlaceMapInstance) {
-        adminPlaceMapInstance.remove();
+async function initAdminPlaceMap(lat, lng) {
+    // Singleton: Destroy any existing map
+    if (typeof adminPlaceMapInstance !== 'undefined' && adminPlaceMapInstance !== null) {
+        try { await adminPlaceMapInstance.destroy(); } catch(e) {}
         adminPlaceMapInstance = null;
     }
 
-    // إعادة إنشاء div الخريطة (لتفادي "Map container is already initialized")
-    const mapDiv = document.getElementById('adminPlaceMap');
-    mapDiv.innerHTML = '';
+    const wrapper = document.getElementById('adminPlaceMapWrapper');
+    wrapper.style.display = 'block';
 
-    adminPlaceMapInstance = L.map('adminPlaceMap', {
-        zoomControl: true,
-        attributionControl: false
-    }).setView([lat, lng], 17);
+    const mapElement = document.getElementById('adminPlaceMap');
+    if (!mapElement) return;
 
-    // نفس طبقات التطبيق الرئيسي
-    const darkLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        { maxZoom: 19, subdomains: 'abcd' }
-    );
-    const googleHybrid = L.tileLayer(
-        'https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
-        { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: 'Google' }
-    ).addTo(adminPlaceMapInstance);
+    // 🗺️ نفضّل JS SDK (يرسم داخل الـ WebView فيظهر في النوافذ) — البلوجن الأصلي يرسم خلف الـ WebView ويختفي داخل المودال
+    const _hasWebMaps = (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function');
+    const GoogleMap = _hasWebMaps ? null : ((window.Capacitor && window.Capacitor.Plugins)
+        ? (window.Capacitor.Plugins.GoogleMap || window.Capacitor.Plugins.CapacitorGoogleMaps)
+        : null);
 
-    L.control.layers(
-        { '🛰️ قمر صناعي': googleHybrid, '🌙 الوضع الليلي': darkLayer },
-        null, { position: 'topright' }
-    ).addTo(adminPlaceMapInstance);
+    if (GoogleMap) {
+        // Native App path
+        try {
+            mapElement.style.display = 'block';
+            mapElement.style.width = '100%';
+            mapElement.style.minHeight = '400px';
+            await new Promise(r => requestAnimationFrame(r));
+            const rect = mapElement.getBoundingClientRect();
+            const newMap = await GoogleMap.create({
+                id: 'wajeezsd-native-map-admin-place',
+                element: mapElement,
+                apiKey: await window.getMapsApiKey(),
+                config: {
+                    width: Math.round(rect.width || window.innerWidth),
+                    height: Math.round(rect.height || 400),
+                    x: Math.round(rect.x || 0),
+                    y: Math.round(rect.y || 0),
+                    center: { lat, lng }, zoom: 17
+                },
+            });
+            if (newMap) {
+                await newMap.addMarker({ coordinate: { lat, lng }, title: 'Wajeez Location' });
+                adminPlaceMapInstance = newMap;
+            }
+        } catch (error) { console.error('Native Map Error:', error); }
 
-    // عند تحريك الخريطة — تحديث الإحداثيات تلقائياً
-    adminPlaceMapInstance.on('moveend', () => {
-        const center = adminPlaceMapInstance.getCenter();
-        const latVal = center.lat.toFixed(6);
-        const lngVal = center.lng.toFixed(6);
-        document.getElementById('placeLat').value = latVal;
-        document.getElementById('placeLng').value = lngVal;
-        document.getElementById('adminPlaceMapCoords').innerHTML =
-            `<i class="fas fa-crosshairs text-success me-1"></i> <strong>Lat:</strong> ${latVal} | <strong>Lng:</strong> ${lngVal}`;
-    });
-
-    // إصلاح البلاطات الرمادية بعد تهيئة الـ modal
-    setTimeout(() => adminPlaceMapInstance.invalidateSize(), 300);
+    } else if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
+        // Web Browser fallback — standard Google Maps JS API
+        mapElement.innerHTML = '';
+        const webMap = new google.maps.Map(mapElement, {
+            center: { lat, lng }, zoom: 16,
+            gestureHandling: 'greedy', disableDefaultUI: false
+        });
+        const marker = new google.maps.Marker({
+            position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل'
+        });
+        marker.addListener('dragend', () => {
+            const pos = marker.getPosition();
+            document.getElementById('placeLat').value = pos.lat().toFixed(6);
+            document.getElementById('placeLng').value = pos.lng().toFixed(6);
+            document.getElementById('adminPlaceMapCoords').textContent = pos.lat().toFixed(5) + ', ' + pos.lng().toFixed(5);
+            adminReverseFillAddress(pos.lat(), pos.lng());
+        });
+        webMap.addListener('click', (e) => {
+            marker.setPosition(e.latLng);
+            document.getElementById('placeLat').value = e.latLng.lat().toFixed(6);
+            document.getElementById('placeLng').value = e.latLng.lng().toFixed(6);
+            document.getElementById('adminPlaceMapCoords').textContent = e.latLng.lat().toFixed(5) + ', ' + e.latLng.lng().toFixed(5);
+            adminReverseFillAddress(e.latLng.lat(), e.latLng.lng());
+        });
+        // FIX: trigger resize so tiles load inside modal
+        setTimeout(() => {
+            google.maps.event.trigger(webMap, 'resize');
+            webMap.setCenter({ lat, lng });
+        }, 250);
+        adminPlaceMapInstance = { destroy: function() {} };
+    } else {
+        console.warn('No map provider available for adminPlaceMap');
+    }
 }
+
 
 function adminMapLocateMe() {
     if (!navigator.geolocation) return alert('المتصفح لا يدعم GPS');
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            if (adminPlaceMapInstance) {
-                adminPlaceMapInstance.setView([pos.coords.latitude, pos.coords.longitude], 17);
-            } else {
+            if (!adminPlaceMapInstance) {
                 initAdminPlaceMap(pos.coords.latitude, pos.coords.longitude);
             }
         },
@@ -173,8 +235,9 @@ function renderAdminCategories(cats) {
             <span style="font-weight:700;font-size:14px;">${cat.name}</span>
             <div style="margin-right:auto;display:flex;gap:6px;">
                 <button onclick="openEditCategoryModal('${cat._id}', this)"
-                    data-name="${cat.name}" data-icon="${cat.icon}" data-order="${cat.sortOrder || 0}"
-                    style="background:#0a8754;border:none;color:white;cursor:pointer;padding:4px 10px;border-radius:8px;font-size:12px;">
+                    data-name="${(cat.name || '').replace(/"/g, '&quot;')}" data-icon="${cat.icon}" data-order="${cat.sortOrder || 0}"
+                    data-notes="${(cat.notes || '').replace(/"/g, '&quot;')}"
+                    style="background:#04553A;border:none;color:white;cursor:pointer;padding:4px 10px;border-radius:8px;font-size:12px;">
                     <i class="fas fa-edit"></i> تعديل
                 </button>
                 <button onclick="deleteCategory('${cat._id}', '${cat.name}')"
@@ -208,7 +271,7 @@ async function deleteCategory(id, name) {
 // =====================================
 async function loadAdminPlaces() {
     try {
-        const res = await fetch(`${API_URL}/api/places`, { headers: headers() });
+        const res = await fetch(`${API_URL}/api/places?city=all`, { headers: headers() });
         const places = await res.json();
         renderAdminPlacesTable(places);
     } catch (e) {
@@ -225,11 +288,14 @@ function renderAdminPlacesTable(places) {
 
     const getFullImageUrl = (url) => {
         if (!url) return '';
-        // Base64 images (uploaded from device) — return as-is
         if (url.startsWith('data:image')) return url;
         if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        const base = window.API_URL || 'https://wassili.site';
-        return url.startsWith('/') ? base + url : base + '/' + url;
+        const base = window.API_URL || 'https://wajeezsd.com';
+        const cleanUrl = url.replace(/\\/g, '/');
+        const withSlash = cleanUrl.startsWith('/') ? cleanUrl : '/' + cleanUrl;
+        const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+        if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
+        return base + withSlash;
     };
 
     tbody.innerHTML = places.map(p => `
@@ -237,6 +303,9 @@ function renderAdminPlacesTable(places) {
             <td>
                 ${p.image_url ? `<img src="${getFullImageUrl(p.image_url)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-left:8px;vertical-align:middle;">` : ''}
                 <strong>${p.name}</strong>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+                    <i class="bi bi-geo-alt-fill"></i> ${p.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}
+                </div>
             </td>
             <td>${p.category?.name || '-'}</td>
             <td>${p.phone || '-'}</td>
@@ -280,39 +349,139 @@ async function openEditPlaceModal(id) {
         document.getElementById('editPlacePhone').value = p.phone || '';
         document.getElementById('editPlaceWhatsapp').value = p.whatsapp || '';
         document.getElementById('editPlaceAddress').value = p.address || '';
+        document.getElementById('editPlaceNotes').value = p.notes || '';
+        document.getElementById('editPlaceCity').value = p.city || 'Khartoum'; // 🌍 City field
         document.getElementById('editPlaceOpen').value = p.workingHours?.open || '08:00';
         document.getElementById('editPlaceClose').value = p.workingHours?.close || '22:00';
         document.getElementById('editPlaceIsOpen').value = p.is_open ? '1' : '0'; // manual override
         document.getElementById('editPlaceLat').value = p.location?.lat || '';
         document.getElementById('editPlaceLng').value = p.location?.lng || '';
 
+        // populate menu
+        document.getElementById('editPlaceMenu').value = p.menu || '';
+        if (p.menu) {
+            const fullMenuUrl = (() => {
+                if (!p.menu) return '';
+                if (p.menu.startsWith('http')) return p.menu;
+                const base = window.API_URL || 'https://wajeezsd.com';
+                const withSlash = p.menu.startsWith('/') ? p.menu : '/' + p.menu;
+                const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+                if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
+                return base + withSlash;
+            })();
+            document.getElementById('editMenuImagePreviewImg').src = fullMenuUrl;
+            document.getElementById('editMenuImagePreview').style.display = 'block';
+            document.getElementById('editPlaceMenu').value = p.menu;
+        } else {
+            clearEditMenuImage();
+        }
+
         document.getElementById('editPlaceModal').classList.add('show');
 
+        // 🛒 تحميل منتجات المتجر
+        resetProductForm();
+        toggleProductForm(false);
+        loadPlaceProducts();
+
+        // 🖼️ Show current place image if exists
+        const imgPreviewEl = document.getElementById('placeImagePreviewImg');
+        const imgPreviewContainer = document.getElementById('placeImagePreview');
+        if (p.image_url) {
+            const fullImgUrl = (() => {
+                if (!p.image_url) return '';
+                if (p.image_url.startsWith('http')) return p.image_url;
+                const base = window.API_URL || 'https://wajeezsd.com';
+                const withSlash = p.image_url.startsWith('/') ? p.image_url : '/' + p.image_url;
+                const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+                if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
+                return base + withSlash;
+            })();
+            imgPreviewEl.src = fullImgUrl;
+            imgPreviewContainer.style.display = 'block';
+            document.getElementById('placeImage').value = p.image_url;
+        } else {
+            imgPreviewEl.src = '';
+            imgPreviewContainer.style.display = 'none';
+            document.getElementById('placeImage').value = '';
+        }
+
+        // 🔥 Singleton enforcement: Destroy any existing map before opening again
+        if (typeof editPlaceMapInstance !== 'undefined' && editPlaceMapInstance !== null) {
+            try { await editPlaceMapInstance.destroy(); } catch(e) {}
+            editPlaceMapInstance = null;
+        }
+
         // Init map after modal shown
-        setTimeout(() => {
-            const lat = p.location?.lat || 15.5007;
-            const lng = p.location?.lng || 32.5599;
-            // Destroy old instance
-            if (editPlaceMapInstance) { editPlaceMapInstance.remove(); editPlaceMapInstance = null; }
-            document.getElementById('editPlaceMap').innerHTML = '';
+        setTimeout(async () => {
+            const lat = p.location?.lat || 15.6445;
+            const lng = p.location?.lng || 32.4777;
 
-            editPlaceMapInstance = L.map('editPlaceMap', { zoomControl: true, attributionControl: false }).setView([lat, lng], 17);
+            const mapElement = document.getElementById('editPlaceMap');
+            if (!mapElement) return;
 
-            const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
-                { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(editPlaceMapInstance);
-            const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                { maxZoom: 19, subdomains: 'abcd' });
-            L.control.layers({ '🛰️ قمر صناعي': googleHybrid, '🌙 الوضع الليلي': darkLayer }, null, { position: 'topright' }).addTo(editPlaceMapInstance);
+            // 🗺️ نفضّل JS SDK ليظهر داخل النافذة (البلوجن الأصلي يرسم خلف الـ WebView)
+            const _hasWebMaps = (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function');
+            const GoogleMap = _hasWebMaps ? null : ((window.Capacitor && window.Capacitor.Plugins)
+                ? (window.Capacitor.Plugins.GoogleMap || window.Capacitor.Plugins.CapacitorGoogleMaps)
+                : null);
 
-            editPlaceMapInstance.on('moveend', () => {
-                const c = editPlaceMapInstance.getCenter();
-                document.getElementById('editPlaceLat').value = c.lat.toFixed(6);
-                document.getElementById('editPlaceLng').value = c.lng.toFixed(6);
-                document.getElementById('editPlaceMapCoords').innerHTML =
-                    `<i class="fas fa-crosshairs text-success me-1"></i> <strong>${c.lat.toFixed(5)}</strong>, <strong>${c.lng.toFixed(5)}</strong>`;
-            });
+            if (GoogleMap) {
+                // Native App path
+                try {
+                    mapElement.style.display = 'block';
+                    mapElement.style.width = '100%';
+                    mapElement.style.minHeight = '400px';
+                    await new Promise(r => requestAnimationFrame(r));
+                    const rect = mapElement.getBoundingClientRect();
+                    const newMap = await GoogleMap.create({
+                        id: 'wajeezsd-native-map-edit-place',
+                        element: mapElement,
+                        apiKey: await window.getMapsApiKey(),
+                        config: {
+                            width: Math.round(rect.width || window.innerWidth),
+                            height: Math.round(rect.height || 400),
+                            x: Math.round(rect.x || 0),
+                            y: Math.round(rect.y || 0),
+                            center: { lat, lng }, zoom: 17,
+                        },
+                    });
+                    if (newMap) {
+                        await newMap.addMarker({ coordinate: { lat, lng }, title: 'Wajeez Location' });
+                        editPlaceMapInstance = newMap;
+                    }
+                } catch (error) { console.error('Native Map Error:', error); }
 
-            setTimeout(() => editPlaceMapInstance.invalidateSize(), 300);
+            } else if (typeof google !== 'undefined' && google.maps && typeof google.maps.Map === 'function') {
+                // Web Browser fallback
+                mapElement.innerHTML = '';
+                const webMap = new google.maps.Map(mapElement, {
+                    center: { lat, lng }, zoom: 16,
+                    gestureHandling: 'greedy', disableDefaultUI: false
+                });
+                const marker = new google.maps.Marker({
+                    position: { lat, lng }, map: webMap, draggable: true, title: 'موقع المحل'
+                });
+                marker.addListener('dragend', () => {
+                    const pos = marker.getPosition();
+                    document.getElementById('editPlaceLat').value = pos.lat().toFixed(6);
+                    document.getElementById('editPlaceLng').value = pos.lng().toFixed(6);
+                    document.getElementById('editPlaceMapCoords').textContent = pos.lat().toFixed(5) + ', ' + pos.lng().toFixed(5);
+                });
+                webMap.addListener('click', (e) => {
+                    marker.setPosition(e.latLng);
+                    document.getElementById('editPlaceLat').value = e.latLng.lat().toFixed(6);
+                    document.getElementById('editPlaceLng').value = e.latLng.lng().toFixed(6);
+                    document.getElementById('editPlaceMapCoords').textContent = e.latLng.lat().toFixed(5) + ', ' + e.latLng.lng().toFixed(5);
+                });
+                // FIX: trigger resize so tiles load inside modal
+                setTimeout(() => {
+                    google.maps.event.trigger(webMap, 'resize');
+                    webMap.setCenter({ lat, lng });
+                }, 250);
+                editPlaceMapInstance = { destroy: function() {} };
+            } else {
+                console.warn('No map provider available for editPlaceMap');
+            }
         }, 200);
 
     } catch (e) {
@@ -322,8 +491,9 @@ async function openEditPlaceModal(id) {
 
 function closeEditPlaceModal() {
     document.getElementById('editPlaceModal').classList.remove('show');
-    if (editPlaceMapInstance) { editPlaceMapInstance.remove(); editPlaceMapInstance = null; }
+    editPlaceMapInstance = null;
     editingPlaceId = null;
+    clearEditMenuImage();
 }
 
 async function submitEditPlace(e) {
@@ -340,6 +510,8 @@ async function submitEditPlace(e) {
         phone: document.getElementById('editPlacePhone').value.trim(),
         whatsapp: document.getElementById('editPlaceWhatsapp').value.trim(),
         address: document.getElementById('editPlaceAddress').value.trim(),
+        notes: document.getElementById('editPlaceNotes').value.trim(),
+        city: document.getElementById('editPlaceCity').value, // 🌍 City field
         location: { lat: isNaN(lat) ? 15.5007 : lat, lng: isNaN(lng) ? 32.5599 : lng },
         workingHours: {
             open: document.getElementById('editPlaceOpen').value,
@@ -349,6 +521,29 @@ async function submitEditPlace(e) {
     };
 
     setSubmitLoading(btn, true);
+
+    // 🖼️ رفع/حفظ صورة (لوغو) المتجر — كان مفقوداً فالتعديل ما كان يُحفظ
+    let imageUrl = document.getElementById('placeImage').value || '';
+    try {
+        const uploadedImg = await uploadPlaceImageIfNeeded();
+        if (uploadedImg) imageUrl = uploadedImg;
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
+        setSubmitLoading(btn, false);
+        return;
+    }
+    payload.image_url = imageUrl;
+
+    let menuUrl = document.getElementById('editPlaceMenu').value;
+    try {
+        const uploadedMenu = await uploadMenuImageIfNeeded('edit');
+        if (uploadedMenu) menuUrl = uploadedMenu;
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
+        setSubmitLoading(btn, false);
+        return;
+    }
+    payload.menu = menuUrl;
     try {
         const res = await fetch(`${API_URL}/api/places/${editingPlaceId}`, {
             method: 'PUT', headers: headers(), body: JSON.stringify(payload)
@@ -374,6 +569,7 @@ function openEditCategoryModal(id, btn) {
     document.getElementById('editCatName').value = btn.dataset.name || '';
     document.getElementById('editCatIcon').value = btn.dataset.icon || 'bi-shop';
     document.getElementById('editCatOrder').value = btn.dataset.order || '0';
+    document.getElementById('editCatNotes').value = btn.dataset.notes || '';
     document.getElementById('editCategoryModal').classList.add('show');
 }
 
@@ -389,7 +585,8 @@ async function submitEditCategory(e) {
     const payload = {
         name: document.getElementById('editCatName').value.trim(),
         icon: document.getElementById('editCatIcon').value.trim() || 'bi-shop',
-        sortOrder: parseInt(document.getElementById('editCatOrder').value) || 0
+        sortOrder: parseInt(document.getElementById('editCatOrder').value) || 0,
+        notes: document.getElementById('editCatNotes').value.trim()
     };
     setSubmitLoading(btn, true);
     try {
@@ -425,6 +622,7 @@ function openAddCategoryModal() {
 function closeAddCategoryModal() {
     document.getElementById('addCategoryModal').style.display = 'none';
     document.getElementById('addCategoryForm').reset();
+    document.getElementById('catNotes').value = '';
 }
 
 async function createCategory(e) {
@@ -433,12 +631,13 @@ async function createCategory(e) {
     const name = document.getElementById('catName').value.trim();
     const icon = document.getElementById('catIcon').value.trim() || 'bi-shop';
     const sortOrder = parseInt(document.getElementById('catOrder').value) || 0;
+    const notes = document.getElementById('catNotes').value.trim();
 
     setSubmitLoading(btn, true);
     try {
         const res = await fetch(`${API_URL}/api/places/categories`, {
             method: 'POST', headers: headers(),
-            body: JSON.stringify({ name, icon, sortOrder })
+            body: JSON.stringify({ name, icon, sortOrder, notes })
         });
         if (res.ok) {
             Swal.fire({ icon: 'success', title: 'تمت الإضافة!', timer: 1500, showConfirmButton: false });
@@ -464,7 +663,7 @@ function previewPlaceImage(input) {
     reader.onload = (e) => {
         document.getElementById('placeImagePreviewImg').src = e.target.result;
         document.getElementById('placeImagePreview').style.display = 'block';
-        document.getElementById('placeImageUploadLabel').style.borderColor = '#0a8754';
+        document.getElementById('placeImageUploadLabel').style.borderColor = '#04553A';
     };
     reader.readAsDataURL(input.files[0]);
 }
@@ -513,6 +712,8 @@ async function uploadPlaceImageIfNeeded() {
     // If external URL already set — skip upload, use it directly
     const existingUrl = document.getElementById('placeImage').value;
     if (existingUrl && existingUrl.startsWith('http')) return existingUrl;
+    // If it's a relative server path, keep it
+    if (existingUrl && existingUrl.startsWith('/uploads/')) return existingUrl;
 
     const fileInput = document.getElementById('placeImageFile');
     if (!fileInput.files || !fileInput.files[0]) return null;
@@ -527,24 +728,199 @@ async function uploadPlaceImageIfNeeded() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'فشل رفع الصورة');
+    
+    // Update preview with full URL
+    const _imgBase = window.API_URL || 'https://wajeezsd.com';
+    const _isLocalImg = _imgBase.includes('localhost') || _imgBase.includes('127.0.0.1');
+    const fullUrl = (!_isLocalImg && data.url.startsWith('/uploads')) ? _imgBase + '/api' + data.url : _imgBase + data.url;
+    document.getElementById('placeImagePreviewImg').src = fullUrl;
+    document.getElementById('placeImagePreview').style.display = 'block';
+    return data.url;
+}
+
+// Menu uploading logic
+function previewMenuImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('menuImagePreviewImg').src = e.target.result;
+        document.getElementById('menuImagePreview').style.display = 'block';
+        document.getElementById('menuImageUploadLabel').style.borderColor = '#ffc107'; // warning color
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function clearMenuImage() {
+    const fileInput = document.getElementById('menuImageFile');
+    if (fileInput) fileInput.value = '';
+    const urlInput = document.getElementById('menuImageUrl');
+    if (urlInput) urlInput.value = '';
+    document.getElementById('menuImagePreviewImg').src = '';
+    document.getElementById('menuImagePreview').style.display = 'none';
+    const lbl = document.getElementById('menuImageUploadLabel');
+    if (lbl) lbl.style.borderColor = '#ffc107';
+    document.getElementById('placeMenu').value = '';
+}
+
+function setMenuImageMode(mode) {
+    const fileMode = document.getElementById('menuImgFileMode');
+    const urlMode = document.getElementById('menuImgUrlMode');
+    const btnFile = document.getElementById('menuImgModeFile');
+    const btnUrl = document.getElementById('menuImgModeUrl');
+    clearMenuImage();
+    if (mode === 'url') {
+        fileMode.style.display = 'none';
+        urlMode.style.display = 'block';
+        btnFile.className = 'btn btn-outline-secondary btn-sm';
+        btnUrl.className = 'btn btn-warning btn-sm text-dark';
+    } else {
+        fileMode.style.display = 'block';
+        urlMode.style.display = 'none';
+        btnFile.className = 'btn btn-warning btn-sm text-dark';
+        btnUrl.className = 'btn btn-outline-secondary btn-sm';
+    }
+}
+
+function previewMenuImageUrl(url) {
+    if (!url || !url.startsWith('http')) return;
+    document.getElementById('menuImagePreviewImg').src = url;
+    document.getElementById('menuImagePreview').style.display = 'block';
+    document.getElementById('placeMenu').value = url;
+}
+
+// Edit menu uploading logic
+function previewEditMenuImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('editMenuImagePreviewImg').src = e.target.result;
+        document.getElementById('editMenuImagePreview').style.display = 'block';
+        document.getElementById('editMenuImageUploadLabel').style.borderColor = '#ffc107'; // warning color
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function clearEditMenuImage() {
+    const fileInput = document.getElementById('editMenuImageFile');
+    if (fileInput) fileInput.value = '';
+    const urlInput = document.getElementById('editMenuImageUrl');
+    if (urlInput) urlInput.value = '';
+    document.getElementById('editMenuImagePreviewImg').src = '';
+    document.getElementById('editMenuImagePreview').style.display = 'none';
+    const lbl = document.getElementById('editMenuImageUploadLabel');
+    if (lbl) lbl.style.borderColor = '#ffc107';
+    document.getElementById('editPlaceMenu').value = '';
+}
+
+function setEditMenuImageMode(mode) {
+    const fileMode = document.getElementById('editMenuImgFileMode');
+    const urlMode = document.getElementById('editMenuImgUrlMode');
+    const btnFile = document.getElementById('editMenuImgModeFile');
+    const btnUrl = document.getElementById('editMenuImgModeUrl');
+    clearEditMenuImage();
+    if (mode === 'url') {
+        fileMode.style.display = 'none';
+        urlMode.style.display = 'block';
+        btnFile.className = 'btn btn-outline-secondary btn-sm';
+        btnUrl.className = 'btn btn-warning btn-sm text-dark';
+    } else {
+        fileMode.style.display = 'block';
+        urlMode.style.display = 'none';
+        btnFile.className = 'btn btn-warning btn-sm text-dark';
+        btnUrl.className = 'btn btn-outline-secondary btn-sm';
+    }
+}
+
+function previewEditMenuImageUrl(url) {
+    if (!url || !url.startsWith('http')) return;
+    document.getElementById('editMenuImagePreviewImg').src = url;
+    document.getElementById('editMenuImagePreview').style.display = 'block';
+    document.getElementById('editPlaceMenu').value = url;
+}
+
+async function uploadMenuImageIfNeeded(mode = 'add') {
+    const valInputId = mode === 'edit' ? 'editPlaceMenu' : 'placeMenu';
+    const fileInputId = mode === 'edit' ? 'editMenuImageFile' : 'menuImageFile';
+    const previewImgId = mode === 'edit' ? 'editMenuImagePreviewImg' : 'menuImagePreviewImg';
+    const previewDivId = mode === 'edit' ? 'editMenuImagePreview' : 'menuImagePreview';
+
+    const existingUrl = document.getElementById(valInputId).value;
+    if (existingUrl && (existingUrl.startsWith('http') || existingUrl.startsWith('/uploads/'))) return existingUrl;
+
+    const fileInput = document.getElementById(fileInputId);
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return null;
+
+    const formData = new FormData();
+    formData.append('placeImage', fileInput.files[0]);
+
+    const res = await fetch(`${API_URL}/api/upload/place-image`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${adminToken()}` },
+        body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'فشل رفع صورة المنيو');
+    
+    // Update preview
+    const _menuBase = window.API_URL || 'https://wajeezsd.com';
+    const _isLocalMenu = _menuBase.includes('localhost') || _menuBase.includes('127.0.0.1');
+    const fullUrl = (!_isLocalMenu && data.url.startsWith('/uploads')) ? _menuBase + '/api' + data.url : _menuBase + data.url;
+    const pImg = document.getElementById(previewImgId);
+    const pDiv = document.getElementById(previewDivId);
+    if (pImg) pImg.src = fullUrl;
+    if (pDiv) pDiv.style.display = 'block';
+    document.getElementById(valInputId).value = data.url;
+    
     return data.url;
 }
 
 // =====================================
 // ➕ Create Place
 // =====================================
+// =====================================
+// 👤 Owner Mode Toggle
+// =====================================
+function setOwnerMode(mode) {
+    const newFields = document.getElementById('ownerNewFields');
+    const noneInfo = document.getElementById('ownerNoneInfo');
+    const btnNew = document.getElementById('ownerModeNew');
+    const btnNone = document.getElementById('ownerModeNone');
+
+    if (mode === 'new') {
+        newFields.style.display = 'block';
+        noneInfo.style.display = 'none';
+        btnNew.className = 'btn btn-success btn-sm';
+        btnNone.className = 'btn btn-outline-secondary btn-sm';
+    } else {
+        newFields.style.display = 'none';
+        noneInfo.style.display = 'block';
+        btnNew.className = 'btn btn-outline-secondary btn-sm';
+        btnNone.className = 'btn btn-secondary btn-sm';
+        // مسح حقول التاجر
+        ['ownerName','ownerPhone','ownerEmail','ownerPassword','ownerBankAccount'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+    }
+}
+
 function openAddPlaceModal() {
     populateCategorySelect(); // refresh categories in select
+    setOwnerMode('new'); // افتراضياً: تاجر جديد
     document.getElementById('addPlaceModal').style.display = 'flex';
 }
 function closeAddPlaceModal() {
     document.getElementById('addPlaceModal').style.display = 'none';
     document.getElementById('addPlaceForm').reset();
+    clearMenuImage();
+    clearPlaceImage();
+    // مسح حقول التاجر
+    ['ownerName','ownerPhone','ownerEmail','ownerPassword','ownerBankAccount'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
     // تدمير الخريطة عند الإغلاق لتفادي خطأ "Map container is already initialized"
-    if (adminPlaceMapInstance) {
-        adminPlaceMapInstance.remove();
-        adminPlaceMapInstance = null;
-    }
+    adminPlaceMapInstance = null;
     document.getElementById('adminPlaceMapWrapper').style.display = 'none';
     document.getElementById('adminPlaceMapCoords').innerHTML = '';
     document.getElementById('coordsStatus').style.display = 'none';
@@ -558,11 +934,21 @@ async function createPlace(e) {
     const phone = document.getElementById('placePhone').value.trim();
     const whatsapp = document.getElementById('placeWhatsapp').value.trim();
     const address = document.getElementById('placeAddress').value.trim();
+    const notes = document.getElementById('placeNotes').value.trim();
     const map_url = document.getElementById('placeMapUrl').value.trim();
+    const city = document.getElementById('placeCity').value; // 🌍 City field
     const lat = parseFloat(document.getElementById('placeLat').value);
     const lng = parseFloat(document.getElementById('placeLng').value);
     const open = document.getElementById('placeOpen').value;
     const close = document.getElementById('placeClose').value;
+
+    // 👤 بيانات التاجر
+    const ownerMode = document.getElementById('ownerModeNew')?.classList.contains('btn-success') ? 'new' : 'none';
+    const ownerName = document.getElementById('ownerName')?.value.trim() || '';
+    const ownerPhone = document.getElementById('ownerPhone')?.value.trim() || '';
+    const ownerEmail = document.getElementById('ownerEmail')?.value.trim() || '';
+    const ownerPassword = document.getElementById('ownerPassword')?.value.trim() || '';
+    const ownerBankAccount = document.getElementById('ownerBankAccount')?.value.trim() || '';
 
     if (!name || !category || !address) {
         Swal.fire('تنبيه', 'يرجى ملء الحقول الإلزامية (*): الاسم، التصنيف، العنوان', 'warning');
@@ -571,6 +957,18 @@ async function createPlace(e) {
     if (!map_url) {
         Swal.fire('تنبيه', 'يرجى إدخال رابط خرائط جوجل للمحل', 'warning');
         return;
+    }
+
+    // التحقق من بيانات التاجر إذا اختار "تاجر جديد"
+    if (ownerMode === 'new') {
+        if (!ownerName || !ownerPhone || !ownerPassword) {
+            Swal.fire('تنبيه', 'يرجى إدخال اسم التاجر، هاتفه، وكلمة المرور — أو اختر "متجر بدون تاجر"', 'warning');
+            return;
+        }
+        if (ownerPassword.length < 6) {
+            Swal.fire('تنبيه', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'warning');
+            return;
+        }
     }
 
     setSubmitLoading(btn, true);
@@ -586,13 +984,34 @@ async function createPlace(e) {
         return;
     }
 
+    let menu_url = document.getElementById('placeMenu').value || '';
+    try {
+        const uploadedMenuUrl = await uploadMenuImageIfNeeded('add');
+        if (uploadedMenuUrl) menu_url = uploadedMenuUrl;
+    } catch (uploadMenuErr) {
+        Swal.fire('خطأ', uploadMenuErr.message, 'error');
+        setSubmitLoading(btn, false);
+        return;
+    }
+
     const location = { lat: isNaN(lat) ? 15.5007 : lat, lng: isNaN(lng) ? 32.5599 : lng };
 
     const payload = {
         name, category, image_url, phone, whatsapp, address, map_url,
+        notes, menu: menu_url,
+        city, // 🌍 Add city to payload
         location,
         workingHours: { open, close, days: [0, 1, 2, 3, 4, 5, 6] }
     };
+
+    // إضافة بيانات التاجر إلى الـ payload
+    if (ownerMode === 'new' && ownerName && ownerPhone && ownerPassword) {
+        payload.ownerName = ownerName;
+        payload.ownerPhone = ownerPhone;
+        payload.ownerPassword = ownerPassword;
+        if (ownerEmail) payload.ownerEmail = ownerEmail;
+        if (ownerBankAccount) payload.ownerBankAccount = ownerBankAccount;
+    }
 
     try {
         const res = await fetch(`${API_URL}/api/places`, {
@@ -600,7 +1019,10 @@ async function createPlace(e) {
             body: JSON.stringify(payload)
         });
         if (res.ok) {
-            Swal.fire({ icon: 'success', title: 'تمت إضافة المحل!', timer: 1500, showConfirmButton: false });
+            const successMsg = (ownerMode === 'new' && ownerName)
+                ? `تمت إضافة المتجر وإنشاء حساب التاجر "${ownerName}" بنجاح!`
+                : 'تمت إضافة المحل بنجاح!';
+            Swal.fire({ icon: 'success', title: successMsg, timer: 2500, showConfirmButton: false });
             closeAddPlaceModal();
             loadAdminPlaces();
         } else {
@@ -611,5 +1033,160 @@ async function createPlace(e) {
     } catch (e) {
         Swal.fire('خطأ', 'فشل الاتصال', 'error');
         setSubmitLoading(btn, false);
+    }
+}
+
+// ============================================================
+// 🛒 Admin Product Management (منتجات المتجر داخل نافذة التعديل)
+// ============================================================
+let _adminProducts = [];
+
+function _productFullImg(url) {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const base = window.API_URL || 'https://wajeezsd.com';
+    const withSlash = url.startsWith('/') ? url : '/' + url;
+    const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+    return (!isLocal && withSlash.startsWith('/uploads')) ? base + '/api' + withSlash : base + withSlash;
+}
+
+async function loadPlaceProducts() {
+    const list = document.getElementById('placeProductsList');
+    if (!editingPlaceId || !list) return;
+    list.innerHTML = '<div class="text-center text-muted small py-2">جاري التحميل...</div>';
+    try {
+        const res = await fetch(`${API_URL}/api/places/${editingPlaceId}/products/admin`, { headers: headers() });
+        _adminProducts = await res.json();
+        renderPlaceProducts();
+    } catch (e) {
+        list.innerHTML = '<div class="text-center text-danger small py-2">فشل تحميل المنتجات</div>';
+    }
+}
+
+function renderPlaceProducts() {
+    const list = document.getElementById('placeProductsList');
+    if (!list) return;
+    const esc = window.escapeHtml || (s => s);
+    if (!Array.isArray(_adminProducts) || !_adminProducts.length) {
+        list.innerHTML = '<div class="text-center text-muted small py-3"><i class="fas fa-box-open me-1"></i> لا توجد منتجات بعد — أضف أول منتج</div>';
+        return;
+    }
+    list.innerHTML = _adminProducts.map(p => {
+        const img = p.image
+            ? `<img src="${_productFullImg(p.image)}" style="width:46px;height:46px;object-fit:cover;border-radius:10px;flex-shrink:0;">`
+            : `<div style="width:46px;height:46px;border-radius:10px;background:#eef2f1;display:flex;align-items:center;justify-content:center;color:#94a3b8;flex-shrink:0;"><i class="fas fa-box"></i></div>`;
+        return `<div class="d-flex align-items-center gap-2 p-2 border rounded-3 mb-2 bg-white">
+            ${img}
+            <div class="flex-grow-1" style="min-width:0;">
+                <div class="fw-bold text-truncate" style="font-size:13px;">${esc(p.name || '')}</div>
+                <div class="small text-muted">${Number(p.price || 0).toLocaleString('en')} ج.س · ${esc(p.category || 'عام')}</div>
+            </div>
+            <span class="badge ${p.isAvailable ? 'bg-success' : 'bg-secondary'}">${p.isAvailable ? 'متوفر' : 'غير متوفر'}</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editProduct('${p._id}')"><i class="fas fa-pen"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${p._id}')"><i class="fas fa-trash"></i></button>
+        </div>`;
+    }).join('');
+}
+
+function toggleProductForm(show) {
+    const f = document.getElementById('productForm');
+    if (!f) return;
+    const willShow = show === undefined ? f.style.display === 'none' : show;
+    f.style.display = willShow ? 'block' : 'none';
+    if (!willShow) resetProductForm();
+}
+
+function resetProductForm() {
+    ['productEditId', 'productName', 'productPrice', 'productCategory', 'productDesc', 'productImg'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const av = document.getElementById('productAvailable'); if (av) av.checked = true;
+    const fi = document.getElementById('productImgFile'); if (fi) fi.value = '';
+    const prev = document.getElementById('productImgPreview'); if (prev) { prev.src = ''; prev.style.display = 'none'; }
+}
+
+function previewProductImg(input) {
+    if (!input.files || !input.files[0]) return;
+    const r = new FileReader();
+    r.onload = e => { const prev = document.getElementById('productImgPreview'); prev.src = e.target.result; prev.style.display = 'block'; };
+    r.readAsDataURL(input.files[0]);
+}
+
+async function uploadProductImgIfNeeded() {
+    const existing = document.getElementById('productImg').value;
+    if (existing && (existing.startsWith('http') || existing.startsWith('/uploads'))) return existing;
+    const fileInput = document.getElementById('productImgFile');
+    if (!fileInput.files || !fileInput.files[0]) return existing || '';
+    const fd = new FormData();
+    fd.append('image', fileInput.files[0]);
+    const res = await fetch(`${API_URL}/api/upload/product-image`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${adminToken()}` }, body: fd
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'فشل رفع الصورة');
+    return data.url;
+}
+
+async function saveProduct() {
+    if (!editingPlaceId) return;
+    const name = document.getElementById('productName').value.trim();
+    const price = document.getElementById('productPrice').value;
+    if (!name || price === '') { Swal.fire('تنبيه', 'الاسم والسعر مطلوبان', 'warning'); return; }
+    const btn = document.getElementById('saveProductBtn');
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    try {
+        const image = await uploadProductImgIfNeeded();
+        const payload = {
+            name, price: Number(price),
+            category: document.getElementById('productCategory').value.trim() || 'عام',
+            description: document.getElementById('productDesc').value.trim(),
+            isAvailable: document.getElementById('productAvailable').checked,
+            image
+        };
+        const editId = document.getElementById('productEditId').value;
+        const url = editId
+            ? `${API_URL}/api/places/${editingPlaceId}/products/${editId}`
+            : `${API_URL}/api/places/${editingPlaceId}/products`;
+        const res = await fetch(url, { method: editId ? 'PUT' : 'POST', headers: headers(), body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error((await res.json()).message || 'فشل الحفظ');
+        toggleProductForm(false);
+        loadPlaceProducts();
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
+    } finally {
+        btn.disabled = false; btn.innerHTML = orig;
+    }
+}
+
+function editProduct(id) {
+    const p = _adminProducts.find(x => x._id === id);
+    if (!p) return;
+    document.getElementById('productEditId').value = p._id;
+    document.getElementById('productName').value = p.name || '';
+    document.getElementById('productPrice').value = (p.price ?? '');
+    document.getElementById('productCategory').value = p.category || '';
+    document.getElementById('productDesc').value = p.description || '';
+    document.getElementById('productAvailable').checked = p.isAvailable !== false;
+    document.getElementById('productImg').value = p.image || '';
+    const prev = document.getElementById('productImgPreview');
+    if (p.image) { prev.src = _productFullImg(p.image); prev.style.display = 'block'; }
+    else { prev.src = ''; prev.style.display = 'none'; }
+    const f = document.getElementById('productForm');
+    f.style.display = 'block';
+    f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function deleteProduct(id) {
+    const { isConfirmed } = await Swal.fire({
+        icon: 'warning', title: 'حذف المنتج؟', text: 'لا يمكن التراجع.',
+        showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#ef4444'
+    });
+    if (!isConfirmed) return;
+    try {
+        const res = await fetch(`${API_URL}/api/places/${editingPlaceId}/products/${id}`, { method: 'DELETE', headers: headers() });
+        if (!res.ok) throw new Error('فشل الحذف');
+        loadPlaceProducts();
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
     }
 }

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>إدارة البانرات | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }
+
+        .page-header {
+            background: linear-gradient(135deg, #04553A 0%, #0A6E47 100%);
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(10,135,84,.25);
+        }
+        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
+        .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+        .page-header a:hover { color: #fff; }
+
+        .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+        .btn { padding: 10px 20px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; }
+        .btn-primary { background: #04553A; color: #fff; }
+        .btn-primary:hover { background: #033A27; transform: translateY(-1px); }
+        .btn-danger  { background: #ef4444; color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-ghost   { background: #f1f5f9; color: #64748b; }
+        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-sm { padding: 6px 14px; font-size: 0.85rem; }
+
+        /* Grid */
+        .banners-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+        .banner-card {
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,.06);
+            border: 1px solid #e2e8f0;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .banner-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+        .banner-card.inactive { opacity: 0.55; }
+
+        .banner-img {
+            width: 100%;
+            aspect-ratio: 3 / 1;
+            object-fit: cover;
+            background: #f8fafc;
+            display: block;
+        }
+        .banner-img-placeholder {
+            width: 100%;
+            aspect-ratio: 3 / 1;
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 2rem;
+        }
+        .banner-body { padding: 14px 16px; }
+        .banner-title { font-weight: 800; font-size: 1rem; color: #1e293b; margin-bottom: 8px; }
+        .banner-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+        .badge-green { background: #dcfce7; color: #166534; }
+        .badge-gray  { background: #f1f5f9; color: #64748b; }
+        .badge-blue  { background: #dbeafe; color: #1d4ed8; }
+        .badge-orange{ background: #ffedd5; color: #c2410c; }
+        .banner-stats { display: flex; gap: 16px; font-size: 0.8rem; color: #64748b; margin-bottom: 14px; }
+        .banner-stats span { display: flex; align-items: center; gap: 4px; }
+        .banner-actions { display: flex; gap: 8px; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 560px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.2);
+        }
+        .modal h2 { font-size: 1.2rem; font-weight: 800; color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 700; font-size: 0.9rem; color: #475569; margin-bottom: 6px; }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 0.95rem;
+            color: #1e293b;
+            transition: border-color .2s;
+            outline: none;
+            background: #f8fafc;
+        }
+        .form-control:focus { border-color: #04553A; background: #fff; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border-radius: 10px; border: 1.5px solid #e2e8f0; }
+        .toggle-switch { position: relative; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 24px; cursor: pointer; transition: background .2s; }
+        .slider:before { content: ''; position: absolute; width: 18px; height: 18px; right: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
+        input:checked + .slider { background: #04553A; }
+        input:checked + .slider:before { transform: translateX(-20px); }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
+        .empty-state p { font-size: 1rem; }
+
+        .sort-badge { background: #04553A; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; }
+    </style>
+</head>
+<body>
+<div class="page-header">
+    <h1><i class="fas fa-images" style="margin-left:8px;"></i> إدارة البانرات الإعلانية</h1>
+    <a href="admin.html"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+</div>
+
+<div class="main">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+            <h2 style="font-size:1.1rem;color:#1e293b;font-weight:800;">البانرات المتاحة</h2>
+            <p style="font-size:0.85rem;color:#64748b;">تُعرض في الصفحة الرئيسية للتطبيق</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal()">
+            <i class="fas fa-plus"></i> إضافة بانر جديد
+        </button>
+    </div>
+
+    <div class="banners-grid" id="bannersGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">
+            <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+            <p style="margin-top:12px;">جاري التحميل...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h2><i class="fas fa-image" style="color:#04553A;"></i> <span id="modalTitle">إضافة بانر جديد</span></h2>
+        <input type="hidden" id="editingId">
+        <div class="form-group">
+            <label>العنوان *</label>
+            <input type="text" class="form-control" id="fTitle" placeholder="مثال: عرض رمضان 50% خصم">
+        </div>
+        <div class="form-group">
+            <label>رابط الصورة *</label>
+            <input type="url" class="form-control" id="fImage" placeholder="https://..." oninput="updateImagePreview()">
+            <small style="display:block;color:#94a3b8;font-size:0.78rem;margin-top:6px;line-height:1.5;">
+                📐 المقاس المثالي: <strong>1200 × 400 بكسل</strong> (نسبة 3:1). الصور بنِسب مختلفة سيتم قصّها من الأعلى والأسفل لتملأ المساحة.
+            </small>
+            <div id="imgPreviewWrap" style="display:none;margin-top:10px;">
+                <div style="font-size:0.78rem;color:#64748b;margin-bottom:4px;">معاينة مطابقة لشكلها في التطبيق:</div>
+                <img id="imgPreview" alt="معاينة" style="width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:12px;border:1.5px solid #e2e8f0;background:#f8fafc;"
+                     onerror="this.style.opacity=.3;">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>نوع الهدف عند الضغط</label>
+                <select class="form-control" id="fTargetType" onchange="toggleTargetId()">
+                    <option value="none">بدون رابط</option>
+                    <option value="place">فتح متجر</option>
+                    <option value="product">فتح منتج</option>
+                    <option value="category">فتح قسم</option>
+                    <option value="url">رابط خارجي</option>
+                </select>
+            </div>
+            <!-- 🎯 اختيار الهدف عبر قوائم بدل لصق ID يدوياً -->
+            <div class="form-group" id="storeSelectGroup" style="display:none;">
+                <label>اختر المتجر</label>
+                <select class="form-control" id="fStoreSelect" onchange="onStoreSelectChange()">
+                    <option value="">— جارٍ التحميل… —</option>
+                </select>
+            </div>
+            <div class="form-group" id="productSelectGroup" style="display:none;">
+                <label>اختر المنتج</label>
+                <select class="form-control" id="fProductSelect">
+                    <option value="">— اختر المتجر أولاً —</option>
+                </select>
+            </div>
+            <div class="form-group" id="categorySelectGroup" style="display:none;">
+                <label>اختر القسم</label>
+                <select class="form-control" id="fCategorySelect">
+                    <option value="">— جارٍ التحميل… —</option>
+                </select>
+            </div>
+            <div class="form-group" id="urlInputGroup" style="display:none;">
+                <label>الرابط الخارجي</label>
+                <input type="url" class="form-control" id="fUrlInput" placeholder="https://...">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>مكان العرض</label>
+                <select class="form-control" id="fPlacement">
+                    <option value="all">الرئيسية + التسوق</option>
+                    <option value="home">الرئيسية فقط</option>
+                    <option value="shop">صفحة التسوق فقط</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>المدينة</label>
+                <select class="form-control" id="fCity">
+                    <option value="all">جميع المدن</option>
+                    <option value="Khartoum">الخرطوم</option>
+                    <option value="PortSudan">بورتسودان</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>ترتيب العرض</label>
+            <input type="number" class="form-control" id="fSortOrder" value="0" min="0">
+        </div>
+        <div class="form-group">
+            <label>تاريخ انتهاء البانر (اختياري)</label>
+            <input type="date" class="form-control" id="fExpiresAt">
+        </div>
+        <div class="toggle-row">
+            <span style="font-weight:700;font-size:0.9rem;">البانر نشط</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="fIsActive" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+            <button class="btn btn-primary" id="saveBtn" onclick="saveBanner()">
+                <i class="fas fa-save"></i> حفظ البانر
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = localStorage.getItem('adminToken');
+    if (!token) window.location.href = 'admin-login.html';
+    const BASE = window.API_URL || 'https://wajeezsd.com';
+    const hdr  = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+
+    let banners = [];
+
+    async function loadBanners() {
+        try {
+            const res  = await fetch(`${BASE}/api/banners/admin/all`, { headers: hdr() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            banners = data;
+            renderBanners();
+        } catch (e) {
+            document.getElementById('bannersGrid').innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1;">
+                    <i class="fas fa-exclamation-circle" style="color:#ef4444;"></i>
+                    <p>فشل تحميل البانرات: ${e.message}</p>
+                </div>`;
+        }
+    }
+
+    function renderBanners() {
+        const grid = document.getElementById('bannersGrid');
+        if (!banners.length) {
+            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-images"></i><p>لا توجد بانرات بعد. أضف أول بانر!</p></div>`;
+            return;
+        }
+
+        const cityLabel = { all: 'جميع المدن', Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+        const typeLabel = { none: 'بدون رابط', place: 'متجر', product: 'منتج', category: 'قسم', url: 'رابط' };
+
+        grid.innerHTML = banners.map(b => {
+            const expired = b.expiresAt && new Date(b.expiresAt) < new Date();
+            return `
+            <div class="banner-card ${!b.isActive || expired ? 'inactive' : ''}">
+                ${b.image_url
+                    ? `<img src="${b.image_url}" alt="${b.title}" class="banner-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                       <div class="banner-img-placeholder" style="display:none;"><i class="fas fa-image"></i></div>`
+                    : `<div class="banner-img-placeholder"><i class="fas fa-image"></i></div>`
+                }
+                <div class="banner-body">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <span class="sort-badge">${b.sortOrder || 0}</span>
+                        <div class="banner-title">${b.title}</div>
+                    </div>
+                    <div class="banner-meta">
+                        <span class="badge ${b.isActive && !expired ? 'badge-green' : 'badge-gray'}">${b.isActive && !expired ? 'نشط' : expired ? 'منتهي' : 'موقوف'}</span>
+                        <span class="badge badge-blue">${cityLabel[b.city] || b.city}</span>
+                        <span class="badge badge-gray">${({ all: 'رئيسية + تسوق', home: 'الرئيسية', shop: 'التسوق' })[b.placement || 'all']}</span>
+                        ${b.targetType !== 'none' ? `<span class="badge badge-orange">${typeLabel[b.targetType]}</span>` : ''}
+                    </div>
+                    <div class="banner-stats">
+                        <span><i class="fas fa-eye"></i> ${(b.viewsCount || 0).toLocaleString('en')} مشاهدة</span>
+                        <span><i class="fas fa-mouse-pointer"></i> ${(b.clicksCount || 0).toLocaleString('en')} نقرة</span>
+                    </div>
+                    <div class="banner-actions">
+                        <button class="btn btn-ghost btn-sm" onclick='editBanner(${JSON.stringify(b).replace(/'/g, "&#39;")})'>
+                            <i class="fas fa-pen"></i> تعديل
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBanner('${b._id}')">
+                            <i class="fas fa-trash"></i> حذف
+                        </button>
+                        <button class="btn btn-sm" style="background:${b.isActive ? '#fef9c3' : '#dcfce7'};color:${b.isActive ? '#854d0e' : '#166534'};"
+                            onclick="toggleBanner('${b._id}', ${!b.isActive})">
+                            <i class="fas fa-${b.isActive ? 'pause' : 'play'}"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function updateImagePreview() {
+        const url  = document.getElementById('fImage').value.trim();
+        const wrap = document.getElementById('imgPreviewWrap');
+        const img  = document.getElementById('imgPreview');
+        if (url) {
+            img.style.opacity = '1';
+            img.src = url;
+            wrap.style.display = 'block';
+        } else {
+            wrap.style.display = 'none';
+            img.removeAttribute('src');
+        }
+    }
+
+    let _bannerStores = [];
+    let _bannerCats = [];
+    let _bannerTargetsLoaded = false;
+
+    // تحميل قوائم المتاجر والأقسام مرة واحدة (لاختيار الهدف بدل لصق ID)
+    async function loadBannerTargets() {
+        if (_bannerTargetsLoaded) return;
+        _bannerTargetsLoaded = true;
+        try {
+            const [pRes, cRes] = await Promise.all([
+                fetch(`${BASE}/api/places?city=all`),
+                fetch(`${BASE}/api/places/categories`)
+            ]);
+            _bannerStores = pRes.ok ? await pRes.json() : [];
+            _bannerCats   = cRes.ok ? await cRes.json() : [];
+        } catch (e) { _bannerStores = []; _bannerCats = []; }
+
+        document.getElementById('fStoreSelect').innerHTML = '<option value="">— اختر المتجر —</option>' +
+            _bannerStores.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
+        document.getElementById('fCategorySelect').innerHTML = '<option value="">— اختر القسم —</option>' +
+            _bannerCats.map(c => `<option value="${c._id}">${c.name}</option>`).join('');
+    }
+
+    // عند اختيار متجر (لنوع "منتج") نحمّل منتجاته
+    async function onStoreSelectChange() {
+        const placeId = document.getElementById('fStoreSelect').value;
+        const ps = document.getElementById('fProductSelect');
+        if (!placeId) { ps.innerHTML = '<option value="">— اختر المتجر أولاً —</option>'; return; }
+        ps.innerHTML = '<option value="">— جارٍ التحميل… —</option>';
+        try {
+            const r = await fetch(`${BASE}/api/merchant/shop/${placeId}/products`);
+            const d = await r.json();
+            const prods = d.products || [];
+            ps.innerHTML = '<option value="">— اختر المنتج —</option>' +
+                prods.map(p => `<option value="${p._id}">${p.name} — ${p.price} ج.س</option>`).join('');
+        } catch (e) { ps.innerHTML = '<option value="">تعذّر تحميل المنتجات</option>'; }
+    }
+    window.onStoreSelectChange = onStoreSelectChange;
+
+    function toggleTargetId() {
+        const type = document.getElementById('fTargetType').value;
+        const show = (gid, on) => document.getElementById(gid).style.display = on ? 'block' : 'none';
+        show('storeSelectGroup',    type === 'place' || type === 'product');
+        show('productSelectGroup',  type === 'product');
+        show('categorySelectGroup', type === 'category');
+        show('urlInputGroup',       type === 'url');
+        if (type === 'place' || type === 'product' || type === 'category') loadBannerTargets();
+    }
+
+    // تعبئة القوائم من بنر موجود (عند التعديل)
+    async function prefillBannerTarget(banner) {
+        document.getElementById('fStoreSelect').value = '';
+        document.getElementById('fProductSelect').innerHTML = '<option value="">— اختر المتجر أولاً —</option>';
+        document.getElementById('fCategorySelect').value = '';
+        document.getElementById('fUrlInput').value = '';
+        if (!banner) return;
+        const type = banner.targetType, tid = (banner.targetId || '').trim();
+        if (type === 'url') { document.getElementById('fUrlInput').value = tid || banner.link || ''; return; }
+        await loadBannerTargets();
+        if (type === 'place') document.getElementById('fStoreSelect').value = tid;
+        else if (type === 'category') document.getElementById('fCategorySelect').value = tid;
+        else if (type === 'product') {
+            const [placeId, productId] = tid.split(':');
+            document.getElementById('fStoreSelect').value = placeId || '';
+            await onStoreSelectChange();
+            if (productId) document.getElementById('fProductSelect').value = productId;
+        }
+    }
+
+    function openModal(banner = null) {
+        document.getElementById('editingId').value   = banner?._id || '';
+        document.getElementById('modalTitle').textContent = banner ? 'تعديل البانر' : 'إضافة بانر جديد';
+        document.getElementById('fTitle').value      = banner?.title || '';
+        document.getElementById('fImage').value      = banner?.image_url || '';
+        document.getElementById('fTargetType').value = banner?.targetType || 'none';
+        document.getElementById('fCity').value       = banner?.city || 'all';
+        document.getElementById('fPlacement').value  = banner?.placement || 'all';
+        document.getElementById('fSortOrder').value  = banner?.sortOrder ?? 0;
+        document.getElementById('fIsActive').checked = banner ? banner.isActive : true;
+        document.getElementById('fExpiresAt').value  = banner?.expiresAt ? banner.expiresAt.substring(0, 10) : '';
+        toggleTargetId();
+        prefillBannerTarget(banner);
+        updateImagePreview();
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function editBanner(b) { openModal(b); }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+    document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+    async function saveBanner() {
+        const id      = document.getElementById('editingId').value;
+        const title   = document.getElementById('fTitle').value.trim();
+        const image   = document.getElementById('fImage').value.trim();
+        if (!title || !image) {
+            return Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'العنوان والصورة مطلوبان', confirmButtonColor: '#04553A' });
+        }
+        // 🎯 بناء معرّف الهدف من القائمة المختارة (بدل لصق ID يدوياً)
+        const targetType = document.getElementById('fTargetType').value;
+        let targetId = '';
+        if (targetType === 'place') targetId = document.getElementById('fStoreSelect').value;
+        else if (targetType === 'category') targetId = document.getElementById('fCategorySelect').value;
+        else if (targetType === 'url') targetId = document.getElementById('fUrlInput').value.trim();
+        else if (targetType === 'product') {
+            const s = document.getElementById('fStoreSelect').value;
+            const p = document.getElementById('fProductSelect').value;
+            targetId = (s && p) ? `${s}:${p}` : '';
+        }
+        if (targetType !== 'none' && !targetId) {
+            return Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى اختيار هدف البانر (المتجر/المنتج/القسم/الرابط)', confirmButtonColor: '#04553A' });
+        }
+
+        const body = {
+            title,
+            image_url:  image,
+            targetType,
+            targetId,
+            city:       document.getElementById('fCity').value,
+            placement:  document.getElementById('fPlacement').value,
+            sortOrder:  Number(document.getElementById('fSortOrder').value),
+            isActive:   document.getElementById('fIsActive').checked,
+            expiresAt:  document.getElementById('fExpiresAt').value || null,
+        };
+
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+
+        try {
+            const url    = id ? `${BASE}/api/banners/admin/${id}` : `${BASE}/api/banners/admin`;
+            const method = id ? 'PUT' : 'POST';
+            const res    = await fetch(url, { method, headers: hdr(), body: JSON.stringify(body) });
+            const data   = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            Swal.fire({ icon: 'success', title: '✅ تم الحفظ!', text: 'تم حفظ البانر بنجاح', confirmButtonColor: '#04553A', timer: 2000, showConfirmButton: false });
+            closeModal();
+            loadBanners();
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'خطأ', text: e.message, confirmButtonColor: '#dc3545' });
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ البانر';
+        }
+    }
+
+    async function deleteBanner(id) {
+        const { isConfirmed } = await Swal.fire({
+            icon: 'warning', title: 'تأكيد الحذف', text: 'هل أنت متأكد؟ لا يمكن التراجع.',
+            showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#ef4444'
+        });
+        if (!isConfirmed) return;
+        try {
+            const res = await fetch(`${BASE}/api/banners/admin/${id}`, { method: 'DELETE', headers: hdr() });
+            if (!res.ok) throw new Error();
+            Swal.fire({ icon: 'success', title: 'تم الحذف', timer: 1500, showConfirmButton: false });
+            loadBanners();
+        } catch {
+            Swal.fire({ icon: 'error', title: 'خطأ', text: 'فشل الحذف', confirmButtonColor: '#dc3545' });
+        }
+    }
+
+    async function toggleBanner(id, newStatus) {
+        try {
+            const res = await fetch(`${BASE}/api/banners/admin/${id}`, {
+                method: 'PUT', headers: hdr(),
+                body: JSON.stringify({ isActive: newStatus })
+            });
+            if (!res.ok) throw new Error();
+            loadBanners();
+        } catch {
+            Swal.fire({ icon: 'error', title: 'خطأ', text: 'فشل تغيير الحالة', confirmButtonColor: '#dc3545' });
+        }
+    }
+
+    loadBanners();
+</script>
+</body>
+</html>

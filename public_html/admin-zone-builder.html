@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>منسق مناطق التوصيل | الإدارة</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background: #f8f9fa; 
+            margin: 0; 
+            padding: 0; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .header { 
+            background: #04553A; 
+            color: white; 
+            padding: 15px 20px; 
+            text-align: center; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .container-fluid { 
+            flex: 1; 
+            display: flex; 
+            padding: 0; 
+            overflow: hidden;
+        }
+        #admin-map { 
+            flex: 1; 
+            height: 100%; 
+            touch-action: none;
+        }
+        .side-panel { 
+            width: 360px; 
+            background: white; 
+            border-right: 1px solid #eaeaea; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+            z-index: 5;
+            overflow-y: auto;
+        }
+        .side-panel h5 { 
+            margin-bottom: 8px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+        }
+        textarea { 
+            width: 100%; 
+            height: 200px; 
+            padding: 12px; 
+            font-family: monospace; 
+            font-size: 12px; 
+            direction: ltr; 
+            margin-bottom: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #dde1e5; 
+            resize: none;
+            background: #f8f9fa;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #04553A;
+            background: #fff;
+        }
+        .btn-green { 
+            background: #04553A; 
+            color: white; 
+            border: none; 
+            transition: all 0.2s;
+        }
+        .btn-green:hover { 
+            background: #086b43; 
+            color: white; 
+            transform: translateY(-1px);
+        }
+        .draw-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .draw-controls .btn {
+            flex: 1;
+            min-width: 100px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        #zone-draw-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        .instructions {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            color: #78350f;
+            line-height: 1.8;
+        }
+        .instructions ol {
+            margin: 6px 0 0 0;
+            padding-right: 18px;
+        }
+        
+        @media (max-width: 768px) {
+            .container-fluid { flex-direction: column; }
+            .side-panel { 
+                width: 100%; 
+                border-right: none; 
+                border-top: 1px solid #eaeaea; 
+                height: 50vh; 
+                overflow-y: auto; 
+            }
+            #admin-map { height: 50vh; }
+            textarea { height: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h4 class="mb-0">منسق مناطق التوصيل (Geofence Builder)</h4>
+    </div>
+    
+    <div class="container-fluid">
+        <div class="side-panel shadow-sm">
+            <h5>إعدادات المنطقة</h5>
+            
+            <!-- 🌍 City Selector -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">اختر المدينة لترسيمها:</label>
+                <select id="zoneCitySelector" class="form-select" onchange="changeZoneCity()">
+                    <option value="Khartoum">الخرطوم - أم درمان</option>
+                    <option value="PortSudan">البحر الأحمر - بورتسودان</option>
+                </select>
+            </div>
+
+            <div class="instructions">
+                <strong>🗺️ كيفية رسم المنطقة:</strong>
+                <ol>
+                    <li>اضغط <strong>«ابدأ رسم المنطقة»</strong></li>
+                    <li>انقر على الخريطة لإضافة نقاط المضلع</li>
+                    <li>أضف 3 نقاط على الأقل</li>
+                    <li>اضغط <strong>«إنهاء الرسم»</strong> لإغلاق المضلع</li>
+                    <li>يمكنك تعديل النقاط بعد الرسم بسحبها</li>
+                </ol>
+            </div>
+
+            <!-- Drawing Control Buttons -->
+            <div class="draw-controls">
+                <button id="btn-start-draw" class="btn btn-green" onclick="startDrawing()">
+                    ✏️ ابدأ رسم المنطقة
+                </button>
+                <button id="btn-finish-draw" class="btn btn-success" onclick="finishDrawing()" style="display:none;">
+                    ✅ إنهاء الرسم
+                </button>
+                <button id="btn-undo-point" class="btn btn-outline-warning" onclick="undoLastPoint()" style="display:none;">
+                    ↩ تراجع
+                </button>
+            </div>
+
+            <!-- Status Message -->
+            <div id="zone-draw-status">🖊 انقر على "ابدأ رسم المنطقة" لرسم منطقة التوصيل.</div>
+
+            <label class="form-label fw-bold small">الإحداثيات (JSON Array):</label>
+            <textarea id="zone-coordinates-output" readonly placeholder="ستظهر الإحداثيات هنا بعد رسم المنطقة الجغرافية..."></textarea>
+            
+            <button class="btn btn-outline-danger w-100 mb-2 fw-bold" onclick="clearZoneMap()">🗑 مسح الخريطة والبدء بجديد</button>
+            <button id="btn-save-zone" class="btn btn-green w-100 fw-bold py-2" onclick="saveDeliveryZone()">💾 حفظ منطقة التوصيل</button>
+        </div>
+        
+        <div id="admin-map"></div>
+    </div>
+
+    <!-- Google Maps JS API — key served centrally from env via /api/config -->
+    <script src="js/maps-loader.js"></script>
+    <script>loadGoogleMaps({ libraries: 'places,geometry', callback: 'initAdminMap' });</script>
+    <!-- Dependencies -->
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/auth-helper.js"></script>
+
+    <!-- Admin Logic -->
+    <script src="js/admin-zone.js"></script>
+</body>
+</html>

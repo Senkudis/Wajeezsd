@@ -1,595 +1,285 @@
 <!DOCTYPE html>
-<html lang="ar">
-
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة الشكاوى | وَصِّلِي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>الدعم الفني | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Cairo', sans-serif;
-            background: #f5f7fa;
-            direction: rtl;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            height: 100vh;
-            position: fixed;
-            right: 0;
-            top: 0;
-            padding: 0;
-            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .sidebar-header {
-            padding: 30px 20px;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar-header h2 {
-            font-size: 24px;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .sidebar-header p {
-            font-size: 14px;
-            opacity: 0.7;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .sidebar button {
-            width: 100%;
-            padding: 15px 25px;
-            background: transparent;
-            color: white;
-            border: none;
-            text-align: right;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Cairo', sans-serif;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-right: 3px solid transparent;
-        }
-
-        .sidebar button:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-right-color: #3498db;
-            padding-right: 30px;
-        }
-
-        .sidebar button.active {
-            background: rgba(255, 255, 255, 0.15);
-            border-right-color: #e74c3c;
-        }
-
-        .sidebar button i {
-            width: 25px;
-            font-size: 18px;
-        }
-
-        .sidebar .logout {
-            position: absolute;
-            bottom: 20px;
-            width: calc(100% - 40px);
-            margin: 0 20px;
-            background: rgba(231, 76, 60, 0.2);
-            border: 1px solid rgba(231, 76, 60, 0.5);
-            border-radius: 8px;
-        }
-
-        .sidebar .logout:hover {
-            background: rgba(231, 76, 60, 0.3);
-        }
-
-        /* Main Content */
-        .content {
-            margin-right: 280px;
-            padding: 30px;
-            min-height: 100vh;
-        }
-
-        .page-header {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            margin-bottom: 30px;
-        }
-
-        .page-header h1 {
-            color: #2c3e50;
-            font-size: 32px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .page-header p {
-            color: #7f8c8d;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100%;
-            height: 4px;
-            background: var(--card-color);
-        }
-
-        .stat-card.pending {
-            --card-color: #f39c12;
-        }
-
-        .stat-card.resolved {
-            --card-color: #27ae60;
-        }
-
-        .stat-card.total {
-            --card-color: #3498db;
-        }
-
-        .stat-card .number {
-            font-size: 36px;
-            font-weight: 900;
-            color: var(--card-color);
-            margin-bottom: 5px;
-        }
-
-        .stat-card .label {
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-
-        /* Filter Section */
-        .filter-section {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .filter-section label {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .filter-section select {
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-family: 'Cairo', sans-serif;
-            font-size: 15px;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        .filter-section select:focus {
-            outline: none;
-            border-color: #3498db;
-        }
-
-        /* DataTables Custom Styling */
-        .dataTables_wrapper {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        table.dataTable {
-            width: 100% !important;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        table.dataTable thead th {
-            background: #34495e;
-            color: white;
-            padding: 15px;
-            font-weight: 600;
-            border: none;
-        }
-
-        table.dataTable tbody td {
-            padding: 15px;
-            border-bottom: 1px solid #ecf0f1;
-            vertical-align: middle;
-        }
-
-        table.dataTable tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        /* Status Badges */
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-resolved {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        /* Rating Stars */
-        .rating-stars {
-            color: #f39c12;
-            font-size: 16px;
-        }
-
-        /* Action Button */
-        .btn-resolve {
-            background: linear-gradient(135deg, #27ae60, #229954);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .btn-resolve:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-        }
-
-        .btn-resolved {
-            background: #95a5a6;
-            cursor: not-allowed;
-        }
-
-        /* Complaint Text */
-        .complaint-text {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        /* Loading Animation */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
-        }
-
-        .loading i {
-            font-size: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-
-            .content {
-                margin-right: 0;
-            }
-
-            .filter-section {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
+        .page-header { background: linear-gradient(135deg, #04553A, #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
+        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
+        .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+        .page-header a:hover { color: #fff; }
+        .main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+        .stats-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat-chip { background: #fff; border-radius: 12px; padding: 12px 20px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.05); border: 1px solid #e2e8f0; flex: 1; min-width: 120px; }
+        .stat-chip .num { font-size: 1.4rem; font-weight: 800; color: #1e293b; }
+        .stat-chip .lbl { font-size: 0.8rem; color: #64748b; }
+        .stat-chip .icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .filter-bar { background: #fff; border-radius: 14px; padding: 16px 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 2px 8px rgba(0,0,0,.05); border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: 0.8rem; font-weight: 700; color: #64748b; }
+        .filter-group select { padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; background: #f8fafc; color: #1e293b; outline: none; }
+        .filter-group select:focus { border-color: #04553A; background: #fff; }
+        .btn { padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all .2s; }
+        .btn-primary { background: #04553A; color: #fff; }
+        .btn-primary:hover { background: #033A27; }
+        .btn-sm { padding: 6px 12px; font-size: 0.82rem; }
+        .btn-resolve { background: #dcfce7; color: #166534; }
+        .btn-dismiss { background: #fee2e2; color: #991b1b; }
+        .btn-reply { background: #dbeafe; color: #1d4ed8; }
+        .table-wrap { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1px solid #e2e8f0; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f8fafc; }
+        th { padding: 12px 16px; text-align: right; font-size: 0.82rem; font-weight: 800; color: #64748b; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; white-space: nowrap; }
+        .status-open { background: #dbeafe; color: #1d4ed8; }
+        .status-in_progress { background: #fef9c3; color: #854d0e; }
+        .status-resolved { background: #dcfce7; color: #166534; }
+        .status-dismissed { background: #f1f5f9; color: #64748b; }
+        .status-pending { background: #dbeafe; color: #1d4ed8; }
+        .priority-low { background: #f0fdf4; color: #166534; }
+        .priority-medium { background: #fef9c3; color: #854d0e; }
+        .priority-high { background: #ffedd5; color: #c2410c; }
+        .priority-urgent { background: #fee2e2; color: #991b1b; }
+        .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+        .page-btn { padding: 7px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #fff; font-family: 'Tajawal', sans-serif; font-size: 0.85rem; cursor: pointer; color: #374151; font-weight: 700; transition: all .2s; }
+        .page-btn:hover, .page-btn.active { background: #04553A; color: #fff; border-color: #04553A; }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 20px; padding: 28px; width: 100%; max-width: 640px; margin: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+        .modal h2 { font-size: 1.15rem; font-weight: 800; color: #1e293b; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; }
+        .chat-thread { max-height: 340px; overflow-y: auto; padding: 12px; background: #f8fafc; border-radius: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.5; }
+        .chat-msg.admin { background: #04553A; color: #fff; align-self: flex-start; border-bottom-right-radius: 4px; }
+        .chat-msg.client { background: #fff; border: 1px solid #e2e8f0; align-self: flex-end; border-bottom-left-radius: 4px; color: #1e293b; }
+        .chat-msg .msg-meta { font-size: 0.72rem; opacity: 0.7; margin-top: 4px; }
+        .chat-input { display: flex; gap: 8px; }
+        .chat-input textarea { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; resize: none; height: 60px; outline: none; }
+        .chat-input textarea:focus { border-color: #04553A; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .info-item { background: #f8fafc; border-radius: 10px; padding: 10px 14px; }
+        .info-item .info-label { font-size: 0.75rem; color: #64748b; font-weight: 700; margin-bottom: 3px; }
+        .info-item .info-val { font-size: 0.9rem; font-weight: 800; color: #1e293b; }
+        .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 10px; }
     </style>
-    <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css">
-    <script src="js/config.js"></script>
 </head>
-
 <body>
-
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2><i class="fas fa-crown"></i> لوحة التحكم</h2>
-            <p>إدارة الشكاوى</p>
-        </div>
-
-        <div class="sidebar-menu">
-            <button onclick="location.href='admin.html'">
-                <i class="fas fa-chart-line"></i>
-                <span>الإحصائيات</span>
-            </button>
-            <button class="active">
-                <i class="fas fa-flag"></i>
-                <span>الشكاوى والتقييمات</span>
-            </button>
-        </div>
-
-        <button class="logout" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>تسجيل خروج</span>
-        </button>
+<div class="page-header">
+    <h1><i class="fas fa-headset" style="margin-left:8px;"></i> الدعم الفني / الشكاوى</h1>
+    <a href="admin.html"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+</div>
+<div class="main">
+    <div class="stats-bar">
+        <div class="stat-chip"><div class="icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-ticket-alt"></i></div><div><div class="num" id="stat-all">—</div><div class="lbl">الكل</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-circle-exclamation"></i></div><div><div class="num" id="stat-open">—</div><div class="lbl">مفتوحة</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#fef9c3;color:#ca8a04;"><i class="fas fa-spinner"></i></div><div><div class="num" id="stat-progress">—</div><div class="lbl">قيد المعالجة</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-check-circle"></i></div><div><div class="num" id="stat-resolved">—</div><div class="lbl">محلولة</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#ffedd5;color:#ea580c;"><i class="fas fa-fire"></i></div><div><div class="num" id="stat-urgent">—</div><div class="lbl">عاجلة</div></div></div>
     </div>
-
-    <div class="content">
-        <div class="page-header">
-            <h1><i class="fas fa-flag"></i> إدارة الشكاوى والتقييمات</h1>
-            <p>متابعة وحل شكاوى العملاء وإدارة التقييمات</p>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card total">
-                <div class="number" id="totalComplaints">0</div>
-                <div class="label">إجمالي الشكاوى</div>
-            </div>
-            <div class="stat-card pending">
-                <div class="number" id="pendingComplaints">0</div>
-                <div class="label">قيد الانتظار</div>
-            </div>
-            <div class="stat-card resolved">
-                <div class="number" id="resolvedComplaints">0</div>
-                <div class="label">تم الحل</div>
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <label><i class="fas fa-filter"></i> تصفية حسب الحالة:</label>
-            <select id="statusFilter" onchange="filterComplaints()">
-                <option value="all">الكل</option>
-                <option value="pending">قيد الانتظار</option>
-                <option value="resolved">تم الحل</option>
-            </select>
-        </div>
-
-        <table id="complaintsTable" class="display">
-            <thead>
-                <tr>
-                    <th>رقم الطلب</th>
-                    <th>العميل</th>
-                    <th>تفاصيل الشكوى</th>
-                    <th>قيمة الطلب</th>
-                    <th>الحالة</th>
-                    <th>إجراء</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="6" class="loading"><i class="fas fa-spinner"></i> جاري التحميل...</td>
-                </tr>
-            </tbody>
+    <div class="filter-bar">
+        <div class="filter-group"><label>الحالة</label><select id="fStatus" onchange="loadComplaints(1)"><option value="">الكل</option><option value="open">مفتوحة</option><option value="in_progress">قيد المعالجة</option><option value="resolved">محلولة</option><option value="dismissed">مرفوضة</option></select></div>
+        <div class="filter-group"><label>الأولوية</label><select id="fPriority" onchange="loadComplaints(1)"><option value="">الكل</option><option value="urgent">عاجلة</option><option value="high">عالية</option><option value="medium">متوسطة</option><option value="low">منخفضة</option></select></div>
+        <div class="filter-group"><label>الفئة</label><select id="fCategory" onchange="loadComplaints(1)"><option value="">الكل</option><option value="late_delivery">تأخر التوصيل</option><option value="wrong_item">منتج خاطئ</option><option value="captain_behavior">سلوك الكابتن</option><option value="payment">مشكلة دفع</option><option value="app_bug">خطأ تطبيق</option><option value="other">أخرى</option></select></div>
+        <button class="btn btn-primary" onclick="loadComplaints(1)"><i class="fas fa-filter"></i> تطبيق</button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>العميل</th><th>الموضوع</th><th>الفئة</th><th>الأولوية</th><th>الحالة</th><th>الردود</th><th>التاريخ</th><th>الإجراءات</th></tr></thead>
+            <tbody id="complaintsBody"><tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</td></tr></tbody>
         </table>
     </div>
+    <div class="pagination" id="paginationBar"></div>
+</div>
 
-    <script>
-        const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-        if (!token) window.location.href = 'admin-login.html';
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <h2><i class="fas fa-headset" style="color:#04553A;"></i> تفاصيل التذكرة</h2>
+        <div class="info-grid"  id="ticketInfo"></div>
+        <div class="action-bar" id="ticketActions"></div>
+        <div class="chat-thread" id="chatThread"></div>
+        <div class="chat-input">
+            <textarea id="replyText" placeholder="اكتب ردك هنا..."></textarea>
+            <button class="btn btn-primary" onclick="sendReply()" id="sendReplyBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+            <button class="btn btn-sm btn-dismiss" onclick="document.getElementById('detailModal').classList.remove('active')">إغلاق</button>
+        </div>
+    </div>
+</div>
 
-        let complaintsData = [];
-        let complaintsTable;
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = localStorage.getItem('adminToken');
+    if (!token) window.location.href = 'admin-login.html';
+    const BASE = window.API_URL || 'https://wajeezsd.com';
+    const hdr  = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
 
-        async function loadComplaints() {
-            try {
-                const res = await fetch(`${API_URL}/api/complaints`, {
-                    headers: window.Auth.getAuthHeader()
-                });
+    let currentPage = 1, totalPages = 1, activeTicketId = null;
+    const statusLabel   = { open:'مفتوحة', in_progress:'قيد المعالجة', resolved:'محلولة', dismissed:'مرفوضة', pending:'معلقة' };
+    const statusClass   = { open:'status-open', in_progress:'status-in_progress', resolved:'status-resolved', dismissed:'status-dismissed', pending:'status-pending' };
+    const priorityLabel = { low:'منخفضة', medium:'متوسطة', high:'عالية', urgent:'عاجلة 🔴' };
+    const priorityClass = { low:'priority-low', medium:'priority-medium', high:'priority-high', urgent:'priority-urgent' };
+    const catLabel      = { late_delivery:'تأخر التوصيل', wrong_item:'منتج خاطئ', captain_behavior:'سلوك الكابتن', payment:'مشكلة دفع', app_bug:'خطأ تطبيق', missing_item:'ناقص', store_issue:'متجر', other:'أخرى' };
 
-                if (!res.ok) {
-                    if (res.status === 403) {
-                        Swal.fire('خطأ', 'ليس لديك صلاحية الوصول', 'error');
-                        return;
-                    }
-                    throw new Error('Failed to load complaints');
-                }
+    async function loadStats() {
+        try {
+            const [all,open,prog,res,urg] = await Promise.all([
+                fetch(`${BASE}/api/complaints?limit=1`,{headers:hdr()}).then(r=>r.json()),
+                fetch(`${BASE}/api/complaints?status=open&limit=1`,{headers:hdr()}).then(r=>r.json()),
+                fetch(`${BASE}/api/complaints?status=in_progress&limit=1`,{headers:hdr()}).then(r=>r.json()),
+                fetch(`${BASE}/api/complaints?status=resolved&limit=1`,{headers:hdr()}).then(r=>r.json()),
+                fetch(`${BASE}/api/complaints?priority=urgent&limit=1`,{headers:hdr()}).then(r=>r.json()),
+            ]);
+            document.getElementById('stat-all').textContent=all.total||0;
+            document.getElementById('stat-open').textContent=open.total||0;
+            document.getElementById('stat-progress').textContent=prog.total||0;
+            document.getElementById('stat-resolved').textContent=res.total||0;
+            document.getElementById('stat-urgent').textContent=urg.total||0;
+        } catch {}
+    }
 
-                const complaints = await res.json();
-                complaintsData = complaints;
-
-                // Update stats
-                updateStats(complaints);
-
-                // Initialize DataTable
-                if ($.fn.DataTable.isDataTable('#complaintsTable')) {
-                    $('#complaintsTable').DataTable().destroy();
-                }
-
-                const tableData = complaints.map(complaint => {
-                    const orderId = complaint.orderId?._id?.substring(0, 8) || 'N/A';
-                    const clientName = complaint.client?.name || '---';
-                    const clientPhone = complaint.client?.phone || '---';
-                    const reason = complaint.reason || '---';
-                    const description = complaint.description || 'لا يوجد';
-                    const status = complaint.status || 'pending';
-                    const orderPrice = complaint.orderId?.price || 0;
-
-                    const statusHtml = `<span class="status-badge status-${status}">
-                        ${status === 'resolved' ? 'تم الحل' : 'قيد الانتظار'}
-                    </span>`;
-
-                    const actionHtml = status === 'pending'
-                        ? `<button class="btn-resolve" onclick="resolveComplaint('${complaint._id}')">
-                            <i class="fas fa-check"></i> تم الحل
-                           </button>`
-                        : `<button class="btn-resolve btn-resolved" disabled>
-                            <i class="fas fa-check-circle"></i> محلول
-                           </button>`;
-
-                    return [
-                        orderId,
-                        `<div><strong>${clientName}</strong><br><small>${clientPhone}</small></div>`,
-                        `<div><strong>${reason}</strong><br><small class="complaint-text" title="${description}">${description}</small></div>`,
-                        `${orderPrice} ج`,
-                        statusHtml,
-                        actionHtml
-                    ];
-                });
-
-                complaintsTable = $('#complaintsTable').DataTable({
-                    data: tableData,
-                    language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
-                    },
-                    pageLength: 10,
-                    order: [[4, 'asc']] // Sort by status (pending first)
-                });
-
-            } catch (err) {
-                console.error(err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'فشل تحميل الشكاوى',
-                    confirmButtonText: 'حسناً'
-                });
-            }
+    async function loadComplaints(page=1) {
+        currentPage = page;
+        const status   = document.getElementById('fStatus').value;
+        const priority = document.getElementById('fPriority').value;
+        const category = document.getElementById('fCategory').value;
+        let url = `${BASE}/api/complaints?page=${page}&limit=20`;
+        if (status)   url += `&status=${status}`;
+        if (priority) url += `&priority=${priority}`;
+        if (category) url += `&category=${category}`;
+        const tbody = document.getElementById('complaintsBody');
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+        try {
+            const res  = await fetch(url, {headers:hdr()});
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            totalPages = data.pages||1;
+            renderTable(data.complaints);
+            renderPagination();
+        } catch(e) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#ef4444;">${e.message}</td></tr>`;
         }
+    }
 
-        function updateStats(complaints) {
-            const total = complaints.length;
-            const pending = complaints.filter(c => c.status === 'pending').length;
-            const resolved = complaints.filter(c => c.status === 'resolved').length;
+    function renderTable(items) {
+        const tbody = document.getElementById('complaintsBody');
+        if (!items.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;">لا توجد تذاكر</td></tr>'; return; }
+        tbody.innerHTML = items.map(c=>`
+            <tr style="cursor:pointer;" onclick="openDetail('${c._id}')">
+                <td><div style="font-weight:800;">${c.client?.name||'—'}</div><div style="font-size:0.78rem;color:#64748b;">${c.client?.phone||''}</div></td>
+                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.subject||'—'}</td>
+                <td><span class="badge" style="background:#f1f5f9;color:#374151;">${catLabel[c.category]||c.category||'—'}</span></td>
+                <td><span class="badge ${priorityClass[c.priority]}">${priorityLabel[c.priority]||c.priority}</span></td>
+                <td><span class="badge ${statusClass[c.status]}">${statusLabel[c.status]||c.status}</span></td>
+                <td style="text-align:center;font-weight:700;color:#04553A;">${c.replies?.length||0}</td>
+                <td style="font-size:0.8rem;color:#64748b;white-space:nowrap;">${new Date(c.createdAt).toLocaleDateString('ar-EG')}</td>
+                <td onclick="event.stopPropagation()">
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button class="btn btn-sm btn-reply" onclick="openDetail('${c._id}')"><i class="fas fa-eye"></i></button>
+                        ${c.status!=='resolved'?`<button class="btn btn-sm btn-resolve" onclick="event.stopPropagation();resolveTicket('${c._id}')"><i class="fas fa-check"></i></button>`:''}
+                        ${c.status!=='dismissed'?`<button class="btn btn-sm btn-dismiss" onclick="event.stopPropagation();dismissTicket('${c._id}')"><i class="fas fa-ban"></i></button>`:''}
+                    </div>
+                </td>
+            </tr>`).join('');
+    }
 
-            document.getElementById('totalComplaints').textContent = total;
-            document.getElementById('pendingComplaints').textContent = pending;
-            document.getElementById('resolvedComplaints').textContent = resolved;
-        }
+    function renderPagination() {
+        const bar = document.getElementById('paginationBar');
+        if (totalPages<=1){bar.innerHTML='';return;}
+        let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="loadComplaints(${currentPage-1})"><i class="fas fa-chevron-right"></i></button>`;
+        for(let i=1;i<=totalPages;i++) html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="loadComplaints(${i})">${i}</button>`;
+        html+=`<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="loadComplaints(${currentPage+1})"><i class="fas fa-chevron-left"></i></button>`;
+        bar.innerHTML = html;
+    }
 
-        function filterComplaints() {
-            const filter = document.getElementById('statusFilter').value;
+    async function openDetail(id) {
+        activeTicketId = id;
+        document.getElementById('detailModal').classList.add('active');
+        document.getElementById('ticketInfo').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i></div>';
+        document.getElementById('chatThread').innerHTML='';
+        document.getElementById('ticketActions').innerHTML='';
+        try {
+            const res = await fetch(`${BASE}/api/complaints/${id}`,{headers:hdr()});
+            const c   = await res.json();
+            document.getElementById('ticketInfo').innerHTML=`
+                <div class="info-item"><div class="info-label">العميل</div><div class="info-val">${c.client?.name||'—'} · ${c.client?.phone||''}</div></div>
+                <div class="info-item"><div class="info-label">الموضوع</div><div class="info-val">${c.subject||'—'}</div></div>
+                <div class="info-item"><div class="info-label">الحالة</div><div class="info-val"><span class="badge ${statusClass[c.status]}">${statusLabel[c.status]}</span></div></div>
+                <div class="info-item"><div class="info-label">الأولوية</div><div class="info-val"><span class="badge ${priorityClass[c.priority]}">${priorityLabel[c.priority]}</span></div></div>
+                <div class="info-item" style="grid-column:1/-1;"><div class="info-label">الوصف</div><div class="info-val" style="font-weight:500;line-height:1.6;">${c.description}</div></div>`;
 
-            if (filter === 'all') {
-                complaintsTable.search('').draw();
-            } else {
-                const searchTerm = filter === 'pending' ? 'قيد الانتظار' : 'تم الحل';
-                complaintsTable.column(4).search(searchTerm).draw();
-            }
-        }
+            let actions=`<select id="prioritySelect" style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:Tajawal,sans-serif;font-size:0.85rem;background:#fff;">
+                <option value="low" ${c.priority==='low'?'selected':''}>🟢 منخفضة</option>
+                <option value="medium" ${c.priority==='medium'?'selected':''}>🟡 متوسطة</option>
+                <option value="high" ${c.priority==='high'?'selected':''}>🟠 عالية</option>
+                <option value="urgent" ${c.priority==='urgent'?'selected':''}>🔴 عاجلة</option>
+            </select>
+            <button class="btn btn-sm btn-reply" onclick="changePriority('${id}')"><i class="fas fa-tag"></i> تحديث الأولوية</button>`;
+            if(c.status!=='resolved') actions+=`<button class="btn btn-sm btn-resolve" onclick="resolveTicket('${id}');document.getElementById('detailModal').classList.remove('active')"><i class="fas fa-check"></i> حل التذكرة</button>`;
+            if(c.status!=='dismissed') actions+=`<button class="btn btn-sm btn-dismiss" onclick="dismissTicket('${id}');document.getElementById('detailModal').classList.remove('active')"><i class="fas fa-ban"></i> رفض</button>`;
+            document.getElementById('ticketActions').innerHTML=actions;
 
-        async function resolveComplaint(id) {
-            const result = await Swal.fire({
-                title: 'تأكيد الحل',
-                text: 'هل تم حل هذه الشكوى فعلاً؟',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'نعم، تم الحل',
-                cancelButtonText: 'إلغاء',
-                confirmButtonColor: '#27ae60',
-                cancelButtonColor: '#95a5a6'
+            const thread=document.getElementById('chatThread');
+            const init=document.createElement('div');
+            init.className='chat-msg client';
+            init.innerHTML=`${c.description}<div class="msg-meta">${new Date(c.createdAt).toLocaleString('ar-EG')} · العميل</div>`;
+            thread.appendChild(init);
+            (c.replies||[]).forEach(r=>{
+                const div=document.createElement('div');
+                div.className=`chat-msg ${r.senderRole==='admin'?'admin':'client'}`;
+                div.innerHTML=`${r.message}<div class="msg-meta">${new Date(r.createdAt).toLocaleString('ar-EG')} · ${r.senderRole==='admin'?'🔐 الأدمن':'👤 العميل'}</div>`;
+                thread.appendChild(div);
             });
-
-            if (!result.isConfirmed) return;
-
-            try {
-                const res = await fetch(`/api/complaints/${id}/resolve`, {
-                    method: 'PUT',
-                    headers: window.Auth.getAuthHeader()
-                });
-
-                if (res.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم بنجاح',
-                        text: 'تم وضع علامة على الشكوى كمحلولة وإرسال إشعار للعميل',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    loadComplaints();
-                } else {
-                    throw new Error('Failed to resolve complaint');
-                }
-            } catch (err) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'فشل حل الشكوى',
-                    confirmButtonText: 'حسناً'
-                });
-            }
+            thread.scrollTop=thread.scrollHeight;
+        } catch(e) {
+            document.getElementById('ticketInfo').innerHTML=`<div style="grid-column:1/-1;color:#ef4444;padding:12px;">فشل التحميل: ${e.message}</div>`;
         }
+    }
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'admin-login.html';
-        }
+    async function sendReply() {
+        const text=document.getElementById('replyText').value.trim();
+        if(!text)return;
+        const btn=document.getElementById('sendReplyBtn');
+        btn.disabled=true; btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i>';
+        try {
+            const res=await fetch(`${BASE}/api/complaints/${activeTicketId}/reply`,{method:'POST',headers:hdr(),body:JSON.stringify({message:text})});
+            if(!res.ok) throw new Error();
+            document.getElementById('replyText').value='';
+            openDetail(activeTicketId);
+        } catch { Swal.fire({icon:'error',title:'خطأ',text:'فشل إرسال الرد',confirmButtonColor:'#dc3545'}); }
+        finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i>'; }
+    }
 
-        // Initialize
-        loadComplaints();
-    </script>
+    async function resolveTicket(id) {
+        const {isConfirmed}=await Swal.fire({icon:'question',title:'تأكيد',text:'هل تم حل هذه المشكلة؟',showCancelButton:true,confirmButtonText:'نعم',cancelButtonText:'إلغاء',confirmButtonColor:'#04553A'});
+        if(!isConfirmed)return;
+        await fetch(`${BASE}/api/complaints/${id}/resolve`,{method:'PUT',headers:hdr()});
+        loadComplaints(currentPage); loadStats();
+        Swal.fire({icon:'success',title:'تم!',text:'تم حل التذكرة وإشعار العميل',confirmButtonColor:'#04553A',timer:2000,showConfirmButton:false});
+    }
 
-    <!-- Auth Helper & App Core -->
-    <script src="js/auth-helper.js"></script>
-    <script type="module" src="js/app-core.js"></script>
-    <script type="module" src="js/native-notifications.js"></script>
+    async function dismissTicket(id) {
+        await fetch(`${BASE}/api/complaints/${id}/dismiss`,{method:'PUT',headers:hdr()});
+        loadComplaints(currentPage); loadStats();
+    }
+
+    async function changePriority(id) {
+        const priority=document.getElementById('prioritySelect').value;
+        await fetch(`${BASE}/api/complaints/${id}/priority`,{method:'PUT',headers:hdr(),body:JSON.stringify({priority})});
+        loadComplaints(currentPage);
+        Swal.fire({icon:'success',title:'تم!',timer:1200,showConfirmButton:false});
+    }
+
+    document.getElementById('detailModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) e.currentTarget.classList.remove('active'); });
+    loadStats(); loadComplaints(1);
+</script>
 </body>
-
 </html>

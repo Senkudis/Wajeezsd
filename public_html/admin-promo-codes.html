@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>كوبونات الخصم | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
+        .page-header { background: linear-gradient(135deg, #04553A, #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
+        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
+        .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+        .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; }
+        .btn-primary { background: #04553A; color: #fff; }
+        .btn-primary:hover { background: #033A27; transform: translateY(-1px); }
+        .btn-danger  { background: #ef4444; color: #fff; }
+        .btn-sm { padding: 6px 14px; font-size: 0.85rem; }
+        .btn-ghost   { background: #f1f5f9; color: #64748b; }
+        .btn-warn    { background: #fef9c3; color: #854d0e; }
+
+        /* Cards grid */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 24px; }
+        .promo-card {
+            background: #fff; border-radius: 16px; padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1px solid #e2e8f0;
+            transition: transform .2s, box-shadow .2s; position: relative; overflow: hidden;
+        }
+        .promo-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+        .promo-card.inactive { opacity: 0.6; }
+        .promo-card.expired  { opacity: 0.55; border-color: #fecaca; }
+        .card-accent { position: absolute; top: 0; right: 0; width: 6px; height: 100%; }
+        .code-display { font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; color: #04553A; font-family: monospace; margin-bottom: 8px; }
+        .card-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+        .card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .meta-item { background: #f8fafc; border-radius: 8px; padding: 8px 10px; }
+        .meta-item .mlbl { font-size: 0.72rem; color: #64748b; font-weight: 700; }
+        .meta-item .mval { font-size: 0.88rem; font-weight: 800; color: #1e293b; }
+        .progress-bar { background: #f1f5f9; border-radius: 20px; height: 6px; margin-bottom: 14px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #04553A, #0A6E47); transition: width .4s; }
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
+        .badge-green  { background: #dcfce7; color: #166534; }
+        .badge-red    { background: #fee2e2; color: #991b1b; }
+        .badge-gray   { background: #f1f5f9; color: #64748b; }
+        .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+        .badge-purple { background: #ede9fe; color: #6d28d9; }
+        .card-actions { display: flex; gap: 8px; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #fff; border-radius: 20px; padding: 28px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+        .modal h2 { font-size: 1.15rem; font-weight: 800; color: #1e293b; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 700; font-size: 0.88rem; color: #475569; margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.95rem; color: #1e293b; outline: none; background: #f8fafc; transition: border-color .2s; }
+        .form-control:focus { border-color: #04553A; background: #fff; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .hint { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
+    </style>
+</head>
+<body>
+<div class="page-header">
+    <h1><i class="fas fa-ticket-alt" style="margin-left:8px;"></i> كوبونات الخصم</h1>
+    <a href="admin.html"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+</div>
+
+<div class="main">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+            <h2 style="font-size:1.1rem;color:#1e293b;font-weight:800;">إدارة كوبونات الخصم</h2>
+            <p style="font-size:0.85rem;color:#64748b;">تحكم في عروض الخصم وكوبونات العملاء</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> إنشاء كوبون جديد</button>
+    </div>
+
+    <div class="cards-grid" id="promoGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i></div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h2><i class="fas fa-ticket-alt" style="color:#04553A;margin-left:8px;"></i> <span id="modalTitle">إنشاء كوبون جديد</span></h2>
+        <input type="hidden" id="editingId">
+
+        <div class="form-group">
+            <label>كود الكوبون *</label>
+            <input type="text" class="form-control" id="fCode" placeholder="مثال: WAJEEZ20" style="text-transform:uppercase;letter-spacing:2px;font-weight:800;">
+            <div class="hint">سيتم تحويله للأحرف الكبيرة تلقائياً</div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>نوع الخصم *</label>
+                <select class="form-control" id="fType" onchange="updateValueLabel()">
+                    <option value="percentage">نسبة مئوية (%)</option>
+                    <option value="fixed">مبلغ ثابت (ج.س)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label id="valueLabel">قيمة الخصم (%) *</label>
+                <input type="number" class="form-control" id="fValue" placeholder="20" min="0">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>يُطبَّق الخصم على *</label>
+                <select class="form-control" id="fAppliesTo">
+                    <option value="total">الإجمالي (بضاعة + توصيل)</option>
+                    <option value="products">المنتجات فقط (مبلغ البضاعة)</option>
+                    <option value="delivery">التوصيل فقط (الكاش للكابتن)</option>
+                </select>
+                <div class="hint">يحدّد أي جزء من الطلب يُخصم منه هذا الكود</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>أقصى خصم (ج.س)</label>
+                <input type="number" class="form-control" id="fMaxDiscount" placeholder="فارغ = غير محدود" min="0">
+                <div class="hint">للنسبة المئوية فقط</div>
+            </div>
+            <div class="form-group">
+                <label>الحد الأدنى للطلب (ج.س)</label>
+                <input type="number" class="form-control" id="fMinOrder" value="0" min="0">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>عدد الاستخدامات الكلي</label>
+                <input type="number" class="form-control" id="fUsageLimit" placeholder="فارغ = غير محدود" min="1">
+            </div>
+            <div class="form-group">
+                <label>حد الاستخدام لكل عميل</label>
+                <input type="number" class="form-control" id="fUserLimit" value="1" min="1">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>تاريخ البداية</label>
+                <input type="date" class="form-control" id="fFrom">
+            </div>
+            <div class="form-group">
+                <label>تاريخ الانتهاء *</label>
+                <input type="date" class="form-control" id="fUntil">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>المدينة</label>
+                <select class="form-control" id="fCity">
+                    <option value="all">جميع المدن</option>
+                    <option value="Khartoum">الخرطوم</option>
+                    <option value="PortSudan">بورتسودان</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>وصف داخلي (للأدمن فقط)</label>
+            <input type="text" class="form-control" id="fDesc" placeholder="مثال: كوبون رمضان 2025">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+            <button class="btn btn-primary" id="saveBtn" onclick="savePromo()"><i class="fas fa-save"></i> حفظ الكوبون</button>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = localStorage.getItem('adminToken');
+    if (!token) window.location.href = 'admin-login.html';
+    const BASE = window.API_URL || 'https://wajeezsd.com';
+    const hdr  = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+    let promos = [];
+
+    function updateValueLabel() {
+        const type = document.getElementById('fType').value;
+        document.getElementById('valueLabel').textContent = type === 'percentage' ? 'قيمة الخصم (%) *' : 'قيمة الخصم (ج.س) *';
+        document.getElementById('fMaxDiscount').parentElement.style.opacity = type === 'percentage' ? '1' : '0.4';
+    }
+
+    async function loadPromos() {
+        try {
+            const res  = await fetch(`${BASE}/api/admin/promo-codes`, { headers: hdr() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            promos = data;
+            renderPromos();
+        } catch(e) {
+            document.getElementById('promoGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-exclamation-circle" style="color:#ef4444;font-size:2rem;"></i><p>${e.message}</p></div>`;
+        }
+    }
+
+    function renderPromos() {
+        const grid = document.getElementById('promoGrid');
+        if (!promos.length) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-ticket-alt"></i><p>لا توجد كوبونات. أنشئ أول كوبون!</p></div>';
+            return;
+        }
+        const now = new Date();
+        const cityLbl = { all:'جميع المدن', Khartoum:'الخرطوم', PortSudan:'بورتسودان' };
+        grid.innerHTML = promos.map(p => {
+            const expired  = new Date(p.validUntil) < now;
+            const pct      = p.usageLimit ? Math.min(100, (p.usedCount / p.usageLimit) * 100) : 0;
+            const accentC  = p.type === 'percentage' ? '#04553A' : '#7c3aed';
+            const valueStr = p.type === 'percentage' ? `${p.value}% خصم` : `${p.value} ج.س خصم`;
+            return `
+            <div class="promo-card ${!p.isActive ? 'inactive' : ''} ${expired ? 'expired' : ''}">
+                <div class="card-accent" style="background:${accentC};"></div>
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                    <div class="code-display">${p.code}</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <span class="badge ${p.isActive && !expired ? 'badge-green' : 'badge-red'}">${p.isActive && !expired ? 'نشط' : expired ? 'منتهي' : 'موقوف'}</span>
+                        <span class="badge ${p.type==='percentage'?'badge-green':'badge-purple'}">${p.type==='percentage'?'نسبة':'ثابت'}</span>
+                        <span class="badge" style="background:#e0e7ff;color:#3730a3;">${ ({products:'🛍️ المنتجات', delivery:'🛵 التوصيل', total:'الإجمالي'})[p.appliesTo||'total'] }</span>
+                    </div>
+                </div>
+                <div class="card-value">${valueStr}${p.maxDiscount?` (أقصى ${p.maxDiscount} ج.س)`:''}</div>
+                <div class="card-meta">
+                    <div class="meta-item"><div class="mlbl">الاستخدام</div><div class="mval">${p.usedCount} / ${p.usageLimit ?? '∞'}</div></div>
+                    <div class="meta-item"><div class="mlbl">الحد الأدنى</div><div class="mval">${p.minOrderValue} ج.س</div></div>
+                    <div class="meta-item"><div class="mlbl">ينتهي في</div><div class="mval" style="font-size:0.78rem;">${new Date(p.validUntil).toLocaleDateString('ar-EG')}</div></div>
+                    <div class="meta-item"><div class="mlbl">المدينة</div><div class="mval">${cityLbl[p.city]||p.city}</div></div>
+                </div>
+                ${p.usageLimit ? `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>90?'#ef4444':accentC};"></div></div>` : ''}
+                ${p.description ? `<div style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">${p.description}</div>` : ''}
+                <div class="card-actions">
+                    <button class="btn btn-ghost btn-sm" onclick='openModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>
+                        <i class="fas fa-pen"></i> تعديل
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deletePromo('${p._id}')">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                    <button class="btn btn-sm" style="background:${p.isActive?'#fef9c3':'#dcfce7'};color:${p.isActive?'#854d0e':'#166534'};"
+                        onclick="togglePromo('${p._id}',${!p.isActive})">
+                        <i class="fas fa-${p.isActive?'pause':'play'}"></i>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function openModal(promo=null) {
+        document.getElementById('editingId').value  = promo?._id || '';
+        document.getElementById('modalTitle').textContent = promo ? 'تعديل الكوبون' : 'إنشاء كوبون جديد';
+        document.getElementById('fCode').value       = promo?.code        || '';
+        document.getElementById('fType').value       = promo?.type        || 'percentage';
+        document.getElementById('fAppliesTo').value  = promo?.appliesTo   || 'total';
+        document.getElementById('fValue').value      = promo?.value       ?? '';
+        document.getElementById('fMaxDiscount').value = promo?.maxDiscount ?? '';
+        document.getElementById('fMinOrder').value   = promo?.minOrderValue ?? 0;
+        document.getElementById('fUsageLimit').value = promo?.usageLimit  ?? '';
+        document.getElementById('fUserLimit').value  = promo?.userUsageLimit ?? 1;
+        document.getElementById('fFrom').value       = promo?.validFrom ? promo.validFrom.substring(0,10) : new Date().toISOString().substring(0,10);
+        document.getElementById('fUntil').value      = promo?.validUntil ? promo.validUntil.substring(0,10) : '';
+        document.getElementById('fCity').value       = promo?.city        || 'all';
+        document.getElementById('fDesc').value       = promo?.description || '';
+        updateValueLabel();
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+    document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target===e.currentTarget) closeModal(); });
+
+    async function savePromo() {
+        const id    = document.getElementById('editingId').value;
+        const code  = document.getElementById('fCode').value.trim().toUpperCase();
+        const type  = document.getElementById('fType').value;
+        const value = parseFloat(document.getElementById('fValue').value);
+        const until = document.getElementById('fUntil').value;
+        if (!code || !type || isNaN(value) || !until) {
+            return Swal.fire({ icon:'warning', title:'تنبيه', text:'الكود، النوع، القيمة، وتاريخ الانتهاء مطلوبة', confirmButtonColor:'#04553A' });
+        }
+        const body = {
+            code, type, value,
+            appliesTo:      document.getElementById('fAppliesTo').value || 'total',
+            maxDiscount:    document.getElementById('fMaxDiscount').value ? parseFloat(document.getElementById('fMaxDiscount').value) : null,
+            minOrderValue:  parseFloat(document.getElementById('fMinOrder').value) || 0,
+            usageLimit:     document.getElementById('fUsageLimit').value ? parseInt(document.getElementById('fUsageLimit').value) : null,
+            userUsageLimit: parseInt(document.getElementById('fUserLimit').value) || 1,
+            validFrom:      document.getElementById('fFrom').value || new Date().toISOString(),
+            validUntil:     until,
+            city:           document.getElementById('fCity').value,
+            description:    document.getElementById('fDesc').value.trim()
+        };
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+        try {
+            const url    = id ? `${BASE}/api/admin/promo-codes/${id}` : `${BASE}/api/admin/promo-codes`;
+            const method = id ? 'PUT' : 'POST';
+            const res    = await fetch(url, { method, headers: hdr(), body: JSON.stringify(body) });
+            const data   = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            Swal.fire({ icon:'success', title:'✅ تم الحفظ!', timer:2000, showConfirmButton:false });
+            closeModal(); loadPromos();
+        } catch(e) {
+            Swal.fire({ icon:'error', title:'خطأ', text:e.message, confirmButtonColor:'#dc3545' });
+        } finally {
+            saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الكوبون';
+        }
+    }
+
+    async function deletePromo(id) {
+        const {isConfirmed} = await Swal.fire({ icon:'warning', title:'تأكيد الحذف', text:'هل أنت متأكد؟', showCancelButton:true, confirmButtonText:'نعم، احذف', cancelButtonText:'إلغاء', confirmButtonColor:'#ef4444' });
+        if (!isConfirmed) return;
+        await fetch(`${BASE}/api/admin/promo-codes/${id}`, { method:'DELETE', headers:hdr() });
+        loadPromos();
+    }
+
+    async function togglePromo(id, active) {
+        await fetch(`${BASE}/api/admin/promo-codes/${id}`, { method:'PUT', headers:hdr(), body:JSON.stringify({ isActive: active }) });
+        loadPromos();
+    }
+
+    document.getElementById('fCode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+    loadPromos();
+</script>
+</body>
+</html>

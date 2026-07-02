@@ -3,22 +3,22 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تتبع الطلب | وصل-لي</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>تتبع الطلب | وجيز</title>
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a8754">
+    <meta name="theme-color" content="#04553A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
     <!-- Bootstrap 5 RTL -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <link rel="stylesheet" href="style.css">
 
     <style>
@@ -43,117 +43,159 @@
 
         .info-panel {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
+            bottom: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
-            max-width: 600px;
-            margin: 0 auto;
+            padding: 0 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
         }
 
         .back-btn {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: calc(16px + env(safe-area-inset-top, 0px));
+            right: 16px;
             z-index: 1001;
-            width: 45px;
-            height: 45px;
+            width: 44px;
+            height: 44px;
             background: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            color: var(--dark);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            color: #1e293b;
             text-decoration: none;
             transition: transform 0.2s;
+            border: none;
+            font-size: 1.2rem;
         }
 
-        .back-btn:active {
-            transform: scale(0.9);
+        .back-btn:active { transform: scale(0.9); }
+
+        .tracking-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 -4px 30px rgba(0,0,0,0.1);
         }
 
-        .sim-btn {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 1001;
+        .status-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
         }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-accepted { background: #dbeafe; color: #1e40af; }
+        .status-picked_up { background: #cffafe; color: #0e7490; }
+        .status-delivered { background: #d1fae5; color: #065f46; }
+
+        .captain-card {
+            display: flex; align-items: center; gap: 12px;
+            background: #f8fafc; border-radius: 14px;
+            padding: 12px; margin: 12px 0;
+        }
+
+        .captain-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, #04553A, #25d366);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 18px; font-weight: 800;
+        }
+
+        .route-summary {
+            display: flex; gap: 8px; margin-top: 12px;
+        }
+        .route-point {
+            flex: 1; padding: 10px; border-radius: 10px;
+            background: #f8fafc; font-size: 11px; text-align: center;
+        }
+        .route-point .label { color: #64748b; font-weight: 700; margin-bottom: 4px; }
+        .route-point .addr { color: #1e293b; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .eta-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(135deg, #04553A, #25d366);
+            border-radius: 12px; padding: 10px 16px; margin-top: 12px;
+            color: white;
+        }
+        .eta-bar .eta-label { font-size: 11px; opacity: 0.8; }
+        .eta-bar .eta-value { font-size: 15px; font-weight: 800; }
     </style>
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <script src="js/vehicle-types.js"></script>
 </head>
 
 <body class="bg-light">
 
     <!-- Back Button -->
-    <a href="client-my-orders.html" class="back-btn fs-5">
+    <a href="client-my-orders.html" class="back-btn">
         <i class="bi bi-arrow-right"></i>
     </a>
 
     <!-- Map -->
     <div class="map-container">
-        <div id="map"></div>
-
-        <!-- Simulation Button -->
-        <button onclick="simulateMovement()" class="btn btn-warning shadow-sm fw-bold sim-btn rounded-pill">
-            <i class="bi bi-play-fill me-1"></i> محاكاة
-        </button>
+        <div id="map" style="display: block; width: 100%; height: 100%;"></div>
     </div>
 
     <!-- Info Panel -->
     <div class="info-panel">
-        <div class="card glass-card border-0 shadow-lg">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="bg-primary bg-opacity-10 p-2 rounded-circle text-primary">
-                            <i class="bi bi-box-seam-fill"></i>
-                        </div>
-                        <h6 class="fw-bold mb-0">حالة الطلب</h6>
-                    </div>
-                    <span id="order-status" class="badge bg-secondary rounded-pill px-3 py-2">جاري التحميل...</span>
-                </div>
+        <div class="tracking-card">
+            <!-- Status -->
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0" style="font-size:14px;">تتبع الطلب</h6>
+                <span id="order-status" class="status-pill status-pending">⏳ جاري التحميل</span>
+            </div>
 
-                <div id="captain-info" class="d-none bg-light rounded-3 p-2 mb-3 d-flex align-items-center gap-3">
-                    <div class="bg-white rounded-circle p-1 shadow-sm">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" width="40" height="40"
-                            class="rounded-circle object-fit-cover">
-                    </div>
-                    <div>
-                        <h6 class="fw-bold mb-0 text-dark" id="captain-name">اسم الكابتن</h6>
-                        <small class="text-muted" id="captain-vehicle">نوع المركبة</small>
-                    </div>
-                    <a href="#" class="btn btn-success btn-sm ms-auto rounded-circle"
-                        style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;"><i
-                            class="bi bi-telephone-fill"></i></a>
+            <!-- Captain Info -->
+            <div id="captain-info" class="captain-card" style="display:none;">
+                <div class="captain-avatar" id="captain-avatar">🏍</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:13px;color:#1e293b;" id="captain-name">الكابتن</div>
+                    <div style="font-size:11px;color:#64748b;" id="captain-vehicle">—</div>
                 </div>
+                <a href="#" id="captain-call-btn" class="btn btn-success btn-sm rounded-circle" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-telephone-fill"></i>
+                </a>
+            </div>
 
-                <div class="row g-2 text-center">
-                    <div class="col-6 position-relative">
-                        <div class="d-flex align-items-center justify-content-center gap-1 text-primary mb-1">
-                            <i class="bi bi-geo-alt-fill"></i> <small class="fw-bold">الاستلام</small>
-                        </div>
-                        <div class="badge bg-white text-dark border shadow-sm text-truncate w-100" id="pickup-txt">...
-                        </div>
-                    </div>
-                    <div class="col-6 border-start border-light ps-2">
-                        <div class="d-flex align-items-center justify-content-center gap-1 text-danger mb-1">
-                            <i class="bi bi-flag-fill"></i> <small class="fw-bold">التسليم</small>
-                        </div>
-                        <div class="badge bg-white text-dark border shadow-sm text-truncate w-100" id="dropoff-txt">...
-                        </div>
-                    </div>
+            <!-- Route Summary -->
+            <div class="route-summary">
+                <div class="route-point">
+                    <div class="label"><i class="bi bi-geo-alt-fill text-success"></i> الاستلام</div>
+                    <div class="addr" id="pickup-txt">...</div>
+                </div>
+                <div class="route-point">
+                    <div class="label"><i class="bi bi-flag-fill text-danger"></i> التسليم</div>
+                    <div class="addr" id="dropoff-txt">...</div>
+                </div>
+            </div>
+
+            <!-- ETA -->
+            <div class="eta-bar" id="eta-container" style="display:none;">
+                <div>
+                    <div class="eta-label">وقت الوصول المتوقع</div>
+                    <div class="eta-value" id="eta-text">—</div>
+                </div>
+                <div style="text-align:left;">
+                    <div class="eta-label">المسافة</div>
+                    <div class="eta-value" id="eta-distance">—</div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="js/maps-loader.js"></script>
+    <script>loadGoogleMaps({ libraries: 'geometry,marker', callback: 'initTrackingMap' });</script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
 
     <script>
@@ -164,126 +206,303 @@
 
         if (!token || !orderId) window.location.href = 'client-my-orders.html';
 
-        // Map Init
-        const map = L.map('map', { zoomControl: false }).setView([15.6067, 32.5317], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-        // Icons
-        const pickupIcon = L.divIcon({
-            html: '<div style="background:#0a8754; width:30px; height:30px; border-radius:50%; border:3px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center;"><i class="bi bi-geo-alt-fill text-white" style="font-size:16px;"></i></div>',
-            className: 'custom-pin', iconSize: [30, 30], iconAnchor: [15, 15]
-        });
-
-        const dropoffIcon = L.divIcon({
-            html: '<div style="background:#dc3545; width:30px; height:30px; border-radius:50%; border:3px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center;"><i class="bi bi-flag-fill text-white" style="font-size:16px;"></i></div>',
-            className: 'custom-pin', iconSize: [30, 30], iconAnchor: [15, 15]
-        });
-
-        const captainIcon = L.divIcon({
-            html: '<div style="background:white; padding:5px; border-radius:50%; box-shadow:0 3px 6px rgba(0,0,0,0.2); border: 2px solid #0a8754; width:40px; height:40px; display:flex; justify-content:center; align-items:center;"><i class="bi bi-scooter" style="color:#0a8754; font-size:22px;"></i></div>',
-            className: 'captain-marker',
-            iconSize: [40, 40],
-            iconAnchor: [20, 20]
-        });
-
+        let map;
         let captainMarker = null;
+        let pickupMarker = null;
+        let dropoffMarker = null;
         let currentOrder = null;
+
+        // ===== Professional Map Icons =====
+        const SVG_PICKUP = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg"><circle cx="21" cy="21" r="18" fill="#04553A" stroke="#ffffff" stroke-width="3" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.3))"/><text x="21" y="26" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">A</text></svg>');
+        const SVG_DROPOFF = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg"><circle cx="21" cy="21" r="18" fill="#dc3545" stroke="#ffffff" stroke-width="3" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.3))"/><text x="21" y="26" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">B</text></svg>');
+        const SVG_CAPTAIN = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="60" height="60">
+                <defs>
+                    <filter id="shadow2" x="-30%" y="-30%" width="160%" height="160%">
+                        <feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#000" flood-opacity="0.25"/>
+                    </filter>
+                    <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
+                    </filter>
+                </defs>
+                <circle cx="50" cy="50" r="44" fill="#ffffff" filter="url(#shadow2)"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" stroke-width="4"/>
+                <circle cx="50" cy="50" r="40" fill="#f0fdf4" opacity="0.5"/>
+                <path d="M 34 62 L 45 54 L 62 54 L 70 62" fill="none" stroke="#4b5563" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M 62 54 L 56 42" stroke="#4b5563" stroke-width="4" stroke-linecap="round"/>
+                <rect x="25" y="32" width="20" height="22" rx="3" fill="#fbbf24" stroke="#d97706" stroke-width="1.5" />
+                <path d="M 25 38 L 45 38" stroke="#d97706" stroke-width="1.5"/>
+                <path d="M 35 32 L 35 44" stroke="#d97706" stroke-width="1.5"/>
+                <path d="M 42 54 L 46 38 L 56 38 L 54 54 Z" fill="#1f2937" />
+                <circle cx="54" cy="32" r="7" fill="#111827" />
+                <path d="M 54 28 Q 62 28 60 34 L 54 34 Z" fill="#60a5fa" />
+                <circle cx="34" cy="62" r="12" fill="none" stroke="#1f2937" stroke-width="6"/>
+                <circle cx="34" cy="62" r="5" fill="#d1d5db"/>
+                <circle cx="70" cy="62" r="12" fill="none" stroke="#1f2937" stroke-width="6"/>
+                <circle cx="70" cy="62" r="5" fill="#d1d5db"/>
+                <circle cx="76" cy="52" r="4" fill="#fde047" filter="url(#glow2)"/>
+                <path d="M 16 45 L 8 45" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                <path d="M 12 55 L 4 55" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                <path d="M 18 68 L 10 68" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
+            </svg>`);
+
+        let directionsService = null;
+        let directionsRenderer = null;
+
+        window.initTrackingMap = function() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 15.6067, lng: 32.5317 },
+                zoom: 13,
+                disableDefaultUI: true,
+                zoomControl: true,
+                gestureHandling: 'greedy',
+                clickableIcons: false
+            });
+
+            // Initialize Directions API for real street routes
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: true,  // Keep our custom pickup/dropoff markers
+                polylineOptions: {
+                    strokeColor: '#04553A',
+                    strokeWeight: 5,
+                    strokeOpacity: 0,
+                    icons: [{
+                        icon: {
+                            path: 'M 0,-1 0,1',
+                            strokeOpacity: 0.9,
+                            scale: 4
+                        },
+                        offset: '0',
+                        repeat: '18px'
+                    }]
+                }
+            });
+            directionsRenderer.setMap(map);
+
+            fetchOrder();
+        };
+
+        // Draw real street route between pickup and dropoff (called once after order loads)
+        function drawRouteOnStreets(pickup, dropoff) {
+            if (!directionsService || !directionsRenderer) return;
+            if (!pickup?.lat || !dropoff?.lat) return;
+
+            directionsService.route({
+                origin: { lat: pickup.lat, lng: pickup.lng },
+                destination: { lat: dropoff.lat, lng: dropoff.lng },
+                travelMode: google.maps.TravelMode.DRIVING
+            }, (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    directionsRenderer.setDirections(result);
+                    console.log('✅ Real street route drawn on tracking map');
+                } else {
+                    console.warn('⚠️ Directions failed, status:', status);
+                }
+            });
+        }
+
+        // ⏱️ ETA Calculation
+        function updateETA(captainLat, captainLng) {
+            if (!currentOrder || !currentOrder.dropoff) return;
+            const dropLat = currentOrder.dropoff.lat;
+            const dropLng = currentOrder.dropoff.lng;
+            if (!dropLat || !dropLng) return;
+
+            // Using standard Google Maps geometry if available
+            let distMeters = 0;
+            if (google && google.maps && google.maps.geometry) {
+                distMeters = google.maps.geometry.spherical.computeDistanceBetween(
+                    new google.maps.LatLng(captainLat, captainLng),
+                    new google.maps.LatLng(dropLat, dropLng)
+                );
+            } else {
+                distMeters = 1000; // fallback
+            }
+
+            const distKm = (distMeters / 1000) * 1.4; // Tortuosity multiplier
+            // ⏱️ السرعة حسب وسيلة الكابتن (دراجة نارية أسرع من العجلة...) من المصدر المركزي
+            const vehicleType = currentOrder.captain && currentOrder.captain.vehicleType;
+            const avgSpeedKmh = (window.VehicleTypes ? window.VehicleTypes.speed(vehicleType) : 25);
+            const etaMinutes = Math.ceil((distKm / avgSpeedKmh) * 60);
+
+            document.getElementById('eta-container').style.display = 'block';
+            document.getElementById('eta-text').textContent = etaMinutes <= 1 ? 'أقل من دقيقة' : `~${etaMinutes} دقيقة`;
+            document.getElementById('eta-distance').textContent = distKm < 1 ? `${(distKm * 1000).toFixed(0)} م` : `${distKm.toFixed(1)} كم`;
+        }
 
         async function fetchOrder() {
             try {
-                const res = await fetch(`${API_URL}/api/orders/my-orders`, { headers: window.Auth.getAuthHeader() });
-                const orders = await res.json();
-                const order = orders.find(o => o._id === orderId);
-
-                if (!order) {
-                    Swal.fire('خطأ', 'الطلب غير موجود', 'error').then(() => window.location.href = 'client-my-orders.html');
+                // ✅ Fetch order directly by ID (not all orders)
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${orderId}`, { headers: window.Auth.getAuthHeader() });
+                if (!res.ok) {
+                    Swal.fire('خطأ', 'الطلب غير موجود أو لا يمكن الوصول إليه', 'error').then(() => window.location.href = 'client-my-orders.html');
                     return;
                 }
-
+                const order = await res.json();
                 currentOrder = order;
                 updateUI(order);
-            } catch (err) { console.error(err); }
+                startCaptainPolling();
+            } catch (err) {
+                console.error('Fetch order error:', err);
+                Swal.fire('خطأ', 'فشل تحميل بيانات الطلب', 'error');
+            }
         }
 
         function updateUI(order) {
             const mb = document.getElementById('order-status');
-            const mapStatus = { 'pending': '⏳ في الانتظار', 'accepted': '🚀 جاري التوصيل', 'picked_up': '📦 تم الاستلام', 'delivered': '✅ تم التوصيل' };
-            const colors = { 'pending': 'bg-warning text-dark', 'accepted': 'bg-primary', 'picked_up': 'bg-info text-dark', 'delivered': 'bg-success' };
+            const statusLabels = { 'pending': '⏳ في الانتظار', 'accepted': '🚀 في الطريق', 'picked_up': '📦 تم الاستلام', 'delivered': '✅ تم التوصيل', 'cancelled': '❌ ملغي' };
 
-            mb.innerText = mapStatus[order.status] || order.status;
-            mb.className = `badge ${colors[order.status] || 'bg-secondary'} rounded-pill px-3 py-2`;
+            mb.textContent = statusLabels[order.status] || order.status;
+            mb.className = `status-pill status-${order.status}`;
 
-            document.getElementById('pickup-txt').innerText = order.pickup.address;
-            document.getElementById('dropoff-txt').innerText = order.dropoff.address;
+            document.getElementById('pickup-txt').textContent = order.pickup?.address || '—';
+            document.getElementById('dropoff-txt').textContent = order.dropoff?.address || '—';
 
-            if (order.pickup.lat) L.marker([order.pickup.lat, order.pickup.lng], { icon: pickupIcon }).addTo(map).bindPopup('الاستلام');
-            if (order.dropoff.lat) L.marker([order.dropoff.lat, order.dropoff.lng], { icon: dropoffIcon }).addTo(map).bindPopup('الوجهة');
+            const bounds = new google.maps.LatLngBounds();
 
-            if (order.pickup.lat && order.dropoff.lat) {
-                const group = new L.featureGroup([
-                    L.marker([order.pickup.lat, order.pickup.lng]),
-                    L.marker([order.dropoff.lat, order.dropoff.lng])
-                ]);
-                map.fitBounds(group.getBounds(), { padding: [50, 150] }); // More padding at bottom for card
+            if (order.pickup?.lat) {
+                const pos = new google.maps.LatLng(order.pickup.lat, order.pickup.lng);
+                if (!pickupMarker) {
+                    pickupMarker = new google.maps.Marker({
+                        position: pos, map, title: 'نقطة الاستلام',
+                        icon: { url: SVG_PICKUP, scaledSize: new google.maps.Size(42, 42), anchor: new google.maps.Point(21, 21) }
+                    });
+                }
+                bounds.extend(pos);
+            }
+            if (order.dropoff?.lat) {
+                const pos = new google.maps.LatLng(order.dropoff.lat, order.dropoff.lng);
+                if (!dropoffMarker) {
+                    dropoffMarker = new google.maps.Marker({
+                        position: pos, map, title: 'نقطة التسليم',
+                        icon: { url: SVG_DROPOFF, scaledSize: new google.maps.Size(42, 42), anchor: new google.maps.Point(21, 21) }
+                    });
+                }
+                bounds.extend(pos);
             }
 
+            // Draw real street route between pickup → dropoff
+            if (order.pickup?.lat && order.dropoff?.lat) {
+                drawRouteOnStreets(order.pickup, order.dropoff);
+            }
+
+            // Captain info
             if (order.captain) {
-                document.getElementById('captain-info').classList.remove('d-none');
-                document.getElementById('captain-info').classList.add('d-flex');
-                document.getElementById('captain-name').innerText = order.captain.name;
-                if (order.captain.vehicleType) document.getElementById('captain-vehicle').innerText = order.captain.vehicleType;
+                const captainEl = document.getElementById('captain-info');
+                captainEl.style.display = 'flex';
+                document.getElementById('captain-name').textContent = order.captain.name || 'الكابتن';
+                document.getElementById('captain-vehicle').textContent = order.captain.vehicleType
+                    ? window.VehicleTypes.iconLabel(order.captain.vehicleType) : '—';
+                // 📷 صورة بروفايل الكابتن (يضيفها المدير) — تظهر للعميل، وإلا أول حرف من الاسم
+                const avatarEl = document.getElementById('captain-avatar');
+                const photo = order.captain.documents && order.captain.documents.profilePhoto;
+                if (photo) {
+                    const photoUrl = (photo.startsWith('http') ? '' : API_URL) + photo;
+                    avatarEl.textContent = '';
+                    avatarEl.style.backgroundImage = `url('${photoUrl}')`;
+                    avatarEl.style.backgroundSize = 'cover';
+                    avatarEl.style.backgroundPosition = 'center';
+                } else {
+                    avatarEl.style.backgroundImage = '';
+                    avatarEl.textContent = (order.captain.name || 'ك')[0];
+                }
+
+                // Call button
+                if (order.captain.phone) {
+                    document.getElementById('captain-call-btn').href = 'tel:' + order.captain.phone;
+                }
+
+                // Captain location
+                const loc = order.captain.currentLocation;
+                if (loc && loc.lat && loc.lng) {
+                    placeCaptainMarker(loc.lat, loc.lng);
+                    bounds.extend(new google.maps.LatLng(loc.lat, loc.lng));
+                    updateETA(loc.lat, loc.lng);
+                }
+            }
+
+            if (!bounds.isEmpty()) {
+                map.fitBounds(bounds, { top: 80, bottom: 280, left: 40, right: 40 });
+            }
+        }
+
+        function placeCaptainMarker(lat, lng) {
+            if (captainMarker) {
+                captainMarker.setPosition({ lat, lng });
+            } else {
+                captainMarker = new google.maps.Marker({
+                    position: { lat, lng }, map, zIndex: 999,
+                    icon: { url: SVG_CAPTAIN, scaledSize: new google.maps.Size(54, 54), anchor: new google.maps.Point(27, 27) }
+                });
             }
         }
 
         if (userId) {
-            const socket = io();
-            socket.emit('user_join', userId);
+            const socket = io(API_URL, { transports: ['polling', 'websocket'] });
 
+            socket.on('connect', () => {
+                console.log('✅ Tracking socket connected');
+                socket.emit('user_join', userId);
+            });
+
+            // ✅ Real-time captain location (sent by server when captain moves)
             socket.on('captain_location_updated', (data) => {
-                if (data.orderId === orderId) {
+                if (data.orderId && data.orderId.toString() === orderId.toString()) {
                     const { lat, lng } = data;
-                    if (captainMarker) captainMarker.setLatLng([lat, lng]);
-                    else captainMarker = L.marker([lat, lng], { icon: captainIcon }).addTo(map).bindPopup('الكابتن').openPopup();
+                    placeCaptainMarker(lat, lng);
+                    updateETA(lat, lng);
                 }
             });
 
+            // ✅ Order status change (server emits this on accept/pickup/deliver)
             socket.on('order_status_updated', (data) => {
-                if (data.orderId === orderId) location.reload();
+                if (data && String(data.orderId) === String(orderId)) {
+                    fetchOrder(); // Re-fetch to update UI
+                }
             });
 
-            socket.on('captain_status_changed', (data) => {
-                if (currentOrder && currentOrder.captain && currentOrder.captain._id === data.userId && !data.isActive) {
-                    if (captainMarker) { map.removeLayer(captainMarker); captainMarker = null; }
+            // Also listen for generic new_notification that might contain order updates
+            socket.on('new_notification', (data) => {
+                if (data && (data.type === 'order_update' || data.type === 'order_accepted') && currentOrder) {
+                    fetchOrder();
                 }
             });
         }
 
-        fetchOrder();
+        let captainPollInterval = null;
 
-        let simInterval;
-        function simulateMovement() {
-            if (!currentOrder || !currentOrder.pickup.lat || !currentOrder.dropoff.lat) return Swal.fire('تنبيه', 'لا توجد بيانات كافية', 'warning');
-            if (simInterval) clearInterval(simInterval);
+        function startCaptainPolling() {
+            if (captainPollInterval) return;
+            captainPollInterval = setInterval(async () => {
+                if (!currentOrder || !currentOrder.captain) return;
+                const captainId = currentOrder.captain._id || currentOrder.captain;
+                if (!captainId) return;
 
-            let progress = 0;
-            const start = { lat: currentOrder.pickup.lat, lng: currentOrder.pickup.lng };
-            const end = { lat: currentOrder.dropoff.lat, lng: currentOrder.dropoff.lng };
+                // Stop polling if order is delivered/cancelled
+                if (!['accepted', 'picked_up'].includes(currentOrder.status)) {
+                    clearInterval(captainPollInterval);
+                    captainPollInterval = null;
+                    return;
+                }
 
-            if (!captainMarker) captainMarker = L.marker([start.lat, start.lng], { icon: captainIcon }).addTo(map).bindPopup('الكابتن (تجربة)').openPopup();
-            else captainMarker.setLatLng([start.lat, start.lng]);
-
-            const steps = 100;
-            simInterval = setInterval(() => {
-                progress++;
-                const lat = start.lat + (end.lat - start.lat) * (progress / steps);
-                const lng = start.lng + (end.lng - start.lng) * (progress / steps);
-                captainMarker.setLatLng([lat, lng]);
-                if (progress >= steps) { clearInterval(simInterval); Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'تم الوصول (تجربة)', timer: 2000, showConfirmButton: false }); }
-            }, 50);
+                try {
+                    const res = await fetchWithRetry(`${API_URL}/api/captain/${captainId}/location`, {
+                        headers: window.Auth.getAuthHeader()
+                    });
+                    if (!res.ok) return;
+                    const loc = await res.json();
+                    if (loc.lat && loc.lng) {
+                        placeCaptainMarker(loc.lat, loc.lng);
+                        updateETA(loc.lat, loc.lng);
+                    }
+                } catch (e) {
+                    console.error('Captain poll error:', e);
+                }
+            }, 5000); // Every 5 seconds
         }
     </script>
-    <!-- Auth Helper & App Core -->
-    <script src="js/auth-helper.js"></script>
+    <!-- Auth Helper already loaded in head -->
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
 </body>

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>دخول الكابتن | وصل-لي</title>
+    <title>دخول الكابتن | وجيز</title>
     <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
 
     <!-- ✅ إذا الكابتن مسجّل بالفعل، خذه مباشرةً للـ dashboard -->
@@ -27,21 +27,24 @@
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a8754">
+    <meta name="theme-color" content="#04553A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <link rel="stylesheet" href="css/enhanced-styles.css">
     <link rel="stylesheet" href="css/dark-mode.css">
     <script src="js/config.js"></script>
+    <script src="js/city-service.js"></script>
+    <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
+    <script src="js/password-toggle.js"></script>
 </head>
 
 <body class="bg-light">
@@ -50,7 +53,7 @@
         <div class="auth-box glass-card card-hover p-4 p-md-5">
             <div class="text-center mb-4">
                 <a href="index.html" class="d-inline-block transition-transform hover-scale">
-                    <img src="logo-transparent.png" alt="شعار وصل-لي" height="70" class="app-logo"
+                    <img src="logo-transparent.png" alt="شعار وجيز" height="70" class="app-logo"
                         style="object-fit:contain;">
                 </a>
             </div>
@@ -85,15 +88,11 @@
                 <a href="index.html" class="text-secondary small text-decoration-none hover-primary">
                     <i class="bi bi-house-door-fill ms-1"></i> العودة للرئيسية
                 </a>
-                <span class="text-muted mx-2">|</span>
-                <a href="captain-signup.html" class="text-success small text-decoration-none fw-bold">
-                    <i class="bi bi-person-plus-fill ms-1"></i> سجّل ككابتن جديد
-                </a>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script>
         function showAlert(msg, type) {
             const box = document.getElementById('alert-box');
@@ -138,6 +137,9 @@
                 if (res.ok) {
                     if (data.user.role === 'captain') {
                         showAlert("تم تسجيل الدخول بنجاح! جاري التوجيه...", "success");
+
+                        // 🌍 Sync city from server (admin is the source of truth)
+                        if (typeof CityService !== 'undefined' && data.user.city) CityService.setCity(data.user.city);
 
                         // استخدام المساعد الموحد
                         window.Auth.setAuth(data.token, data.user);
