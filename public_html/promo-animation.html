@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>وجيز — فيديو ميزة رابط المتجر</title>
 
     <!-- مكتبات محلية + خط العرض Almarai للعناوين -->
@@ -17,14 +17,16 @@
         html, body {
             margin: 0; padding: 0;
             background: #04070f;
-            height: 100vh; width: 100vw;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh; /* على الهاتف: يتجاهل شريط العنوان المتحرك فلا تُقص الشاشة */
             overflow: hidden;
             font-family: 'Almarai', 'Cairo', sans-serif;
         }
 
         /* ════════════ المسرح ════════════ */
         #stageWrapper {
-            position: absolute; inset: 0;
+            position: fixed; inset: 0;
             display: flex; align-items: center; justify-content: center;
         }
         #stage {
@@ -203,7 +205,7 @@
             font-size: 13px; font-weight: 700;
             position: absolute; top: 0; width: 100%;
             z-index: 100;
-            color: #111;
+            color: #fff; /* المشهد الافتتاحي رأسه أخضر داكن — يتبدل حسب المشهد من switchScreen */
         }
         .notch {
             position: absolute; top: 10px; left: 50%;
@@ -394,57 +396,97 @@
             box-shadow: 0 8px 18px rgba(4,85,58,0.3);
         }
 
-        /* ─── Google Play (مطابق للهيئة الحقيقية) ─── */
-        .play-store { background: #ffffff; }
-        .gp-header {
-            padding: 52px 16px 10px;
-            display: flex; align-items: center; justify-content: space-between;
-            color: #444746;
+        /* ─── Google Play (الهيئة الداكنة الحديثة — مطابقة للمتجر الحقيقي) ─── */
+        .play-store { background: #131318; }
+        .gp-hero {
+            height: 168px; position: relative; flex: none;
+            background:
+                radial-gradient(circle at 78% 25%, rgba(245,166,35,0.28) 0%, transparent 42%),
+                linear-gradient(150deg, #0a5c3f 0%, #054431 45%, #0d2b22 100%);
+            display: flex; align-items: flex-end; justify-content: center;
+            overflow: hidden;
         }
-        .gp-header i { font-size: 19px; }
-        .gp-header .icons { display: flex; gap: 20px; }
-        .gp-app-row { display: flex; align-items: center; gap: 15px; padding: 14px 18px 4px; }
-        .gp-app-icon {
-            width: 74px; height: 74px; border-radius: 18px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-            background: white;
+        .gp-hero::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(to top, #131318 0%, transparent 45%);
         }
-        .gp-app-name { font-size: 19px; font-weight: 800; color: #1f1f1f; font-family: 'Cairo', sans-serif; }
-        .gp-app-dev { font-size: 13px; color: #01875f; font-weight: 700; margin-top: 2px; }
-        .gp-app-tag { font-size: 11px; color: #5f6368; margin-top: 2px; }
+        .gp-hero img { height: 58px; margin-bottom: 42px; position: relative; z-index: 1; }
+        .gp-topbar {
+            position: absolute; top: 48px; left: 14px; right: 14px;
+            display: flex; justify-content: space-between;
+            color: #fff; z-index: 5;
+        }
+        .gp-topbar i { font-size: 18px; }
+        .gp-title-block { padding: 0 18px; margin-top: -6px; position: relative; z-index: 2; }
+        .gp-dev { font-size: 13px; color: #a8c7fa; font-weight: 700; }
+        .gp-name { font-size: 24px; font-weight: 800; color: #ffffff; font-family: 'Cairo', sans-serif; margin-top: 2px; }
         .gp-stats {
-            display: flex; align-items: center; justify-content: space-around;
-            padding: 16px 12px 6px; margin: 0 8px;
+            display: flex; align-items: center;
+            padding: 14px 18px 4px;
+            gap: 4px;
+        }
+        .gp-app-icon {
+            width: 52px; height: 52px; border-radius: 12px;
+            background: white; flex: none;
+            margin-right: 2px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.4);
         }
         .gp-stat { text-align: center; flex: 1; }
-        .gp-stat .v { font-size: 13.5px; font-weight: 800; color: #1f1f1f; display: flex; align-items: center; justify-content: center; gap: 3px; }
-        .gp-stat .v i { font-size: 10px; }
-        .gp-stat .l { font-size: 11px; color: #5f6368; margin-top: 3px; }
-        .gp-divider { width: 1px; height: 22px; background: #e8eaed; }
+        .gp-stat .v { font-size: 13px; font-weight: 800; color: #e3e3e3; display: flex; align-items: center; justify-content: center; gap: 3px; }
+        .gp-stat .v i { font-size: 10px; color: #e3e3e3; }
+        .gp-stat .l { font-size: 10px; color: #9aa0a6; margin-top: 3px; }
+        .gp-divider { width: 1px; height: 20px; background: #33363d; }
         .gp-install {
-            background: #01875f; color: white; border: none;
+            background: #a8c7fa; color: #062e6f; border: none;
             width: calc(100% - 36px); margin: 14px 18px 0;
-            padding: 11px; border-radius: 9px;
-            font-weight: 700; font-size: 14.5px; font-family: 'Cairo', sans-serif;
+            padding: 12px; border-radius: 24px;
+            font-weight: 800; font-size: 14.5px; font-family: 'Cairo', sans-serif;
         }
-        .gp-shots { display: flex; gap: 10px; padding: 18px 18px 0; }
+        .gp-note { text-align: center; font-size: 11px; color: #9aa0a6; margin-top: 9px; }
+        .gp-shots { display: flex; gap: 9px; padding: 15px 18px 0; }
         .gp-shot {
-            width: 96px; height: 172px; border-radius: 12px;
-            border: 1px solid #e8eaed;
+            width: 94px; height: 166px; border-radius: 12px;
             overflow: hidden;
-            background: #f8fafc;
+            background: #26262b;
+            border: 1px solid #2e2e34;
             flex: none;
         }
-        .gp-shot .sh-head { height: 34px; background: linear-gradient(135deg, #04553A, #077a54); }
+        .gp-shot .sh-head { height: 32px; background: linear-gradient(135deg, #04553A, #0a8f62); }
         .gp-shot .sh-body { padding: 7px; display: flex; flex-direction: column; gap: 5px; }
-        .gp-shot .sh-line { height: 7px; border-radius: 4px; background: #e2e8f0; }
+        .gp-shot .sh-line { height: 7px; border-radius: 4px; background: #3a3a41; }
         .gp-shot .sh-line.short { width: 60%; }
         .gp-shot .sh-grid { display: flex; gap: 5px; margin-top: 3px; }
-        .gp-shot .sh-cell { flex: 1; height: 44px; border-radius: 7px; background: #eef2f6; }
-        .gp-shot .sh-cell.g { background: #d9efe6; }
-        .gp-about { padding: 18px 20px 0; }
-        .gp-about .h { font-size: 14.5px; font-weight: 800; color: #1f1f1f; margin-bottom: 6px; }
-        .gp-about .p { font-size: 12px; color: #5f6368; line-height: 1.8; }
+        .gp-shot .sh-cell { flex: 1; height: 42px; border-radius: 7px; background: #313138; }
+        .gp-shot .sh-cell.g { background: #12463497; }
+        .gp-about { padding: 16px 18px 0; }
+        .gp-about .h {
+            font-size: 15px; font-weight: 800; color: #e3e3e3;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .gp-about .h .circ {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 1px solid #44474d; color: #e3e3e3;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+        .gp-about .p { font-size: 11.5px; color: #9aa0a6; line-height: 1.8; margin-top: 8px; }
+        .gp-chips { display: flex; gap: 8px; padding: 12px 18px 0; }
+        .gp-chip {
+            border: 1px solid #44474d; color: #c4c7cc;
+            border-radius: 9px; padding: 5px 13px; font-size: 11px; font-weight: 700;
+        }
+        .gp-nav {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: #1e1f24; border-top: 1px solid #2a2b30;
+            display: flex; padding: 8px 4px 14px;
+            z-index: 20;
+        }
+        .gp-nav .n { flex: 1; text-align: center; color: #9aa0a6; font-size: 10px; font-weight: 700; }
+        .gp-nav .n i { font-size: 16px; display: block; margin-bottom: 2px; }
+        .gp-nav .n.active { color: #a8c7fa; }
+        .gp-nav .n.active i {
+            background: #0b3355; border-radius: 14px;
+            padding: 2px 14px; display: inline-block; margin-bottom: 2px;
+        }
 
         /* ════════════ الخاتمة ════════════ */
         #endCard {
@@ -521,6 +563,39 @@
             z-index: 1500;
             color: white; font-size: 200px; font-weight: 800;
             pointer-events: none;
+        }
+
+        /* تنبيه تدوير الهاتف (يظهر عند اختيار الأفقي والجهاز عمودي) */
+        #rotateHint {
+            display: none;
+            align-items: center; gap: 10px;
+            background: rgba(245,166,35,0.12);
+            border: 1px solid rgba(245,166,35,0.45);
+            color: #F5A623;
+            border-radius: 13px;
+            padding: 11px 18px;
+            font-size: 13.5px; font-weight: 700;
+            max-width: 420px;
+        }
+        #rotateHint.show { display: flex; }
+        #rotateHint i {
+            font-size: 20px; flex: none;
+            animation: rotDevice 2.2s ease-in-out infinite;
+        }
+        @keyframes rotDevice {
+            0%, 18%   { transform: rotate(0deg); }
+            48%, 72%  { transform: rotate(-90deg); }
+            100%      { transform: rotate(0deg); }
+        }
+
+        /* شاشات الهاتف الضيقة: طبقة تحكم أصغر حتى لا تُقص */
+        @media (max-width: 640px) {
+            #controls { padding: 0 20px; gap: 18px; }
+            #controls h1 { font-size: 20px; }
+            #controls .hint { font-size: 12px; max-width: 100%; }
+            .mode-btn { padding: 8px 14px; font-size: 12px; }
+            #btnPlay { width: 76px; height: 76px; font-size: 30px; }
+            #rotateHint { font-size: 12px; padding: 9px 14px; }
         }
     </style>
 </head>
@@ -735,40 +810,39 @@
                         </div>
                     </div>
 
-                    <!-- مشهد 3: Google Play (بالهيئة الحقيقية) -->
+                    <!-- مشهد 3: Google Play (الهيئة الداكنة الحديثة) -->
                     <div id="scene3" class="screen play-store">
-                        <div class="gp-header">
-                            <i class="bi bi-arrow-right"></i>
-                            <div class="icons">
-                                <i class="bi bi-search"></i>
+                        <div class="gp-hero">
+                            <div class="gp-topbar">
+                                <i class="bi bi-arrow-right"></i>
                                 <i class="bi bi-three-dots-vertical"></i>
                             </div>
+                            <img src="logo-white.png" alt="وجيز"
+                                 onerror="this.onerror=null;this.src='icons/icon-512x512.png';this.style.height='72px';">
                         </div>
-                        <div class="gp-app-row">
-                            <img class="gp-app-icon" src="icons/icon-512x512.png" alt="وجيز">
-                            <div>
-                                <div class="gp-app-name">وجيز — Wajeez</div>
-                                <div class="gp-app-dev">Wajeez SD</div>
-                                <div class="gp-app-tag">تسوق وتوصيل</div>
-                            </div>
+                        <div class="gp-title-block">
+                            <div class="gp-dev">Wajeez SD</div>
+                            <div class="gp-name">وجيز — Wajeez</div>
                         </div>
                         <div class="gp-stats">
+                            <img class="gp-app-icon" src="icons/icon-512x512.png" alt="وجيز">
                             <div class="gp-stat">
                                 <div class="v">4.8 <i class="bi bi-star-fill"></i></div>
-                                <div class="l">التقييم</div>
+                                <div class="l">+1 ألف مراجعات</div>
                             </div>
                             <div class="gp-divider"></div>
                             <div class="gp-stat">
-                                <div class="v">+10K</div>
-                                <div class="l">عمليات التنزيل</div>
+                                <div class="v">+10 آلاف</div>
+                                <div class="l">عمليات تنزيل</div>
                             </div>
                             <div class="gp-divider"></div>
                             <div class="gp-stat">
                                 <div class="v">3+</div>
-                                <div class="l">التصنيف العمري</div>
+                                <div class="l">مناسب لكل الأعمار</div>
                             </div>
                         </div>
                         <button class="gp-install" id="btnInstall">تثبيت</button>
+                        <div class="gp-note">تسوق وتوصيل — بدون إعلانات</div>
                         <div class="gp-shots">
                             <div class="gp-shot">
                                 <div class="sh-head"></div>
@@ -799,8 +873,20 @@
                             </div>
                         </div>
                         <div class="gp-about">
-                            <div class="h">لمحة عن هذا التطبيق</div>
-                            <div class="p">توصيل وجيز لكل ما تحتاجه — اطلب من متاجرك المفضلة وتابع مندوبك مباشرة على الخريطة.</div>
+                            <div class="h">لمحة عن هذا التطبيق <span class="circ"><i class="bi bi-arrow-left"></i></span></div>
+                            <div class="p">توصيل وجيز لكل ما تحتاجه — اطلب من متاجرك المفضلة، تابع مندوبك على الخريطة مباشرة، وتواصل معه داخل التطبيق.</div>
+                        </div>
+                        <div class="gp-chips">
+                            <span class="gp-chip">تسوق</span>
+                            <span class="gp-chip">توصيل</span>
+                            <span class="gp-chip">متاجر محلية</span>
+                        </div>
+                        <div class="gp-nav">
+                            <div class="n"><i class="bi bi-controller"></i>الألعاب</div>
+                            <div class="n active"><i class="bi bi-grid"></i>التطبيقات</div>
+                            <div class="n"><i class="bi bi-search"></i>بحث</div>
+                            <div class="n"><i class="bi bi-book"></i>الكتب</div>
+                            <div class="n"><i class="bi bi-person-circle"></i>أنت</div>
                         </div>
                     </div>
 
@@ -832,6 +918,10 @@
         <button class="mode-btn active" data-mode="v">عمودي 9:16 (واتساب وريلز)</button>
         <button class="mode-btn" data-mode="h">أفقي 16:9 (يوتيوب)</button>
     </div>
+    <div id="rotateHint">
+        <i class="bi bi-phone"></i>
+        <span>للنتيجة الأفضل، دوّر هاتفك للوضع الأفقي قبل التشغيل</span>
+    </div>
     <button id="btnPlay" title="تشغيل"><i class="bi bi-play-fill"></i></button>
 </div>
 <button id="btnReplay">إعادة التشغيل</button>
@@ -842,15 +932,32 @@
     const rippleContainer = document.getElementById('rippleContainer');
     const deviceFrame = document.getElementById('deviceFrame');
 
-    /* تحجيم المسرح ليملأ النافذة */
-    function fitStage() {
-        const w = stage.classList.contains('v') ? 1080 : 1920;
-        const h = stage.classList.contains('v') ? 1920 : 1080;
-        const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
-        stage.style.transform = `scale(${scale})`;
+    /* تحجيم المسرح ليملأ النافذة — visualViewport أدق على الهاتف (شريط العنوان المتحرك) */
+    function viewportSize() {
+        if (window.visualViewport) {
+            return { w: window.visualViewport.width, h: window.visualViewport.height };
+        }
+        return { w: document.documentElement.clientWidth, h: document.documentElement.clientHeight };
     }
-    window.addEventListener('resize', fitStage);
+    function fitStage() {
+        const sw = stage.classList.contains('v') ? 1080 : 1920;
+        const sh = stage.classList.contains('v') ? 1920 : 1080;
+        const { w, h } = viewportSize();
+        stage.style.transform = `scale(${Math.min(w / sw, h / sh)})`;
+    }
+    window.addEventListener('resize', () => { fitStage(); updateRotateHint(); });
+    window.addEventListener('orientationchange', () => setTimeout(() => { fitStage(); updateRotateHint(); }, 250));
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fitStage);
+    }
     fitStage();
+
+    /* تنبيه التدوير: يظهر إذا اختار الأفقي وجهازه ما زال عمودياً */
+    function updateRotateHint() {
+        const { w, h } = viewportSize();
+        const needRotate = stage.classList.contains('h') && h > w;
+        document.getElementById('rotateHint').classList.toggle('show', needRotate);
+    }
 
     /* تبديل المقاس */
     document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -860,6 +967,7 @@
             stage.classList.remove('v', 'h');
             stage.classList.add(btn.dataset.mode);
             fitStage();
+            updateRotateHint();
         });
     });
 
@@ -887,7 +995,8 @@
         'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=500&q=80',
         'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=500&q=80',
         'icons/icon-512x512.png',
-        'logo-transparent.png'
+        'logo-transparent.png',
+        'logo-white.png'
     ];
     function preloadImages() {
         return Promise.all(IMAGES.map(src => new Promise(resolve => {
@@ -941,12 +1050,15 @@
         return tl;
     };
 
+    /* لون شريط الحالة لكل مشهد: أبيض فوق الرؤوس الداكنة، داكن فوق شريط المتصفح الأبيض */
+    const STATUS_COLORS = { scene0: '#fff', scene1: '#fff', scene2: '#202124', scene3: '#fff' };
     const switchScreen = (outId, inId) => {
         const tl = gsap.timeline();
         tl.to(`#${outId}`, { opacity: 0, scale: 0.96, duration: 0.28 })
           .set(`#${outId}`, { display: 'none' })
           .set(`#${inId}`, { display: 'flex', opacity: 0, scale: 1.04 })
-          .to(`#${inId}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, '<');
+          .to(`#${inId}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, '<')
+          .to('#statusBar', { color: STATUS_COLORS[inId] || '#111', duration: 0.3 }, '<');
         return tl;
     };
 
@@ -1098,6 +1210,21 @@
     const btnPlay = document.getElementById('btnPlay');
     btnPlay.addEventListener('click', async () => {
         btnPlay.disabled = true;
+
+        // ملء الشاشة أولاً (يجب أن يكون داخل إيماءة المستخدم) — يخفي واجهة المتصفح أثناء التسجيل
+        try {
+            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+            }
+        } catch (e) { /* بعض المتصفحات ترفض — نكمل عادي */ }
+        // قفل اتجاه الشاشة على الهاتف حسب المقاس المختار
+        try {
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock(stage.classList.contains('h') ? 'landscape' : 'portrait');
+            }
+        } catch (e) { /* يتطلب ملء الشاشة وقد لا يدعمه المتصفح */ }
+        fitStage();
+
         await preloadImages();
         document.fonts && await document.fonts.ready;
 
