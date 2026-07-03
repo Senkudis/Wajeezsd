@@ -67,6 +67,15 @@
             background-size: 120px 120px;
             pointer-events: none;
         }
+        /* فينيت سينمائي: يعتم الحواف قليلاً ويركز العين على المنتصف */
+        .vignette {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 78% 64% at 50% 46%, transparent 55%, rgba(2,5,10,0.55) 100%);
+            pointer-events: none;
+            z-index: 40;
+        }
+        /* أثناء التشغيل: إخفاء مؤشر الماوس حتى لا يظهر في التسجيل من الكمبيوتر */
+        body.playing { cursor: none; }
 
         /* ════════════ النصوص التسويقية ════════════ */
         .text-band {
@@ -117,7 +126,7 @@
             opacity: 0;
         }
         #stage.v .phone-slot { left: 50%; top: 540px; transform: translateX(-50%) scale(1.38); transform-origin: top center; }
-        #stage.h .phone-slot { left: 280px; top: 50%; transform: translateY(-50%) scale(1.02); transform-origin: center; }
+        #stage.h .phone-slot { left: 350px; top: 50%; transform: translateY(-50%) scale(1.02); transform-origin: center; }
 
         .device-container {
             transform: rotateY(14deg) rotateX(4deg) scale(0.94);
@@ -606,6 +615,7 @@
         <div class="glow"></div>
         <div class="glow2"></div>
         <div class="grid-lines"></div>
+        <div class="vignette"></div>
 
         <!-- بطاقة العنوان الافتتاحية -->
         <div id="introCard">
@@ -627,9 +637,9 @@
                 <div class="subline">يظهر اسم متجرك وصورته في واتساب وفيسبوك وكل المنصات — بدون أي إعداد</div>
             </div>
             <div class="mtext" id="mt3">
+                <div class="accent"></div>
                 <div class="headline">عميلك يدخل متجرك <span class="hl">فوراً</span></div>
                 <div class="subline">من المتصفح مباشرة — بدون تحميل تطبيق، بدون تسجيل، وبدون تفتيش عن متجرك</div>
-                <div class="accent" style="margin-top: 26px; margin-bottom: 0;"></div>
             </div>
             <div class="mtext" id="mt4">
                 <div class="accent"></div>
@@ -1087,11 +1097,11 @@
         gsap.set('.subline', { y: 16 });
 
         // ── الافتتاحية: شعار + اسم الميزة ──
-        tl.set('#introCard', { visibility: 'visible' })
+        // ⚠️ opacity:1 مع visibility معاً — وإلا تتحرك العناصر داخل حاوية شفافة ولا يظهر شيء
+        tl.set('#introCard', { visibility: 'visible', opacity: 1 })
           .fromTo('#introCard img', { opacity: 0, scale: 0.6, rotate: -8 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.9, ease: 'back.out(1.4)' })
           .fromTo('#introCard .t1', { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, '-=0.35')
-          .fromTo('#introCard .t2', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.3')
-          .set('#introCard', { opacity: 1 });
+          .fromTo('#introCard .t2', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.3');
         tl.to('#introCard', { opacity: 0, scale: 0.94, duration: 0.6, ease: 'power2.in' }, '+=1.9')
           .set('#introCard', { visibility: 'hidden' });
 
@@ -1101,6 +1111,10 @@
           .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.2, ease: 'power3.inOut' }, '-=0.5')
           .set(cursor, { x: 190, y: 690 })
           .to(cursor, { opacity: 1, duration: 0.4 }, '-=0.4');
+        // طفو مستمر خفيف يعطي المشهد حياة طوال العرض
+        tl.call(() => {
+            gsap.to('.device-container', { y: '-=7', duration: 2.6, yoyo: true, repeat: -1, ease: 'sine.inOut' });
+        });
 
         // ── مشهد 0: التاجر ينسخ رابطه ──
         tl.add(showText('#mt1'), '-=1.2');
@@ -1187,6 +1201,7 @@
 
         // ── مشهد 3: Google Play ──
         tl.add(switchScreen('scene2', 'scene3'), '+=0.1');
+        tl.call(() => { window.canClickToGooglePlay = true; });
         tl.add(moveCursor('btnInstall', 1.3), '+=0.8')
           .add(clickCursor('btnInstall'));
 
@@ -1208,8 +1223,17 @@
 
     /* التشغيل: تحميل مسبق ← عد تنازلي ← العرض */
     const btnPlay = document.getElementById('btnPlay');
+    window.canClickToGooglePlay = false;
+
+    document.body.addEventListener('click', (e) => {
+        if (window.canClickToGooglePlay && e.target.id !== 'btnReplay') {
+            window.location.href = "https://play.google.com/store/apps/details?id=com.wajeezsd.app";
+        }
+    });
+
     btnPlay.addEventListener('click', async () => {
         btnPlay.disabled = true;
+        document.body.classList.add('playing'); // يخفي مؤشر الماوس في التسجيل
 
         // ملء الشاشة أولاً (يجب أن يكون داخل إيماءة المستخدم) — يخفي واجهة المتصفح أثناء التسجيل
         try {
@@ -1217,6 +1241,8 @@
                 await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
             }
         } catch (e) { /* بعض المتصفحات ترفض — نكمل عادي */ }
+        // إبقاء الشاشة مضاءة طوال العرض حتى لا يقطعه قفل شاشة الهاتف
+        try { navigator.wakeLock && await navigator.wakeLock.request('screen'); } catch (e) {}
         // قفل اتجاه الشاشة على الهاتف حسب المقاس المختار
         try {
             if (screen.orientation && screen.orientation.lock) {
