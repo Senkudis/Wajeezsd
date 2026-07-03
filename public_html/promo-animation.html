@@ -163,12 +163,25 @@
             gap: 30px; z-index: 400;
             opacity: 0; visibility: hidden;
         }
-        #introCard img { width: 190px; border-radius: 44px; box-shadow: 0 30px 70px rgba(0,0,0,0.55); }
-        #introCard .t1 { color: white; font-weight: 800; }
-        #introCard .t2 { color: #9fb6c9; font-weight: 400; }
-        #stage.v #introCard .t1 { font-size: 66px; }
+        #introCard img { width: 180px; border-radius: 42px; box-shadow: 0 30px 70px rgba(0,0,0,0.55); }
+        #introCard .t0 {
+            color: #7ee2b8; font-weight: 700; letter-spacing: 1px;
+            border: 1px solid rgba(126,226,184,0.35);
+            background: rgba(14,159,110,0.12);
+            border-radius: 40px; padding: 10px 34px;
+        }
+        #introCard .t1 { color: white; font-weight: 800; line-height: 1.5; text-align: center; }
+        #introCard .t1 .mega {
+            background: linear-gradient(100deg, #F5A623, #ffd479, #F5A623);
+            -webkit-background-clip: text; background-clip: text;
+            color: transparent;
+        }
+        #introCard .t2 { color: #9fb6c9; font-weight: 400; text-align: center; }
+        #stage.v #introCard .t0 { font-size: 30px; }
+        #stage.v #introCard .t1 { font-size: 72px; max-width: 920px; }
         #stage.v #introCard .t2 { font-size: 32px; }
-        #stage.h #introCard .t1 { font-size: 58px; }
+        #stage.h #introCard .t0 { font-size: 26px; }
+        #stage.h #introCard .t1 { font-size: 62px; max-width: 1100px; }
         #stage.h #introCard .t2 { font-size: 28px; }
 
         /* ════════════ مؤشر اللمس ════════════ */
@@ -545,6 +558,13 @@
             cursor: pointer;
         }
         .mode-btn.active { background: #04553A; border-color: #04553A; color: white; }
+        #btnSound {
+            background: transparent; color: #64748b;
+            border: 2px solid #26333f; border-radius: 13px;
+            padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 13px;
+            cursor: pointer;
+        }
+        #btnSound.sound-on { color: #F5A623; border-color: rgba(245,166,35,0.5); }
         #btnPlay {
             background: linear-gradient(135deg, #077a54, #04553A);
             color: white; border: none;
@@ -620,8 +640,9 @@
         <!-- بطاقة العنوان الافتتاحية -->
         <div id="introCard">
             <img src="icons/icon-512x512.png" alt="وجيز">
-            <div class="t1">رابط متجرك الخاص</div>
-            <div class="t2">ميزة جديدة لتجار وجيز — بيع أونلاين بضغطة واحدة</div>
+            <div class="t0">وجيز تقدّم لتجّارها</div>
+            <div class="t1">ميزة <span class="mega">جبارة</span> تغيّر طريقة بيعك</div>
+            <div class="t2">رابط متجرك الخاص — شارك، بِع، ووصّل</div>
         </div>
 
         <!-- النصوص التسويقية -->
@@ -928,6 +949,7 @@
         <button class="mode-btn active" data-mode="v">عمودي 9:16 (واتساب وريلز)</button>
         <button class="mode-btn" data-mode="h">أفقي 16:9 (يوتيوب)</button>
     </div>
+    <button id="btnSound" class="sound-on"><i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل</button>
     <div id="rotateHint">
         <i class="bi bi-phone"></i>
         <span>للنتيجة الأفضل، دوّر هاتفك للوضع الأفقي قبل التشغيل</span>
@@ -1017,6 +1039,72 @@
         })));
     }
 
+    /* ═══ محرك المؤثرات الصوتية (Web Audio — مولّدة برمجياً، بدون ملفات) ═══
+       عائلة صوتية واحدة متناسقة: نغمات sine ناعمة + مسحات ضجيج مفلترة */
+    const sfx = (() => {
+        let ctx = null, master = null, enabled = true;
+        function ensure() {
+            if (!ctx) {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+                master = ctx.createGain();
+                master.gain.value = 0.5;
+                master.connect(ctx.destination);
+            }
+            if (ctx.state === 'suspended') ctx.resume();
+            return ctx;
+        }
+        function tone({ type = 'sine', from = 440, to = null, dur = 0.15, vol = 0.4, delay = 0 }) {
+            if (!enabled) return;
+            const c = ensure(), t = c.currentTime + delay;
+            const o = c.createOscillator();
+            o.type = type;
+            o.frequency.setValueAtTime(from, t);
+            if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+            const g = c.createGain();
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(vol, t + 0.012);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            o.connect(g); g.connect(master);
+            o.start(t); o.stop(t + dur + 0.05);
+        }
+        function sweep({ dur = 0.4, from = 300, to = 1800, vol = 0.25, q = 1, delay = 0 }) {
+            if (!enabled) return;
+            const c = ensure(), t = c.currentTime + delay;
+            const len = Math.ceil(c.sampleRate * dur);
+            const buf = c.createBuffer(1, len, c.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+            const src = c.createBufferSource(); src.buffer = buf;
+            const f = c.createBiquadFilter();
+            f.type = 'bandpass'; f.Q.value = q;
+            f.frequency.setValueAtTime(from, t);
+            f.frequency.exponentialRampToValueAtTime(to, t + dur);
+            const g = c.createGain();
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(vol, t + dur * 0.25);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(f); f.connect(g); g.connect(master);
+            src.start(t); src.stop(t + dur + 0.05);
+        }
+        return {
+            unlock() { ensure(); },
+            setEnabled(v) { enabled = v; },
+            tick()      { tone({ from: 950, dur: 0.07, vol: 0.22 }); },                       // عد تنازلي
+            go()        { tone({ from: 1350, dur: 0.18, vol: 0.28 }); },                      // انطلاق
+            tap()       { tone({ type: 'triangle', from: 330, to: 190, dur: 0.08, vol: 0.32 }); }, // لمسة
+            pop()       { tone({ from: 390, to: 640, dur: 0.12, vol: 0.26 }); },              // فقاعة/عنصر يظهر
+            whoosh()    { sweep({ dur: 0.38, from: 320, to: 1900, vol: 0.22 }); },            // انتقال مشهد
+            textIn()    { sweep({ dur: 0.3, from: 700, to: 2400, vol: 0.13, q: 1.6 }); },     // ظهور نص
+            swipeUp()   { sweep({ dur: 0.28, from: 500, to: 2300, vol: 0.2, q: 1.4 }); },     // درج يفتح
+            swipeDown() { sweep({ dur: 0.26, from: 2100, to: 450, vol: 0.18, q: 1.4 }); },    // درج يغلق
+            impact()    { tone({ from: 160, to: 55, dur: 0.45, vol: 0.55 }); sweep({ dur: 0.2, from: 900, to: 160, vol: 0.22 }); }, // ضربة العنوان
+            rise()      { sweep({ dur: 1.0, from: 220, to: 2600, vol: 0.2, q: 1.2 }); },      // صعود الافتتاحية
+            logo()      { [523.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.4, vol: 0.2, delay: i * 0.08 })); },
+            success()   { [659.25, 987.77].forEach((f, i) => tone({ from: f, dur: 0.34, vol: 0.26, delay: i * 0.12 })); },
+            finale()    { [392, 523.25, 659.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.95, vol: 0.18, delay: i * 0.1 })); }
+        };
+    })();
+
     /* مؤشر اللمس (يقسم على معامل القياس الفعلي فيعمل تحت أي تحجيم) */
     function frameScale() {
         return deviceFrame.getBoundingClientRect().width / deviceFrame.offsetWidth;
@@ -1041,6 +1129,7 @@
     const clickCursor = (targetId) => {
         const tl = gsap.timeline();
         tl.call(() => {
+            sfx.tap();
             const x = gsap.getProperty(cursor, 'x');
             const y = gsap.getProperty(cursor, 'y');
             const ripple = document.createElement('div');
@@ -1064,7 +1153,8 @@
     const STATUS_COLORS = { scene0: '#fff', scene1: '#fff', scene2: '#202124', scene3: '#fff' };
     const switchScreen = (outId, inId) => {
         const tl = gsap.timeline();
-        tl.to(`#${outId}`, { opacity: 0, scale: 0.96, duration: 0.28 })
+        tl.call(() => sfx.whoosh())
+          .to(`#${outId}`, { opacity: 0, scale: 0.96, duration: 0.28 })
           .set(`#${outId}`, { display: 'none' })
           .set(`#${inId}`, { display: 'flex', opacity: 0, scale: 1.04 })
           .to(`#${inId}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, '<')
@@ -1076,7 +1166,8 @@
     const showText = (id) => {
         const el = document.querySelector(id);
         const tl = gsap.timeline();
-        tl.set(el, { visibility: 'visible', opacity: 1 })
+        tl.call(() => sfx.textIn())
+          .set(el, { visibility: 'visible', opacity: 1 })
           .fromTo(el.querySelector('.accent'), { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: 'power3.out' })
           .fromTo(el.querySelectorAll('.headline .w'),
               { opacity: 0, y: 34, rotateX: -50 },
@@ -1094,15 +1185,21 @@
     /* ═══ السيناريو ═══ */
     function playCinematicPromo() {
         const tl = gsap.timeline();
+        tl.timeScale(1.15); // إيقاع أسرع قليلاً للعرض كله
         gsap.set('.subline', { y: 16 });
 
-        // ── الافتتاحية: شعار + اسم الميزة ──
+        // ── الافتتاحية الحماسية: وجيز تقدّم ميزة جبارة ──
         // ⚠️ opacity:1 مع visibility معاً — وإلا تتحرك العناصر داخل حاوية شفافة ولا يظهر شيء
         tl.set('#introCard', { visibility: 'visible', opacity: 1 })
-          .fromTo('#introCard img', { opacity: 0, scale: 0.6, rotate: -8 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.9, ease: 'back.out(1.4)' })
-          .fromTo('#introCard .t1', { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, '-=0.35')
-          .fromTo('#introCard .t2', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.3');
-        tl.to('#introCard', { opacity: 0, scale: 0.94, duration: 0.6, ease: 'power2.in' }, '+=1.9')
+          .call(() => sfx.rise())
+          .fromTo('#introCard img', { opacity: 0, scale: 0.55, rotate: -8 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.8, ease: 'back.out(1.4)' })
+          .call(() => sfx.logo())
+          .fromTo('#introCard .t0', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.3')
+          // العنوان يهبط بضربة قوية مع صوت impact
+          .call(() => sfx.impact())
+          .fromTo('#introCard .t1', { opacity: 0, scale: 1.7 }, { opacity: 1, scale: 1, duration: 0.55, ease: 'power4.out' }, '-=0.05')
+          .fromTo('#introCard .t2', { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.15');
+        tl.to('#introCard', { opacity: 0, scale: 0.94, duration: 0.55, ease: 'power2.in' }, '+=1.5')
           .set('#introCard', { visibility: 'hidden' });
 
         // ── دخول الهاتف ──
@@ -1121,18 +1218,21 @@
         tl.add(moveCursor('btnCopyLink', 1.1), '+=0.7')
           .add(clickCursor('btnCopyLink'));
         tl.to('#copyToast', { opacity: 1, y: 0, duration: 0.5, ease: 'back.out(1.4)' })
-          .to('#copyToast', { opacity: 0, y: 50, duration: 0.4 }, '+=1.7');
+          .call(() => sfx.pop(), null, '<')
+          .to('#copyToast', { opacity: 0, y: 50, duration: 0.4 }, '+=1.2');
 
         // ── مشهد 1: واتساب ──
         tl.add(hideText('#mt1'))
           .add(switchScreen('scene0', 'scene1'), '<');
         tl.add(showText('#mt2'), '-=0.1');
-        tl.to('#msg1', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.6');
+        tl.to('#msg1', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.6')
+          .call(() => sfx.pop(), null, '<');
         tl.to('#typingIndicator', { opacity: 1, duration: 0.3 }, '+=0.4')
           .to('#typingIndicator', { opacity: 0, duration: 0.3 }, '+=1.0');
-        tl.to('#msg2', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.5)' });
+        tl.to('#msg2', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.5)' })
+          .call(() => sfx.pop(), null, '<');
 
-        tl.add(moveCursor('linkPreview', 1.1, 0, 26), '+=1.6')
+        tl.add(moveCursor('linkPreview', 1.1, 0, 26), '+=1.2')
           .add(clickCursor('linkPreview'));
 
         // ── مشهد 2: المتصفح يفتح المتجر ──
@@ -1149,7 +1249,7 @@
           .to('#product4', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35');
 
         // ── التسوق: إضافة للسلة مباشرة (بدون أي نافذة تسجيل دخول) ──
-        tl.add(moveCursor('btnAddToCart', 1.3), '+=1.6')
+        tl.add(moveCursor('btnAddToCart', 1.3), '+=1.2')
           .add(clickCursor('btnAddToCart'));
 
         tl.add(hideText('#mt3'), '<');
@@ -1162,21 +1262,25 @@
                 </div>`;
         })
         .to('#btnAddToCart', { backgroundColor: '#16a34a', duration: 0.3 })
-        .to('#floatingCart', { y: 0, duration: 0.5, ease: 'back.out(1.2)' });
+        .to('#floatingCart', { y: 0, duration: 0.5, ease: 'back.out(1.2)' })
+        .call(() => sfx.pop(), null, '<');
         tl.add(showText('#mt4'), '-=0.3');
 
         // درج السلة ثم إتمام الطلب
-        tl.add(moveCursor('btnViewCart', 1.1, 40), '+=1.3')
+        tl.add(moveCursor('btnViewCart', 1.1, 40), '+=1.1')
           .add(clickCursor('btnViewCart'));
-        tl.to('#cartDrawer', { y: 0, duration: 0.55, ease: 'power3.out' })
+        tl.call(() => sfx.swipeUp())
+          .to('#cartDrawer', { y: 0, duration: 0.55, ease: 'power3.out' })
           .to('#floatingCart', { opacity: 0, duration: 0.2 }, '<');
 
-        tl.add(moveCursor('btnCheckout', 1.0), '+=1.5')
+        tl.add(moveCursor('btnCheckout', 1.0), '+=1.2')
           .add(clickCursor('btnCheckout'));
-        tl.to('#cartDrawer', { y: '110%', duration: 0.4, ease: 'power2.in' });
+        tl.call(() => sfx.swipeDown())
+          .to('#cartDrawer', { y: '110%', duration: 0.4, ease: 'power2.in' });
 
         // نافذة نجاح الطلب (بنص التطبيق الفعلي)
         tl.call(() => {
+            sfx.success();
             Swal.fire({
                 icon: 'success',
                 title: 'الآن تم الطلب!',
@@ -1211,6 +1315,7 @@
         tl.to('#phoneSlot', { opacity: 0, y: 60, duration: 0.7, ease: 'power2.in' }, '<')
           .to('.watermark', { opacity: 0, duration: 0.4 }, '<');
         tl.set('#endCard', { visibility: 'visible' })
+          .call(() => sfx.finale())
           .fromTo('#endCard', { opacity: 0 }, { opacity: 1, duration: 0.4 })
           .fromTo('.end-logo-card', { opacity: 0, scale: 0.9, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '<')
           .fromTo('.end-line', { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.65 }, '-=0.3')
@@ -1234,6 +1339,7 @@
     btnPlay.addEventListener('click', async () => {
         btnPlay.disabled = true;
         document.body.classList.add('playing'); // يخفي مؤشر الماوس في التسجيل
+        sfx.unlock(); // تهيئة الصوت داخل إيماءة المستخدم (شرط المتصفحات)
 
         // ملء الشاشة أولاً (يجب أن يكون داخل إيماءة المستخدم) — يخفي واجهة المتصفح أثناء التسجيل
         try {
@@ -1262,11 +1368,21 @@
         const counts = ['3', '2', '1'];
         const cdTl = gsap.timeline();
         counts.forEach(n => {
-            cdTl.call(() => { cd.textContent = n; })
-                .fromTo(cd, { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 1, duration: 0.32 })
-                .to(cd, { opacity: 0, duration: 0.28 }, '+=0.34');
+            cdTl.call(() => { cd.textContent = n; sfx.tick(); })
+                .fromTo(cd, { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 1, duration: 0.3 })
+                .to(cd, { opacity: 0, duration: 0.26 }, '+=0.3');
         });
-        cdTl.call(() => { cd.textContent = ''; playCinematicPromo(); });
+        cdTl.call(() => { cd.textContent = ''; sfx.go(); playCinematicPromo(); });
+    });
+
+    /* زر المؤثرات الصوتية */
+    const btnSound = document.getElementById('btnSound');
+    btnSound.addEventListener('click', () => {
+        const on = btnSound.classList.toggle('sound-on');
+        sfx.setEnabled(on);
+        btnSound.innerHTML = on
+            ? '<i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل'
+            : '<i class="bi bi-volume-mute"></i> المؤثرات الصوتية: متوقفة';
     });
 
     document.getElementById('btnReplay').addEventListener('click', () => location.reload());
