@@ -60,10 +60,12 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/s" />
-                <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/s" />
-                <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/p" />
-                <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/p" />
+                <!-- الشرطة المائلة الأخيرة ضرورية: pathPrefix="/p" وحدها تطابق أي مسار
+                     يبدأ بالحرفين /p مثل /promo-animation.html وليس روابط المنتجات فقط -->
+                <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/s/" />
+                <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/s/" />
+                <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/p/" />
+                <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/p/" />
             </intent-filter>
         </activity>
 
