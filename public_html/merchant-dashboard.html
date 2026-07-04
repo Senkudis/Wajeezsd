@@ -131,7 +131,7 @@
             background-size: 400% 100%; animation: sksh 1.3s ease infinite; border-radius: 8px; }
         @keyframes sksh { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
 </head>
 <body>
 
@@ -476,38 +476,62 @@
 
     async function downloadShareQr() {
         const canvas = document.querySelector('#shareQr canvas');
-        const img = document.querySelector('#shareQr img');
-        let dataUrl = null;
-        if (canvas) dataUrl = canvas.toDataURL('image/png');
-        else if (img && img.src) dataUrl = img.src;
-        if (!dataUrl) return;
+        const img    = document.querySelector('#shareQr img');
+        let dataUrl  = null;
+
+        if (canvas) {
+            dataUrl = canvas.toDataURL('image/png');
+        } else if (img && img.src) {
+            // img.src قد يكون data:image/... أو URL خارجي
+            dataUrl = img.src;
+        }
+
+        if (!dataUrl) {
+            Swal.fire({ icon: 'warning', title: 'انتظر...', text: 'QR لم يتولّد بعد — افتح النافذة أولاً', timer: 2000, showConfirmButton: false });
+            return;
+        }
 
         const fileName = `wajeez-qr-${_shareInfo ? _shareInfo.code : 'store'}.png`;
 
-        // محاولة استخدام مشاركة الملفات (Web Share API) لبيئة التطبيق (Capacitor/Android)
-        try {
-            if (navigator.share && navigator.canShare) {
-                const res = await fetch(dataUrl);
-                const blob = await res.blob();
-                const file = new File([blob], fileName, { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'QR Code',
-                        text: `رمز QR لمتجر ${_shareInfo ? _shareInfo.name : ''}`
-                    });
-                    return; // نجحت المشاركة (المستخدم يمكنه حفظها لمعرض الصور من القائمة)
-                }
-            }
-        } catch (err) {
-            console.warn('Share API failed for file:', err);
+        // ─── تحويل base64 → Blob مباشرة (بدون fetch) ───
+        function dataUrlToBlob(url) {
+            const arr = url.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            const u8arr = new Uint8Array(bstr.length);
+            for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+            return new Blob([u8arr], { type: mime });
         }
 
-        // الطريقة التقليدية (تعمل في متصفحات الويب العادية)
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = fileName;
-        a.click();
+        // ─── محاولة Web Share API (لحفظ الصورة في الجاليري على Android) ───
+        if (dataUrl.startsWith('data:') && navigator.share && navigator.canShare) {
+            try {
+                const blob = dataUrlToBlob(dataUrl);
+                const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: 'QR Code', text: `رمز QR لمتجر ${_shareInfo ? _shareInfo.name : ''}` });
+                    return;
+                }
+            } catch (err) {
+                console.warn('Share API failed:', err);
+            }
+        }
+
+        // ─── Fallback: تنزيل مباشر (متصفح عادي) ───
+        if (dataUrl.startsWith('data:')) {
+            const blob = dataUrlToBlob(dataUrl);
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } else {
+            // URL خارجي — نفتحه في تاب جديد
+            window.open(dataUrl, '_blank');
+        }
     }
 
 

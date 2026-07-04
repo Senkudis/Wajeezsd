@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
     <script src="js/config.js?v=2.2"></script>
     <script src="js/safe-area.js?v=2.2"></script>
     <script src="js/fetch-retry.js?v=2.2"></script>
@@ -141,6 +141,28 @@
             z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
         .cart-overlay.show { opacity: 1; pointer-events: all; }
+
+        /* ─── Skeleton Loading — كانت الصفحة بلا أنماط skeleton إطلاقاً
+           فتظهر بطاقات بيضاء فارغة بلا حركة أثناء التحميل ─── */
+        .skeleton {
+            background-color: #ececec;
+            background-image: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+            background-size: 200% 100%;
+            animation: skeletonShimmer 1.4s linear infinite;
+            border-radius: 8px;
+        }
+        @keyframes skeletonShimmer {
+            to { background-position-x: -200%; }
+        }
+        /* البطاقة الخارجية تبقى بطاقة عادية — الشيمر للعناصر الداخلية فقط */
+        .product-card.skeleton {
+            background-image: none;
+            animation: none;
+            background-color: white;
+        }
+        .skeleton-title { height: 14px; margin-bottom: 8px; }
+        .skeleton-text { height: 11px; }
+        .skeleton-btn { height: 34px; border-radius: 10px; }
 
         /* --- 💰 أزرار رفع/تنزيل السعر (±100) --- */
         .price-input { text-align: center !important; font-weight: 800 !important; color: #04553A !important; }

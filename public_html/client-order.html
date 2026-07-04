@@ -20,8 +20,8 @@
 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="css/mobile-overrides.css">
-    <link rel="stylesheet" href="css/enhanced-styles.css">
-    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
+    <link rel="stylesheet" href="css/enhanced-styles.css?v=3.2">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
     <link rel="stylesheet" href="css/splash.css">
 
     <script src="js/config.js"></script>
@@ -272,26 +272,26 @@
             white-space: nowrap;
         }
 
-        /* ─── Skeleton Loading ─── */
-        @keyframes shimmer {
-            0% { background-position: -200% center; }
-            100% { background-position: 200% center; }
-        }
-        .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e5e5e5 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s ease-in-out infinite;
-            border-radius: 8px;
-        }
+        /* ─── Skeleton Loading ───
+           .skeleton نفسها معرّفة مركزياً في enhanced-styles.css —
+           هنا فقط أشكال بطاقات هذه الصفحة (تلغي flex بطاقة القوائم العامة) */
         .skeleton-chip {
             height: 95px; border-radius: 18px;
         }
         .skeleton-card {
-            border-radius: 20px; overflow: hidden; margin-bottom: 14px;
+            display: block;
+            padding: 0;
+            gap: 0;
+            border-radius: 18px;
+            overflow: hidden;
+            margin-bottom: 0;
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
         }
-        .skeleton-cover { height: 160px; width: 100%; }
-        .skeleton-body { padding: 14px 16px; display: flex; gap: 10px; flex-direction: column; }
-        .skeleton-line { height: 14px; border-radius: 6px; }
+        .skeleton-cover { height: 120px; width: 100%; border-radius: 0; }
+        .skeleton-body { padding: 12px 14px; display: flex; gap: 8px; flex-direction: column; }
+        .skeleton-line { height: 12px; border-radius: 6px; }
 
         /* ─── Back Button in places header ─── */
         .places-header {
@@ -884,7 +884,7 @@
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
     <script src="js/map-markers.js"></script>
-    <script src="js/order-feature.js"></script>
+    <script src="js/order-feature.js?v=3.2"></script>
     <script src="js/home-banners.js"></script>
 
     <script>

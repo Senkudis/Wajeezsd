@@ -116,7 +116,8 @@ window.showOrderSection = function() {
 
     // Authenticated — fetch categories if not already loaded
     if (grid.innerHTML.includes('spinner-border') || document.getElementById('guest-view')) {
-        grid.innerHTML = '<div class="col-12 text-center text-muted py-4"><span class="spinner-border text-success"></span><p class="mt-2 text-muted fw-bold small">جاري تحميل التصنيفات...</p></div>';
+        // skeleton chips متناسقة مع شبكة التصنيفات بدل السبينر العائم
+        grid.innerHTML = Array.from({ length: 8 }, () => '<div class="skeleton skeleton-chip"></div>').join('');
         fetchCategories();
     }
 }
@@ -144,16 +145,58 @@ const CAT_COLORS = [
 // Expose for global search
 window._allCatsCache = [];
 
+const CATS_CACHE_KEY = 'wajeez_categories_cache';
+
+// 🔗 فتح قسم محدّد قادم من بنر إعلاني (client-order.html?cat=<id>) — مرة واحدة فقط
+let _catDeepLinkHandled = false;
+function _openDeepLinkedCategory(categories) {
+    if (_catDeepLinkHandled) return;
+    try {
+        const catParam = new URLSearchParams(location.search).get('cat');
+        if (!catParam) { _catDeepLinkHandled = true; return; }
+        const c = categories.find(x => String(x._id) === String(catParam));
+        if (c && typeof loadPlaces === 'function') {
+            _catDeepLinkHandled = true;
+            loadPlaces(c._id, c.name, c.notes || '');
+        }
+    } catch (_) {}
+}
+
 async function fetchCategories() {
     const grid = document.getElementById('categories-grid');
+
+    // ⚡ stale-while-revalidate: اعرض الكاش فوراً ثم حدّث من الشبكة في الخلفية
+    let hadCache = false;
+    let cachedJson = '';
+    try {
+        const cached = JSON.parse(sessionStorage.getItem(CATS_CACHE_KEY) || 'null');
+        if (cached && Array.isArray(cached.data) && cached.data.length) {
+            hadCache = true;
+            cachedJson = JSON.stringify(cached.data);
+            window._allCatsCache = cached.data;
+            if (window._allCats !== undefined) window._allCats = cached.data;
+            renderCategoryChips(cached.data);
+            _openDeepLinkedCategory(cached.data);
+        }
+    } catch (_) {}
+
     try {
         const res = await fetch(`${API_URL}/api/places/categories`);
         if (!res.ok) throw new Error('فشل تحميل التصنيفات');
         const categories = await res.json();
+        const freshJson = JSON.stringify(categories);
+
+        try { sessionStorage.setItem(CATS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: categories })); } catch (_) {}
 
         window._allCatsCache = categories;
         // Expose to page-level script
         if (window._allCats !== undefined) window._allCats = categories;
+
+        // البيانات مطابقة للكاش المعروض؟ لا داعي لإعادة الرندر (تجنّب وميض)
+        if (hadCache && freshJson === cachedJson) {
+            _openDeepLinkedCategory(categories);
+            return;
+        }
 
         if (categories.length === 0) {
             if (grid) grid.innerHTML = '';
@@ -167,18 +210,11 @@ async function fetchCategories() {
         }
 
         renderCategoryChips(categories);
-
-        // 🔗 فتح قسم محدّد قادم من بنر إعلاني (client-order.html?cat=<id>)
-        try {
-            const catParam = new URLSearchParams(location.search).get('cat');
-            if (catParam) {
-                const c = categories.find(x => String(x._id) === String(catParam));
-                if (c && typeof loadPlaces === 'function') loadPlaces(c._id, c.name, c.notes || '');
-            }
-        } catch (_) {}
+        _openDeepLinkedCategory(categories);
 
     } catch (err) {
-        if (grid) grid.innerHTML = `<div style="padding:12px;color:#ef4444;font-size:13px;font-weight:700;"><i class="bi bi-exclamation-triangle me-1"></i>${err.message}</div>`;
+        // الكاش معروض بالفعل؟ لا تستبدله برسالة خطأ
+        if (!hadCache && grid) grid.innerHTML = `<div style="padding:12px;color:#ef4444;font-size:13px;font-weight:700;"><i class="bi bi-exclamation-triangle me-1"></i>${err.message}</div>`;
     }
 }
 
@@ -234,13 +270,13 @@ function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 // ==========================================
-// 📍 Get User Location (Promisified) — كاش 30 ثانية فقط
+// 📍 Get User Location (Promisified) — كاش 3 دقائق
 // ==========================================
 function getUserLocation() {
     return new Promise((resolve, reject) => {
-        // استخدم الكاش فقط إذا كان عمره أقل من 30 ثانية
+        // ترتيب المتاجر بالمسافة لا يحتاج دقة أمتار — كاش 3 دقائق يكفي تماماً
         const cacheAge = window.userLocationTs ? (Date.now() - window.userLocationTs) : Infinity;
-        if (window.userLocation && cacheAge < 30000) {
+        if (window.userLocation && cacheAge < 180000) {
             return resolve(window.userLocation);
         }
 
@@ -262,15 +298,22 @@ function getUserLocation() {
                 if (window.userLocation) return resolve(window.userLocation);
                 reject(new Error('يرجى تفعيل الـ GPS لنتمكن من عرض المحلات القريبة منك!'));
             },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            // دقة عادية (شبكة/واي فاي) أسرع بكثير من GPS الدقيق وكافية لترتيب المتاجر،
+            // وقبول موقع عمره دقيقتان يلغي الانتظار غالباً. كانت: دقة عالية + 10 ثوانٍ!
+            { enableHighAccuracy: false, timeout: 6000, maximumAge: 120000 }
         );
     });
 }
 
 // ==========================================
-// 🛍️ Fetch Places
+// 🛍️ Fetch Places — GPS والشبكة بالتوازي + كاش فوري (SWR)
+// كان: انتظار GPS عالي الدقة (حتى 10 ثوانٍ) قبل بدء طلب المتاجر أصلاً!
 // ==========================================
+let _placesViewSeq = 0; // يحمي من سباق العرض عند التنقل السريع بين الأقسام
+
 async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
+    const seq = ++_placesViewSeq;
+
     // Reset globals for this view
     placesData = [];
     currentCategoryName = categoryName;
@@ -280,79 +323,46 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
     document.getElementById('places-category-title').innerText = categoryName;
 
     const listContainer = document.getElementById('places-list');
-    // Skeleton loading — 3 placeholder cards
-    listContainer.innerHTML = [1,2,3].map(() => `
-        <div class="skeleton-card">
-            <div class="skeleton skeleton-cover"></div>
-            <div class="skeleton-body">
-                <div class="skeleton skeleton-line" style="width:60%;"></div>
-                <div class="skeleton skeleton-line" style="width:40%;"></div>
-            </div>
-        </div>`).join('');
+    const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
+    const cacheKey = `wajeez_places_${categoryId}_${currentCity}`;
 
-    let userLat = null;
-    let userLng = null;
-
-    try {
-        // 1. Get Location First
-        const loc = await getUserLocation();
-        userLat = loc.lat;
-        userLng = loc.lng;
-    } catch (err) {
-        console.warn('[loadPlaces] GPS غير متاح، عرض المتاجر بدون ترتيب مسافة:', err.message);
-        userLat = null;
-        userLng = null;
+    // Category Note Banner
+    let notesHtml = '';
+    if (categoryNotes && categoryNotes.trim() !== '') {
+        notesHtml = `<div class="cat-note-banner fade-in-up">
+            <i class="bi bi-info-circle-fill" style="font-size:18px;flex-shrink:0;"></i>
+            <span style="font-size:13px;">${categoryNotes}</span>
+        </div>`;
     }
 
-    try {
-        // 2. Fetch Places from API
-        const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
-        const res = await fetch(`${API_URL}/api/places?category_id=${categoryId}&city=${encodeURIComponent(currentCity)}`);
-        if (!res.ok) throw new Error('خطأ في الاتصال بالخادم');
-        let places = await res.json();
-
-        // 3. 🚫 إخفاء متجر التاجر الخاص (لا يمكن للتاجر أن يطلب من متجره)
+    // فلترة + مسافات + رندر — تُستدعى من الكاش ومن الشبكة ومن وصول GPS المتأخر
+    const finalize = (places, loc) => {
+        // 🚫 إخفاء متجر التاجر الخاص (لا يمكن للتاجر أن يطلب من متجره)
         const currentUserId = localStorage.getItem('userId');
         if (currentUserId) {
-            const beforeFilter = places.length;
             places = places.filter(p => {
-                // ownerId يأتي من الـ API كـ string أو ObjectId
                 const ownerId = p.ownerId ? p.ownerId.toString() : null;
                 return ownerId !== currentUserId;
             });
-            if (places.length < beforeFilter) {
-                console.log('🔒 تم إخفاء متجر التاجر الخاص من القائمة');
-            }
         }
 
-        // 4. Compute Distance and Sort (only if GPS is available)
-        if (userLat !== null && userLng !== null) {
+        if (loc && loc.lat != null) {
             places = places.map(p => {
                 const plat = p.location?.lat ?? 0;
                 const plng = p.location?.lng ?? 0;
-                p.distanceKm = calculateHaversineDistance(userLat, userLng, plat, plng);
+                p.distanceKm = calculateHaversineDistance(loc.lat, loc.lng, plat, plng);
                 return p;
             }).sort((a, b) => a.distanceKm - b.distanceKm);
         }
-        // If no GPS, distanceKm remains undefined — renderPlacesList handles that gracefully
+        // بدون GPS تبقى distanceKm غير معرّفة — renderPlacesList يتعامل معها
 
         placesData = places; // cache for modal
         window._allPlacesCache = places; // for global search
 
-        // Update count badge
         const countBadge = document.getElementById('places-count-badge');
         if (countBadge) {
             countBadge.style.display = '';
             countBadge.textContent = `${places.length} محل`;
-        }
-
-        // Category Note Banner
-        let notesHtml = '';
-        if (categoryNotes && categoryNotes.trim() !== '') {
-            notesHtml = `<div class="cat-note-banner fade-in-up">
-                <i class="bi bi-info-circle-fill" style="font-size:18px;flex-shrink:0;"></i>
-                <span style="font-size:13px;">${categoryNotes}</span>
-            </div>`;
         }
 
         if (places.length === 0) {
@@ -363,10 +373,62 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
             </div>`;
             return;
         }
-
         renderPlacesList(places, listContainer, notesHtml);
+    };
 
+    // ⚡ 1. عرض فوري من كاش الجلسة إن وُجد (ثم يُحدَّث من الشبكة بصمت)
+    let hadCache = false;
+    try {
+        const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (cached && Array.isArray(cached.places)) {
+            hadCache = true;
+            finalize(cached.places.slice(), window.userLocation || null);
+        }
+    } catch (_) {}
+
+    if (!hadCache) {
+        // Skeleton loading — 4 بطاقات تملأ صفّي الشبكة بالتساوي
+        listContainer.innerHTML = [1, 2, 3, 4].map(() => `
+            <div class="skeleton-card">
+                <div class="skeleton skeleton-cover"></div>
+                <div class="skeleton-body">
+                    <div class="skeleton skeleton-line" style="width:60%;"></div>
+                    <div class="skeleton skeleton-line" style="width:40%;"></div>
+                </div>
+            </div>`).join('');
+    }
+
+    // ⚡ 2. GPS والشبكة ينطلقان معاً — الشبكة لا تنتظر GPS إطلاقاً
+    const locPromise = getUserLocation().catch((err) => {
+        console.warn('[loadPlaces] GPS غير متاح، عرض المتاجر بدون ترتيب مسافة:', err.message);
+        return null;
+    });
+
+    try {
+        const res = await fetch(`${API_URL}/api/places?category_id=${categoryId}&city=${encodeURIComponent(currentCity)}`);
+        if (!res.ok) throw new Error('خطأ في الاتصال بالخادم');
+        const places = await res.json();
+
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), places })); } catch (_) {}
+        if (seq !== _placesViewSeq) return; // المستخدم فتح قسماً آخر أثناء الجلب
+
+        // امنح GPS مهلة قصيرة (1.2 ثانية) إن لم يكن جاهزاً — ثم اعرض فوراً بدونه
+        const loc = await Promise.race([
+            locPromise,
+            new Promise(r => setTimeout(() => r(window.userLocation || null), 1200))
+        ]);
+        if (seq !== _placesViewSeq) return;
+        finalize(places.slice(), loc);
+
+        // وصل GPS متأخراً؟ أعد الترتيب بالأقرب بهدوء دون شاشة تحميل
+        if (!loc) {
+            locPromise.then(late => {
+                if (late && seq === _placesViewSeq) finalize(places.slice(), late);
+            });
+        }
     } catch (err) {
+        if (seq !== _placesViewSeq) return;
+        if (hadCache) return; // المحتوى المعروض من الكاش أفضل من رسالة خطأ
         const safeName = (categoryName || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         listContainer.innerHTML = `<div class="empty-state">
             <div class="empty-icon" style="font-size:40px;">📍</div>
@@ -394,12 +456,12 @@ window.renderPlacesList = function(places, container, prependHtml = '') {
     const html = places.map((p, idx) => {
         const isOpen = p.is_open;
         const imgSrc = getFullImageUrl(p.image_url) || defaultImage;
-        const dist = p.distanceKm !== undefined ? `${p.distanceKm.toFixed(1)} كم` : '-- كم';
+        const dist = p.distanceKm != null ? `${Number(p.distanceKm).toFixed(1)} كم` : '-- كم';
         const views = formatCompactCount(p.viewsCount || 0);
 
         // التقييم: يظهر النجمة والمعدّل وعدد المقيّمين، أو شارة "جديد" إن لم يُقيّم بعد
         const ratingHtml = p.ratingAvg > 0
-            ? `<span class="meta-item rating"><i class="bi bi-star-fill"></i> ${p.ratingAvg.toFixed(1)} <span style="color:#9ca3af;font-weight:600;">(${p.ratingCount || 0})</span></span>`
+            ? `<span class="meta-item rating"><i class="bi bi-star-fill"></i> ${Number(p.ratingAvg).toFixed(1)} <span style="color:#9ca3af;font-weight:600;">(${p.ratingCount || 0})</span></span>`
             : `<span class="meta-item is-new"><i class="bi bi-stars"></i> جديد</span>`;
 
         const menuBtn = p.menu
@@ -484,7 +546,7 @@ window.openPlaceDetails = function(placeId) {
     if (!place) return;
 
     document.getElementById('placeModalName').innerText = place.name;
-    document.getElementById('placeModalDistance').innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> يبعد ${place.distanceKm.toFixed(1)} كم خريطة جوية`;
+    document.getElementById('placeModalDistance').innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> يبعد ${place.distanceKm != null ? Number(place.distanceKm).toFixed(1) : '--'} كم خريطة جوية`;
 
     // Handle Address
     const addressEl = document.getElementById('placeModalAddress');

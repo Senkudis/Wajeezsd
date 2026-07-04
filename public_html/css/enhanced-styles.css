@@ -485,43 +485,10 @@ body {
 }
 
 /* ========================================
-   Skeleton Loaders
+   Skeleton Loaders — canonical definitions live in
+   section 2 below (SKELETON LOADERS). The old duplicate
+   block here caused conflicting keyframes/heights.
    ======================================== */
-.skeleton {
-    background: linear-gradient(90deg,
-            #f0f0f0 25%,
-            #e0e0e0 50%,
-            #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s ease-in-out infinite;
-    border-radius: var(--radius-md);
-}
-
-@keyframes loading {
-    0% {
-        background-position: 200% 0;
-    }
-
-    100% {
-        background-position: -200% 0;
-    }
-}
-
-.skeleton-text {
-    height: 16px;
-    margin-bottom: 8px;
-}
-
-.skeleton-title {
-    height: 24px;
-    width: 60%;
-    margin-bottom: 12px;
-}
-
-.skeleton-card {
-    height: 120px;
-    margin-bottom: 16px;
-}
 
 /* ========================================
    New Map & Route Styles (Timeline View)
@@ -1063,30 +1030,37 @@ body.dark-mode .nav-item-link.active {
 /* ========================================
    2. SKELETON LOADERS (التحميل الهيكلي)
    ======================================== */
-.skeleton { 
-    background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%); 
-    background-size: 200% 100%; 
-    animation: 1.5s shimmer linear infinite; 
-    border-radius: 4px;
+/* خصائص مفصّلة (لا shorthand) حتى لا يلغي أي override قادم background-size
+   فيتجمّد الشيمر — كان سبب البلوكات الساكنة في الوضع الداكن */
+.skeleton {
+    background-color: #ececec;
+    background-image: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.4s linear infinite;
+    border-radius: 8px;
 }
-body.dark-mode .skeleton { 
-    background: linear-gradient(110deg, #1e293b 8%, #334155 18%, #1e293b 33%); 
-    background-size: 200% 100%; 
+body.dark-mode .skeleton {
+    background-color: #1f2937;
+    background-image: linear-gradient(110deg, #1f2937 8%, #374151 18%, #1f2937 33%);
+    background-size: 200% 100%;
 }
-@keyframes shimmer { 
-    to { background-position-x: -200%; } 
+/* اسم فريد — كان يتصادم مع keyframes أخرى بنفس اسم shimmer فتنزلق العناصر */
+@keyframes skeletonShimmer {
+    to { background-position-x: -200%; }
 }
 
 .skeleton-text { height: 12px; margin-bottom: 8px; width: 100%; border-radius: 4px; }
 .skeleton-title { height: 16px; margin-bottom: 12px; width: 60%; border-radius: 4px; }
 .skeleton-avatar { width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0; }
 .skeleton-btn { height: 40px; width: 100px; border-radius: 8px; }
-.skeleton-card { 
-    padding: 16px; 
-    background: var(--card-bg); 
-    border-radius: 12px; 
-    margin-bottom: 16px; 
+/* التعريف الموحّد الوحيد — كان مكرراً 3 مرات بقيم متضاربة */
+.skeleton-card {
+    padding: 16px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    margin-bottom: 14px;
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
     display: flex;
     gap: 12px;
 }
@@ -1172,7 +1146,7 @@ body.dark-mode .skeleton-box {
         rgba(255, 255, 255, 0.7) 60%,
         rgba(255, 255, 255, 0)
     );
-    animation: shimmer 1.5s infinite;
+    animation: skeletonSweep 1.5s infinite;
     content: '';
 }
 body.dark-mode .skeleton-box::after {
@@ -1184,17 +1158,9 @@ body.dark-mode .skeleton-box::after {
         rgba(255, 255, 255, 0)
     );
 }
-@keyframes shimmer {
+/* اسم فريد لمسح skeleton-box — كان يعيد تعريف shimmer فيُحرّك عناصر .skeleton نفسها */
+@keyframes skeletonSweep {
     100% { transform: translateX(100%); }
-}
-
-.skeleton-card {
-    background: var(--card-bg);
-    border-radius: var(--radius-md);
-    padding: 16px;
-    margin-bottom: 12px;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
 }
 
 /* ========================================

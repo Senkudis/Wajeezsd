@@ -21,12 +21,15 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+
         body {
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            background: #f8f9fa;
+            background: #f0f4f8;
+            margin: 0;
         }
 
         .map-container {
@@ -46,8 +49,6 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            padding: 0 12px;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
         }
 
         .back-btn {
@@ -103,9 +104,9 @@
 
         .tracking-card {
             background: white;
-            border-radius: 20px;
-            padding: 0 16px 16px;
-            box-shadow: 0 -4px 30px rgba(0,0,0,0.1);
+            border-radius: 24px 24px 0 0;
+            padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
         }
 
         /* Drag Handle */
@@ -243,7 +244,7 @@
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
     <script src="js/vehicle-types.js"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
 </head>
 
 <body class="bg-light">

@@ -88,7 +88,7 @@
     <script src="js/config.js"></script>
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
 </head>
 
 <body>
@@ -150,9 +150,10 @@
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script>
         const token = localStorage.getItem('token') || localStorage.getItem('clientToken') || localStorage.getItem('captainToken');
-        const user = JSON.parse(localStorage.getItem('user'));
+        let user = null;
+        try { user = JSON.parse(localStorage.getItem('user')); } catch(e) {}
 
-        if (!token) window.location.href = 'client-login.html';
+        if (!token || !user) { window.location.href = 'client-login.html'; throw new Error('No auth'); }
 
         let socket = null;
         let activeUsers = {};
