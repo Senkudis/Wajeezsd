@@ -17,7 +17,6 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <!-- Leaflet -->
 
     <link rel="stylesheet" href="style.css">
 
@@ -73,11 +72,57 @@
 
         .back-btn:active { transform: scale(0.9); }
 
+        /* Live Badge */
+        .live-badge {
+            position: absolute;
+            top: calc(16px + env(safe-area-inset-top, 0px));
+            left: 16px;
+            z-index: 1001;
+            background: white;
+            border-radius: 99px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            font-size: 12px;
+            font-weight: 800;
+            color: #04553A;
+        }
+        .live-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+        @keyframes livePulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.6; }
+        }
+
         .tracking-card {
             background: white;
             border-radius: 20px;
-            padding: 16px;
+            padding: 0 16px 16px;
             box-shadow: 0 -4px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Drag Handle */
+        .drag-handle {
+            width: 40px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 99px;
+            margin: 8px auto 12px;
+        }
+
+        /* Status Header row */
+        .status-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
         }
 
         .status-pill {
@@ -86,17 +131,85 @@
             font-size: 12px;
             font-weight: 700;
         }
-        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-pending  { background: #fef3c7; color: #92400e; }
         .status-accepted { background: #dbeafe; color: #1e40af; }
-        .status-picked_up { background: #cffafe; color: #0e7490; }
-        .status-delivered { background: #d1fae5; color: #065f46; }
+        .status-picked_up{ background: #cffafe; color: #0e7490; }
+        .status-delivered{ background: #d1fae5; color: #065f46; }
+        .status-cancelled{ background: #fee2e2; color: #991b1b; }
 
+        /* ===== Step Progress Bar ===== */
+        .status-steps {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0 12px;
+        }
+        .step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            position: relative;
+        }
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: calc(50% + 14px);
+            right: calc(-50% + 14px);
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+            transition: background 0.4s;
+        }
+        .step-item.done:not(:last-child)::after { background: #22c55e; }
+        .step-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2.5px solid #e2e8f0;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #94a3b8;
+            z-index: 1;
+            position: relative;
+            transition: all 0.4s;
+        }
+        .step-item.done .step-circle {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: white;
+        }
+        .step-item.active .step-circle {
+            background: #04553A;
+            border-color: #04553A;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(4,85,58,0.15);
+            animation: stepPulse 2s ease-in-out infinite;
+        }
+        @keyframes stepPulse {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(4,85,58,0.15); }
+            50%       { box-shadow: 0 0 0 8px rgba(4,85,58,0.08); }
+        }
+        .step-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-align: center;
+        }
+        .step-item.done .step-label,
+        .step-item.active .step-label { color: #04553A; }
+
+        /* Captain Card */
         .captain-card {
             display: flex; align-items: center; gap: 12px;
             background: #f8fafc; border-radius: 14px;
             padding: 12px; margin: 12px 0;
         }
-
         .captain-avatar {
             width: 44px; height: 44px; border-radius: 50%;
             background: linear-gradient(135deg, #04553A, #25d366);
@@ -104,16 +217,16 @@
             color: white; font-size: 18px; font-weight: 800;
         }
 
-        .route-summary {
-            display: flex; gap: 8px; margin-top: 12px;
-        }
-        .route-point {
-            flex: 1; padding: 10px; border-radius: 10px;
-            background: #f8fafc; font-size: 11px; text-align: center;
-        }
-        .route-point .label { color: #64748b; font-weight: 700; margin-bottom: 4px; }
-        .route-point .addr { color: #1e293b; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Route Summary — vertical with connector */
+        .route-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid #f1f5f9; }
+        .route-point-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+        .route-icon { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+        .route-icon.pickup  { background: #dcfce7; color: #16a34a; }
+        .route-icon.dropoff { background: #fee2e2; color: #dc2626; }
+        .route-addr { color: #374151; font-weight: 600; flex: 1; font-size: 12px; }
+        .route-connector { width: 2px; height: 12px; background: #e2e8f0; margin: 2px 0 2px 14px; }
 
+        /* ETA Bar */
         .eta-bar {
             display: flex; align-items: center; justify-content: space-between;
             background: linear-gradient(135deg, #04553A, #25d366);
@@ -122,6 +235,7 @@
         }
         .eta-bar .eta-label { font-size: 11px; opacity: 0.8; }
         .eta-bar .eta-value { font-size: 15px; font-weight: 800; }
+        .eta-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.3); }
     </style>
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
@@ -129,6 +243,7 @@
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
     <script src="js/vehicle-types.js"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
 </head>
 
 <body class="bg-light">
@@ -138,6 +253,12 @@
         <i class="bi bi-arrow-right"></i>
     </a>
 
+    <!-- Live Badge -->
+    <div class="live-badge">
+        <div class="live-dot"></div>
+        <span>تتبع مباشر</span>
+    </div>
+
     <!-- Map -->
     <div class="map-container">
         <div id="map" style="display: block; width: 100%; height: 100%;"></div>
@@ -146,10 +267,33 @@
     <!-- Info Panel -->
     <div class="info-panel">
         <div class="tracking-card">
-            <!-- Status -->
-            <div class="d-flex justify-content-between align-items-center">
+            <!-- Drag Handle -->
+            <div class="drag-handle"></div>
+
+            <!-- Status Header -->
+            <div class="status-header-row">
                 <h6 class="fw-bold mb-0" style="font-size:14px;">تتبع الطلب</h6>
                 <span id="order-status" class="status-pill status-pending">⏳ جاري التحميل</span>
+            </div>
+
+            <!-- Step Progress Bar -->
+            <div class="status-steps" id="status-steps">
+                <div class="step-item" id="step-pending">
+                    <div class="step-circle"><i class="bi bi-clock"></i></div>
+                    <div class="step-label">انتظار</div>
+                </div>
+                <div class="step-item" id="step-accepted">
+                    <div class="step-circle"><i class="bi bi-person-check"></i></div>
+                    <div class="step-label">قُبل</div>
+                </div>
+                <div class="step-item" id="step-picked_up">
+                    <div class="step-circle"><i class="bi bi-box2-fill"></i></div>
+                    <div class="step-label">استلم</div>
+                </div>
+                <div class="step-item" id="step-delivered">
+                    <div class="step-circle"><i class="bi bi-check2-circle"></i></div>
+                    <div class="step-label">وصل</div>
+                </div>
             </div>
 
             <!-- Captain Info -->
@@ -159,39 +303,50 @@
                     <div style="font-weight:700;font-size:13px;color:#1e293b;" id="captain-name">الكابتن</div>
                     <div style="font-size:11px;color:#64748b;" id="captain-vehicle">—</div>
                 </div>
-                <a href="#" id="captain-call-btn" class="btn btn-success btn-sm rounded-circle" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
-                    <i class="bi bi-telephone-fill"></i>
-                </a>
-            </div>
-
-            <!-- Route Summary -->
-            <div class="route-summary">
-                <div class="route-point">
-                    <div class="label"><i class="bi bi-geo-alt-fill text-success"></i> الاستلام</div>
-                    <div class="addr" id="pickup-txt">...</div>
-                </div>
-                <div class="route-point">
-                    <div class="label"><i class="bi bi-flag-fill text-danger"></i> التسليم</div>
-                    <div class="addr" id="dropoff-txt">...</div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <a href="#" id="captain-call-btn" class="btn btn-success btn-sm rounded-circle" style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-telephone-fill"></i>
+                    </a>
+                    <a href="#" id="captain-chat-btn" class="btn btn-outline-success" style="border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-chat-dots-fill"></i>
+                    </a>
                 </div>
             </div>
 
-            <!-- ETA -->
+            <!-- Route Summary — vertical with connector -->
+            <div class="route-row">
+                <div class="route-point-row">
+                    <div class="route-icon pickup"><i class="bi bi-geo-alt-fill"></i></div>
+                    <div class="route-addr" id="pickup-txt">...</div>
+                </div>
+                <div class="route-connector"></div>
+                <div class="route-point-row">
+                    <div class="route-icon dropoff"><i class="bi bi-flag-fill"></i></div>
+                    <div class="route-addr" id="dropoff-txt">...</div>
+                </div>
+            </div>
+
+            <!-- ETA Bar -->
             <div class="eta-bar" id="eta-container" style="display:none;">
                 <div>
-                    <div class="eta-label">وقت الوصول المتوقع</div>
+                    <div class="eta-label">⏱ وقت الوصول</div>
                     <div class="eta-value" id="eta-text">—</div>
                 </div>
-                <div style="text-align:left;">
-                    <div class="eta-label">المسافة</div>
+                <div class="eta-divider"></div>
+                <div>
+                    <div class="eta-label">📍 المسافة</div>
                     <div class="eta-value" id="eta-distance">—</div>
+                </div>
+                <div class="eta-divider"></div>
+                <div>
+                    <div class="eta-label">💰 السعر</div>
+                    <div class="eta-value" id="order-price">—</div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
-    
     <script src="js/maps-loader.js"></script>
     <script src="js/map-markers.js"></script>
     <script>loadGoogleMaps({ libraries: 'geometry,marker', callback: 'initTrackingMap' });</script>
@@ -310,7 +465,6 @@
             const dropLng = currentOrder.dropoff.lng;
             if (!dropLat || !dropLng) return;
 
-            // Using standard Google Maps geometry if available
             let distMeters = 0;
             if (google && google.maps && google.maps.geometry) {
                 distMeters = google.maps.geometry.spherical.computeDistanceBetween(
@@ -322,19 +476,55 @@
             }
 
             const distKm = (distMeters / 1000) * 1.4; // Tortuosity multiplier
-            // ⏱️ السرعة حسب وسيلة الكابتن (دراجة نارية أسرع من العجلة...) من المصدر المركزي
             const vehicleType = currentOrder.captain && currentOrder.captain.vehicleType;
             const avgSpeedKmh = (window.VehicleTypes ? window.VehicleTypes.speed(vehicleType) : 25);
             const etaMinutes = Math.ceil((distKm / avgSpeedKmh) * 60);
 
-            document.getElementById('eta-container').style.display = 'block';
+            document.getElementById('eta-container').style.display = 'flex';
             document.getElementById('eta-text').textContent = etaMinutes <= 1 ? 'أقل من دقيقة' : `~${etaMinutes} دقيقة`;
             document.getElementById('eta-distance').textContent = distKm < 1 ? `${(distKm * 1000).toFixed(0)} م` : `${distKm.toFixed(1)} كم`;
         }
 
+        // ===== Status Steps Logic =====
+        const STATUS_ORDER = ['pending', 'accepted', 'picked_up', 'delivered'];
+        const STATUS_LABELS = {
+            'pending':   '⏳ في انتظار الكابتن',
+            'accepted':  '🚀 الكابتن في الطريق إليك',
+            'picked_up': '📦 الكابتن استلم الطرد',
+            'delivered': '✅ تم التوصيل بنجاح!',
+            'cancelled': '❌ تم إلغاء الطلب'
+        };
+
+        function updateStatusSteps(status) {
+            const currentIdx = STATUS_ORDER.indexOf(status);
+            STATUS_ORDER.forEach((s, i) => {
+                const el = document.getElementById(`step-${s}`);
+                if (!el) return;
+                el.classList.remove('done', 'active');
+                if (i < currentIdx) el.classList.add('done');
+                else if (i === currentIdx) el.classList.add('active');
+            });
+            const mb = document.getElementById('order-status');
+            mb.textContent = STATUS_LABELS[status] || status;
+            mb.className = `status-pill status-${status}`;
+        }
+
+        // ===== Smooth Marker Animation =====
+        function animateMarker(marker, from, to, duration = 500) {
+            const start = Date.now();
+            const step = () => {
+                const elapsed = Date.now() - start;
+                const t = Math.min(elapsed / duration, 1);
+                const lat = from.lat() + (to.lat() - from.lat()) * t;
+                const lng = from.lng() + (to.lng() - from.lng()) * t;
+                marker.setPosition({ lat, lng });
+                if (t < 1) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        }
+
         async function fetchOrder() {
             try {
-                // ✅ Fetch order directly by ID (not all orders)
                 const res = await fetchWithRetry(`${API_URL}/api/orders/${orderId}`, { headers: window.Auth.getAuthHeader() });
                 if (!res.ok) {
                     Swal.fire('خطأ', 'الطلب غير موجود أو لا يمكن الوصول إليه', 'error').then(() => window.location.href = 'client-my-orders.html');
@@ -351,11 +541,11 @@
         }
 
         function updateUI(order) {
-            const mb = document.getElementById('order-status');
-            const statusLabels = { 'pending': '⏳ في الانتظار', 'accepted': '🚀 في الطريق', 'picked_up': '📦 تم الاستلام', 'delivered': '✅ تم التوصيل', 'cancelled': '❌ ملغي' };
+            // Update status steps
+            updateStatusSteps(order.status);
 
-            mb.textContent = statusLabels[order.status] || order.status;
-            mb.className = `status-pill status-${order.status}`;
+            // Price
+            if (order.price) document.getElementById('order-price').textContent = `${order.price} ج.س`;
 
             document.getElementById('pickup-txt').textContent = order.pickup?.address || '—';
             document.getElementById('dropoff-txt').textContent = order.dropoff?.address || '—';
@@ -395,7 +585,8 @@
                 document.getElementById('captain-name').textContent = order.captain.name || 'الكابتن';
                 document.getElementById('captain-vehicle').textContent = order.captain.vehicleType
                     ? window.VehicleTypes.iconLabel(order.captain.vehicleType) : '—';
-                // 📷 صورة بروفايل الكابتن (يضيفها المدير) — تظهر للعميل، وإلا أول حرف من الاسم
+
+                // 📷 Captain profile photo
                 const avatarEl = document.getElementById('captain-avatar');
                 const photo = order.captain.documents && order.captain.documents.profilePhoto;
                 if (photo) {
@@ -414,6 +605,9 @@
                     document.getElementById('captain-call-btn').href = 'tel:' + order.captain.phone;
                 }
 
+                // Chat button
+                document.getElementById('captain-chat-btn').href = `chat.html?orderId=${orderId}&receiverId=${order.captain._id || order.captain}`;
+
                 // Captain location
                 const loc = order.captain.currentLocation;
                 if (loc && loc.lat && loc.lng) {
@@ -430,7 +624,7 @@
 
         function placeCaptainMarker(lat, lng) {
             if (captainMarker) {
-                captainMarker.setPosition({ lat, lng });
+                animateMarker(captainMarker, captainMarker.getPosition(), new google.maps.LatLng(lat, lng));
             } else {
                 captainMarker = new google.maps.Marker({
                     position: { lat, lng }, map, zIndex: 999,
@@ -506,6 +700,7 @@
     <!-- Auth Helper already loaded in head -->
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/theme-manager.js"></script>
 </body>
 
 </html>

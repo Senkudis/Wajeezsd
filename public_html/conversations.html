@@ -11,135 +11,124 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
-        .conversations-container {
-            height: calc(100vh - 140px);
-            /* تحسين الارتفاع */
+        body {
+            background: #f8fafc;
+            margin: 0;
+            padding: 0;
         }
 
-        /* تحسين شكل الفريم */
-        .chat-frame {
-            height: 100%;
-            border-radius: 20px;
-            overflow: hidden;
-            background: #ffffff;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+        /* ===== Header ===== */
+        .conv-header {
+            background: linear-gradient(135deg, #04553A, #0d9d63);
+            color: white;
+            padding: 16px;
+            padding-top: calc(16px + env(safe-area-inset-top, 0px));
         }
 
-        /* تحسين عنصر المحادثة في القائمة */
+        /* ===== Conversations List ===== */
+        .conv-list {
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .conv-list::-webkit-scrollbar { display: none; }
+
+        /* ===== Conversation Item ===== */
         .conversation-item {
             transition: all 0.2s ease;
             border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
         }
+        .conversation-item:active { background: #f0fdf4; }
 
-        .conversation-item:hover {
-            background-color: #f8f9fa !important;
-            transform: translateX(-5px);
-            /* حركة خفيفة عند التحويم */
-        }
-
-        .conversation-item.active {
-            background-color: #e8f5e9 !important;
-            /* لون أخضر فاتح للمحادثة النشطة */
-            border-right: 4px solid #198754;
-        }
-
-        /* تحسين شكل الأفاتار */
+        /* ===== Avatar ===== */
         .avatar-circle {
             width: 50px;
             height: 50px;
-            background: linear-gradient(135deg, #198754, #20c997);
+            background: linear-gradient(135deg, #04553A, #25d366);
             color: white;
-            font-weight: bold;
+            font-weight: 800;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
             font-size: 1.2rem;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
         }
 
+        /* ===== Status Dot ===== */
         .status-dot {
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             border: 2px solid white;
             position: absolute;
             bottom: 0;
             right: 0;
             border-radius: 50%;
         }
+
+        /* ===== Text ===== */
+        .conv-name       { font-weight: 800; font-size: 14px; color: #1e293b; }
+        .conv-last-msg   { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        .conv-time       { font-size: 10px; color: #94a3b8; white-space: nowrap; }
+        .unread-badge    { background: #04553A; color: white; border-radius: 99px; font-size: 10px; font-weight: 800; padding: 2px 7px; min-width: 20px; text-align: center; }
+
+        /* ===== Empty State ===== */
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state i  { font-size: 3rem; display: block; margin-bottom: 12px; }
+        .empty-state p  { font-size: 14px; }
     </style>
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <script src="js/config.js"></script>
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
 </head>
 
-<body class="bg-light pb-5 mb-5">
+<body>
 
-    <!-- Header Section -->
-    <div class="app-header bg-success bg-gradient text-white shadow-sm">
-        <div class="container pt-3 pb-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-white bg-opacity-25 rounded-circle p-2">
-                        <i class="bi bi-chat-dots-fill text-white fs-4"></i>
-                    </div>
-                    <div>
-                        <h2 class="h5 fw-bold mb-0">المحادثات</h2>
-                        <p class="small text-white-50 mb-0">تواصل بسهولة مع الكباتن</p>
-                    </div>
+    <!-- ===== Header ===== -->
+    <div class="conv-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px;">💬</div>
+                <div>
+                    <div style="font-weight: 800; font-size: 17px;">المحادثات</div>
+                    <div style="font-size: 11px; opacity: 0.7;" id="conv-count">تحميل...</div>
                 </div>
-                <a href="client-my-orders.html"
-                    class="btn btn-sm btn-light text-success fw-bold rounded-pill px-3 shadow-sm">
-                    <i class="bi bi-box2-heart me-1"></i> طلباتي
-                </a>
             </div>
+            <a href="client-my-orders.html" style="background: rgba(255,255,255,0.15); color: white; border-radius: 99px; padding: 8px 16px; font-size: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                <i class="bi bi-box2"></i> طلباتي
+            </a>
         </div>
     </div>
 
-    <div class="container mt-3">
-        <div class="row g-3 conversations-container">
+    <!-- ===== Conversations Wrapper ===== -->
+    <div style="max-width: 600px; margin: 0 auto; background: white; min-height: calc(100vh - 160px);" id="convListWrapper">
 
-            <!-- List Section -->
-            <div class="col-lg-4 col-md-5 h-100">
-                <div class="card border-0 h-100 shadow-sm rounded-4 overflow-hidden">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0"><i
-                                    class="bi bi-search text-muted"></i></span>
-                            <input type="text" class="form-control bg-light border-0" placeholder="بحث في المحادثات...">
-                        </div>
-                    </div>
-                    <div class="card-body p-0 overflow-auto" id="conversationsContent">
-                        <div class="text-center py-5 text-muted">
-                            <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
-                            <p class="small">جاري تحميل المحادثات...</p>
-                        </div>
-                    </div>
-                </div>
+        <!-- Search Bar -->
+        <div style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0; background: white; position: sticky; top: 0; z-index: 10;">
+            <div style="background: #f8fafc; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-search" style="color:#94a3b8;"></i>
+                <input type="text" id="conv-search" placeholder="بحث في المحادثات..."
+                    style="border:none;background:transparent;outline:none;font-size:13px;font-family:Cairo,sans-serif;width:100%;"
+                    oninput="filterConversations(this.value)">
             </div>
-
-            <!-- Chat View Section (Desktop) -->
-            <div class="col-lg-8 col-md-7 h-100 d-none d-md-block">
-                <div id="chatView" class="chat-frame d-flex align-items-center justify-content-center bg-white">
-                    <div class="text-center text-muted opacity-50">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png" width="100"
-                            class="mb-3 grayscale" alt="Chat">
-                        <h5 class="fw-bold">اختر محادثة للبدء</h5>
-                        <p class="small">تواصل مع الكابتن مباشرة لمتابعة طلبك</p>
-                    </div>
-                </div>
-            </div>
-
         </div>
-    </div>
 
-    <!-- Mobile Warning -->
-    <div class="d-block d-md-none text-center mt-3 text-muted small pb-5">
-        <i class="bi bi-hand-index-thumb"></i> اضغط على المحادثة لفتحها
+        <!-- List -->
+        <div id="conversationsContent" class="conv-list">
+            <div class="text-center py-5 text-muted">
+                <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
+                <p class="small">جاري تحميل المحادثات...</p>
+            </div>
+        </div>
     </div>
 
     <!-- Bottom Navigation -->
@@ -167,7 +156,9 @@
 
         let socket = null;
         let activeUsers = {};
+        let allConversations = [];
 
+        // ===== Socket =====
         function initSocket() {
             const serverUrl = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
             socket = io(serverUrl, { reconnection: true, transports: ['polling', 'websocket'] });
@@ -176,85 +167,98 @@
             });
             socket.on('user_status', (data) => {
                 activeUsers[data.userId] = data.status;
-                loadConversations(); // Re-render to update dots
+                renderConversations(allConversations);
             });
             socket.on('new_message_notification', (data) => {
                 if (data.receiver === user.id) {
                     loadConversations();
-                    // Play notification sound if needed
                 }
             });
         }
 
+        // ===== Render conversations =====
+        function renderConversations(conversations) {
+            const container = document.getElementById('conversationsContent');
+
+            if (!conversations || conversations.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-chat-square-dots"></i>
+                        <p>لا توجد محادثات نشطة</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            conversations.forEach(conv => {
+                const isOnline = activeUsers[conv.userId] === 'online';
+                const initials = conv.user.name
+                    ? conv.user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                    : '??';
+
+                const timeStr = conv.lastMessageTime
+                    ? new Date(conv.lastMessageTime).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })
+                    : 'الآن';
+
+                const item = document.createElement('div');
+                item.className = 'conversation-item';
+                item.onclick = () => openConversation(conv);
+
+                item.innerHTML = `
+                    <div class="position-relative">
+                        <div class="avatar-circle">${initials}</div>
+                        <span class="status-dot ${isOnline ? 'bg-success' : 'bg-secondary'}"></span>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+                            <div class="conv-name">${conv.user.name}</div>
+                            <div class="conv-time">${timeStr}</div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <div class="conv-last-msg">${conv.lastSender === user.id ? '<i class="bi bi-check2-all" style="color:#04553A"></i> ' : ''}${conv.lastMessage || '...'}</div>
+                            ${conv.unreadCount > 0 ? `<div class="unread-badge">${conv.unreadCount}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // ===== Filter =====
+        function filterConversations(query) {
+            const filtered = allConversations.filter(c =>
+                c.user.name.toLowerCase().includes(query.toLowerCase())
+            );
+            renderConversations(filtered);
+        }
+
+        // ===== Load conversations from API =====
         async function loadConversations() {
             try {
                 const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
-                const headers = (window.Auth && window.Auth.getAuthHeader) ? window.Auth.getAuthHeader() : { 'Authorization': `Bearer ${token}` };
-                const res = await fetchWithRetry(`${apiBase}/api/chat/conversations`, {
-                    headers
-                });
+                const headers = (window.Auth && window.Auth.getAuthHeader)
+                    ? window.Auth.getAuthHeader()
+                    : { 'Authorization': `Bearer ${token}` };
+
+                const res = await fetchWithRetry(`${apiBase}/api/chat/conversations`, { headers });
                 const conversations = await res.json();
-                const container = document.getElementById('conversationsContent');
 
-                if (conversations.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-5 opacity-50">
-                            <i class="bi bi-chat-square-dots fs-1 mb-2 d-block text-muted"></i>
-                            <p>لا توجد محادثات نشطة</p>
-                        </div>
-                    `;
-                    return;
-                }
+                allConversations = conversations;
 
-                container.innerHTML = '';
-                conversations.forEach(conv => {
-                    const isOnline = activeUsers[conv.userId] === 'online';
-                    const initials = conv.user.name ? conv.user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+                // Update count in header
+                const countEl = document.getElementById('conv-count');
+                if (countEl) countEl.textContent = `${conversations.length} محادثة نشطة`;
 
-                    const item = document.createElement('div');
-                    item.className = 'conversation-item p-3 d-flex align-items-center gap-3';
-                    item.onclick = () => {
-                        // Highlight active item
-                        document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
-                        item.classList.add('active');
-                        openConversation(conv);
-                    };
-
-                    item.innerHTML = `
-                        <div class="position-relative">
-                            <div class="avatar-circle">
-                                ${initials}
-                            </div>
-                            <span class="status-dot ${isOnline ? 'bg-success' : 'bg-secondary'}"></span>
-                        </div>
-                        <div class="flex-grow-1 overflow-hidden">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <h6 class="mb-0 fw-bold text-dark text-truncate" style="max-width: 70%;">${conv.user.name}</h6>
-                                ${conv.unreadCount > 0 ? `<span class="badge bg-danger rounded-pill shadow-sm">${conv.unreadCount}</span>` : `<small class="text-muted" style="font-size: 0.7rem;">الآن</small>`}
-                            </div>
-                            <small class="text-muted text-truncate d-block" style="font-size: 0.85rem;">
-                                ${conv.lastSender === user.id ? '<i class="bi bi-check2-all text-primary me-1"></i>' : ''} 
-                                ${conv.lastMessage}
-                            </small>
-                        </div>
-                    `;
-                    container.appendChild(item);
-                });
-            } catch (err) { console.error(err); }
+                renderConversations(conversations);
+            } catch (err) {
+                console.error(err);
+            }
         }
 
+        // ===== Open conversation (always navigate on mobile-first) =====
         function openConversation(conv) {
-            if (window.innerWidth < 768) {
-                window.location.href = `chat.html?orderId=${conv.orderId}&receiverId=${conv.userId}`;
-            } else {
-                const chatView = document.getElementById('chatView');
-                chatView.innerHTML = `
-                    <iframe 
-                        src="chat.html?orderId=${conv.orderId}&receiverId=${conv.userId}" 
-                        style="width: 100%; height: 100%; border: none;">
-                    </iframe>
-                `;
-            }
+            window.location.href = `chat.html?orderId=${conv.orderId}&receiverId=${conv.userId}`;
         }
 
         function logout() {
@@ -270,10 +274,10 @@
         loadConversations();
         setInterval(loadConversations, 10000);
     </script>
-    <!-- Auth Helper & App Core -->
     <!-- Auth Helper already loaded in head -->
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/theme-manager.js"></script>
 </body>
 
 </html>

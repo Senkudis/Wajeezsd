@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-v40';
+const CACHE_NAME = 'wajeez-static-v41';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -256,7 +256,7 @@ self.addEventListener('notificationclick', (event) => {
     }
     // 📦 Client → my orders
     else if (data.type === 'order_accepted' || data.type === 'order_update' || data.type === 'order_delivered') {
-        targetUrl = '/client-my-orders.html';
+        targetUrl = recordId ? `/tracking.html?orderId=${recordId}` : '/client-my-orders.html';
     }
 
     event.waitUntil(

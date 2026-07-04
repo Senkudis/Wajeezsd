@@ -64,6 +64,7 @@
         .step.done .step-dot { background: #22c55e; color: white; }
         .step.active .step-dot { background: #f59e0b; color: white; box-shadow: 0 0 0 3px rgba(245,158,11,0.25); }
     </style>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
 </head>
 <body>
 
@@ -137,14 +138,15 @@
             }
             if (!res.ok) throw new Error(`Server error: ${res.status}`);
             
-            const orders = await res.json();
-            if (!Array.isArray(orders)) {
+            const responseData = await res.json();
+            const ordersList = Array.isArray(responseData) ? responseData : responseData.orders;
+            if (!Array.isArray(ordersList)) {
                 document.getElementById('ordersContainer').innerHTML =
-                    `<div class="alert alert-warning m-3">⚠️ ${orders.message || 'خطأ في تحميل الطلبات'}</div>`;
+                    `<div class="alert alert-warning m-3">⚠️ ${responseData.message || 'خطأ في تحميل الطلبات'}</div>`;
                 return;
             }
-            document.getElementById('orderCount').textContent = `${orders.length} طلب`;
-            renderOrders(orders);
+            document.getElementById('orderCount').textContent = `${ordersList.length} طلب`;
+            renderOrders(ordersList);
 
             // ✅ Highlight order if opened from a push notification
             const highlightId = new URLSearchParams(window.location.search).get('highlight');
@@ -313,5 +315,6 @@
         loadOrders();
     });
 </script>
+    <script src="js/theme-manager.js"></script>
 </body>
 </html>

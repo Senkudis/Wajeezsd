@@ -409,11 +409,16 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.1">
+    <style>
+        /* زر تبديل الثيم العائم يغطي الرسائل في شاشة الشات — الوضع يُضبط من الصفحات الأخرى */
+        .theme-toggle { display: none !important; }
+    </style>
 </head>
 
 <body>
     <!-- Header -->
-    <div class="chat-header">
+    <div class="chat-header" style="padding-top: calc(12px + env(safe-area-inset-top, 0px));">
         <button class="back-btn" onclick="goBack()">
             <i class="bi bi-chevron-right"></i>
         </button>
@@ -423,8 +428,14 @@
         </div>
         <div class="info">
             <h6 id="receiverName">جاري التحميل...</h6>
-            <small id="statusText">متصل</small>
+            <small id="statusText" style="display:flex;align-items:center;gap:4px;">
+                <span id="onlineStatusLabel">متصل</span>
+            </small>
         </div>
+        <!-- Track Order Button -->
+        <a id="track-order-btn" href="#" style="background:rgba(255,255,255,0.15);border-radius:99px;padding:6px 12px;color:white;font-size:11px;font-weight:700;text-decoration:none;display:none;align-items:center;gap:5px;white-space:nowrap;">
+            <i class="bi bi-map-fill"></i> تتبع
+        </a>
     </div>
 
     <!-- Connection Status Banner -->
@@ -1106,15 +1117,29 @@
                                 receiverId = String(order.client._id || order.client);
                                 console.log('[Chat] Resolved receiverId from order (client):', receiverId);
                             }
-                        } else if (order.client && order.client._id === userId) {
+                        } else if (order.client && (order.client._id === userId || String(order.client._id || order.client) === userId)) {
                             const name = order.captain ? (order.captain.name || 'الكابتن') : 'الكابتن';
                             document.getElementById('receiverName').textContent = name;
-                            // 📷 صورة بروفايل الكابتن في رأس المحادثة (إن أضافها المدير)
+                            // 📷 صورة بروفايل الكابتن في رأس المحادثة
                             const capPhoto = order.captain && order.captain.documents && order.captain.documents.profilePhoto;
                             if (capPhoto) setChatAvatar(capPhoto);
                             if (!receiverId) {
                                 receiverId = String(order.captain._id || order.captain);
                                 console.log('[Chat] Resolved receiverId from order (captain):', receiverId);
+                            }
+                            // ✅ Show tracking button for active orders
+                            if (['accepted', 'picked_up'].includes(order.status)) {
+                                const trackBtn = document.getElementById('track-order-btn');
+                                if (trackBtn) {
+                                    trackBtn.href = `tracking.html?orderId=${orderId}`;
+                                    trackBtn.style.display = 'flex';
+                                }
+                            }
+                            // حدّث subtitle
+                            const statusLabel = document.getElementById('onlineStatusLabel');
+                            if (statusLabel) {
+                                const vehicleLabel = (order.captain.vehicleType && window.VehicleTypes) ? window.VehicleTypes.iconLabel(order.captain.vehicleType) : '';
+                                if (vehicleLabel) statusLabel.textContent = vehicleLabel;
                             }
                         }
                     }
@@ -1446,6 +1471,7 @@
     <!-- Auth Helper already loaded in head -->
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/theme-manager.js"></script>
 </body>
 
 </html>
