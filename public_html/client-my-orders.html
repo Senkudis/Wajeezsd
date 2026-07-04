@@ -5,38 +5,137 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>طلباتي | وصل-لي</title>
+    <title>طلباتي | وجيز</title>
 
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a8754">
+    <meta name="theme-color" content="#04553A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <link rel="stylesheet" href="css/enhanced-styles.css">
-    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <link rel="stylesheet" href="css/splash.css">
 
     <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
+    <script src="js/vehicle-types.js"></script>
+
+    <style>
+        /* ───── 🔍 لوحة البحث عن كابتن (حالة الانتظار) ───── */
+        .searching-panel {
+            background: linear-gradient(135deg, #064e3b, #04553A);
+            border-radius: 18px; padding: 22px 16px; color: #fff;
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .searching-panel::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.18), transparent 60%);
+            pointer-events: none;
+        }
+        /* 🏬 نسخة "بانتظار موافقة المتجر" — لون كهرماني لتمييزها عن بحث الكابتن */
+        .searching-panel--merchant { background: linear-gradient(135deg, #92400e, #b45309); }
+        .searching-panel--merchant .radar-core { color: #b45309; }
+        .radar {
+            position: relative; width: 92px; height: 92px; margin: 4px auto 14px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .radar .ring {
+            position: absolute; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.55);
+            animation: radarPulse 2.2s ease-out infinite;
+        }
+        .radar .ring:nth-child(2) { animation-delay: 0.7s; }
+        .radar .ring:nth-child(3) { animation-delay: 1.4s; }
+        @keyframes radarPulse {
+            0%   { width: 20px; height: 20px; opacity: 0.9; }
+            100% { width: 92px; height: 92px; opacity: 0; }
+        }
+        .radar .radar-core {
+            width: 46px; height: 46px; border-radius: 50%;
+            background: rgba(255,255,255,0.95); color: #04553A;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; z-index: 2; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+        .searching-title { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+        .searching-sub { font-size: 12.5px; opacity: 0.92; line-height: 1.7; }
+        .typing-dots span {
+            display: inline-block; width: 6px; height: 6px; margin: 0 2px;
+            background: #fff; border-radius: 50%; opacity: 0.5;
+            animation: typingDot 1.2s infinite;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingDot { 0%,60%,100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-4px); } }
+        .searching-progress {
+            height: 5px; border-radius: 99px; background: rgba(255,255,255,0.25);
+            overflow: hidden; margin: 14px 8px 4px;
+        }
+        .searching-progress::after {
+            content: ''; display: block; height: 100%; width: 40%;
+            background: rgba(255,255,255,0.95); border-radius: 99px;
+            animation: progressSlide 1.6s ease-in-out infinite;
+        }
+        @keyframes progressSlide {
+            0% { transform: translateX(-120%); }
+            100% { transform: translateX(320%); }
+        }
+
+        /* ───── 💬 بطاقات عروض الكباتن ───── */
+        .offers-header {
+            font-weight: 800; font-size: 14px; color: #04553A;
+            display: flex; align-items: center; gap: 6px; margin: 4px 2px 10px;
+        }
+        .offers-header .badge-count {
+            background: #04553A; color: #fff; border-radius: 99px;
+            font-size: 11px; padding: 2px 9px; font-weight: 800;
+        }
+        .offer-card {
+            background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+            padding: 12px; margin-bottom: 10px; box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+            animation: offerIn 0.35s ease both;
+        }
+        @keyframes offerIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .offer-top { display: flex; align-items: center; gap: 10px; }
+        .offer-avatar {
+            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+            background: linear-gradient(135deg, #04553A, #25d366); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 18px; background-size: cover; background-position: center;
+        }
+        .offer-name { font-weight: 800; font-size: 14px; color: #1f2937; line-height: 1.2; }
+        .offer-meta { font-size: 11.5px; color: #6b7280; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+        .offer-meta .star { color: #f59e0b; }
+        .offer-price-box { text-align: center; flex-shrink: 0; }
+        .offer-price-box .lbl { font-size: 10px; color: #9ca3af; font-weight: 700; }
+        .offer-price-box .val { font-size: 18px; font-weight: 800; color: #04553A; line-height: 1; }
+        .offer-countdown {
+            font-size: 11px; font-weight: 700; color: #b45309;
+            background: #fffbeb; border-radius: 99px; padding: 2px 9px;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .offer-actions { display: flex; gap: 8px; margin-top: 11px; }
+        .offer-actions .btn { border-radius: 99px; font-weight: 800; font-size: 13px; padding: 7px; }
+    </style>
 </head>
 
-<body class="pb-5 mb-5 bg-light">
+<body class="bg-light">
 
     <!-- Loading Splash Screen (only on first app open) -->
     <script>
         if (!sessionStorage.getItem('splashShown')) {
             document.write('<div class="app-splash" id="appSplash">' +
                 '<div class="splash-logo-card">' +
-                '<img src="logo-transparent.png" alt="وصل-لي" class="splash-logo app-logo">' +
+                '<img src="logo-transparent.png" alt="وجيز" class="splash-logo app-logo">' +
                 '</div>' +
-                '<div class="splash-text">وصل-لي</div>' +
+                '<div class="splash-text">وجيز</div>' +
                 '<div class="splash-subtitle">خدمة التوصيل الذكية</div>' +
                 '<div class="splash-progress"><div class="splash-progress-bar"></div></div>' +
                 '</div>');
@@ -48,23 +147,38 @@
         <div class="container pt-2">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="bg-white rounded-circle p-2 shadow-sm">
-                        <i class="bi bi-box2-fill text-primary fs-4"></i>
+                    <div class="bg-transparent border-0 shadow-none p-0">
+                        <i class="bi bi-box2-fill text-white" style="font-size: 1.5rem;"></i>
                     </div>
                     <div>
                         <h2 class="h5 fw-bold mb-0 text-white">سجل طلباتي</h2>
                         <p class="small text-white-50 mb-0">متابعة حالة الطلبات</p>
                     </div>
                 </div>
+                <img src="logo-mark-white.png" alt="وجيز" style="height:44px;width:auto;object-fit:contain;">
             </div>
         </div>
     </div>
 
     <div class="container pt-4">
         <div id="orders-list" class="d-flex flex-column gap-3">
-            <div class="text-center py-5" id="loading-spinner">
-                <div class="spinner-border text-success" role="status"></div>
-                <p class="mt-2 text-muted fw-bold">جاري تحميل طلباتك...</p>
+            <div class="skeleton-card skeleton">
+                <div class="skeleton-avatar skeleton"></div>
+                <div class="skeleton-card-body">
+                    <div class="skeleton-title skeleton"></div>
+                    <div class="skeleton-text skeleton"></div>
+                    <div class="skeleton-text skeleton" style="width: 80%"></div>
+                    <div class="skeleton-btn skeleton mt-2"></div>
+                </div>
+            </div>
+            <div class="skeleton-card skeleton">
+                <div class="skeleton-avatar skeleton"></div>
+                <div class="skeleton-card-body">
+                    <div class="skeleton-title skeleton"></div>
+                    <div class="skeleton-text skeleton"></div>
+                    <div class="skeleton-text skeleton" style="width: 80%"></div>
+                    <div class="skeleton-btn skeleton mt-2"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -83,31 +197,137 @@
         </div>
     </div>
 
-    <nav class="mobile-nav-glass">
-        <a href="index.html" class="nav-item-link">
-            <i class="bi bi-house-door-fill"></i>
-            <span class="small d-block">الرئيسية</span>
-        </a>
-        <a href="client-my-orders.html" class="nav-item-link active">
-            <i class="bi bi-box-seam"></i>
-            <span class="small d-block">طلباتي</span>
-        </a>
-        <a href="notifications.html" class="nav-item-link">
-            <i class="bi bi-bell"></i>
-            <span class="small d-block">الإشعارات</span>
-        </a>
-    </nav>
+    <!-- Bottom Navigation: Built immediately to avoid flash -->
+    <div id="mobile-nav-container">
+        <nav class="mobile-nav-glass">
+            <a href="index.html" class="nav-item-link">
+                <i class="bi bi-house-door"></i>
+                <span>الرئيسية</span>
+            </a>
+            <a href="client-order.html" class="nav-item-link">
+                <i class="bi bi-shop"></i>
+                <span>تسوق</span>
+            </a>
+            <a href="client-my-orders.html" class="nav-item-link active">
+                <i class="bi bi-box-seam"></i>
+                <span>طلباتي</span>
+            </a>
+            <a href="notifications.html" class="nav-item-link">
+                <i class="bi bi-bell"></i>
+                <span>الإشعارات</span>
+            </a>
+        </nav>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
 
     <script>
         // ✅ تعريف رابط السيرفر يدوياً كاحتياط في حال فشل تحميل config.js
-        const SERVER_URL = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
+        const SERVER_URL = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
+
+        // 🛡️ escapeHtml معرفة في config.js ومتاحة عالمياً
+        const escapeHtml = window.escapeHtml || function(unsafe) {
+            if (!unsafe) return '';
+            return unsafe.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        };
+
+        // 🖥️ Helper to build full image URL from relative path or absolute URL
+        const getFullImageUrl = window.getFullImageUrl || function(url) {
+            if (!url) return '';
+            return url;
+        };
+
+        // ───── 🔍 لوحة "جاري البحث عن كابتن" المتحركة (حالة الانتظار) ─────
+        function renderSearchingPanel() {
+            return `
+            <div class="searching-panel mb-2">
+                <div class="radar">
+                    <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+                    <div class="radar-core"><i class="bi bi-bicycle"></i></div>
+                </div>
+                <div class="searching-title">جاري البحث عن أقرب كابتن لك</div>
+                <div class="searching-sub">
+                    أرسلنا طلبك للكباتن القريبين منك<br>
+                    ستصلك عروض الأسعار خلال لحظات — يمكنك اختيار الأنسب
+                </div>
+                <div class="searching-progress"></div>
+                <div class="typing-dots mt-2"><span></span><span></span><span></span></div>
+            </div>`;
+        }
+
+        // ───── 🏬 لوحة "بانتظار موافقة المتجر" (طلب المتجر وصل للتاجر ولم يُقبل بعد) ─────
+        function renderMerchantWaitingPanel() {
+            return `
+            <div class="searching-panel searching-panel--merchant mb-2">
+                <div class="radar">
+                    <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+                    <div class="radar-core"><i class="bi bi-shop"></i></div>
+                </div>
+                <div class="searching-title">طلبك وصل للمتجر ✅</div>
+                <div class="searching-sub">
+                    بانتظار موافقة المتجر على طلبك<br>
+                    سيبدأ البحث عن كابتن بعد أن يجهّز المتجر طلبك
+                </div>
+                <div class="searching-progress"></div>
+                <div class="typing-dots mt-2"><span></span><span></span><span></span></div>
+            </div>`;
+        }
+
+        // ───── 💬 بطاقات عروض الكباتن الاحترافية ─────
+        function renderOffersHtml(negotiations, respondId) {
+            const cards = negotiations.map(n => {
+                const photo = n.captainPhoto ? ((n.captainPhoto.startsWith('http') ? '' : (window.API_URL || '')) + n.captainPhoto) : '';
+                const avatar = photo
+                    ? `<div class="offer-avatar" style="background-image:url('${photo}')"></div>`
+                    : `<div class="offer-avatar">${escapeHtml((n.captainName || 'ك')[0])}</div>`;
+                const rating = (typeof n.captainRating === 'number' && n.captainRating > 0)
+                    ? `<span><i class="bi bi-star-fill star"></i> ${n.captainRating.toFixed(1)} <span style="color:#9ca3af;">(${n.captainRatingCount || 0})</span></span>`
+                    : `<span style="color:#04553A;"><i class="bi bi-stars"></i> كابتن جديد</span>`;
+                const vehicle = (n.captainVehicle && window.VehicleTypes)
+                    ? `<span>${window.VehicleTypes.iconLabel(n.captainVehicle)}</span>` : '';
+                const countdown = n.expiresAt
+                    ? `<span class="offer-countdown" data-expires="${n.expiresAt}"><i class="bi bi-clock"></i> <span class="cd-text">—</span></span>` : '';
+                return `
+                <div class="offer-card">
+                    <div class="offer-top">
+                        ${avatar}
+                        <div style="flex:1;min-width:0;">
+                            <div class="offer-name">${escapeHtml(n.captainName || 'كابتن')}</div>
+                            <div class="offer-meta">${rating} ${vehicle}</div>
+                        </div>
+                        <div class="offer-price-box">
+                            <div class="lbl">عرضه</div>
+                            <div class="val">${escapeHtml(n.proposedPrice)}</div>
+                            <div class="lbl">ج.س</div>
+                        </div>
+                    </div>
+                    ${countdown ? `<div class="mt-2">${countdown}</div>` : ''}
+                    <div class="offer-actions">
+                        <button class="btn btn-success flex-grow-1" onclick="respondToNegotiation('${respondId}', 'accept', '${n.captainId}')"><i class="bi bi-check-lg me-1"></i> قبول العرض</button>
+                        <button class="btn btn-outline-danger" style="flex:0 0 40%;" onclick="respondToNegotiation('${respondId}', 'reject', '${n.captainId}')"><i class="bi bi-x-lg me-1"></i> رفض</button>
+                    </div>
+                </div>`;
+            }).join('');
+            const header = `<div class="offers-header"><i class="bi bi-hand-thumbs-up-fill"></i> وصلك <span class="badge-count">${negotiations.length}</span> عرض — اختر الأنسب لك</div>`;
+            return header + cards;
+        }
+
+        // ⏱️ مؤقّت تنازلي حي لعروض الكباتن (يحدّث كل ثانية)
+        setInterval(() => {
+            document.querySelectorAll('.offer-countdown[data-expires]').forEach(el => {
+                const ms = new Date(el.dataset.expires) - new Date();
+                const txt = el.querySelector('.cd-text');
+                if (!txt) return;
+                if (ms <= 0) { el.style.color = '#dc2626'; el.style.background = '#fef2f2'; txt.textContent = 'انتهى العرض'; return; }
+                const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
+                txt.textContent = `ينتهي خلال ${m}:${String(s).padStart(2, '0')}`;
+            });
+        }, 1000);
 
         // ✅ التحقق من حالة الدخول
         function checkAuthState() {
@@ -127,10 +347,10 @@
                             <h5 class="fw-bold text-dark mb-2">لا توجد طلبات</h5>
                             <p class="text-muted mb-4">يجب عليك تسجيل الدخول أو إنشاء حساب لعرض طلباتك</p>
                             <div class="d-flex gap-2 justify-content-center">
-                                <a href="client-login.html" class="btn btn-primary rounded-pill px-4">
+                                <a href="client-login.html" class="btn btn-success rounded-pill px-4">
                                     <i class="bi bi-box-arrow-in-right me-2"></i>تسجيل الدخول
                                 </a>
-                                <a href="client-register.html" class="btn btn-outline-primary rounded-pill px-4">
+                                <a href="client-register.html" class="btn btn-outline-success rounded-pill px-4">
                                     <i class="bi bi-person-plus me-2"></i>إنشاء حساب
                                 </a>
                             </div>
@@ -157,6 +377,7 @@
         if (!isGuest && token) {
 
             const getStatusName = (s) => ({
+                'chat_initiated': '💬 محادثة مع التاجر',
                 'pending': '⏳ في الانتظار',
                 'negotiating': '💬 جاري التفاوض',
                 'accepted': '🚀 جاري التنفيذ',
@@ -166,6 +387,7 @@
             }[s] || s);
 
             const getStatusBadge = (s) => ({
+                'chat_initiated': 'bg-info text-dark',
                 'pending': 'bg-warning text-dark',
                 'negotiating': 'bg-info text-dark',
                 'accepted': 'bg-primary',
@@ -173,6 +395,24 @@
                 'delivered': 'bg-success',
                 'cancelled': 'bg-danger'
             }[s] || 'bg-secondary');
+
+            // اسم الحالة المعروض — واعٍ بطلبات المتجر عبر realShopStatus
+            // حتى لا يظهر "في الانتظار" العام بينما الطلب فعلياً عند المتجر.
+            const getDisplayStatusName = (order) => {
+                if (order.orderType === 'shop' && order.realShopStatus) {
+                    return ({
+                        'chat_initiated': '💬 محادثة مع التاجر',
+                        'shop_pending':   '🏬 بانتظار موافقة المتجر',
+                        'shop_preparing': '👨‍🍳 المتجر يُجهّز طلبك',
+                        'ready_for_pickup': '🔍 جاري البحث عن كابتن',
+                        'captain_assigned': '🚀 كابتن في الطريق للمتجر',
+                        'picked_up':      '📦 الطلب مع الكابتن',
+                        'delivered':      '✅ تم التوصيل',
+                        'cancelled':      '❌ ملغي'
+                    }[order.realShopStatus] || getStatusName(order.status));
+                }
+                return getStatusName(order.status);
+            };
 
             const ratedOrders = new Set();
             let currentPage = 1;
@@ -187,28 +427,19 @@
 
                 if (!append) {
                     list.innerHTML = Array(3).fill(0).map(() => `
-                        <div class="card glass-card border-0 mb-3" aria-hidden="true">
-                            <div class="card-header bg-transparent border-bottom-0 pt-3 px-3 d-flex justify-content-between align-items-center">
-                                <span class="placeholder col-3 rounded-pill bg-secondary bg-opacity-10" style="height: 25px;"></span>
-                                <small class="placeholder col-2 bg-secondary bg-opacity-10"></small>
-                            </div>
-                            <div class="card-body px-3 pb-3 pt-0">
-                                <div class="mt-2 mb-3">
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <div class="rounded-circle bg-secondary bg-opacity-10 skeleton" style="width: 20px; height: 20px;"></div>
-                                        <span class="placeholder col-8 bg-secondary bg-opacity-10 skeleton rounded"></span>
-                                    </div>
-                                    <div class="placeholder col-12 rounded-pill bg-secondary bg-opacity-10 skeleton" style="height: 38px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
+            <div class="skeleton-card skeleton">
+                <div class="skeleton-avatar skeleton"></div>
+                <div class="skeleton-card-body">
+                    <div class="skeleton-title skeleton"></div>
+                    <div class="skeleton-text skeleton"></div>
+                    <div class="skeleton-text skeleton" style="width: 80%"></div>
+                    <div class="skeleton-btn skeleton mt-2"></div>
+                </div>
+            </div>`).join('');
                 }
 
                 try {
-                    console.log('Fetching orders from:', `${SERVER_URL}/api/orders/my-orders`);
-
-                    const res = await fetch(`${SERVER_URL}/api/orders/my-orders?page=${page}&limit=10`, {
+                    const res = await fetchWithRetry(`${SERVER_URL}/api/orders/my-orders?page=${page}&limit=10`, {
                         method: 'GET',
                         headers: authHeaders
                     });
@@ -240,39 +471,129 @@
 
                         let activeBtns = '';
                         if (order.status === 'pending') {
-                            // Check if there's an active negotiation
-                            if (order.negotiation && order.negotiation.isActive) {
-                                activeBtns = `
-                                <div class="alert alert-info p-2 rounded-3 mb-2 d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="fw-bold d-block">💬 عرض سعر جديد</small>
-                                        <small>السعر المقترح: <strong class="text-success">${order.negotiation.proposedPrice} ج.س</strong></small>
-                                    </div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-success flex-grow-1 rounded-pill fw-bold" onclick="respondToNegotiation('${order._id}', 'accept')">
-                                        <i class="bi bi-check-circle me-1"></i> قبول
-                                    </button>
-                                    <button class="btn btn-outline-danger flex-grow-1 rounded-pill fw-bold" onclick="respondToNegotiation('${order._id}', 'reject')">
-                                        <i class="bi bi-x-circle me-1"></i> رفض
-                                    </button>
-                                </div>`;
+                            if (order.orderType === 'shop') {
+                                // 🐛 إصلاح: طلب المتجر في حالة shop_pending = "بانتظار موافقة المتجر"،
+                                // وليس بحثاً عن كابتن. لا نعرض رادار الكابتن هنا — البحث عن كابتن
+                                // يبدأ فقط بعد أن يجهّز المتجر الطلب (ready_for_pickup).
+                                activeBtns = renderMerchantWaitingPanel();
+                                activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-2" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
                             } else {
-                                activeBtns = `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
+                                // طلب توصيل عادي → اعرض عروض الكباتن أو لوحة البحث عن كابتن
+                                const pendingNegotiations = (order.negotiations || []).filter(n => {
+                                    if (n.status !== 'pending') return false;
+                                    if (n.expiresAt && new Date() > new Date(n.expiresAt)) return false;
+                                    return true;
+                                });
+                                const respondId = order.deliveryOrderId || order._id;
+
+                                if (pendingNegotiations.length > 0) {
+                                    activeBtns = renderOffersHtml(pendingNegotiations, respondId);
+                                    activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-1" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
+                                } else {
+                                    // لا عروض بعد → لوحة "جاري البحث عن كابتن" المتحركة
+                                    activeBtns = renderSearchingPanel();
+                                    activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-2" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
+                                }
                             }
+                        } else if (order.status === 'chat_initiated') {
+                            // Direct chat with merchant — no order placed yet
+                            activeBtns = `
+                            <button class="btn w-100 rounded-pill fw-bold shadow-sm" 
+                                style="background:linear-gradient(135deg,#075e54,#25d366);color:white;"
+                                onclick="chat('${order._id}', '')">
+                                <i class="bi bi-chat-dots-fill me-1"></i> فتح المحادثة مع التاجر
+                            </button>`;
                         } else if (['accepted', 'picked_up'].includes(order.status) && order.captain) {
                             activeBtns = `
                             <div class="d-flex gap-2">
-                                <button id="chat-btn-${order._id}" class="btn btn-primary flex-grow-1 rounded-pill fw-bold shadow-sm" onclick="chat('${order._id}', '${order.captain._id}')"><i class="bi bi-chat-dots me-1"></i> محادثة</button>
+                                <button id="chat-btn-${order._id}" class="btn flex-grow-1 rounded-pill fw-bold shadow-sm text-white" style="background-color:#0d6efd;" onclick="chat('${order._id}', '${order.captain._id}')"><i class="bi bi-person-fill me-1"></i> محادثة الكابتن</button>
                                 <a href="tracking.html?orderId=${order._id}" class="btn btn-success flex-grow-1 rounded-pill fw-bold shadow-sm"><i class="bi bi-geo-alt-fill me-1"></i> تتبع</a>
                             </div>
                         `;
+                            // ✅ لا يُسمح للعميل بإلغاء الطلب بعد قبول الكابتن
+                        }
+
+                        if (order.orderType === 'shop' && order.status !== 'chat_initiated' && order.status !== 'cancelled') {
+                            activeBtns = `
+                            <button class="btn w-100 rounded-pill fw-bold shadow-sm mb-2 mt-2"
+                                style="background:linear-gradient(135deg,#075e54,#25d366);color:white;"
+                                onclick="chat('${order.shopOrderId || order._id}', '')">
+                                <i class="bi bi-shop me-1"></i> محادثة التاجر
+                            </button>` + activeBtns;
+                        }
+
+                        // أزرار الطلبات المنتهية: تقييم (للمسلَّمة) + إعادة الطلب (للملغاة فقط)
+                        if (['delivered', 'cancelled'].includes(order.status)) {
+                            if (order.status === 'delivered' && !order.isRated && !ratedOrders.has(order._id)) {
+                                const pId = order.placeId || order.place;
+                                activeBtns += `<button class="btn btn-warning w-100 rounded-pill fw-bold shadow-sm mt-2 text-dark" onclick="confirmDelivery('${order._id}', ${pId ? `'${pId}'` : 'null'})"><i class="bi bi-star-fill me-1"></i> قيِّم الطلب</button>`;
+                            }
+                            // 🔄 إعادة الطلب — للطلبات الملغاة فقط (لا تظهر للطلبات المكتملة/المسلَّمة)
+                            if (order.status === 'cancelled' && order.orderType === 'shop' && (order.shopId || order.shopId === 0)) {
+                                activeBtns += `<a href="shop-detail.html?id=${order.shopId}" class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2"><i class="bi bi-arrow-repeat me-1"></i> اطلب من نفس المتجر</a>`;
+                            } else if (order.status === 'cancelled' && order.orderType !== 'shop') {
+                                activeBtns += `<button class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2" onclick='reorderDelivery(${JSON.stringify({
+                                    pAddr: order.pickup?.address || '', pName: order.pickup?.contactName || '', pPhone: order.pickup?.contactPhone || '', pLat: order.pickup?.lat, pLng: order.pickup?.lng,
+                                    dAddr: order.dropoff?.address || '', dName: order.dropoff?.receiverName || '', dPhone: order.dropoff?.receiverPhone || '', dLat: order.dropoff?.lat, dLng: order.dropoff?.lng,
+                                    details: order.details || ''
+                                }).replace(/'/g, "&#39;")})'><i class="bi bi-arrow-repeat me-1"></i> إعادة الطلب</button>`;
+                            }
+                        }
+
+                        let paymentHtml = '';
+                        if (order.orderType === 'shop' && order.status !== 'chat_initiated' && order.status !== 'cancelled') {
+                            if (order.paymentStatus === 'pending') {
+                                paymentHtml = `
+                                <div class="p-3 rounded-3 mb-3 border border-warning shadow-sm" style="background:rgba(234,179,8,0.12);">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="bi bi-wallet2 text-warning fs-4"></i>
+                                        <strong>في انتظار الدفع للمتجر</strong>
+                                    </div>
+                                    <p class="small mb-2">
+                                        يرجى تحويل مبلغ <strong class="text-danger fs-5">${order.itemsTotal || order.price} ج.س</strong> (قيمة المنتجات) 
+                                        وإرفاق الإشعار لكي يبدأ المتجر بتجهيز طلبك.<br>
+                                        <span class="text-primary mt-1 d-block"><i class="bi bi-info-circle-fill me-1"></i> رسوم التوصيل تُدفع للكابتن عند الاستلام.</span>
+                                    </p>
+                                    
+                                    ${order.bankInfo && order.bankInfo.account ? `
+                                    <div class="p-2 mb-3 rounded-2 text-start" style="background:rgba(255,255,255,0.7); border:1px dashed #eab308; direction: rtl;">
+                                        <div class="small text-muted mb-1 text-end">🏦 بيانات الدفع للمتجر:</div>
+                                        <div class="fw-bold text-dark text-end"><i class="bi bi-bank me-1"></i> البنك: ${order.bankInfo.bank || 'غير محدد'}</div>
+                                        <div class="fw-bold text-dark text-end"><i class="bi bi-person-badge me-1"></i> الاسم: ${order.bankInfo.name || 'غير محدد'}</div>
+                                        <div class="fw-bold text-primary mt-1 fs-5 d-flex flex-row-reverse justify-content-between align-items-center" style="font-family: monospace;">
+                                            <span>${order.bankInfo.account}</span>
+                                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="navigator.clipboard.writeText('${order.bankInfo.account}'); Swal.fire({title:'تم النسخ', icon:'success', toast:true, position:'top-end', showConfirmButton:false, timer:1500});"><i class="bi bi-clipboard"></i> نسخ</button>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                    <input type="file" id="receiptFile-${order.shopOrderId || order._id}" accept="image/*" class="form-control form-control-sm mb-2" onchange="compressAndUploadReceipt('${order.shopOrderId || order._id}')">
+                                    <small id="upload-status-${order.shopOrderId || order._id}" class="text-muted d-block text-center"></small>
+                                </div>
+                                `;
+                            } else if (order.paymentStatus === 'receipt_sent') {
+                                paymentHtml = `
+                                <div class="p-3 rounded-3 mb-3 border border-info shadow-sm" style="background:rgba(6,182,212,0.1);">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-hourglass-split text-info fs-4"></i>
+                                        <strong>جاري مراجعة الإشعار</strong>
+                                    </div>
+                                    <p class="small mb-0 mt-1">تم إرفاق الإشعار، في انتظار تأكيد المتجر للبدء بالتجهيز.</p>
+                                </div>
+                                `;
+                            } else if (order.paymentStatus === 'confirmed') {
+                                paymentHtml = `
+                                <div class="p-2 rounded-3 mb-3 border border-success d-flex align-items-center gap-2 shadow-sm" style="background:rgba(22,163,74,0.1);">
+                                    <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                    <strong>تم تأكيد الدفع وجاري التجهيز!</strong>
+                                </div>
+                                `;
+                            }
                         }
 
                         const html = `
                         <div class="card glass-card border-0 card-hover overflow-hidden mb-3">
                             <div class="card-header bg-transparent border-bottom-0 pt-3 px-3 d-flex justify-content-between align-items-center">
-                                <span class="badge ${badgeClass} rounded-pill px-3 py-2">${getStatusName(order.status)}</span>
+                                <span class="badge ${badgeClass} rounded-pill px-3 py-2">${getDisplayStatusName(order)}</span>
                                 <small class="text-muted">#${order._id.slice(-6)}</small>
                             </div>
                             
@@ -281,20 +602,58 @@
                                     <div class="w-100">
                                         <div class="d-flex align-items-center gap-2 mb-1">
                                             <i class="bi bi-geo-alt-fill text-primary"></i>
-                                            <small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">من: <strong class="text-dark">${order.pickup.address}</strong></small>
+                                            <small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">من: <strong>${escapeHtml(order.pickup?.address || 'غير محدد')}</strong></small>
                                         </div>
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="bi bi-flag-fill text-danger"></i>
-                                            <small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">إلى: <strong class="text-dark">${order.dropoff.address}</strong></small>
+                                            <small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">إلى: <strong>${escapeHtml(order.dropoff?.address || 'غير محدد')}</strong></small>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="bg-light p-2 rounded-3 mb-3 d-flex justify-content-between align-items-center">
-                                    <span class="small text-muted">التكلفة:</span>
-                                    <span class="fw-bold text-success fs-5">${order.price} ج.س</span>
+                                ${order.details ? `
+                                <div class="p-2 rounded-3 mb-2" style="background:rgba(0,0,0,0.05);">
+                                    <small class="text-muted d-block mb-1">تفاصيل الطلب:</small>
+                                    <small class="fw-bold d-block" style="line-height: 1.4;">${escapeHtml(order.details)}</small>
+                                </div>` : ''}
+
+                                <div class="p-2 rounded-3 mb-3" style="background:rgba(0,0,0,0.05);">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="small text-muted">التكلفة الإجمالية:</span>
+                                        <span class="fw-bold text-success fs-5">${order.price} ج.س</span>
+                                    </div>
+                                    ${order.orderType === 'shop' && order.deliveryFee ? `
+                                    <div class="d-flex justify-content-between align-items-center border-top pt-1 mt-1">
+                                        <span class="small text-muted">المنتجات (للمتجر):</span>
+                                        <span class="fw-bold text-dark">${order.itemsTotal} ج.س</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="small text-muted">التوصيل (للكابتن):</span>
+                                        <span class="fw-bold text-danger">${order.deliveryFee} ج.س</span>
+                                    </div>
+                                    ` : ''}
                                 </div>
 
+                                ${order.hasImage ? `
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill mb-3 w-100" onclick="viewParcelImage('${order._id}', this)">
+                                    <i class="bi bi-image me-1"></i> عرض صورة الطرد
+                                </button>` : ''}
+
+                                ${order.proofOfPickupImage && ['picked_up','delivered'].includes(order.status) ? `
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center gap-1 mb-2">
+                                        <i class="bi bi-camera-fill text-warning"></i>
+                                        <small class="fw-bold text-muted">📸 صورة إثبات الاستلام من الكابتن:</small>
+                                    </div>
+                                    <img src="${getFullImageUrl(order.proofOfPickupImage)}"
+                                        alt="إثبات الاستلام"
+                                        class="w-100 rounded-3 object-fit-cover shadow-sm"
+                                        style="max-height:180px;cursor:pointer;border:2px solid #fbbf24;"
+                                        onerror="this.style.display='none'"
+                                        onclick="viewImage('${getFullImageUrl(order.proofOfPickupImage)}')">
+                                </div>` : ''}
+
+                                ${paymentHtml}
                                 ${activeBtns}
                             </div>
                         </div>
@@ -303,8 +662,8 @@
                     });
 
                     if (!append) {
-                        const unratedOrder = orders.find(o => o.status === 'delivered' && !o.isRated && !ratedOrders.has(o._id));
-                        if (unratedOrder) confirmDelivery(unratedOrder._id);
+                        // BUG FIX: Removed the automatic trigger for confirmDelivery here to prevent spamming popups.
+                        // Now it relies on the "قيِّم الطلب" button on the order card or the push notification.
                     }
 
                     if (currentPage < currentTotalPages) {
@@ -328,15 +687,45 @@
                 new bootstrap.Modal(document.getElementById('imgModal')).show();
             }
 
+            // 📷 جلب صورة الطرد عند الطلب فقط ثم فتحها في النافذة
+            async function viewParcelImage(orderId, btn) {
+                const original = btn ? btn.innerHTML : '';
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري التحميل...'; }
+                try {
+                    const res = await fetch(`${SERVER_URL}/api/orders/${orderId}/image`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!res.ok) throw new Error('تعذّر تحميل الصورة');
+                    const data = await res.json();
+                    if (data.parcelImage) viewImage(getFullImageUrl(data.parcelImage));
+                    else throw new Error('لا توجد صورة');
+                } catch (e) {
+                    Swal.fire({ icon: 'info', text: e.message || 'تعذّر عرض الصورة', confirmButtonColor: '#0a8754' });
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+                }
+            }
+            window.viewParcelImage = viewParcelImage;
+
             window.chat = function (oid, cid) { window.location.href = `chat.html?orderId=${oid}&receiverId=${cid}`; }
 
-            // 💬 رد العميل على عرض التفاوض
-            window.respondToNegotiation = async function (orderId, action) {
+            // 🔄 إعادة طلب توصيل — نخزّن البيانات ونوجّه للصفحة الرئيسية لتعبئتها مسبقاً
+            window.reorderDelivery = function (data) {
                 try {
-                    const res = await fetch(`${SERVER_URL}/api/orders/${orderId}/negotiate-response`, {
+                    localStorage.setItem('reorder_payload', JSON.stringify(data));
+                    window.location.href = 'index.html?reorder=1';
+                } catch (e) {
+                    Swal.fire('خطأ', 'تعذّرت إعادة الطلب', 'error');
+                }
+            };
+
+            // 💬 رد العميل على عرض محدد من كابتن بعينه
+            window.respondToNegotiation = async function (orderId, action, captainId) {
+                try {
+                    const res = await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/negotiate-response`, {
                         method: 'PUT',
                         headers: authHeaders,
-                        body: JSON.stringify({ action })
+                        body: JSON.stringify({ action, captainId })
                     });
                     const data = await res.json();
                     if (res.ok) {
@@ -346,10 +735,13 @@
                                 text: 'تم تأكيد الطلب والكابتن في الطريق.',
                                 icon: 'success',
                                 confirmButtonText: 'تتبع الطلب',
-                                confirmButtonColor: '#0a8754'
-                            }).then(() => loadOrders());
+                                confirmButtonColor: '#04553A'
+                            }).then(() =>
+                                // ✅ FIX: catch إضافي لمنع الفشل الصامت بعد قبول العرض
+                                loadOrders().catch(() => showToast('تنبيه', 'تعذّر تحديث القائمة، اسحب للتحديث', 'warning'))
+                            );
                         } else {
-                            showToast('تم الرفض', 'الطلب لا يزال متاحاً لكابتن آخر', 'info');
+                            showToast('تم الرفض', 'الطلب لا يزال متاحاً لكباتن آخر', 'info');
                             loadOrders();
                         }
                     } else {
@@ -361,34 +753,57 @@
             };
 
             window.cancelOrder = async function (id) {
-                if (confirm('هل أنت متأكد من إلغاء الطلب؟')) {
-                    try {
-                        const res = await fetch(`${SERVER_URL}/api/orders/${id}/cancel`, {
-                            method: 'PUT',
-                            headers: authHeaders
-                        });
-                        if (!res.ok) throw new Error();
-                        loadOrders();
-                        showToast('تم الإلغاء', 'تم إلغاء الطلب بنجاح', 'success');
-                    } catch (e) {
-                        Swal.fire('خطأ', 'فشل إلغاء الطلب', 'error');
+                const ok = await Swal.fire({
+                    title: 'إلغاء الطلب؟',
+                    text: 'هل أنت متأكد من إلغاء الطلب؟',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، ألغِ',
+                    cancelButtonText: 'تراجع',
+                    confirmButtonColor: '#dc3545'
+                });
+                if (!ok.isConfirmed) return;
+
+                try {
+                    const res = await fetchWithRetry(`${SERVER_URL}/api/orders/${id}/cancel`, {
+                        method: 'PUT',
+                        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.message || 'فشل إلغاء الطلب');
                     }
+                    loadOrders();
+                    showToast('تم الإلغاء', 'تم إلغاء الطلب بنجاح', 'success');
+                } catch (e) {
+                    Swal.fire('تعذّر الإلغاء', e.message || 'فشل إلغاء الطلب', 'error');
                 }
             }
 
             window.loadOrders = loadOrders;
 
-            // ✅ FIX 2: تهيئة السوكت بشكل صحيح باستخدام رابط السيرفر
+            // ✅ تهيئة السوكت — WebSocket أولاً لسرعة أكبر، ثم polling كاحتياط
             if (userId) {
-                // الاتصال بالسيرفر الحقيقي وليس اللوكال هوست
                 const socket = io(SERVER_URL, {
                     path: '/socket.io',
+                    // ✅ FIX: websocket أولاً لتجنب بطء الـ long-polling
                     transports: ['websocket', 'polling']
                 });
 
                 socket.on('connect', () => {
-                    console.log('✅ Connected to Socket Server');
                     socket.emit('user_join', userId);
+                });
+
+                // ✅ FIX: إعادة جلب الطلبات فور استعادة الاتصال بعد انقطاع الشبكة
+                // بدون هذا يبقى العميل يشوف الحالة القديمة حتى يُغلق ويُعيد فتح التطبيق
+                socket.on('reconnect', () => {
+                    loadOrders().catch(() => {});
+                });
+
+                socket.on('connect_error', (err) => {
+                    // لا نُظهر خطأ للمستخدم — السوكت سيُعيد المحاولة تلقائياً
+                    if (window.__DEV__) console.warn('[Socket] connect_error', err.message);
                 });
 
                 socket.on('new_notification', (notification) => {
@@ -411,56 +826,33 @@
                             text: 'الكابتن في الطريق إليك الآن.',
                             icon: 'success',
                             confirmButtonText: 'تتبع الطلب',
-                            confirmButtonColor: '#0a8754'
+                            confirmButtonColor: '#04553A'
                         }).then(() => window.location.href = `tracking.html?orderId=${orderId}`);
                     }
                     loadOrders();
                 });
 
-                // 💬 إشعار بدء التفاوض (عرض سعر من الكابتن)
+                // 💬 إشعار بوصول عرض سعر جديد من كابتن — يتجنب الـ popup المتكرر
                 socket.on('negotiation_started', (data) => {
-                    const { orderId, captainName, originalPrice, proposedPrice, expiresAt } = data;
-                    const expiryTime = new Date(expiresAt);
-                    const minutesLeft = Math.round((expiryTime - Date.now()) / 60000);
-
-                    Swal.fire({
-                        title: '💬 عرض سعر جديد!',
-                        html: `
-                            <div class="text-center">
-                                <p class="mb-2">الكابتن <strong>${captainName}</strong> يقترح:</p>
-                                <div class="d-flex justify-content-center align-items-center gap-3 my-3">
-                                    <div class="text-center">
-                                        <small class="text-muted d-block">السعر الأصلي</small>
-                                        <span class="fw-bold text-secondary fs-5 text-decoration-line-through">${originalPrice} ج.س</span>
-                                    </div>
-                                    <i class="bi bi-arrow-left fs-4 text-muted"></i>
-                                    <div class="text-center">
-                                        <small class="text-muted d-block">السعر المقترح</small>
-                                        <span class="fw-bold text-success fs-3">${proposedPrice} ج.س</span>
-                                    </div>
-                                </div>
-                                <small class="text-muted">العرض صالح لمدة ${minutesLeft} دقائق</small>
-                            </div>
-                        `,
-                        showDenyButton: true,
-                        confirmButtonText: '✅ قبول السعر',
-                        denyButtonText: '❌ رفض',
-                        confirmButtonColor: '#0a8754',
-                        denyButtonColor: '#d33',
-                        allowOutsideClick: false
-                    }).then(async (result) => {
-                        if (result.isConfirmed) {
-                            await respondToNegotiation(orderId, 'accept');
-                        } else if (result.isDenied) {
-                            await respondToNegotiation(orderId, 'reject');
-                        }
-                    });
+                    const { captainName, proposedPrice } = data;
+                    showToast(
+                        '💬 عرض سعر جديد!',
+                        `الكابتن ${captainName} يقترح ${proposedPrice} ج.س`,
+                        'info'
+                    );
+                    // Refresh orders list so the new offer appears in the card
+                    loadOrders();
                 });
 
-                socket.on('delivery_attempted', (data) => confirmDelivery(data.orderId));
+                socket.on('negotiation_withdrawn', () => {
+                    showToast('تحديث', 'سحب أحد الكباتن عرضه', 'info');
+                    loadOrders();
+                });
+
+                socket.on('delivery_attempted', (data) => confirmDelivery(data.orderId, data.placeId || null));
             }
 
-            function confirmDelivery(orderId) {
+            function confirmDelivery(orderId, placeId) {
                 if (ratedOrders.has(orderId) || Swal.isVisible()) return;
 
                 Swal.fire({
@@ -470,13 +862,13 @@
                     showCancelButton: true,
                     confirmButtonText: 'نعم، استلمت ✅',
                     cancelButtonText: 'لا، لم استلم ❌',
-                    confirmButtonColor: '#0a8754',
+                    confirmButtonColor: '#04553A',
                     cancelButtonColor: '#d33',
                     allowOutsideClick: false
                 }).then((result) => {
                     if (result.isConfirmed) {
                         ratedOrders.add(orderId);
-                        showRatingModal(orderId);
+                        showRatingModal(orderId, placeId);
                     } else if (result.dismiss === Swal.DismissReason.cancel) {
                         ratedOrders.add(orderId);
                         showComplaintDialog(orderId);
@@ -501,7 +893,7 @@
                 }).then(async (result) => {
                     if (result.isConfirmed) {
                         try {
-                            await fetch(`${SERVER_URL}/api/complaints`, {
+                            await fetchWithRetry(`${SERVER_URL}/api/complaints`, {
                                 method: 'POST',
                                 headers: authHeaders,
                                 body: JSON.stringify({ orderId, client: userId, reason: "Didn't receive", description: result.value })
@@ -513,29 +905,198 @@
                 });
             }
 
-            function showRatingModal(orderId) {
+            function showRatingModal(orderId, placeId) {
+                const starHtml = `
+                    <div id="starRating" style="display:flex;justify-content:center;gap:10px;margin:16px 0;">
+                        ${[1,2,3,4,5].map(i => `
+                            <i class="bi bi-star-fill" data-val="${i}"
+                               style="font-size:2.2rem;cursor:pointer;color:#d1d5db;transition:color .15s;"
+                               onmouseover="hoverStars(${i})" onmouseout="resetStars()" onclick="selectStar(${i})"></i>
+                        `).join('')}
+                    </div>
+                    <div id="starLabel" style="font-size:1rem;color:#64748b;min-height:24px;"></div>
+                    <input type="hidden" id="selectedStar" value="0">`;
+
                 Swal.fire({
-                    title: 'قيم الكابتن ⭐',
-                    html: `<input type="range" class="form-range my-3" min="1" max="10" step="1" id="ratingRange" oninput="document.getElementById('rVal').innerText = this.value"><h3 class="text-warning fw-bold"><span id="rVal">5</span>/10</h3>`,
+                    title: 'تقييم الكابتن ⭐',
+                    html: starHtml,
                     confirmButtonText: 'إرسال',
-                    confirmButtonColor: '#0a8754',
-                    preConfirm: () => document.getElementById('ratingRange').value
+                    confirmButtonColor: '#04553A',
+                    showCancelButton: true,
+                    cancelButtonText: 'تخطّي',
+                    didOpen: () => {
+                        window.hoverStars = (val) => {
+                            document.querySelectorAll('#starRating i').forEach((el, i) =>
+                                el.style.color = i < val ? '#f59e0b' : '#d1d5db');
+                            const labels = ['', 'ضعيف', 'مقبول', 'جيد', 'جيد جداً', 'ممتاز'];
+                            document.getElementById('starLabel').textContent = labels[val] || '';
+                        };
+                        window.resetStars = () => {
+                            const sel = parseInt(document.getElementById('selectedStar').value) || 0;
+                            hoverStars(sel);
+                        };
+                        window.selectStar = (val) => {
+                            document.getElementById('selectedStar').value = val;
+                            resetStars();
+                        };
+                    },
+                    preConfirm: () => {
+                        const val = parseInt(document.getElementById('selectedStar').value);
+                        if (!val) { Swal.showValidationMessage('يرجى اختيار عدد النجوم'); return false; }
+                        return val;
+                    }
                 }).then(async (result) => {
                     if (result.isConfirmed) {
                         try {
-                            await fetch(`${SERVER_URL}/api/orders/${orderId}/rate`, {
+                            await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/rate`, {
                                 method: 'POST',
                                 headers: authHeaders,
-                                body: JSON.stringify({ rating: parseInt(result.value) })
+                                body: JSON.stringify({ rating: result.value })
                             });
-                            Swal.fire('شكراً لك!', 'تم بنجاح', 'success');
+                            // إذا كان طلب متجر نعرض تقييم المتجر بعد ذلك
+                            if (placeId) {
+                                setTimeout(() => showPlaceRatingModal(orderId, placeId), 600);
+                            } else {
+                                Swal.fire({ icon: 'success', title: 'شكراً لك!', text: 'تم إرسال تقييمك', confirmButtonColor: '#04553A', timer: 2000, showConfirmButton: false });
+                            }
                             loadOrders();
                         } catch (e) { Swal.fire('خطأ', 'فشل في الإرسال', 'error'); }
                     }
                 });
             }
 
-            loadOrders();
+            function showPlaceRatingModal(orderId, placeId) {
+                const starHtml = `
+                    <p style="color:#64748b;font-size:13px;">كيف تقيّم تجربتك مع المتجر؟</p>
+                    <div id="placeStars" style="display:flex;justify-content:center;gap:10px;margin:12px 0;">
+                        ${[1,2,3,4,5].map(i => `
+                            <i class="bi bi-star-fill" data-val="${i}"
+                               style="font-size:2rem;cursor:pointer;color:#d1d5db;"
+                               onmouseover="hoverPS(${i})" onmouseout="resetPS()" onclick="selectPS(${i})"></i>
+                        `).join('')}
+                    </div>
+                    <textarea id="placeComment" class="form-control mt-2" rows="2" placeholder="أترك تعليقاً (اختياري)..."></textarea>
+                    <input type="hidden" id="placeSelectedStar" value="0">`;
+
+                Swal.fire({
+                    title: 'قيّم المتجر 🛒',
+                    html: starHtml,
+                    confirmButtonText: 'إرسال',
+                    confirmButtonColor: '#04553A',
+                    showCancelButton: true,
+                    cancelButtonText: 'تخطّي',
+                    didOpen: () => {
+                        window.hoverPS = (val) => {
+                            document.querySelectorAll('#placeStars i').forEach((el, i) =>
+                                el.style.color = i < val ? '#f59e0b' : '#d1d5db');
+                        };
+                        window.resetPS = () => {
+                            const sel = parseInt(document.getElementById('placeSelectedStar').value) || 0;
+                            hoverPS(sel);
+                        };
+                        window.selectPS = (val) => {
+                            document.getElementById('placeSelectedStar').value = val;
+                            resetPS();
+                        };
+                    },
+                    preConfirm: () => {
+                        const val = parseInt(document.getElementById('placeSelectedStar').value);
+                        if (!val) { Swal.showValidationMessage('يرجى اختيار عدد النجوم'); return false; }
+                        return { val, comment: document.getElementById('placeComment').value.trim() };
+                    }
+                }).then(async (result) => {
+                    if (!result.isConfirmed) return;
+                    try {
+                        await fetchWithRetry(`${SERVER_URL}/api/places/${placeId}/rate`, {
+                            method: 'POST',
+                            headers: authHeaders,
+                            body: JSON.stringify({ score: result.value.val, comment: result.value.comment, orderId })
+                        });
+                        Swal.fire({ icon: 'success', title: 'شكراً!', text: 'تم تقييم المتجر بنجاح', confirmButtonColor: '#04553A', timer: 2000, showConfirmButton: false });
+                    } catch (e) { /* silent fail */ }
+                });
+            }
+
+            window.compressImageToDataURL = function(file, maxWidth = 800, quality = 0.7) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > maxWidth) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                            resolve(dataUrl);
+                        };
+                        img.onerror = reject;
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            };
+
+            window.compressAndUploadReceipt = async function(orderId) {
+                const fileInput = document.getElementById(`receiptFile-${orderId}`);
+                const statusText = document.getElementById(`upload-status-${orderId}`);
+                
+                if (!fileInput.files || fileInput.files.length === 0) return;
+                
+                const file = fileInput.files[0];
+                statusText.innerHTML = '<span class="text-warning"><i class="spinner-border spinner-border-sm me-1"></i>جاري الرفع...</span>';
+                
+                try {
+                    const compressedImage = await compressImageToDataURL(file, 800, 0.7);
+                    
+                    const res = await fetchWithRetry(`${SERVER_URL}/api/orders/shop/${orderId}/upload-receipt`, {
+                        method: 'PUT',
+                        headers: authHeaders,
+                        body: JSON.stringify({ receiptImage: compressedImage })
+                    });
+                    
+                    if (res.ok) {
+                        statusText.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>تم رفع الإشعار بنجاح!</span>';
+                        setTimeout(() => loadOrders(), 1500);
+                    } else {
+                        const err = await res.json();
+                        statusText.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>${err.message || 'فشل في الرفع'}</span>`;
+                    }
+                } catch (e) {
+                    console.error(e);
+                    statusText.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>خطأ في الاتصال</span>';
+                }
+            };
+
+            // Check for rateOrder parameter from Push Notifications
+            const urlParams = new URLSearchParams(window.location.search);
+            const rateOrderId = urlParams.get('rateOrder');
+            
+            loadOrders().then(() => {
+                if (rateOrderId && !ratedOrders.has(rateOrderId)) {
+                    // Try to find the button we just rendered
+                    const rateBtn = document.getElementById(`orders-list`).querySelector(`button[onclick*="confirmDelivery('${rateOrderId}'"]`);
+                    if (rateBtn) {
+                        rateBtn.click(); // This ensures placeId is passed exactly as rendered
+                    } else {
+                        // Fallback if button not found for some reason
+                        confirmDelivery(rateOrderId, null);
+                    }
+                    // Cleanup URL so refreshing doesn't show it again
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            });
         }
     </script>
 

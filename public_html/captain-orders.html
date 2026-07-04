@@ -5,17 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>الطلبات المتاحة | وصل-لي</title>
+    <title>الطلبات المتاحة | وجيز</title>
     <!-- Bootstrap 5 RTL -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <link rel="stylesheet" href="css/enhanced-styles.css">
-    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
     <script src="js/theme-manager.js"></script>
     <script src="js/auth-helper.js"></script>
 </head>
@@ -31,10 +32,16 @@
                         <i class="bi bi-bicycle text-success fs-4"></i>
                     </div>
                     <div>
-                        <h2 class="h6 fw-bold mb-0 text-white">الطلبات المتاحة</h2>
+                        <h2 class="h6 fw-bold mb-0 text-white">
+                            الطلبات المتاحة
+                            <span id="orders-count-badge" class="badge bg-warning text-dark rounded-pill ms-1 align-middle" style="display:none;">0</span>
+                        </h2>
                         <p class="small text-white-50 mb-0">فرص جديدة لزيادة دخلك 💰</p>
                     </div>
                 </div>
+                <button onclick="fetchOrders()" class="btn btn-sm btn-light rounded-pill fw-bold" title="تحديث">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -53,9 +60,28 @@
 
         <!-- Orders List -->
         <div id="orders-list" class="row g-3">
-            <div class="col-12 text-center py-5">
-                <div class="spinner-border text-success" role="status"></div>
-                <p class="mt-2 text-muted fw-bold">جاري البحث عن طلبات حولك...</p>
+            <!-- Skeleton Loaders -->
+            <div class="col-12">
+                <div class="skeleton-card skeleton">
+                    <div class="skeleton-avatar skeleton"></div>
+                    <div class="skeleton-card-body">
+                        <div class="skeleton-title skeleton"></div>
+                        <div class="skeleton-text skeleton"></div>
+                        <div class="skeleton-text skeleton" style="width: 80%"></div>
+                        <div class="skeleton-btn skeleton mt-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="skeleton-card skeleton">
+                    <div class="skeleton-avatar skeleton"></div>
+                    <div class="skeleton-card-body">
+                        <div class="skeleton-title skeleton"></div>
+                        <div class="skeleton-text skeleton"></div>
+                        <div class="skeleton-text skeleton" style="width: 80%"></div>
+                        <div class="skeleton-btn skeleton mt-2"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -94,49 +120,98 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
 
     <script>
         // Check Auth
-        if (!window.Auth || !window.Auth.isAuthenticated()) {
-            // Identify login page based on context or generic
-            // window.location.href = "client-login.html"; // handled by specific pages usually
-        }
-        const token = window.Auth.getToken();
+        const token = window.Auth?.getToken() || localStorage.getItem('token');
         const userId = localStorage.getItem('userId');
 
-        if (!token) window.location.href = 'captain-login.html';
-        if (userId) initNotificationSocket(userId);
+        if (!token) { window.location.href = 'captain-login.html'; throw new Error('no token'); }
+        // Guard: initNotificationSocket is defined in app-core.js (module) — may not be ready yet
+        if (userId && typeof initNotificationSocket === 'function') initNotificationSocket(userId);
 
-        // Fetch Orders
+        // 🛡️ BUG #13: Race-condition guard — prevent double-accept
+        let isAccepting = false;
+
+        // ✅ Live commission rate from Settings — loaded once at start
+        let commissionRate = 0.15; // default fallback
+        (async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/pricing`, { headers: window.Auth.getAuthHeader() });
+                if (res.ok) {
+                    const d = await res.json();
+                    if (typeof d.commissionRate === 'number') commissionRate = d.commissionRate;
+                    console.log('💰 Live commission rate:', (commissionRate * 100).toFixed(1) + '%');
+                }
+            } catch (e) { console.warn('Commission rate fetch failed, using 15%'); }
+        })();
+
+        // 🖼️ عرض الصورة من الخريطة (آمن مع Base64 الطويلة)
+        function showImageByKey(key) {
+            const src = orderImagesMap[key];
+            if (!src) return;
+            document.getElementById('preview-img').src = src;
+            new bootstrap.Modal(document.getElementById('imageModal')).show();
+        }
+
+        // 🧾 عرض إيصال الدفع من الخريطة
+        function viewReceiptByKey(orderId, key) {
+            const src = orderImagesMap[key];
+            if (!src) return;
+            Swal.fire({
+                title: 'إشعار الدفع 🧾',
+                html: `<img src="${src}" style="width:100%; border-radius:12px; max-height:70vh; object-fit:contain;" alt="إيصال الدفع">`,
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: '90%',
+                padding: '1rem'
+            });
+        }
+
         async function fetchOrders() {
+            document.getElementById('orders-list').innerHTML = `
+            <div class="col-12"><div class="skeleton-card skeleton"><div class="skeleton-avatar skeleton"></div><div class="skeleton-card-body"><div class="skeleton-title skeleton"></div><div class="skeleton-text skeleton"></div><div class="skeleton-text skeleton" style="width: 80%"></div><div class="skeleton-btn skeleton mt-2"></div></div></div></div>
+            <div class="col-12"><div class="skeleton-card skeleton"><div class="skeleton-avatar skeleton"></div><div class="skeleton-card-body"><div class="skeleton-title skeleton"></div><div class="skeleton-text skeleton"></div><div class="skeleton-text skeleton" style="width: 80%"></div><div class="skeleton-btn skeleton mt-2"></div></div></div></div>
+            `;
             try {
                 const res = await fetch(`${API_URL}/api/orders`, { headers: window.Auth.getAuthHeader() });
                 if (!res.ok) {
                     const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.message || `Server Error: ${res.status}`);
+                    throw new Error(errData.message || `خطأ في السيرفر: ${res.status}`);
                 }
                 const data = await res.json();
-                console.log('Orders Data:', data); // Debug log
                 renderOrders(data.orders || []);
             } catch (err) {
                 console.error('Fetch Orders Error:', err);
-                alert('خطأ في تحميل الطلبات: ' + err.message); // Show error to user
                 document.getElementById('orders-list').innerHTML =
                     `<div class="col-12 text-center text-muted py-5">
                         <i class="bi bi-wifi-off fs-1 text-secondary mb-3"></i>
                         <p class="fw-bold">فشل في تحميل البيانات</p>
                         <small class="text-danger">${err.message}</small>
+                        <div class="mt-3"><button class="btn btn-outline-success rounded-pill" onclick="fetchOrders()">إعادة المحاولة</button></div>
                     </div>`;
             }
         }
 
+        // 🗺️ خريطة لتخزين صور الطلبات (Base64 تكون طويلة جداً لوضعها في onclick)
+        const orderImagesMap = {};
+
         function renderOrders(orders) {
             const container = document.getElementById('orders-list');
             container.innerHTML = '';
+
+            // 🔢 حدّث عدّاد الطلبات + عنوان التبويب حتى يلاحظه الكابتن ولو كان التطبيق في الخلفية
+            const count = orders.length;
+            document.title = count > 0 ? `(${count}) الطلبات المتاحة | وجيز` : 'الطلبات المتاحة | وجيز';
+            const _cntBadge = document.getElementById('orders-count-badge');
+            if (_cntBadge) {
+                _cntBadge.textContent = count;
+                _cntBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+            }
 
             if (orders.length === 0) {
                 container.innerHTML = `
@@ -151,7 +226,8 @@
             }
 
             orders.forEach(order => {
-                const netProfit = order.netRevenue || (order.price * 0.9);
+                // ✅ Use live commission rate from Settings (not hardcoded 10%)
+                const netProfit = order.netRevenue || (order.price * (1 - commissionRate));
 
                 // ✅ استخدام الإحداثيات إذا متوفرة، وإلا العنوان النصي
                 const pickupCoords = (order.pickup?.lat && order.pickup?.lng)
@@ -164,11 +240,22 @@
                 // رابط المسار الكامل (من الاستلام للتسليم) — يفتح الاتجاهات مباشرة
                 const routeLink = `https://www.google.com/maps/dir/?api=1&origin=${pickupCoords}&destination=${dropoffCoords}&travelmode=driving`;
 
-                const imgHtml = order.parcelImage ?
-                    `<div class="position-relative mt-2">
-                        <img src="${order.parcelImage}" class="w-100 rounded-3 object-fit-cover shadow-sm" style="height: 180px; cursor: pointer;" onclick="showImage('${order.parcelImage}')" alt="صورة الطرد">
+                // 🖼️ صورة الطرد — تُخزَّن في الخريطة لتفادي مشكلة HTML attribute overflow
+                let imgHtml = '';
+                if (order.parcelImage) {
+                    const imgKey = `parcel_${order._id}`;
+                    const parcelSrc = (typeof getFullImageUrl === 'function') ? getFullImageUrl(order.parcelImage) : order.parcelImage;
+                    orderImagesMap[imgKey] = parcelSrc;
+                    imgHtml = `<div class="position-relative mt-2">
+                        <img src="${parcelSrc}" class="w-100 rounded-3 object-fit-cover shadow-sm"
+                             style="height: 180px; cursor: pointer;"
+                             data-img-key="${imgKey}"
+                             onclick="showImageByKey(this.dataset.imgKey)"
+                             onerror="this.parentElement.style.display='none'"
+                             alt="صورة الطرد">
                         <span class="position-absolute bottom-0 end-0 m-2 badge bg-dark bg-opacity-75 rounded-pill"><i class="bi bi-zoom-in"></i> تكبير</span>
-                     </div>` : '';
+                    </div>`;
+                } // ← FIX: closing brace for if (order.parcelImage)
 
                 const isShop = order.orderType === 'shop';
                 const headerClass = isShop ? 'bg-success bg-opacity-10 border-bottom border-success border-opacity-25' : 'bg-transparent border-bottom-0';
@@ -192,12 +279,19 @@
                         <p class="mb-0 text-dark small" style="white-space:pre-line;">${shopDetails}</p>
                     </div>` : '';
 
-                // 📷 View Receipt Button (only for shop orders that have image)
-                const receiptBtnHtml = isShop && order.receiptImage ? `
-                    <button class="btn btn-outline-warning w-100 fw-bold rounded-pill mb-2" 
-                        onclick="viewReceipt('${order._id}', \`${order.receiptImage.replace(/`/g, '\\`')}\`)">
+                // 📷 زر عرض إيصال الدفع (طلبات المحل فقط) — يُخزَّن في الخريطة
+                let receiptBtnHtml = '';
+                if (isShop && order.receiptImage) {
+                    const rKey = `receipt_${order._id}`;
+                    const receiptSrc = (typeof getFullImageUrl === 'function') ? getFullImageUrl(order.receiptImage) : order.receiptImage;
+                    orderImagesMap[rKey] = receiptSrc;
+                    receiptBtnHtml = `<button class="btn btn-outline-warning w-100 fw-bold rounded-pill mb-2"
+                        data-img-key="${rKey}"
+                        onclick="viewReceiptByKey('${order._id}', this.dataset.imgKey)">
                         <i class="bi bi-file-earmark-image me-1"></i> عرض إشعار الدفع
-                    </button>` : '';
+                    </button>`;
+                }
+
 
                 const html = `
                     <div class="col-12 col-md-6 col-lg-4">
@@ -217,6 +311,34 @@
                                     </div>
                                     <h6 class="fw-bold fs-6 mb-0">${order.client?.name || 'عميل'}</h6>
                                 </div>
+
+                                <!-- ✅ تفاصيل جهات الاتصال — ظاهرة قبل القبول -->
+                                <div class="bg-light rounded-3 p-3 mb-3" style="font-size:0.82rem;">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block mb-1"><i class="bi bi-telephone-outbound text-primary"></i> جهة الاستلام</small>
+                                            <strong class="d-block">${order.pickup?.contactName || '—'}</strong>
+                                            ${order.pickup?.contactPhone ? `<a href="tel:${order.pickup.contactPhone}" class="text-decoration-none text-success small fw-bold" dir="ltr"><i class="bi bi-telephone-fill"></i> ${order.pickup.contactPhone}</a>` : ''}
+                                        </div>
+                                        <div class="col-6 border-start">
+                                            <small class="text-muted d-block mb-1"><i class="bi bi-telephone-inbound text-danger"></i> جهة التسليم</small>
+                                            <strong class="d-block">${order.dropoff?.receiverName || '—'}</strong>
+                                            ${order.dropoff?.receiverPhone ? `<a href="tel:${order.dropoff.receiverPhone}" class="text-decoration-none text-success small fw-bold" dir="ltr"><i class="bi bi-telephone-fill"></i> ${order.dropoff.receiverPhone}</a>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 📝 ملاحظات الطلب — ظاهرة قبل القبول -->
+                                ${order.details ? `
+                                <div class="alert alert-warning border-0 py-2 px-3 mb-3" style="font-size:0.82rem; background:rgba(255,193,7,0.12);">
+                                    <div class="d-flex gap-2 align-items-start">
+                                        <i class="bi bi-chat-left-text-fill text-warning fs-5"></i>
+                                        <div>
+                                            <strong class="d-block text-dark mb-1">ملاحظات العميل:</strong>
+                                            <span class="text-dark" style="white-space:pre-line;">${order.details}</span>
+                                        </div>
+                                    </div>
+                                </div>` : ''}
 
                                 <div class="timeline position-relative ps-3 border-start border-2 border-light ms-2 mb-3">
                                     <!-- نقطة الاستلام -->
@@ -282,12 +404,17 @@
                                 ${imgHtml}
 
                                 <div class="d-flex gap-2 mt-3 text-white">
-                                    <button class="btn btn-success flex-grow-1 fw-bold rounded-pill shadow-sm" onclick="acceptOrder('${order._id}')">
+                                    ${order.status === 'pending' ? `<button class="btn btn-success flex-grow-1 fw-bold rounded-pill shadow-sm" onclick="acceptOrder('${order._id}')">
                                         <i class="bi bi-check-circle me-1"></i> قبول
-                                    </button>
-                                    <button class="btn btn-outline-primary flex-grow-1 fw-bold rounded-pill border-2" onclick="negotiateOrder('${order._id}', ${order.price})">
-                                        <i class="bi bi-chat-dots me-1"></i> تفاوض
-                                    </button>
+                                    </button>` : ''}
+                                    ${order.myOffer
+                                        ? `<button class="btn btn-outline-warning flex-grow-1 fw-bold rounded-pill border-2" onclick="withdrawNegotiation('${order._id}')">
+                                                <i class="bi bi-dash-circle me-1"></i> سحب عرضي (${order.myOffer.proposedPrice} ج.س)
+                                            </button>`
+                                        : (order.status === 'pending' ? `<button class="btn btn-outline-primary flex-grow-1 fw-bold rounded-pill border-2" onclick="negotiateOrder('${order._id}', ${order.price})">
+                                                <i class="bi bi-chat-dots me-1"></i> تفاوض
+                                            </button>` : '')
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -298,6 +425,17 @@
         }
 
         async function acceptOrder(id) {
+            // 🛡️ BUG #13: Prevent double-click race condition
+            if (isAccepting) return;
+            isAccepting = true;
+
+            // Disable the specific accept button immediately before Swal opens
+            const btn = document.querySelector(`button[onclick="acceptOrder('${id}')"]`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> جاري...';
+            }
+
             const result = await Swal.fire({
                 title: 'قبول الطلب؟',
                 text: "سيتم تعيين الطلب لك وتبليغ العميل",
@@ -305,15 +443,12 @@
                 showCancelButton: true,
                 confirmButtonText: 'نعم، توكلنا! 🚀',
                 cancelButtonText: 'تراجع',
-                confirmButtonColor: '#0a8754',
+                confirmButtonColor: '#04553A',
                 cancelButtonColor: '#7f8c8d'
             });
 
             if (result.isConfirmed) {
-                // Apply loading state to the button immediately
-                const btn = document.querySelector(`button[onclick="acceptOrder('${id}')"]`);
                 if (btn) {
-                    btn.disabled = true;
                     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> جاري التعيين...';
                 }
                 try {
@@ -322,21 +457,28 @@
                         headers: window.Auth.getAuthHeader()
                     });
                     if (res.ok) {
+                        isAccepting = false;
                         Swal.fire({
                             title: 'مبروك!',
                             text: 'تم قبول الطلب بنجاح',
                             icon: 'success',
-                            confirmButtonColor: '#0a8754'
+                            confirmButtonColor: '#04553A'
                         }).then(() => window.location.href = 'captain-missions.html');
                     } else {
                         const err = await res.json();
                         Swal.fire('عذراً', err.message, 'error');
                         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> قبول'; }
+                        isAccepting = false;
                     }
                 } catch (e) {
                     Swal.fire('خطأ', 'فشل الاتصال', 'error');
                     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> قبول'; }
+                    isAccepting = false;
                 }
+            } else {
+                // User cancelled — restore button
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> قبول'; }
+                isAccepting = false;
             }
         }
 
@@ -361,7 +503,7 @@
                 confirmButtonText: '📤 إرسال العرض',
                 cancelButtonText: 'إلغاء',
                 showCancelButton: true,
-                confirmButtonColor: '#0a8754',
+                confirmButtonColor: '#04553A',
                 cancelButtonColor: '#7f8c8d',
                 preConfirm: () => {
                     const val = parseFloat(document.getElementById('proposed-price-input').value);
@@ -396,8 +538,9 @@
                         `,
                         icon: 'success',
                         confirmButtonText: 'حسناً',
-                        confirmButtonColor: '#0a8754'
+                        confirmButtonColor: '#04553A'
                     });
+                    fetchOrders(); // ✅ Refresh UI so the button changes to "Withdraw"
                 } else {
                     Swal.fire('تنبيه', data.message, 'warning');
                 }
@@ -416,6 +559,7 @@
                 if (res.ok) {
                     activeNegotiationOrderId = null;
                     Swal.fire('تم', 'تم سحب عرضك بنجاح', 'info');
+                    fetchOrders(); // ✅ Refresh UI so the button changes back to "Negotiate"
                 } else {
                     Swal.fire('خطأ', data.message, 'error');
                 }
@@ -438,14 +582,17 @@
                     <img src="${imageUrl}" class="img-fluid rounded-3 shadow" style="max-height:60vh; object-fit:contain;" alt="إشعار الدفع" />
                 `,
                 confirmButtonText: 'تم التحقق ✔️',
-                confirmButtonColor: '#0a8754',
+                confirmButtonColor: '#04553A',
                 showCancelButton: true,
                 cancelButtonText: 'إغلاق',
                 width: '90%'
             });
         }
 
-        const socket = io(API_URL, { transports: ['websocket', 'polling'] });
+        const socket = io(API_URL, {
+            transports: ['polling', 'websocket'],
+            auth: { token }
+        });
 
         socket.on('connect', () => {
             socket.emit('user_join', userId);
@@ -459,66 +606,51 @@
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
                 // Check if autoplay is blocked
-                if (audioCtx.state === 'suspended') {
+                if (audioCtx.state === 'suspended' && localStorage.getItem('captain_audio_enabled') !== 'true') {
                     document.getElementById('sound-enable-banner').classList.remove('d-none');
                 }
             } catch (e) { console.error('Audio API not supported'); }
         }
 
-        // Called by user button click
+        // Called by user button click — unlocks audio autoplay
         function enableAudio() {
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume().then(() => {
-                    document.getElementById('sound-enable-banner').classList.add('d-none');
-                    // Play swift test sound
-                    playOrderAlert(true);
-                });
-            }
+            localStorage.setItem('captain_audio_enabled', 'true');
+            const banner = document.getElementById('sound-enable-banner');
+            if (banner) banner.classList.add('d-none');
+            // Play a silent audio to unlock autoplay permission
+            const audio = new Audio('/sounds/wajeezsd-bell.wav');
+            audio.volume = 0.3;
+            audio.play().catch(e => console.log('Audio enable failed:', e));
         }
 
         function playOrderAlert(isTest = false, isShopAlert = false) {
-            if (!audioCtx) initAudio();
-            if (audioCtx.state === 'suspended') {
-                document.getElementById('sound-enable-banner').classList.remove('d-none');
-                return;
+            // ✅ Use official Wajeez bell sound for all order alerts
+            const playOnce = () => {
+                try {
+                    const audio = new Audio('/sounds/wajeezsd-bell.wav');
+                    audio.volume = isTest ? 0.4 : 1.0;
+                    audio.play().catch(() => {
+                        // Autoplay blocked — show enable banner
+                        const banner = document.getElementById('sound-enable-banner');
+                        if (banner && localStorage.getItem('captain_audio_enabled') !== 'true') banner.classList.remove('d-none');
+                    });
+                } catch (e) { console.error('Audio play error', e); }
+            };
+
+            playOnce();
+
+            // 🔔 للطلبات الحقيقية: كرّر النغمة + اهتزاز حتى لا يفوت الكابتن الطلب
+            if (!isTest) {
+                setTimeout(playOnce, 900);
+                setTimeout(playOnce, 1800);
+                // اهتزاز على الويب
+                try { if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]); } catch (_) {}
+                // اهتزاز أصلي عبر Capacitor Haptics إن توفّر
+                try {
+                    const H = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+                    if (H && H.vibrate) H.vibrate({ duration: 700 });
+                } catch (_) {}
             }
-
-            try {
-                const beep = (freq, start, duration) => {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-
-                    osc.frequency.value = freq;
-                    osc.type = 'sine';
-
-                    // Smooth envelope
-                    gain.gain.setValueAtTime(0, audioCtx.currentTime + start);
-                    gain.gain.linearRampToValueAtTime(isTest ? 0.3 : 0.8, audioCtx.currentTime + start + 0.05);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
-
-                    osc.start(audioCtx.currentTime + start);
-                    osc.stop(audioCtx.currentTime + start + duration);
-                };
-
-                if (isShopAlert) {
-                    // Distinct, urgent, positive shop alert
-                    beep(1500, 0, 0.1);
-                    beep(2000, 0.15, 0.15);
-                    beep(2500, 0.3, 0.2);
-                    beep(2000, 0.55, 0.15);
-                    beep(3000, 0.75, 0.3);
-                } else if (isTest) {
-                    beep(880, 0, 0.1); // Short blip
-                } else {
-                    // Urgent alert pattern (delivery)
-                    beep(880, 0, 0.15);
-                    beep(1100, 0.2, 0.15);
-                    beep(1320, 0.4, 0.25);
-                    beep(1760, 0.7, 0.4); // Extra high note for attention
-                }
-            } catch (e) { console.error('Audio play error', e); }
         }
 
         // Initialize on load
@@ -532,6 +664,13 @@
             });
             toast.fire({ icon: 'info', title: '🔔 طلب توصيل جديد وصل!' });
             fetchOrders();
+        });
+
+        // 🚗 طلب أخذه كابتن آخر → حدّث القائمة بصمت ليختفي فوراً (بدون صوت/تنبيه)
+        let orderTakenTimer = null;
+        socket.on('order_taken', () => {
+            clearTimeout(orderTakenTimer);
+            orderTakenTimer = setTimeout(fetchOrders, 400);
         });
 
         socket.on('shop_order_available', (data) => {
@@ -553,17 +692,26 @@
                     html: `السعر النهائي: <strong class="text-success fs-4">${data.finalPrice} ج.س</strong>`,
                     icon: 'success',
                     confirmButtonText: 'عرض مهامي 🚀',
-                    confirmButtonColor: '#0a8754'
+                    confirmButtonColor: '#04553A'
                 }).then(() => window.location.href = 'captain-missions.html');
             } else if (data.result === 'rejected') {
                 Swal.fire({
                     title: '❌ رفض العميل عرضك',
-                    text: 'الطلب عاد متاحاً. يمكنك المحاولة مجدداً أو قبول الطلب بالسعر الأصلي.',
+                    text: 'الطلب لا يزال متاحاً. يمكنك المحاولة مجدداً أو قبول الطلب بالسعر الأصلي.',
                     icon: 'warning',
                     confirmButtonText: 'حسناً',
-                    confirmButtonColor: '#0a8754'
+                    confirmButtonColor: '#04553A'
                 });
                 fetchOrders(); // Refresh to show updated order
+            } else if (data.result === 'order_taken') {
+                Swal.fire({
+                    title: 'ℹ️ تم قبول عرض كابتن آخر',
+                    text: 'قبل العميل عرض كابتن آخر. تم تعيين الطلب لغيرك.',
+                    icon: 'info',
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#04553A'
+                });
+                fetchOrders();
             }
         });
 
@@ -610,7 +758,41 @@
             }
         }
 
-        fetchOrders();
+        // 🔄 شبكة أمان: فحص دوري دائم كل 30 ثانية (حتى مع اتصال السوكت).
+        // شبكات الموبايل قد تُسقط أحداث socket دون قطع ظاهر، فيفوت الكابتن الطلب —
+        // هذا الفحص يضمن ظهور أي طلب جديد خلال 30 ثانية كحد أقصى.
+        setInterval(() => {
+            if (document.visibilityState === 'visible') fetchOrders();
+        }, 30000);
+        // تحديث فوري عند رجوع التطبيق للواجهة
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') fetchOrders();
+        });
+        // تحديث فوري عند إعادة الاتصال بالسوكت (بعد انقطاع الشبكة)
+        socket.on('connect', () => { fetchOrders(); });
+
+        fetchOrders().then(() => {
+            // ✅ Highlight order if came from push notification
+            const highlightId = new URLSearchParams(window.location.search).get('highlight');
+            if (highlightId) {
+                setTimeout(() => {
+                    const cards = document.querySelectorAll('#orders-list .card');
+                    cards.forEach(card => {
+                        const acceptBtn = card.querySelector(`button[onclick*="${highlightId}"]`);
+                        if (acceptBtn) {
+                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            card.style.transition = 'box-shadow 0.4s, transform 0.4s';
+                            card.style.boxShadow = '0 0 0 4px rgba(10,135,84,0.5), 0 10px 30px rgba(10,135,84,0.3)';
+                            card.style.transform = 'scale(1.02)';
+                            setTimeout(() => {
+                                card.style.boxShadow = '';
+                                card.style.transform = '';
+                            }, 3000);
+                        }
+                    });
+                }, 400);
+            }
+        });
     </script>
 
     <!-- WhatsApp Subscription Modal -->

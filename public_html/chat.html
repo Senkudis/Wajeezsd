@@ -3,13 +3,17 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>الدردشة | وصل-لي</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>الدردشة | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <!-- ✅ Config must load first so API_URL is available everywhere -->
+    <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -131,9 +135,10 @@
         }
 
         .msg-bubble {
-            max-width: 80%;
-            padding: 7px 10px 5px;
-            border-radius: 8px;
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             position: relative;
             font-size: 14px;
             line-height: 1.5;
@@ -359,45 +364,71 @@
         .connection-banner {
             background: #ffc107;
             color: #333;
+            padding: 8px 12px;
             text-align: center;
-            padding: 4px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 13px;
             display: none;
-            flex-shrink: 0;
+            z-index: 50;
         }
 
         .connection-banner.disconnected {
             display: block;
-            background: #ff5252;
-            color: white;
+        }
+
+        /* ===== Safe Area (Notch / Status Bar) ===== */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: env(safe-area-inset-top);
+            }
+
+            .input-area {
+                padding-bottom: calc(8px + env(safe-area-inset-bottom));
+            }
+        /* ===== Responsive Mobile Fixes ===== */
+        @media (max-width: 576px) {
+            .chat-header {
+                padding: 10px 12px;
+            }
+            .chat-header .info h6 {
+                font-size: 14px;
+            }
+            .msg-bubble {
+                max-width: 90%;
+                font-size: 14px;
+            }
+            .chat-input-area {
+                padding: 10px;
+                padding-bottom: env(safe-area-inset-bottom, 10px);
+            }
+            .chat-input-area .btn {
+                width: 44px;
+                height: 44px;
+            }
+            .chat-input-area textarea {
+                font-size: 15px;
+            }
         }
     </style>
-    <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css">
-    <script src="js/config.js"></script>
-    <script src="js/auth-helper.js"></script>
 </head>
 
 <body>
-
-    <!-- Connection Banner -->
-    <div id="connectionBanner" class="connection-banner">⚠️ لا يوجد اتصال بالإنترنت...</div>
-
     <!-- Header -->
     <div class="chat-header">
         <button class="back-btn" onclick="goBack()">
-            <i class="bi bi-arrow-right"></i>
+            <i class="bi bi-chevron-right"></i>
         </button>
-        <div class="avatar">
-            <i class="bi bi-person-fill"></i>
-            <span id="statusDot" class="status-dot"></span>
+        <div class="avatar" id="chatAvatar">
+            <span id="chatAvatarEmoji">👤</span>
+            <span class="status-dot" id="statusDot"></span>
         </div>
         <div class="info">
-            <h6 id="receiverName">المحادثة</h6>
-            <small id="statusText">جاري الاتصال...</small>
+            <h6 id="receiverName">جاري التحميل...</h6>
+            <small id="statusText">متصل</small>
         </div>
     </div>
+
+    <!-- Connection Status Banner -->
+    <div class="connection-banner" id="connectionBanner">⚠️ جاري الاتصال...</div>
 
     <!-- Chat Area -->
     <div class="chat-container" id="chatContainer">
@@ -419,17 +450,17 @@
 
     <!-- Input Area -->
     <div class="input-area">
-        <input type="text" id="messageInput" placeholder="اكتب رسالتك هنا..." autocomplete="off">
-        <button id="sendBtn" class="send-btn" onclick="sendMessage()">
+        <input type="text" id="messageInput" placeholder="جاري تهيئة المحادثة..." autocomplete="off" disabled>
+        <button id="sendBtn" class="send-btn" onclick="sendMessage()" disabled>
             <i class="bi bi-send-fill" style="transform: rotate(180deg);"></i>
         </button>
     </div>
 
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
     <script>
         // ===== Auth & Params =====
         const urlParams = new URLSearchParams(window.location.search);
-        const orderId = urlParams.get('orderId') ? urlParams.get('orderId').trim() : null; // ✅ Trim whitespace
+        const orderId = urlParams.get('orderId') ? urlParams.get('orderId').trim() : null;
         let receiverId = urlParams.get('receiverId');
         const userStored = localStorage.getItem('user');
 
@@ -454,28 +485,35 @@
             throw new Error("Invalid Order ID");
         }
 
-        // If receiverId is missing, we try to survive - we can find it from order details later
         if (!receiverId) console.warn('Receiver ID missing in URL, will attempt to resolve from order details.');
 
         let socket = null;
         let isConnected = false;
         let typingTimeout = null;
-        const displayedMessageIds = new Set(); // Prevent duplicates
-
-        // Map of tempId → DOM element for pending (optimistically-rendered) messages
+        const displayedMessageIds = new Set();
         const pendingMessages = new Map();
-
-        // ✅ FIX 3: Track when page was hidden to decide if full reload is needed
         let hiddenAt = null;
+        let isInitialized = false;
 
         // ===== Pending Message Persistence (localStorage) =====
-        // Key format: pending_msgs_<orderId>  →  [{tempId, msgData, text, createdAt}, ...]
         const PENDING_KEY = `pending_msgs_${orderId}`;
+
+        // 🔴 مسح علامة الرسائل غير المقروءة لأن المستخدم فتح المحادثة
+        window._activeChatOrderId = orderId;
+        if (typeof window._clearChatBadge === 'function') {
+            window._clearChatBadge(orderId);
+        } else {
+            // Fallback: مسح من localStorage مباشرة
+            try {
+                let _unread = JSON.parse(localStorage.getItem('_unreadChatOrders') || '[]');
+                _unread = _unread.filter(id => id !== String(orderId));
+                localStorage.setItem('_unreadChatOrders', JSON.stringify(_unread));
+            } catch(e) {}
+        }
 
         function savePending(tempId, msgData, text, createdAt) {
             try {
                 const queue = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
-                // Avoid duplicates
                 if (!queue.find(m => m.tempId === tempId)) {
                     queue.push({ tempId, msgData, text, createdAt });
                     localStorage.setItem(PENDING_KEY, JSON.stringify(queue));
@@ -491,25 +529,44 @@
             } catch (e) { console.warn('[Chat] removePending error:', e); }
         }
 
-        /**
-         * Called once after the socket connects and messages are loaded.
-         * Restores any unsent messages for this orderId and retries sending them.
-         */
         async function restorePendingMessages() {
             try {
-                const queue = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+                let queue = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
                 if (queue.length === 0) return;
-                console.log(`[Chat] Restoring ${queue.length} pending message(s)…`);
 
-                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
+                // ✅ FIX: Build a Set of texts already visible as sent messages in the DOM.
+                // If the message was actually saved on the server, loadMessages() already
+                // rendered it with a real ID. We must NOT re-add or re-send those.
+                const container = document.getElementById('chatContainer');
+                const alreadySentTexts = new Set();
+                if (container) {
+                    container.querySelectorAll('.msg-wrapper.sent .msg-bubble span:not([class])').forEach(span => {
+                        const t = span.textContent.trim();
+                        if (t) alreadySentTexts.add(t);
+                    });
+                }
+
+                // Separate stale (already delivered) from truly pending
+                const stale = queue.filter(e => alreadySentTexts.has(e.text));
+                const stillPending = queue.filter(e => !alreadySentTexts.has(e.text));
+
+                // Clean stale entries from localStorage silently
+                stale.forEach(e => {
+                    console.log('[Chat] Pending message already delivered, cleaning:', e.tempId);
+                    removePending(e.tempId);
+                });
+
+                if (stillPending.length === 0) return;
+                console.log(`[Chat] Restoring ${stillPending.length} truly pending message(s)…`);
+
+                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
                 const headers = (window.Auth && window.Auth.getAuthHeader)
                     ? { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' }
                     : { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
 
-                for (const entry of queue) {
+                for (const entry of stillPending) {
                     const { tempId, msgData, text, createdAt } = entry;
 
-                    // Render with 'sending' state if not already on screen
                     if (!displayedMessageIds.has(tempId)) {
                         const tempMsg = {
                             _id: tempId,
@@ -524,7 +581,6 @@
                         if (el) pendingMessages.set(tempId, el);
                     }
 
-                    // Always use HTTP fallback — socket emit fails with Unauthorized on reconnect
                     try {
                         const res = await fetch(`${apiBase}/api/chat`, {
                             method: 'POST',
@@ -533,7 +589,7 @@
                                 receiver: msgData.receiver,
                                 order: msgData.order,
                                 text,
-                                tempId  // ✅ include to allow server to echo back
+                                tempId
                             })
                         });
                         if (res.ok) {
@@ -548,7 +604,6 @@
                             removePending(tempId);
                             pendingMessages.delete(tempId);
                         } else if (res.status === 403) {
-                            // Order closed — remove the unsendable message silently
                             removePending(tempId);
                         } else {
                             console.warn('[Chat] Restore pending failed, status:', res.status);
@@ -561,9 +616,8 @@
                 console.warn('[Chat] restorePendingMessages error:', e);
             }
         }
-        /**
-         * Marks a message as failed (red !) and attaches a tap-to-retry listener.
-         */
+
+
         function markAsFailed(tempId, msgData) {
             const el = pendingMessages.get(tempId);
             if (!el) return;
@@ -574,7 +628,24 @@
                 statusEl.title = 'فشل الإرسال — اضغط للإعادة';
                 statusEl.style.cursor = 'pointer';
                 statusEl.onclick = () => {
-                    // Reset to sending and retry
+                    // ✅ FIX: Verify message wasn't actually delivered before we retry
+                    const container = document.getElementById('chatContainer');
+                    const alreadySentTexts = new Set();
+                    if (container && msgData && msgData.text) {
+                        container.querySelectorAll('.msg-wrapper.sent .msg-bubble span:not([class])').forEach(span => {
+                            const t = span.textContent.trim();
+                            if (t) alreadySentTexts.add(t);
+                        });
+                    }
+
+                    if (msgData && msgData.text && alreadySentTexts.has(msgData.text)) {
+                        console.log('[Chat] User clicked retry, but message is already delivered. Cleaning up instead.');
+                        removePending(tempId);
+                        pendingMessages.delete(tempId);
+                        if (el && el.parentNode) el.parentNode.removeChild(el); // remove the failed clone
+                        return;
+                    }
+
                     setMessageStatus(el, 'sending');
                     statusEl.onclick = null;
                     if (isConnected) {
@@ -591,18 +662,21 @@
 
         // ===== Socket Init =====
         function initSocket() {
-            const serverUrl = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
-            socket = io(serverUrl, { reconnection: true, transports: ['websocket', 'polling'] });
+            if (isInitialized) {
+                console.log('[Chat] Socket already initialized, skipping');
+                return;
+            }
+            isInitialized = true;
+
+            const serverUrl = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
+            socket = io(serverUrl, { reconnection: true, transports: ['polling', 'websocket'] });
 
             socket.on('connect', () => {
                 isConnected = true;
                 updateConnectionStatus(true);
-                // Re-join personal room and signal we're in this chat
                 socket.emit('user_join', userId);
-                // ✅ FIX 4: Tell backend we're live in this chat (suppresses FCM push)
                 if (orderId) socket.emit('join_chat_room', orderId);
                 console.log('✅ Chat socket connected/reconnected');
-                // Reload messages on reconnect to catch any missed while offline
                 loadMessages();
             });
 
@@ -611,39 +685,26 @@
                 updateConnectionStatus(false);
             });
 
-            // Filter by orderId — only show messages for this conversation
+            // ✅ FIX: تحسين منطق استقبال الرسائل
             socket.on('new_message', (message) => {
                 const msgOrderId = String(message.order || message.orderId || '');
-                if (msgOrderId && msgOrderId !== String(orderId)) return; // Not for this chat
+                if (msgOrderId && msgOrderId !== String(orderId)) return;
 
                 const senderId = (message.sender && typeof message.sender === 'object')
                     ? String(message.sender._id) : String(message.sender);
 
+                // ✅ منع إضافة الرسالة إذا كان المرسل هو المستخدم الحالي
+                // (لأننا نعتمد على message_sent لتأكيد الإرسال)
                 if (senderId === userId) {
-                    // Server echo of our own message — reconcile the optimistic bubble
-                    window._lastFailedMessage = null;
-
-                    if (message.tempId && pendingMessages.has(message.tempId)) {
-                        const el = pendingMessages.get(message.tempId);
-                        if (el && message._id) {
-                            el.setAttribute('data-message-id', String(message._id));
-                        }
-                        setMessageStatus(el, message.isRead ? 'read' : 'sent');
-                        displayedMessageIds.delete(message.tempId);
-                        if (message._id) displayedMessageIds.add(String(message._id));
-                        removePending(message.tempId);
-                        pendingMessages.delete(message.tempId);
-                        return;
-                    }
-
-                    // Not an optimistic echo — guard against duplicate before adding
-                    if (message._id && displayedMessageIds.has(String(message._id))) return;
-                    addMessageToUI(message);
+                    console.log('[Chat] Ignoring own message from new_message event (will use message_sent)');
                     return;
                 }
 
-                // Message from the other party
-                if (message._id && displayedMessageIds.has(String(message._id))) return;
+                // رسالة من الطرف الآخر — تحقق من عدم التكرار
+                if (message._id && displayedMessageIds.has(String(message._id))) {
+                    console.log('[Chat] Duplicate message ignored:', message._id);
+                    return;
+                }
                 addMessageToUI(message);
                 playNotificationSound();
             });
@@ -663,48 +724,10 @@
                 }
             });
 
-            socket.on('message_sent', (data) => {
-                if (data.success) {
-                    console.log('[Chat] Message confirmed saved, id:', data.messageId, 'tempId:', data.tempId);
+            // ❌ تم حذف socket.on('message_sent') وsocket.on('message_error')
+            // لم يعودا مطلوبين — التأكيد يتم عبر Callback مباشرة
 
-                    if (data.tempId && pendingMessages.has(data.tempId)) {
-                        const el = pendingMessages.get(data.tempId);
-                        if (el && data.messageId) {
-                            el.setAttribute('data-message-id', String(data.messageId));
-                            displayedMessageIds.delete(data.tempId);
-                            displayedMessageIds.add(String(data.messageId));
-                        }
-                        setMessageStatus(el, 'sent');
-                        removePending(data.tempId);
-                        pendingMessages.delete(data.tempId);
-                    } else if (data.messageId) {
-                        setMessageStatus(String(data.messageId), 'sent');
-                    }
-
-                    document.getElementById('sendBtn').disabled = false;
-                    document.getElementById('messageInput').focus();
-                }
-            });
-
-            socket.on('message_error', (data) => {
-                console.error('[Chat] Message error:', data);
-                document.getElementById('sendBtn').disabled = false;
-                if (window._lastFailedMessage) {
-                    const failedMsg = window._lastFailedMessage;
-                    window._lastFailedMessage = null;
-                    sendMessageHTTP(failedMsg);
-                } else if (data.tempId) {
-                    markAsFailed(data.tempId, null);
-                } else {
-                    const banner = document.getElementById('connectionBanner');
-                    banner.textContent = '❌ فشل إرسال الرسالة — اضغط على الساعة لإعادة المحاولة';
-                    banner.classList.add('disconnected');
-                    setTimeout(() => banner.classList.remove('disconnected'), 4000);
-                }
-            });
-
-            // ✅ FIX 1: messages_read listener here on the correct `socket` variable
-            // (was broken before because it referenced undefined window.socket)
+            // ✅ messages_read: تحديث حالة الرسائل المرسلة إلى "قرأ"
             socket.on('messages_read', (data) => {
                 if (String(data.orderId) === String(orderId)) {
                     console.log('[Chat] Peer read messages for order', orderId);
@@ -719,9 +742,11 @@
                     }
                 }
             });
+
+            // ❌ تم حذف socket.on('message_sent') — لم يعد مطلوباً
+            // التأكيد الآن يتم عبر Callback في socket.emit ('send_message', data, callback)
         }
 
-        // ===== Connection Status =====
         function updateConnectionStatus(online) {
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
@@ -739,30 +764,22 @@
         }
 
         // ===== Render Messages =====
-        // FIX 4: addMessageToUI now:
-        //  - sets data-message-id on each wrapper (tempId or real _id)
-        //  - upserts an existing DOM element when given a real _id that matches a tempId wrapper
-        //  - returns the created/updated DOM element so callers can store it
         function addMessageToUI(msg, prepend = false) {
             const container = document.getElementById('chatContainer');
-            // Remove loading/empty state
             const emptyState = container.querySelector('.empty-chat');
             if (emptyState) emptyState.remove();
 
-            // Determine tracking IDs
             const realId = msg._id ? String(msg._id) : null;
             const tId = msg.tempId ? String(msg.tempId) : null;
 
-            // --- Upsert: if a DOM element already exists for this id, update it in place ---
+            // ✅ FIX: فحص صارم لمنع التكرار
             let existing = null;
             if (realId) existing = container.querySelector(`[data-message-id="${realId}"]`);
             if (!existing && tId) existing = container.querySelector(`[data-message-id="${tId}"]`);
 
             if (existing) {
-                // Upgrade status indicator
                 const newStatus = msg.isRead ? 'read' : (msg._id ? 'sent' : 'sending');
                 setMessageStatus(existing, newStatus);
-                // Upgrade data-message-id to real _id when available
                 if (realId && existing.getAttribute('data-message-id') !== realId) {
                     existing.setAttribute('data-message-id', realId);
                     if (tId) displayedMessageIds.delete(tId);
@@ -771,15 +788,17 @@
                 return existing;
             }
 
-            // --- Duplicate guard ---
-            if (realId && displayedMessageIds.has(realId)) return null;
+            // ✅ حماية مزدوجة ضد التكرار
+            if (realId && displayedMessageIds.has(realId)) {
+                console.log('[Chat] Message already displayed (real id):', realId);
+                return null;
+            }
             if (tId && displayedMessageIds.has(tId)) {
-                // If it's in the set but not in DOM (edge case), swap track id just in case
+                console.log('[Chat] Message already displayed (temp id):', tId);
                 if (realId) displayedMessageIds.add(realId);
                 return null;
             }
 
-            // Record the active tracking id for this new element
             const trackId = realId || tId;
             if (trackId) displayedMessageIds.add(trackId);
 
@@ -796,18 +815,14 @@
 
             const wrapper = document.createElement('div');
             wrapper.className = `msg-wrapper ${isMe ? 'sent' : 'received'}`;
-            // FIX 4a: stamp the element with a data attribute for future lookups
             if (trackId) wrapper.setAttribute('data-message-id', trackId);
 
             const time = new Date(msg.createdAt || Date.now()).toLocaleTimeString('ar-EG', {
                 hour: '2-digit', minute: '2-digit'
             });
 
-            // Determine initial status for sent messages
             let statusHtml = '';
             if (isMe) {
-                // If the message has a real _id it is at least 'sent'; isRead → 'read'
-                // temp messages (no real _id) start as 'sending'
                 const isTempMsg = !msg._id || String(msg._id).startsWith('temp_');
                 const initialStatus = msg.isRead ? 'read' : (isTempMsg ? 'sending' : 'sent');
                 const icon = initialStatus === 'sending'
@@ -839,7 +854,7 @@
                 container.appendChild(wrapper);
                 scrollToBottom();
             }
-            return wrapper; // FIX 4b: return the element so callers can store a reference
+            return wrapper;
         }
 
         function scrollToBottom() {
@@ -851,10 +866,6 @@
             }
         }
 
-        /**
-         * Upgrade the status indicator inside a message wrapper element.
-         * status: 'sending' | 'sent' | 'read'
-         */
         function setMessageStatus(elementOrId, status) {
             let el;
             if (typeof elementOrId === 'string') {
@@ -878,11 +889,9 @@
             }
         }
 
-        // ===== Mark messages as read =====
         async function markMessagesAsRead() {
             try {
-
-                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
+                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
                 const headers = (window.Auth && window.Auth.getAuthHeader)
                     ? { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' }
                     : { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
@@ -905,19 +914,19 @@
 
         async function loadMessages(page = 1) {
             if (isLoadingMore) return;
-            // Clear any pending retry if it's the initial load
             if (page === 1 && loadRetryTimer) {
                 clearTimeout(loadRetryTimer); loadRetryTimer = null;
             }
 
             try {
                 isLoadingMore = true;
-                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
+                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
                 const headers = (window.Auth && window.Auth.getAuthHeader)
                     ? window.Auth.getAuthHeader()
                     : { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
 
-                const fetchUrl = `${apiBase}/api/chat/${orderId}?page=${page}&limit=20`;
+                const limit = 20;
+                const fetchUrl = `${apiBase}/api/chat/${orderId}?page=${page}&limit=${limit}`;
                 console.log('[Chat] Loading messages from:', fetchUrl, 'orderId:', orderId);
                 const res = await fetch(fetchUrl, { headers });
 
@@ -929,7 +938,6 @@
                         console.error('[Chat] Auth failed, token may be expired');
                     }
 
-                    // Only show error if no messages are currently loaded
                     const container = document.getElementById('chatContainer');
                     if (displayedMessageIds.size === 0 && pendingMessages.size === 0) {
                         container.innerHTML = `
@@ -946,7 +954,6 @@
                 const data = await res.json();
                 const container = document.getElementById('chatContainer');
 
-                // Keep track of scroll height before adding elements to preserve scroll position
                 let previousScrollHeight = 0;
                 if (container) {
                     previousScrollHeight = container.scrollHeight;
@@ -963,45 +970,64 @@
                             <p>لا توجد رسائل سابقة<br>ابدأ المحادثة الآن!</p>
                         </div>`;
                 } else {
-                    // Remove empty states if they exist
                     const emptyState = container.querySelector('.empty-chat');
                     if (emptyState) emptyState.remove();
 
-                    // If page > 1, prepend (add to top), otherwise append (add to bottom)
                     if (page === 1) {
+                        // ✅ FIX: No more `container.innerHTML = ''` to prevent UI flashing
+                        // We rely on `addMessageToUI` and `displayedMessageIds` to handle duplicates safely
+
                         messages.forEach(msg => {
                             const realId = msg._id ? String(msg._id) : null;
                             const tId = msg.tempId ? String(msg.tempId) : null;
 
-                            if (realId && displayedMessageIds.has(realId)) {
-                                // Already shown with real id — just upgrade status
-                                const existing = container.querySelector(`[data-message-id="${realId}"]`);
-                                if (existing) setMessageStatus(existing, msg.isRead ? 'read' : 'sent');
-
-                            } else if (tId && displayedMessageIds.has(tId)) {
-                                // Optimistic element exists with tempId — reconcile to real id
-                                const existing = container.querySelector(`[data-message-id="${tId}"]`);
-                                if (existing && realId) {
-                                    existing.setAttribute('data-message-id', realId);
+                            // 1. Match by tempId stored on server
+                            if (tId && pendingMessages.has(tId)) {
+                                const el = pendingMessages.get(tId);
+                                if (realId) {
+                                    el.setAttribute('data-message-id', realId);
                                     displayedMessageIds.delete(tId);
                                     displayedMessageIds.add(realId);
-                                    // Also update pendingMessages map if still tracked
-                                    if (pendingMessages.has(tId)) {
-                                        pendingMessages.set(realId, existing);
-                                        pendingMessages.delete(tId);
+                                    pendingMessages.set(realId, el);
+                                    pendingMessages.delete(tId);
+                                }
+                                setMessageStatus(el, msg.isRead ? 'read' : 'sent');
+                                removePending(tId);
+                            } else if (!tId && pendingMessages.size > 0 && realId) {
+                                // ✅ FIX: Fallback — if server didn't return tempId, match by text+time
+                                // This resolves "stuck sending" when message_sent event was missed
+                                let matchedTempId = null;
+                                for (const [pid, pel] of pendingMessages.entries()) {
+                                    const pelText = pel.querySelector('.msg-bubble span:not([class])');
+                                    if (pelText && pelText.textContent.trim() === (msg.text || '').trim()) {
+                                        matchedTempId = pid;
+                                        break;
                                     }
                                 }
-                                if (existing) setMessageStatus(existing, msg.isRead ? 'read' : 'sent');
-                                removePending(tId);
-
-                            } else {
-                                // Not rendered yet — add normally
+                                if (matchedTempId) {
+                                    const el = pendingMessages.get(matchedTempId);
+                                    el.setAttribute('data-message-id', realId);
+                                    displayedMessageIds.delete(matchedTempId);
+                                    displayedMessageIds.add(realId);
+                                    setMessageStatus(el, msg.isRead ? 'read' : 'sent');
+                                    removePending(matchedTempId);
+                                    pendingMessages.delete(matchedTempId);
+                                } else {
+                                    // New message from server (not a pending we sent)
+                                    addMessageToUI(msg, false);
+                                }
+                            }
+                            // 2. Otherwise add it normally (dedup handled inside addMessageToUI)
+                            else {
                                 addMessageToUI(msg, false);
                             }
                         });
-                        scrollToBottom();
+
+                        // Ensure scroll stays at bottom on initial load
+                        if (displayedMessageIds.size <= limit) {
+                            scrollToBottom();
+                        }
                     } else {
-                        // Prepend in reverse so they stack upwards correctly
                         [...messages].reverse().forEach(msg => {
                             const trackId = msg._id ? String(msg._id) : null;
                             if (trackId && !displayedMessageIds.has(trackId)) {
@@ -1009,7 +1035,6 @@
                             }
                         });
 
-                        // Maintain scroll position after prepending items
                         if (container) {
                             const currentScrollHeight = container.scrollHeight;
                             container.scrollTop = currentScrollHeight - previousScrollHeight;
@@ -1017,12 +1042,21 @@
                     }
                 }
 
-                // If page 1, try to load receiver name and mark as read
                 if (page === 1) {
-                    loadReceiverInfo();
                     markMessagesAsRead();
                 }
                 isLoadingMore = false;
+
+                // Enable inputs after initial load
+                if (page === 1) {
+                    const msgInput = document.getElementById('messageInput');
+                    const sBtn = document.getElementById('sendBtn');
+                    if (msgInput && sBtn && msgInput.disabled) {
+                        msgInput.disabled = false;
+                        msgInput.placeholder = 'اكتب رسالتك هنا...';
+                        sBtn.disabled = false;
+                    }
+                }
             } catch (err) {
                 console.error('[Chat] Load messages error:', err);
                 const container = document.getElementById('chatContainer');
@@ -1036,76 +1070,67 @@
                     loadRetryTimer = setTimeout(() => loadMessages(1), 5000);
                 }
                 isLoadingMore = false;
+
+                // If it fails, enable inputs anyway so user isn't permanently locked out if only history fails
+                const msgInput = document.getElementById('messageInput');
+                const sBtn = document.getElementById('sendBtn');
+                if (msgInput && sBtn && msgInput.disabled) {
+                    msgInput.disabled = false;
+                    msgInput.placeholder = 'اكتب رسالتك هنا...';
+                    sBtn.disabled = false;
+                }
             }
         }
 
-        // Add scroll event for pagination
         document.getElementById('chatContainer').addEventListener('scroll', function () {
             if (this.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
                 loadMessages(currentPage + 1);
             }
         });
 
-        // ===== Load Receiver Name =====
         async function loadReceiverInfo() {
             try {
-                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
+                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
                 const headers = (window.Auth && window.Auth.getAuthHeader)
                     ? window.Auth.getAuthHeader()
                     : { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
 
-                let order = null;
-
-                // Try client endpoint first (my-orders)
-                try {
-                    const res = await fetch(`${apiBase}/api/orders/my-orders`, { headers });
-                    const data = await res.json();
-                    const orders = Array.isArray(data) ? data : (data.orders || []);
-                    order = orders.find(o => o._id === orderId);
-                } catch (e) { /* ignore */ }
-
-                // If not found, try captain endpoint (my-missions)
-                if (!order) {
-                    try {
-                        const res2 = await fetch(`${apiBase}/api/orders/my-missions`, { headers });
-                        const data2 = await res2.json();
-                        const missions = Array.isArray(data2) ? data2 : (data2.orders || data2.missions || []);
-                        order = missions.find(o => o._id === orderId);
-                    } catch (e) { /* ignore */ }
-                }
-
-                if (order) {
-                    // Check if order is completed and lock chat
-                    if (order.status === 'delivered' || order.status === 'canceled') {
-                        const inputArea = document.querySelector('.input-area');
-                        if (inputArea) {
-                            inputArea.innerHTML = `<div class="text-center w-100 text-muted small py-3"><i class="bi bi-info-circle"></i> الدردشة مغلقة لأن الطلب ${order.status === 'delivered' ? 'مكتمل' : 'ملغي'}</div>`;
-                            inputArea.style.background = '#e5ddd5';
+                const res = await fetch(`${apiBase}/api/orders/${orderId}`, { headers });
+                if (res.ok) {
+                    const order = await res.json();
+                    if (order) {
+                        if (order.captain && order.captain._id === userId) {
+                            const name = order.client.name || 'العميل';
+                            document.getElementById('receiverName').textContent = name;
+                            if (!receiverId) {
+                                receiverId = String(order.client._id || order.client);
+                                console.log('[Chat] Resolved receiverId from order (client):', receiverId);
+                            }
+                        } else if (order.client && order.client._id === userId) {
+                            const name = order.captain ? (order.captain.name || 'الكابتن') : 'الكابتن';
+                            document.getElementById('receiverName').textContent = name;
+                            // 📷 صورة بروفايل الكابتن في رأس المحادثة (إن أضافها المدير)
+                            const capPhoto = order.captain && order.captain.documents && order.captain.documents.profilePhoto;
+                            if (capPhoto) setChatAvatar(capPhoto);
+                            if (!receiverId) {
+                                receiverId = String(order.captain._id || order.captain);
+                                console.log('[Chat] Resolved receiverId from order (captain):', receiverId);
+                            }
                         }
                     }
+                    return; // done — normal order handled
+                }
 
-                    // Determine if current user is client or captain
-                    const clientId = order.client && (order.client._id || order.client);
-                    const captainId = order.captain && (order.captain._id || order.captain);
-
-                    if (String(clientId) === userId && order.captain) {
-                        // I'm the client, show captain name
-                        const name = order.captain.name || 'الكابتن';
-                        document.getElementById('receiverName').textContent = name;
-                        // ✅ FIX: تحديث receiverId لو كان غائباً
-                        if (!receiverId) {
-                            receiverId = String(order.captain._id || order.captain);
-                            console.log('[Chat] Resolved receiverId from order (captain):', receiverId);
-                        }
-                    } else if (String(captainId) === userId && order.client) {
-                        // I'm the captain, show client name
-                        const name = order.client.name || 'العميل';
-                        document.getElementById('receiverName').textContent = name;
-                        // ✅ FIX: تحديث receiverId لو كان غائباً
-                        if (!receiverId) {
-                            receiverId = String(order.client._id || order.client);
-                            console.log('[Chat] Resolved receiverId from order (client):', receiverId);
-                        }
+                // Fallback: ShopOrder (merchant <-> client chat)
+                const shopRes = await fetch(`${apiBase}/api/merchant/shop-order/${orderId}/chat-info`, { headers });
+                if (shopRes.ok) {
+                    const info = await shopRes.json();
+                    if (info.clientId === userId) {
+                        document.getElementById('receiverName').textContent = info.merchantName || 'التاجر';
+                        if (!receiverId) receiverId = info.merchantId;
+                    } else {
+                        document.getElementById('receiverName').textContent = info.clientName || 'العميل';
+                        if (!receiverId) receiverId = info.clientId;
                     }
                 }
             } catch (err) {
@@ -1113,10 +1138,9 @@
             }
         }
 
-        // ===== Send Message via HTTP (Fallback) =====
         async function sendMessageHTTP(msgData) {
             try {
-                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
+                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
                 const headers = (window.Auth && window.Auth.getAuthHeader)
                     ? { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' }
                     : { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
@@ -1128,25 +1152,27 @@
                         receiver: msgData.receiver,
                         order: msgData.order,
                         text: msgData.text,
-                        tempId: msgData.tempId // Pass tempId so backend returns it
+                        tempId: msgData.tempId
                     })
                 });
 
                 if (res.ok) {
                     const savedMsg = await res.json();
                     console.log('[Chat] Message saved via HTTP fallback, id:', savedMsg._id);
-                    // Reconcile if the element is still pending
-                    if (savedMsg.tempId && pendingMessages.has(savedMsg.tempId)) {
-                        const el = pendingMessages.get(savedMsg.tempId);
+                    // ✅ FIX: always try to resolve via tempId stored in response OR msgData.tempId
+                    const resolvedTempId = savedMsg.tempId || msgData.tempId;
+                    if (resolvedTempId && pendingMessages.has(resolvedTempId)) {
+                        const el = pendingMessages.get(resolvedTempId);
                         if (el && savedMsg._id) {
                             el.setAttribute('data-message-id', String(savedMsg._id));
-                            displayedMessageIds.delete(savedMsg.tempId);
+                            displayedMessageIds.delete(resolvedTempId);
                             displayedMessageIds.add(String(savedMsg._id));
                         }
                         setMessageStatus(el, 'sent');
-                        removePending(savedMsg.tempId);
-                        pendingMessages.delete(savedMsg.tempId);
-                    } else {
+                        removePending(resolvedTempId);
+                        pendingMessages.delete(resolvedTempId);
+                    } else if (savedMsg._id && !displayedMessageIds.has(String(savedMsg._id))) {
+                        // ✅ FIX: only add to UI if NOT already shown (prevents duplicate)
                         addMessageToUI(savedMsg);
                     }
                 } else if (res.status === 403) {
@@ -1166,15 +1192,13 @@
             }
         }
 
-        // ===== Send Message =====
         async function sendMessage() {
             const input = document.getElementById('messageInput');
-            if (!input) return; // Might be removed if order is completed
+            if (!input) return;
 
             const text = input.value.trim();
             if (!text) return;
 
-            // ✅ FIX: منع الإرسال لو receiverId لايزال غير محدد
             if (!receiverId) {
                 const banner = document.getElementById('connectionBanner');
                 banner.textContent = '⚠️ جاري تحديد بيانات المحادثة...';
@@ -1194,10 +1218,9 @@
                 senderName: userName
             };
 
-            // FIX 5: Optimistic rendering with stable tempId tracked in pendingMessages
             const tempId = 'temp_' + Date.now();
             const tempMsg = {
-                _id: tempId,   // use tempId as _id so displayedMessageIds tracks it
+                _id: tempId,
                 tempId: tempId,
                 sender: { _id: userId, name: userName },
                 text: text,
@@ -1205,36 +1228,75 @@
                 isRead: false,
                 order: orderId
             };
-            // Save the text in input on beforeunload so the user can see it again
-            // (the actual pending queue in localStorage handles resend on next open)
             savePending(tempId, msgData, text, tempMsg.createdAt);
 
             const tempElement = addMessageToUI(tempMsg);
-            // Store the DOM element so we can reconcile later when server responds
             if (tempElement) pendingMessages.set(tempId, tempElement);
             input.value = '';
 
+            // ✅ FIX: timeout آمن — إذا لم يصل تأكيد message_sent خلال 6 ثواني، نعيد تحميل الرسائل
+            // لنحاول حل الرسائل العالقة في حالة "جاري الإرسال"
+            clearTimeout(window._sendBtnTimeout);
+            window._sendBtnTimeout = setTimeout(() => {
+                btn.disabled = false;
+                if (pendingMessages.size > 0) {
+                    console.log('[Chat] Timeout: pending messages still exist, reloading to resolve...');
+                    loadMessages(1);
+                }
+            }, 6000);
+
             if (isConnected) {
-                // Store for potential HTTP fallback if socket fails
-                window._lastFailedMessage = { ...msgData, tempId };
-                // Include tempId in socket payload so server can echo it back for reconciliation
-                socket.emit('send_message', { ...msgData, tempId });
-                // Re-enable after short delay
-                setTimeout(() => { btn.disabled = false; }, 500);
+                // ✅ ACK Callback Pattern:
+                // نمرر callback كآخر argument لـ socket.emit
+                // السيرفر سيستدعيه فور حفظ الرسالة في DB
+                socket.emit('send_message', { ...msgData, tempId }, (ack) => {
+                    clearTimeout(window._sendBtnTimeout);
+
+                    if (ack && ack.status === 'success') {
+                        console.log('[Chat] ✅ ACK received: tempId=', ack.tempId, 'realId=', ack.realId);
+
+                        // 1️⃣ تحديث DOM element: استبدل tempId بـ realId
+                        const el = pendingMessages.get(tempId);
+                        if (el && ack.realId) {
+                            el.setAttribute('data-message-id', ack.realId);
+                            displayedMessageIds.delete(tempId);
+                            displayedMessageIds.add(ack.realId);
+                        }
+
+                        // 2️⃣ تحديث حالة الرسالة إلى "sent" (علامة ✓)
+                        setMessageStatus(el || ack.realId, 'sent');
+
+                        // 3️⃣ ⭐ مسح الرسالة من localStorage فوراً — هذا يمنع sendBeacon من إعادة إرسالها
+                        removePending(tempId);
+                        pendingMessages.delete(tempId);
+
+                        // إعادة تفعيل الزر والتركيز على Input
+                        document.getElementById('sendBtn').disabled = false;
+                        document.getElementById('messageInput').focus();
+
+                    } else {
+                        // فشل ACK — نجرب HTTP Fallback
+                        console.warn('[Chat] ACK error or missing, falling back to HTTP:', ack);
+                        sendMessageHTTP({ ...msgData, tempId }).then(() => {
+                            removePending(tempId);
+                            pendingMessages.delete(tempId);
+                            document.getElementById('sendBtn').disabled = false;
+                        });
+                    }
+                });
             } else {
-                // ✅ FIX 2: HTTP fallback — tempId must be on the payload so reconciliation works
+                // الـ Socket منقطع — نستخدم HTTP Fallback مباشرة
                 console.warn('[Chat] Socket disconnected, using HTTP fallback');
-                msgData.tempId = tempId; // ← attach tempId before passing to HTTP handler
-                await sendMessageHTTP(msgData);
+                await sendMessageHTTP({ ...msgData, tempId });
+                clearTimeout(window._sendBtnTimeout);
                 btn.disabled = false;
             }
         }
 
-        // ===== Typing Events =====
         const input = document.getElementById('messageInput');
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
         input.addEventListener('input', () => {
-            if (isConnected) {
+            if (isConnected && receiverId) {
                 socket.emit('typing', { sender: userId, receiver: receiverId });
                 clearTimeout(typingTimeout);
                 typingTimeout = setTimeout(() => {
@@ -1243,7 +1305,6 @@
             }
         });
 
-        // ===== Notification Sound =====
         function playNotificationSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1263,60 +1324,89 @@
 
         function goBack() { window.history.back(); }
 
+        // 📷 يعرض صورة بروفايل الطرف الآخر في رأس المحادثة بدل الإيموجي
+        function setChatAvatar(photoPath) {
+            if (!photoPath) return;
+            const base = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
+            const url = photoPath.startsWith('http') ? photoPath : base + photoPath;
+            const avatar = document.getElementById('chatAvatar');
+            const emoji = document.getElementById('chatAvatarEmoji');
+            if (!avatar) return;
+            if (emoji) emoji.style.display = 'none';
+            avatar.style.backgroundImage = `url('${url}')`;
+            avatar.style.backgroundSize = 'cover';
+            avatar.style.backgroundPosition = 'center';
+        }
+
         // ===== Init =====
         initSocket();
-        loadMessages(1);
+        loadReceiverInfo();
+        // ✅ FIX: Run restorePendingMessages AFTER loadMessages completes to avoid race condition
+        // loadMessages will resolve any pending messages that were actually saved.
+        // Only then do we try to re-send anything that's genuinely still pending.
+        loadMessages(1).finally(() => {
+            setTimeout(() => restorePendingMessages(), 1500);
+        });
 
-        // Restore any unsent messages from a previous session and retry sending
-        setTimeout(() => restorePendingMessages(), 2000);
+        // ✅ Auto-flush pending when internet comes back (offline → online)
+        window.addEventListener('online', () => {
+            console.log('[Chat] Network restored — flushing pending messages…');
+            restorePendingMessages();
+        });
 
-        // ✅ FIX 3 & FIX 4 & FIX 5: Smart visibilitychange handler
-        // — Tracks how long the page was hidden
-        // — Emits join/leave_chat_room for FCM suppression
-        // — Flushes pending messages via sendBeacon on quick-exit
+        // 🔄 Fallback auto-refresh — keeps the thread fresh even if the socket drops.
+        // Only fires when the socket is down AND the page is visible. The socket is the
+        // primary channel; loadMessages() dedupes via displayedMessageIds so no duplicates.
+        setInterval(() => {
+            if (!document.hidden && orderId && (!socket || !isConnected)) {
+                loadMessages(1);
+            }
+        }, 8000);
+
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 hiddenAt = Date.now();
-                // Signal backend we left the chat room (re-enables FCM push for this order)
                 if (socket && isConnected && orderId) {
                     socket.emit('leave_chat_room', orderId);
+                    
+                    // ✅ Fire beacon to reliably leave room on server even if socket freezes
+                    if (navigator.sendBeacon) {
+                        const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
+                        const blob = new Blob([JSON.stringify({ orderId, userId })], { type: 'text/plain;charset=UTF-8' });
+                        navigator.sendBeacon(`${apiBase}/api/chat/leave-room`, blob);
+                    }
                 }
-                // ✅ FIX 5: Flush any pending (unsent) messages via sendBeacon
-                // sendBeacon is guaranteed to fire even after the tab is killed
                 flushPendingViaBeacon();
             } else {
-                // Page became visible again
+                // ✅ FIX: Calculate duration BEFORE resetting hiddenAt
+                const hiddenDuration = hiddenAt ? (Date.now() - hiddenAt) : Infinity;
                 hiddenAt = null;
-                // Re-signal that we're back in the chat room (suppresses FCM again)
+
                 if (socket && isConnected && orderId) {
                     socket.emit('join_chat_room', orderId);
                 }
-                // Only do a full reload if we were hidden for more than 30 seconds
-                // (avoids flicker on brief tab switches)
-                const hiddenDuration = hiddenAt ? (Date.now() - hiddenAt) : Infinity;
-                if (hiddenDuration > 30000 || hiddenDuration === Infinity) {
+                if (hiddenDuration > 30000) {
                     console.log('[Chat] Page visible after long absence — reloading messages');
                     loadMessages(1);
                 } else {
-                    // Just mark as read without a full reload
                     markMessagesAsRead();
                 }
             }
         });
 
-        // ✅ FIX 4: Also leave chat room on page unload (hard close / navigate away)
         window.addEventListener('beforeunload', () => {
             if (socket && isConnected && orderId) {
                 socket.emit('leave_chat_room', orderId);
+                
+                if (navigator.sendBeacon) {
+                    const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
+                    const blob = new Blob([JSON.stringify({ orderId, userId })], { type: 'text/plain;charset=UTF-8' });
+                    navigator.sendBeacon(`${apiBase}/api/chat/leave-room`, blob);
+                }
             }
-            // Beacon flush as final safety net
             flushPendingViaBeacon();
         });
 
-        /**
-         * ✅ FIX 5: Flush pending messages via navigator.sendBeacon
-         * Uses the browser's guaranteed async delivery that fires even after tab close.
-         */
         function flushPendingViaBeacon() {
             if (!navigator.sendBeacon) return;
             try {
@@ -1326,25 +1416,25 @@
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
-                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
+                const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
 
                 for (const entry of queue) {
                     const { tempId, msgData, text } = entry;
-                    // sendBeacon can only send Blob/FormData/URLSearchParams without
-                    // custom headers — we use a Blob with JSON content-type
+
+                    // ✅ FIX: نرسل لـ /api/beacon بدل /api/chat
+                    // لأن sendBeacon لا يدعم Authorization header،
+                    // ف /api/beacon يقبل _token في الـ body ويتحقق منه يدوياً
                     const payload = JSON.stringify({
                         receiver: msgData.receiver,
                         order: msgData.order,
                         text,
                         tempId,
-                        // Pass token in body as a fallback; the server auth middleware reads
-                        // Authorization header so we also try a URLSearchParams variant below
-                        _token: token
+                        _token: token  // ✅ التوكن في الـ body
                     });
                     const blob = new Blob([payload], { type: 'application/json' });
-                    const sent = navigator.sendBeacon(`${apiBase}/api/chat`, blob);
+                    const sent = navigator.sendBeacon(`${apiBase}/api/beacon`, blob);
                     if (sent) {
-                        console.log('[Chat] sendBeacon fired for pending msg', tempId);
+                        console.log('[Chat] sendBeacon fired via /api/beacon for pending msg', tempId);
                     }
                 }
             } catch (e) {

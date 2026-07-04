@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>إدارة المنتجات | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
+        }
+        .product-card {
+            background: white; border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            margin-bottom: 12px; overflow: hidden;
+            display: flex; align-items: stretch;
+            transition: transform 0.2s;
+        }
+        .product-card:hover { transform: translateY(-1px); }
+        .product-img {
+            width: 90px; min-height: 90px; object-fit: cover;
+            background: #f1f5f9; display: flex; align-items: center; justify-content: center;
+            color: #94a3b8; font-size: 2rem; flex-shrink: 0;
+        }
+        .product-img img { width: 100%; height: 100%; object-fit: cover; }
+        .product-info { flex: 1; padding: 12px; }
+        .product-actions { display: flex; flex-direction: column; justify-content: center; padding: 8px; gap: 6px; }
+        .icon-btn {
+            width: 36px; height: 36px; border-radius: 10px; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .icon-btn:hover { transform: scale(1.1); }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        .fab {
+            position: fixed; bottom: 80px; left: 20px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; border: none; font-size: 1.5rem;
+            box-shadow: 0 4px 16px rgba(245,158,11,0.5);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 999; transition: all 0.2s;
+        }
+        .fab:hover { transform: scale(1.1); }
+        .category-badge {
+            font-size: 11px; padding: 2px 10px; border-radius: 20px;
+            background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600;
+        }
+        .form-label { font-weight: 700; font-size: 13px; color: #374151; }
+        .modal-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; }
+        .modal-title { font-weight: 800; }
+        .availability-toggle {
+            display: flex; align-items: center; gap: 8px;
+            background: #f8fafc; padding: 10px 14px; border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="d-flex align-items-center gap-3">
+        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        <div>
+            <h5 class="fw-bold mb-0">إدارة المنتجات</h5>
+            <small class="text-white-50" id="productCount">جاري التحميل...</small>
+        </div>
+    </div>
+</div>
+
+<!-- 🔎 Search + quick stats -->
+<div class="container-fluid px-3 pt-3 pb-1">
+    <div class="position-relative mb-2">
+        <i class="bi bi-search position-absolute" style="right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;"></i>
+        <input type="text" id="productSearch" oninput="filterProducts(this.value)" autocomplete="off"
+            placeholder="ابحث في منتجاتك بالاسم أو الوصف..."
+            class="form-control" style="padding:11px 42px 11px 14px;border-radius:13px;font-weight:600;">
+    </div>
+    <div id="productStats" class="d-flex gap-2 flex-wrap" style="font-size:11.5px;font-weight:700;"></div>
+</div>
+
+<div class="container-fluid px-3 pt-2" id="productsContainer">
+    <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
+</div>
+
+<!-- FAB: Add Product -->
+<button class="fab" onclick="openAddModal()">
+    <i class="bi bi-plus-lg"></i>
+</button>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="productModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title" id="modalTitle">
+                    <i class="bi bi-plus-circle-fill me-2"></i>إضافة منتج جديد
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editProductId">
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-tag-fill text-warning me-1"></i>اسم المنتج *</label>
+                    <input type="text" id="pName" class="form-control" placeholder="مثال: برجر لحم">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-text-paragraph text-primary me-1"></i>الوصف</label>
+                    <textarea id="pDesc" class="form-control" rows="2" placeholder="وصف مختصر للمنتج..."></textarea>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label"><i class="bi bi-currency-dollar text-success me-1"></i>السعر (ج.س) *</label>
+                        <input type="number" id="pPrice" class="form-control" placeholder="0" min="0" step="0.5">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label"><i class="bi bi-grid-3x3-gap-fill text-info me-1"></i>التصنيف</label>
+                        <input type="text" id="pCategory" class="form-control" placeholder="مثال: وجبات رئيسية">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-image-fill text-secondary me-1"></i>صورة المنتج</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <label for="productImageUpload" class="btn btn-outline-secondary mb-0 flex-grow-1" style="border-style:dashed;">
+                            <i class="bi bi-cloud-arrow-up me-1"></i> اختر صورة
+                        </label>
+                        <input type="file" id="productImageUpload" accept="image/*" class="d-none" onchange="uploadProductImage(this)">
+                        <img id="productImagePreview" src="" alt="preview" style="width:50px;height:50px;object-fit:cover;border-radius:8px;display:none;border:1px solid #ddd;">
+                        <input type="hidden" id="pImage" value="">
+                    </div>
+                    <!-- Upload status row -->
+                    <div id="uploadProgress" class="mt-2 d-none">
+                        <div class="progress mb-1" style="height:5px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width:100%"></div>
+                        </div>
+                        <small class="text-warning fw-bold d-flex align-items-center gap-1">
+                            <span class="spinner-border spinner-border-sm"></span>
+                            جاري رفع الصورة... انتظر حتى ينتهي الرفع قبل الحفظ
+                        </small>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-boxes text-warning me-1"></i>الكمية المتاحة في المخزون</label>
+                    <div class="input-group">
+                        <input type="number" id="pStock" class="form-control" placeholder="اتركه فارغاً = غير محدود" min="0" step="1">
+                        <span class="input-group-text bg-light text-muted small">قطعة</span>
+                    </div>
+                    <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>إذا تركته فارغاً يعني الكمية غير محدودة</div>
+                </div>
+                <div class="availability-toggle mb-3">
+                    <input type="checkbox" id="pAvailable" class="form-check-input" style="width:20px;height:20px;" checked>
+                    <label for="pAvailable" class="fw-bold mb-0">متاح للطلب حالياً</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 flex-column gap-2">
+                <button class="btn btn-warning w-100 py-3 fw-bold rounded-3 text-dark" id="btnSaveProduct" onclick="saveProduct()">
+                    <i class="bi bi-check-circle-fill me-2"></i> حفظ المنتج
+                </button>
+                <button class="btn btn-outline-secondary w-100 rounded-3" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
+    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
+    <a href="merchant-conversations.html"><i class="bi bi-chat-dots-fill"></i> رسائل</a>
+    <a href="merchant-notifications.html"><i class="bi bi-bell"></i> إشعارات</a>
+    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');"><i class="bi bi-box-arrow-right"></i> خروج</a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) window.location.href = 'client-login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+    let products = [];
+    let _productFilter = '';
+    window.filterProducts = function(q) {
+        _productFilter = (q || '').trim().toLowerCase();
+        renderProducts();
+    };
+    function _renderProductStats() {
+        const cnt = document.getElementById('productCount');
+        const el = document.getElementById('productStats');
+        const total = products.length;
+        const avail = products.filter(p => p.isAvailable).length;
+        const out = products.filter(p => p.stock === 0).length;
+        const low = products.filter(p => p.stock !== null && p.stock !== undefined && p.stock > 0 && p.stock <= 5).length;
+        if (cnt) cnt.textContent = `${total} منتج`;
+        if (!el) return;
+        const chip = (bg, c, icon, txt) => `<span style="background:${bg};color:${c};border-radius:99px;padding:4px 11px;font-size:12px;font-weight:700;">${icon} ${txt}</span>`;
+        el.innerHTML =
+            chip('#dcfce7', '#166534', '<i class="bi bi-check-circle-fill"></i>', `${avail} متاح`) +
+            chip('#f1f5f9', '#475569', '<i class="bi bi-eye-slash-fill"></i>', `${total - avail} مخفي`) +
+            (low > 0 ? chip('#ffedd5', '#c2410c', '<i class="bi bi-exclamation-triangle-fill"></i>', `${low} وشك النفاد`) : '') +
+            (out > 0 ? chip('#fee2e2', '#991b1b', '<i class="bi bi-exclamation-circle-fill"></i>', `${out} نفدت`) : '');
+    }
+
+    // getFullImageUrl معرفة في config.js ومتاحة عالمياً
+    const _getImg = window.getFullImageUrl || ((url) => url || '');
+
+    async function loadProducts() {
+        const container = document.getElementById('productsContainer');
+        if (container && products.length === 0) {
+            container.innerHTML = `
+                <div class="skeleton-card mb-2"><div class="skeleton-box" style="width:60%;height:18px;margin-bottom:8px;"></div><div class="skeleton-box" style="width:40%;height:14px;"></div></div>
+                <div class="skeleton-card mb-2"><div class="skeleton-box" style="width:75%;height:18px;margin-bottom:8px;"></div><div class="skeleton-box" style="width:30%;height:14px;"></div></div>
+                <div class="skeleton-card"><div class="skeleton-box" style="width:50%;height:18px;margin-bottom:8px;"></div><div class="skeleton-box" style="width:45%;height:14px;"></div></div>`;
+        }
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/products`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Server error ' + res.status);
+            const data = await res.json();
+            products = Array.isArray(data.products) ? data.products : (Array.isArray(data) ? data : []);
+            document.getElementById('productCount').textContent = `${products.length} منتج`;
+            renderProducts();
+        } catch (err) {
+            document.getElementById('productsContainer').innerHTML =
+                '<div class="alert alert-danger m-3">فشل تحميل المنتجات</div>';
+        }
+    }
+
+    function renderProducts() {
+        const container = document.getElementById('productsContainer');
+        _renderProductStats();
+
+        if (!products.length) {
+            container.innerHTML = `
+            <div class="empty-state-card">
+                <div class="empty-state-icon"><i class="bi bi-box-seam"></i></div>
+                <div class="empty-state-title">لا توجد منتجات حتى الآن</div>
+                <div class="empty-state-desc">متجرك فارغ حالياً، قم بإضافة المنتجات وضبط الأسعار والكميات لتبدأ استقبال الطلبات!</div>
+                <button class="btn btn-warning px-4 py-2 fw-bold" onclick="openAddModal()"><i class="bi bi-plus-lg me-1"></i> إضافة أول منتج</button>
+            </div>`;
+            return;
+        }
+
+        // فلترة العرض حسب البحث (دون المساس بقائمة المنتجات الأصلية)
+        const f = _productFilter;
+        const visible = f
+            ? products.filter(p => `${p.name || ''} ${p.description || ''} ${p.category || ''}`.toLowerCase().includes(f))
+            : products;
+
+        if (!visible.length) {
+            container.innerHTML = `<div class="text-center py-5 text-muted">
+                <i class="bi bi-search" style="font-size:3rem;"></i>
+                <div class="fw-bold mt-2">لا منتجات تطابق بحثك</div></div>`;
+            return;
+        }
+
+        // Group by category
+        const grouped = {};
+        visible.forEach(p => {
+            const cat = p.category || 'عام';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(p);
+        });
+
+        container.innerHTML = Object.entries(grouped).map(([cat, items]) => `
+            <div class="mb-3">
+                <div class="fw-bold text-muted small mb-2 px-1">
+                    <i class="bi bi-grid-3x3-gap-fill text-warning me-1"></i>${cat}
+                    <span class="badge bg-warning text-dark ms-2">${items.length}</span>
+                </div>
+                ${items.map(p => buildProductCard(p)).join('')}
+            </div>
+        `).join('');
+    }
+
+    function buildProductCard(p) {
+        return `
+        <div class="product-card">
+            <div class="product-img">
+                ${p.image
+                    ? `<img src="${_getImg(p.image)}" alt="${p.name}" onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-image-fill&quot;&gt;&lt;/i&gt;'">` 
+                    : `<i class="bi bi-box-seam-fill"></i>`}
+            </div>
+            <div class="product-info">
+                <div class="fw-bold" style="font-size:15px;">${p.name}</div>
+                ${p.description ? `<div class="text-muted small text-truncate" style="max-width:180px;">${p.description}</div>` : ''}
+                <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                    <span class="fw-bold text-success">${p.price} ج.س</span>
+                    <span class="badge ${p.isAvailable ? 'bg-success' : 'bg-secondary'}" style="font-size:10px;">
+                        ${p.isAvailable ? 'متاح' : 'غير متاح'}
+                    </span>
+                    ${p.stock !== null && p.stock !== undefined
+                        ? (p.stock === 0 
+                            ? `<span class="badge bg-danger" style="font-size:10px;"><i class="bi bi-x-circle-fill"></i> نفدت الكمية</span>` 
+                            : (p.stock <= 5 
+                                ? `<span class="badge-low-stock"><i class="bi bi-exclamation-triangle-fill"></i> مخزون منخفض (${p.stock})</span>` 
+                                : `<span class="badge bg-warning text-dark" style="font-size:10px;"><i class="bi bi-boxes"></i> ${p.stock} قطعة</span>`))
+                        : `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size:10px;">كمية غير محدودة</span>`
+                    }
+                </div>
+            </div>
+            <div class="product-actions">
+                <button class="icon-btn" style="background:#fef3c7;" onclick="openEditModal('${p._id}')">
+                    <i class="bi bi-pencil-fill text-warning"></i>
+                </button>
+                <button class="icon-btn" style="background:${p.isAvailable ? '#dcfce7' : '#fee2e2'};"
+                    onclick="toggleAvailability('${p._id}', ${!p.isAvailable})">
+                    <i class="bi bi-${p.isAvailable ? 'eye-fill text-success' : 'eye-slash-fill text-danger'}"></i>
+                </button>
+                <button class="icon-btn" style="background:#fee2e2;" onclick="deleteProduct('${p._id}', '${p.name}')">
+                    <i class="bi bi-trash-fill text-danger"></i>
+                </button>
+            </div>
+        </div>`;
+    }
+
+    function openAddModal() {
+        document.getElementById('editProductId').value = '';
+        document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle-fill me-2"></i>إضافة منتج جديد';
+        document.getElementById('pName').value = '';
+        document.getElementById('pDesc').value = '';
+        document.getElementById('pPrice').value = '';
+        document.getElementById('pCategory').value = '';
+        document.getElementById('pImage').value = '';
+        document.getElementById('productImageUpload').value = '';
+        document.getElementById('productImagePreview').style.display = 'none';
+        document.getElementById('pAvailable').checked = true;
+        document.getElementById('pStock').value = '';
+        new bootstrap.Modal(document.getElementById('productModal')).show();
+    }
+
+    function openEditModal(id) {
+        const p = products.find(x => x._id === id);
+        if (!p) return;
+        document.getElementById('editProductId').value = id;
+        document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-fill me-2"></i>تعديل المنتج';
+        document.getElementById('pName').value = p.name;
+        document.getElementById('pDesc').value = p.description || '';
+        document.getElementById('pPrice').value = p.price;
+        document.getElementById('pCategory').value = p.category || '';
+        document.getElementById('pImage').value = p.image || '';
+        
+        const preview = document.getElementById('productImagePreview');
+        if (p.image) {
+            preview.src = _getImg(p.image);
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+        
+        document.getElementById('pAvailable').checked = p.isAvailable;
+        document.getElementById('pStock').value = (p.stock !== null && p.stock !== undefined) ? p.stock : '';
+        new bootstrap.Modal(document.getElementById('productModal')).show();
+    }
+
+    // ── Upload state tracker ──
+    let _isUploading = false;
+
+    function _setSaveButtonState(uploading) {
+        _isUploading = uploading;
+        const btn = document.getElementById('btnSaveProduct');
+        if (!btn) return;
+        if (uploading) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري رفع الصورة...';
+            btn.style.opacity = '0.6';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> حفظ المنتج';
+            btn.style.opacity = '1';
+        }
+    }
+
+    async function uploadProductImage(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const progress = document.getElementById('uploadProgress');
+        progress.classList.remove('d-none');
+        input.disabled = true;
+        _setSaveButtonState(true); // 🔒 lock save button
+
+        try {
+            const res = await fetch(`${API_URL}/api/upload/product-image`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (!res.ok) throw new Error('فشل الرفع');
+
+            const data = await res.json();
+            document.getElementById('pImage').value = data.url;
+
+            const preview = document.getElementById('productImagePreview');
+            const fullUrl = (typeof getFullImageUrl === 'function') ? getFullImageUrl(data.url) : (API_URL + data.url);
+            preview.src = fullUrl;
+            preview.style.display = 'block';
+
+            Swal.fire({ toast:true, position:'top-end', text:'✅ تم رفع الصورة بنجاح', icon:'success', timer:1500, showConfirmButton:false });
+        } catch (err) {
+            Swal.fire('خطأ', 'تعذر رفع الصورة، حاول مرة أخرى', 'error');
+            document.getElementById('pImage').value = ''; // clear on failure
+        } finally {
+            progress.classList.add('d-none');
+            input.disabled = false;
+            _setSaveButtonState(false); // 🔓 unlock save button
+        }
+    }
+
+    async function saveProduct() {
+        // 🚫 Block save if image is still uploading
+        if (_isUploading) {
+            Swal.fire({
+                icon: 'info',
+                title: 'الصورة لم تنتهِ من الرفع بعد',
+                text: 'انتظر لحظة حتى تكتمل عملية رفع الصورة ثم اضغط حفظ مرة أخرى.',
+                confirmButtonColor: '#04553A',
+                confirmButtonText: 'حسناً'
+            });
+            return;
+        }
+
+        const id = document.getElementById('editProductId').value;
+        const stockRaw = document.getElementById('pStock').value.trim();
+        const stockVal = stockRaw === '' ? null : parseInt(stockRaw, 10);
+        const body = {
+            name: document.getElementById('pName').value.trim(),
+            description: document.getElementById('pDesc').value.trim(),
+            price: parseFloat(document.getElementById('pPrice').value),
+            category: document.getElementById('pCategory').value.trim() || 'عام',
+            image: document.getElementById('pImage').value.trim(),
+            isAvailable: document.getElementById('pAvailable').checked,
+            stock: stockVal
+        };
+        // إذا الكمية وصلت 0، نوقف المنتج تلقائياً
+        if (stockVal !== null && stockVal === 0) {
+            body.isAvailable = false;
+        }
+        if (!body.name || !body.price) {
+            Swal.fire('تنبيه', 'الاسم والسعر مطلوبان', 'warning'); return;
+        }
+        const url = id
+            ? `${API_URL}/api/merchant/products/${id}`
+            : `${API_URL}/api/merchant/products`;
+        const method = id ? 'PUT' : 'POST';
+        try {
+            const res = await fetch(url, {
+                method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+                Swal.fire({ icon: 'success', title: 'تم الحفظ', timer: 1500, showConfirmButton: false });
+                loadProducts();
+            } else {
+                const err = await res.json();
+                Swal.fire('خطأ', err.message, 'error');
+            }
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    async function toggleAvailability(id, newStatus) {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/products/${id}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isAvailable: newStatus })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                Swal.fire('خطأ', err.message || 'فشل تغيير حالة المنتج', 'error');
+                return;
+            }
+            loadProducts();
+        } catch (e) {
+            Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error');
+        }
+    }
+
+    async function deleteProduct(id, name) {
+        const result = await Swal.fire({
+            title: 'حذف المنتج',
+            text: `هل تريد حذف "${name}" نهائياً؟`,
+            icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'نعم، احذفه', cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#ef4444'
+        });
+        if (!result.isConfirmed) return;
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/products/${id}`, {
+                method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                Swal.fire('خطأ', err.message || 'فشل حذف المنتج', 'error');
+                return;
+            }
+            Swal.fire({ icon: 'success', title: 'تم الحذف', timer: 1200, showConfirmButton: false });
+            loadProducts();
+        } catch (e) {
+            Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error');
+        }
+    }
+
+    // ⚡ التحديث الحي لنفاد المخزون أثناء إدارة المنتجات
+    try {
+        if (typeof io !== 'undefined') {
+            const socket = io(API_URL, { auth: { token } });
+            socket.on('out_of_stock_alert', (data) => {
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'warning',
+                    title: '⚠️ نفاد الكمية!',
+                    text: `نفد للتو مخزون المنتج: "${data.productName}"`,
+                    timer: 5000, showConfirmButton: false
+                });
+                loadProducts();
+            });
+        }
+    } catch(e) {}
+
+    loadProducts();
+</script>
+    <script type="module" src="js/native-notifications.js"></script>
+</body>
+
+</html>

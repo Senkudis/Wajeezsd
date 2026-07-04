@@ -5,19 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>مهامي الجارية | وَصِّلِي</title>
+    <title>مهامي الجارية | وجيز</title>
     <!-- Bootstrap 5 RTL -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <link rel="stylesheet" href="css/enhanced-styles.css">
-    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
     <script src="js/theme-manager.js"></script>
     <script src="js/auth-helper.js"></script>
+    <script src="vendor/image-compression/browser-image-compression.js"></script>
 </head>
 
 <body class="bg-light">
@@ -68,8 +70,9 @@
         </a>
     </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
 
     <script>
@@ -84,18 +87,31 @@
 
         if (userId) {
             initNotificationSocket(userId);
+
+            // ✅ BUG #16: Direct socket init — no setInterval polling
+            const socket = io(API_URL, { transports: ['polling', 'websocket'] });
+            socket.on('connect', () => {
+                if (userId) socket.emit('user_join', userId);
+            });
+            socket.on('order_status_updated', () => fetchMissions());
+            socket.on('new_order_available', () => fetchMissions());
         }
 
         async function fetchMissions() {
             try {
-                const response = await fetch(`${API_URL}/api/orders/my-missions`, {
+                const response = await fetchWithRetry(`${API_URL}/api/orders/my-missions`, {
                     headers: window.Auth.getAuthHeader()
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+                
                 const orders = await response.json();
                 const container = document.getElementById('missions-container');
                 container.innerHTML = '';
 
-                if (orders.length === 0) {
+                if (!Array.isArray(orders) || orders.length === 0) {
                     container.innerHTML = `
                         <div class="text-center py-5">
                             <i class="bi bi-clipboard-check fs-1 text-secondary opacity-50 mb-3"></i>
@@ -111,8 +127,8 @@
                     let actionBtn = '';
                     if (order.status === 'accepted') {
                         actionBtn = `
-                        <button class="btn btn-warning w-100 py-2 fw-bold text-dark mb-2 shadow-sm rounded-3" onclick="markPickup('${order._id}')">
-                            <i class="bi bi-box-seam me-2"></i> تأكيد استلام الشحنة
+                        <button class="btn btn-warning w-100 py-2 fw-bold text-dark mb-2 shadow-sm rounded-3" onclick="openPickupPhotoModal('${order._id}')">
+                            <i class="bi bi-camera-fill me-2"></i> صوّر الطلبية وأكّد الاستلام
                         </button>`;
                     } else if (order.status === 'picked_up') {
                         actionBtn = `
@@ -151,7 +167,7 @@
                                                     </button>
                                                 </div>
                                                 <div class="d-flex gap-2 mt-2">
-                                                    <span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${order.pickup.contactName}</span>
+                                                    ${order.pickup.contactName ? `<span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${order.pickup.contactName}</span>` : ''}
                                                     <a href="tel:${order.pickup.contactPhone}" class="text-decoration-none badge bg-success"><i class="bi bi-telephone-fill"></i> اتصل</a>
                                                 </div>
                                             </div>
@@ -180,7 +196,7 @@
                                                     </button>
                                                 </div>
                                                 <div class="d-flex gap-2 mt-2">
-                                                    <span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${order.dropoff.receiverName}</span>
+                                                    ${order.dropoff.receiverName ? `<span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${order.dropoff.receiverName}</span>` : ''}
                                                     <a href="tel:${order.dropoff.receiverPhone}" class="text-decoration-none badge bg-success"><i class="bi bi-telephone-fill"></i> اتصل</a>
                                                 </div>
                                             </div>
@@ -190,11 +206,25 @@
                                     <div class="bg-light p-2 rounded mb-3 border border-light">
                                         <div class="d-flex gap-2">
                                             <i class="bi bi-info-circle text-primary mt-1"></i>
-                                            <p class="mb-0 small text-secondary">${order.details}</p>
+                                            <p class="mb-0 small text-secondary">${order.details || ''}</p>
                                         </div>
                                     </div>
 
                                     ${actionBtn}
+                                    
+                                    ${order.parcelImage ? `
+                                    <div class="position-relative mb-2 mt-2">
+                                        <img src="${getFullImageUrl(order.parcelImage)}" 
+                                             class="w-100 rounded-3 object-fit-cover shadow-sm"
+                                             style="height: 160px; cursor:pointer;"
+                                             data-order-id="${order._id}"
+                                             onclick="viewMissionParcelImage(this)"
+                                             onerror="this.parentElement.style.display='none'"
+                                             alt="صورة الطرد">
+                                        <span class="position-absolute top-0 start-0 m-2 badge bg-dark bg-opacity-75 rounded-pill small">
+                                            <i class="bi bi-image me-1"></i> صورة الطرد
+                                        </span>
+                                    </div>` : ''}
                                     
                                     <button class="btn btn-outline-primary w-100 py-2 fw-bold rounded-3" onclick="openChat('${order._id}', '${order.client._id || order.client}')">
                                         <i class="bi bi-chat-dots-fill me-2"></i> محادثة العميل
@@ -205,27 +235,159 @@
                     `;
                     container.innerHTML += html;
                 });
-            } catch (error) { console.error(error); }
+            } catch (error) {
+                // ✅ FIX: منع ظهور "Failed to fetch" الخام للمستخدم
+                const container = document.getElementById('missions-container');
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-wifi-off fs-1 text-warning opacity-75 mb-3"></i>
+                        <p class="text-white fw-bold mb-3">عفواً، يوجد ضعف في شبكة الإنترنت أو تأخر في استجابة الخادم. يرجى تحديث الصفحة.</p>
+                        <button class="btn btn-light rounded-pill px-4" onclick="fetchMissions()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>إعادة المحاولة
+                        </button>
+                    </div>`;
+                console.error('[fetchMissions]', error);
+            }
         }
 
-        async function markPickup(id) {
-            // Find the button that triggered this action and apply loading state
-            const btn = document.querySelector(`button[onclick="markPickup('${id}')"]`);
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> جاري التنفيذ...';
+        // =============================================
+        // 📸 نافذة التصوير — صورة إثبات الاستلام
+        // =============================================
+        let _proofOrderId = null;
+        let _proofImageUrl = null;
+
+        function openPickupPhotoModal(orderId) {
+            _proofOrderId = orderId;
+            _proofImageUrl = null;
+            document.getElementById('proofPreviewImg').src = '';
+            document.getElementById('proofPreviewSection').classList.add('d-none');
+            document.getElementById('proofUploadSection').classList.remove('d-none');
+            document.getElementById('confirmPickupBtn').disabled = true;
+            document.getElementById('proofFileInput').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('pickupPhotoModal'));
+            modal.show();
+        }
+
+        function checkAuthState() {
+            if (!window.Auth || !window.Auth.getToken()) {
+                window.location.href = 'captain-login.html';
+                return false;
             }
+            return true;
+        }
+
+        // 🖼️ Helper: build full image URL
+        function getFullImageUrl(url) {
+            if (!url) return '';
+            if (url.startsWith('data:image')) return url;
+            if (url.startsWith('http://') || url.startsWith('https://')) return url;
+            const base = (window.API_URL && window.API_URL !== '') ? window.API_URL : 'https://wajeezsd.com';
+            const clean = url.replace(/\\/g, '/');
+            const withSlash = clean.startsWith('/') ? clean : '/' + clean;
+            // على السيرفر الحي، الصور موجودة تحت /api/uploads
+            const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+            if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
+            return base + withSlash;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('proofFileInput').addEventListener('change', async function() {
+                const file = this.files[0];
+                if (!file) return;
+
+                // عرض معاينة فورية
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('proofPreviewImg').src = e.target.result;
+                    document.getElementById('proofPreviewSection').classList.remove('d-none');
+                    document.getElementById('proofUploadSection').classList.add('d-none');
+                    document.getElementById('confirmPickupBtn').disabled = false;
+                };
+                reader.readAsDataURL(file);
+
+                // رفع الصورة للسيرفر
+                document.getElementById('proofUploadStatus').textContent = 'جاري ضغط ورفع الصورة...';
+                document.getElementById('proofUploadStatus').classList.remove('d-none');
+                try {
+                    // ضغط الصورة قبل الرفع لتسريع العملية
+                    const options = {
+                        maxSizeMB: 0.3,
+                        maxWidthOrHeight: 1200,
+                        useWebWorker: true
+                    };
+                    const compressedFile = await imageCompression(file, options);
+                    
+                    const formData = new FormData();
+                    formData.append('proofImage', compressedFile);
+                    const res = await fetch(`${API_URL}/api/upload/proof-image`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${window.Auth.getToken()}` },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.url) {
+                        _proofImageUrl = data.url;
+                        document.getElementById('proofUploadStatus').textContent = '✅ تم رفع الصورة';
+                    } else {
+                        document.getElementById('proofUploadStatus').textContent = '⚠️ فشل رفع الصورة، أعد المحاولة';
+                        document.getElementById('confirmPickupBtn').disabled = true;
+                    }
+                } catch (e) {
+                    document.getElementById('proofUploadStatus').textContent = '⚠️ خطأ في الشبكة، أعد المحاولة';
+                    document.getElementById('confirmPickupBtn').disabled = true;
+                }
+            });
+        });
+
+        function retakeProofPhoto() {
+            _proofImageUrl = null;
+            document.getElementById('proofPreviewSection').classList.add('d-none');
+            document.getElementById('proofUploadSection').classList.remove('d-none');
+            document.getElementById('proofUploadStatus').classList.add('d-none');
+            document.getElementById('proofUploadStatus').textContent = '';
+            document.getElementById('confirmPickupBtn').disabled = true;
+            document.getElementById('proofFileInput').value = '';
+        }
+
+        async function confirmPickupWithProof() {
+            if (!_proofImageUrl) {
+                Swal.fire('تنبيه', 'يرجى انتظار رفع الصورة أولاً', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('confirmPickupBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التأكيد...';
+
             try {
-                const res = await fetch(`${API_URL}/api/orders/${id}/pickup`, { method: 'PUT', headers: window.Auth.getAuthHeader() });
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${_proofOrderId}/pickup`, {
+                    method: 'PUT',
+                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proofImage: _proofImageUrl })
+                });
                 if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('pickupPhotoModal')).hide();
+                    await Swal.fire({
+                        icon: 'success',
+                        title: '✅ تم تأكيد الاستلام',
+                        text: 'تم إرسال صورة الإثبات للعميل وللإدارة بنجاح',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
                     fetchMissions();
                 } else {
-                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-box-seam me-2"></i> تأكيد استلام الشحنة'; }
+                    const err = await res.json().catch(() => ({}));
+                    Swal.fire('خطأ', err.message || 'حدث خطأ أثناء التأكيد', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> تم الاستلام';
                 }
             } catch (e) {
-                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-box-seam me-2"></i> تأكيد استلام الشحنة'; }
+                showNetworkError(e);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> تم الاستلام';
             }
         }
+
 
         async function markDelivered(id) {
             const result = await Swal.fire({
@@ -235,7 +397,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'نعم، تم التسليم ✅',
                 cancelButtonText: 'تراجع',
-                confirmButtonColor: '#0a8754',
+                confirmButtonColor: '#04553A',
                 cancelButtonColor: '#7f8c8d'
             });
             if (!result.isConfirmed) return;
@@ -246,19 +408,76 @@
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> جاري التسجيل...';
             }
             try {
-                const res = await fetch(`${API_URL}/api/orders/${id}/deliver`, { method: 'PUT', headers: window.Auth.getAuthHeader() });
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${id}/deliver`, {
+                    method: 'PUT', headers: window.Auth.getAuthHeader()
+                });
                 if (res.ok) {
                     fetchMissions();
                 } else {
+                    const err = await res.json().catch(() => ({}));
+                    Swal.fire('خطأ', err.message || 'حدث خطأ أثناء التسجيل', 'error');
                     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> تم التسليم (استلام الكاش)'; }
                 }
             } catch (e) {
+                showNetworkError(e);
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> تم التسليم (استلام الكاش)'; }
+            }
+        }
+
+        // 🔄 تنازل الكابتن عن طلب قَبِله — يعود الطلب لبقية الكباتن
+        async function releaseOrder(id) {
+            const { value: reason, isConfirmed } = await Swal.fire({
+                title: 'تنازل عن الطلب؟',
+                html: '<p style="color:#64748b;font-size:13.5px;">سيعود الطلب للكباتن الآخرين. وضّح السبب (اختياري):</p>',
+                input: 'select',
+                inputOptions: {
+                    'مشغول حالياً': 'مشغول حالياً',
+                    'بعيد جداً': 'الموقع بعيد جداً',
+                    'مشكلة في المركبة': 'مشكلة في المركبة',
+                    'سبب آخر': 'سبب آخر'
+                },
+                inputPlaceholder: 'اختر السبب',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، تنازل',
+                cancelButtonText: 'تراجع',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#7f8c8d'
+            });
+            if (!isConfirmed) return;
+
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${id}/release`, {
+                    method: 'PUT',
+                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: reason || '' })
+                });
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'تم', text: 'تم التنازل عن الطلب', timer: 1500, showConfirmButton: false });
+                    fetchMissions();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    Swal.fire('خطأ', err.message || 'تعذّر التنازل عن الطلب', 'error');
+                }
+            } catch (e) {
+                showNetworkError(e);
             }
         }
 
         function openChat(orderId, clientId) {
             window.location.href = `chat.html?orderId=${orderId}&receiverId=${clientId}`;
+        }
+
+        function viewMissionParcelImage(imgEl) {
+            const src = imgEl.src;
+            if (!src) return;
+            Swal.fire({
+                imageUrl: src,
+                imageAlt: 'صورة الطرد',
+                showConfirmButton: false,
+                showCloseButton: true,
+                imageWidth: '100%',
+                customClass: { popup: 'p-0 overflow-hidden rounded-4' }
+            });
         }
 
         // ========================================
@@ -304,6 +523,85 @@
     </script>
 
     <!-- WhatsApp Subscription Modal -->
+
+
+    <!-- =============================================
+         📸 Modal: صورة إثبات الاستلام
+    ============================================= -->
+    <div class="modal fade" id="pickupPhotoModal" tabindex="-1" aria-labelledby="pickupPhotoModalLabel"
+        data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered mx-3">
+            <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+
+                <!-- Header -->
+                <div class="modal-header border-0 pb-0"
+                    style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;">
+                    <h5 class="modal-title fw-bold" id="pickupPhotoModalLabel">
+                        <i class="bi bi-camera-fill me-2"></i>صوّر الطلبية قبل الاستلام
+                    </h5>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body p-4">
+
+                    <!-- تعليمات -->
+                    <div class="alert alert-warning border-0 rounded-3 mb-3 py-2 px-3" style="font-size:13px;">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        التقط صورة واضحة للطلبية/الشحنة قبل الاستلام. ستُرسل للعميل وللإدارة.
+                    </div>
+
+                    <!-- منطقة رفع الصورة -->
+                    <div id="proofUploadSection">
+                        <label for="proofFileInput"
+                            class="d-flex flex-column align-items-center justify-content-center gap-3 p-4 rounded-4 border border-2 border-dashed border-warning"
+                            style="cursor:pointer;background:rgba(245,158,11,0.05);min-height:160px;">
+                            <i class="bi bi-camera-fill text-warning" style="font-size:3rem;"></i>
+                            <div class="text-center">
+                                <div class="fw-bold text-dark">اضغط لفتح الكاميرا</div>
+                                <small class="text-muted">أو اختر صورة من المعرض</small>
+                            </div>
+                        </label>
+                        <input type="file" id="proofFileInput" accept="image/*" capture="environment" class="d-none">
+                    </div>
+
+                    <!-- معاينة الصورة بعد التقاطها -->
+                    <div id="proofPreviewSection" class="d-none">
+                        <div class="position-relative">
+                            <img id="proofPreviewImg" src="" alt="صورة الإثبات"
+                                class="w-100 rounded-3 object-fit-cover shadow-sm" style="max-height:220px;">
+                            <span class="badge bg-success position-absolute bottom-0 start-0 m-2 rounded-pill px-2 py-1">
+                                <i class="bi bi-check-circle-fill me-1"></i> جاهزة للإرسال
+                            </span>
+                        </div>
+                        <!-- زر إعادة التصوير -->
+                        <button type="button" class="btn btn-outline-secondary w-100 mt-3 rounded-3 fw-bold"
+                            onclick="retakeProofPhoto()">
+                            <i class="bi bi-arrow-repeat me-2"></i>إعادة التصوير
+                        </button>
+                    </div>
+
+                    <!-- حالة الرفع -->
+                    <div id="proofUploadStatus" class="d-none text-center mt-2 fw-bold small text-secondary"></div>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer border-0 pt-0 flex-column gap-2 px-4 pb-4">
+                    <!-- زر التأكيد الرئيسي -->
+                    <button type="button" id="confirmPickupBtn"
+                        class="btn btn-warning w-100 py-3 fw-bold rounded-3 shadow-sm text-dark"
+                        style="font-size:1rem;" disabled onclick="confirmPickupWithProof()">
+                        <i class="bi bi-check-circle-fill me-2"></i> تم الاستلام — أرسل الصورة وأكّد
+                    </button>
+                    <!-- زر الإلغاء -->
+                    <button type="button" class="btn btn-outline-secondary w-100 rounded-3"
+                        data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i> إلغاء
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
     <!-- Auth Helper & App Core -->
     <script type="module" src="js/app-core.js"></script>

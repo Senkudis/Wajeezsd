@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ملف المتجر | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
+        }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #10b981; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        
+        .profile-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .profile-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+        .info-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 10px;
+            background: #f1f5f9;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 15px;
+            font-size: 18px;
+        }
+        .info-content {
+            flex: 1;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+        .info-value {
+            font-weight: 700;
+            color: #334155;
+            font-size: 15px;
+        }
+        .logout-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover {
+            background: #fca5a5;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="d-flex align-items-center gap-3">
+        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        <div>
+            <h5 class="fw-bold mb-0">ملف المتجر</h5>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-3 pt-3" id="profileContainer">
+    <div class="text-center py-5"><div class="spinner-border text-success"></div></div>
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
+    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
+    <a href="merchant-conversations.html"><i class="bi bi-chat-dots-fill"></i> رسائل</a>
+    <a href="merchant-notifications.html"><i class="bi bi-bell"></i> إشعارات</a>
+    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');"><i class="bi bi-box-arrow-right"></i> خروج</a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) window.location.href = 'client-login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+    async function loadProfile() {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/profile`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            
+            const pUser = data.user || user;
+            const place = data.place || {};
+
+            const container = document.getElementById('profileContainer');
+            
+            container.innerHTML = `
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-icon">
+                            <i class="bi bi-shop"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">${place.name || 'متجر غير معروف'}</h5>
+                            <span class="badge ${place.isActive ? 'bg-success' : 'bg-danger'} rounded-pill">
+                                ${place.isActive ? 'نشط' : 'غير نشط'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-icon"><i class="bi bi-tags-fill"></i></div>
+                        <div class="info-content">
+                            <div class="info-label">التصنيف</div>
+                            <div class="info-value">${place.category?.name || 'غير محدد'}</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-icon"><i class="bi bi-geo-alt-fill"></i></div>
+                        <div class="info-content">
+                            <div class="info-label">العنوان</div>
+                            <div class="info-value">${place.address || 'غير محدد'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-card mt-3">
+                    <h6 class="fw-bold mb-3 text-muted"><i class="bi bi-person-vcard me-2"></i>بيانات التاجر</h6>
+                    <div class="info-row">
+                        <div class="info-icon"><i class="bi bi-person-fill"></i></div>
+                        <div class="info-content">
+                            <div class="info-label">الاسم</div>
+                            <div class="info-value">${pUser.name || 'غير محدد'}</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-icon"><i class="bi bi-telephone-fill"></i></div>
+                        <div class="info-content">
+                            <div class="info-label">رقم الهاتف</div>
+                            <div class="info-value">${pUser.phone || 'غير محدد'}</div>
+                        </div>
+                    </div>
+                    ${pUser.email ? `
+                    <div class="info-row">
+                        <div class="info-icon"><i class="bi bi-envelope-fill"></i></div>
+                        <div class="info-content">
+                            <div class="info-label">البريد الإلكتروني</div>
+                            <div class="info-value">${pUser.email}</div>
+                        </div>
+                    </div>` : ''}
+                </div>
+
+                <button class="logout-btn mt-4 mb-4" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+                </button>
+            `;
+        } catch (err) {
+            document.getElementById('profileContainer').innerHTML =
+                '<div class="alert alert-danger text-center">فشل تحميل بيانات الملف الشخصي</div>';
+        }
+    }
+
+    function logout() {
+        if (window.Auth) {
+            window.Auth.logout('client-login.html');
+        } else {
+            localStorage.clear();
+            window.location.href = 'client-login.html';
+        }
+    }
+
+    loadProfile();
+</script>
+    <script type="module" src="js/native-notifications.js"></script>
+</body>
+</html>

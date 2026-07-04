@@ -177,18 +177,25 @@
         const client = esc(o.client?.name || 'عميل');
         const clientPhone = o.client?.phone || '';
         const cap = o.captain?.name ? ` · الكابتن: ${esc(o.captain.name)}` : '';
+        const canCancel = !['cancelled', 'ready_for_pickup', 'captain_assigned', 'picked_up', 'delivered'].includes(o.status);
+        const cancelBtn = canCancel ? `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o._id}')"><i class="bi bi-x-circle"></i> إلغاء إجباري</button>` : '';
         return `
         <div class="so-card ${flash ? 'flash' : ''}" id="so-${o._id}">
-            <div>
-                <div class="so-shop"><i class="bi bi-shop" style="color:var(--brand);"></i> ${shop}
-                    <span style="font-size:11px;font-weight:700;color:var(--muted);">(${city})</span></div>
-                <div class="so-meta">
-                    #${o._id.slice(-5)} · ${timeAgo(o.createdAt)} · ${client}
-                    ${clientPhone ? ` · <a href="tel:${clientPhone}"><i class="bi bi-telephone-fill"></i> ${clientPhone}</a>` : ''}
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="so-shop"><i class="bi bi-shop" style="color:var(--brand);"></i> ${shop}
+                        <span style="font-size:11px;font-weight:700;color:var(--muted);">(${city})</span></div>
+                    <div class="so-meta">
+                        #${o._id.slice(-5)} · ${timeAgo(o.createdAt)} · ${client}
+                        ${clientPhone ? ` · <a href="tel:${clientPhone}"><i class="bi bi-telephone-fill"></i> ${clientPhone}</a>` : ''}
+                    </div>
+                    <div class="so-meta">${(o.items || []).length} منتج · بضاعة ${o.itemsTotal || 0} ج.س · إجمالي ${o.totalAmount || 0} ج.س${cap}</div>
                 </div>
-                <div class="so-meta">${(o.items || []).length} منتج · بضاعة ${o.itemsTotal || 0} ج.س · إجمالي ${o.totalAmount || 0} ج.س${cap}</div>
+                <div class="text-end">
+                    ${cancelBtn}
+                </div>
             </div>
-            <div class="badges">
+            <div class="badges mt-2">
                 <span class="pill" style="${pillStyle[o.status] || ''}">${statusLabels[o.status] || o.status}</span>
                 <span class="pay-pill" style="${payStyle[o.paymentStatus] || ''}">${payLabels[o.paymentStatus] || o.paymentStatus || ''}</span>
             </div>
@@ -242,6 +249,35 @@
             renderList();
         } catch (e) { currentPage--; }
     }
+
+    window.forceCancel = async function(id) {
+        const result = await Swal.fire({
+            title: 'إلغاء الطلب إدارياً',
+            text: 'سيتم إلغاء الطلب نيابة عن التاجر وإرجاع المخزون وإشعار الأطراف. هل أنت متأكد؟',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، إلغاء إجباري',
+            cancelButtonText: 'تراجع',
+            confirmButtonColor: '#dc3545'
+        });
+        if (!result.isConfirmed) return;
+
+        try {
+            const res = await fetch(`${API_URL}/api/admin/shop-orders/${id}/cancel-force`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire('تم الإلغاء', data.message || 'تم إلغاء الطلب وإرجاع المخزون بنجاح.', 'success');
+                reload();
+            } else {
+                Swal.fire('خطأ', data.message || 'حدث خطأ أثناء الإلغاء', 'error');
+            }
+        } catch (e) {
+            Swal.fire('خطأ', 'تعذر الاتصال بالسيرفر', 'error');
+        }
+    };
 
     // ── تحديث لحظي: shop_order_admin_update من السيرفر ──
     function setLive(on) {

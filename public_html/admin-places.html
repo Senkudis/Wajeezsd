@@ -114,13 +114,50 @@
                         <h2 class="section-title"><i class="fas fa-store"></i> شبكة المحلات التجارية</h2>
                         <div class="d-flex gap-2">
                             <button class="btn-primary-custom btn-custom"
-                                onclick="document.getElementById('addCategoryModal').classList.add('show')">
+                                onclick="openAddCategoryModal()">
                                 <i class="fas fa-folder-plus"></i> تصنيف جديد
                             </button>
                             <button class="btn-success-custom btn-custom"
-                                onclick="document.getElementById('addPlaceModal').classList.add('show')">
+                                onclick="openAddPlaceModal()">
                                 <i class="fas fa-plus-circle"></i> إضافة متجر
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- 📊 Stats Cards -->
+                    <div class="row g-3 mb-4" id="placesStatsCards">
+                        <div class="col-md-4">
+                            <div class="stat-card bg-primary text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;">
+                                <div class="stat-icon bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
+                                    <i class="fas fa-store"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1" style="opacity:0.9;">إجمالي المتاجر</h6>
+                                    <h3 class="mb-0 fw-bold" id="statTotalPlaces">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card bg-success text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #198754, #157347) !important;">
+                                <div class="stat-icon bg-white text-success rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1" style="opacity:0.9;">المتاجر النشطة (مفتوحة)</h6>
+                                    <h3 class="mb-0 fw-bold" id="statActivePlaces">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card bg-warning text-dark p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #ffc107, #ffb300) !important;">
+                                <div class="stat-icon bg-white text-warning rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
+                                    <i class="fas fa-tags"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1" style="opacity:0.9;">إجمالي التصنيفات</h6>
+                                    <h3 class="mb-0 fw-bold" id="statTotalCategories">0</h3>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -167,150 +204,11 @@
 
     <!-- ================= MODALS ================= -->
 
-    <!-- Add Captain Modal -->
-    <div id="captainModal" class="modal-overlay">
-        <div class="modal-box p-4">
-            <button class="modal-close-btn shadow-sm" onclick="closeModal()"><i class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-user-shield"></i> تسجيل كابتن جديد</h2>
-            <form id="addCaptainForm" onsubmit="createCaptain(event)">
-                <div class="form-group">
-                    <label class="form-label">الاسم بالكامل</label>
-                    <input type="text" id="capName" class="form-control" required placeholder="محمد أحمد">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">البريد الإلكتروني</label>
-                    <input type="email" id="capEmail" class="form-control" required placeholder="email@domain.com">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">رقم الهاتف النشط</label>
-                    <input type="tel" id="capPhone" class="form-control" required dir="ltr" placeholder="09xxxxxxxx">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">تصنيف المركبة</label>
-                    <select id="capVehicle" class="form-select">
-                        <option value="motorcycle">🏍️ دراجة نارية</option>
-                        <option value="electric">⚡ سكوتر كهربائي</option>
-                        <option value="bicycle">🚲 دراجة هوائية</option>
-                        <option value="rickshaw">🛺 ركشة</option>
-                        <option value="car">🚗 سيارة</option>
-                        <option value="van">🚐 عربة نقل</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">كلمة المرور الابتدائية</label>
-                    <input type="password" id="capPassword" class="form-control" required minlength="6"
-                        placeholder="******">
-                </div>
-                <button type="submit" class="btn-primary-custom btn-custom w-100 justify-content-center mt-3 py-3">
-                    <i class="fas fa-check-circle"></i> اعتماد وتسجيل
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit User Modal -->
-    <div id="editUserModal" class="modal-overlay">
-        <div class="modal-box p-4">
-            <button class="modal-close-btn shadow-sm" onclick="closeEditUserModal()"><i
-                    class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-user-edit"></i> تحديث السجل</h2>
-            <form id="editUserForm" onsubmit="updateUser(event)">
-                <input type="hidden" id="editUserId">
-                <div class="form-group">
-                    <label class="form-label">الاسم</label>
-                    <input type="text" id="editUserName" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">البريد الدائم</label>
-                    <input type="email" id="editUserEmail" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">الهاتف</label>
-                    <input type="tel" id="editUserPhone" class="form-control" required dir="ltr">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">صلاحيات النظام</label>
-                    <select id="editUserRole" class="form-select" onchange="toggleVehicleField()">
-                        <option value="client">عميل عادي</option>
-                        <option value="captain">كابتن توصيل</option>
-                        <option value="admin">مدير نظام</option>
-                    </select>
-                </div>
-                <div class="form-group" id="editVehicleGroup" style="display:none;">
-                    <label class="form-label">صنف المركبة (للكابتن)</label>
-                    <select id="editUserVehicle" class="form-select">
-                        <option value="motorcycle">🏍️ دراجة نارية</option>
-                        <option value="electric">⚡ سكوتر كهربائي</option>
-                        <option value="bicycle">🚲 دراجة هوائية</option>
-                        <option value="rickshaw">🛺 ركشة</option>
-                        <option value="car">🚗 سيارة</option>
-                        <option value="van">🚐 عربة نقل</option>
-                    </select>
-                </div>
-                <div class="form-group" id="editPhotoGroup" style="display:none;">
-                    <label class="form-label">صورة بروفايل الكابتن <span class="text-danger">(تظهر للعميل)</span></label>
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <img id="editUserPhotoPreview" src="" alt="صورة الكابتن"
-                            style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;background:#f1f5f9;display:none;">
-                        <span id="editUserPhotoPlaceholder"
-                            style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border:2px solid #e2e8f0;font-size:24px;color:#94a3b8;"><i class="fas fa-user"></i></span>
-                        <input type="file" id="editUserPhotoFile" class="form-control" accept="image/png,image/jpeg,image/webp" style="flex:1;">
-                    </div>
-                    <small class="text-muted">JPG / PNG / WebP — بحد أقصى 5 ميجابايت. تظهر للعميل عند ربطه بهذا الكابتن.</small>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">تعيين مرور جديدة <span class="text-danger">(اختياري)</span></label>
-                    <input type="password" id="editUserPassword" class="form-control" placeholder="اتركه فارغاً للحفظ">
-                </div>
-                <button type="submit" class="btn-success-custom btn-custom w-100 justify-content-center mt-3 py-3">
-                    <i class="fas fa-save"></i> حفظ التعديلات
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit Order Modal -->
-    <div id="editOrderModal" class="modal-overlay">
-        <div class="modal-box p-4">
-            <button class="modal-close-btn shadow-sm" onclick="closeEditOrderModal()"><i
-                    class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-tasks"></i> التدخل في الطلب</h2>
-            <form id="editOrderForm" onsubmit="updateOrder(event)">
-                <input type="hidden" id="editOrderId">
-                <div class="form-group">
-                    <label class="form-label">حالة السير</label>
-                    <select id="editOrderStatus" class="form-select shadow-sm">
-                        <option value="pending">⏳ قيد الانتظار</option>
-                        <option value="accepted">✅ تم القبول</option>
-                        <option value="picked_up">📦 قيد التوصيل</option>
-                        <option value="delivered">🎉 مكتمل</option>
-                        <option value="cancelled">❌ ملغي</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">التكلفة (ج.س)</label>
-                    <input type="number" id="editOrderPrice" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">نقطة الالتقاط</label>
-                    <input type="text" id="editOrderPickup" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">نقطة التسليم</label>
-                    <input type="text" id="editOrderDropoff" class="form-control" required>
-                </div>
-                <button type="submit" class="btn-warning-custom btn-custom w-100 justify-content-center mt-3 py-3">
-                    <i class="fas fa-tools"></i> فرض التحديث
-                </button>
-            </form>
-        </div>
-    </div>
-
     <!-- Add Category Modal -->
     <div id="addCategoryModal" class="modal-overlay">
         <div class="modal-box p-4" style="max-width:420px;">
             <button class="modal-close-btn shadow-sm"
-                onclick="document.getElementById('addCategoryModal').classList.remove('show')"><i
+                onclick="closeAddCategoryModal()"><i
                     class="fas fa-times"></i></button>
             <h2 class="modal-title"><i class="fas fa-folder-plus"></i> استحداث قسم</h2>
             <form id="addCategoryForm" onsubmit="createCategory(event)">
@@ -343,7 +241,7 @@
     <div id="addPlaceModal" class="modal-overlay">
         <div class="modal-box p-4" style="max-width:550px;">
             <button class="modal-close-btn shadow-sm"
-                onclick="document.getElementById('addPlaceModal').classList.remove('show')"><i
+                onclick="closeAddPlaceModal()"><i
                     class="fas fa-times"></i></button>
             <h2 class="modal-title"><i class="fas fa-store-alt"></i> إدراج منشأة</h2>
             <form id="addPlaceForm" onsubmit="createPlace(event)">
@@ -503,21 +401,15 @@
                             <i class="fas fa-map-pin text-danger me-1"></i>
                             تحقق من الموقع على الخريطة — اسحب لضبط الدقة
                         </label>
-                        <div style="position:relative;">
-                            <capacitor-google-map id="adminPlaceMap" style="display: block; height:240px; border-radius:12px; border:2px solid #04553A; overflow:hidden; width: 100%;"></capacitor-google-map>
-                            <!-- Cross-hair center pin -->
-                            <div
-                                style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);z-index:400;pointer-events:none;margin-top:-5px;">
-                                <i class="fas fa-map-marker-alt text-danger"
-                                    style="font-size:2rem;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.4));"></i>
-                            </div>
-                            <!-- Locate me btn -->
-                            <button type="button" onclick="adminMapLocateMe()"
-                                style="position:absolute;bottom:10px;left:10px;z-index:500;background:white;border:1.5px solid #04553A;color:#04553A;border-radius:50px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <button type="button" onclick="adminMapLocateMe()" class="btn btn-outline-danger btn-sm rounded-pill fw-bold">
                                 <i class="fas fa-crosshairs me-1"></i> موقعي
                             </button>
+                            <div id="adminPlaceMapCoords" class="text-muted small"></div>
                         </div>
-                        <div id="adminPlaceMapCoords" class="mt-1 text-center text-muted small"></div>
+                        <div style="position:relative;">
+                            <div id="adminPlaceMap" style="display: block; height:240px; border-radius:12px; border:2px solid #04553A; overflow:hidden; width: 100%; position:relative;"></div>
+                        </div>
                     </div>
 
                     <input type="hidden" id="placeLat">
@@ -661,6 +553,53 @@
                 </div>
 
                 <div class="form-group p-3 border rounded-3 bg-light mt-3">
+                    <label class="form-label mb-2"><i class="fas fa-image text-primary"></i> واجهة المحل</label>
+
+                    <!-- Edit Image Mode Tabs -->
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" id="editPlaceImgModeFile" onclick="setEditPlaceImageMode('file')"
+                            class="btn btn-primary btn-sm">
+                            <i class="fas fa-upload me-1"></i> رفع من الجهاز
+                        </button>
+                        <button type="button" id="editPlaceImgModeUrl" onclick="setEditPlaceImageMode('url')"
+                            class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-link me-1"></i> رابط خارجي
+                        </button>
+                    </div>
+
+                    <!-- Edit Image Mode: File Upload -->
+                    <div id="editPlaceImgFileMode">
+                        <label for="editPlaceImageFile" id="editPlaceImageUploadLabel"
+                            class="d-flex flex-column align-items-center justify-content-center p-3 border border-2 border-dashed border-primary rounded-3 bg-white"
+                            style="cursor:pointer; transition:all .2s;">
+                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;"></i>
+                            <span class="small fw-bold text-secondary">انقر لرفع ملف الصورة</span>
+                        </label>
+                        <input type="file" id="editPlaceImageFile" accept="image/*" class="d-none"
+                            onchange="previewEditPlaceImage(this)">
+                    </div>
+
+                    <!-- Edit Image Mode: External URL -->
+                    <div id="editPlaceImgUrlMode" style="display:none;">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-link"></i></span>
+                            <input type="url" id="editPlaceImageUrl" class="form-control" dir="ltr"
+                                placeholder="https://i.ibb.co/xxx/photo.jpg" oninput="previewEditPlaceImageUrl(this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Edit Image Shared Preview -->
+                    <div id="editPlaceImagePreview" class="mt-3 position-relative" style="display:none;">
+                        <img id="editPlaceImagePreviewImg" src="" class="w-100 rounded-3 shadow-sm"
+                            style="height:150px; object-fit:cover;">
+                        <button type="button" onclick="clearEditPlaceImage()"
+                            class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 rounded-circle"
+                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times"></i></button>
+                    </div>
+                    <input type="hidden" id="editPlaceImage">
+                </div>
+
+                <div class="form-group p-3 border rounded-3 bg-light mt-3">
                     <label class="form-label mb-2"><i class="fas fa-file-alt text-warning"></i> قائمة الأسعار
                         (المنيو)</label>
 
@@ -716,15 +655,16 @@
                         <i class="fas fa-map-pin text-danger me-1"></i>
                         موقع المحل — اسحب لضبط الدقة
                     </label>
-                    <div style="position:relative;">
-                        <capacitor-google-map id="editPlaceMap" style="display: block; height:220px; border-radius:12px; border:2px solid #04553A; overflow:hidden; width: 100%;"></capacitor-google-map>
-                        <div
-                            style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);z-index:400;pointer-events:none;margin-top:-5px;">
-                            <i class="fas fa-map-marker-alt text-danger"
-                                style="font-size:2rem;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.4));"></i>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <button type="button" onclick="editPlaceMapLocateMe()" class="btn btn-outline-danger btn-sm rounded-pill fw-bold">
+                            <i class="fas fa-crosshairs me-1"></i> موقعي
+                        </button>
+                        <div id="editPlaceMapCoords" class="text-muted small"></div>
                     </div>
-                    <div id="editPlaceMapCoords" class="mt-1 text-center text-muted small"></div>
+                    <div style="position:relative;">
+                        <div id="editPlaceMap" style="display: block; height:220px; border-radius:12px; border:2px solid #04553A; overflow:hidden; width: 100%; position:relative;"></div>
+                    </div>
+
                     <input type="hidden" id="editPlaceLat">
                     <input type="hidden" id="editPlaceLng">
                 </div>
@@ -826,7 +766,9 @@
 
     <!-- Google Maps JS API — key served centrally from env via /api/config -->
     <script src="js/maps-loader.js"></script>
+    <script src="js/map-markers.js"></script>
     <script>loadGoogleMaps({ libraries: 'places' });</script>
+
 
     <script src="js/admin-places.js"></script>
     <script type="module" src="js/app-core.js"></script>

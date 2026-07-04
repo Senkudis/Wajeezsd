@@ -50,7 +50,7 @@ body.dark-mode div,
 body.dark-mode li,
 body.dark-mode td,
 body.dark-mode th,
-body.dark-mode a:not(.btn):not(.nav-item-link) {
+body.dark-mode a:not(.btn):not(.nav-item-link):not(.contact-btn) {
     color: var(--text-dark);
 }
 
@@ -587,7 +587,7 @@ body.dark-mode [class*="col-"] {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color, #0a8754) 0%, var(--primary-dark, #065f3a) 100%);
+    background: linear-gradient(135deg, var(--primary-color, #04553A) 0%, var(--primary-dark, #065f3a) 100%);
     border: none;
     color: white;
     font-size: 1.3rem;
@@ -642,6 +642,11 @@ body {
     filter: brightness(0) invert(1);
 }
 
+/* النسخة البيضاء من اللوغو (وجيز أبيض + سهم ذهبي) للترويسات الخضراء — بدون أي فلتر في أي وضع */
+.logo-onbrand {
+    filter: none !important;
+}
+
 /* Dark mode: invert colors so navy text becomes white/light */
 body.dark-mode .app-logo:not(.app-logo--sidebar) {
     filter: brightness(0) invert(1);
@@ -651,4 +656,452 @@ body.dark-mode .app-logo:not(.app-logo--sidebar) {
 body.dark-mode .splash-logo.app-logo,
 .app-splash .app-logo {
     filter: brightness(0) invert(1);
+}
+
+/* ========================================
+   "كيف تطلب؟" Instructions Card — Dark Mode
+   Fix: light-yellow card becomes unreadable in dark mode
+   ======================================== */
+body.dark-mode details .instructions-card-summary {
+    background: #3d1f02 !important;
+    color: #fcd34d !important;
+}
+
+body.dark-mode details .instructions-card-body {
+    background: #2a1500 !important;
+    color: #fef3c7 !important;
+}
+
+/* Fallback: target by inline style pattern via attribute */
+body.dark-mode details {
+    border-color: #713f12 !important;
+}
+
+body.dark-mode details>summary {
+    background: #3d1f02 !important;
+    color: #fcd34d !important;
+}
+
+body.dark-mode details>div {
+    background: #2a1500 !important;
+}
+
+body.dark-mode details>div ol li,
+body.dark-mode details>div p {
+    color: #fef3c7 !important;
+}
+
+body.dark-mode details>div b,
+body.dark-mode details>div strong {
+    color: #fcd34d !important;
+}
+
+/* --- Shop Map Overlay Fix --- */
+/* The map overlay bottom sheet has inline background:white, so text must stay dark */
+body.dark-mode #shop-map-overlay {
+    color: #1f2937 !important;
+}
+
+body.dark-mode #shop-map-overlay h6,
+body.dark-mode #shop-map-overlay label,
+body.dark-mode #shop-map-overlay .fw-bold,
+body.dark-mode #shop-map-overlay .form-label,
+body.dark-mode #shop-map-overlay .text-muted,
+body.dark-mode #shop-map-overlay small {
+    color: #374151 !important;
+}
+
+body.dark-mode #shop-map-overlay .form-control {
+    background-color: #f9fafb !important;
+    border-color: #d1d5db !important;
+    color: #1f2937 !important;
+}
+
+body.dark-mode #shop-map-overlay .input-group-text {
+    background-color: #f3f4f6 !important;
+    border-color: #d1d5db !important;
+    color: #374151 !important;
+}
+
+body.dark-mode #shop-map-overlay .btn-success {
+    color: white !important;
+}
+
+body.dark-mode #shop-map-overlay .btn-light {
+    background-color: white !important;
+    color: #1f2937 !important;
+    border-color: #e5e7eb !important;
+}
+
+/* --- Category Notes Alert (inline styles override) --- */
+body.dark-mode .alert[style*="background-color: #e0f2fe"] {
+    background-color: #1e3a5f !important;
+    color: #93c5fd !important;
+    border: 1px solid #2563eb33 !important;
+}
+
+
+body.dark-mode #shop-map-overlay #shopMapSearchResults {
+    background-color: white !important;
+    color: #1f2937 !important;
+    border-color: #d1d5db !important;
+}
+
+
+/* Shop marker label on map */
+.shop-marker-label {
+    background: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    margin-top: 4px;
+}
+
+body.dark-mode #shopMapBadge {
+    background: white !important;
+    color: #1f2937 !important;
+}
+
+/* ========================================
+   Client Order Page Specific Overrides
+   ======================================== */
+body.dark-mode .order-hero::after {
+    background: var(--bg-color) !important;
+}
+
+body.dark-mode .section-label {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .cat-chip {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
+}
+body.dark-mode .cat-chip .chip-label {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .cat-chip.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)) !important;
+}
+body.dark-mode .cat-chip.active .chip-label {
+    color: white !important;
+}
+
+body.dark-mode .cat-note-banner {
+    background: #3d1f02 !important;
+    border-color: #713f12 !important;
+    color: #fcd34d !important;
+}
+
+body.dark-mode .place-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.3) !important;
+}
+body.dark-mode .place-card-menu-btn {
+    background: rgba(31, 41, 55, 0.9) !important;
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .places-title {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .places-count {
+    background: var(--card-bg) !important;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border-color);
+}
+
+body.dark-mode .back-btn {
+    background: var(--card-bg) !important;
+    color: var(--primary-color) !important;
+    border: 1px solid var(--border-color);
+}
+
+body.dark-mode .empty-state h6 {
+    color: var(--text-dark) !important;
+}
+
+body.dark-mode .guest-card {
+    background: var(--card-bg) !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3) !important;
+}
+body.dark-mode .guest-icon-wrap {
+    background: linear-gradient(135deg, #1a3a2e, #0f2922) !important;
+}
+
+/* ========================================
+   💬 Captain Offer Cards (client-my-orders) — Dark Mode
+   Fix: white offer cards + dark text stayed light in dark mode
+   ======================================== */
+body.dark-mode .offers-header {
+    color: var(--primary-color) !important;
+}
+body.dark-mode .offers-header .badge-count {
+    background: var(--primary-color) !important;
+    color: #06281d !important;
+}
+body.dark-mode .offer-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35) !important;
+}
+body.dark-mode .offer-name {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .offer-meta {
+    color: var(--text-muted) !important;
+}
+body.dark-mode .offer-price-box .lbl {
+    color: var(--text-muted) !important;
+}
+body.dark-mode .offer-price-box .val {
+    color: var(--primary-color) !important;
+}
+body.dark-mode .offer-countdown {
+    color: #fcd34d !important;
+    background: rgba(245, 158, 11, 0.15) !important;
+}
+
+/* ========================================
+   🗺️ Map Floating Buttons (index.html) — Dark Mode
+   Fix: white glass FAB buttons over the map didn't adapt
+   ======================================== */
+body.dark-mode .map-fab-btn {
+    background: rgba(31, 41, 55, 0.92) !important;
+    color: var(--primary-color) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.45),
+        0 1px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+body.dark-mode .map-fab-btn:hover {
+    background: rgba(45, 55, 72, 0.98) !important;
+    color: #34d399 !important;
+}
+body.dark-mode .map-fab-btn:active {
+    background: linear-gradient(135deg, #1a3a2e, #0f2922) !important;
+    color: var(--primary-color) !important;
+}
+body.dark-mode .map-fab-btn.active-layer {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)) !important;
+    color: #fff !important;
+}
+body.dark-mode .map-fab-btn.locating i {
+    color: var(--primary-color) !important;
+}
+
+/* --- Map City Switch Button (#map-city-btn) — inline white bg, needs dark override --- */
+body.dark-mode #map-city-btn {
+    background: rgba(31, 41, 55, 0.95) !important;
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45) !important;
+}
+body.dark-mode #map-city-btn #map-city-label {
+    color: var(--primary-color) !important;
+}
+
+/* ========================================
+   🔧 Phase 2 — Missing Dark Mode Surfaces
+   Page-level custom cards/inputs/buttons that hardcoded
+   light backgrounds and stayed light in dark mode.
+   (Only classes unique to a single page are targeted here.)
+   ======================================== */
+
+/* --- Captain Dashboard: active period tab (was white) --- */
+body.dark-mode .period-tab.active {
+    background: #374151 !important;
+    color: var(--primary-color) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* --- Captain History: header + trip cards (were white) --- */
+body.dark-mode .header {
+    background: var(--card-bg) !important;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.35) !important;
+}
+body.dark-mode .trip-card {
+    background: var(--card-bg) !important;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.35) !important;
+}
+body.dark-mode .trip-earnings {
+    background: #374151 !important;
+}
+
+/* --- Captain Signup: form box + upload zone (were white/light) --- */
+body.dark-mode .signup-box {
+    background: var(--card-bg) !important;
+}
+body.dark-mode .upload-zone {
+    background: #374151 !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .upload-zone:hover,
+body.dark-mode .upload-zone.has-file {
+    background: #1a3a2e !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* --- Client Order: order form card (was #f8fafc) --- */
+body.dark-mode .order-form-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* --- Index: map locate button (was white) + splash card --- */
+body.dark-mode .modal-locate-btn {
+    background: rgba(31, 41, 55, 0.95) !important;
+    color: var(--primary-color) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45) !important;
+}
+body.dark-mode .splash-card {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* --- Shop Detail Page --- */
+body.dark-mode .cat-tabs {
+    background: var(--card-bg) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+body.dark-mode .cat-tab {
+    background: #374151 !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+body.dark-mode .cat-tab.active {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: white !important;
+}
+body.dark-mode .product-card {
+    background: var(--card-bg) !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important;
+}
+body.dark-mode .product-card-img {
+    background: #374151 !important;
+}
+body.dark-mode .product-name {
+    color: var(--text-dark) !important;
+}
+body.dark-mode #storeProductSearch {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-dark) !important;
+}
+body.dark-mode #storeProductSearch::placeholder {
+    color: var(--text-muted) !important;
+}
+body.dark-mode .cart-drawer {
+    background: var(--card-bg) !important;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.6) !important;
+}
+body.dark-mode .cart-drawer-header {
+    border-bottom-color: var(--border-color) !important;
+}
+body.dark-mode .cart-drawer-footer {
+    border-top-color: var(--border-color) !important;
+    background: var(--card-bg) !important;
+}
+body.dark-mode .cart-item {
+    border-bottom-color: var(--border-color) !important;
+}
+body.dark-mode .cart-item-name {
+    color: var(--text-dark) !important;
+}
+body.dark-mode #shopMapBadge {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+}
+body.dark-mode #shopMapBadgeName {
+    color: var(--text-dark) !important;
+}
+body.dark-mode #static-map-container > div:last-child {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+}
+
+/* ========================================
+   Place Details Modal (client-order.html) — Dark Mode
+   Fix: pastel contact buttons + inline-colored texts
+   were unreadable in dark mode
+   ======================================== */
+body.dark-mode .contact-btn.call {
+    background: linear-gradient(135deg, #1e3a5f, #172b46) !important;
+    color: #93c5fd !important;
+}
+body.dark-mode .contact-btn.whatsapp {
+    background: linear-gradient(135deg, #1a3a2e, #0f2922) !important;
+    color: #6ee7b7 !important;
+}
+body.dark-mode .contact-btn.maps {
+    background: linear-gradient(135deg, #3a1a22, #2e0f16) !important;
+    color: #fda4af !important;
+}
+body.dark-mode .contact-btn.menu {
+    background: linear-gradient(135deg, #3d1f02, #2a1500) !important;
+    color: #fcd34d !important;
+}
+/* Chat button has an inline light-gray gradient — force dark */
+body.dark-mode #placeModalChatBtn.contact-btn {
+    background: linear-gradient(135deg, #374151, #1f2937) !important;
+    color: var(--text-dark) !important;
+}
+/* "كيف تطلب؟" title + steps (inline colors) */
+body.dark-mode .how-title {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .step-text {
+    color: #d1d5db !important;
+}
+body.dark-mode .step-text b {
+    color: #34d399 !important;
+}
+/* Light divider strip between sections */
+body.dark-mode .modal-divider {
+    background: var(--bg-color) !important;
+    border-top-color: var(--border-color) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+/* Distance row (inline gray, too dark on dark card) */
+body.dark-mode #placeModalDistance {
+    color: var(--text-muted) !important;
+}
+
+/* ========================================
+   Shop Detail — remaining dark mode gaps
+   ======================================== */
+/* Product price: dark green was invisible on dark cards */
+body.dark-mode .product-price {
+    color: #34d399 !important;
+}
+/* Product rating value (was inline #374151 — invisible) */
+body.dark-mode .product-rating-val {
+    color: var(--text-dark) !important;
+}
+/* Order modal: light summary panels (inline #f8fafc) */
+body.dark-mode .order-panel {
+    background: #374151 !important;
+    border-color: var(--border-color) !important;
+}
+/* "تحديد من الخريطة" button (inline light bg) */
+body.dark-mode .map-pick-btn {
+    background: #374151 !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-dark) !important;
+}
+/* Payment clarification note (inline light amber) */
+body.dark-mode .pay-note {
+    background: #2a1500 !important;
+    border-color: #713f12 !important;
+}
+body.dark-mode .pay-note,
+body.dark-mode .pay-note div,
+body.dark-mode .pay-note b,
+body.dark-mode .pay-note span {
+    color: #fcd34d !important;
 }

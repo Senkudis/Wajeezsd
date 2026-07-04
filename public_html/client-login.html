@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
 
     <style>
@@ -422,7 +422,9 @@
                 bootstrap.Modal.getInstance(document.getElementById('activationModal')).hide();
                 window.Auth.setAuth(data.token, data.user);
                 showAlert('تم تفعيل حسابك وتسجيل الدخول بنجاح! 🎉', 'success');
-                setTimeout(() => { window.location.replace('client-my-orders.html'); }, 800);
+                const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                localStorage.removeItem('returnUrl');
+                setTimeout(() => { window.location.replace(returnUrl); }, 800);
 
             } catch (err) {
                 console.error('Activation verify error:', err);
@@ -536,7 +538,9 @@
                 if (typeof CityService !== 'undefined' && data.user && data.user.city) CityService.setCity(data.user.city);
                 window.Auth.setAuth(data.token, data.user);
                 showAlert('تم تسجيل الدخول بنجاح! 🎉', 'success');
-                setTimeout(() => { window.location.replace('client-my-orders.html'); }, 700);
+                const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                localStorage.removeItem('returnUrl');
+                setTimeout(() => { window.location.replace(returnUrl); }, 700);
 
             } catch (err) {
                 // 🐛 DEBUG: Show raw error for Release APK debugging
@@ -777,7 +781,9 @@
                 if (typeof CityService !== 'undefined' && data.user && data.user.city) CityService.setCity(data.user.city);
                 window.Auth.setAuth(data.token, data.user);
                 showAlert('تم تسجيل الدخول بنجاح! 🎉', 'success');
-                setTimeout(() => { window.location.replace('client-my-orders.html'); }, 700);
+                const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                localStorage.removeItem('returnUrl');
+                setTimeout(() => { window.location.replace(returnUrl); }, 700);
 
             } catch (err) {
                 console.error('Verify OTP error:', err);

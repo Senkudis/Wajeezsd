@@ -3,26 +3,33 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>الملف الشخصي | كابتن</title>
     <!-- Bootstrap 5 RTL -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <script src="js/config.js"></script>
+    <script src="js/vehicle-types.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="js/auth-helper.js"></script>
 </head>
 
-<body class="pb-5 mb-5 bg-light">
+<body class="bg-light">
 
     <!-- Header Section -->
-    <div class="app-header text-center pb-5">
-        <div class="container pt-4">
+    <div class="app-header text-center pb-3">
+        <div class="container pt-2">
             <div class="bg-white rounded-circle p-1 d-inline-block shadow-lg mb-3" style="width: 100px; height: 100px;">
-                <div
-                    class="w-100 h-100 rounded-circle bg-light d-flex align-items-center justify-content-center text-primary">
+                <div id="profileAvatar"
+                    class="w-100 h-100 rounded-circle bg-light d-flex align-items-center justify-content-center text-primary overflow-hidden">
                     <i class="bi bi-person-fill display-4"></i>
                 </div>
             </div>
@@ -37,7 +44,7 @@
     </div>
 
     <!-- Stats Grid -->
-    <div class="container stats-grid" style="margin-top: -30px;">
+    <div class="container stats-grid mt-3">
         <div class="card glass-card border-0 text-center p-3">
             <i class="bi bi-box-seam-fill fs-2 text-primary mb-2"></i>
             <h3 class="h4 fw-bold text-dark mb-0 skeleton mx-auto w-50" id="orders">0</h3>
@@ -131,8 +138,8 @@
         </a>
     </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
     <script>
         // Check Auth
@@ -145,7 +152,7 @@
 
         async function loadProfileData() {
             try {
-                const res = await fetch(`${API_URL}/api/captain/profile-details`, {
+                const res = await fetchWithRetry(`${API_URL}/api/captain/profile-details`, {
                     headers: window.Auth.getAuthHeader()
                 });
 
@@ -160,6 +167,16 @@
                     document.getElementById('dateWrapper').classList.remove('d-none');
                     document.getElementById('dateWrapper').classList.add('d-inline-flex');
 
+                    // 🖼️ صورة البروفايل
+                    if (data.profilePhoto) {
+                        const url = window.getFullImageUrl ? window.getFullImageUrl(data.profilePhoto) : data.profilePhoto;
+                        const avatar = document.getElementById('profileAvatar');
+                        if (avatar) {
+                            avatar.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;"
+                                onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-person-fill display-4&quot;&gt;&lt;/i&gt;'">`;
+                        }
+                    }
+
                     // Update contents
                     document.getElementById('name').innerText = data.name;
                     document.getElementById('email').innerText = data.email;
@@ -167,15 +184,8 @@
                     document.getElementById('orders').innerText = data.totalOrders;
                     document.getElementById('revenue').innerText = data.totalEarnings.toLocaleString() + ' ج.س';
 
-                    // Vehicle Logic
-                    const vehicleMap = {
-                        'motorcycle': 'دراجة نارية',
-                        'car': 'سيارة',
-                        'rickshaw': 'ركشة',
-                        'van': 'شاحنة',
-                        'bicycle': 'دراجة هوائية'
-                    };
-                    const vehicleText = vehicleMap[data.vehicleType] || data.vehicleType || 'غير محدد';
+                    // Vehicle Logic — من المصدر المركزي vehicle-types.js
+                    const vehicleText = data.vehicleType ? window.VehicleTypes.iconLabel(data.vehicleType) : 'غير محدد';
                     document.getElementById('vehicle-text').innerText = vehicleText;
                     document.getElementById('vehicle-tag').innerText = data.vehicleType ? data.vehicleType.toUpperCase() : 'N/A';
 
@@ -211,20 +221,23 @@
                 cancelButtonText: 'إلغاء'
             }).then(async (result) => {
                 if (result.isConfirmed) {
-                    // Update status to Offline explicitly before logout
+                    // ✅ Set offline immediately via dedicated logout endpoint
                     try {
-                        await fetch(`${API_URL}/api/captain/toggle-availability`, {
-                            method: 'PUT',
+                        await fetchWithRetry(`${API_URL}/api/captain/logout`, {
+                            method: 'POST',
                             headers: {
                                 'Authorization': 'Bearer ' + token,
                                 'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ isActive: false })
+                            }
                         });
                     } catch (e) { console.error("Logout status update failed", e); }
 
-                    localStorage.clear();
-                    window.location.href = 'captain-login.html';
+                    if (window.Auth) {
+                        window.Auth.logout('captain-login.html');
+                    } else {
+                        localStorage.clear();
+                        window.location.href = 'captain-login.html';
+                    }
                 }
             });
         }
@@ -233,7 +246,6 @@
         loadProfileData();
     </script>
     <!-- Auth Helper & App Core -->
-    <script src="js/auth-helper.js"></script>
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
 </body>

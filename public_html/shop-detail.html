@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <script src="js/config.js?v=2.2"></script>
     <script src="js/safe-area.js?v=2.2"></script>
     <script src="js/fetch-retry.js?v=2.2"></script>
@@ -280,7 +281,7 @@
             </div>
             <div class="modal-body p-4">
                 <!-- Order Summary -->
-                <div class="mb-3 p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                <div class="mb-3 p-3 rounded-3 order-panel" style="background:#f8fafc;border:1px solid #e2e8f0;">
                     <div class="fw-bold mb-2 small text-muted">ملخص طلبك:</div>
                     <div id="orderSummary"></div>
                     <div class="border-top mt-2 pt-2 d-flex justify-content-between fw-bold">
@@ -292,7 +293,7 @@
                 <!-- Delivery Info -->
                 <div class="mb-4">
                     <label class="text-muted small fw-bold d-block mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> عنوان التوصيل *</label>
-                    <button type="button" class="btn w-100 mb-2 d-flex align-items-center" onclick="openShopMap()" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;color:#0f172a;font-weight:700;">
+                    <button type="button" class="btn w-100 mb-2 d-flex align-items-center map-pick-btn" onclick="openShopMap()" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;color:#0f172a;font-weight:700;">
                         <i class="bi bi-map-fill text-danger me-2"></i> تحديد من الخريطة
                         <i class="bi bi-chevron-left ms-auto text-muted"></i>
                     </button>
@@ -344,7 +345,7 @@
                 </div>
 
                 <!-- ملخص الطلب: تفصيل واضح للمبالغ -->
-                <div id="orderSummaryBox" class="p-3 rounded-3 mb-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+                <div id="orderSummaryBox" class="p-3 rounded-3 mb-3 order-panel" style="background:#f8fafc;border:1px solid #e2e8f0;">
                     <div class="d-flex justify-content-between mb-1" style="font-size:14px;">
                         <span class="text-muted"><i class="bi bi-box-seam me-1"></i> مبلغ البضاعة</span>
                         <span class="fw-bold" id="sumProducts">0 ج.س</span>
@@ -364,7 +365,7 @@
                 </div>
 
                 <!-- ⚠️ توضيح الدفع: التوصيل كاش للكابتن وليس للتاجر -->
-                <div class="rounded-3 mb-3 p-3" style="background:#fffbeb;border:1px solid #fde68a;font-size:12.5px;line-height:1.8;">
+                <div class="rounded-3 mb-3 p-3 pay-note" style="background:#fffbeb;border:1px solid #fde68a;font-size:12.5px;line-height:1.8;">
                     <div class="fw-bold mb-1" style="color:#92400e;"><i class="bi bi-exclamation-triangle-fill me-1"></i> توضيح مهم للدفع</div>
                     <div style="color:#92400e;">
                         • <b>مبلغ البضاعة</b> (<span id="payProducts">0</span> ج.س) يُحوَّل <b>للمتجر</b> وترفق إشعار الدفع عبر المحادثة.<br>
@@ -682,7 +683,7 @@
                     <div class="product-price">${p.price} ج.س</div>
                     <div style="display:flex;align-items:center;gap:3px;">
                         <i class="bi bi-star-fill" style="color:#f59e0b;font-size:11px;"></i>
-                        <span style="font-size:11px;font-weight:800;color:#374151;">${p.ratingAvg > 0 ? p.ratingAvg : 'جديد'}</span>
+                        <span class="product-rating-val" style="font-size:11px;font-weight:800;color:#374151;">${p.ratingAvg > 0 ? p.ratingAvg : 'جديد'}</span>
                         <span style="font-size:10px;color:#94a3b8;">(${p.ratingCount||0})</span>
                     </div>
                 </div>
@@ -1739,6 +1740,7 @@
 
 <script src="js/maps-loader.js"></script>
 <script src="js/map-markers.js"></script>
+<script src="js/theme-manager.js"></script>
 <script>loadGoogleMaps({ libraries: 'places,geometry', callback: '__googleMapsReady' });</script>
 </body>
 </html>

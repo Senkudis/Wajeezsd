@@ -193,6 +193,7 @@
     <!-- Scripts -->
     
     <script src="js/maps-loader.js"></script>
+    <script src="js/map-markers.js"></script>
     <script>loadGoogleMaps({ libraries: 'geometry,marker', callback: 'initTrackingMap' });</script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
@@ -366,7 +367,7 @@
                 if (!pickupMarker) {
                     pickupMarker = new google.maps.Marker({
                         position: pos, map, title: 'نقطة الاستلام',
-                        icon: { url: SVG_PICKUP, scaledSize: new google.maps.Size(42, 42), anchor: new google.maps.Point(21, 21) }
+                        icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.pickup() : { url: SVG_PICKUP, scaledSize: new google.maps.Size(42, 42), anchor: new google.maps.Point(21, 21) }
                     });
                 }
                 bounds.extend(pos);
@@ -376,7 +377,7 @@
                 if (!dropoffMarker) {
                     dropoffMarker = new google.maps.Marker({
                         position: pos, map, title: 'نقطة التسليم',
-                        icon: { url: SVG_DROPOFF, scaledSize: new google.maps.Size(42, 42), anchor: new google.maps.Point(21, 21) }
+                        icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.dropoff() : { url: SVG_DROPOFF, scaledSize: new google.maps.Size(42, 42), anchor: new google.maps.Point(21, 21) }
                     });
                 }
                 bounds.extend(pos);
@@ -433,7 +434,7 @@
             } else {
                 captainMarker = new google.maps.Marker({
                     position: { lat, lng }, map, zIndex: 999,
-                    icon: { url: SVG_CAPTAIN, scaledSize: new google.maps.Size(54, 54), anchor: new google.maps.Point(27, 27) }
+                    icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.captain('available') : { url: SVG_CAPTAIN, scaledSize: new google.maps.Size(54, 54), anchor: new google.maps.Point(27, 27) }
                 });
             }
         }

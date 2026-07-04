@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سجل الرحلات | وصل-لي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>سجل الرحلات | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -213,7 +214,12 @@
     </style>
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/enhanced-styles.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="js/auth-helper.js"></script>
 </head>
 
 <body>
@@ -261,13 +267,14 @@
             container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
 
             try {
-                const res = await fetch(`${API_URL}/api/captain/trips`, {
+                const res = await fetchWithRetry(`${API_URL}/api/captain/trips`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!res.ok) throw new Error('Failed to fetch trips');
 
-                const trips = await res.json();
+                const data = await res.json();
+                const trips = data.trips || [];
 
                 if (trips.length === 0) {
                     container.innerHTML = `
@@ -359,7 +366,8 @@
         loadTrips();
     </script>
     <!-- Auth Helper & App Core -->
-    <script src="js/auth-helper.js"></script>
+    <!-- Socket.io & App Core -->
+    <script src="vendor/socket.io/socket.io.min.js"></script>
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
 </body>

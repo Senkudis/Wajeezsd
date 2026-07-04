@@ -456,7 +456,7 @@
     </style>
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <link rel="stylesheet" href="css/enhanced-styles.css">
-    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <link rel="stylesheet" href="css/smart-search.css">
 
 
@@ -863,8 +863,31 @@
         </div>
     </div>
 
+    <!-- ✅ Early stub: يُعرَّف قبل order-feature.js لتجنب ReferenceError عند الضغط السريع -->
+    <script>
+        if (!window.showHomeSection) {
+            window.showHomeSection = function() {
+                var h = document.getElementById('home-section');
+                var o = document.getElementById('order-section');
+                if (h) h.classList.remove('d-none');
+                if (o) o.classList.add('d-none');
+                history.replaceState(null, '', window.location.pathname.replace('index.html','') || '/');
+            };
+        }
+        if (!window.showOrderSection) {
+            window.showOrderSection = function() {
+                var h = document.getElementById('home-section');
+                var o = document.getElementById('order-section');
+                if (h) h.classList.add('d-none');
+                if (o) o.classList.remove('d-none');
+                history.replaceState(null, '', '?tab=order');
+            };
+        }
+    </script>
+
     <nav class="mobile-nav-glass">
         <a href="#" class="nav-item-link active" id="nav-home-tab" onclick="showHomeSection()">
+
             <i class="bi bi-house-door-fill"></i>
             <span class="small d-block">الرئيسية</span>
         </a>
@@ -1061,6 +1084,7 @@
     </script>
 
     <script src="js/maps-loader.js"></script>
+    <script src="js/map-markers.js"></script>
     <script>loadGoogleMaps({ libraries: 'places,geometry', callback: '__googleMapsReady' });</script>
 
     <!-- 🔍 Map Search Logic -->

@@ -5,11 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>لوحة الكابتن | وَصِّلِي</title>
+    <title>لوحة الكابتن | وجيز</title>
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a8754">
+    <meta name="theme-color" content="#04553A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -17,31 +17,272 @@
 
 
     <!-- Bootstrap 5 RTL -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css">
     <link rel="stylesheet" href="css/enhanced-styles.css">
-    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.0">
     <script src="js/config.js"></script>
+    <script src="js/fetch-retry.js"></script>
     <script src="js/theme-manager.js"></script>
     <script src="js/auth-helper.js"></script>
+    <script src="vendor/image-compression/browser-image-compression.js"></script>
     <!-- ✅ Socket.io يجب تحميله مبكراً قبل DOMContentLoaded -->
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
 </head>
 
-<body class="pb-5 mb-5 bg-light">
+<body class="bg-light">
 
-    <!-- Header Section -->
+    <!-- ============================================================
+         ⛔ BLOCKED OVERLAY — يظهر فقط عندما is_blocked = true
+         z-index: 99999 — يغطي كل شيء
+    ============================================================ -->
+    <div id="blockedOverlay" style="
+        display: none;
+        position: fixed; inset: 0;
+        background: linear-gradient(160deg, #1a0000 0%, #6b0000 100%);
+        z-index: 99999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 30px;
+        text-align: center;
+        color: white;
+    ">
+        <div style="font-size: 80px; margin-bottom: 20px; animation: pulse-red 1.5s infinite;">&#128274;</div>
+        <h2 style="font-size: 26px; font-weight: 900; margin-bottom: 15px; font-family: 'Cairo';">&#9940; تم إيقاف حسابك
+        </h2>
+        <p
+            style="font-size: 15px; color: #ffbbbb; line-height: 1.8; max-width: 340px; margin-bottom: 30px; font-family: 'Cairo';">
+            تم إيقاف حسابك لتجاوز الحد الائتماني المسموح به.<br>
+            الرجاء سداد المديونية عبر تطبيق بنكك لتفعيل الحساب.
+        </p>
+        <div id="blockedBalance"
+            style="background: rgba(255,255,255,0.1); border-radius: 15px; padding: 15px 30px; margin-bottom: 30px; font-family: 'Cairo';">
+            <div style="font-size: 13px; color: #ffbbbb; margin-bottom: 4px;">الرصيد الحالي</div>
+            <div id="blockedBalanceVal" style="font-size: 30px; font-weight: 900; color: #ff6b6b;">0 ج.س</div>
+        </div>
+        <button id="paymentConfirmBtn" onclick="openPaymentModal()" style="
+            background: white; color: #c0392b;
+            border: none; border-radius: 50px;
+            padding: 14px 40px; font-size: 16px;
+            font-weight: 700; font-family: 'Cairo';
+            cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            margin-bottom: 12px; width: 100%; max-width: 300px;
+        ">&#9989; تأكيد السداد</button>
+        <button onclick="refreshBlockStatus()" style="
+            background: transparent; color: rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.3); border-radius: 50px;
+            padding: 10px 30px; font-size: 14px;
+            font-family: 'Cairo'; cursor: pointer;
+            width: 100%; max-width: 300px;
+        ">&#128260; تحديث الحالة</button>
+    </div>
+    <style>
+        @keyframes pulse-red {
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 0px #ff0000);
+            }
+
+            50% {
+                transform: scale(1.08);
+                filter: drop-shadow(0 0 20px #ff0000);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes slideUp {
+
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .pay-input {
+            width: 100%;
+            padding: 13px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: 'Cairo', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+            direction: rtl;
+        }
+
+        .pay-input:focus {
+            border-color: #04553A;
+        }
+
+        .pay-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+            font-family: 'Cairo';
+        }
+    </style>
+
+    <!-- ============================================================
+         💳 PAYMENT PROOF MODAL
+    ============================================================ -->
+    <div id="paymentModal" style="
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 999999;
+        align-items: flex-end;
+        justify-content: center;
+    ">
+        <div style="
+            background: white;
+            border-radius: 28px 28px 0 0;
+            padding: 28px 24px 40px;
+            width: 100%; max-width: 480px;
+            animation: slideUp 0.35s cubic-bezier(.22,.68,0,1.2);
+            font-family: 'Cairo', sans-serif;
+        ">
+            <!-- Handle bar -->
+            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px;"></div>
+
+            <h3 style="font-size:20px;font-weight:900;text-align:center;color:#1a1a2e;margin-bottom:6px;">&#128179;
+                إشعار سداد المديونية</h3>
+            <p style="font-size:13px;color:#888;text-align:center;margin-bottom:16px;">
+                حوّل المبلغ لحساب التطبيق أدناه ثم أدخل تفاصيل الإشعار
+            </p>
+
+            <!-- ✅ Bank Details Info Box -->
+            <div style="
+                background:linear-gradient(135deg,#e8f4fd,#d6eaf8);
+                border:1.5px solid #aed6f1;border-radius:16px;
+                padding:16px 18px;margin-bottom:20px;direction:rtl;
+            ">
+                <div
+                    style="font-size:12px;font-weight:800;color:#2e86c1;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                    &#127981; بيانات الحساب البنكي للتحويل
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-family:'Cairo';">
+                    <tr>
+                        <td style="font-size:12px;color:#5d6d7e;padding:4px 0;white-space:nowrap;">اسم البنك:</td>
+                        <td id="captainBankName" style="font-size:13px;font-weight:700;color:#1a252f;padding:4px 8px;">
+                            بنك الخرطوم</td>
+                    </tr>
+                    <tr>
+                        <td style="font-size:12px;color:#5d6d7e;padding:4px 0;white-space:nowrap;">اسم الحساب:</td>
+                        <td id="captainBankAccountName"
+                            style="font-size:13px;font-weight:700;color:#1a252f;padding:4px 8px;">إدارة تطبيق وجيز
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="font-size:12px;color:#5d6d7e;padding:6px 0 0;white-space:nowrap;">رقم الحساب:</td>
+                        <td style="padding:6px 8px 0;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span id="bankAccNum"
+                                    style="font-size:16px;font-weight:900;color:#154360;letter-spacing:2px;font-family:monospace;">7702038</span>
+                                <button onclick="copyAccountNumber()" id="copyAccBtn" style="
+                                    background:#2e86c1;color:white;border:none;border-radius:8px;
+                                    padding:4px 12px;font-size:12px;cursor:pointer;font-family:'Cairo';
+                                    display:inline-flex;align-items:center;gap:4px;
+                                    transition:background 0.2s;
+                                ">&#128203; نسخ</button>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Amount -->
+
+            <div style="margin-bottom:16px;">
+                <label class="pay-label">المبلغ المحوّل (ج.س) *</label>
+                <input id="payAmount" type="number" min="1" placeholder="مثال: 2000" class="pay-input">
+            </div>
+
+            <!-- Transaction ID -->
+            <div style="margin-bottom:16px;">
+                <label class="pay-label">رقم العملية *</label>
+                <input id="payTransactionId" type="text" placeholder="مثال: XXXX" class="pay-input">
+            </div>
+
+            <!-- Receipt Image -->
+            <div style="margin-bottom:24px;">
+                <label class="pay-label">صورة الإشعار</label>
+                <div id="receiptPreviewWrap" style="display:none;margin-bottom:10px;text-align:center;">
+                    <img id="receiptPreview" src="" style="max-height:120px;border-radius:10px;border:1px solid #eee;">
+                </div>
+                <label for="payReceipt" style="
+                    display:flex;align-items:center;justify-content:center;gap:8px;
+                    border:2px dashed #ccc;border-radius:12px;padding:14px;
+                    cursor:pointer;color:#888;font-size:14px;
+                    transition: border-color 0.2s;
+                " onmouseover="this.style.borderColor='#04553A'" onmouseout="this.style.borderColor='#ccc'">
+                    &#128247; اضغط لاختيار صورة الإشعار
+                </label>
+                <input id="payReceipt" type="file" accept="image/*" style="display:none"
+                    onchange="previewReceipt(this)">
+            </div>
+
+            <!-- Error msg -->
+            <div id="payError" style="display:none;background:#fff0f0;border:1px solid #ffcdd2;border-radius:10px;
+                padding:10px 14px;color:#c0392b;font-size:13px;margin-bottom:16px;text-align:center;"></div>
+
+            <!-- Buttons -->
+            <button id="paySubmitBtn" onclick="submitPayment()" style="
+                width:100%;padding:15px;background:linear-gradient(135deg,#04553A,#0A6E47);
+                color:white;border:none;border-radius:50px;font-size:16px;
+                font-weight:700;font-family:'Cairo';cursor:pointer;
+                box-shadow:0 5px 20px rgba(10,135,84,0.35);
+                margin-bottom:12px;transition:opacity 0.2s;
+            ">&#128228; إرسال إشعار السداد</button>
+
+            <button onclick="closePaymentModal()" style="
+                width:100%;padding:13px;background:transparent;
+                color:#888;border:1px solid #e0e0e0;border-radius:50px;
+                font-size:14px;font-family:'Cairo';cursor:pointer;
+            ">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- ⚠️ WARNING BANNER — يظهر عند الاقتراب من الحد (80% مديونية) -->
+    <div id="warningBanner" style="
+        display: none;
+        position: sticky; top: 0; z-index: 9999;
+        background: linear-gradient(90deg, #f39c12, #e67e22);
+        color: white; text-align: center;
+        padding: 12px 20px;
+        font-family: 'Cairo'; font-size: 14px;
+        font-weight: 600; line-height: 1.5;
+        box-shadow: 0 3px 10px rgba(243,156,18,0.4);
+    ">
+        &#9888;&#65039; تنبيه: اقتربت من الحد الأقصى للمديونية. يرجى تصفية الحساب.
+    </div>
+
+
     <div class="app-header">
         <div class="container pt-2">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="d-flex align-items-center gap-3">
-                    <img src="logo-transparent.png" alt="Logo" width="44" height="44" class="app-logo"
-                        style="object-fit:contain;">
+                    <div id="captainAvatar" class="cap-avatar"><i class="bi bi-person-fill"></i></div>
                     <div>
                         <h2 id="captainName" class="h6 fw-bold mb-0 text-white">مرحباً بك 👋</h2>
                         <p class="small text-white-50 mb-0">لوحة التحكم الرئيسية</p>
@@ -53,6 +294,33 @@
                     <i class="bi bi-wifi-off"></i> <span>غير متصل</span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- 📊 Period Tabs + 7-day chart styles -->
+    <style>
+        .period-tabs { display:flex; gap:6px; background:rgba(0,0,0,0.05); border-radius:14px; padding:5px; }
+        .period-tab { flex:1; border:none; background:transparent; padding:8px 4px; border-radius:10px;
+            font-family:'Cairo',sans-serif; font-weight:700; font-size:13px; color:#6b7280; cursor:pointer; transition:all .2s; }
+        .period-tab.active { background:#fff; color:#04553A; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+        .earnings-chart { display:flex; align-items:flex-end; justify-content:space-between; gap:6px; height:120px; }
+        .ec-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; }
+        .ec-bar-wrap { flex:1; width:100%; display:flex; align-items:flex-end; }
+        .ec-bar { width:100%; border-radius:8px 8px 4px 4px; background:linear-gradient(180deg,#34d399,#04553A);
+            transition:height .4s ease; min-height:2px; }
+        .ec-bar.today { background:linear-gradient(180deg,#fbbf24,#f59e0b); }
+        .ec-label { font-size:11px; color:#9ca3af; font-weight:700; white-space:nowrap; }
+        .ec-label.today { color:#f59e0b; }
+        .cap-avatar { width:44px; height:44px; border-radius:50%; overflow:hidden; flex-shrink:0;
+            background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.6);
+            display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; }
+        .cap-avatar img { width:100%; height:100%; object-fit:cover; }
+    </style>
+    <div class="container mt-3">
+        <div class="period-tabs" id="periodTabs">
+            <button class="period-tab active" data-period="today" onclick="setStatsPeriod('today')">اليوم</button>
+            <button class="period-tab" data-period="week" onclick="setStatsPeriod('week')">الأسبوع</button>
+            <button class="period-tab" data-period="all" onclick="setStatsPeriod('all')">الكل</button>
         </div>
     </div>
 
@@ -76,7 +344,89 @@
         </div>
     </div>
 
-    <!-- Main Menu -->
+    <!-- 📊 7-DAY EARNINGS CHART -->
+    <div class="container mt-3">
+        <div class="card glass-card border-0 p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up-arrow text-success"></i> أرباح آخر ٧ أيام</h6>
+                <span class="small fw-bold text-success" id="weekTotalLabel">0 ج.س</span>
+            </div>
+            <div id="earningsChart" class="earnings-chart"></div>
+        </div>
+    </div>
+
+    <!-- 💳 WALLET CARD -->
+    <div class="container mt-3">
+        <div id="walletCard" style="
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border-radius: 20px; padding: 20px 22px;
+            color: white; position: relative; overflow: hidden;
+            box-shadow: 0 8px 30px rgba(15,52,96,0.4);
+        ">
+            <!-- Decorative circles -->
+            <div style="position:absolute; top:-20px; left:-20px; width:120px; height:120px;
+                border-radius:50%; background:rgba(255,255,255,0.04);"></div>
+            <div style="position:absolute; bottom:-30px; right:10px; width:160px; height:160px;
+                border-radius:50%; background:rgba(255,255,255,0.03);"></div>
+
+            <!-- Loading skeleton -->
+            <div id="walletSkeleton" style="display:flex; align-items:center; gap:10px; min-height:80px;">
+                <div style="width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-top-color:white;
+                    border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
+                <span style="font-size:13px;color:rgba(255,255,255,0.5);">جاري تحميل بيانات المحفظة...</span>
+            </div>
+
+            <!-- Wallet content (hidden until loaded) -->
+            <div id="walletContent" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+                    <div>
+                        <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:4px;">&#128179; رصيد
+                            المحفظة</div>
+                        <div id="walletBalance" style="font-size:28px; font-weight:900; letter-spacing:1px;">0 ج.س</div>
+                    </div>
+                    <div style="text-align:left;">
+                        <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:4px;">الحد الائتماني
+                        </div>
+                        <div id="walletLimit" style="font-size:16px; font-weight:700; color:#e74c3c;">-5000 ج.س</div>
+                    </div>
+                </div>
+
+                <!-- Progress bar -->
+                <div style="margin-bottom:12px;">
+                    <div
+                        style="display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.5); margin-bottom:5px;">
+                        <span>نسبة المديونية</span>
+                        <span id="walletUsagePct">0%</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.1); border-radius:50px; height:8px;">
+                        <div id="walletProgressBar" style="
+                            height:8px; border-radius:50px; width:0%;
+                            background: linear-gradient(90deg, #27ae60, #f39c12, #e74c3c);
+                            transition: width 0.8s ease;
+                        "></div>
+                    </div>
+                </div>
+
+                <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-bottom:14px;">
+                    &#128276; يتم خصم عمولة التطبيق تلقائياً بعد كل توصيل
+                </div>
+
+                <!-- ✅ Payment button — conditionally shown ONLY when blocked or at limit -->
+                <button id="walletPayBtn" onclick="openPaymentModal()" style="
+                    display:none; width:100%; padding:11px 16px;
+                    background:rgba(255,255,255,0.15); backdrop-filter:blur(4px);
+                    color:white; border:1px solid rgba(255,255,255,0.3);
+                    border-radius:50px; font-size:14px; font-weight:700;
+                    font-family:'Cairo'; cursor:pointer;
+                    transition: background 0.2s;
+                ">
+                    &#9989; إرسال إشعار سداد
+                </button>
+            </div>
+        </div>
+    </div>
+
+
     <div class="container mt-4 mb-5 pb-5">
         <h5 class="fw-bold mb-3 text-secondary px-2">القائمة الرئيسية</h5>
 
@@ -128,7 +478,7 @@
         </div>
     </div>
 
-    <!-- Bottom Navigation -->
+
     <nav class="mobile-nav-glass">
         <a href="captain-dashboard.html" class="nav-item-link active">
             <i class="bi bi-house-door-fill"></i>
@@ -147,8 +497,8 @@
         </a>
     </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src='vendor/sweetalert2/sweetalert2.all.min.js'></script>
     <script src="notification-toast.js"></script>
 
     <script>
@@ -163,9 +513,15 @@
         let userId = localStorage.getItem('userId');
         let gpsInterval = null;
         let isWorking = false;
+        let watchId = null; // 📡 BUG #14: Store fallback GPS watchId for clearWatch
 
         // --- 2. ONBOARDING & PERMISSIONS ---
         async function checkOnboarding(force = false) {
+            // ✅ FIX: إذا كان الكابتن متصلاً بالفعل (استُعيدت حالته من DB في fetchStats)، لا نسأله
+            if (!force && isWorking) {
+                return;
+            }
+
             // If already asked this session and not forced by user, skip
             if (!force && sessionStorage.getItem('workStatusAsked')) {
                 return;
@@ -192,7 +548,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'نعم، أنا جاهز ✅',
                 cancelButtonText: 'لا، لاحقاً ❌',
-                confirmButtonColor: '#0a8754',
+                confirmButtonColor: '#04553A',
                 cancelButtonColor: '#7f8c8d',
                 allowOutsideClick: false
             }).then((result) => {
@@ -263,7 +619,8 @@
                 console.error("❌ CaptainService failed to load after retries — falling back to web tracking");
                 // Fallback: direct web geolocation
                 if (navigator.geolocation && window.socket) {
-                    navigator.geolocation.watchPosition(
+                    // 📌 BUG #14: Store watchId so we can clearWatch() later
+                    watchId = navigator.geolocation.watchPosition(
                         (pos) => {
                             window.socket.emit('update_location', {
                                 userId,
@@ -282,12 +639,81 @@
             if (window.CaptainService) {
                 await window.CaptainService.stopTracking();
             }
+            // 📌 BUG #14: Clear fallback GPS watch if active
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
         }
 
         // Legacy function removed, handled by service
         function sendLocation() { /* ... */ }
 
         // --- 5. FETCH STATISTICS ---
+        // 📊 ── Performance summary (today / week / all) + 7-day chart ──
+        let statsData = null;
+        let statsPeriod = 'today'; // الافتراضي: اليوم
+
+        function fmtMoney(n) {
+            return Number(n || 0).toLocaleString('en') + ' ج.س';
+        }
+
+        function setStatsPeriod(p) {
+            statsPeriod = p;
+            document.querySelectorAll('.period-tab').forEach(b =>
+                b.classList.toggle('active', b.dataset.period === p));
+            renderStatsCards();
+        }
+
+        function renderStatsCards() {
+            if (!statsData) return;
+            let earn, cnt;
+            if (statsPeriod === 'today')      { earn = statsData.today?.earnings || 0; cnt = statsData.today?.count || 0; }
+            else if (statsPeriod === 'week')  { earn = statsData.week?.earnings  || 0; cnt = statsData.week?.count  || 0; }
+            else                              { earn = statsData.earnings        || 0; cnt = statsData.completedCount || 0; }
+
+            const eEl = document.getElementById('totalEarnings');
+            const cEl = document.getElementById('completedOrders');
+            if (eEl) eEl.innerText = fmtMoney(earn);
+            if (cEl) cEl.innerText = cnt;
+        }
+
+        function weekdayShortAr(dateStr) {
+            const d = new Date(dateStr + 'T12:00:00');
+            return ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'][d.getDay()];
+        }
+
+        // 🖼️ صورة الكابتن في ترويسة الداشبورد
+        function renderCaptainAvatar() {
+            const el = document.getElementById('captainAvatar');
+            if (!el || !statsData || !statsData.profilePhoto) return;
+            const url = window.getFullImageUrl ? window.getFullImageUrl(statsData.profilePhoto) : statsData.profilePhoto;
+            el.innerHTML = `<img src="${url}" alt="" onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-person-fill&quot;&gt;&lt;/i&gt;'">`;
+        }
+
+        function renderEarningsChart() {
+            const wrap = document.getElementById('earningsChart');
+            if (!wrap || !statsData || !Array.isArray(statsData.daily7)) return;
+            const days = statsData.daily7;
+            const max = Math.max(1, ...days.map(d => d.earnings || 0));
+            const todayStr = days[days.length - 1].date;
+
+            wrap.innerHTML = days.map(d => {
+                const pct = (d.earnings > 0) ? Math.max(Math.round((d.earnings / max) * 100), 6) : 2;
+                const isToday = d.date === todayStr;
+                return `
+                    <div class="ec-col" title="${weekdayShortAr(d.date)} — ${fmtMoney(d.earnings)} (${d.count} طلب)">
+                        <div class="ec-bar-wrap">
+                            <div class="ec-bar ${isToday ? 'today' : ''}" style="height:${pct}%"></div>
+                        </div>
+                        <div class="ec-label ${isToday ? 'today' : ''}">${weekdayShortAr(d.date)}</div>
+                    </div>`;
+            }).join('');
+
+            const wt = document.getElementById('weekTotalLabel');
+            if (wt) wt.innerText = fmtMoney(statsData.week?.earnings || 0);
+        }
+
         async function fetchStats() {
             try {
                 const res = await fetch(`${API_URL}/api/captain/stats`, {
@@ -298,20 +724,21 @@
 
                 const data = await res.json();
 
-                // Update DOM safely
-                if (document.getElementById('completedOrders'))
-                    document.getElementById('completedOrders').innerText = data.completedCount || 0;
+                // 📊 خزّن البيانات وارسم البطاقات (حسب الفترة المختارة) والرسم البياني
+                statsData = data;
+                renderStatsCards();
+                renderEarningsChart();
+                renderCaptainAvatar();
 
-                if (document.getElementById('totalEarnings'))
-                    document.getElementById('totalEarnings').innerText = (data.earnings || 0) + ' ج.س';
-
-                // ✅ Update Availability Toggle State
+                // ✅ Update Availability Toggle State — restore from DB on every login
                 if (typeof data.isActive !== 'undefined') {
                     isWorking = data.isActive;
                     updateUI(isWorking);
-                    // ✅ FIX: Auto-restart tracking if captain was already online
+                    // ✅ FIX: Auto-restart tracking if captain was already online in DB
                     if (isWorking) {
                         startLocationTracking();
+                        // Mark session as asked so checkOnboarding won't ask again
+                        sessionStorage.setItem('workStatusAsked', 'true');
                     }
                 }
 
@@ -347,44 +774,386 @@
             }
         }
 
+        // --- 5.5 PAYMENT MODAL LOGIC ---
+        let receiptBase64 = null;
+
+        // 🏦 Cached bank details — populated by fetchWallet(), used in modal
+        let _bankDetails = {
+            bankName: 'بنك الخرطوم',
+            bankAccountName: 'ضياء الدين ابراهيم محمد',
+            bankAccountNumber: '7702038'
+        };
+
+        function openPaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                // Reset form
+                document.getElementById('payAmount').value = '';
+                document.getElementById('payTransactionId').value = '';
+                document.getElementById('payReceipt').value = '';
+                document.getElementById('receiptPreviewWrap').style.display = 'none';
+                document.getElementById('payError').style.display = 'none';
+                receiptBase64 = null;
+
+                // 🏦 Inject latest bank details every time modal opens
+                const bNameEl = document.getElementById('captainBankName');
+                const bAccNmEl = document.getElementById('captainBankAccountName');
+                const bAccNumEl = document.getElementById('bankAccNum');
+                if (bNameEl) bNameEl.textContent = _bankDetails.bankName;
+                if (bAccNmEl) bAccNmEl.textContent = _bankDetails.bankAccountName;
+                if (bAccNumEl) bAccNumEl.textContent = _bankDetails.bankAccountNumber;
+            }
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // Close modal when tapping the dark backdrop
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closePaymentModal();
+                });
+            }
+        });
+
+        async function previewReceipt(input) {
+            if (!input.files || !input.files[0]) return;
+            let file = input.files[0];
+            try {
+                // ضغط الصورة قبل عرضها/رفعها
+                const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1200, useWebWorker: true };
+                file = await imageCompression(file, options);
+            } catch (error) {
+                console.error("Compression error:", error);
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                receiptBase64 = e.target.result;
+                const preview = document.getElementById('receiptPreview');
+                const wrap = document.getElementById('receiptPreviewWrap');
+                if (preview) preview.src = receiptBase64;
+                if (wrap) wrap.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+
+        async function submitPayment() {
+            const amount = document.getElementById('payAmount').value.trim();
+            const transactionId = document.getElementById('payTransactionId').value.trim();
+            const errEl = document.getElementById('payError');
+            const submitBtn = document.getElementById('paySubmitBtn');
+
+            // Validation
+            if (!amount || isNaN(amount) || Number(amount) <= 0) {
+                errEl.textContent = '⚠️ الرجاء إدخال مبلغ صحيح';
+                errEl.style.display = 'block';
+                return;
+            }
+            if (!transactionId) {
+                errEl.textContent = '⚠️ الرجاء إدخال رقم إشعار التحويل';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            errEl.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ جارٍ الإرسال...';
+            submitBtn.style.opacity = '0.7';
+
+            try {
+                const res = await fetch(`${API_URL}/api/captain/wallet/pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...window.Auth.getAuthHeader()
+                    },
+                    body: JSON.stringify({
+                        amount: Number(amount),
+                        transactionId,
+                        receiptImage: receiptBase64 || null
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    closePaymentModal();
+
+                    // تغيير نص زر "تأكيد السداد" ليمنع الإرسال المكرر
+                    const confirmBtn = document.getElementById('paymentConfirmBtn');
+                    if (confirmBtn) {
+                        confirmBtn.textContent = '⏳ قيد المراجعة...';
+                        confirmBtn.style.background = '#f39c12';
+                        confirmBtn.style.color = 'white';
+                        confirmBtn.disabled = true;
+                        confirmBtn.onclick = null;
+                    }
+
+                    // رسالة نجاح
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '✅ تم الإرسال بنجاح!',
+                            text: data.message || 'تم إرسال إشعار السداد للإدارة. سيتم مراجعة الدفعة وفتح حسابك قريباً.',
+                            confirmButtonColor: '#04553A',
+                            confirmButtonText: 'حسناً',
+                            fontFamily: 'Cairo'
+                        });
+                    } else {
+                        alert('✅ ' + (data.message || 'تم إرسال الإشعار بنجاح!'));
+                    }
+                } else {
+                    errEl.textContent = data.message || '❌ حدث خطأ، حاول مرة أخرى';
+                    errEl.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '📨 إرسال إشعار السداد';
+                    submitBtn.style.opacity = '1';
+                }
+
+            } catch (err) {
+                console.error('Payment submit error:', err);
+                errEl.textContent = '❌ تعذّر الاتصال بالخادم. تحقق من الإنترنت.';
+                errEl.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '📨 إرسال إشعار السداد';
+                submitBtn.style.opacity = '1';
+            }
+        }
+
+        // --- 6. FETCH WALLET ---
+
+        async function fetchWallet() {
+            try {
+                const res = await fetch(`${API_URL}/api/captain/wallet`, {
+                    headers: window.Auth.getAuthHeader()
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+
+                const balance = data.wallet_balance ?? 0;
+                const limit = data.credit_limit ?? -5000;
+                const pct = data.usage_percent ?? 0;
+
+                // Reveal wallet card content, hide skeleton
+                const skeleton = document.getElementById('walletSkeleton');
+                const content = document.getElementById('walletContent');
+                if (skeleton) skeleton.style.display = 'none';
+                if (content) content.style.display = 'block';
+
+                // Update wallet card fields
+                const balEl = document.getElementById('walletBalance');
+                const limEl = document.getElementById('walletLimit');
+                const pctEl = document.getElementById('walletUsagePct');
+                const barEl = document.getElementById('walletProgressBar');
+
+                if (balEl) {
+                    balEl.textContent = `${balance.toFixed(0)} ج.س`;
+                    balEl.style.color = balance < 0 ? '#ff6b6b' : '#6ee7b7';
+                }
+                if (limEl) limEl.textContent = `${limit.toFixed(0)} ج.س`;
+                // 📊 Debt Percentage: balance 0 = 0% debt, balance = creditLimit = 100% debt
+                // e.g. balance=-2500, limit=-5000 → pct = (2500/5000)*100 = 50%
+                const debtPercentage = (balance === 0)
+                    ? 0
+                    : Math.min(100, Math.max(0, (balance / limit) * 100));
+
+                if (pctEl) pctEl.textContent = `${Math.round(debtPercentage)}%`;
+                if (barEl) barEl.style.width = `${Math.round(debtPercentage)}%`;
+
+                // Payment button: show if blocked OR debt >= 80%
+                const walletPayBtn = document.getElementById('walletPayBtn');
+                if (walletPayBtn) {
+                    walletPayBtn.style.display = (data.is_blocked || debtPercentage >= 80) ? 'block' : 'none';
+                }
+
+                // 🏦 Update cached bank details + inject into DOM
+                _bankDetails = {
+                    bankName: data.bankName || 'بنك الخرطوم',
+                    bankAccountName: data.bankAccountName || 'ضياء الدين ابراهيم محمد',
+                    bankAccountNumber: data.bankAccountNumber || '7702038'
+                };
+                const bNameEl = document.getElementById('captainBankName');
+                const bAccNameEl = document.getElementById('captainBankAccountName');
+                const bAccNumEl = document.getElementById('bankAccNum');
+                if (bNameEl) bNameEl.textContent = _bankDetails.bankName;
+                if (bAccNameEl) bAccNameEl.textContent = _bankDetails.bankAccountName;
+                if (bAccNumEl) bAccNumEl.textContent = _bankDetails.bankAccountNumber;
+
+                // Warning banner: show if debt >= 80% but not yet blocked
+                const warningBanner = document.getElementById('warningBanner');
+                if (warningBanner) {
+                    warningBanner.style.display = (!data.is_blocked && debtPercentage >= 80) ? 'block' : 'none';
+                }
+
+                // Blocked overlay
+                const overlay = document.getElementById('blockedOverlay');
+                if (overlay) {
+                    if (data.is_blocked) {
+                        overlay.style.display = 'flex';
+                        const bv = document.getElementById('blockedBalanceVal');
+                        if (bv) bv.textContent = `${balance.toFixed(0)} ج.س`;
+                        // Disable availability toggle so captain cannot go online
+                        const toggleBtn = document.getElementById('availabilityToggle');
+                        if (toggleBtn) {
+                            toggleBtn.disabled = true;
+                            toggleBtn.style.opacity = '0.4';
+                        }
+                        // Check if already has a pending payment request
+                        await fetchPaymentStatus();
+                    } else {
+                        overlay.style.display = 'none';
+                    }
+                }
+
+            } catch (err) {
+                console.error('⚠️ Wallet fetch error:', err);
+            }
+        }
+
+        // تحقق من وجود طلب سداد معلق سابق
+        async function fetchPaymentStatus() {
+            try {
+                const res = await fetch(`${API_URL}/api/captain/wallet/pay/status`, {
+                    headers: window.Auth.getAuthHeader()
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const req = data.request;
+
+                const confirmBtn = document.getElementById('paymentConfirmBtn');
+                if (!confirmBtn || !req) return;
+
+                if (req.status === 'pending') {
+                    confirmBtn.textContent = '⏳ قيد المراجعة...';
+                    confirmBtn.style.background = '#f39c12';
+                    confirmBtn.style.color = 'white';
+                    confirmBtn.disabled = true;
+                    confirmBtn.onclick = null;
+                } else if (req.status === 'rejected') {
+                    confirmBtn.textContent = '❌ مرفوض — أعد الإرسال';
+                    confirmBtn.style.background = 'white';
+                    confirmBtn.style.color = '#c0392b';
+                    confirmBtn.disabled = false;
+                    confirmBtn.onclick = openPaymentModal;
+                }
+            } catch (e) {
+                console.warn('Payment status check failed:', e.message);
+            }
+        }
+
+        async function refreshBlockStatus() {
+            await fetchWallet();
+        }
+
+        // ✅ Copy bank account number to clipboard
+        function copyAccountNumber() {
+            const accNum = document.getElementById('bankAccNum')?.textContent?.trim() || '7702038';
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(accNum).then(() => {
+                    const btn = document.getElementById('copyAccBtn');
+                    if (btn) {
+                        btn.textContent = '✅ تم النسخ!';
+                        btn.style.background = '#27ae60';
+                        setTimeout(() => {
+                            btn.innerHTML = '&#128203; نسخ';
+                            btn.style.background = '#2e86c1';
+                        }, 2000);
+                    }
+                });
+            } else {
+                // Fallback for older WebViews
+                const el = document.createElement('textarea');
+                el.value = accNum;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+            }
+        }
+
+
         // --- INIT ---
         window.addEventListener('DOMContentLoaded', () => {
-            // ✅ FIX: أنشئ Socket مبكراً مع reconnection قوي
-            const serverUrl = (typeof API_URL !== 'undefined') ? API_URL : 'https://wassili.site';
-            window.socket = io(serverUrl, {
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                transports: ['websocket', 'polling']
-            });
-
-            window.socket.on('connect', () => {
-                console.log('✅ Captain socket connected:', window.socket.id);
-                if (userId) window.socket.emit('user_join', userId);
-                // ✅ أرسل الموقع الأخير فوراً بعد إعادة الاتصال
-                if (isWorking && window.CaptainService && window.CaptainService.lastLocation) {
-                    const { lat, lng } = window.CaptainService.lastLocation;
-                    window.socket.emit('update_location', { userId, lat, lng });
-                    console.log('📍 Resent location after reconnect');
-                }
-            });
-
-            window.socket.on('disconnect', (reason) => {
-                console.warn('⚠️ Captain socket disconnected:', reason);
-            });
-
-            window.socket.on('connect_error', (err) => {
-                console.error('❌ Socket error:', err.message);
-            });
-
-            fetchStats();
-            checkOnboarding();
-
-            // Initialize notification socket
+            // ✅ FIX: Avoid duplicate socket initialization.
+            // Use the globally managed socket from notification-toast.js
             if (userId && typeof initNotificationSocket === 'function') {
                 initNotificationSocket(userId);
             }
+
+            // Attach dashboard-specific listeners to the global socket
+            if (window.socket) {
+                // Ensure socket is attached
+                window.socket.on('connect', () => {
+                    console.log('✅ Captain dashboard attached to global socket:', window.socket.id);
+                    if (userId) window.socket.emit('user_join', userId);
+
+                    // ✅ Resend location on reconnect
+                    if (isWorking && window.CaptainService && window.CaptainService.lastLocation) {
+                        const { lat, lng } = window.CaptainService.lastLocation;
+                        window.socket.emit('update_location', { userId, lat, lng });
+                        console.log('📍 Resent location after reconnect');
+                    }
+                });
+
+                window.socket.on('disconnect', (reason) => {
+                    console.warn('⚠️ Captain dashboard socket disjointed:', reason);
+                });
+
+                window.socket.on('connect_error', (err) => {
+                    console.error('❌ Socket error:', err.message);
+                });
+
+                // 🔴 REAL-TIME BLOCK: Listen for instant block event from server
+                window.socket.on('wallet_limit_reached', async (data) => {
+                    console.warn('🔴 wallet_limit_reached received — triggering block overlay!', data);
+                    // Re-fetch wallet data to update all UI elements atomically
+                    await fetchWallet();
+                });
+
+                // ✅ REAL-TIME UNBLOCK: When admin approves payment
+                window.socket.on('payment_approved', async (data) => {
+                    console.log('✅ payment_approved received — refreshing wallet!', data);
+                    await fetchWallet();
+                    // Hide blocked overlay immediately
+                    const overlay = document.getElementById('blockedOverlay');
+                    if (overlay) overlay.style.display = 'none';
+                    // Re-enable availability toggle
+                    const toggleBtn = document.getElementById('availabilityToggle');
+                    if (toggleBtn) {
+                        toggleBtn.disabled = false;
+                        toggleBtn.style.opacity = '1';
+                    }
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '✅ تمت الموافقة على السداد',
+                            text: data.message || 'تم رفع الإيقاف عن حسابك. يمكنك الآن تلقي الطلبات.',
+                            confirmButtonColor: '#04553A',
+                            confirmButtonText: 'حسناً',
+                            fontFamily: 'Cairo'
+                        });
+                    }
+                });
+
+                // ✅ Real-time: refresh dashboard stats when orders change
+                window.socket.on('order_status_updated', () => fetchStats());
+                window.socket.on('new_order_available', () => fetchStats());
+            }
+
+
+            // ✅ FIX: انتظر fetchStats تنتهي أولاً لمعرفة حالة الكابتن من DB
+            // ثم اسأله فقط إذا كان غير متصل — تمنع المشكلة الرئيسية للظهور كـ"غير متصل" عند الدخول
+            fetchStats().then(() => {
+                checkOnboarding();
+            });
+            fetchWallet();
 
             // Set Captain Name
             const name = localStorage.getItem('captainName');
@@ -406,7 +1175,80 @@
         style="position:fixed;bottom:80px;left:20px;width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;border:3px solid white;font-size:28px;box-shadow:0 5px 25px rgba(231,76,60,0.5);cursor:pointer;z-index:1000;"
         onclick="triggerSOS()">🚨</button>
     <script>
-        async function triggerSOS() { if (!confirm('⚠️ هل أنت في حالة طوارئ؟')) return; const btn = document.getElementById('sos-btn'); btn.disabled = true; btn.innerHTML = '⏳'; navigator.geolocation.getCurrentPosition(async (p) => { try { const res = await fetch(`${API_URL}/api/emergency/alert`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ lat: p.coords.latitude, lng: p.coords.longitude }) }); if (res.ok) { btn.style.background = '#27ae60'; btn.innerHTML = '✅'; alert('✅ تم إرسال التنبيه!'); setTimeout(() => { btn.disabled = false; btn.innerHTML = '🚨'; btn.style.background = 'linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)' }, 3000) } } catch (e) { btn.disabled = false; btn.innerHTML = '🚨'; alert('❌ خطأ في الإرسال') } }, () => { btn.disabled = false; btn.innerHTML = '🚨'; alert('❌ خطأ GPS') }, { enableHighAccuracy: true }) }
+        const SOS_GRADIENT = 'linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)';
+
+        function resetSosBtn() {
+            const btn = document.getElementById('sos-btn');
+            if (!btn) return;
+            btn.disabled = false;
+            btn.innerHTML = '🚨';
+            btn.style.background = SOS_GRADIENT;
+        }
+
+        async function triggerSOS() {
+            // تأكيد قبل الإرسال
+            let confirmed;
+            if (window.Swal) {
+                confirmed = (await Swal.fire({
+                    icon: 'warning',
+                    title: '🚨 طلب نجدة؟',
+                    text: 'سيتم إبلاغ الإدارة فوراً بموقعك الحالي.',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، أرسل النجدة',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#e74c3c'
+                })).isConfirmed;
+            } else {
+                confirmed = confirm('⚠️ هل أنت في حالة طوارئ؟');
+            }
+            if (!confirmed) return;
+
+            const btn = document.getElementById('sos-btn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳';
+
+            if (!navigator.geolocation) {
+                resetSosBtn();
+                if (window.Swal) Swal.fire('خطأ', 'جهازك لا يدعم تحديد الموقع', 'error');
+                else alert('❌ الجهاز لا يدعم تحديد الموقع');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (p) => {
+                try {
+                    const res = await fetch(`${API_URL}/api/emergency/alert`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ lat: p.coords.latitude, lng: p.coords.longitude })
+                    });
+                    const out = await res.json().catch(() => ({}));
+
+                    if (res.ok) {
+                        btn.style.background = '#27ae60';
+                        btn.innerHTML = '✅';
+                        if (window.Swal) Swal.fire({
+                            icon: 'success', title: '✅ تم إرسال النجدة',
+                            text: 'الإدارة تم إبلاغها بموقعك. ابقَ في مكان آمن.',
+                            confirmButtonColor: '#04553A'
+                        });
+                        setTimeout(resetSosBtn, 4000);
+                    } else {
+                        resetSosBtn();
+                        const msg = out.message || 'تعذّر إرسال النجدة، حاول مجدداً';
+                        if (window.Swal) Swal.fire('تعذّر الإرسال', msg, 'error');
+                        else alert('❌ ' + msg);
+                    }
+                } catch (e) {
+                    resetSosBtn();
+                    if (window.Swal) Swal.fire('خطأ', 'تعذّر الاتصال بالخادم', 'error');
+                    else alert('❌ خطأ في الإرسال');
+                }
+            }, () => {
+                resetSosBtn();
+                if (window.Swal) Swal.fire('تعذّر تحديد الموقع', 'فعّل GPS وحاول مرة أخرى', 'error');
+                else alert('❌ خطأ GPS');
+            }, { enableHighAccuracy: true, timeout: 15000 });
+        }
     </script>
     <!-- App Core & Captain Service -->
     <script type="module" src="js/app-core.js"></script>

@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
         html, body {
@@ -142,6 +143,16 @@
             overflow: hidden;
             transition: box-shadow 0.8s ease;
         }
+        
+        /* تأثير الانعكاس الديناميكي (Glare) */
+        .glare {
+            position: absolute;
+            inset: -100%;
+            background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.12) 55%, transparent 60%);
+            transform: translateX(-100%);
+            z-index: 990;
+            pointer-events: none;
+        }
         /* توهجات الإطار حسب الحالة الدرامية */
         .device-frame.glow-red {
             box-shadow: 0 60px 120px rgba(0,0,0,0.75), inset 0 0 0 2px #2a2a33,
@@ -206,6 +217,11 @@
             box-shadow: 0 2px 14px rgba(0,0,0,0.35);
             pointer-events: none;
             opacity: 0;
+            transition: width 0.1s, height 0.1s;
+        }
+        #cursor.moving {
+            width: 32px; height: 44px;
+            border-radius: 50% 50% 40% 40%;
         }
         #cursor::after {
             content: ''; position: absolute; inset: 11px;
@@ -214,7 +230,8 @@
         .ripple {
             position: absolute;
             width: 38px; height: 38px;
-            background: rgba(255,255,255,0.55);
+            background: transparent;
+            border: 3px solid rgba(255,255,255,0.8);
             border-radius: 50%;
             transform: scale(0);
             pointer-events: none;
@@ -580,6 +597,16 @@
             opacity: 0; pointer-events: none;
         }
 
+        /* تحسينات العرض على الموبايل لشاشة التحكم */
+        @media (max-width: 768px) {
+            #controls h1 { font-size: 22px; }
+            #controls .hint { font-size: 13px; padding: 0 20px; }
+            .mode-switch { flex-direction: column; width: 85%; max-width: 300px; gap: 12px; }
+            .mode-btn { width: 100%; padding: 14px; font-size: 15px; }
+            #btnSound { padding: 14px; font-size: 15px; margin-top: 10px; width: 85%; max-width: 300px; }
+            #btnPlay { width: 84px; height: 84px; font-size: 32px; margin-top: 20px; }
+        }
+
         #countdown {
             position: absolute; inset: 0;
             display: flex; align-items: center; justify-content: center;
@@ -671,6 +698,7 @@
         <div class="phone-slot" id="phoneSlot">
             <div class="device-container" id="deviceContainer">
                 <div class="device-frame" id="deviceFrame">
+                    <div class="glare" id="glareOverlay"></div>
                     <div class="status-bar" id="statusBar">
                         <span id="timeText">08:15</span>
                         <div class="notch"></div>
@@ -1055,7 +1083,19 @@
             rise()      { sweep({ dur: 1.0, from: 220, to: 2600, vol: 0.2, q: 1.2 }); },
             logo()      { [523.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.4, vol: 0.2, delay: i * 0.08 })); },
             success()   { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone({ from: f, dur: 0.7, vol: 0.16, delay: i * 0.1 })); },
-            finale()    { [392, 523.25, 659.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.95, vol: 0.18, delay: i * 0.1 })); }
+            finale()    { [392, 523.25, 659.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.95, vol: 0.18, delay: i * 0.1 })); },
+            move()      { sweep({ dur: 0.6, from: 400, to: 700, vol: 0.04, q: 0.4 }); },
+            ambient()   { 
+                if (!enabled || this._amb) return;
+                const c = ensure();
+                this._amb = c.createOscillator();
+                this._amb.type = 'triangle';
+                this._amb.frequency.value = 85; 
+                const g = c.createGain();
+                g.gain.value = 0.015; // خلفية خفيفة جداً لكسر الصمت
+                this._amb.connect(g); g.connect(master);
+                this._amb.start(); 
+            }
         };
     })();
 
@@ -1064,7 +1104,9 @@
         return deviceFrame.getBoundingClientRect().width / deviceFrame.offsetWidth;
     }
     const moveCursor = (targetId, duration = 1, offsetX = 0, offsetY = 0) => {
-        return gsap.to(cursor, {
+        const tl = gsap.timeline();
+        tl.call(() => sfx.move());
+        tl.to(cursor, {
             duration,
             ease: 'power3.inOut',
             x: () => {
@@ -1078,6 +1120,7 @@
                 return (t.top - f.top + t.height / 2) / frameScale() + offsetY;
             }
         });
+        return tl;
     };
 
     const clickCursor = (targetId) => {
@@ -1091,7 +1134,7 @@
             ripple.style.left = `${x - 19}px`;
             ripple.style.top = `${y - 19}px`;
             rippleContainer.appendChild(ripple);
-            gsap.to(ripple, { scale: 2.6, opacity: 0, duration: 0.5, ease: 'power2.out', onComplete: () => ripple.remove() });
+            gsap.to(ripple, { scale: 2.6, opacity: 0, borderWidth: 0, duration: 0.6, ease: 'power2.out', onComplete: () => ripple.remove() });
         });
         tl.to(cursor, { scale: 0.72, duration: 0.1 })
           .to(cursor, { scale: 1, duration: 0.12 });
@@ -1162,11 +1205,17 @@
           .set('#introCard', { visibility: 'hidden' });
 
         // ── دخول الهاتف ──
-        tl.set('#phoneSlot', { opacity: 1 })
-          .from('.device-container', { rotateY: 26, rotateX: 9, y: 90, scale: 0.86, duration: 1.6, ease: 'power4.out' })
-          .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.2, ease: 'power3.inOut' }, '-=0.5');
+        tl.call(() => sfx.ambient()) // تشغيل الصوت الخلفي المستمر
+          .set('#phoneSlot', { opacity: 1 })
+          .call(() => sfx.whoosh()) // صوت دخول الهاتف
+          .from('.device-container', { rotateY: 26, rotateX: 9, y: 90, scale: 0.86, duration: 1.6, ease: 'expo.out' })
+          .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.4, ease: 'power3.inOut' }, '-=0.5')
+          .fromTo('#glareOverlay', { x: '-100%' }, { x: '100%', duration: 1.8, ease: 'power1.inOut' }, '-=1.2');
+        
+        // طفو مستمر خفيف مع انعكاس ضوئي
         tl.call(() => {
-            gsap.to('.device-container', { y: '-=7', duration: 2.6, yoyo: true, repeat: -1, ease: 'sine.inOut' });
+            gsap.to('.device-container', { y: '-=10', rotateX: '+=2', rotateY: '-=1.5', duration: 3.2, yoyo: true, repeat: -1, ease: 'sine.inOut' });
+            gsap.to('#glareOverlay', { x: '-15%', duration: 3.2, yoyo: true, repeat: -1, ease: 'sine.inOut' });
         });
 
         // ── الفصل الأول: المشكلة ──
@@ -1236,7 +1285,14 @@
 
         tl.call(() => sfx.success(), null, '+=0.4')
           .to('#successOverlay', { opacity: 1, duration: 0.6, ease: 'power2.out' }, '<')
-          .fromTo('#successOverlay .success-check', { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.6, ease: 'back.out(2)' }, '<0.2');
+          .fromTo('#successOverlay .success-check', { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.6, ease: 'back.out(2)' }, '<0.2')
+          .call(() => {
+              // Confetti سحرية من منتصف الهاتف
+              const rect = document.getElementById('deviceFrame').getBoundingClientRect();
+              const cx = (rect.left + rect.width / 2) / window.innerWidth;
+              const cy = (rect.top + rect.height / 2) / window.innerHeight;
+              confetti({ particleCount: 120, spread: 80, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
+          }, null, '<0.3');
         tl.add(hideText('#mt3'), '<');
         tl.add(showText('#mt4'), '+=0.2');
 

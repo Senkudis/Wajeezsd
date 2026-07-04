@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>الإشعارات | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; margin: 0; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 80px; }
+
+        /* ─── Header ─── */
+        .notif-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 20px 16px 24px;
+            position: relative; overflow: hidden;
+        }
+        .notif-header::before {
+            content: ''; position: absolute; top: -40px; left: -40px;
+            width: 160px; height: 160px;
+            background: rgba(245,158,11,0.15); border-radius: 50%;
+        }
+        .notif-header::after {
+            content: ''; position: absolute; bottom: -30px; right: -20px;
+            width: 120px; height: 120px;
+            background: rgba(245,158,11,0.1); border-radius: 50%;
+        }
+        .notif-header h1 {
+            font-size: 1.3rem; font-weight: 800; margin: 0;
+            position: relative; z-index: 1;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .notif-header .subtitle {
+            font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px;
+            position: relative; z-index: 1;
+        }
+        .header-actions {
+            position: relative; z-index: 1;
+            display: flex; gap: 8px; margin-top: 12px;
+        }
+        .header-actions button {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.8); padding: 6px 14px; border-radius: 20px;
+            font-family: inherit; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .header-actions button:hover { background: rgba(245,158,11,0.3); color: white; }
+        .header-actions button.active { background: rgba(245,158,11,0.3); color: #fbbf24; border-color: rgba(245,158,11,0.4); }
+
+        /* ─── Unread Counter Badge ─── */
+        .unread-count-badge {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            color: white; font-size: 13px; font-weight: 800;
+            padding: 2px 10px; border-radius: 20px;
+            min-width: 26px; text-align: center;
+        }
+
+        /* ─── Notification Items ─── */
+        .notif-list { padding: 12px 16px; }
+        .notif-date-group {
+            font-size: 12px; font-weight: 700; color: #94a3b8;
+            padding: 8px 4px 4px; margin-top: 8px;
+        }
+        .notif-card {
+            background: white; border-radius: 14px; padding: 14px 16px;
+            margin-bottom: 10px; border-right: 4px solid transparent;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            display: flex; gap: 12px; align-items: flex-start;
+            transition: all 0.2s; cursor: pointer;
+            position: relative;
+        }
+        .notif-card.unread {
+            border-right-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb, #ffffff);
+        }
+        .notif-card.unread::after {
+            content: ''; position: absolute; top: 14px; left: 14px;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.5);
+        }
+        .notif-card:active { transform: scale(0.98); }
+        .notif-icon {
+            width: 42px; height: 42px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; flex-shrink: 0;
+        }
+        .notif-icon.system { background: linear-gradient(135deg, #dbeafe, #eff6ff); color: #3b82f6; }
+        .notif-icon.order { background: linear-gradient(135deg, #fef3c7, #fffbeb); color: #f59e0b; }
+        .notif-icon.chat { background: linear-gradient(135deg, #d1fae5, #ecfdf5); color: #10b981; }
+        .notif-icon.payment { background: linear-gradient(135deg, #fce7f3, #fdf2f8); color: #ec4899; }
+        .notif-icon.alert { background: linear-gradient(135deg, #fee2e2, #fef2f2); color: #ef4444; }
+
+        .notif-body { flex: 1; min-width: 0; }
+        .notif-title { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
+        .notif-msg { font-size: 12.5px; color: #64748b; line-height: 1.5; }
+        .notif-time { font-size: 11px; color: #94a3b8; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+        /* ─── Empty State ─── */
+        .empty-state {
+            text-align: center; padding: 60px 24px; color: #94a3b8;
+        }
+        .empty-state i { font-size: 3.5rem; margin-bottom: 12px; display: block; color: #cbd5e1; }
+        .empty-state h3 { font-size: 16px; font-weight: 700; color: #64748b; margin-bottom: 4px; }
+        .empty-state p { font-size: 13px; }
+
+        /* ─── Loading ─── */
+        .loading-state { text-align: center; padding: 40px; color: #94a3b8; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+
+        /* ─── Bottom Nav ─── */
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="notif-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1>
+                <i class="bi bi-bell-fill" style="color:#fbbf24;"></i>
+                الإشعارات
+                <span id="unreadBadge" class="unread-count-badge" style="display:none;"></span>
+            </h1>
+            <div class="subtitle">كل التحديثات والتنبيهات الخاصة بمتجرك</div>
+        </div>
+        <a href="merchant-dashboard.html" style="color:rgba(255,255,255,0.7);font-size:1.3rem;text-decoration:none;position:relative;z-index:1;">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="header-actions">
+        <button id="filterAll" class="active" onclick="filterNotifs('all')">الكل</button>
+        <button id="filterUnread" onclick="filterNotifs('unread')">غير مقروءة</button>
+        <button id="btnMarkAll" onclick="markAllRead()">
+            <i class="bi bi-check2-all"></i> قراءة الكل
+        </button>
+    </div>
+</div>
+
+<!-- Notification List -->
+<div class="notif-list" id="notifList">
+    <div class="loading-state">
+        <i class="bi bi-arrow-repeat spin" style="font-size:2rem;"></i>
+        <div style="margin-top:8px;">جارِ تحميل الإشعارات...</div>
+    </div>
+</div>
+
+<!-- Load More Button -->
+<div id="loadMoreContainer" style="display:none;text-align:center;padding:16px;">
+    <button onclick="loadMore()" style="background:linear-gradient(135deg,#1a1a2e,#0f3460);color:white;border:none;padding:10px 28px;border-radius:12px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;">
+        <i class="bi bi-arrow-down-circle me-1"></i> تحميل المزيد
+    </button>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html">
+        <i class="bi bi-house-door-fill"></i> الرئيسية
+    </a>
+    <a href="merchant-orders.html">
+        <i class="bi bi-bag-check"></i> الطلبات
+    </a>
+    <a href="merchant-conversations.html" style="position:relative;">
+        <i class="bi bi-chat-dots-fill"></i> رسائل
+        <span id="navConvBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+    </a>
+    <a href="merchant-notifications.html" class="active" style="position:relative;">
+        <i class="bi bi-bell-fill"></i> إشعارات
+        <span id="navNotifBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+    </a>
+    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');">
+        <i class="bi bi-box-arrow-right"></i> خروج
+    </a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="vendor/socket.io/socket.io.min.js"></script>
+<script type="module" src="js/app-core.js"></script>
+<script type="module" src="js/native-notifications.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) { window.location.href = 'client-login.html'; throw new Error('no token'); }
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.role || user.role !== 'merchant') { window.location.href = 'index.html'; throw new Error('not merchant'); }
+
+    const API_URL = window.API_URL || 'https://wajeezsd.com';
+    const H = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+
+    let allNotifications = [];
+    let currentPage = 1;
+    let totalPages  = 1;
+    let currentFilter = 'all'; // 'all' or 'unread'
+
+    // ─── Load Notifications ───────────────────────────
+    async function loadNotifications(page = 1, append = false) {
+        try {
+            if (!append) {
+                document.getElementById('notifList').innerHTML = `
+                    <div class="loading-state">
+                        <i class="bi bi-arrow-repeat spin" style="font-size:2rem;"></i>
+                        <div style="margin-top:8px;">جارِ تحميل الإشعارات...</div>
+                    </div>`;
+            }
+
+            const res = await fetch(`${API_URL}/api/notifications?page=${page}&limit=20`, { headers: H() });
+            if (!res.ok) throw new Error('فشل التحميل');
+            const data = await res.json();
+
+            if (append) {
+                allNotifications = allNotifications.concat(data.notifications || []);
+            } else {
+                allNotifications = data.notifications || [];
+            }
+
+            currentPage = data.currentPage || 1;
+            totalPages  = data.totalPages  || 1;
+
+            renderNotifications();
+            updateUnreadBadge();
+
+            // Show/hide load more
+            const loadMoreEl = document.getElementById('loadMoreContainer');
+            loadMoreEl.style.display = currentPage < totalPages ? 'block' : 'none';
+
+        } catch(err) {
+            console.error('Load notifications error:', err);
+            document.getElementById('notifList').innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <h3>حدث خطأ</h3>
+                    <p>${err.message}</p>
+                    <button onclick="loadNotifications()" style="background:#f59e0b;color:white;border:none;padding:8px 20px;border-radius:10px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;margin-top:12px;">
+                        <i class="bi bi-arrow-clockwise me-1"></i> إعادة المحاولة
+                    </button>
+                </div>`;
+        }
+    }
+
+    function loadMore() {
+        if (currentPage < totalPages) {
+            loadNotifications(currentPage + 1, true);
+        }
+    }
+
+    // ─── Render ───────────────────────────────────────
+    function renderNotifications() {
+        const container = document.getElementById('notifList');
+        let filtered = allNotifications;
+
+        if (currentFilter === 'unread') {
+            filtered = filtered.filter(n => !n.isRead);
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-bell-slash"></i>
+                    <h3>${currentFilter === 'unread' ? 'لا توجد إشعارات غير مقروءة' : 'لا توجد إشعارات بعد'}</h3>
+                    <p>ستظهر هنا جميع التنبيهات والتحديثات الخاصة بمتجرك</p>
+                </div>`;
+            return;
+        }
+
+        // Group by date
+        const groups = {};
+        filtered.forEach(n => {
+            const dateKey = getDateLabel(n.createdAt);
+            if (!groups[dateKey]) groups[dateKey] = [];
+            groups[dateKey].push(n);
+        });
+
+        let html = '';
+        for (const [dateLabel, items] of Object.entries(groups)) {
+            html += `<div class="notif-date-group">${dateLabel}</div>`;
+            items.forEach(n => {
+                const iconInfo = getNotifIcon(n.type);
+                const timeStr = formatTime(n.createdAt);
+                html += `
+                    <div class="notif-card ${n.isRead ? '' : 'unread'}" onclick="markRead('${n._id}')" id="notif-${n._id}">
+                        <div class="notif-icon ${iconInfo.cls}">
+                            <i class="bi ${iconInfo.icon}"></i>
+                        </div>
+                        <div class="notif-body">
+                            <div class="notif-title">${escHtml(n.title)}</div>
+                            <div class="notif-msg">${escHtml(n.message)}</div>
+                            <div class="notif-time">
+                                <i class="bi bi-clock"></i> ${timeStr}
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+        container.innerHTML = html;
+    }
+
+    // ─── Mark as Read ────────────────────────────────
+    async function markRead(id) {
+        const notif = allNotifications.find(n => n._id === id);
+        if (!notif || notif.isRead) return;
+
+        try {
+            await fetch(`${API_URL}/api/notifications/${id}/read`, {
+                method: 'PUT', headers: H()
+            });
+            notif.isRead = true;
+            const el = document.getElementById(`notif-${id}`);
+            if (el) el.classList.remove('unread');
+            updateUnreadBadge();
+        } catch(e) { console.error('Mark read error:', e); }
+    }
+
+    async function markAllRead() {
+        const unread = allNotifications.filter(n => !n.isRead);
+        if (unread.length === 0) return;
+
+        // Mark all in parallel
+        const promises = unread.map(n =>
+            fetch(`${API_URL}/api/notifications/${n._id}/read`, { method: 'PUT', headers: H() })
+                .then(() => { n.isRead = true; })
+                .catch(() => {})
+        );
+        await Promise.all(promises);
+        renderNotifications();
+        updateUnreadBadge();
+    }
+
+    // ─── Filter ──────────────────────────────────────
+    function filterNotifs(mode) {
+        currentFilter = mode;
+        document.getElementById('filterAll').classList.toggle('active', mode === 'all');
+        document.getElementById('filterUnread').classList.toggle('active', mode === 'unread');
+        renderNotifications();
+    }
+
+    // ─── Badge ───────────────────────────────────────
+    function updateUnreadBadge() {
+        const unreadCount = allNotifications.filter(n => !n.isRead).length;
+        const badge    = document.getElementById('unreadBadge');
+        const navBadge = document.getElementById('navNotifBadge');
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.style.display = 'inline-block';
+            if (navBadge) { navBadge.textContent = unreadCount; navBadge.style.display = 'inline-block'; }
+        } else {
+            badge.style.display = 'none';
+            if (navBadge) navBadge.style.display = 'none';
+        }
+    }
+
+    // ─── Helpers ─────────────────────────────────────
+    function getNotifIcon(type) {
+        const map = {
+            'system':           { icon: 'bi-megaphone-fill', cls: 'system' },
+            'order_accepted':   { icon: 'bi-bag-check-fill', cls: 'order' },
+            'order_completed':  { icon: 'bi-check-circle-fill', cls: 'order' },
+            'order_update':     { icon: 'bi-arrow-repeat', cls: 'order' },
+            'new_shop_order':   { icon: 'bi-cart-plus-fill', cls: 'order' },
+            'shop_order_update':{ icon: 'bi-box-seam-fill', cls: 'order' },
+            'chat':             { icon: 'bi-chat-dots-fill', cls: 'chat' },
+            'chat_message':     { icon: 'bi-chat-dots-fill', cls: 'chat' },
+            'payment_receipt':  { icon: 'bi-credit-card-fill', cls: 'payment' },
+            'payment_confirmed':{ icon: 'bi-check2-circle', cls: 'payment' },
+            'payment_reminder': { icon: 'bi-exclamation-triangle-fill', cls: 'alert' },
+        };
+        return map[type] || { icon: 'bi-bell-fill', cls: 'system' };
+    }
+
+    function getDateLabel(iso) {
+        if (!iso) return 'غير محدد';
+        const d = new Date(iso);
+        const now = new Date();
+        const diff = Math.floor((now - d) / 86400000);
+        if (diff === 0) return 'اليوم';
+        if (diff === 1) return 'أمس';
+        if (diff < 7) return `قبل ${diff} أيام`;
+        return d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function formatTime(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        const now = new Date();
+        const diffMs = now - d;
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 1) return 'الآن';
+        if (diffMin < 60) return `منذ ${diffMin} دقيقة`;
+        const diffHr = Math.floor(diffMin / 60);
+        if (diffHr < 24) return `منذ ${diffHr} ساعة`;
+        return d.toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit', month: '2-digit', day: '2-digit' });
+    }
+
+    function escHtml(s) {
+        if (!s) return '';
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    function logout() {
+        if (window.Auth) { window.Auth.logout('client-login.html'); }
+        else { localStorage.clear(); window.location.href = 'client-login.html'; }
+    }
+
+    // ─── Real-time Socket ────────────────────────────
+    const socket = io(API_URL, { transports: ['polling', 'websocket'], auth: { token } });
+    socket.on('connect', () => {
+        const uid = user._id || localStorage.getItem('userId');
+        if (uid) socket.emit('user_join', uid);
+    });
+    socket.on('new_notification', (data) => {
+        // Prepend to list and re-render
+        if (data && data.title) {
+            allNotifications.unshift({
+                _id: data._id || 'temp-' + Date.now(),
+                title: data.title,
+                message: data.message || '',
+                type: data.type || 'system',
+                isRead: false,
+                createdAt: new Date().toISOString()
+            });
+            renderNotifications();
+            updateUnreadBadge();
+        }
+    });
+
+    // ─── Init ────────────────────────────────────────
+    loadNotifications();
+
+    // ─── Auto-Refresh on Return ───────────────────────
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            loadNotifications();
+        }
+    });
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            loadNotifications();
+        } else {
+            loadNotifications();
+        }
+    });
+</script>
+</body>
+</html>
