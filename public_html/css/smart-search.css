@@ -427,6 +427,14 @@ body.dark-mode .ss-recent-chip,
 body.dark-mode .ss-chip { background: #1e293b; border-color: #334155; color: #cbd5e1; }
 body.dark-mode .ss-skel { background: #1e293b; }
 
+/* 🔍 البحث في الرئيسية */
+body.dark-mode .ss-trigger { background: rgba(30, 41, 59, 0.96); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.3); }
+body.dark-mode .ss-trigger-text { color: #94a3b8; }
+body.dark-mode #ss-trigger-hint { color: #f1f5f9; }
+body.dark-mode .ss-topbar { background: #0f172a; border-bottom: 1px solid #1e293b; box-shadow: none; }
+body.dark-mode .ss-back { background: rgba(255, 255, 255, 0.1); }
+body.dark-mode .ss-idle-head { color: #94a3b8; }
+
 /* تقليل الحركة لمن يفضّل ذلك */
 @media (prefers-reduced-motion: reduce) {
     .ss-trigger::after, .ss-trigger-icon, .ss-in, .ss-empty-ic, .ss-skel-img, .ss-skel-l1, .ss-skel-l2 { animation: none; }

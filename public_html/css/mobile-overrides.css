@@ -8,6 +8,8 @@
     --sab: env(safe-area-inset-bottom);
     --sal: env(safe-area-inset-left);
     --sar: env(safe-area-inset-right);
+    /* Height of the bottom nav + safe area — used for modal padding fixes */
+    --nav-height: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 /* 1. منع تحديد النصوص والصور (تجربة App-like) */
@@ -16,10 +18,10 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    
+
     /* منع سحب الصفحة في iOS */
     overscroll-behavior-y: none;
-    
+
     /* استخدام كامل المساحة */
     padding-top: var(--sat);
     padding-bottom: var(--sab);
@@ -28,7 +30,9 @@ body {
 }
 
 /* استثناء للحقول النصية */
-input, textarea, [contenteditable] {
+input,
+textarea,
+[contenteditable] {
     -webkit-user-select: text;
     user-select: text;
 }
@@ -39,7 +43,8 @@ input, textarea, [contenteditable] {
 }
 
 body {
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 /* 3. إلغاء تأثير "الضغط الرمادي" في الموبايل */
@@ -48,19 +53,132 @@ body {
 }
 
 /* 4. تحسين الأزرار للمس */
-button, .btn, a {
-    touch-action: manipulation; /* تسريع استجابة اللمس */
+button,
+.btn,
+a {
+    touch-action: manipulation;
+    /* تسريع استجابة اللمس */
+}
+
+/* =========================================
+   🗺️ Capacitor Google Maps — Touch Fix
+   CRITICAL: touch-action:none tells the WebView
+   to stop consuming pan/pinch gestures and pass
+   raw MotionEvents to the Capacitor plugin bridge,
+   which forwards them to the native Android MapView.
+   Without this, WebView swallows touchmove and the
+   map is completely unresponsive to finger gestures.
+   ========================================= */
+capacitor-google-map {
+    touch-action: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    pointer-events: auto !important;
+}
+
+/* When map is active — only block overscroll, do NOT hide overflow
+   (overflow:hidden can interfere with touch event propagation on Android) */
+body.map-active {
+    overscroll-behavior: none !important;
+}
+
+/* 🎯 THE FIX: Target the ACTUAL dynamic container ID.
+   The container itself gets touch-action:auto so all children can receive touch.
+   Only the <capacitor-google-map> element gets touch-action:none (see above rule). */
+#isolated-map-container {
+    touch-action: auto !important;
+}
+
+/* All interactive overlay buttons MUST have touch-action:manipulation
+   so the browser fires click events from touch (without this, touch-action:none
+   inherited from a parent can silently swallow all button taps). */
+#isolated-map-container button,
+#isolated-map-container .btn {
+    touch-action: manipulation !important;
+    pointer-events: auto !important;
 }
 
 /* 5. شريط الحالة (Status Bar) */
 /* يمكننا تلوينه لاحقاً عبر Capacitor، لكن هنا نضمن عدم تداخل المحتوى */
-.navbar.fixed-top, .navbar.sticky-top {
+.navbar.fixed-top,
+.navbar.sticky-top {
     padding-top: max(8px, var(--sat));
 }
 
-/* 6. تحسينات الـ PWA */
+/* 6. تحسينات الـ PWA (standalone mode) */
 @media all and (display-mode: standalone) {
-    body {
-        /* تحسينات خاصة عند الفتح كتطبيق */
-    }
+    /* النافذة تعمل كتطبيق أصلي — لا تعديلات إضافية حالياً */
+}
+
+/* =========================================
+   🔧 Modal z-index & Bottom Nav Overlap Fix
+   يرفع الـ modal فوق شريط التنقل السفلي
+   ========================================= */
+
+/* رفع z-index الـ modal فوق الـ nav (9999) */
+.modal {
+    z-index: 10000 !important;
+}
+
+.modal-backdrop {
+    z-index: 9999 !important;
+}
+
+/* ضمان ظهور الـ modalفوق شريط التنقل تمامًا */
+.modal-dialog {
+    z-index: 10001 !important;
+}
+
+/* ---- Place Details Modal ---- */
+#placeDetailsModal .modal-dialog {
+    max-height: 90dvh;
+    max-height: 90vh;
+    /* fallback */
+    margin: auto;
+}
+
+#placeDetailsModal .modal-content {
+    max-height: 90dvh;
+    max-height: 90vh;
+}
+
+/* إضافة padding سفلي للـ body حتى يظهر الزر بالكامل عند التمرير */
+#placeDetailsModal .modal-body {
+    padding-bottom: 24px !important;
+    overflow-y: auto !important;
+}
+
+/* ---- Shop Order Confirm Modal ---- */
+#shopOrderConfirmModal .modal-dialog {
+    max-height: 92dvh;
+    max-height: 92vh;
+    margin: auto;
+}
+
+#shopOrderConfirmModal .modal-content {
+    max-height: 92dvh;
+    max-height: 92vh;
+}
+
+#shopOrderConfirmModal .modal-body {
+    padding-bottom: 24px !important;
+    overflow-y: auto !important;
+}
+
+/* ---- Location Picker Modal (fullscreen bottom sheet) ---- */
+/* هذا الـ modal يكتسي الشاشة كاملاً فلا داعي لتعديل المحتوى */
+#locationPickerModal .modal-content {
+    height: 90dvh;
+    height: 90vh;
+    max-height: 90dvh;
+    max-height: 90vh;
+}
+
+/* =========================================
+   ⚠️ SweetAlert2 z-index Fix
+   يضمن ظهور نوافذ SweetAlert فوق الـ modals
+   (SweetAlert2 افتراضياً z-index: 1060 < 10000)
+   ========================================= */
+.swal2-container {
+    z-index: 11000 !important;
 }

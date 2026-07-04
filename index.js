@@ -116,6 +116,20 @@ app.use((req, res, next) => {
     next();
 });
 
+// ✅ Method Override (WAF Bypass): 
+// يُحول طلبات POST التي تحتوي على ?_method=PUT أو ?_method=DELETE
+// إلى نوعها الأصلي لكي لا يحظرها جدار حماية الاستضافة (ModSecurity)
+app.use((req, res, next) => {
+    if (req.method === 'POST' && typeof req.query._method === 'string') {
+        // قائمة مسموحة فقط — قيمة عشوائية (أو مصفوفة ?_method=A&_method=B) كانت تسبب 500 أو method غير متوقع
+        const overridden = req.query._method.toUpperCase();
+        if (['PUT', 'DELETE', 'PATCH'].includes(overridden)) {
+            req.method = overridden;
+        }
+    }
+    next();
+});
+
 // ✅✅✅ الحماية من NoSQL Injection (متوافق مع Express v5) ✅✅✅
 // في Express v5، المتغيرات (req.query, req.params) هي getters للقراءة فقط ولا يمكن إعادة تعيينها.
 // لذا نقوم بتعديل الحقول الداخلية بشكل مباشر بدلاً من استخدام express-mongo-sanitize الذي يسبب Crash.
@@ -238,6 +252,13 @@ const chatRooms = {};
 
 // ⚡ Location throttle: max 1 update per 3 seconds per captain
 const locationThrottle = {};
+// تنظيف دوري: المداخل كانت تبقى للأبد لكل كابتن أرسل موقعاً — نمو ذاكرة بلا حد
+setInterval(() => {
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    for (const id in locationThrottle) {
+        if (locationThrottle[id] < cutoff) delete locationThrottle[id];
+    }
+}, 10 * 60 * 1000).unref();
 
 // Make io and chatRooms accessible to routes
 app.set('io', io);
