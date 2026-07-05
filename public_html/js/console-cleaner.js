@@ -23,6 +23,6 @@
         // console.error = function() {};
 
         // رسالة واحدة للمطورين
-        console.log('%c🔒 Console disabled in production', 'color: #0a8754; font-size: 14px; font-weight: bold;');
+        console.log('%c🔒 Console disabled in production', 'color: #04553A; font-size: 14px; font-weight: bold;');
     }
 })();

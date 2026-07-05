@@ -122,10 +122,12 @@ const InputValidator = {
     validateOrderForm: function (formData) {
         const errors = [];
 
-        // التحقق من اسم المرسل
-        const pickupNameResult = this.validateName(formData.pickupName);
-        if (!pickupNameResult.valid) {
-            errors.push({ field: 'pickup-name', message: pickupNameResult.message });
+        // اسم المرسل — اختياري، نتحقق فقط لو فيه قيمة
+        if (formData.pickupName && formData.pickupName.trim().length > 0) {
+            const pickupNameResult = this.validateName(formData.pickupName);
+            if (!pickupNameResult.valid) {
+                errors.push({ field: 'pickup-name', message: pickupNameResult.message });
+            }
         }
 
         // التحقق من هاتف المرسل
@@ -134,10 +136,12 @@ const InputValidator = {
             errors.push({ field: 'pickup-phone', message: pickupPhoneResult.message });
         }
 
-        // التحقق من اسم المستلم
-        const dropoffNameResult = this.validateName(formData.dropoffName);
-        if (!dropoffNameResult.valid) {
-            errors.push({ field: 'dropoff-name', message: dropoffNameResult.message });
+        // اسم المستلم — اختياري، نتحقق فقط لو فيه قيمة
+        if (formData.dropoffName && formData.dropoffName.trim().length > 0) {
+            const dropoffNameResult = this.validateName(formData.dropoffName);
+            if (!dropoffNameResult.valid) {
+                errors.push({ field: 'dropoff-name', message: dropoffNameResult.message });
+            }
         }
 
         // التحقق من هاتف المستلم

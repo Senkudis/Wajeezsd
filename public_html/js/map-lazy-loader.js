@@ -54,19 +54,7 @@ const MapLazyLoader = {
      * تحميل مكتبة Leaflet
      */
     loadLeafletLibrary: function () {
-        // تحميل CSS
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-
-        // تحميل JS
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = () => {
-            this.initializeMap();
-        };
-        document.head.appendChild(script);
+        this.initializeMap();
     },
 
     /**

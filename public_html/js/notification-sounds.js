@@ -4,13 +4,13 @@
  */
 
 const NotificationSounds = {
-    // أصوات مختلفة لكل نوع
+    // ✅ جميع الأصوات تستخدم نغمة وجيز الرسمية
     sounds: {
-        success: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE',
-        error: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE',
-        info: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE',
-        warning: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE',
-        newOrder: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE'
+        success: '/sounds/wajeezsd-bell.wav',
+        error: '/sounds/wajeezsd-bell.wav',
+        info: '/sounds/wajeezsd-bell.wav',
+        warning: '/sounds/wajeezsd-bell.wav',
+        newOrder: '/sounds/wajeezsd-bell.wav'
     },
 
     // حالة الصوت
@@ -22,8 +22,8 @@ const NotificationSounds = {
      */
     init: function () {
         // تحميل الإعدادات المحفوظة
-        const savedEnabled = localStorage.getItem('wassili_sounds_enabled');
-        const savedVolume = localStorage.getItem('wassili_sounds_volume');
+        const savedEnabled = localStorage.getItem('wajeezsd_sounds_enabled');
+        const savedVolume = localStorage.getItem('wajeezsd_sounds_volume');
 
         if (savedEnabled !== null) {
             this.enabled = savedEnabled === 'true';
@@ -74,7 +74,7 @@ const NotificationSounds = {
      */
     toggle: function () {
         this.enabled = !this.enabled;
-        localStorage.setItem('wassili_sounds_enabled', this.enabled);
+        localStorage.setItem('wajeezsd_sounds_enabled', this.enabled);
         return this.enabled;
     },
 
@@ -83,7 +83,7 @@ const NotificationSounds = {
      */
     setVolume: function (volume) {
         this.volume = Math.max(0, Math.min(1, volume));
-        localStorage.setItem('wassili_sounds_volume', this.volume);
+        localStorage.setItem('wajeezsd_sounds_volume', this.volume);
     },
 
     /**

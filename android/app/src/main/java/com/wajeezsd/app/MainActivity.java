@@ -2,13 +2,18 @@ package com.wajeezsd.app;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Base64;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.widget.Toast;
 
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -18,6 +23,8 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
 
 import org.json.JSONObject;
+
+import java.io.OutputStream;
 
 public class MainActivity extends BridgeActivity {
 
@@ -52,6 +59,13 @@ public class MainActivity extends BridgeActivity {
                 }
             });
             setupSafeAreaInsets();
+
+            // جسر تنزيل الصور: <a download> لا يعمل داخل WebView أندرويد،
+            // فنُعرّض واجهة أصلية تحفظ الصورة (QR وغيره) مباشرة في مجلد التنزيلات.
+            WebView webView = getBridge().getWebView();
+            if (webView != null) {
+                webView.addJavascriptInterface(new WebAppDownloader(), "AndroidDownloader");
+            }
         }
     }
 
@@ -147,6 +161,62 @@ public class MainActivity extends BridgeActivity {
         String eventData = "{\"orderId\":" + JSONObject.quote(orderId) +
                 ",\"notifType\":" + JSONObject.quote(type) + "}";
         getBridge().triggerWindowJSEvent("wajeezPushTapped", eventData);
+    }
+
+    /**
+     * جسر JavaScript لحفظ الصور من صفحات الويب مباشرة في مجلد التنزيلات.
+     * السبب: زر <a download> في HTML لا يُنزّل أي ملف داخل WebView أندرويد
+     * (لا يوجد مدير تنزيلات كالمتصفح)، فكان تحميل رمز QR يفشل بصمت.
+     *
+     * تُستدعى من JS: AndroidDownloader.saveImage(dataUrl, fileName)
+     * وتُرجع true عند النجاح ليتوقف JS عن محاولة البدائل.
+     */
+    public class WebAppDownloader {
+        @JavascriptInterface
+        public boolean saveImage(String base64Data, String fileName) {
+            try {
+                if (base64Data == null) return false;
+                // اقبل "data:image/png;base64,XXXX" أو السلسلة الخام
+                String pure = base64Data.contains(",")
+                        ? base64Data.substring(base64Data.indexOf(",") + 1)
+                        : base64Data;
+                byte[] bytes = Base64.decode(pure, Base64.DEFAULT);
+
+                if (fileName == null || fileName.trim().isEmpty()) {
+                    fileName = "wajeez-" + System.currentTimeMillis() + ".png";
+                }
+
+                // MediaStore على أندرويد 10+ (API 29) لا يحتاج أي إذن تخزين
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentValues values = new ContentValues();
+                    values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+                    values.put(MediaStore.Downloads.MIME_TYPE, "image/png");
+                    values.put(MediaStore.Downloads.RELATIVE_PATH, "Download");
+                    values.put(MediaStore.Downloads.IS_PENDING, 1);
+
+                    Uri item = getContentResolver().insert(
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                    if (item == null) return false;
+
+                    try (OutputStream os = getContentResolver().openOutputStream(item)) {
+                        if (os == null) return false;
+                        os.write(bytes);
+                    }
+                    values.clear();
+                    values.put(MediaStore.Downloads.IS_PENDING, 0);
+                    getContentResolver().update(item, values, null, null);
+
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                            "تم حفظ الصورة في مجلد التنزيلات", Toast.LENGTH_LONG).show());
+                    return true;
+                }
+
+                // أندرويد 9 وأقدم يحتاج إذن كتابة — نتركه لبديل المشاركة في JS
+                return false;
+            } catch (Exception e) {
+                return false;
+            }
+        }
     }
 
     /**

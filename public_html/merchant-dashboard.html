@@ -474,64 +474,99 @@
         }
     }
 
-    async function downloadShareQr() {
+    // يستخرج PNG data URL موثوق من عنصر الـ QR (canvas أولاً، وإلا يرسم الـ img على canvas)
+    function _getShareQrDataUrl() {
         const canvas = document.querySelector('#shareQr canvas');
         const img    = document.querySelector('#shareQr img');
-        let dataUrl  = null;
+        try {
+            if (canvas) return canvas.toDataURL('image/png');
+            if (img && img.src && img.src.startsWith('data:')) return img.src;
+            if (img && img.complete && img.naturalWidth) {
+                const c = document.createElement('canvas');
+                c.width = img.naturalWidth; c.height = img.naturalHeight;
+                c.getContext('2d').drawImage(img, 0, 0);
+                return c.toDataURL('image/png');
+            }
+        } catch (_) {}
+        return null;
+    }
 
-        if (canvas) {
-            dataUrl = canvas.toDataURL('image/png');
-        } else if (img && img.src) {
-            // img.src قد يكون data:image/... أو URL خارجي
-            dataUrl = img.src;
-        }
+    function _dataUrlToBlob(url) {
+        const arr = url.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        const u8 = new Uint8Array(bstr.length);
+        for (let i = 0; i < bstr.length; i++) u8[i] = bstr.charCodeAt(i);
+        return new Blob([u8], { type: mime });
+    }
 
+    async function downloadShareQr() {
+        const dataUrl = _getShareQrDataUrl();
         if (!dataUrl) {
             Swal.fire({ icon: 'warning', title: 'انتظر...', text: 'QR لم يتولّد بعد — افتح النافذة أولاً', timer: 2000, showConfirmButton: false });
             return;
         }
-
         const fileName = `wajeez-qr-${_shareInfo ? _shareInfo.code : 'store'}.png`;
 
-        // ─── تحويل base64 → Blob مباشرة (بدون fetch) ───
-        function dataUrlToBlob(url) {
-            const arr = url.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            const u8arr = new Uint8Array(bstr.length);
-            for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
-            return new Blob([u8arr], { type: mime });
-        }
-
-        // ─── محاولة Web Share API (لحفظ الصورة في الجاليري على Android) ───
-        if (dataUrl.startsWith('data:') && navigator.share && navigator.canShare) {
+        // 1) الجسر الأصلي (داخل التطبيق بعد التحديث): حفظ مباشر في مجلد التنزيلات + Toast
+        if (window.AndroidDownloader && typeof window.AndroidDownloader.saveImage === 'function') {
             try {
-                const blob = dataUrlToBlob(dataUrl);
-                const file = new File([blob], fileName, { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: 'QR Code', text: `رمز QR لمتجر ${_shareInfo ? _shareInfo.name : ''}` });
-                    return;
-                }
-            } catch (err) {
-                console.warn('Share API failed:', err);
-            }
+                if (window.AndroidDownloader.saveImage(dataUrl, fileName) === true) return;
+            } catch (_) { /* نكمل للبدائل */ }
         }
 
-        // ─── Fallback: تنزيل مباشر (متصفح عادي) ───
-        if (dataUrl.startsWith('data:')) {
-            const blob = dataUrlToBlob(dataUrl);
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            a.href     = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } else {
-            // URL خارجي — نفتحه في تاب جديد
-            window.open(dataUrl, '_blank');
+        const blob = _dataUrlToBlob(dataUrl);
+
+        // 2) مشاركة النظام (يعمل على WebView الحديث والمتصفح): حفظ في الملفات أو إرسال لأي تطبيق
+        try {
+            const file = new File([blob], fileName, { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: 'رمز QR', text: `رمز QR لمتجر ${_shareInfo ? _shareInfo.name : 'وجيز'}` });
+                return;
+            }
+        } catch (err) {
+            if (err && err.name === 'AbortError') return; // المستخدم ألغى المشاركة
         }
+
+        // 3) متصفح سطح المكتب: تنزيل مباشر عبر <a download> (يعمل خارج WebView)
+        const inApp = !!(window.Capacitor && (typeof window.Capacitor.isNativePlatform === 'function'
+            ? window.Capacitor.isNativePlatform() : true));
+        if (!inApp) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = fileName;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            return;
+        }
+
+        // 4) آخر بديل (تطبيق قديم بلا مشاركة): اعرض الرمز كبيراً ليأخذ لقطة شاشة
+        _showQrSaveSheet(dataUrl);
+    }
+
+    function _showQrSaveSheet(dataUrl) {
+        let ov = document.getElementById('qrSaveOverlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'qrSaveOverlay';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;';
+            ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+            const cap = document.createElement('div');
+            cap.style.cssText = 'color:#fff;font-weight:800;font-size:15.5px;text-align:center;line-height:1.7;';
+            cap.textContent = 'خذ لقطة شاشة (Screenshot) لهذا الرمز لحفظه ومشاركته';
+            const image = document.createElement('img');
+            image.alt = 'QR';
+            image.style.cssText = 'width:min(72vw,300px);height:auto;border-radius:16px;background:#fff;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.5);';
+            const btn = document.createElement('button');
+            btn.textContent = 'تم';
+            btn.style.cssText = 'background:#04553A;color:#fff;border:none;border-radius:12px;padding:11px 32px;font-weight:800;font-family:inherit;font-size:15px;';
+            btn.addEventListener('click', () => ov.remove());
+            ov.append(cap, image, btn);
+            document.body.appendChild(ov);
+            ov._img = image;
+        }
+        ov._img.src = dataUrl;
+        ov.style.display = 'flex';
     }
 
 

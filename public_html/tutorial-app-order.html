@@ -1,1565 +1,610 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>وجيز — فيديو ميزة رابط المتجر</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>وجيز – كيف تطلب من التطبيق؟</title>
+  <meta name="description" content="دليل تفاعلي خطوة بخطوة لطلب التوصيل عبر تطبيق وجيز السوداني" />
+  <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css" />
+  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="vendor/fonts/fonts.css" />
+  <style>
+    :root {
+      --green: #04553A;
+      --green-light: #0a7a54;
+      --green-glow: rgba(4, 85, 58, 0.35);
+      --gold: #f5a623;
+      --gold-light: #ffc547;
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #1c2128;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --white: #ffffff;
+      --red: #e53e3e;
+      --red-light: #fc8181;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
 
-    <!-- مكتبات محلية + خط العرض Almarai للعناوين -->
-    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
-    <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
-    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    /* ─── Progress Bar ─── */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, var(--green), var(--gold));
+      width: 0%; z-index: 9999;
+      transition: width 0.1s linear;
+      box-shadow: 0 0 8px var(--gold);
+    }
 
-    <style>
-        html, body {
-            margin: 0; padding: 0;
-            background: #04070f;
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh; /* على الهاتف: يتجاهل شريط العنوان المتحرك فلا تُقص الشاشة */
-            overflow: hidden;
-            font-family: 'Almarai', 'Cairo', sans-serif;
-        }
+    /* ─── Header ─── */
+    .site-header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .site-header .logo-wrap {
+      background: var(--green);
+      border-radius: 14px; padding: 8px;
+      display: flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px;
+      box-shadow: 0 0 16px var(--green-glow);
+    }
+    .site-header .logo-wrap img { width: 28px; height: 28px; object-fit: contain; }
+    .site-header h1 { font-size: 1.05rem; font-weight: 700; color: var(--white); line-height: 1.3; }
+    .site-header span { font-size: 0.78rem; color: var(--gold); font-weight: 600; }
+    .badge-tutorial {
+      margin-right: auto;
+      background: var(--green-glow);
+      border: 1px solid var(--green);
+      color: var(--green-light);
+      border-radius: 999px; padding: 3px 12px;
+      font-size: 0.72rem; font-weight: 700;
+    }
 
-        /* ════════════ المسرح ════════════ */
-        #stageWrapper {
-            position: fixed; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-        }
-        #stage {
-            position: relative;
-            background:
-                radial-gradient(ellipse 90% 55% at 50% 38%, #0d2b22 0%, #071018 55%, #04070f 100%);
-            overflow: hidden;
-            flex: none;
-            transform-origin: center center;
-        }
-        #stage.v { width: 1080px; height: 1920px; }
-        #stage.h { width: 1920px; height: 1080px; }
+    /* ─── Hero ─── */
+    .hero {
+      position: relative; overflow: hidden;
+      padding: 70px 24px 60px;
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(4,85,58,0.45) 0%, transparent 70%);
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2304553A' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      opacity: 0.6;
+    }
+    .hero-icon {
+      width: 80px; height: 80px;
+      background: var(--green);
+      border-radius: 24px; margin: 0 auto 20px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 40px rgba(4,85,58,0.5), 0 0 80px rgba(4,85,58,0.2);
+      position: relative; z-index: 1;
+    }
+    .hero-icon img { width: 52px; height: 52px; object-fit: contain; }
+    .hero h2 {
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 900; color: var(--white);
+      position: relative; z-index: 1; margin-bottom: 12px;
+    }
+    .hero h2 span { color: var(--gold); }
+    .hero p {
+      color: var(--muted); font-size: 1rem; max-width: 520px; margin: 0 auto;
+      position: relative; z-index: 1; line-height: 1.8;
+    }
+    .hero-pills {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; margin-top: 24px;
+      position: relative; z-index: 1;
+    }
+    .pill {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 5px 14px;
+      font-size: 0.78rem; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pill i { color: var(--green); }
 
-        /* توهج ناعم بتدرجات جاهزة (بدون فلاتر ثقيلة) */
-        .glow {
-            position: absolute;
-            width: 1500px; height: 1500px;
-            background: radial-gradient(circle, rgba(6,110,75,0.34) 0%, rgba(6,110,75,0.12) 40%, transparent 66%);
-            border-radius: 50%;
-            left: 50%; top: 44%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-        }
-        .glow2 {
-            position: absolute;
-            width: 900px; height: 900px;
-            background: radial-gradient(circle, rgba(245,166,35,0.10) 0%, transparent 60%);
-            border-radius: 50%;
-            right: -300px; top: -220px;
-            pointer-events: none;
-        }
-        /* خطوط شبكية خفيفة جداً تعطي عمقاً */
-        .grid-lines {
-            position: absolute; inset: 0;
-            background-image:
-                linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
-            background-size: 120px 120px;
-            pointer-events: none;
-        }
-        /* فينيت سينمائي: يعتم الحواف قليلاً ويركز العين على المنتصف */
-        .vignette {
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse 78% 64% at 50% 46%, transparent 55%, rgba(2,5,10,0.55) 100%);
-            pointer-events: none;
-            z-index: 40;
-        }
-        /* أثناء التشغيل: إخفاء مؤشر الماوس حتى لا يظهر في التسجيل من الكمبيوتر */
-        body.playing { cursor: none; }
+    /* ─── Steps Container ─── */
+    .steps-container {
+      max-width: 1100px; margin: 0 auto;
+      padding: 40px 20px 80px;
+      display: flex; flex-direction: column; gap: 40px;
+    }
 
-        /* ════════════ النصوص التسويقية ════════════ */
-        .text-band {
-            position: absolute;
-            display: flex; align-items: center; justify-content: center;
-            z-index: 50;
-        }
-        #stage.v .text-band { top: 90px; right: 70px; left: 70px; height: 380px; }
-        #stage.h .text-band { top: 0; bottom: 0; right: 70px; width: 700px; }
+    /* ─── Step Card ─── */
+    .step-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+      display: flex; flex-direction: row; gap: 0;
+      opacity: 0; transform: translateY(40px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .step-card.visible { opacity: 1; transform: translateY(0); }
+    .step-card:hover { border-color: rgba(4,85,58,0.4); box-shadow: 0 8px 40px rgba(4,85,58,0.15); }
 
-        .mtext {
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            opacity: 0;
-            visibility: hidden;
-        }
-        .mtext .accent {
-            width: 64px; height: 6px; border-radius: 3px;
-            background: linear-gradient(90deg, #0e9f6e, #F5A623);
-            margin: 0 auto 26px;
-        }
-        .mtext .headline {
-            color: #ffffff;
-            font-weight: 800;
-            line-height: 1.55;
-            letter-spacing: -0.5px;
-        }
-        .mtext .headline .hl { color: #F5A623; }
-        .mtext .subline {
-            color: #9fb6c9;
-            font-weight: 400;
-            line-height: 1.9;
-            margin-top: 18px;
-            opacity: 0;
-        }
-        #stage.v .headline { font-size: 58px; }
-        #stage.v .subline  { font-size: 31px; }
-        #stage.h .headline { font-size: 52px; }
-        #stage.h .subline  { font-size: 27px; }
-        .headline .w { display: inline-block; white-space: pre; }
+    /* ─── Step Info (text side) ─── */
+    .step-info {
+      flex: 1; padding: 36px 32px;
+      display: flex; flex-direction: column; justify-content: center;
+      border-left: 1px solid var(--border);
+    }
+    .step-number {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--green), var(--green-light));
+      color: #fff; font-size: 1.1rem; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+      box-shadow: 0 0 16px var(--green-glow);
+    }
+    .step-info h3 { font-size: 1.2rem; font-weight: 800; color: var(--white); margin-bottom: 10px; }
+    .step-info p { color: var(--muted); line-height: 1.9; font-size: 0.95rem; }
+    .step-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(4,85,58,0.15); border: 1px solid rgba(4,85,58,0.3);
+      color: var(--green-light); border-radius: 6px;
+      padding: 3px 10px; font-size: 0.72rem; font-weight: 700;
+      margin-bottom: 10px; width: fit-content;
+    }
 
-        /* ════════════ الهاتف ════════════ */
-        .phone-slot {
-            position: absolute;
-            z-index: 10;
-            transform-style: preserve-3d;
-            opacity: 0;
-        }
-        #stage.v .phone-slot { left: 50%; top: 540px; transform: translateX(-50%) scale(1.38); transform-origin: top center; }
-        #stage.h .phone-slot { left: 350px; top: 50%; transform: translateY(-50%) scale(1.02); transform-origin: center; }
+    /* ─── Mockup Side ─── */
+    .step-mockup {
+      width: 320px; min-width: 280px;
+      background: var(--bg3);
+      display: flex; align-items: center; justify-content: center;
+      padding: 28px 20px;
+    }
 
-        .device-container {
-            transform: rotateY(14deg) rotateX(4deg) scale(0.94);
-            transform-style: preserve-3d;
-        }
-        .device-frame {
-            width: 375px; height: 812px;
-            background: #f0f2f5;
-            border-radius: 46px;
-            border: 12px solid #0b0b0f;
-            box-shadow:
-                0 60px 120px rgba(0,0,0,0.75),
-                0 18px 44px rgba(0,0,0,0.5),
-                inset 0 0 0 2px #2a2a33;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* Glare disabled — was too distracting */
-        .glare { display: none; }
+    /* ─── Phone Frame ─── */
+    .phone {
+      width: 220px;
+      background: #f8fafc;
+      border-radius: 36px;
+      border: 7px solid #1e2d3d;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px #0d1117, 0 20px 50px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .phone-notch {
+      background: #111;
+      height: 24px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .phone-notch::after {
+      content: '';
+      width: 60px; height: 5px;
+      background: #222; border-radius: 3px;
+    }
+    .phone-status {
+      background: #0d1117; height: 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 10px;
+    }
+    .phone-status span { font-size: 0.55rem; color: #fff; font-family: monospace; }
+    .phone-body {
+      background: #f8fafc;
+      min-height: 340px;
+      overflow: hidden;
+    }
 
-        .watermark {
-            position: absolute;
-            z-index: 50;
-            color: rgba(255,255,255,0.4);
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            direction: ltr;
-        }
-        #stage.v .watermark { bottom: 52px; left: 50%; transform: translateX(-50%); font-size: 26px; }
-        #stage.h .watermark { bottom: 34px; left: 50%; transform: translateX(-50%); font-size: 22px; }
+    /* ────────────────────────────────────
+       MOCKUP CONTENTS PER STEP
+    ──────────────────────────────────── */
 
-        /* ════════════ بطاقة العنوان الافتتاحية ════════════ */
-        #introCard {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 30px; z-index: 400;
-            opacity: 0; visibility: hidden;
-        }
-        #introCard img { width: 280px; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.4)); margin-bottom: 15px; }
-        #introCard .t0 {
-            color: #7ee2b8; font-weight: 700; letter-spacing: 1px;
-            border: 1px solid rgba(126,226,184,0.35);
-            background: rgba(14,159,110,0.12);
-            border-radius: 40px; padding: 10px 34px;
-        }
-        #introCard .t1 { color: white; font-weight: 800; line-height: 1.5; text-align: center; }
-        #introCard .t1 .mega {
-            background: linear-gradient(100deg, #F5A623, #ffd479, #F5A623);
-            -webkit-background-clip: text; background-clip: text;
-            color: transparent;
-        }
-        #introCard .t2 { color: #9fb6c9; font-weight: 400; text-align: center; }
-        #stage.v #introCard .t0 { font-size: 30px; }
-        #stage.v #introCard .t1 { font-size: 72px; max-width: 920px; }
-        #stage.v #introCard .t2 { font-size: 32px; }
-        #stage.h #introCard .t0 { font-size: 26px; }
-        #stage.h #introCard .t1 { font-size: 62px; max-width: 1100px; }
-        #stage.h #introCard .t2 { font-size: 28px; }
+    /* Step 1: Google Play */
+    .mock-play { padding: 14px 12px; background: #fff; font-family: 'Cairo', sans-serif; }
+    .mock-play-header { background: #01875f; padding: 10px 12px; margin: -14px -12px 14px; color:#fff; font-size:0.7rem; font-weight:700; }
+    .mock-play-app { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .mock-play-icon { width:56px; height:56px; background:var(--green); border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .mock-play-icon img { width:40px; height:40px; object-fit:contain; }
+    .mock-play-name { font-size:0.78rem; font-weight:800; color:#202124; }
+    .mock-play-dev { font-size:0.6rem; color:#01875f; }
+    .mock-stars { display:flex; align-items:center; gap:2px; margin:4px 0; }
+    .mock-stars i { font-size:0.7rem; color:#fbbc04; }
+    .mock-stars span { font-size:0.6rem; color:#5f6368; margin-right:2px; }
+    .mock-dl-btn { width:100%; background:#01875f; color:#fff; border:none; border-radius:8px; padding:10px; font-size:0.8rem; font-weight:700; text-align:center; margin-top:8px; }
+    .mock-play-info { display:flex; gap:10px; margin-top:10px; }
+    .mock-play-badge { background:#f1f3f4; border-radius:6px; padding:5px 8px; text-align:center; flex:1; }
+    .mock-play-badge .val { font-size:0.7rem; font-weight:800; color:#202124; }
+    .mock-play-badge .lbl { font-size:0.55rem; color:#5f6368; }
 
-        /* ════════════ مؤشر اللمس ════════════ */
-        #cursor {
-            width: 38px; height: 38px;
-            background: rgba(255,255,255,0.35);
-            border: 2px solid rgba(255,255,255,0.85);
-            border-radius: 50%;
-            position: absolute; top: 0; left: 0;
-            z-index: 9999;
-            box-shadow: 0 2px 14px rgba(0,0,0,0.35);
-            pointer-events: none;
-            opacity: 0;
-            transition: width 0.1s, height 0.1s;
-        }
-        #cursor.moving {
-            width: 32px; height: 44px; /* استطالة خفيفة لتوحي بالسرعة */
-            border-radius: 50% 50% 40% 40%;
-        }
-        #cursor::after {
-            content: ''; position: absolute; inset: 11px;
-            background: white; border-radius: 50%;
-        }
-        .ripple {
-            position: absolute;
-            width: 38px; height: 38px;
-            background: transparent;
-            border: 3px solid rgba(255,255,255,0.8);
-            border-radius: 50%;
-            transform: scale(0);
-            pointer-events: none;
-            z-index: 9998;
-        }
+    /* Step 2: Login */
+    .mock-login { padding:16px 14px; background:#fff; }
+    .mock-login-logo { text-align:center; margin-bottom:14px; }
+    .mock-login-logo .lg-box { width:54px; height:54px; background:var(--green); border-radius:16px; margin:0 auto 6px; display:flex; align-items:center; justify-content:center; }
+    .mock-login-logo img { width:38px; object-fit:contain; }
+    .mock-login-logo p { font-size:0.72rem; color:#555; font-weight:700; }
+    .mock-field { background:#f5f5f5; border:1.5px solid #e0e0e0; border-radius:10px; padding:8px 12px; margin-bottom:8px; font-size:0.7rem; color:#999; display:flex; align-items:center; gap:6px; }
+    .mock-field i { color:#bbb; font-size:0.85rem; }
+    .mock-btn-green { background:var(--green); color:#fff; border:none; border-radius:10px; padding:9px; width:100%; font-size:0.78rem; font-weight:700; text-align:center; margin-top:4px; }
+    .mock-divider { text-align:center; font-size:0.6rem; color:#aaa; margin:8px 0; }
 
-        /* ════════════ الشاشات ════════════ */
-        .screen {
-            position: absolute; inset: 0;
-            display: none;
-            flex-direction: column;
-            background: #f8fafc;
-            font-family: 'Cairo', sans-serif;
-        }
-        .screen.active { display: flex; }
+    /* Step 3: Pickup */
+    .mock-order { padding:12px 10px; background:#fff; }
+    .mock-section-title { font-size:0.72rem; font-weight:800; color:#333; margin-bottom:8px; display:flex; align-items:center; gap:5px; }
+    .mock-section-title i { color:var(--green); }
+    .mock-map-btn { background:var(--green); color:#fff; border:none; border-radius:9px; padding:8px 10px; font-size:0.68rem; font-weight:700; width:100%; display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:7px; }
+    .mock-input-ro { background:#f5f5f5; border:1.5px dashed #ccc; border-radius:8px; padding:7px 10px; font-size:0.62rem; color:#aaa; margin-bottom:6px; }
+    .mock-row2 { display:flex; gap:5px; }
+    .mock-row2 .mock-input-ro { flex:1; }
 
-        .status-bar {
-            height: 42px;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 24px;
-            font-size: 13px; font-weight: 700;
-            position: absolute; top: 0; width: 100%;
-            z-index: 100;
-            color: #fff; /* المشهد الافتتاحي رأسه أخضر داكن — يتبدل حسب المشهد من switchScreen */
-        }
-        .notch {
-            position: absolute; top: 10px; left: 50%;
-            transform: translateX(-50%);
-            width: 118px; height: 26px;
-            background: #0b0b0f;
-            border-radius: 20px;
-        }
+    /* Step 4: Dropoff */
+    .mock-dropoff .mock-section-title i { color: var(--red); }
+    .mock-dropoff .mock-map-btn { background: var(--red); }
+    .mock-dropoff .mock-input-ro { border-color: #fc8181; }
 
-        /* ─── لوحة التاجر ─── */
-        .merchant-screen { background: #f1f5f9; }
-        .merchant-header {
-            background: linear-gradient(135deg, #04553A, #077a54);
-            color: white;
-            padding: 56px 18px 18px;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .merchant-header .title { font-weight: 800; font-size: 16px; }
-        .merchant-body { padding: 16px; display: flex; flex-direction: column; gap: 13px; }
-        .store-card {
-            background: white; border-radius: 18px; overflow: hidden;
-            box-shadow: 0 6px 18px rgba(15,23,42,0.08);
-        }
-        .store-card img { width: 100%; height: 132px; object-fit: cover; }
-        .store-card-body { padding: 14px; display: flex; align-items: center; justify-content: space-between; }
-        .store-card-name { font-weight: 800; font-size: 16px; color: #0f172a; }
-        .store-card-status { font-size: 11.5px; color: #16a34a; font-weight: 700; margin-top: 3px; }
-        .store-open-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; margin-left: 4px; }
-        .merchant-stats { display: flex; gap: 10px; }
-        .stat-box {
-            flex: 1; background: white; border-radius: 14px; padding: 13px 10px;
-            text-align: center; box-shadow: 0 3px 10px rgba(15,23,42,0.05);
-        }
-        .stat-box .num { font-weight: 800; font-size: 19px; color: #04553A; }
-        .stat-box .lbl { font-size: 11px; color: #64748b; margin-top: 2px; }
-        .btn-copy-link {
-            background: linear-gradient(135deg, #04553A, #077a54);
-            color: white; border: none;
-            width: 100%; padding: 15px; border-radius: 14px;
-            font-weight: 800; font-size: 15px; font-family: inherit;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 8px 20px rgba(4,85,58,0.35);
-        }
-        .copy-toast {
-            position: absolute; bottom: 44px; left: 18px; right: 18px;
-            background: #0f172a; color: white;
-            padding: 14px 16px; border-radius: 14px;
-            font-size: 13px; font-weight: 700;
-            display: flex; align-items: center; gap: 9px;
-            opacity: 0; transform: translateY(70px);
-            z-index: 200;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
-        }
-        .copy-toast i { color: #4ade80; font-size: 16px; }
+    /* Step 5: Order Details */
+    .mock-textarea { background:#f5f5f5; border:1.5px solid #e0e0e0; border-radius:9px; padding:8px 10px; font-size:0.62rem; color:#aaa; min-height:60px; margin-bottom:7px; resize:none; width:100%; }
+    .mock-img-btn { background:#fff; border:1.5px dashed #ccc; border-radius:9px; padding:8px; font-size:0.65rem; color:#aaa; text-align:center; display:flex; align-items:center; justify-content:center; gap:5px; }
 
-        /* ─── واتساب ─── */
-        .whatsapp-bg {
-            background-color: #e5ddd5;
-            background-image: radial-gradient(circle at 20% 30%, rgba(0,0,0,0.02) 0, rgba(0,0,0,0.02) 6px, transparent 6px),
-                              radial-gradient(circle at 70% 65%, rgba(0,0,0,0.018) 0, rgba(0,0,0,0.018) 9px, transparent 9px);
-            background-size: 150px 150px, 200px 200px;
-        }
-        .chat-header {
-            background: #075e54; color: white;
-            padding: 50px 15px 12px;
-            display: flex; align-items: center; gap: 12px;
-            z-index: 10;
-        }
-        .chat-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .chat-header .name { font-weight: 700; font-size: 15.5px; }
-        .chat-header .typing { font-size: 11.5px; color: #8ff5b3; opacity: 0; }
-        .chat-container { padding: 16px 14px; display: flex; flex-direction: column; gap: 11px; height: 100%; }
+    /* Step 6: Price */
+    .mock-price-row { display:flex; align-items:center; gap:6px; background:#f5f5f5; border:1.5px solid #e0e0e0; border-radius:10px; padding:6px 10px; }
+    .mock-price-btn { width:28px; height:28px; border-radius:7px; border:none; font-size:1rem; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .mock-price-btn.minus { background:#ffe4e4; color:#e53e3e; }
+    .mock-price-btn.plus { background:rgba(4,85,58,0.15); color:var(--green); }
+    .mock-price-val { flex:1; text-align:center; font-size:0.9rem; font-weight:900; color:#222; }
+    .mock-price-unit { font-size:0.65rem; color:#888; }
 
-        .bubble {
-            max-width: 84%; padding: 9px 12px; border-radius: 14px;
-            font-size: 14.5px; position: relative;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.09);
-            opacity: 0; transform: scale(0.85) translateY(22px);
-        }
-        .bubble .time { font-size: 10px; color: rgba(0,0,0,0.38); text-align: left; display: block; margin-top: 4px; }
-        .bubble.sent { background: #dcf8c6; align-self: flex-start; border-top-right-radius: 3px; }
-        .bubble.received { background: #ffffff; align-self: flex-end; border-top-left-radius: 3px; }
-        .chat-link { color: #027eb5; text-decoration: underline; direction: ltr; display: inline-block; font-size: 13px; font-weight: 600; }
+    /* Step 7: Request */
+    .mock-request-btn { background:linear-gradient(135deg,var(--green),var(--green-light)); color:#fff; border:none; border-radius:14px; padding:14px; width:100%; font-size:0.82rem; font-weight:900; text-align:center; box-shadow:0 6px 20px rgba(4,85,58,0.4); display:flex; align-items:center; justify-content:center; gap:6px; }
+    .mock-estimated { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:9px; padding:8px 10px; margin-bottom:10px; font-size:0.65rem; color:#166534; display:flex; align-items:center; gap:5px; }
 
-        .link-preview {
-            background: #f4f6f7; border-radius: 10px; overflow: hidden;
-            margin-top: 7px; border: 1px solid #e3e8ea;
-        }
-        .link-preview img { width: 100%; height: 132px; object-fit: cover; }
-        .link-preview .content { padding: 10px 12px; }
-        .link-preview .title { font-weight: 700; color: #111; font-size: 13.5px; }
-        .link-preview .desc { font-size: 11.5px; color: #667; margin-top: 3px; }
-        .link-preview .domain { font-size: 10.5px; color: #8899a6; margin-top: 5px; letter-spacing: 0.4px; }
+    /* Step 8: Tracking */
+    .mock-map-area { background:linear-gradient(135deg,#d1fae5,#a7f3d0); margin-bottom:8px; border-radius:10px; height:130px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    .mock-map-area::before { content:''; position:absolute; inset:0; background: url("data:image/svg+xml,%3Csvg width='30' height='30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h30v30H0z' fill='%23a7f3d0'/%3E%3Cpath d='M0 15h30M15 0v30' stroke='%2334d399' stroke-width='0.5'/%3E%3C/svg%3E"); opacity:0.5; }
+    .mock-captain-dot { width:20px; height:20px; background:var(--green); border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 4px rgba(4,85,58,0.3); position:relative; z-index:1; animation: pulseDot 2s infinite; }
+    @keyframes pulseDot { 0%,100%{box-shadow:0 0 0 4px rgba(4,85,58,0.3);} 50%{box-shadow:0 0 0 8px rgba(4,85,58,0.1);} }
+    .mock-captain-info { background:#fff; border-radius:10px; padding:8px 10px; box-shadow:0 -3px 12px rgba(0,0,0,0.1); }
+    .mock-captain-row { display:flex; align-items:center; gap:8px; }
+    .mock-avatar { width:32px; height:32px; background:var(--green); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.7rem; font-weight:900; }
+    .mock-captain-name { font-size:0.7rem; font-weight:800; color:#222; }
+    .mock-captain-sub { font-size:0.58rem; color:#888; }
+    .mock-rating { color:var(--gold); font-size:0.6rem; }
+    .mock-captain-plate { background:#f5f5f5; border-radius:5px; padding:2px 8px; font-size:0.6rem; color:#555; font-weight:700; margin-right:auto; }
 
-        /* ─── المتصفح + المتجر ─── */
-        .browser-bar {
-            background: #ffffff;
-            padding: 48px 12px 8px;
-            border-bottom: 1px solid #e8ecef;
-            display: flex; align-items: center; gap: 8px;
-            z-index: 20;
-        }
-        .url-pill {
-            flex: 1;
-            background: #f1f3f4;
-            border-radius: 22px;
-            padding: 8px 14px;
-            display: flex; align-items: center; gap: 7px;
-            font-size: 12.5px; color: #202124;
-            direction: ltr;
-        }
-        .url-pill i { color: #5f6368; font-size: 12px; }
-        .url-pill .u-domain { font-weight: 700; }
-        .url-pill .u-path { color: #5f6368; }
-        .browser-bar > i { color: #5f6368; font-size: 17px; }
-        .browser-progress {
-            position: absolute; bottom: -2px; left: 0; height: 3px; width: 0%;
-            background: #1a73e8; z-index: 30;
-        }
+    /* ─── Responsive ─── */
+    @media(max-width:768px) {
+      .step-card { flex-direction: column-reverse; }
+      .step-info { border-left: none; border-top: 1px solid var(--border); }
+      .step-mockup { width: 100%; padding: 24px 16px; }
+      .phone { width: 200px; }
+    }
 
-        .store-screen { background: #f8fafc; }
-        .shop-hero {
-            position: relative; height: 158px;
-            background: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80') center/cover;
-        }
-        .shop-info-overlay {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(to top, rgba(2,10,8,0.92), transparent);
-            padding: 34px 15px 13px;
-            color: white;
-        }
-        .open-badge {
-            background: rgba(34,197,94,0.22); border: 1px solid rgba(34,197,94,0.45);
-            color: #86efac; padding: 2px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700;
-        }
-        .cat-tabs { display: flex; gap: 9px; padding: 13px 14px; background: white; border-bottom: 1px solid #eef1f4; }
-        .cat-tab { padding: 6px 16px; border-radius: 20px; font-size: 12.5px; font-weight: 700; background: #f1f5f9; color: #475569; }
-        .cat-tab.active { background: #04553A; color: white; }
-
-        .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 13px 14px; }
-        .product-card {
-            background: white; border-radius: 14px; border: 1px solid #eaeef2;
-            overflow: hidden; opacity: 0; transform: translateY(24px);
-            box-shadow: 0 2px 8px rgba(15,23,42,0.04);
-        }
-        .product-card img { width: 100%; height: 118px; object-fit: cover; }
-        .product-card-body { padding: 10px; }
-        .product-card-title { font-size: 12.5px; font-weight: 700; color: #0f172a; }
-        .product-card-price { font-size: 13.5px; font-weight: 800; color: #04553A; margin: 7px 0; }
-        .add-to-cart-btn {
-            background: #04553A; color: white; border: none;
-            width: 100%; padding: 7px; border-radius: 9px;
-            font-weight: 700; font-size: 11.5px; font-family: inherit;
-        }
-
-        .cart-fab {
-            position: absolute; bottom: 18px; left: 16px; right: 16px;
-            background: #04553A; color: white; border-radius: 16px;
-            padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 12px 28px rgba(4,85,58,0.42);
-            transform: translateY(160px);
-            z-index: 150;
-        }
-
-        .cart-drawer {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: white;
-            border-radius: 24px 24px 0 0;
-            box-shadow: 0 -12px 44px rgba(0,0,0,0.22);
-            transform: translateY(110%);
-            z-index: 300;
-            padding-bottom: 18px;
-        }
-        .cart-drawer-handle { width: 44px; height: 5px; background: #e2e8f0; border-radius: 3px; margin: 11px auto 5px; }
-        .cart-drawer-header { padding: 8px 20px 11px; border-bottom: 1px solid #f1f5f9; font-weight: 800; font-size: 15px; color: #0f172a; }
-        .cart-drawer-item {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 13px 20px; border-bottom: 1px solid #f8fafc; font-size: 13.5px;
-        }
-        .qty-pill { background: #f1f5f9; border-radius: 8px; padding: 3px 12px; font-weight: 800; color: #04553A; font-size: 12.5px; }
-        .cart-drawer-total { display: flex; justify-content: space-between; padding: 13px 20px 6px; font-weight: 800; font-size: 15px; }
-        .btn-checkout {
-            background: linear-gradient(135deg, #04553A, #077a54);
-            color: white; border: none;
-            margin: 8px 20px 0; padding: 14px; border-radius: 13px;
-            font-weight: 800; font-size: 14.5px; font-family: inherit;
-            width: calc(100% - 40px);
-            box-shadow: 0 8px 18px rgba(4,85,58,0.3);
-        }
-
-        /* ─── Google Play (الهيئة الداكنة الحديثة — مطابقة للمتجر الحقيقي) ─── */
-        .play-store { background: #131318; }
-        .gp-hero {
-            height: 168px; position: relative; flex: none;
-            background:
-                radial-gradient(circle at 78% 25%, rgba(245,166,35,0.28) 0%, transparent 42%),
-                linear-gradient(150deg, #0a5c3f 0%, #054431 45%, #0d2b22 100%);
-            display: flex; align-items: flex-end; justify-content: center;
-            overflow: hidden;
-        }
-        .gp-hero::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(to top, #131318 0%, transparent 45%);
-        }
-        .gp-hero img { height: 58px; margin-bottom: 42px; position: relative; z-index: 1; }
-        .gp-topbar {
-            position: absolute; top: 48px; left: 14px; right: 14px;
-            display: flex; justify-content: space-between;
-            color: #fff; z-index: 5;
-        }
-        .gp-topbar i { font-size: 18px; }
-        .gp-title-block { padding: 0 18px; margin-top: -6px; position: relative; z-index: 2; }
-        .gp-dev { font-size: 13px; color: #a8c7fa; font-weight: 700; }
-        .gp-name { font-size: 24px; font-weight: 800; color: #ffffff; font-family: 'Cairo', sans-serif; margin-top: 2px; }
-        .gp-stats {
-            display: flex; align-items: center;
-            padding: 14px 18px 4px;
-            gap: 4px;
-        }
-        .gp-app-icon {
-            width: 52px; height: 52px; border-radius: 12px;
-            background: white; flex: none;
-            margin-right: 2px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.4);
-        }
-        .gp-stat { text-align: center; flex: 1; }
-        .gp-stat .v { font-size: 13px; font-weight: 800; color: #e3e3e3; display: flex; align-items: center; justify-content: center; gap: 3px; }
-        .gp-stat .v i { font-size: 10px; color: #e3e3e3; }
-        .gp-stat .l { font-size: 10px; color: #9aa0a6; margin-top: 3px; }
-        .gp-divider { width: 1px; height: 20px; background: #33363d; }
-        .gp-install {
-            background: #a8c7fa; color: #062e6f; border: none;
-            width: calc(100% - 36px); margin: 14px 18px 0;
-            padding: 12px; border-radius: 24px;
-            font-weight: 800; font-size: 14.5px; font-family: 'Cairo', sans-serif;
-        }
-        .gp-note { text-align: center; font-size: 11px; color: #9aa0a6; margin-top: 9px; }
-        .gp-shots { display: flex; gap: 9px; padding: 15px 18px 0; }
-        .gp-shot {
-            width: 94px; height: 166px; border-radius: 12px;
-            overflow: hidden;
-            background: #26262b;
-            border: 1px solid #2e2e34;
-            flex: none;
-        }
-        .gp-shot .sh-head { height: 32px; background: linear-gradient(135deg, #04553A, #0a8f62); }
-        .gp-shot .sh-body { padding: 7px; display: flex; flex-direction: column; gap: 5px; }
-        .gp-shot .sh-line { height: 7px; border-radius: 4px; background: #3a3a41; }
-        .gp-shot .sh-line.short { width: 60%; }
-        .gp-shot .sh-grid { display: flex; gap: 5px; margin-top: 3px; }
-        .gp-shot .sh-cell { flex: 1; height: 42px; border-radius: 7px; background: #313138; }
-        .gp-shot .sh-cell.g { background: #12463497; }
-        .gp-about { padding: 16px 18px 0; }
-        .gp-about .h {
-            font-size: 15px; font-weight: 800; color: #e3e3e3;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .gp-about .h .circ {
-            width: 28px; height: 28px; border-radius: 50%;
-            border: 1px solid #44474d; color: #e3e3e3;
-            display: flex; align-items: center; justify-content: center; font-size: 12px;
-        }
-        .gp-about .p { font-size: 11.5px; color: #9aa0a6; line-height: 1.8; margin-top: 8px; }
-        .gp-chips { display: flex; gap: 8px; padding: 12px 18px 0; }
-        .gp-chip {
-            border: 1px solid #44474d; color: #c4c7cc;
-            border-radius: 9px; padding: 5px 13px; font-size: 11px; font-weight: 700;
-        }
-        .gp-nav {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: #1e1f24; border-top: 1px solid #2a2b30;
-            display: flex; padding: 8px 4px 14px;
-            z-index: 20;
-        }
-        .gp-nav .n { flex: 1; text-align: center; color: #9aa0a6; font-size: 10px; font-weight: 700; }
-        .gp-nav .n i { font-size: 16px; display: block; margin-bottom: 2px; }
-        .gp-nav .n.active { color: #a8c7fa; }
-        .gp-nav .n.active i {
-            background: #0b3355; border-radius: 14px;
-            padding: 2px 14px; display: inline-block; margin-bottom: 2px;
-        }
-
-        /* ════════════ الخاتمة ════════════ */
-        #endCard {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 36px;
-            z-index: 500;
-            opacity: 0; visibility: hidden;
-        }
-        .end-logo-card {
-            background: white;
-            border-radius: 34px;
-            padding: 54px 74px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.55);
-        }
-        #stage.v .end-logo-card img { width: 600px; }
-        #stage.h .end-logo-card img { width: 520px; }
-        .end-line { color: white; font-weight: 800; text-align: center; line-height: 1.7; }
-        .end-sub { color: #9fb6c9; font-weight: 400; text-align: center; margin-top: -14px; }
-        #stage.v .end-line { font-size: 52px; }
-        #stage.v .end-sub { font-size: 30px; }
-        #stage.h .end-line { font-size: 44px; }
-        #stage.h .end-sub { font-size: 26px; }
-        .end-domain {
-            color: #F5A623; font-weight: 800; letter-spacing: 2px;
-            direction: ltr;
-        }
-        #stage.v .end-domain { font-size: 42px; }
-        #stage.h .end-domain { font-size: 34px; }
-
-        /* ════════════ طبقة التحكم ════════════ */
-        #controls {
-            position: absolute; inset: 0;
-            background: rgba(4,7,15,0.95);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 24px;
-            z-index: 2000;
-            color: white; text-align: center;
-        }
-        #controls h1 { font-size: 26px; font-weight: 800; margin: 0; }
-        #controls .hint { color: #7d93a8; font-size: 14px; max-width: 460px; line-height: 1.9; margin: 0; }
-        .mode-switch { display: flex; gap: 10px; }
-        .mode-btn {
-            background: transparent; color: #cbd5e1;
-            border: 2px solid #26333f; border-radius: 13px;
-            padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 14px;
-            cursor: pointer;
-        }
-        .mode-btn.active { background: #04553A; border-color: #04553A; color: white; }
-        #btnSound {
-            background: transparent; color: #64748b;
-            border: 2px solid #26333f; border-radius: 13px;
-            padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 13px;
-            cursor: pointer;
-        }
-        #btnSound.sound-on { color: #F5A623; border-color: rgba(245,166,35,0.5); }
-        #btnPlay {
-            background: linear-gradient(135deg, #077a54, #04553A);
-            color: white; border: none;
-            width: 92px; height: 92px; border-radius: 50%;
-            font-size: 36px; cursor: pointer;
-            box-shadow: 0 14px 44px rgba(7,122,84,0.45);
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.2s;
-        }
-        #btnPlay:hover { transform: scale(1.07); }
-        #btnPlay:disabled { opacity: 0.5; cursor: wait; }
-        #btnReplay {
-            background: transparent; color: #7d93a8;
-            border: 2px solid #26333f; border-radius: 13px;
-            padding: 9px 28px; font-family: inherit; font-weight: 700; font-size: 14px;
-            cursor: pointer;
-            position: fixed; bottom: 14px; left: 14px;
-            z-index: 3000;
-            opacity: 0; pointer-events: none;
-        }
-
-        /* تحسينات العرض على الموبايل لشاشة التحكم */
-        @media (max-width: 768px) {
-            #controls h1 { font-size: 22px; }
-            #controls .hint { font-size: 13px; padding: 0 20px; }
-            .mode-switch { flex-direction: column; width: 85%; max-width: 300px; gap: 12px; }
-            .mode-btn { width: 100%; padding: 14px; font-size: 15px; }
-            #btnSound { padding: 14px; font-size: 15px; margin-top: 10px; width: 85%; max-width: 300px; }
-            #btnPlay { width: 84px; height: 84px; font-size: 32px; margin-top: 20px; }
-        }
-
-        #countdown {
-            position: absolute; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-            z-index: 1500;
-            color: white; font-size: 200px; font-weight: 800;
-            pointer-events: none;
-        }
-
-        /* تنبيه تدوير الهاتف (يظهر عند اختيار الأفقي والجهاز عمودي) */
-        #rotateHint {
-            display: none;
-            align-items: center; gap: 10px;
-            background: rgba(245,166,35,0.12);
-            border: 1px solid rgba(245,166,35,0.45);
-            color: #F5A623;
-            border-radius: 13px;
-            padding: 11px 18px;
-            font-size: 13.5px; font-weight: 700;
-            max-width: 420px;
-        }
-        #rotateHint.show { display: flex; }
-        #rotateHint i {
-            font-size: 20px; flex: none;
-            animation: rotDevice 2.2s ease-in-out infinite;
-        }
-        @keyframes rotDevice {
-            0%, 18%   { transform: rotate(0deg); }
-            48%, 72%  { transform: rotate(-90deg); }
-            100%      { transform: rotate(0deg); }
-        }
-
-        /* شاشات الهاتف الضيقة: طبقة تحكم أصغر حتى لا تُقص */
-        @media (max-width: 640px) {
-            #controls { padding: 0 20px; gap: 18px; }
-            #controls h1 { font-size: 20px; }
-            #controls .hint { font-size: 12px; max-width: 100%; }
-            .mode-btn { padding: 8px 14px; font-size: 12px; }
-            #btnPlay { width: 76px; height: 76px; font-size: 30px; }
-            #rotateHint { font-size: 12px; padding: 9px 14px; }
-        }
-    </style>
+    /* ─── Footer ─── */
+    .tutorial-footer {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 40px 24px; text-align: center;
+    }
+    .tutorial-footer h3 { font-size: 1.2rem; font-weight: 800; color: var(--white); margin-bottom: 8px; }
+    .tutorial-footer p { color: var(--muted); font-size: 0.88rem; margin-bottom: 20px; }
+    .footer-nav { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+    .footer-nav a {
+      display:flex; align-items:center; gap:6px;
+      background:var(--bg3); border:1px solid var(--border);
+      color:var(--text); text-decoration:none;
+      border-radius:10px; padding:10px 18px; font-size:0.82rem; font-weight:600;
+      transition: all 0.2s;
+    }
+    .footer-nav a:hover { border-color:var(--green); color:var(--gold); }
+    .copy { margin-top:30px; font-size:0.72rem; color:var(--muted); }
+  </style>
 </head>
 <body>
 
-<div id="stageWrapper">
-    <div id="stage" class="v">
-        <div class="glow"></div>
-        <div class="glow2"></div>
-        <div class="grid-lines"></div>
-        <div class="vignette"></div>
+<div id="progress-bar"></div>
 
-        <!-- موجة صوتية متحركة في الخلفية -->
-        <svg id="waveform" viewBox="0 0 1080 100" preserveAspectRatio="none"
-            style="position:absolute;bottom:80px;left:0;right:0;width:100%;height:120px;z-index:5;opacity:0;pointer-events:none;">
-            <polyline id="waveLine" points="0,50" style="fill:none;stroke:rgba(14,159,110,0.25);stroke-width:3;stroke-linecap:round;"/>
-        </svg>
+<!-- ─── Header ─── -->
+<header class="site-header">
+  <div class="logo-wrap">
+    <img src="logo-mark-white.png" alt="وجيز" />
+  </div>
+  <div>
+    <h1>وجيز</h1>
+    <span>خدمة التوصيل السريع</span>
+  </div>
+  <div class="badge-tutorial"><i class="bi bi-play-circle-fill"></i> دليل تفاعلي</div>
+</header>
 
-        <!-- Flash layer -->
-        <div id="flashLayer" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:300;"></div>
+<!-- ─── Hero ─── -->
+<section class="hero">
+  <div class="hero-icon">
+    <img src="logo-mark-white.png" alt="وجيز" />
+  </div>
+  <h2>كيف تطلب <span>من التطبيق؟</span></h2>
+  <p>اتبع الخطوات التالية لطلب خدمة التوصيل عبر تطبيق وجيز بكل سهولة وسرعة</p>
+  <div class="hero-pills">
+    <div class="pill"><i class="bi bi-clock"></i> 8 خطوات بسيطة</div>
+    <div class="pill"><i class="bi bi-phone"></i> متاح على Android</div>
+    <div class="pill"><i class="bi bi-lightning-fill"></i> توصيل سريع</div>
+    <div class="pill"><i class="bi bi-cash-coin"></i> دفع كاش</div>
+  </div>
+</section>
 
-        <!-- شريط تقدم سينمائي -->
-        <div id="cinemaProgress" style="position:absolute;bottom:0;left:0;right:0;height:4px;z-index:200;opacity:0;">
-            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,#04553A,#0e9f6e,#F5A623);box-shadow:0 0 12px rgba(245,166,35,0.7);border-radius:0 2px 2px 0;transition:none;"></div>
-            <div id="cinemaPulse" style="position:absolute;right:0;top:-3px;width:10px;height:10px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;display:none;"></div>
+<!-- ─── Steps ─── -->
+<div class="steps-container">
+
+  <!-- STEP 1 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-download"></i> الخطوة الأولى</div>
+      <div class="step-number">1</div>
+      <h3>تحميل التطبيق</h3>
+      <p>حمّل تطبيق وجيز مجاناً من متجر Google Play وثبّته على جوالك. التطبيق خفيف وسريع ومصمم خصيصاً للسوق السوداني.</p>
+    </div>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status">
+          <span>9:41</span>
+          <span>▶ ▶ ▐▌ ▰▰▰</span>
         </div>
-
-        <!-- بطاقة العنوان الافتتاحية -->
-        <div id="introCard">
-            <img src="logo-white.png" alt="وجيز">
-            <div class="t0">وجيز تقدّم لتجّارها</div>
-            <div class="t1">ميزة <span class="mega">جبارة</span> تغيّر طريقة بيعك</div>
-            <div class="t2">رابط متجرك الخاص — شارك، بِع، ووصّل</div>
-        </div>
-
-        <!-- النصوص التسويقية -->
-        <div class="text-band">
-            <div class="mtext" id="mt1">
-                <div class="accent"></div>
-                <div class="headline">شارك <span class="hl">رابط متجرك المميز</span> مع عملائك</div>
-                <div class="subline">بضغطة واحدة من لوحة التاجر، انسخ رابطاً خاصاً باسم متجرك وأرسله أينما كان عملاؤك</div>
-            </div>
-            <div class="mtext" id="mt2">
-                <div class="accent"></div>
-                <div class="headline">معاينة <span class="hl">أنيقة وجذابة</span> تلقائياً</div>
-                <div class="subline">يظهر اسم متجرك وصورته في واتساب وفيسبوك وكل المنصات — بدون أي إعداد</div>
-            </div>
-            <div class="mtext" id="mt3">
-                <div class="accent"></div>
-                <div class="headline">عميلك يدخل متجرك <span class="hl">فوراً</span></div>
-                <div class="subline">من المتصفح مباشرة — بدون تحميل تطبيق، بدون تسجيل، وبدون تفتيش عن متجرك</div>
-            </div>
-            <div class="mtext" id="mt4">
-                <div class="accent"></div>
-                <div class="headline">يتصفح.. يضيف للسلة.. <span class="hl">ويطلب</span></div>
-                <div class="subline">تجربة شراء كاملة وسلسة ترفع مبيعاتك من أول زيارة</div>
-            </div>
-            <div class="mtext" id="mt5">
-                <div class="accent"></div>
-                <div class="headline">والتوصيل عبر <span class="hl">تطبيق وجيز</span></div>
-                <div class="subline">تتبع مباشر للمندوب وتواصل فوري، حتى باب العميل</div>
-            </div>
-        </div>
-
-        <!-- الهاتف -->
-        <div class="phone-slot" id="phoneSlot">
-            <div class="device-container" id="deviceContainer">
-                <div class="device-frame" id="deviceFrame">
-                    <div class="glare" id="glareOverlay"></div>
-                    <div class="status-bar" id="statusBar">
-                        <span>9:41</span>
-                        <div class="notch"></div>
-                        <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
-                    </div>
-
-                    <!-- مشهد 0: لوحة التاجر -->
-                    <div id="scene0" class="screen active merchant-screen">
-                        <div class="merchant-header">
-                            <i class="bi bi-shop fs-5"></i>
-                            <span class="title">وجيز — لوحة التاجر</span>
-                            <i class="bi bi-bell ms-auto"></i>
-                        </div>
-                        <div class="merchant-body">
-                            <div class="store-card">
-                                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80" alt="">
-                                <div class="store-card-body">
-                                    <div>
-                                        <div class="store-card-name">بوتيك لمسة</div>
-                                        <div class="store-card-status"><span class="store-open-dot"></span>مفتوح — يستقبل الطلبات</div>
-                                    </div>
-                                    <i class="bi bi-chevron-left text-muted"></i>
-                                </div>
-                            </div>
-                            <div class="merchant-stats">
-                                <div class="stat-box"><div class="num">57</div><div class="lbl">طلب هذا الأسبوع</div></div>
-                                <div class="stat-box"><div class="num">412</div><div class="lbl">زيارة للمتجر</div></div>
-                            </div>
-                            <button class="btn-copy-link" id="btnCopyLink">
-                                <i class="bi bi-link-45deg fs-5"></i> نسخ رابط متجري
-                            </button>
-                        </div>
-                        <div class="copy-toast" id="copyToast">
-                            <i class="bi bi-check-circle-fill"></i> تم نسخ رابط متجرك — شاركه مع عملائك الآن
-                        </div>
-                    </div>
-
-                    <!-- مشهد 1: واتساب -->
-                    <div id="scene1" class="screen whatsapp-bg">
-                        <div class="chat-header">
-                            <i class="bi bi-arrow-left"></i>
-                            <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=150&q=80" alt="">
-                            <div>
-                                <div class="name">بوتيك لمسة</div>
-                                <div class="typing" id="typingIndicator">يكتب الآن...</div>
-                            </div>
-                        </div>
-                        <div class="chat-container">
-                            <div class="bubble sent" id="msg1">
-                                السلام عليكم، في تشكيلة جديدة وصلت؟
-                                <span class="time">9:41 <i class="bi bi-check2-all text-primary"></i></span>
-                            </div>
-                            <div class="bubble received" id="msg2">
-                                أهلين! وصلتنا تشكيلة كاملة، شوف كل الموديلات واطلب مباشرة من متجرنا في وجيز
-                                <br><span class="chat-link">wajeezsd.com/s/Gx7Kq</span>
-                                <div class="link-preview" id="linkPreview">
-                                    <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=500&q=80" alt="">
-                                    <div class="content">
-                                        <div class="title">بوتيك لمسة — وجيز</div>
-                                        <div class="desc">تصفح التشكيلة واطلب الآن مع توصيل وجيز</div>
-                                        <div class="domain">WAJEEZSD.COM</div>
-                                    </div>
-                                </div>
-                                <span class="time">9:42</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- مشهد 2: المتصفح + المتجر -->
-                    <div id="scene2" class="screen store-screen">
-                        <div class="browser-bar">
-                            <div class="url-pill">
-                                <i class="bi bi-lock-fill"></i>
-                                <span><span class="u-domain">wajeezsd.com</span><span class="u-path">/s/Gx7Kq</span></span>
-                            </div>
-                            <i class="bi bi-arrow-clockwise"></i>
-                            <i class="bi bi-three-dots-vertical"></i>
-                            <div class="browser-progress" id="browserProgress"></div>
-                        </div>
-                        <div class="shop-hero">
-                            <div class="shop-info-overlay">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <span class="open-badge"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-left:4px;"></span>مفتوح</span>
-                                </div>
-                                <h2 class="fw-bold mb-0" style="font-size:1.35rem;">بوتيك لمسة</h2>
-                                <div class="text-white-50" style="font-size:12px;">الخرطوم — العمارات</div>
-                            </div>
-                        </div>
-                        <div class="cat-tabs">
-                            <div class="cat-tab active">الكل</div>
-                            <div class="cat-tab">رجالي</div>
-                            <div class="cat-tab">نسائي</div>
-                            <div class="cat-tab">أحذية</div>
-                        </div>
-                        <div class="product-grid">
-                            <div class="product-card" id="product1">
-                                <img src="https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=500&q=80" alt="">
-                                <div class="product-card-body">
-                                    <div class="product-card-title">جاكيت جينز كلاسيك</div>
-                                    <div class="product-card-price">25,000 ج.س</div>
-                                    <button class="add-to-cart-btn" id="btnAddToCart">
-                                        <i class="bi bi-cart-plus"></i> أضف للسلة
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="product-card" id="product2">
-                                <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=80" alt="">
-                                <div class="product-card-body">
-                                    <div class="product-card-title">تيشيرت أساسي أبيض</div>
-                                    <div class="product-card-price">12,000 ج.س</div>
-                                    <button class="add-to-cart-btn">
-                                        <i class="bi bi-cart-plus"></i> أضف للسلة
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="product-card" id="product3">
-                                <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=500&q=80" alt="">
-                                <div class="product-card-body">
-                                    <div class="product-card-title">سنيكرز يومي أبيض</div>
-                                    <div class="product-card-price">30,000 ج.س</div>
-                                    <button class="add-to-cart-btn">
-                                        <i class="bi bi-cart-plus"></i> أضف للسلة
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="product-card" id="product4">
-                                <img src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=500&q=80" alt="">
-                                <div class="product-card-body">
-                                    <div class="product-card-title">قميص كاجوال</div>
-                                    <div class="product-card-price">18,000 ج.س</div>
-                                    <button class="add-to-cart-btn">
-                                        <i class="bi bi-cart-plus"></i> أضف للسلة
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="cart-fab" id="floatingCart">
-                            <div>
-                                <div class="fw-bold" style="font-size:13.5px;"><span id="cartCountBadge" style="background:white;color:#04553A;border-radius:50%;padding:2px 8px;margin-left:6px;">1</span> عناصر</div>
-                                <div style="font-size:15.5px;font-weight:800;margin-top:2px;">25,000 ج.س</div>
-                            </div>
-                            <div style="font-weight:800;" id="btnViewCart">
-                                عرض السلة <i class="bi bi-arrow-left-short fs-4" style="margin-right:-6px;vertical-align:middle;"></i>
-                            </div>
-                        </div>
-
-                        <div class="cart-drawer" id="cartDrawer">
-                            <div class="cart-drawer-handle"></div>
-                            <div class="cart-drawer-header">سلة المشتريات</div>
-                            <div class="cart-drawer-item">
-                                <span class="fw-bold">جاكيت جينز كلاسيك</span>
-                                <span class="qty-pill">1 ×</span>
-                                <span class="fw-bold" style="color:#04553A;">25,000 ج.س</span>
-                            </div>
-                            <div class="cart-drawer-total">
-                                <span>الإجمالي</span>
-                                <span style="color:#04553A;">25,000 ج.س</span>
-                            </div>
-                            <button class="btn-checkout" id="btnCheckout">إتمام الطلب</button>
-                        </div>
-                    </div>
-
-                    <!-- مشهد 3: Google Play (الهيئة الداكنة الحديثة) -->
-                    <div id="scene3" class="screen play-store">
-                        <div class="gp-hero">
-                            <div class="gp-topbar">
-                                <i class="bi bi-arrow-right"></i>
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </div>
-                            <img src="logo-white.png" alt="وجيز"
-                                 onerror="this.onerror=null;this.src='icons/icon-512x512.png';this.style.height='72px';">
-                        </div>
-                        <div class="gp-title-block">
-                            <div class="gp-dev">Wajeez SD</div>
-                            <div class="gp-name">وجيز — Wajeez</div>
-                        </div>
-                        <div class="gp-stats">
-                            <img class="gp-app-icon" src="icons/icon-512x512.png" alt="وجيز">
-                            <div class="gp-stat">
-                                <div class="v">4.8 <i class="bi bi-star-fill"></i></div>
-                                <div class="l">+1 ألف مراجعات</div>
-                            </div>
-                            <div class="gp-divider"></div>
-                            <div class="gp-stat">
-                                <div class="v">+10 آلاف</div>
-                                <div class="l">عمليات تنزيل</div>
-                            </div>
-                            <div class="gp-divider"></div>
-                            <div class="gp-stat">
-                                <div class="v">3+</div>
-                                <div class="l">مناسب لكل الأعمار</div>
-                            </div>
-                        </div>
-                        <button class="gp-install" id="btnInstall">تثبيت</button>
-                        <div class="gp-note">تسوق وتوصيل — بدون إعلانات</div>
-                        <div class="gp-shots">
-                            <div class="gp-shot">
-                                <div class="sh-head"></div>
-                                <div class="sh-body">
-                                    <div class="sh-line"></div>
-                                    <div class="sh-line short"></div>
-                                    <div class="sh-grid"><div class="sh-cell g"></div><div class="sh-cell"></div></div>
-                                    <div class="sh-grid"><div class="sh-cell"></div><div class="sh-cell g"></div></div>
-                                </div>
-                            </div>
-                            <div class="gp-shot">
-                                <div class="sh-head" style="background:linear-gradient(135deg,#077a54,#0a9b6a);"></div>
-                                <div class="sh-body">
-                                    <div class="sh-line short"></div>
-                                    <div class="sh-line"></div>
-                                    <div class="sh-grid"><div class="sh-cell"></div><div class="sh-cell g"></div></div>
-                                    <div class="sh-grid"><div class="sh-cell g"></div><div class="sh-cell"></div></div>
-                                </div>
-                            </div>
-                            <div class="gp-shot">
-                                <div class="sh-head"></div>
-                                <div class="sh-body">
-                                    <div class="sh-line"></div>
-                                    <div class="sh-line short"></div>
-                                    <div class="sh-grid"><div class="sh-cell g"></div><div class="sh-cell g"></div></div>
-                                    <div class="sh-grid"><div class="sh-cell"></div><div class="sh-cell"></div></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="gp-about">
-                            <div class="h">لمحة عن هذا التطبيق <span class="circ"><i class="bi bi-arrow-left"></i></span></div>
-                            <div class="p">توصيل وجيز لكل ما تحتاجه — اطلب من متاجرك المفضلة، تابع مندوبك على الخريطة مباشرة، وتواصل معه داخل التطبيق.</div>
-                        </div>
-                        <div class="gp-chips">
-                            <span class="gp-chip">تسوق</span>
-                            <span class="gp-chip">توصيل</span>
-                            <span class="gp-chip">متاجر محلية</span>
-                        </div>
-                        <div class="gp-nav">
-                            <div class="n"><i class="bi bi-controller"></i>الألعاب</div>
-                            <div class="n active"><i class="bi bi-grid"></i>التطبيقات</div>
-                            <div class="n"><i class="bi bi-search"></i>بحث</div>
-                            <div class="n"><i class="bi bi-book"></i>الكتب</div>
-                            <div class="n"><i class="bi bi-person-circle"></i>أنت</div>
-                        </div>
-                    </div>
-
-                    <div id="cursor"></div>
-                    <div id="rippleContainer" style="position:absolute; inset:0; pointer-events:none; z-index:9998;"></div>
-                    <div id="particleContainer" style="position:absolute;inset:0;pointer-events:none;z-index:9990;overflow:hidden;"></div>
+        <div class="phone-body">
+          <div class="mock-play">
+            <div class="mock-play-header">Google Play</div>
+            <div class="mock-play-app">
+              <div class="mock-play-icon"><img src="logo-mark-white.png" alt="وجيز" /></div>
+              <div>
+                <div class="mock-play-name">وجيز – توصيل سريع</div>
+                <div class="mock-play-dev">Wajeez Sudan</div>
+                <div class="mock-stars">
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                  <i class="bi bi-star-half"></i>
+                  <span>4.8</span>
                 </div>
+              </div>
             </div>
+            <div class="mock-play-info">
+              <div class="mock-play-badge"><div class="val">4.8★</div><div class="lbl">تقييم</div></div>
+              <div class="mock-play-badge"><div class="val">10K+</div><div class="lbl">تحميل</div></div>
+              <div class="mock-play-badge"><div class="val">مجاني</div><div class="lbl">السعر</div></div>
+            </div>
+            <button class="mock-dl-btn">تحميل</button>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div class="watermark">wajeezsd.com</div>
-
-        <!-- الخاتمة -->
-        <div id="endCard">
-            <div class="end-logo-card"><img src="logo-transparent.png" alt="وجيز"></div>
-            <div class="end-line">رابط واحد.. يفتح لك البيع أونلاين</div>
-            <div class="end-sub">الميزة متاحة الآن لكل تجار وجيز</div>
-            <div class="end-domain">wajeezsd.com</div>
+  <!-- STEP 2 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-person-check"></i> الخطوة الثانية</div>
+      <div class="step-number">2</div>
+      <h3>تسجيل الدخول</h3>
+      <p>ادخل برقم هاتفك أو بريدك الإلكتروني وكلمة المرور. إذا كنت جديداً، أنشئ حساباً مجانياً في ثوانٍ.</p>
+    </div>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status">
+          <span>9:41</span><span>▰▰▰</span>
         </div>
+        <div class="phone-body">
+          <div class="mock-login">
+            <div class="mock-login-logo">
+              <div class="lg-box"><img src="logo-mark-white.png" alt="وجيز" /></div>
+              <p>مرحباً بك في وجيز</p>
+            </div>
+            <div class="mock-field"><i class="bi bi-phone"></i>رقم الهاتف</div>
+            <div class="mock-field"><i class="bi bi-lock"></i>كلمة المرور</div>
+            <div class="mock-btn-green">تسجيل الدخول</div>
+            <div class="mock-divider">─── أو ───</div>
+            <div class="mock-btn-green" style="background:#fff;color:var(--green);border:1.5px solid var(--green);">إنشاء حساب جديد</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <div id="countdown"></div>
+  <!-- STEP 3 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-geo-alt-fill"></i> الخطوة الثالثة</div>
+      <div class="step-number">3</div>
+      <h3>تحديد موقع الاستلام</h3>
+      <p>اضغط على "تحديد من الخريطة" لتحديد الموقع الذي تريد الكابتن يستلم منه الطلب. أضف اسم المرسل ورقم هاتفه.</p>
     </div>
-</div>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
+        <div class="phone-body">
+          <div class="mock-order">
+            <div class="mock-section-title"><i class="bi bi-geo-alt-fill"></i> من وين؟ (موقع الاستلام)</div>
+            <button class="mock-map-btn"><i class="bi bi-map"></i> تحديد من الخريطة 📍</button>
+            <div class="mock-input-ro">الموقع غير محدد...</div>
+            <div class="mock-row2">
+              <div class="mock-input-ro">اسم المرسل</div>
+              <div class="mock-input-ro">رقم الهاتف</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<!-- طبقة التحكم -->
-<div id="controls">
-    <h1>فيديو ميزة رابط المتجر</h1>
-    <p class="hint">اختر مقاس الفيديو، ابدأ تسجيل الشاشة على منطقة المسرح، ثم اضغط زر التشغيل. عد تنازلي قصير ثم يبدأ العرض، وفي النهاية تثبت شاشة الخاتمة — أوقف التسجيل عندها.</p>
-    <div class="mode-switch">
-        <button class="mode-btn active" data-mode="v">عمودي 9:16 (واتساب وريلز)</button>
-        <button class="mode-btn" data-mode="h">أفقي 16:9 (يوتيوب)</button>
+  <!-- STEP 4 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-house-fill"></i> الخطوة الرابعة</div>
+      <div class="step-number">4</div>
+      <h3>تحديد موقع التوصيل</h3>
+      <p>حدد وين تريد الطلب يوصل. استخدم الخريطة التفاعلية لتحديد الموقع بدقة وأضف اسم المستلم ورقمه.</p>
     </div>
-    <button id="btnSound" class="sound-on"><i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل</button>
-    <div id="rotateHint">
-        <i class="bi bi-phone"></i>
-        <span>للنتيجة الأفضل، دوّر هاتفك للوضع الأفقي قبل التشغيل</span>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
+        <div class="phone-body">
+          <div class="mock-order mock-dropoff">
+            <div class="mock-section-title"><i class="bi bi-house-fill" style="color:var(--red)"></i> لوين؟ (موقع التوصيل)</div>
+            <button class="mock-map-btn" style="background:var(--red)"><i class="bi bi-map"></i> تحديد من الخريطة 📍</button>
+            <div class="mock-input-ro" style="border-color:#fc8181;">الموقع غير محدد...</div>
+            <div class="mock-row2">
+              <div class="mock-input-ro">اسم المستلم</div>
+              <div class="mock-input-ro">رقم الهاتف</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button id="btnPlay" title="تشغيل"><i class="bi bi-play-fill"></i></button>
-</div>
-<button id="btnReplay">إعادة التشغيل</button>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-card-text"></i> الخطوة الخامسة</div>
+      <div class="step-number">5</div>
+      <h3>تفاصيل الطلب</h3>
+      <p>اكتب وصفاً مختصراً للأغراض المطلوب توصيلها. يمكنك أيضاً إرفاق صورة للطلب إذا أردت المزيد من الوضوح.</p>
+    </div>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
+        <div class="phone-body">
+          <div class="mock-order">
+            <div class="mock-section-title"><i class="bi bi-card-text"></i> تفاصيل الطلب</div>
+            <textarea class="mock-textarea" readonly placeholder="وصف للأغراض (مثلاً: كيس ملابس، علبة أدوية...)"></textarea>
+            <div class="mock-img-btn"><i class="bi bi-camera" style="font-size:1rem;color:#aaa"></i> رفع صورة للطلب</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-cash-stack"></i> الخطوة السادسة</div>
+      <div class="step-number">6</div>
+      <h3>تحديد سعر التوصيل</h3>
+      <p>اكتب المبلغ الذي اتفقت عليه مع الكابتن. يمكنك زيادة أو تخفيض المبلغ بالأزرار + و −.</p>
+    </div>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
+        <div class="phone-body">
+          <div class="mock-order">
+            <div class="mock-section-title"><i class="bi bi-cash-coin"></i> سعر التوصيل</div>
+            <div class="mock-price-row">
+              <button class="mock-price-btn minus">−</button>
+              <div class="mock-price-val">500</div>
+              <div class="mock-price-unit">ج.س</div>
+              <button class="mock-price-btn plus">+</button>
+            </div>
+            <div style="font-size:0.6rem;color:#aaa;margin-top:6px;text-align:center;">يُدفع عند الاستلام نقداً</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-send-fill"></i> الخطوة السابعة</div>
+      <div class="step-number">7</div>
+      <h3>اطلب الكابتن</h3>
+      <p>بعد مراجعة كل التفاصيل، اضغط "اطلب الكابتن الآن" وسيتم إرسال الطلب تلقائياً لأقرب كابتن متاح في منطقتك.</p>
+    </div>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
+        <div class="phone-body">
+          <div class="mock-order" style="padding-top:20px;">
+            <div class="mock-estimated"><i class="bi bi-clock" style="color:var(--green)"></i> وقت التوصيل المتوقع: 20–35 دقيقة</div>
+            <button class="mock-request-btn">🚀 اطلب الكابتن الآن</button>
+            <div style="font-size:0.58rem;color:#aaa;text-align:center;margin-top:8px;">بالضغط توافق على شروط الخدمة</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step-card">
+    <div class="step-info">
+      <div class="step-tag"><i class="bi bi-map-fill"></i> الخطوة الثامنة</div>
+      <div class="step-number">8</div>
+      <h3>تتبع طلبك مباشرة</h3>
+      <p>بعد قبول الكابتن للطلب، ستظهر لك الخريطة وتتابع موقعه لحظة بلحظة حتى يصل إليك. يمكنك التواصل معه مباشرة من التطبيق.</p>
+    </div>
+    <div class="step-mockup">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
+        <div class="phone-body">
+          <div class="mock-order" style="padding:10px 8px;">
+            <div class="mock-map-area">
+              <div class="mock-captain-dot"></div>
+            </div>
+            <div class="mock-captain-info">
+              <div class="mock-captain-row">
+                <div class="mock-avatar">ك</div>
+                <div>
+                  <div class="mock-captain-name">أحمد محمد</div>
+                  <div class="mock-captain-sub">🏍️ Honda Wave 125</div>
+                  <div class="mock-rating">★★★★★ 4.9</div>
+                </div>
+                <div class="mock-captain-plate">SDN 1234</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end steps-container -->
+
+<!-- ─── Footer ─── -->
+<footer class="tutorial-footer">
+  <h3>استكشف المزيد من الدلائل</h3>
+  <p>تعرّف على كل خدمات وجيز</p>
+  <div class="footer-nav">
+    <a href="tutorial-app-order.html"><i class="bi bi-phone"></i> كيف تطلب من التطبيق؟</a>
+    <a href="tutorial-shop-order.html"><i class="bi bi-shop"></i> كيف تطلب من المتاجر؟</a>
+    <a href="tutorial-merchant-register.html"><i class="bi bi-person-badge"></i> كيف تسجّل كتاجر؟</a>
+  </div>
+  <p class="copy">© 2024 وجيز السودان – جميع الحقوق محفوظة</p>
+</footer>
 
 <script>
-    const stage = document.getElementById('stage');
-    const cursor = document.getElementById('cursor');
-    const rippleContainer = document.getElementById('rippleContainer');
-    const deviceFrame = document.getElementById('deviceFrame');
+  // Progress bar
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    document.getElementById('progress-bar').style.width = pct + '%';
+  });
 
-    /* تحجيم المسرح ليملأ النافذة — visualViewport أدق على الهاتف (شريط العنوان المتحرك) */
-    function viewportSize() {
-        if (window.visualViewport) {
-            return { w: window.visualViewport.width, h: window.visualViewport.height };
-        }
-        return { w: document.documentElement.clientWidth, h: document.documentElement.clientHeight };
-    }
-    function fitStage() {
-        const sw = stage.classList.contains('v') ? 1080 : 1920;
-        const sh = stage.classList.contains('v') ? 1920 : 1080;
-        const { w, h } = viewportSize();
-        stage.style.transform = `scale(${Math.min(w / sw, h / sh)})`;
-    }
-    window.addEventListener('resize', () => { fitStage(); updateRotateHint(); });
-    window.addEventListener('orientationchange', () => setTimeout(() => { fitStage(); updateRotateHint(); }, 250));
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', fitStage);
-    }
-    fitStage();
-
-    /* تنبيه التدوير: يظهر إذا اختار الأفقي وجهازه ما زال عمودياً */
-    function updateRotateHint() {
-        const { w, h } = viewportSize();
-        const needRotate = stage.classList.contains('h') && h > w;
-        document.getElementById('rotateHint').classList.toggle('show', needRotate);
-    }
-
-    /* تبديل المقاس */
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            stage.classList.remove('v', 'h');
-            stage.classList.add(btn.dataset.mode);
-            fitStage();
-            updateRotateHint();
-        });
+  // Intersection Observer for step cards
+  const cards = document.querySelectorAll('.step-card');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
     });
-
-    /* تقسيم العناوين لكلمات (حركة كلمة-كلمة) */
-    document.querySelectorAll('.headline').forEach(el => {
-        const parts = [];
-        el.childNodes.forEach(node => {
-            if (node.nodeType === 3) {
-                node.textContent.split(/\s+/).filter(Boolean).forEach(w => parts.push(`<span class="w">${w}</span>`));
-            } else if (node.nodeType === 1) {
-                node.textContent.split(/\s+/).filter(Boolean).forEach(w =>
-                    parts.push(`<span class="w ${node.className}">${w}</span>`));
-            }
-        });
-        el.innerHTML = parts.join(' ');
-    });
-
-    /* تحميل الصور مسبقاً */
-    const IMAGES = [
-        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=500&q=80',
-        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=150&q=80',
-        'https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=500&q=80',
-        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=80',
-        'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=500&q=80',
-        'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=500&q=80',
-        'icons/icon-512x512.png',
-        'logo-transparent.png',
-        'logo-white.png'
-    ];
-    function preloadImages() {
-        return Promise.all(IMAGES.map(src => new Promise(resolve => {
-            const img = new Image();
-            img.onload = img.onerror = resolve;
-            img.src = src;
-            setTimeout(resolve, 6000);
-        })));
-    }
-
-    /* ═══ محرك المؤثرات الصوتية (Web Audio — مولّدة برمجياً، بدون ملفات) ═══
-       عائلة صوتية واحدة متناسقة: نغمات sine ناعمة + مسحات ضجيج مفلترة */
-    const sfx = (() => {
-        let ctx = null, master = null, enabled = true;
-        function ensure() {
-            if (!ctx) {
-                ctx = new (window.AudioContext || window.webkitAudioContext)();
-                master = ctx.createGain();
-                master.gain.value = 0.5;
-                master.connect(ctx.destination);
-            }
-            if (ctx.state === 'suspended') ctx.resume();
-            return ctx;
-        }
-        function tone({ type = 'sine', from = 440, to = null, dur = 0.15, vol = 0.4, delay = 0 }) {
-            if (!enabled) return;
-            const c = ensure(), t = c.currentTime + delay;
-            const o = c.createOscillator();
-            o.type = type;
-            o.frequency.setValueAtTime(from, t);
-            if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
-            const g = c.createGain();
-            g.gain.setValueAtTime(0, t);
-            g.gain.linearRampToValueAtTime(vol, t + 0.012);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-            o.connect(g); g.connect(master);
-            o.start(t); o.stop(t + dur + 0.05);
-        }
-        function sweep({ dur = 0.4, from = 300, to = 1800, vol = 0.25, q = 1, delay = 0 }) {
-            if (!enabled) return;
-            const c = ensure(), t = c.currentTime + delay;
-            const len = Math.ceil(c.sampleRate * dur);
-            const buf = c.createBuffer(1, len, c.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-            const src = c.createBufferSource(); src.buffer = buf;
-            const f = c.createBiquadFilter();
-            f.type = 'bandpass'; f.Q.value = q;
-            f.frequency.setValueAtTime(from, t);
-            f.frequency.exponentialRampToValueAtTime(to, t + dur);
-            const g = c.createGain();
-            g.gain.setValueAtTime(0, t);
-            g.gain.linearRampToValueAtTime(vol, t + dur * 0.25);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-            src.connect(f); f.connect(g); g.connect(master);
-            src.start(t); src.stop(t + dur + 0.05);
-        }
-        return {
-            unlock() { ensure(); },
-            setEnabled(v) { enabled = v; },
-            tick()      { tone({ from: 950, dur: 0.07, vol: 0.22 }); },                       // عد تنازلي
-            go()        { tone({ from: 1350, dur: 0.18, vol: 0.28 }); },                      // انطلاق
-            tap()       { tone({ type: 'triangle', from: 330, to: 190, dur: 0.08, vol: 0.32 }); }, // لمسة
-            pop()       { tone({ from: 390, to: 640, dur: 0.12, vol: 0.26 }); },              // فقاعة/عنصر يظهر
-            whoosh()    { sweep({ dur: 0.38, from: 320, to: 1900, vol: 0.22 }); },            // انتقال مشهد
-            textIn()    { sweep({ dur: 0.3, from: 700, to: 2400, vol: 0.13, q: 1.6 }); },     // ظهور نص
-            swipeUp()   { sweep({ dur: 0.28, from: 500, to: 2300, vol: 0.2, q: 1.4 }); },     // درج يفتح
-            swipeDown() { sweep({ dur: 0.26, from: 2100, to: 450, vol: 0.18, q: 1.4 }); },    // درج يغلق
-            impact()    { tone({ from: 160, to: 55, dur: 0.45, vol: 0.55 }); sweep({ dur: 0.2, from: 900, to: 160, vol: 0.22 }); }, // ضربة العنوان
-            rise()      { sweep({ dur: 1.0, from: 220, to: 2600, vol: 0.2, q: 1.2 }); },      // صعود الافتتاحية
-            logo()      { [523.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.4, vol: 0.2, delay: i * 0.08 })); },
-            success()   { [659.25, 987.77].forEach((f, i) => tone({ from: f, dur: 0.34, vol: 0.26, delay: i * 0.12 })); },
-            finale()    { [392, 523.25, 659.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.95, vol: 0.18, delay: i * 0.1 })); },
-            move()      { sweep({ dur: 0.6, from: 400, to: 700, vol: 0.04, q: 0.4 }); },      // حركة الماوس
-            ambient()   { 
-                if (!enabled || this._amb) return;
-                const c = ensure();
-                this._amb = c.createOscillator();
-                this._amb.type = 'triangle';
-                this._amb.frequency.value = 85; 
-                const g = c.createGain();
-                g.gain.value = 0.015; // خلفية خفيفة جداً لكسر الصمت
-                this._amb.connect(g); g.connect(master);
-                this._amb.start(); 
-            },
-            // أصوات جديدة أقوى وأكثر تشويقاً
-            notification() {
-                // ping إشعار — ثلاث نغمات متصاعدة
-                [880, 1108, 1320].forEach((f, i) => tone({ from: f, dur: 0.12, vol: 0.3, delay: i * 0.07 }));
-            },
-            cashier() {
-                // صوت الكاشير عند إتمام الطلب — ding + boom
-                tone({ from: 1760, dur: 0.08, vol: 0.35 });
-                tone({ from: 2637, dur: 0.06, vol: 0.28, delay: 0.09 });
-                tone({ from: 120, to: 55, dur: 0.5, vol: 0.45, delay: 0.1 });
-            },
-            wooshDeep() {
-                // انتقال عميق أكثر دراما — طبقة منخفضة + طبقة مرتفعة
-                sweep({ dur: 0.55, from: 80, to: 400, vol: 0.35, q: 0.6 });
-                sweep({ dur: 0.45, from: 600, to: 2500, vol: 0.18, q: 1.5, delay: 0.1 });
-            },
-            glitch() {
-                // تشويش رقمي عند الخاتمة
-                [80, 160, 60, 200, 40].forEach((f, i) => tone({ type: 'sawtooth', from: f * 10, dur: 0.04, vol: 0.15, delay: i * 0.03 }));
-            },
-            rise2() {
-                sweep({ dur: 1.4, from: 120, to: 3000, vol: 0.28, q: 0.9 });
-                tone({ from: 440, to: 880, dur: 1.2, vol: 0.15, delay: 0.2 });
-            },
-            counterTick() {
-                tone({ type: 'triangle', from: 600, dur: 0.03, vol: 0.1 });
-            },
-        };
-    })();
-
-    /* مؤشر اللمس (يقسم على معامل القياس الفعلي فيعمل تحت أي تحجيم) */
-    function frameScale() {
-        return deviceFrame.getBoundingClientRect().width / deviceFrame.offsetWidth;
-    }
-    const moveCursor = (targetId, duration = 1, offsetX = 0, offsetY = 0) => {
-        const tl = gsap.timeline();
-        tl.call(() => sfx.move());
-        tl.to(cursor, {
-            duration,
-            ease: 'power3.inOut',
-            x: () => {
-                const t = document.getElementById(targetId).getBoundingClientRect();
-                const f = deviceFrame.getBoundingClientRect();
-                return (t.left - f.left + t.width / 2) / frameScale() + offsetX;
-            },
-            y: () => {
-                const t = document.getElementById(targetId).getBoundingClientRect();
-                const f = deviceFrame.getBoundingClientRect();
-                return (t.top - f.top + t.height / 2) / frameScale() + offsetY;
-            }
-        });
-        return tl;
-    };
-
-    const clickCursor = (targetId) => {
-        const tl = gsap.timeline();
-        tl.call(() => {
-            sfx.tap();
-            const x = gsap.getProperty(cursor, 'x');
-            const y = gsap.getProperty(cursor, 'y');
-            const ripple = document.createElement('div');
-            ripple.className = 'ripple';
-            ripple.style.left = `${x - 19}px`;
-            ripple.style.top = `${y - 19}px`;
-            rippleContainer.appendChild(ripple);
-            gsap.to(ripple, { scale: 2.6, opacity: 0, borderWidth: 0, duration: 0.6, ease: 'power2.out', onComplete: () => ripple.remove() });
-        });
-        tl.to(cursor, { scale: 0.72, duration: 0.1 })
-          .to(cursor, { scale: 1, duration: 0.12 });
-        if (targetId) {
-            const target = document.getElementById(targetId);
-            tl.to(target, { scale: 0.96, duration: 0.1 }, '-=0.2')
-              .to(target, { scale: 1, duration: 0.1 });
-        }
-        return tl;
-    };
-
-    // ─── Flash الشاشة ───
-    const flashScreen = (color = 'white', dur = 0.12) => {
-        const fl = document.getElementById('flashLayer');
-        fl.style.background = color;
-        gsap.fromTo(fl, { opacity: 0.75 }, { opacity: 0, duration: dur, ease: 'power2.out' });
-    };
-
-    // ─── انفجار جسيمات ───
-    const burstParticles = (count = 18, colors = ['#04553A','#F5A623','#22c55e','#fff']) => {
-        const pc = document.getElementById('particleContainer');
-        const cx = gsap.getProperty(cursor, 'x');
-        const cy = gsap.getProperty(cursor, 'y');
-        for (let i = 0; i < count; i++) {
-            const p = document.createElement('div');
-            const size = 6 + Math.random() * 8;
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
-            const dist = 60 + Math.random() * 100;
-            p.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:${color};border-radius:50%;left:${cx}px;top:${cy}px;pointer-events:none;`;
-            pc.appendChild(p);
-            gsap.to(p, {
-                x: Math.cos(angle) * dist, y: Math.sin(angle) * dist,
-                opacity: 0, scale: 0.2, duration: 0.7 + Math.random() * 0.4,
-                ease: 'power2.out', onComplete: () => p.remove()
-            });
-        }
-    };
-
-    // ─── Counter animation ───
-    const animateCounter = (el, from, to, dur = 1.2) => {
-        const obj = { val: from };
-        gsap.to(obj, {
-            val: to, duration: dur, ease: 'power2.out',
-            onUpdate: () => { el.textContent = Math.round(obj.val); sfx.counterTick(); }
-        });
-    };
-
-    // ─── تحديث شريط التقدم ───
-    let _progressDur = 0;
-    const startProgress = (totalDur) => {
-        _progressDur = totalDur;
-        const bar = document.getElementById('cinemaBar');
-        const pulse = document.getElementById('cinemaPulse');
-        const progress = document.getElementById('cinemaProgress');
-        gsap.set(progress, { opacity: 1 });
-        pulse.style.display = 'block';
-        gsap.to(bar, { width: '100%', duration: totalDur, ease: 'none' });
-        gsap.to(pulse, { right: () => `${100 - parseFloat(bar.style.width || '0')}%`, duration: totalDur, ease: 'none' });
-    };
-
-    // ─── موجة صوتية ───
-    const startWaveform = () => {
-        const wave = document.getElementById('waveform');
-        const line = document.getElementById('waveLine');
-        gsap.to(wave, { opacity: 1, duration: 1 });
-        let frame = 0;
-        const tick = () => {
-            frame++;
-            const pts = [];
-            for (let x = 0; x <= 1080; x += 12) {
-                const y = 50 + Math.sin((x / 80) + frame * 0.12) * (18 + Math.sin(frame * 0.07) * 12) +
-                             Math.sin((x / 35) + frame * 0.22) * 8;
-                pts.push(`${x},${y}`);
-            }
-            line.setAttribute('points', pts.join(' '));
-            requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-    };
-
-    // ─── Vibration على الموبايل ───
-    const vibrate = (pattern) => {
-        if (navigator.vibrate) navigator.vibrate(pattern);
-    };
-
-    /* لون شريط الحالة لكل مشهد: أبيض فوق الرؤوس الداكنة، داكن فوق شريط المتصفح الأبيض */
-    const STATUS_COLORS = { scene0: '#fff', scene1: '#fff', scene2: '#202124', scene3: '#fff' };
-    const switchScreen = (outId, inId) => {
-        const tl = gsap.timeline();
-        tl.call(() => sfx.whoosh())
-          .to(`#${outId}`, { opacity: 0, scale: 0.96, duration: 0.28 })
-          .set(`#${outId}`, { display: 'none' })
-          .set(`#${inId}`, { display: 'flex', opacity: 0, scale: 1.04 })
-          .to(`#${inId}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, '<')
-          .to('#statusBar', { color: STATUS_COLORS[inId] || '#111', duration: 0.3 }, '<');
-        return tl;
-    };
-
-    /* إظهار نص تسويقي: العنوان كلمة-كلمة ثم السطر الشارح */
-    const showText = (id) => {
-        const el = document.querySelector(id);
-        const tl = gsap.timeline();
-        tl.call(() => sfx.textIn())
-          .set(el, { visibility: 'visible', opacity: 1 })
-          .fromTo(el.querySelector('.accent'), { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: 'power3.out' })
-          .fromTo(el.querySelectorAll('.headline .w'),
-              { opacity: 0, y: 34, rotateX: -50 },
-              { opacity: 1, y: 0, rotateX: 0, duration: 0.55, stagger: 0.055, ease: 'back.out(1.6)' }, '-=0.25')
-          .to(el.querySelector('.subline'), { opacity: 1, y: 0, duration: 0.6 }, '-=0.15');
-        return tl;
-    };
-    const hideText = (id) => gsap.timeline()
-        .to(id, { opacity: 0, y: -26, duration: 0.45, onComplete: () => {
-            const el = document.querySelector(id);
-            el.style.visibility = 'hidden';
-            gsap.set(el, { y: 0 });
-        }});
-
-    /* ═══ السيناريو ═══ */
-    function playCinematicPromo() {
-        const tl = gsap.timeline();
-        tl.timeScale(1.15); // إيقاع أسرع قليلاً للعرض كله
-        gsap.set('.subline', { y: 16 });
-        startWaveform();
-        startProgress(52); // إجمالي مدة العرض تقريباً
-
-        // ── الافتتاحية الحماسية: وجيز تقدّم ميزة جبارة ──
-        // ⚠️ opacity:1 مع visibility معاً — وإلا تتحرك العناصر داخل حاوية شفافة ولا يظهر شيء
-        tl.set('#introCard', { visibility: 'visible', opacity: 1 })
-          .call(() => { sfx.rise2(); vibrate([30, 50, 80]); })
-          .fromTo('#introCard img', { opacity: 0, scale: 0.55, rotate: -8 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.8, ease: 'back.out(1.4)' })
-          .call(() => sfx.logo())
-          .fromTo('#introCard .t0', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.3')
-          // العنوان يهبط بضربة قوية مع صوت impact
-          .call(() => sfx.impact())
-          .fromTo('#introCard .t1', { opacity: 0, scale: 1.7 }, { opacity: 1, scale: 1, duration: 0.55, ease: 'power4.out' }, '-=0.05')
-          .fromTo('#introCard .t2', { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.15');
-        tl.to('#introCard', { opacity: 0, scale: 0.94, duration: 0.55, ease: 'power2.in' }, '+=1.5')
-          .set('#introCard', { visibility: 'hidden' });
-
-        // ── دخول الهاتف ──
-        tl.call(() => sfx.ambient()) // تشغيل الصوت الخلفي المستمر
-          .set('#phoneSlot', { opacity: 1 })
-          .call(() => sfx.whoosh()) // صوت قوي لدخول الهاتف
-          .from('.device-container', { rotateY: 26, rotateX: 9, y: 90, scale: 0.86, duration: 1.6, ease: 'expo.out' })
-          .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.4, ease: 'power3.inOut' }, '-=0.5')
-          .set(cursor, { x: 190, y: 690 })
-
-        // ── مشهد 0: التاجر ينسخ رابطه ──
-        tl.add(showText('#mt1'), '-=1.2');
-        tl.add(moveCursor('btnCopyLink', 1.1), '+=0.7')
-          .add(clickCursor('btnCopyLink'));
-        tl.call(() => { flashScreen('#22c55e', 0.18); burstParticles(24, ['#04553A','#22c55e','#F5A623','#fff']); vibrate([10, 20, 50]); })
-          .to('#copyToast', { opacity: 1, y: 0, duration: 0.5, ease: 'back.out(1.4)' })
-          .call(() => { sfx.notification(); vibrate([20]); }, null, '<')
-          .to('#copyToast', { opacity: 0, y: 50, duration: 0.4 }, '+=1.2');
-
-        // ── مشهد 1: واتساب ──
-        tl.add(hideText('#mt1'))
-        tl.call(() => { sfx.wooshDeep(); flashScreen('rgba(0,0,0,0.4)', 0.2); });
-          tl.add(switchScreen('scene0', 'scene1'), '<');
-        tl.add(showText('#mt2'), '-=0.1');
-        tl.to('#msg1', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.6')
-          .call(() => sfx.pop(), null, '<');
-        tl.to('#typingIndicator', { opacity: 1, duration: 0.3 }, '+=0.4')
-          .to('#typingIndicator', { opacity: 0, duration: 0.3 }, '+=1.0');
-        tl.to('#msg2', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.5)' })
-          .call(() => sfx.pop(), null, '<');
-        tl.call(() => sfx.notification());
-
-        tl.add(moveCursor('linkPreview', 1.1, 0, 26), '+=1.2')
-          .add(clickCursor('linkPreview'));
-
-        // ── مشهد 2: المتصفح يفتح المتجر ──
-        tl.add(hideText('#mt2'))
-          .add(switchScreen('scene1', 'scene2'), '<');
-        // شريط تقدم المتصفح — يوضح أن الصفحة فُتحت في المتصفح
-        tl.fromTo('#browserProgress', { width: '0%' }, { width: '100%', duration: 0.8, ease: 'power2.out' })
-          .to('#browserProgress', { opacity: 0, duration: 0.25 });
-        tl.add(showText('#mt3'), '-=0.7');
-
-        tl.to('#product1', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.4')
-          .to('#product2', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35')
-          .to('#product3', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35')
-          .to('#product4', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35');
-
-        // ── التسوق: إضافة للسلة مباشرة (بدون أي نافذة تسجيل دخول) ──
-        tl.add(moveCursor('btnAddToCart', 1.3), '+=1.2')
-          .add(clickCursor('btnAddToCart'));
-
-        tl.add(hideText('#mt3'), '<');
-        tl.call(() => {
-            document.getElementById('btnAddToCart').innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; width:100%; font-size:13px; padding:0 8px;">
-                    <span style="font-size:17px;">−</span>
-                    <span style="background:white; color:#04553A; padding:1px 9px; border-radius:6px; font-weight:800;">1</span>
-                    <span style="font-size:17px;">+</span>
-                </div>`;
-        })
-        .to('#btnAddToCart', { backgroundColor: '#16a34a', duration: 0.3 })
-        .to('#floatingCart', { y: 0, duration: 0.5, ease: 'back.out(1.2)' })
-        .call(() => sfx.pop(), null, '<');
-        tl.add(showText('#mt4'), '-=0.3');
-
-        // درج السلة ثم إتمام الطلب
-        tl.add(moveCursor('btnViewCart', 1.1, 40), '+=1.1')
-          .add(clickCursor('btnViewCart'));
-        tl.call(() => sfx.swipeUp())
-          .to('#cartDrawer', { y: 0, duration: 0.55, ease: 'power3.out' })
-          .to('#floatingCart', { opacity: 0, duration: 0.2 }, '<');
-
-        tl.add(moveCursor('btnCheckout', 1.0), '+=1.2')
-          .add(clickCursor('btnCheckout'));
-        tl.call(() => sfx.swipeDown())
-          .to('#cartDrawer', { y: '110%', duration: 0.4, ease: 'power2.in' });
-
-        // نافذة نجاح الطلب (بنص التطبيق الفعلي)
-        tl.call(() => {
-            sfx.success();
-            sfx.cashier();
-            vibrate([100, 50, 200]);
-            flashScreen('#F5A623', 0.25);
-            Swal.fire({
-                icon: 'success',
-                title: 'الآن تم الطلب!',
-                html: `الرجاء متابعة الطلب والتواصل مع المندوب عبر تطبيق وجيز.<br><small class="text-muted mt-2 d-block">رقم الطلب: #1234</small>`,
-                confirmButtonText: 'تحميل التطبيق ومتابعة الطلب',
-                confirmButtonColor: '#04553A',
-                allowOutsideClick: false,
-                backdrop: 'rgba(0,0,0,0.5)',
-                target: '#deviceFrame',
-                customClass: { container: 'position-absolute', popup: 'rounded-4' },
-                animation: false
-            });
-            gsap.fromTo('.swal2-popup', { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.6, ease: 'expo.out' });
-            
-            // Confetti سحرية من منتصف الهاتف
-            const rect = document.getElementById('deviceFrame').getBoundingClientRect();
-            const cx = (rect.left + rect.width / 2) / window.innerWidth;
-            const cy = (rect.top + rect.height / 2) / window.innerHeight;
-            confetti({ particleCount: 220, spread: 80, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
-        });
-
-        tl.add(hideText('#mt4'));
-        tl.call(() => {
-            const numEl = document.querySelector('.stat-box .num');
-            if (numEl) animateCounter(numEl, 0, 57, 1.5);
-            const numEl2 = document.querySelectorAll('.stat-box .num')[1];
-            if (numEl2) animateCounter(numEl2, 0, 412, 2.0);
-        });
-        tl.add(showText('#mt5'), '+=0.2');
-
-        tl.add(moveCursor('deviceFrame', 1.3, 0, 78), '+=1.6')
-          .add(clickCursor());
-        tl.call(() => Swal.close(), null, '+=0.2');
-
-        // ── مشهد 3: Google Play ──
-        tl.add(switchScreen('scene2', 'scene3'), '+=0.1');
-        tl.call(() => { window.canClickToGooglePlay = true; });
-        tl.add(moveCursor('btnInstall', 1.3), '+=0.8')
-          .add(clickCursor('btnInstall'));
-
-        // ── الخاتمة ──
-        tl.add(hideText('#mt5'), '+=1.1');
-        tl.to(cursor, { opacity: 0, duration: 0.3 }, '<');
-        tl.to('#phoneSlot', { opacity: 0, y: 60, duration: 0.7, ease: 'power2.in' }, '<')
-          .to('.watermark', { opacity: 0, duration: 0.4 }, '<');
-        tl.set('#endCard', { visibility: 'visible' })
-          .call(() => { sfx.glitch(); flashScreen('white', 0.08); })
-          .to([], { duration: 0.08 }) // pause خفيف
-          .call(() => { flashScreen('white', 0.06); })
-          .call(() => sfx.finale())
-          .fromTo('#endCard', { opacity: 0 }, { opacity: 1, duration: 0.4 })
-          .fromTo('.end-logo-card', { opacity: 0, scale: 0.9, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '<')
-          .fromTo('.end-line', { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.65 }, '-=0.3')
-          .fromTo('.end-sub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.35')
-          .fromTo('.end-domain', { opacity: 0 }, { opacity: 1, duration: 0.7 }, '-=0.2');
-
-        tl.to('#btnReplay', { opacity: 1, pointerEvents: 'auto', duration: 0.5 }, '+=1.5');
-        return tl;
-    }
-
-    /* التشغيل: تحميل مسبق ← عد تنازلي ← العرض */
-    const btnPlay = document.getElementById('btnPlay');
-    window.canClickToGooglePlay = false;
-
-    document.body.addEventListener('click', (e) => {
-        if (window.canClickToGooglePlay && e.target.id !== 'btnReplay') {
-            window.location.href = "https://play.google.com/store/apps/details?id=com.wajeezsd.app";
-        }
-    });
-
-    btnPlay.addEventListener('click', async () => {
-        btnPlay.disabled = true;
-        document.body.classList.add('playing'); // يخفي مؤشر الماوس في التسجيل
-        sfx.unlock(); // تهيئة الصوت داخل إيماءة المستخدم (شرط المتصفحات)
-
-        // ملء الشاشة أولاً (يجب أن يكون داخل إيماءة المستخدم) — يخفي واجهة المتصفح أثناء التسجيل
-        try {
-            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-                await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
-            }
-        } catch (e) { /* بعض المتصفحات ترفض — نكمل عادي */ }
-        // إبقاء الشاشة مضاءة طوال العرض حتى لا يقطعه قفل شاشة الهاتف
-        try { navigator.wakeLock && await navigator.wakeLock.request('screen'); } catch (e) {}
-        // قفل اتجاه الشاشة على الهاتف حسب المقاس المختار
-        try {
-            if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock(stage.classList.contains('h') ? 'landscape' : 'portrait');
-            }
-        } catch (e) { /* يتطلب ملء الشاشة وقد لا يدعمه المتصفح */ }
-        fitStage();
-
-        await preloadImages();
-        document.fonts && await document.fonts.ready;
-
-        gsap.to('#controls', { opacity: 0, duration: 0.4, onComplete: () => {
-            document.getElementById('controls').style.display = 'none';
-        }});
-
-        const cd = document.getElementById('countdown');
-        const counts = ['3', '2', '1'];
-        const cdTl = gsap.timeline();
-        counts.forEach(n => {
-            cdTl.call(() => { cd.textContent = n; sfx.tick(); })
-                .fromTo(cd, { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 1, duration: 0.3 })
-                .to(cd, { opacity: 0, duration: 0.26 }, '+=0.3');
-        });
-        cdTl.call(() => { cd.textContent = ''; sfx.go(); playCinematicPromo(); });
-    });
-
-    /* زر المؤثرات الصوتية */
-    const btnSound = document.getElementById('btnSound');
-    btnSound.addEventListener('click', () => {
-        const on = btnSound.classList.toggle('sound-on');
-        sfx.setEnabled(on);
-        btnSound.innerHTML = on
-            ? '<i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل'
-            : '<i class="bi bi-volume-mute"></i> المؤثرات الصوتية: متوقفة';
-    });
-
-    document.getElementById('btnReplay').addEventListener('click', () => location.reload());
+  }, { threshold: 0.12 });
+  cards.forEach(c => observer.observe(c));
 </script>
 </body>
 </html>

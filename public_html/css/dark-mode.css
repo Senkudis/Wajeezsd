@@ -656,12 +656,15 @@ body {
 /* Dark mode: invert colors so navy text becomes white/light */
 body.dark-mode .app-logo:not(.app-logo--sidebar) {
     filter: brightness(0) invert(1);
+    background-color: transparent !important;
 }
 
 /* Splash screen: logo is on a dark green gradient, so always invert */
 body.dark-mode .splash-logo.app-logo,
-.app-splash .app-logo {
-    filter: brightness(0) invert(1);
+body.dark-mode .app-splash .app-logo {
+    content: url('../logo-mark-white.png');
+    filter: none !important;
+    background-color: transparent !important;
 }
 
 /* ========================================
@@ -1024,10 +1027,6 @@ body.dark-mode #shopMapBadge {
     color: var(--text-dark) !important;
 }
 body.dark-mode #shopMapBadgeName {
-    color: var(--text-dark) !important;
-}
-body.dark-mode #static-map-container > div:last-child {
-    background: var(--card-bg) !important;
     color: var(--text-dark) !important;
 }
 

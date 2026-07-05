@@ -10,7 +10,7 @@ const Haptics = _CapPlugins.Haptics || null;
 const Geolocation = _CapPlugins.Geolocation || null;
 const ImpactStyle = { Light: 'LIGHT', Medium: 'MEDIUM', Heavy: 'HEAVY' };
 
-window.APP_VERSION = '1.0.2'; // الاصدار الحالي للتطبيق (وجيز — تحديث وشامل)
+window.APP_VERSION = '1.0.4'; // الاصدار الحالي للتطبيق (وجيز — تحديث وشامل)
 
 // دالة عرض الـ Toasts الداخلية (تُستخدم فقط إذا لم تُحمَّل notification-toast.js بعد)
 // ✅ إصلاح BUG-2: لا تُعيَّن على window.showToast لتجنّب تعارض التوقيعات
@@ -546,8 +546,8 @@ const AppCore = {
             const data = await res.json();
             
             // Compare versions
-            const current = window.APP_VERSION || '1.0.2';
-            const latest = data.appVersion || '1.0.2';
+            const current = window.APP_VERSION || '1.0.4';
+            const latest = data.appVersion || '1.0.4';
             const minVersion = data.minVersion || latest;
             
             // Helper to compare versions

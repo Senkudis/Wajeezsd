@@ -34,10 +34,13 @@
 }
 
 .splash-logo {
-    width: 240px;
+    width: 120px;
     height: auto;
+    /* Fill the transparent C cutout with brand green in light mode */
+    background-color: #04553A;
+    border-radius: 28px;
     /* Original logo colors with a luxurious soft shadow */
-    filter: drop-shadow(0 15px 35px rgba(10, 135, 84, 0.15));
+    filter: drop-shadow(0 10px 25px rgba(4, 85, 58, 0.2));
     animation: premium-logo-float 4s ease-in-out infinite;
 }
 

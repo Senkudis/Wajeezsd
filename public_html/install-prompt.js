@@ -26,14 +26,14 @@
       <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
         <div style="background: white; border-radius: 20px; padding: 30px; max-width: 400px; text-align: center; font-family: 'Cairo', sans-serif;">
           <div style="font-size: 60px; margin-bottom: 20px;">📱</div>
-          <h3 style="color: #0a8754; margin-bottom: 15px; font-weight: bold;">ثبّت التطبيق</h3>
+          <h3 style="color: #04553A; margin-bottom: 15px; font-weight: bold;">ثبّت التطبيق</h3>
           <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">
             لتثبيت التطبيق على جهازك:<br>
             1. اضغط على زر المشاركة <span style="font-size: 20px;">⬆️</span><br>
             2. اختر "إضافة إلى الشاشة الرئيسية"
           </p>
           <button onclick="document.getElementById('ios-install-modal').remove(); localStorage.setItem('install-prompt-dismissed', 'true');" 
-                  style="background: #0a8754; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 16px;">
+                  style="background: #04553A; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 16px;">
             حسناً
           </button>
         </div>

@@ -161,6 +161,8 @@ async function initAdminPlaceMap(lat, lng) {
             webMap.setCenter({ lat, lng });
         }, 250);
         adminPlaceMapInstance = {
+            webMap: webMap,
+            marker: marker,
             destroy: function() {
                 if (marker) marker.setMap(null);
                 if (webMap) google.maps.event.clearInstanceListeners(webMap);
@@ -177,8 +179,19 @@ function adminMapLocateMe() {
     if (!navigator.geolocation) return alert('المتصفح لا يدعم GPS');
     navigator.geolocation.getCurrentPosition(
         (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
             if (!adminPlaceMapInstance) {
-                initAdminPlaceMap(pos.coords.latitude, pos.coords.longitude);
+                initAdminPlaceMap(lat, lng);
+            } else {
+                adminPlaceMapInstance.webMap.setCenter({ lat, lng });
+                if (adminPlaceMapInstance.marker) {
+                    adminPlaceMapInstance.marker.setPosition({ lat, lng });
+                }
+                document.getElementById('placeLat').value = lat.toFixed(6);
+                document.getElementById('placeLng').value = lng.toFixed(6);
+                document.getElementById('adminPlaceMapCoords').textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
+                adminReverseFillAddress(lat, lng);
             }
         },
         () => alert('تعذّر تحديد موقعك. تأكد من تفعيل الـ GPS.'),
@@ -186,6 +199,26 @@ function adminMapLocateMe() {
     );
 }
 
+function editPlaceMapLocateMe() {
+    if (!navigator.geolocation) return alert('المتصفح لا يدعم GPS');
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            if (editPlaceMapInstance) {
+                editPlaceMapInstance.webMap.setCenter({ lat, lng });
+                if (editPlaceMapInstance.marker) {
+                    editPlaceMapInstance.marker.setPosition({ lat, lng });
+                }
+                document.getElementById('editPlaceLat').value = lat.toFixed(6);
+                document.getElementById('editPlaceLng').value = lng.toFixed(6);
+                document.getElementById('editPlaceMapCoords').textContent = lat.toFixed(5) + ', ' + lng.toFixed(5);
+            }
+        },
+        () => alert('تعذّر تحديد موقعك. تأكد من تفعيل الـ GPS.'),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+}
 
 // =====================================
 // 🔁 Load on page
@@ -204,6 +237,10 @@ async function loadAdminCategories() {
         allCategories = await res.json();
         renderAdminCategories(allCategories);
         populateCategorySelect();
+        
+        // 📊 Update Stats
+        const statCategoriesEl = document.getElementById('statTotalCategories');
+        if (statCategoriesEl) statCategoriesEl.textContent = allCategories.length;
     } catch (e) {
         document.getElementById('adminCategoriesList').innerHTML = '<span style="color:red">فشل التحميل</span>';
     }
@@ -260,6 +297,12 @@ async function loadAdminPlaces() {
         const res = await fetch(`${API_URL}/api/places?city=all`, { headers: headers() });
         const places = await res.json();
         renderAdminPlacesTable(places);
+        
+        // 📊 Update Stats
+        const statPlacesEl = document.getElementById('statTotalPlaces');
+        const statActiveEl = document.getElementById('statActivePlaces');
+        if (statPlacesEl) statPlacesEl.textContent = places.length;
+        if (statActiveEl) statActiveEl.textContent = places.filter(p => p.is_open).length;
     } catch (e) {
         document.querySelector('#placesTable tbody').innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">فشل التحميل</td></tr>';
     }
@@ -301,6 +344,9 @@ function renderAdminPlacesTable(places) {
             : '<span style="background:#fee2e2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">مغلق</span>'}
             </td>
             <td>
+                <button onclick="copyAdminShareLink('${p.shareCode || ''}')" class="btn-primary-custom" title="نسخ الرابط القصير" style="padding:6px 12px;font-size:12px;margin-left:6px;background:#0f766e;color:#fff;border:none;border-radius:8px;">
+                    <i class="fas fa-link" style="font-size:1.1rem;"></i>
+                </button>
                 <button onclick="openEditPlaceModal('${p._id}')" class="btn-primary-custom" style="padding:6px 12px;font-size:12px;margin-left:6px;">
                     <i class="fas fa-edit"></i> تعديل
                 </button>
@@ -310,7 +356,35 @@ function renderAdminPlacesTable(places) {
             </td>
         </tr>
     `).join('');
+
+    // Initialize DataTables
+    if (typeof $ !== 'undefined' && $.fn.dataTable) {
+        if (placesDataTable) {
+            placesDataTable.destroy();
+        }
+        placesDataTable = $('#placesTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json' },
+            pageLength: 25,
+            ordering: true,
+            responsive: true,
+            destroy: true
+        });
+    }
 }
+
+function copyAdminShareLink(shareCode) {
+    if (!shareCode || shareCode === 'undefined') {
+        Swal.fire('غير متاح', 'هذا المتجر لا يملك كود مشاركة حتى الآن. سيتم توليده عند تحديث المتجر.', 'info');
+        return;
+    }
+    const url = 'https://wajeezsd.com/s/' + shareCode;
+    navigator.clipboard.writeText(url).then(() => {
+        Swal.fire({ title: 'تم نسخ الرابط', text: url, icon: 'success', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+    }).catch(() => {
+        Swal.fire('الرابط', url, 'info');
+    });
+}
+
 
 // =====================================
 // ✏️ Edit Place
@@ -370,8 +444,8 @@ async function openEditPlaceModal(id) {
         loadPlaceProducts();
 
         // 🖼️ Show current place image if exists
-        const imgPreviewEl = document.getElementById('placeImagePreviewImg');
-        const imgPreviewContainer = document.getElementById('placeImagePreview');
+        const imgPreviewEl = document.getElementById('editPlaceImagePreviewImg');
+        const imgPreviewContainer = document.getElementById('editPlaceImagePreview');
         if (p.image_url) {
             const fullImgUrl = (() => {
                 if (!p.image_url) return '';
@@ -384,11 +458,11 @@ async function openEditPlaceModal(id) {
             })();
             imgPreviewEl.src = fullImgUrl;
             imgPreviewContainer.style.display = 'block';
-            document.getElementById('placeImage').value = p.image_url;
+            document.getElementById('editPlaceImage').value = p.image_url;
         } else {
             imgPreviewEl.src = '';
             imgPreviewContainer.style.display = 'none';
-            document.getElementById('placeImage').value = '';
+            document.getElementById('editPlaceImage').value = '';
         }
 
         // 🔥 Singleton enforcement: Destroy any existing map before opening again
@@ -450,6 +524,8 @@ async function openEditPlaceModal(id) {
                     webMap.setCenter({ lat, lng });
                 }, 250);
                 editPlaceMapInstance = {
+                    webMap: webMap,
+                    marker: marker,
                     destroy: function() {
                         if (marker) marker.setMap(null);
                         if (webMap) google.maps.event.clearInstanceListeners(webMap);
@@ -508,10 +584,10 @@ async function submitEditPlace(e) {
 
     setSubmitLoading(btn, true);
 
-    // 🖼️ رفع/حفظ صورة (لوغو) المتجر — كان مفقوداً فالتعديل ما كان يُحفظ
-    let imageUrl = document.getElementById('placeImage').value || '';
+    // 🖼️ رفع/حفظ صورة (لوغو) المتجر
+    let imageUrl = document.getElementById('editPlaceImage').value || '';
     try {
-        const uploadedImg = await uploadPlaceImageIfNeeded();
+        const uploadedImg = await uploadPlaceImageIfNeeded('editPlaceImage', 'editPlaceImageFile');
         if (uploadedImg) imageUrl = uploadedImg;
     } catch (e) {
         Swal.fire('خطأ', e.message, 'error');
@@ -538,6 +614,7 @@ async function submitEditPlace(e) {
         Swal.fire({ icon: 'success', title: 'تم التحديث!', timer: 1500, showConfirmButton: false });
         closeEditPlaceModal();
         loadAdminPlaces();
+        setSubmitLoading(btn, false);
     } catch (e) {
         Swal.fire('خطأ', e.message, 'error');
         setSubmitLoading(btn, false);
@@ -583,6 +660,7 @@ async function submitEditCategory(e) {
         Swal.fire({ icon: 'success', title: 'تم التحديث!', timer: 1500, showConfirmButton: false });
         closeEditCategoryModal();
         loadAdminCategories();
+        setSubmitLoading(btn, false);
     } catch (e) {
         Swal.fire('خطأ', e.message, 'error');
         setSubmitLoading(btn, false);
@@ -603,10 +681,10 @@ async function deletePlace(id, name) {
 // ➕ Create Category
 // =====================================
 function openAddCategoryModal() {
-    document.getElementById('addCategoryModal').style.display = 'flex';
+    document.getElementById('addCategoryModal').classList.add('show');
 }
 function closeAddCategoryModal() {
-    document.getElementById('addCategoryModal').style.display = 'none';
+    document.getElementById('addCategoryModal').classList.remove('show');
     document.getElementById('addCategoryForm').reset();
     document.getElementById('catNotes').value = '';
 }
@@ -629,6 +707,7 @@ async function createCategory(e) {
             Swal.fire({ icon: 'success', title: 'تمت الإضافة!', timer: 1500, showConfirmButton: false });
             closeAddCategoryModal();
             loadAdminCategories();
+            setSubmitLoading(btn, false);
         } else {
             const err = await res.json();
             Swal.fire('خطأ', err.message, 'error');
@@ -694,15 +773,15 @@ function previewPlaceImageUrl(url) {
     document.getElementById('placeImage').value = url; // store directly
 }
 
-async function uploadPlaceImageIfNeeded() {
+async function uploadPlaceImageIfNeeded(inputId = 'placeImage', fileInputId = 'placeImageFile') {
     // If external URL already set — skip upload, use it directly
-    const existingUrl = document.getElementById('placeImage').value;
+    const existingUrl = document.getElementById(inputId).value;
     if (existingUrl && existingUrl.startsWith('http')) return existingUrl;
     // If it's a relative server path, keep it
     if (existingUrl && existingUrl.startsWith('/uploads/')) return existingUrl;
 
-    const fileInput = document.getElementById('placeImageFile');
-    if (!fileInput.files || !fileInput.files[0]) return null;
+    const fileInput = document.getElementById(fileInputId);
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return null;
 
     const formData = new FormData();
     formData.append('placeImage', fileInput.files[0]);
@@ -824,6 +903,57 @@ function previewEditMenuImageUrl(url) {
     document.getElementById('editPlaceMenu').value = url;
 }
 
+function previewEditPlaceImageUrl(url) {
+    if (!url || !url.startsWith('http')) return;
+    document.getElementById('editPlaceImagePreviewImg').src = url;
+    document.getElementById('editPlaceImagePreview').style.display = 'block';
+    document.getElementById('editPlaceImage').value = url;
+}
+
+// Edit place image uploading logic
+function previewEditPlaceImage(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('editPlaceImagePreviewImg').src = e.target.result;
+        document.getElementById('editPlaceImagePreview').style.display = 'block';
+        const lbl = document.getElementById('editPlaceImageUploadLabel');
+        if (lbl) lbl.style.borderColor = '#0d6efd';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function clearEditPlaceImage() {
+    const fileInput = document.getElementById('editPlaceImageFile');
+    if (fileInput) fileInput.value = '';
+    const urlInput = document.getElementById('editPlaceImageUrl');
+    if (urlInput) urlInput.value = '';
+    document.getElementById('editPlaceImagePreviewImg').src = '';
+    document.getElementById('editPlaceImagePreview').style.display = 'none';
+    const lbl = document.getElementById('editPlaceImageUploadLabel');
+    if (lbl) lbl.style.borderColor = '#0d6efd';
+    document.getElementById('editPlaceImage').value = '';
+}
+
+function setEditPlaceImageMode(mode) {
+    const fileMode = document.getElementById('editPlaceImgFileMode');
+    const urlMode = document.getElementById('editPlaceImgUrlMode');
+    const btnFile = document.getElementById('editPlaceImgModeFile');
+    const btnUrl = document.getElementById('editPlaceImgModeUrl');
+    clearEditPlaceImage();
+    if (mode === 'url') {
+        fileMode.style.display = 'none';
+        urlMode.style.display = 'block';
+        btnFile.className = 'btn btn-outline-secondary btn-sm';
+        btnUrl.className = 'btn btn-primary btn-sm';
+    } else {
+        fileMode.style.display = 'block';
+        urlMode.style.display = 'none';
+        btnFile.className = 'btn btn-primary btn-sm';
+        btnUrl.className = 'btn btn-outline-secondary btn-sm';
+    }
+}
+
 async function uploadMenuImageIfNeeded(mode = 'add') {
     const valInputId = mode === 'edit' ? 'editPlaceMenu' : 'placeMenu';
     const fileInputId = mode === 'edit' ? 'editMenuImageFile' : 'menuImageFile';
@@ -893,10 +1023,10 @@ function setOwnerMode(mode) {
 function openAddPlaceModal() {
     populateCategorySelect(); // refresh categories in select
     setOwnerMode('new'); // افتراضياً: تاجر جديد
-    document.getElementById('addPlaceModal').style.display = 'flex';
+    document.getElementById('addPlaceModal').classList.add('show');
 }
 function closeAddPlaceModal() {
-    document.getElementById('addPlaceModal').style.display = 'none';
+    document.getElementById('addPlaceModal').classList.remove('show');
     document.getElementById('addPlaceForm').reset();
     clearMenuImage();
     clearPlaceImage();
@@ -1018,6 +1148,7 @@ async function createPlace(e) {
             Swal.fire({ icon: 'success', title: successMsg, timer: 2500, showConfirmButton: false });
             closeAddPlaceModal();
             loadAdminPlaces();
+            setSubmitLoading(btn, false);
         } else {
             const err = await res.json();
             Swal.fire('خطأ', err.message, 'error');

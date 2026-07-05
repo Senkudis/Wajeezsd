@@ -1,19 +1,46 @@
 /**
  * Theme Manager - إدارة الوضع الليلي/النهاري
+ * مع دعم StatusBar من Capacitor
  */
 
 const ThemeManager = {
-    STORAGE_KEY: 'wassili_theme',
+    STORAGE_KEY: 'wajeezsd_theme',
+
+    /**
+     * ضبط StatusBar حسب الوضع الحالي
+     */
+    applyStatusBar: function (isDark) {
+        try {
+            const { StatusBar } = Capacitor.Plugins;
+            if (!StatusBar) return;
+
+            if (isDark) {
+                // وضع ليلي: نص أبيض على خلفية داكنة
+                StatusBar.setStyle({ style: 'DARK' });
+                StatusBar.setBackgroundColor({ color: '#1a1a2e' });
+            } else {
+                // وضع نهاري: نص داكن على خلفية خضراء (لون Header التطبيق)
+                StatusBar.setStyle({ style: 'LIGHT' });
+                StatusBar.setBackgroundColor({ color: '#04553A' });
+            }
+        } catch (e) {
+            // البيئة ليست Capacitor Native (مثل المتصفح) — تجاهل
+        }
+    },
 
     /**
      * تهيئة النظام
      */
     init: function () {
-        // تحميل الثيم المحفوظ
         const savedTheme = localStorage.getItem(this.STORAGE_KEY);
-        if (savedTheme === 'dark') {
-            this.enableDarkMode();
+        const isDark = savedTheme === 'dark';
+
+        if (isDark) {
+            document.body.classList.add('dark-mode');
         }
+
+        // ضبط StatusBar عند تحميل الصفحة
+        this.applyStatusBar(isDark);
 
         // إضافة زر التبديل
         this.createToggleButton();
@@ -25,12 +52,9 @@ const ThemeManager = {
     createToggleButton: function () {
         const button = document.createElement('button');
         button.className = 'theme-toggle';
-        button.innerHTML = '<i class="bi bi-moon-stars-fill"></i>';
         button.onclick = () => this.toggle();
         button.title = 'تبديل الوضع الليلي';
         document.body.appendChild(button);
-
-        // تحديث الأيقونة
         this.updateButtonIcon();
     },
 
@@ -40,6 +64,7 @@ const ThemeManager = {
     enableDarkMode: function () {
         document.body.classList.add('dark-mode');
         localStorage.setItem(this.STORAGE_KEY, 'dark');
+        this.applyStatusBar(true);
         this.updateButtonIcon();
     },
 
@@ -49,6 +74,7 @@ const ThemeManager = {
     disableDarkMode: function () {
         document.body.classList.remove('dark-mode');
         localStorage.setItem(this.STORAGE_KEY, 'light');
+        this.applyStatusBar(false);
         this.updateButtonIcon();
     },
 
@@ -75,7 +101,6 @@ const ThemeManager = {
     updateButtonIcon: function () {
         const button = document.querySelector('.theme-toggle');
         if (!button) return;
-
         if (document.body.classList.contains('dark-mode')) {
             button.innerHTML = '<i class="bi bi-sun-fill"></i>';
         } else {

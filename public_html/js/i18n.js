@@ -5,7 +5,7 @@
 
 const i18n = {
     currentLang: 'ar',
-    STORAGE_KEY: 'wassili_language',
+    STORAGE_KEY: 'wajeezsd_language',
 
     translations: {
         ar: {
@@ -24,7 +24,7 @@ const i18n = {
             'my_orders': 'طلباتي السابقة',
             'wallet': 'المحفظة',
             'saved_locations': 'المواقع المفضلة',
-            'about': 'عن وصل-لي',
+            'about': 'عن وجيز',
             'logout': 'تسجيل الخروج',
             'dark_mode': 'الوضع الليلي',
             'version': 'إصدار التطبيق',
@@ -82,7 +82,7 @@ const i18n = {
             'my_orders': 'My Orders',
             'wallet': 'Wallet',
             'saved_locations': 'Saved Locations',
-            'about': 'About Wassili',
+            'about': 'About Wajeez',
             'logout': 'Logout',
             'dark_mode': 'Dark Mode',
             'version': 'App Version',

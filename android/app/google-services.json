@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "872071068982",
-    "project_id": "wassili249-c3e83",
-    "storage_bucket": "wassili249-c3e83.firebasestorage.app"
+    "project_number": "168664276687",
+    "project_id": "wajeezsd-b248c",
+    "storage_bucket": "wajeezsd-b248c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:872071068982:android:e80ddb8ecde2a138dac797",
+        "mobilesdk_app_id": "1:168664276687:android:1ea2ab4f08dc00585521ba",
         "android_client_info": {
-          "package_name": "com.wassili.app"
+          "package_name": "com.wajeezsd.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "168664276687-1dg4f71t72nvgtmfug12cv7u43ef6197.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wajeezsd.app",
+            "certificate_hash": "1f04bc9ab21aa42fc939719cb518c57246abdd1a"
+          }
+        },
+        {
+          "client_id": "168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBHtFpZUNBw245bMCCo_UKdvtxXENbVUo0"
+          "current_key": "AIzaSyBdmDp3AjoBrVyXuKBUbsaJiO8p14Kg_74"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

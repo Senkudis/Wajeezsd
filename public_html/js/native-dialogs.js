@@ -3,8 +3,10 @@
  * يستخدم @capacitor/dialog للتطبيق الأصلي و SweetAlert2 للمتصفح
  */
 
-import { Dialog } from 'https://cdn.jsdelivr.net/npm/@capacitor/dialog@latest/+esm';
-import { Toast } from 'https://cdn.jsdelivr.net/npm/@capacitor/toast@latest/+esm';
+// 🔌 الجسر المحلي بدل CDN — يعمل بلا إنترنت. عند غياب الإضافة نستخدم بديل SweetAlert.
+const _ndPlugins = (window.Capacitor && window.Capacitor.Plugins) || {};
+const Dialog = _ndPlugins.Dialog || null;
+const Toast = _ndPlugins.Toast || null;
 
 const NativeDialogs = {
     /**
@@ -13,7 +15,7 @@ const NativeDialogs = {
      * @param {string} message - الرسالة
      */
     alert: async (title, message) => {
-        if (window.Capacitor) {
+        if (Dialog) {
             await Dialog.alert({
                 title: title,
                 message: message,
@@ -27,7 +29,7 @@ const NativeDialogs = {
                     text: message,
                     icon: 'info',
                     confirmButtonText: 'حسناً',
-                    confirmButtonColor: '#0a8754'
+                    confirmButtonColor: '#04553A'
                 });
             } else {
                 alert(`${title}\n\n${message}`);
@@ -44,7 +46,7 @@ const NativeDialogs = {
      * @returns {Promise<boolean>} - true إذا تم التأكيد
      */
     confirm: async (title, message, confirmText = 'تأكيد', cancelText = 'إلغاء') => {
-        if (window.Capacitor) {
+        if (Dialog) {
             const result = await Dialog.confirm({
                 title: title,
                 message: message,
@@ -62,7 +64,7 @@ const NativeDialogs = {
                     showCancelButton: true,
                     confirmButtonText: confirmText,
                     cancelButtonText: cancelText,
-                    confirmButtonColor: '#0a8754',
+                    confirmButtonColor: '#04553A',
                     cancelButtonColor: '#6c757d'
                 });
                 return result.isConfirmed;
@@ -78,7 +80,7 @@ const NativeDialogs = {
      * @param {string} message - الرسالة
      */
     success: async (title, message) => {
-        if (window.Capacitor) {
+        if (Toast) {
             await Toast.show({
                 text: `✅ ${title}: ${message}`,
                 duration: 'long',
@@ -105,7 +107,7 @@ const NativeDialogs = {
      * @param {string} message - الرسالة
      */
     error: async (title, message) => {
-        if (window.Capacitor) {
+        if (Dialog) {
             await Dialog.alert({
                 title: `❌ ${title}`,
                 message: message,
@@ -132,7 +134,7 @@ const NativeDialogs = {
      * @param {string} message - الرسالة
      */
     warning: async (title, message) => {
-        if (window.Capacitor) {
+        if (Dialog) {
             await Dialog.alert({
                 title: `⚠️ ${title}`,
                 message: message,
@@ -159,7 +161,7 @@ const NativeDialogs = {
      * @param {string} duration - المدة: 'short' أو 'long'
      */
     toast: async (message, duration = 'short') => {
-        if (window.Capacitor) {
+        if (Toast) {
             await Toast.show({
                 text: message,
                 duration: duration,

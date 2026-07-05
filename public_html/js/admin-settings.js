@@ -29,8 +29,8 @@ async function loadSettings() {
         
         // App Settings
         if (document.getElementById('appVersion')) {
-            document.getElementById('appVersion').value = settings.appVersion || '1.0.2';
-            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '1.0.2';
+            document.getElementById('appVersion').value = settings.appVersion || '1.0.4';
+            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '1.0.4';
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }

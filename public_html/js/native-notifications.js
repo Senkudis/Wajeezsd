@@ -3,8 +3,6 @@
  * Uses Capacitor native plugins when available
  */
 
-// نستخدم Auth Helper من النافذة العامة
-const Auth = window.Auth;
 
 // الحصول على الـ Capacitor plugins مباشرة
 function getPushNotifications() {
@@ -227,10 +225,34 @@ const NativeNotifications = {
     },
 
     updateServerToken: async (fcmToken) => {
+        // ✅ Guard 1: تجاهل إن كان نفس التوكن أُرسل بنجاح من قبل
+        const lastSynced = localStorage.getItem('fcmToken_synced');
+        if (lastSynced === fcmToken) {
+            console.log('🔁 FCM token unchanged — skipping duplicate sync');
+            return;
+        }
+
+        // ✅ Guard 2: Debounce — لا إرسال مزدوج خلال 10 ثوانٍ
+        const now = Date.now();
+        const lastAttempt = parseInt(localStorage.getItem('fcmToken_lastAttempt') || '0', 10);
+        if (now - lastAttempt < 10000) {
+            console.log('⏳ FCM sync debounced — too soon since last attempt');
+            return;
+        }
+        localStorage.setItem('fcmToken_lastAttempt', String(now));
+
+        // ✅ Guard 3: in-flight guard — لا طلبان في نفس الوقت
+        if (NativeNotifications._fcmSyncing) {
+            console.log('🔒 FCM sync already in progress — skipping');
+            return;
+        }
+        NativeNotifications._fcmSyncing = true;
+
         // Get token from Auth helper OR fallback to adminToken/token in localStorage
-        const authToken = (Auth && Auth.getToken()) || localStorage.getItem('adminToken') || localStorage.getItem('token');
+        const authToken = (window.Auth && window.Auth.getToken()) || localStorage.getItem('adminToken') || localStorage.getItem('token');
         if (!authToken) {
             console.warn('⚠️ No auth token available — cannot sync FCM token');
+            NativeNotifications._fcmSyncing = false;
             return;
         }
 
@@ -249,20 +271,34 @@ const NativeNotifications = {
 
             if (res.ok) {
                 console.log('✅ FCM Token Synced with Server');
+                // ✅ سجّل التوكن الناجح حتى لا نُعيد إرساله في الصفحات التالية
+                localStorage.setItem('fcmToken_synced', fcmToken);
             } else {
-                console.warn('⚠️ Failed to sync FCM token:', res.status, await res.text());
+                const errText = await res.text().catch(() => '');
+                console.warn('⚠️ Failed to sync FCM token:', res.status, errText);
+                // عند 429: امسح طابع الوقت حتى يُعاد المحاولة بعد توقف
+                if (res.status === 429) {
+                    localStorage.removeItem('fcmToken_lastAttempt');
+                }
             }
         } catch (e) {
             console.error('❌ Error syncing FCM token:', e);
+            localStorage.removeItem('fcmToken_lastAttempt');
+        } finally {
+            NativeNotifications._fcmSyncing = false;
         }
-    }
+    },
+
+    _fcmSyncing: false
 };
 
 // تشغيل عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
+
     NativeNotifications.init();
     // إتاحتها للجلوبال عشان نستدعيها في أي وقت (مثلاً بعد طلب اللوكيشن)
     window.requestPushPermissions = NativeNotifications.requestPermissions;
 });
 
-export default NativeNotifications;
+// ✅ تعريض عالمي — يعمل مع <script> العادي و type="module" معاً
+window.NativeNotifications = NativeNotifications;

@@ -29,7 +29,7 @@ function makeCaptainIcon(status, isHighlighted = false) {
       <text x="24" y="9" text-anchor="middle" font-size="9" fill="white">⭐</text>` : '';
 
     const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${isHighlighted ? 56 : 48}" height="${isHighlighted ? 66 : 56}" viewBox="0 0 ${isHighlighted ? 56 : 48} ${isHighlighted ? 66 : 56}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="${isHighlighted ? 42 : 34}" height="${isHighlighted ? 52 : 44}" viewBox="0 0 ${isHighlighted ? 56 : 48} ${isHighlighted ? 66 : 56}">
           <!-- Pin shadow -->
           <ellipse cx="${isHighlighted ? 28 : 24}" cy="${isHighlighted ? 63 : 53}" rx="${isHighlighted ? 10 : 8}" ry="3" fill="rgba(0,0,0,0.18)"/>
           <!-- Pin body -->
@@ -46,8 +46,8 @@ function makeCaptainIcon(status, isHighlighted = false) {
           ${starBadge}
         </svg>`;
 
-    const w = isHighlighted ? 56 : 48;
-    const h = isHighlighted ? 66 : 56;
+    const w = isHighlighted ? 42 : 34;
+    const h = isHighlighted ? 52 : 44;
     return {
         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
         scaledSize: new google.maps.Size(w, h),

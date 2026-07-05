@@ -1,7 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Wassili</string>
-    <string name="title_activity_main">Wassili</string>
-    <string name="package_name">com.wassili.app</string>
-    <string name="custom_url_scheme">com.wassili.app</string>
+    <string name="app_name">وجيز</string>
+    <string name="title_activity_main">وجيز</string>
+    <string name="package_name">com.wajeezsd.app</string>
+    <string name="custom_url_scheme">com.wajeezsd.app</string>
+
+    <!-- ✅ Foreground Service Notification Icon (uses monochrome drawable, not mipmap launcher icon) -->
+    <string name="capacitor_background_geolocation_notification_icon">drawable/ic_stat_wassili</string>
+    <!-- ✅ Foreground Service Notification Accent Color -->
+    <string name="capacitor_background_geolocation_notification_color">#04553A</string>
+
+    <!-- ✅ Google Sign-In Web Client ID (required by capacitor-google-auth) -->
+    <string name="server_client_id">168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com</string>
 </resources>

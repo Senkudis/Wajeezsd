@@ -4,7 +4,7 @@
  */
 
 const CacheManager = {
-    CACHE_PREFIX: 'wassili_cache_',
+    CACHE_PREFIX: 'wajeezsd_cache_',
     CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
 
     /**

@@ -16,7 +16,7 @@ const content = {
     },
     en: {
         title: "Bike-based delivery service in Omdurman",
-        desc: "Wassili is a bike-based delivery platform offering fast and reliable point-to-point delivery.",
+        desc: "Wajeez is a bike-based delivery platform offering fast and reliable point-to-point delivery.",
         howTitle: "How it works?",
         howList: [
             "Select pickup and drop-off locations",

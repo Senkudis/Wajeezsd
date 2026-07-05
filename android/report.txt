@@ -1,0 +1,195 @@
+
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Task :app:signingReport
+Variant: debug
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+Variant: release
+Config: null
+Store: null
+Alias: null
+----------
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-app:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-community-background-geolocation:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-community-keep-awake:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-cordova-android-plugins:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-geolocation:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-google-maps:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-haptics:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-network:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-preferences:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-push-notifications:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-status-bar:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :capacitor-toast:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+
+> Task :codetrix-studio-capacitor-google-auth:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\bahaasd\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 07:E4:44:B1:A3:D7:48:E2:0A:CF:95:3A:AF:0B:D0:37
+SHA1: 43:92:46:41:05:7D:A3:CF:B4:5B:14:0B:95:7A:86:1E:D4:88:0D:AE
+SHA-256: 14:C6:D8:63:99:E0:A2:D6:18:24:68:1B:30:38:10:0E:7F:DB:BE:CD:54:6E:70:B1:8D:42:05:11:61:31:B8:64
+Valid until: Tuesday, February 8, 2056
+----------
+[Incubating] Problems report is available at: file:///C:/Users/bahaasd/OneDrive/Desktop/wassili/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 4s
+15 actionable tasks: 15 executed

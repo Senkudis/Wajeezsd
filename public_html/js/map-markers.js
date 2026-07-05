@@ -153,14 +153,58 @@
             return teardropPin('#e63946', 'B', { w: 34, h: 44, fontSize: 13 });
         },
 
-        /** موقع المتجر — أخضر مع أيقونة متجر */
+        /** موقع المتجر — أخضر مع أيقونة متجر SVG (بدون emoji لتفادي المستطيل الأسود) */
         store: function (label) {
-            return teardropPin('#04553A', label || '🏪', { w: 34, h: 44, fontSize: 12 });
+            // إذا تم تمرير label نصي (ليس emoji) استخدم teardropPin العادي
+            if (label && typeof label === 'string' && label.length <= 2 && label.charCodeAt(0) < 256) {
+                return teardropPin('#04553A', label, { w: 34, h: 44, fontSize: 12 });
+            }
+            // وإلا استخدم SVG مخصص مع أيقونة متجر path (بدلاً من emoji)
+            var w = 38, h = 50, cx = w / 2, topR = cx - 2;
+            var pinPath = 'M' + cx + ',' + (h - 5) +
+                'C' + cx + ',' + (h - 5) + ' ' + (cx - topR + 2) + ',' + (topR * 1.65) + ' ' + (cx - topR) + ',' + topR +
+                'a' + topR + ',' + topR + ' 0 1,1 ' + (topR * 2) + ',0' +
+                'C' + (cx + topR - 2) + ',' + (topR * 1.65) + ' ' + cx + ',' + (h - 5) + ' ' + cx + ',' + (h - 5) + 'Z';
+            var innerR = topR * 0.62;
+            // أيقونة متجر مبسطة بـ SVG path داخل دائرة بيضاء
+            var storeIcon =
+                '<circle cx="' + cx + '" cy="' + topR + '" r="' + innerR + '" fill="white" opacity="0.95"/>' +
+                '<g transform="translate(' + (cx - innerR * 0.75) + ',' + (topR - innerR * 0.75) + ') scale(' + (innerR * 1.5 / 24) + ')">' +
+                '<path d="M2 7h20l-1.5 9H3.5L2 7z" fill="#04553A"/>' +
+                '<path d="M7 7V5a5 5 0 0110 0v2" fill="none" stroke="#04553A" stroke-width="2" stroke-linecap="round"/>' +
+                '<circle cx="9" cy="13" r="1.5" fill="white"/>' +
+                '<circle cx="15" cy="13" r="1.5" fill="white"/>' +
+                '</g>';
+            var shadowEl = '<ellipse cx="' + cx + '" cy="' + (h - 2) + '" rx="' + (cx * 0.55) + '" ry="3.5" fill="rgba(0,0,0,0.22)"/>';
+            var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+                '<defs><filter id="ps" x="-40%" y="-40%" width="180%" height="180%">' +
+                '<feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.28"/></filter></defs>' +
+                shadowEl +
+                '<path d="' + pinPath + '" fill="#04553A" filter="url(#ps)"/>' +
+                storeIcon +
+                '</svg>';
+            return { url: svgUrl(svg), scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(cx, h - 3) };
         },
 
         /** موقع منشأة قابل للسحب — أخضر مع دبوس */
         place: function () {
-            return teardropPin('#04553A', '📍', { w: 32, h: 40, fontSize: 12 });
+            // استخدام SVG path بدلاً من emoji 📍 لتفادي المستطيل الأسود
+            var w = 32, h = 40, cx = w / 2, topR = cx - 2;
+            var pinPath = 'M' + cx + ',' + (h - 5) +
+                'C' + cx + ',' + (h - 5) + ' ' + (cx - topR + 2) + ',' + (topR * 1.65) + ' ' + (cx - topR) + ',' + topR +
+                'a' + topR + ',' + topR + ' 0 1,1 ' + (topR * 2) + ',0' +
+                'C' + (cx + topR - 2) + ',' + (topR * 1.65) + ' ' + cx + ',' + (h - 5) + ' ' + cx + ',' + (h - 5) + 'Z';
+            var innerR = topR * 0.62;
+            var dot = '<circle cx="' + cx + '" cy="' + topR + '" r="' + innerR + '" fill="white" opacity="0.95"/>' +
+                '<circle cx="' + cx + '" cy="' + topR + '" r="' + (innerR * 0.45) + '" fill="#04553A"/>';
+            var shadowEl = '<ellipse cx="' + cx + '" cy="' + (h - 2) + '" rx="' + (cx * 0.55) + '" ry="3" fill="rgba(0,0,0,0.22)"/>';
+            var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+                '<defs><filter id="ps2" x="-40%" y="-40%" width="180%" height="180%">' +
+                '<feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.28"/></filter></defs>' +
+                shadowEl +
+                '<path d="' + pinPath + '" fill="#04553A" filter="url(#ps2)"/>' +
+                dot + '</svg>';
+            return { url: svgUrl(svg), scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(cx, h - 3) };
         },
 
         /** موقع المستخدم الحالي — نقطة دائرية خضراء */

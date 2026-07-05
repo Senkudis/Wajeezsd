@@ -3,6 +3,8 @@
     <domain-config cleartextTrafficAllowed="true">
         <domain includeSubdomains="true">wassili.site</domain>
         <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">wassili.secure.local</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
     <base-config cleartextTrafficAllowed="true">
         <trust-anchors>

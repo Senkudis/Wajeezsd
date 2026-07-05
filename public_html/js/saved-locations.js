@@ -4,7 +4,7 @@
  */
 
 const SavedLocations = {
-    STORAGE_KEY: 'wassili_saved_locations',
+    STORAGE_KEY: 'wajeezsd_saved_locations',
 
     /**
      * الحصول على جميع المواقع المحفوظة
