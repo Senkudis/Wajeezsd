@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Wajeez Ad Cards</title>
+<link href="../../../public_html/vendor/fonts/fonts.css" rel="stylesheet">
+<link rel="stylesheet" href="../../../public_html/vendor/bootstrap-icons/bootstrap-icons.min.css">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 720px; height: 1280px; overflow: hidden; }
+    body { font-family: 'Cairo', sans-serif; position: fixed; inset: 0; background: transparent; }
+    .card-view { display: none; position: absolute; inset: 0; }
+    body.show-intro #intro, body.show-ov1 #ov1, body.show-ov2 #ov2, body.show-ov3 #ov3,
+    body.show-feat1 #feat1, body.show-feat2 #feat2, body.show-end #end { display: flex; }
+
+    /* خلفية العلامة للبطاقات الصلبة */
+    .solid {
+        background:
+            radial-gradient(circle at 78% 18%, rgba(245,166,35,0.14) 0%, transparent 42%),
+            radial-gradient(ellipse 90% 60% at 50% 40%, #0d3a2b 0%, #072019 60%, #04120d 100%);
+        flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    /* ═══ الافتتاحية ═══ */
+    #intro { gap: 40px; }
+    #intro .logo-card img { width: 480px; display: block; filter: drop-shadow(0 24px 50px rgba(0,0,0,0.5)); }
+    #intro .tag { color: #e9f5ef; font-size: 40px; font-weight: 800; }
+    #intro .dom { color: #F5A623; font-size: 27px; font-weight: 700; letter-spacing: 2px; direction: ltr; }
+
+    /* ═══ طبقات النص فوق اللقطات (شفافة) ═══ */
+    .ov {
+        flex-direction: column; align-items: center; justify-content: flex-start;
+        padding-top: 88px;
+        background: linear-gradient(to bottom, rgba(2,10,7,0.82) 0%, rgba(2,10,7,0.55) 58%, transparent 100%);
+        height: 420px !important; bottom: auto !important;
+    }
+    .ov .accent { width: 64px; height: 7px; border-radius: 4px; background: linear-gradient(90deg, #0e9f6e, #F5A623); margin-bottom: 24px; }
+    .ov h1 { color: #fff; font-size: 55px; font-weight: 800; text-align: center; line-height: 1.5; text-shadow: 0 4px 22px rgba(0,0,0,0.6); }
+    .ov h1 .hl { color: #F5A623; }
+    .ov p { color: #d9e8e1; font-size: 30px; font-weight: 600; margin-top: 12px; text-align: center; text-shadow: 0 3px 14px rgba(0,0,0,0.7); }
+
+    /* ═══ بطاقات الميزات ═══ */
+    .feat { gap: 34px; }
+    .feat .head { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 8px; }
+    .feat .head img { width: 118px; filter: drop-shadow(0 12px 28px rgba(0,0,0,0.45)); }
+    .feat .head h2 { color: #fff; font-size: 47px; font-weight: 800; }
+    .feat .head h2 .hl { color: #F5A623; }
+    .rows { display: flex; flex-direction: column; gap: 24px; width: 590px; }
+    .row {
+        display: flex; align-items: center; gap: 22px;
+        background: rgba(255,255,255,0.055);
+        border: 1px solid rgba(255,255,255,0.13);
+        border-radius: 22px; padding: 24px 26px;
+    }
+    .row .ic {
+        width: 74px; height: 74px; border-radius: 20px; flex: none;
+        background: linear-gradient(135deg, #0e9f6e, #04553A);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 34px;
+        box-shadow: 0 10px 24px rgba(4,85,58,0.4);
+    }
+    .row .tx .t { color: #fff; font-size: 30.5px; font-weight: 800; }
+    .row .tx .s { color: #a9c3b8; font-size: 22px; font-weight: 600; margin-top: 2px; }
+
+    /* ═══ الخاتمة ═══ */
+    #end { gap: 34px; }
+    #end .logo-card img { width: 440px; display: block; filter: drop-shadow(0 24px 50px rgba(0,0,0,0.5)); }
+    #end h2 { color: #fff; font-size: 46px; font-weight: 800; text-align: center; line-height: 1.6; }
+    #end h2 .hl { color: #F5A623; }
+    #end .gp {
+        display: flex; align-items: center; gap: 16px;
+        background: #0b0b0f; border: 1.5px solid #3a3a42;
+        border-radius: 18px; padding: 18px 34px;
+        color: white;
+    }
+    #end .gp i { font-size: 40px; color: #4ade80; }
+    #end .gp .l1 { font-size: 19px; color: #b9c2cc; font-weight: 600; }
+    #end .gp .l2 { font-size: 30px; font-weight: 800; direction: ltr; }
+    #end .dom { color: #F5A623; font-size: 30px; font-weight: 800; letter-spacing: 2px; direction: ltr; }
+</style>
+</head>
+<body>
+    <!-- الافتتاحية -->
+    <div class="card-view solid" id="intro">
+        <div class="logo-card"><img src="logo-n.png" alt=""></div>
+        <div class="tag">توصيل وجيز لكل ما تحتاجه</div>
+        <div class="dom">wajeezsd.com</div>
+    </div>
+
+    <!-- طبقات النصوص -->
+    <div class="card-view ov" id="ov1">
+        <div class="accent"></div>
+        <h1>في زحمة يومك.. <span class="hl">في وجيز</span></h1>
+        <p>كل حاجة محتاجها توصلك لغاية باب بيتك</p>
+    </div>
+    <div class="card-view ov" id="ov2">
+        <div class="accent"></div>
+        <h1>تصفح متاجرك المفضلة <span class="hl">واطلب بضغطة</span></h1>
+        <p>منتجات حقيقية بأسعارها زاتها — من جوالك</p>
+    </div>
+    <div class="card-view ov" id="ov3">
+        <div class="accent"></div>
+        <h1>تابع مندوبك <span class="hl">لحظة بلحظة</span></h1>
+        <p>شوفو بعينك وين وصل على الخريطة</p>
+    </div>
+
+    <!-- الميزات 1 -->
+    <div class="card-view solid feat" id="feat1">
+        <div class="head">
+            <img src="icon-n.png" alt="">
+            <h2>ليه <span class="hl">وجيز</span>؟</h2>
+        </div>
+        <div class="rows">
+            <div class="row"><div class="ic"><i class="bi bi-geo-alt-fill"></i></div><div class="tx"><div class="t">تتبع مباشر على الخريطة</div><div class="s">مندوبك قدامك من المتجر لباب بيتك</div></div></div>
+            <div class="row"><div class="ic"><i class="bi bi-chat-dots-fill"></i></div><div class="tx"><div class="t">شات مع المندوب والتاجر</div><div class="s">تواصل فوري من غير ما تتصل</div></div></div>
+            <div class="row"><div class="ic"><i class="bi bi-bell-fill"></i></div><div class="tx"><div class="t">إشعارات فورية</div><div class="s">كل خطوة في طلبك بتوصلك أول بأول</div></div></div>
+        </div>
+    </div>
+
+    <!-- الميزات 2 -->
+    <div class="card-view solid feat" id="feat2">
+        <div class="head">
+            <img src="icon-n.png" alt="">
+            <h2>وكمان في <span class="hl">أكتر</span></h2>
+        </div>
+        <div class="rows">
+            <div class="row"><div class="ic"><i class="bi bi-ticket-perforated-fill"></i></div><div class="tx"><div class="t">بروموكود وخصومات</div><div class="s">أكواد خصم على طلباتك</div></div></div>
+            <div class="row"><div class="ic"><i class="bi bi-house-heart-fill"></i></div><div class="tx"><div class="t">عناوين محفوظة</div><div class="s">البيت والشغل — اطلب أسرع في كل مرة</div></div></div>
+            <div class="row"><div class="ic"><i class="bi bi-star-fill"></i></div><div class="tx"><div class="t">تقييمات حقيقية</div><div class="s">اختار متجرك على رأي زبائنه</div></div></div>
+        </div>
+    </div>
+
+    <!-- الخاتمة -->
+    <div class="card-view solid" id="end">
+        <div class="logo-card"><img src="logo-n.png" alt=""></div>
+        <h2>حمّلو <span class="hl">وجيز</span> الآن<br>واطلبو براحتكم</h2>
+        <div class="gp">
+            <i class="bi bi-google-play"></i>
+            <div><div class="l1">متوفر على</div><div class="l2">Google Play</div></div>
+        </div>
+        <div class="dom">wajeezsd.com</div>
+    </div>
+
+<script>
+    const v = (location.hash || '#intro').slice(1);
+    document.body.className = 'show-' + v;
+</script>
+</body>
+</html>

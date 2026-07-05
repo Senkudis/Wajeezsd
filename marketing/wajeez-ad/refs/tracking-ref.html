@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Wajeez Tracking Ref</title>
+<link href="../../../public_html/vendor/fonts/fonts.css" rel="stylesheet">
+<link rel="stylesheet" href="../../../public_html/vendor/bootstrap-icons/bootstrap-icons.min.css">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; }
+    body { font-family: 'Cairo', sans-serif; background: #EAE6DF; position: fixed; inset: 0; }
+
+    /* شريط الحالة */
+    .status-bar {
+        position: absolute; top: 0; left: 0; right: 0; height: 46px;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0 26px; font-size: 15px; font-weight: 700; color: #111; z-index: 100;
+    }
+
+    /* عناصر الخريطة */
+    .park { position: absolute; background: #D0E8D3; border-radius: 30px; }
+    .water { position: absolute; background: #C5E6F5; }
+    .building { position: absolute; background: #F5F4F0; border-radius: 12px; border: 2px solid #E0DDD5; }
+    .road-h { position: absolute; height: 34px; width: 120%; left: -10%; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.04); }
+    .road-v { position: absolute; width: 34px; height: 120%; top: -10%; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.04); }
+
+    svg.route { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; }
+
+    .map-marker { position: absolute; transform: translate(-50%, -100%); z-index: 5; display: flex; flex-direction: column; align-items: center; }
+    .marker-icon {
+        width: 54px; height: 54px; background: white; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; font-size: 25px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 4px solid #04553A;
+    }
+    .marker-icon.store { border-color: #111; color: #111; }
+    .marker-icon.home { border-color: #3b82f6; color: #3b82f6; }
+    .marker-pin { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 12px solid #111; margin-top: -2px; }
+    .marker-icon.home + .marker-pin { border-top-color: #3b82f6; }
+
+    .driver { position: absolute; transform: translate(-50%, -50%); z-index: 10; }
+    .driver-wrap {
+        width: 62px; height: 62px; background: #22c55e; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; font-size: 30px;
+        box-shadow: 0 0 0 7px rgba(255,255,255,0.9), 0 0 0 18px rgba(34,197,94,0.25), 0 15px 30px rgba(0,0,0,0.3);
+        color: white;
+    }
+
+    .back-btn {
+        position: absolute; top: 62px; right: 20px; width: 48px; height: 48px; border-radius: 50%;
+        background: white; color: #111; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15); z-index: 50; font-size: 21px;
+    }
+
+    /* بطاقة التتبع */
+    .panel { position: absolute; bottom: 0; left: 0; right: 0; padding: 0 16px 16px; z-index: 60; }
+    .card {
+        background: white; border-radius: 26px; padding: 20px;
+        box-shadow: 0 -15px 50px rgba(0,0,0,0.13);
+    }
+    .row1 { display: flex; justify-content: space-between; align-items: center; }
+    .row1 h6 { font-size: 17px; font-weight: 800; color: #0f172a; }
+    .pill { padding: 8px 16px; border-radius: 20px; font-size: 13.5px; font-weight: 800; background: #cffafe; color: #0e7490; }
+    .cap {
+        display: flex; align-items: center; gap: 14px;
+        background: #f8fafc; border-radius: 18px; padding: 14px;
+        margin: 15px 0; border: 1px solid #e2e8f0;
+    }
+    .cap-av {
+        width: 50px; height: 50px; border-radius: 50%;
+        background: linear-gradient(135deg, #04553A, #25d366);
+        display: flex; align-items: center; justify-content: center; color: white; font-size: 21px;
+    }
+    .cap-name { font-weight: 800; font-size: 15.5px; color: #1e293b; }
+    .cap-sub { font-size: 13px; color: #64748b; }
+    .cap-call {
+        width: 46px; height: 46px; border-radius: 50%; margin-right: auto;
+        background: #16a34a; color: white; display: flex; align-items: center; justify-content: center;
+        font-size: 18px; box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+    }
+    .pts { display: flex; gap: 10px; }
+    .pt { flex: 1; padding: 12px; border-radius: 14px; background: #f8fafc; font-size: 12.5px; text-align: center; border: 1px solid #e2e8f0; }
+    .pt .l { color: #64748b; font-weight: 800; margin-bottom: 5px; }
+    .pt .a { color: #1e293b; font-weight: 800; }
+    .eta {
+        display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(135deg, #04553A, #0f766e);
+        border-radius: 18px; padding: 15px 20px; margin-top: 14px;
+        color: white; box-shadow: 0 8px 25px rgba(4,85,58,0.3);
+    }
+    .eta .l { font-size: 12.5px; opacity: 0.85; font-weight: 600; }
+    .eta .v { font-size: 21px; font-weight: 800; }
+</style>
+</head>
+<body>
+    <!-- خريطة -->
+    <div class="water" style="width: 130%; height: 130px; bottom: 240px; left: -15%; transform: rotate(-9deg);"></div>
+    <div class="park" style="width: 200px; height: 170px; top: 90px; left: 40px;"></div>
+    <div class="park" style="width: 150px; height: 120px; bottom: 330px; right: 30px;"></div>
+    <div class="building" style="width: 90px; height: 74px; top: 330px; left: 60px;"></div>
+    <div class="building" style="width: 110px; height: 92px; top: 120px; right: 60px;"></div>
+    <div class="building" style="width: 80px; height: 66px; top: 470px; right: 120px;"></div>
+    <div class="road-h" style="top: 300px;"></div>
+    <div class="road-h" style="top: 560px;"></div>
+    <div class="road-v" style="left: 150px;"></div>
+    <div class="road-v" style="left: 388px;"></div>
+
+    <svg class="route" viewBox="0 0 540 960">
+        <path d="M 167 240 L 167 577 L 405 577 L 405 800" fill="none" stroke="#cbd5e1" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 167 240 L 167 400" fill="none" stroke="#04553A" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 167 240 L 167 400" fill="none" stroke="#25d366" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="16 30" opacity="0.85"/>
+    </svg>
+
+    <div class="map-marker" style="top: 240px; left: 167px;">
+        <div class="marker-icon store"><i class="bi bi-shop"></i></div>
+        <div class="marker-pin"></div>
+    </div>
+    <div class="map-marker" style="top: 800px; left: 405px;">
+        <div class="marker-icon home"><i class="bi bi-house-door-fill"></i></div>
+        <div class="marker-pin"></div>
+    </div>
+    <div class="driver" style="top: 400px; left: 167px;">
+        <div class="driver-wrap"><i class="bi bi-bicycle"></i></div>
+    </div>
+
+    <div class="status-bar"><span>9:41</span><span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span></div>
+    <div class="back-btn"><i class="bi bi-arrow-right"></i></div>
+
+    <!-- بطاقة التتبع -->
+    <div class="panel">
+        <div class="card">
+            <div class="row1">
+                <h6>تتبع الطلب #1234</h6>
+                <span class="pill"><i class="bi bi-bicycle"></i> في الطريق إليك</span>
+            </div>
+            <div class="cap">
+                <div class="cap-av"><i class="bi bi-person-fill"></i></div>
+                <div>
+                    <div class="cap-name">محمد أحمد</div>
+                    <div class="cap-sub">دراجة نارية — خ 1234</div>
+                </div>
+                <div class="cap-call"><i class="bi bi-telephone-fill"></i></div>
+            </div>
+            <div class="pts">
+                <div class="pt"><div class="l"><i class="bi bi-geo-alt-fill" style="color:#16a34a"></i> الاستلام</div><div class="a">فال فاشون</div></div>
+                <div class="pt"><div class="l"><i class="bi bi-flag-fill" style="color:#dc2626"></i> التسليم</div><div class="a">اركويت، الخرطوم</div></div>
+            </div>
+            <div class="eta">
+                <div><div class="l">الوقت المتوقع</div><div class="v">03:15</div></div>
+                <div style="text-align:left"><div class="l">المسافة المتبقية</div><div class="v">1.2 كم</div></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
