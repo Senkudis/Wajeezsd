@@ -10,8 +10,11 @@
  * (body مبطّن بمتغيرات --sat/--sab) — هذا الملف يتجاهلها لتفادي الازدواج.
  */
 (function applySafeArea() {
-    // أول هيدر معروف في الصفحة يُبطَّن من الأعلى
-    var HEADER_SELECTOR = '.merchant-header, .page-header, .app-header, .conv-header, .header-gradient, .chat-header, .header';
+    // أول هيدر معروف في الصفحة يُبطَّن من الأعلى.
+    // يشمل هيدرات لوحة الأدمن (topbar/gv-topbar) وصفحة الإشعارات (notif-header)
+    var HEADER_SELECTOR = '.merchant-header, .page-header, .app-header, .conv-header, ' +
+        '.header-gradient, .chat-header, .notif-header, .topbar, .gv-topbar, ' +
+        '.od-header, .map-header, .header';
     // أشرطة تنقّل سفلية ثابتة تُبطَّن من الأسفل
     var BOTTOM_NAV_SELECTOR = '.merchant-nav, .bottom-nav-bar';
 
@@ -48,17 +51,32 @@
         return insets;
     }
 
-    // إضافة inset فوق الحشوة الأصلية — تحفظ الأساس في dataset حتى
-    // تعاد الحسبة بأمان عند تدوير الشاشة أو وصول قيم جديدة دون تراكم.
-    // لا نمسح أي inline style قبل القراءة: أول قراءة تتم قبل أن نلمس العنصر
-    // أصلاً (يحرسها dataset)، والمسح كان يُصفّر عناصر حشوتها inline.
+    // إضافة inset فوق الحشوة الأصلية مع الحفاظ على ارتفاع محتوى الهيدر.
+    // نُثبّت box-sizing:border-box ونرفع min-height بمقدار الـ inset، وإلا فإن
+    // الهيدرات ذات الارتفاع الثابت (مثل .topbar بـ height:64px) كان محتواها يُضغط.
+    // الأساس والارتفاع الأصلي محفوظان في dataset فلا تراكم عند تكرار الاستدعاء.
     function padElement(el, side, inset) {
-        var prop = side === 'top' ? 'paddingTop' : 'paddingBottom';
-        var key = side === 'top' ? 'wjBasePt' : 'wjBasePb';
-        if (el.dataset[key] === undefined) {
-            el.dataset[key] = parseFloat(getComputedStyle(el)[prop]) || 0;
+        var isTop = side === 'top';
+        var prop = isTop ? 'paddingTop' : 'paddingBottom';
+        var baseKey = isTop ? 'wjBasePt' : 'wjBasePb';
+        var heightKey = isTop ? 'wjBaseHt' : 'wjBaseHb';
+
+        if (el.dataset[baseKey] === undefined) {
+            el.dataset[baseKey] = parseFloat(getComputedStyle(el)[prop]) || 0;
+            // الارتفاع المُصيَّر قبل أي تعديل منا (offsetHeight يشمل الحشوة والحدود)
+            el.dataset[heightKey] = el.offsetHeight || 0;
         }
-        el.style[prop] = (parseFloat(el.dataset[key]) + inset) + 'px';
+
+        var base = parseFloat(el.dataset[baseKey]) || 0;
+        var baseH = parseFloat(el.dataset[heightKey]) || 0;
+
+        el.style[prop] = (base + inset) + 'px';
+        // مع border-box: min-height يشمل الحشوة، فتُحفظ مساحة المحتوى كما هي.
+        // نتخطّى body: تجميد ارتفاعه غير مرغوب — الحشوة وحدها تكفي لخلوصه السفلي.
+        if (baseH > 0 && el !== document.body) {
+            el.style.boxSizing = 'border-box';
+            el.style.minHeight = (baseH + inset) + 'px';
+        }
     }
 
     function setup() {
@@ -89,7 +107,7 @@
             if (!document.getElementById('wj-safe-area-merchant')) {
                 var s = document.createElement('style');
                 s.id = 'wj-safe-area-merchant';
-                s.textContent = 'body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }';
+                s.textContent = 'body { padding-bottom: calc(80px + var(--sab, env(safe-area-inset-bottom, 0px))) !important; }';
                 document.head.appendChild(s);
             }
         } else if (insets.bottom > 0) {

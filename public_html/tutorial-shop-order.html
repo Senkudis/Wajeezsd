@@ -1,503 +1,1251 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>وجيز – كيف تطلب من المتاجر؟</title>
-  <meta name="description" content="دليل تفاعلي خطوة بخطوة للطلب من المتاجر عبر تطبيق وجيز السوداني" />
-  <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css" />
-  <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
-  <link rel="stylesheet" href="vendor/fonts/fonts.css" />
-  <style>
-    :root {
-      --green: #04553A;
-      --green-light: #0a7a54;
-      --green-glow: rgba(4, 85, 58, 0.35);
-      --gold: #f5a623;
-      --bg: #0d1117;
-      --bg2: #161b22;
-      --bg3: #1c2128;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --white: #ffffff;
-      --red: #e53e3e;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>وجيز — كيف تطلب من المتاجر</title>
 
-    #progress-bar {
-      position: fixed; top: 0; left: 0; height: 3px;
-      background: linear-gradient(90deg, var(--green), var(--gold));
-      width: 0%; z-index: 9999;
-      box-shadow: 0 0 8px var(--gold);
-    }
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
-    .site-header {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(13,17,23,0.92);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 24px;
-      display: flex; align-items: center; gap: 14px;
-    }
-    .site-header .logo-wrap {
-      background: var(--green); border-radius: 14px; padding: 8px;
-      display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px;
-      box-shadow: 0 0 16px var(--green-glow);
-    }
-    .site-header .logo-wrap img { width: 28px; height: 28px; object-fit: contain; }
-    .site-header h1 { font-size: 1.05rem; font-weight: 700; color: var(--white); }
-    .site-header span { font-size: 0.78rem; color: var(--gold); font-weight: 600; }
-    .badge-tutorial {
-      margin-right: auto;
-      background: rgba(245,166,35,0.15); border: 1px solid var(--gold);
-      color: var(--gold); border-radius: 999px; padding: 3px 12px;
-      font-size: 0.72rem; font-weight: 700;
-    }
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            background: #04070f;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            font-family: 'Almarai', 'Cairo', sans-serif;
+        }
 
-    .hero {
-      position: relative; overflow: hidden;
-      padding: 70px 24px 60px; text-align: center;
-      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,166,35,0.2) 0%, rgba(4,85,58,0.3) 40%, transparent 70%);
-    }
-    .hero::before {
-      content: ''; position: absolute; inset: 0;
-      background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f5a623' fill-opacity='0.04'%3E%3Cpath d='M0 0h20v20H0zM20 20h20v20H20z'/%3E%3C/g%3E%3C/svg%3E");
-    }
-    .hero-icon {
-      width: 80px; height: 80px;
-      background: linear-gradient(135deg, var(--green), var(--gold));
-      border-radius: 24px; margin: 0 auto 20px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 40px rgba(245,166,35,0.4);
-      position: relative; z-index: 1;
-      font-size: 2rem;
-    }
-    .hero h2 {
-      font-size: clamp(1.6rem, 4vw, 2.6rem);
-      font-weight: 900; color: var(--white);
-      position: relative; z-index: 1; margin-bottom: 12px;
-    }
-    .hero h2 span { color: var(--gold); }
-    .hero p { color: var(--muted); font-size: 1rem; max-width: 520px; margin: 0 auto; position: relative; z-index: 1; line-height: 1.8; }
-    .hero-pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 24px; position: relative; z-index: 1; }
-    .pill {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 999px; padding: 5px 14px;
-      font-size: 0.78rem; color: var(--muted);
-      display: flex; align-items: center; gap: 6px;
-    }
-    .pill i { color: var(--gold); }
+        #stageWrapper {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #stage {
+            position: relative;
+            background:
+                radial-gradient(ellipse 90% 55% at 50% 38%, #0d2b22 0%, #071018 55%, #04070f 100%);
+            overflow: hidden;
+            flex: none;
+            transform-origin: center center;
+        }
+        #stage.v { width: 1080px; height: 1920px; }
+        #stage.h { width: 1920px; height: 1080px; }
 
-    .steps-container { max-width: 1100px; margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 40px; }
+        .glow {
+            position: absolute;
+            width: 1500px; height: 1500px;
+            background: radial-gradient(circle, rgba(6,110,75,0.34) 0%, rgba(6,110,75,0.12) 40%, transparent 66%);
+            border-radius: 50%;
+            left: 50%; top: 44%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .glow2 {
+            position: absolute;
+            width: 900px; height: 900px;
+            background: radial-gradient(circle, rgba(245,166,35,0.10) 0%, transparent 60%);
+            border-radius: 50%;
+            right: -300px; top: -220px;
+            pointer-events: none;
+        }
+        .grid-lines {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+            background-size: 120px 120px;
+            pointer-events: none;
+        }
+        .vignette {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 78% 64% at 50% 46%, transparent 55%, rgba(2,5,10,0.55) 100%);
+            pointer-events: none;
+            z-index: 40;
+        }
+        body.playing { cursor: none; }
 
-    .step-card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 20px; overflow: hidden;
-      display: flex; flex-direction: row; gap: 0;
-      opacity: 0; transform: translateY(40px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-    }
-    .step-card.visible { opacity: 1; transform: translateY(0); }
-    .step-card:hover { border-color: rgba(245,166,35,0.3); box-shadow: 0 8px 40px rgba(245,166,35,0.08); }
+        .text-band {
+            position: absolute;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50;
+        }
+        #stage.v .text-band { top: 90px; right: 70px; left: 70px; height: 380px; }
+        #stage.h .text-band { top: 0; bottom: 0; right: 70px; width: 700px; }
 
-    .step-info {
-      flex: 1; padding: 36px 32px;
-      display: flex; flex-direction: column; justify-content: center;
-      border-left: 1px solid var(--border);
-    }
-    .step-number {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--green), var(--gold));
-      color: #fff; font-size: 1.1rem; font-weight: 900;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 16px;
-      box-shadow: 0 0 16px rgba(245,166,35,0.3);
-    }
-    .step-info h3 { font-size: 1.2rem; font-weight: 800; color: var(--white); margin-bottom: 10px; }
-    .step-info p { color: var(--muted); line-height: 1.9; font-size: 0.95rem; }
-    .step-tag {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.3);
-      color: var(--gold); border-radius: 6px;
-      padding: 3px 10px; font-size: 0.72rem; font-weight: 700;
-      margin-bottom: 10px; width: fit-content;
-    }
+        .mtext {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            opacity: 0;
+            visibility: hidden;
+        }
+        .mtext .accent {
+            width: 64px; height: 6px; border-radius: 3px;
+            background: linear-gradient(90deg, #0e9f6e, #F5A623);
+            margin: 0 auto 26px;
+        }
+        .mtext .headline {
+            color: #ffffff;
+            font-weight: 800;
+            line-height: 1.55;
+            letter-spacing: -0.5px;
+        }
+        .mtext .headline .hl { color: #F5A623; }
+        .mtext .subline {
+            color: #9fb6c9;
+            font-weight: 400;
+            line-height: 1.9;
+            margin-top: 18px;
+            opacity: 0;
+        }
+        #stage.v .headline { font-size: 58px; }
+        #stage.v .subline  { font-size: 31px; }
+        #stage.h .headline { font-size: 52px; }
+        #stage.h .subline  { font-size: 27px; }
+        .headline .w { display: inline-block; white-space: pre; }
 
-    .step-mockup {
-      width: 320px; min-width: 280px;
-      background: var(--bg3);
-      display: flex; align-items: center; justify-content: center;
-      padding: 28px 20px;
-    }
+        .phone-slot {
+            position: absolute;
+            z-index: 10;
+            transform-style: preserve-3d;
+            opacity: 0;
+        }
+        #stage.v .phone-slot { left: 50%; top: 540px; transform: translateX(-50%) scale(1.38); transform-origin: top center; }
+        #stage.h .phone-slot { left: 350px; top: 50%; transform: translateY(-50%) scale(1.02); transform-origin: center; }
 
-    .phone {
-      width: 220px; background: #f8fafc;
-      border-radius: 36px; border: 7px solid #1e2d3d;
-      overflow: hidden;
-      box-shadow: 0 0 0 1px #0d1117, 0 20px 50px rgba(0,0,0,0.5);
-    }
-    .phone-notch { background: #111; height: 24px; display: flex; align-items: center; justify-content: center; }
-    .phone-notch::after { content: ''; width: 60px; height: 5px; background: #222; border-radius: 3px; }
-    .phone-status {
-      background: #0d1117; height: 20px;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 10px;
-    }
-    .phone-status span { font-size: 0.55rem; color: #fff; font-family: monospace; }
-    .phone-body { background: #f8fafc; min-height: 340px; overflow: hidden; }
+        .device-container {
+            transform: rotateY(14deg) rotateX(4deg) scale(0.94);
+            transform-style: preserve-3d;
+        }
+        .device-frame {
+            width: 375px; height: 812px;
+            background: #f0f2f5;
+            border-radius: 46px;
+            border: 12px solid #0b0b0f;
+            box-shadow:
+                0 60px 120px rgba(0,0,0,0.75),
+                0 18px 44px rgba(0,0,0,0.5),
+                inset 0 0 0 2px #2a2a33;
+            position: relative;
+            overflow: hidden;
+        }
+        .glare { display: none; }
 
-    /* ── Mockup styles ── */
-    .mock-pad { padding: 12px 10px; }
+        .watermark {
+            position: absolute;
+            z-index: 50;
+            color: rgba(255,255,255,0.4);
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            direction: ltr;
+        }
+        #stage.v .watermark { bottom: 52px; left: 50%; transform: translateX(-50%); font-size: 26px; }
+        #stage.h .watermark { bottom: 34px; left: 50%; transform: translateX(-50%); font-size: 22px; }
 
-    /* Bottom nav bar */
-    .mock-bottom-nav {
-      display: flex; background: #fff;
-      border-top: 1.5px solid #eee;
-    }
-    .mock-nav-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      padding: 6px 2px; font-size: 0.52rem; color: #aaa; gap: 2px;
-    }
-    .mock-nav-item.active { color: var(--green); }
-    .mock-nav-item i { font-size: 0.95rem; }
+        #introCard {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 30px; z-index: 400;
+            opacity: 0; visibility: hidden;
+        }
+        #introCard img { width: 280px; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.4)); margin-bottom: 15px; }
+        #introCard .t0 {
+            color: #7ee2b8; font-weight: 700; letter-spacing: 1px;
+            border: 1px solid rgba(126,226,184,0.35);
+            background: rgba(14,159,110,0.12);
+            border-radius: 40px; padding: 10px 34px;
+        }
+        #introCard .t1 { color: white; font-weight: 800; line-height: 1.5; text-align: center; }
+        #introCard .t1 .mega {
+            background: linear-gradient(100deg, #F5A623, #ffd479, #F5A623);
+            -webkit-background-clip: text; background-clip: text;
+            color: transparent;
+        }
+        #introCard .t2 { color: #9fb6c9; font-weight: 400; text-align: center; }
+        #stage.v #introCard .t0 { font-size: 30px; }
+        #stage.v #introCard .t1 { font-size: 72px; max-width: 920px; }
+        #stage.v #introCard .t2 { font-size: 32px; }
+        #stage.h #introCard .t0 { font-size: 26px; }
+        #stage.h #introCard .t1 { font-size: 62px; max-width: 1100px; }
+        #stage.h #introCard .t2 { font-size: 28px; }
 
-    /* Store list */
-    .store-card {
-      background: #fff; border-radius: 12px; padding: 10px;
-      margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      border: 1.5px solid #f0f0f0;
-    }
-    .store-icon { width: 38px; height: 38px; background: #f5f5f5; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
-    .store-name { font-size: 0.7rem; font-weight: 800; color: #222; }
-    .store-delivery { font-size: 0.58rem; color: var(--green); font-weight: 600; }
-    .store-btn { background: var(--green); color: #fff; border: none; border-radius: 7px; padding: 5px 8px; font-size: 0.6rem; font-weight: 700; margin-right: auto; white-space: nowrap; }
+        #cursor {
+            width: 38px; height: 38px;
+            background: rgba(255,255,255,0.35);
+            border: 2px solid rgba(255,255,255,0.85);
+            border-radius: 50%;
+            position: absolute; top: 0; left: 0;
+            z-index: 9999;
+            box-shadow: 0 2px 14px rgba(0,0,0,0.35);
+            pointer-events: none;
+            opacity: 0;
+            transition: width 0.1s, height 0.1s;
+        }
+        #cursor.moving {
+            width: 32px; height: 44px;
+            border-radius: 50% 50% 40% 40%;
+        }
+        #cursor::after {
+            content: ''; position: absolute; inset: 11px;
+            background: white; border-radius: 50%;
+        }
+        .ripple {
+            position: absolute;
+            width: 38px; height: 38px;
+            background: transparent;
+            border: 3px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            transform: scale(0);
+            pointer-events: none;
+            z-index: 9998;
+        }
 
-    /* Search bar */
-    .mock-search { background: #f5f5f5; border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 7px 10px; font-size: 0.65rem; color: #aaa; display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
+        .screen {
+            position: absolute; inset: 0;
+            display: none;
+            flex-direction: column;
+            background: #f8fafc;
+            font-family: 'Cairo', sans-serif;
+        }
+        .screen.active { display: flex; }
 
-    /* Share link */
-    .mock-share-textarea { background: #f5f5f5; border: 1.5px solid #e0e0e0; border-radius: 9px; padding: 8px 10px; font-size: 0.62rem; color: #aaa; min-height: 55px; margin-bottom: 7px; width: 100%; }
-    .mock-share-btn { background: linear-gradient(135deg,#25D366,#128C7E); color: #fff; border: none; border-radius: 9px; padding: 9px; width: 100%; font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .status-bar {
+            height: 42px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 24px;
+            font-size: 13px; font-weight: 700;
+            position: absolute; top: 0; width: 100%;
+            z-index: 100;
+            color: #fff;
+        }
+        .notch {
+            position: absolute; top: 10px; left: 50%;
+            transform: translateX(-50%);
+            width: 118px; height: 26px;
+            background: #0b0b0f;
+            border-radius: 20px;
+        }
 
-    /* Status bar */
-    .status-track { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 8px 0; }
-    .status-step { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 40px; }
-    .status-step .s-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; border: 2px solid #e0e0e0; background: #f5f5f5; color: #aaa; }
-    .status-step.done .s-icon { background: var(--green); border-color: var(--green); color: #fff; }
-    .status-step.active .s-icon { background: var(--gold); border-color: var(--gold); color: #fff; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.4);} 50%{box-shadow:0 0 0 6px rgba(245,166,35,0);} }
-    .status-step .s-label { font-size: 0.45rem; color: #aaa; margin-top: 3px; text-align: center; }
-    .status-step.done .s-label, .status-step.active .s-label { color: #333; }
-    .status-line { flex: 1; height: 2px; background: #e0e0e0; min-width: 8px; }
-    .status-line.done { background: var(--green); }
+        /* ─── قائمة المتاجر ─── */
+        .merchants-screen { background:#f8fafc; }
+        .app-header { background:linear-gradient(135deg,#04553A,#077a54);padding:52px 14px 14px;color:white; }
+        .header-title { font-weight:800;font-size:16px;margin-bottom:8px; }
+        .search-bar { background:rgba(255,255,255,0.2);border-radius:10px;padding:9px 12px;font-size:13px;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:6px; }
+        .app-body { padding:12px; }
+        .section-title { font-weight:800;font-size:14px;color:#0f172a;margin-bottom:10px; }
+        .merchant-list { display:flex;flex-direction:column;gap:10px; }
+        .merchant-item { background:white;border-radius:14px;display:flex;align-items:center;gap:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+        .merchant-icon { width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0; }
+        .merchant-name { font-weight:800;font-size:13px;color:#0f172a; }
+        .merchant-desc { font-size:11px;color:#64748b;margin-top:2px; }
+        .merchant-arrow { margin-right:auto;color:#94a3b8;font-size:16px; }
 
-    /* Delivery complete */
-    .mock-complete { padding: 16px 12px; background: #fff; text-align: center; }
-    .mock-complete .tick { width: 56px; height: 56px; background: linear-gradient(135deg,var(--green),var(--green-light,#0a7a54)); border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; }
-    .mock-complete h4 { font-size: 0.78rem; font-weight: 800; color: #222; margin-bottom: 4px; }
-    .mock-complete p { font-size: 0.62rem; color: #777; margin-bottom: 10px; }
-    .mock-stars-big { display: flex; justify-content: center; gap: 4px; margin-bottom: 10px; }
-    .mock-stars-big i { font-size: 1.2rem; color: #fbbc04; }
-    .mock-rate-btn { background: var(--green); color: #fff; border: none; border-radius: 9px; padding: 8px; width: 100%; font-size: 0.7rem; font-weight: 700; }
+        /* ─── المتجر ─── */
+        .browser-bar {
+            background: #ffffff;
+            padding: 48px 12px 8px;
+            border-bottom: 1px solid #e8ecef;
+            display: flex; align-items: center; gap: 8px;
+            z-index: 20;
+        }
+        .url-pill {
+            flex: 1;
+            background: #f1f3f4;
+            border-radius: 22px;
+            padding: 8px 14px;
+            display: flex; align-items: center; gap: 7px;
+            font-size: 12.5px; color: #202124;
+            direction: ltr;
+        }
+        .url-pill i { color: #5f6368; font-size: 12px; }
+        .url-pill .u-domain { font-weight: 700; }
+        .url-pill .u-path { color: #5f6368; }
+        .browser-bar > i { color: #5f6368; font-size: 17px; }
+        .browser-progress {
+            position: absolute; bottom: -2px; left: 0; height: 3px; width: 0%;
+            background: #1a73e8; z-index: 30;
+        }
+        .store-screen { background: #f8fafc; }
+        .shop-hero {
+            position: relative; height: 158px;
+            background: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80') center/cover;
+        }
+        .shop-info-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(to top, rgba(2,10,8,0.92), transparent);
+            padding: 34px 15px 13px;
+            color: white;
+        }
+        .open-badge {
+            background: rgba(34,197,94,0.22); border: 1px solid rgba(34,197,94,0.45);
+            color: #86efac; padding: 2px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700;
+        }
+        .cat-tabs { display: flex; gap: 9px; padding: 13px 14px; background: white; border-bottom: 1px solid #eef1f4; }
+        .cat-tab { padding: 6px 16px; border-radius: 20px; font-size: 12.5px; font-weight: 700; background: #f1f5f9; color: #475569; }
+        .cat-tab.active { background: #04553A; color: white; }
+        .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 13px 14px; }
+        .product-card {
+            background: white; border-radius: 14px; border: 1px solid #eaeef2;
+            overflow: hidden; opacity: 0; transform: translateY(24px);
+            box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+        }
+        .product-card img { width: 100%; height: 118px; object-fit: cover; }
+        .product-card-body { padding: 10px; }
+        .product-card-title { font-size: 12.5px; font-weight: 700; color: #0f172a; }
+        .product-card-price { font-size: 13.5px; font-weight: 800; color: #04553A; margin: 7px 0; }
+        .add-to-cart-btn {
+            background: #04553A; color: white; border: none;
+            width: 100%; padding: 7px; border-radius: 9px;
+            font-weight: 700; font-size: 11.5px; font-family: inherit;
+        }
+        .cart-fab {
+            position: absolute; bottom: 18px; left: 16px; right: 16px;
+            background: #04553A; color: white; border-radius: 16px;
+            padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 12px 28px rgba(4,85,58,0.42);
+            transform: translateY(160px);
+            z-index: 150;
+        }
 
-    /* Section title */
-    .mock-section-title { font-size: 0.72rem; font-weight: 800; color: #333; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        /* ─── سلة المشتريات ─── */
+        .cart-screen { background:white; }
+        .cart-header { background:linear-gradient(135deg,#04553A,#077a54);color:white;padding:52px 14px 14px;font-weight:800;font-size:15px; }
+        .cart-item { display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f1f5f9; }
+        .cart-img { width:48px;height:48px;border-radius:10px;object-fit:cover;background:#f1f5f9; }
+        .cart-item-name { font-weight:700;font-size:13px;color:#0f172a; }
+        .cart-item-price { font-size:13px;color:#04553A;font-weight:800;margin-top:2px; }
+        .qty-control { margin-right:auto;display:flex;align-items:center;gap:6px;background:#f1f5f9;border-radius:8px;padding:4px 8px; }
+        .qty-btn { background:none;border:none;font-size:16px;font-weight:900;color:#04553A;cursor:pointer; }
+        .qty-num { font-weight:800;font-size:13px; }
+        .cart-total { padding:12px 14px;display:flex;justify-content:space-between;font-weight:800;border-top:2px solid #f1f5f9;font-size:14px; }
+        .checkout-btn { margin:8px 14px;background:linear-gradient(135deg,#04553A,#077a54);color:white;border:none;width:calc(100% - 28px);padding:13px;border-radius:12px;font-weight:800;font-size:14px;font-family:inherit; }
 
-    /* Home screen hero strip */
-    .mock-home-hero { background: linear-gradient(135deg,var(--green),#0a7a54); padding: 14px 12px; color: #fff; }
-    .mock-home-hero .greeting { font-size: 0.65rem; opacity: 0.8; }
-    .mock-home-hero .name { font-size: 0.85rem; font-weight: 800; }
-    .mock-home-hero .subtext { font-size: 0.6rem; opacity: 0.75; margin-top: 2px; }
+        /* ─── تتبع الطلب ─── */
+        .tracking-screen { background:#f8fafc; }
+        .track-map { height:220px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);position:relative;overflow:hidden; }
+        .map-grid { position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,0.3) 1px,transparent 1px);background-size:40px 40px; }
+        .captain-pin { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;animation:pinBounce 1.5s ease-in-out infinite; }
+        .captain-pin-circle { width:36px;height:36px;background:#04553A;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25);display:flex;align-items:center;justify-content:center;color:white;font-size:16px; }
+        @keyframes pinBounce { 0%,100%{transform:translate(-50%,-50%)} 50%{transform:translate(-50%,-58%)} }
+        .track-info { padding:14px;background:white; }
+        .captain-row { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+        .captain-avatar { width:44px;height:44px;background:#04553A;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:800; }
+        .captain-name { font-weight:800;font-size:14px;color:#0f172a; }
+        .captain-status { font-size:11px;color:#16a34a;font-weight:700; }
+        .eta-pill { background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:12px;color:#166534;font-weight:700;margin-right:auto; }
 
-    @media(max-width:768px) {
-      .step-card { flex-direction: column-reverse; }
-      .step-info { border-left: none; border-top: 1px solid var(--border); }
-      .step-mockup { width: 100%; padding: 24px 16px; }
-    }
+        /* ════════════ الخاتمة ════════════ */
+        #endCard {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 36px;
+            z-index: 500;
+            opacity: 0; visibility: hidden;
+        }
+        .end-logo-card {
+    background: linear-gradient(135deg, #04553A, #077a54);
+    border-radius: 34px;
+    padding: 54px 74px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.55);
+}
+        #stage.v .end-logo-card img { width: 600px; }
+        #stage.h .end-logo-card img { width: 520px; }
+        .end-line { color: white; font-weight: 800; text-align: center; line-height: 1.7; }
+        .end-sub { color: #9fb6c9; font-weight: 400; text-align: center; margin-top: -14px; }
+        #stage.v .end-line { font-size: 52px; }
+        #stage.v .end-sub { font-size: 30px; }
+        #stage.h .end-line { font-size: 44px; }
+        #stage.h .end-sub { font-size: 26px; }
+        .end-domain {
+            color: #F5A623; font-weight: 800; letter-spacing: 2px;
+            direction: ltr;
+        }
+        #stage.v .end-domain { font-size: 42px; }
+        #stage.h .end-domain { font-size: 34px; }
 
-    .tutorial-footer {
-      background: var(--bg2); border-top: 1px solid var(--border);
-      padding: 40px 24px; text-align: center;
-    }
-    .tutorial-footer h3 { font-size: 1.2rem; font-weight: 800; color: var(--white); margin-bottom: 8px; }
-    .tutorial-footer p { color: var(--muted); font-size: 0.88rem; margin-bottom: 20px; }
-    .footer-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-    .footer-nav a {
-      display: flex; align-items: center; gap: 6px;
-      background: var(--bg3); border: 1px solid var(--border);
-      color: var(--text); text-decoration: none;
-      border-radius: 10px; padding: 10px 18px; font-size: 0.82rem; font-weight: 600;
-      transition: all 0.2s;
-    }
-    .footer-nav a:hover { border-color: var(--gold); color: var(--gold); }
-    .copy { margin-top: 30px; font-size: 0.72rem; color: var(--muted); }
-  </style>
+        #controls {
+            position: absolute; inset: 0;
+            background: rgba(4,7,15,0.95);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 24px;
+            z-index: 2000;
+            color: white; text-align: center;
+        }
+        #controls h1 { font-size: 26px; font-weight: 800; margin: 0; }
+        #controls .hint { color: #7d93a8; font-size: 14px; max-width: 460px; line-height: 1.9; margin: 0; }
+        .mode-switch { display: flex; gap: 10px; }
+        .mode-btn {
+            background: transparent; color: #cbd5e1;
+            border: 2px solid #26333f; border-radius: 13px;
+            padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 14px;
+            cursor: pointer;
+        }
+        .mode-btn.active { background: #04553A; border-color: #04553A; color: white; }
+        #btnSound {
+            background: transparent; color: #64748b;
+            border: 2px solid #26333f; border-radius: 13px;
+            padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 13px;
+            cursor: pointer;
+        }
+        #btnSound.sound-on { color: #F5A623; border-color: rgba(245,166,35,0.5); }
+        #btnPlay {
+            background: linear-gradient(135deg, #077a54, #04553A);
+            color: white; border: none;
+            width: 92px; height: 92px; border-radius: 50%;
+            font-size: 36px; cursor: pointer;
+            box-shadow: 0 14px 44px rgba(7,122,84,0.45);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s;
+        }
+        #btnPlay:hover { transform: scale(1.07); }
+        #btnPlay:disabled { opacity: 0.5; cursor: wait; }
+        #btnReplay {
+            background: transparent; color: #7d93a8;
+            border: 2px solid #26333f; border-radius: 13px;
+            padding: 9px 28px; font-family: inherit; font-weight: 700; font-size: 14px;
+            cursor: pointer;
+            position: fixed; bottom: 14px; left: 14px;
+            z-index: 3000;
+            opacity: 0; pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            #controls h1 { font-size: 22px; }
+            #controls .hint { font-size: 13px; padding: 0 20px; }
+            .mode-switch { flex-direction: column; width: 85%; max-width: 300px; gap: 12px; }
+            .mode-btn { width: 100%; padding: 14px; font-size: 15px; }
+            #btnSound { padding: 14px; font-size: 15px; margin-top: 10px; width: 85%; max-width: 300px; }
+            #btnPlay { width: 84px; height: 84px; font-size: 32px; margin-top: 20px; }
+        }
+
+        #countdown {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1500;
+            color: white; font-size: 200px; font-weight: 800;
+            pointer-events: none;
+        }
+
+        #rotateHint {
+            display: none;
+            align-items: center; gap: 10px;
+            background: rgba(245,166,35,0.12);
+            border: 1px solid rgba(245,166,35,0.45);
+            color: #F5A623;
+            border-radius: 13px;
+            padding: 11px 18px;
+            font-size: 13.5px; font-weight: 700;
+            max-width: 420px;
+        }
+        #rotateHint.show { display: flex; }
+        #rotateHint i {
+            font-size: 20px; flex: none;
+            animation: rotDevice 2.2s ease-in-out infinite;
+        }
+        @keyframes rotDevice {
+            0%, 18%   { transform: rotate(0deg); }
+            48%, 72%  { transform: rotate(-90deg); }
+            100%      { transform: rotate(0deg); }
+        }
+
+        @media (max-width: 640px) {
+            #controls { padding: 0 20px; gap: 18px; }
+            #controls h1 { font-size: 20px; }
+            #controls .hint { font-size: 12px; max-width: 100%; }
+            .mode-btn { padding: 8px 14px; font-size: 12px; }
+            #btnPlay { width: 76px; height: 76px; font-size: 30px; }
+            #rotateHint { font-size: 12px; padding: 9px 14px; }
+        }
+    </style>
 </head>
 <body>
 
-<div id="progress-bar"></div>
+<div id="stageWrapper">
+    <div id="stage" class="v">
+        <div class="glow"></div>
+        <div class="glow2"></div>
+        <div class="grid-lines"></div>
+        <div class="vignette"></div>
 
-<!-- ─── Header ─── -->
-<header class="site-header">
-  <div class="logo-wrap">
-    <img src="logo-mark-white.png" alt="وجيز" />
-  </div>
-  <div>
-    <h1>وجيز</h1>
-    <span>خدمة التوصيل السريع</span>
-  </div>
-  <div class="badge-tutorial"><i class="bi bi-shop"></i> المتاجر</div>
-</header>
+        <svg id="waveform" viewBox="0 0 1080 100" preserveAspectRatio="none"
+            style="position:absolute;bottom:80px;left:0;right:0;width:100%;height:120px;z-index:5;opacity:0;pointer-events:none;">
+            <polyline id="waveLine" points="0,50" style="fill:none;stroke:rgba(14,159,110,0.25);stroke-width:3;stroke-linecap:round;"/>
+        </svg>
 
-<!-- ─── Hero ─── -->
-<section class="hero">
-  <div class="hero-icon">🏪</div>
-  <h2>كيف تطلب <span>من المتاجر؟</span></h2>
-  <p>اطلب من متاجرك المفضلة وسيوصّل لك الكابتن طلبك مباشرةً إلى باب بيتك</p>
-  <div class="hero-pills">
-    <div class="pill"><i class="bi bi-bag-check"></i> 5 خطوات سريعة</div>
-    <div class="pill"><i class="bi bi-shop"></i> متاجر متنوعة</div>
-    <div class="pill"><i class="bi bi-geo-alt"></i> توصيل لأي مكان</div>
-    <div class="pill"><i class="bi bi-cash-coin"></i> دفع عند الاستلام</div>
-  </div>
-</section>
+        <div id="flashLayer" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:300;"></div>
 
-<!-- ─── Steps ─── -->
-<div class="steps-container">
+        <div id="cinemaProgress" style="position:absolute;bottom:0;left:0;right:0;height:4px;z-index:200;opacity:0;">
+            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,#04553A,#0e9f6e,#F5A623);box-shadow:0 0 12px rgba(245,166,35,0.7);border-radius:0 2px 2px 0;transition:none;"></div>
+            <div id="cinemaPulse" style="position:absolute;right:0;top:-3px;width:10px;height:10px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;display:none;"></div>
+        </div>
 
-  <!-- STEP 1 -->
-  <div class="step-card">
-    <div class="step-info">
-      <div class="step-tag"><i class="bi bi-house"></i> الخطوة الأولى</div>
-      <div class="step-number">1</div>
-      <h3>افتح التطبيق وادخل على المتاجر</h3>
-      <p>بعد تسجيل الدخول، ستجد في الشاشة الرئيسية شريط التنقل السفلي. اضغط على "المتاجر" للوصول لقائمة المتاجر المتاحة في منطقتك.</p>
-    </div>
-    <div class="step-mockup">
-      <div class="phone">
-        <div class="phone-notch"></div>
-        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
-        <div class="phone-body">
-          <div class="mock-home-hero">
-            <div class="greeting">مرحباً 👋</div>
-            <div class="name">أحمد محمد</div>
-            <div class="subtext">تريد توصيل؟ نحن هنا!</div>
-          </div>
-          <div style="padding:10px 10px 0;">
-            <div class="mock-search"><i class="bi bi-search" style="color:#ccc;font-size:0.8rem"></i>ابحث عن متجر أو منتج...</div>
-            <div style="font-size:0.65rem;font-weight:700;color:#333;margin-bottom:6px;">الخدمات</div>
-            <div style="display:flex;gap:6px;margin-bottom:10px;">
-              <div style="flex:1;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:8px 5px;text-align:center;">
-                <div style="font-size:1rem;">🚀</div>
-                <div style="font-size:0.58rem;color:#166534;font-weight:700;margin-top:2px;">طلب عادي</div>
-              </div>
-              <div style="flex:1;background:rgba(245,166,35,0.1);border:1.5px solid var(--gold);border-radius:10px;padding:8px 5px;text-align:center;">
-                <div style="font-size:1rem;">🏪</div>
-                <div style="font-size:0.58rem;color:#b45309;font-weight:700;margin-top:2px;">المتاجر</div>
-              </div>
+        <!-- بطاقة العنوان الافتتاحية -->
+        <div id="introCard">
+            <img src="logo-white.png" alt="وجيز">
+            <div class="t0">وجيز تشرح لك</div>
+            <div class="t1">كيف تطلب من <span class="mega">المتاجر</span></div>
+            <div class="t2">تصفح — أضف للسلة — اطلب توصيل</div>
+        </div>
+
+        <!-- النصوص التسويقية -->
+        <div class="text-band">
+            <div class="mtext" id="mt1">
+                <div class="accent"></div>
+                <div class="headline">اختر <span class="hl">متجرك المفضل</span> من القائمة</div>
+                <div class="subline">مطاعم، ملابس، عصائر وأكثر — كلها في مكان واحد</div>
             </div>
+            <div class="mtext" id="mt2">
+                <div class="accent"></div>
+                <div class="headline">تصفح المنتجات و<span class="hl">أضف ما تريد</span> للسلة</div>
+                <div class="subline">تجربة تسوق سلسة وسريعة من هاتفك</div>
+            </div>
+            <div class="mtext" id="mt3">
+                <div class="accent"></div>
+                <div class="headline">راجع سلتك وأكمل <span class="hl">الطلب بثقة</span></div>
+                <div class="subline">الدفع عند الاستلام — بدون بطاقة بنكية</div>
+            </div>
+            <div class="mtext" id="mt4">
+                <div class="accent"></div>
+                <div class="headline">كابتن وجيز <span class="hl">يوصلك</span> فوراً</div>
+                <div class="subline">تتبع مندوبك مباشرة على الخريطة حتى يصلك</div>
+            </div>
+        </div>
+
+        <!-- الهاتف -->
+        <div class="phone-slot" id="phoneSlot">
+            <div class="device-container" id="deviceContainer">
+                <div class="device-frame" id="deviceFrame">
+                    <div class="glare" id="glareOverlay"></div>
+                    <div class="status-bar" id="statusBar">
+                        <span>9:41</span>
+                        <div class="notch"></div>
+                        <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                    </div>
+
+                    <!-- مشهد 0: قائمة المتاجر -->
+                    <div id="scene0" class="screen active merchants-screen">
+                        <div class="bg-light min-vh-100 pt-5">
+  <div class="bg-success text-white p-3 pt-5 fixed-top" style="background: linear-gradient(135deg,#04553A,#077a54) !important;">
+    <h5 class="fw-bold mb-2">المتاجر المتاحة</h5>
+    <div class="input-group">
+      <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+      <input type="text" class="form-control border-0 bg-white" placeholder="ابحث عن متجر..." readonly>
+    </div>
+  </div>
+  <div class="p-3 mt-5 pt-4">
+    <h6 class="fw-bold text-dark mb-3">قريب منك</h6>
+    
+    <div class="card border-0 shadow-sm rounded-4 mb-3 position-relative overflow-hidden" id="merchant1" style="background:white;">
+      <div class="row g-0 align-items-center">
+        <div class="col-3 p-2">
+          <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200" class="img-fluid rounded-3 object-fit-cover" style="height: 70px; width: 100%;">
+        </div>
+        <div class="col-9 p-2 ps-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <h6 class="fw-bold mb-1 text-dark">مطعم مشاوي العمدة</h6>
+            <span class="badge bg-success-subtle text-success rounded-pill px-2">مفتوح</span>
           </div>
-          <div class="mock-bottom-nav">
-            <div class="mock-nav-item active"><i class="bi bi-house-fill"></i>الرئيسية</div>
-            <div class="mock-nav-item"><i class="bi bi-shop"></i>المتاجر</div>
-            <div class="mock-nav-item"><i class="bi bi-clock-history"></i>طلباتي</div>
-            <div class="mock-nav-item"><i class="bi bi-person"></i>حسابي</div>
-          </div>
+          <p class="text-muted small mb-0"><i class="bi bi-star-fill text-warning me-1"></i>4.8 (120 تقييم) • توصيل: 1500 ج.س</p>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- STEP 2 -->
-  <div class="step-card">
-    <div class="step-info">
-      <div class="step-tag"><i class="bi bi-shop"></i> الخطوة الثانية</div>
-      <div class="step-number">2</div>
-      <h3>اختر المتجر المناسب</h3>
-      <p>تصفّح المتاجر المتاحة في منطقتك. كل بطاقة تعرض اسم المتجر ورسوم التوصيل. اضغط "اطلب منه" لاختيار المتجر.</p>
-    </div>
-    <div class="step-mockup">
-      <div class="phone">
-        <div class="phone-notch"></div>
-        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
-        <div class="phone-body">
-          <div style="background:var(--green);padding:10px 12px;color:#fff;">
-            <div style="font-size:0.75rem;font-weight:800;">🏪 المتاجر</div>
-            <div style="font-size:0.58rem;opacity:0.8;">مرتّبة حسب القرب منك</div>
+    <div class="card border-0 shadow-sm rounded-4 mb-3 position-relative overflow-hidden" id="merchant2" style="background:white;">
+      <div class="row g-0 align-items-center">
+        <div class="col-3 p-2">
+          <img src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e08?w=200" class="img-fluid rounded-3 object-fit-cover" style="height: 70px; width: 100%;">
+        </div>
+        <div class="col-9 p-2 ps-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <h6 class="fw-bold mb-1 text-dark">بوتيك لمسة</h6>
+            <span class="badge bg-success-subtle text-success rounded-pill px-2">مفتوح</span>
           </div>
-          <div style="padding:10px;">
-            <div class="mock-search"><i class="bi bi-search" style="color:#ccc;font-size:0.8rem"></i>ابحث عن متجر...</div>
-            <div class="store-card">
-              <div class="store-icon">🏪</div>
-              <div>
-                <div class="store-name">متجر الأمل</div>
-                <div class="store-delivery">🛵 توصيل: 500 ج.س</div>
-                <div style="font-size:0.55rem;color:#aaa;">⭐ 4.7 · مفتوح الآن</div>
-              </div>
-              <button class="store-btn">اطلب منه</button>
-            </div>
-            <div class="store-card">
-              <div class="store-icon">🍽️</div>
-              <div>
-                <div class="store-name">مطبخ السودان</div>
-                <div class="store-delivery">🛵 توصيل: 300 ج.س</div>
-                <div style="font-size:0.55rem;color:#aaa;">⭐ 4.9 · مفتوح الآن</div>
-              </div>
-              <button class="store-btn">اطلب منه</button>
-            </div>
-            <div class="store-card" style="opacity:0.6;">
-              <div class="store-icon">💊</div>
-              <div>
-                <div class="store-name">صيدلية النور</div>
-                <div class="store-delivery">🛵 توصيل: 400 ج.س</div>
-                <div style="font-size:0.55rem;color:#e53e3e;">مغلق حالياً</div>
-              </div>
-              <button class="store-btn" style="background:#ccc;">مغلق</button>
-            </div>
-          </div>
+          <p class="text-muted small mb-0"><i class="bi bi-star-fill text-warning me-1"></i>4.5 (85 تقييم) • توصيل: 1000 ج.س</p>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- STEP 3 -->
-  <div class="step-card">
-    <div class="step-info">
-      <div class="step-tag"><i class="bi bi-share"></i> الخطوة الثالثة</div>
-      <div class="step-number">3</div>
-      <h3>أرسل تفاصيل طلبك للكابتن</h3>
-      <p>بعد اختيار المتجر، اكتب تفاصيل ما تريد شراءه وأرسل الرابط مع المعلومات للكابتن. يمكنك إرفاق رابط المنتج أو صورته.</p>
+  </div>
+</div>
+                                    <i class="bi bi-chevron-left merchant-arrow"></i>
+                                </div>
+                                <div class="merchant-item" id="merchant2">
+                                    <div class="merchant-icon" style="background:#ede9fe">👗</div>
+                                    <div><div class="merchant-name">بوتيك لمسة</div><div class="merchant-desc">ملابس • 15 منتج</div></div>
+                                    <i class="bi bi-chevron-left merchant-arrow"></i>
+                                </div>
+                                <div class="merchant-item" id="merchant3">
+                                    <div class="merchant-icon" style="background:#dcfce7">🥗</div>
+                                    <div><div class="merchant-name">صحة وعافية</div><div class="merchant-desc">عصائر طازجة • مفتوح</div></div>
+                                    <i class="bi bi-chevron-left merchant-arrow"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- مشهد 1: صفحة المتجر -->
+                    <div id="scene1" class="screen store-screen">
+                        <div class="browser-bar">
+                            <div class="url-pill">
+                                <i class="bi bi-lock-fill"></i>
+                                <span><span class="u-domain">wajeezsd.com</span><span class="u-path">/s/boutique</span></span>
+                            </div>
+                            <i class="bi bi-arrow-clockwise"></i>
+                            <i class="bi bi-three-dots-vertical"></i>
+                            <div class="browser-progress" id="browserProgress"></div>
+                        </div>
+                        <div class="shop-hero">
+                            <div class="shop-info-overlay">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="open-badge"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-left:4px;"></span>مفتوح</span>
+                                </div>
+                                <h2 class="fw-bold mb-0" style="font-size:1.35rem;">بوتيك لمسة</h2>
+                                <div class="text-white-50" style="font-size:12px;">الخرطوم — العمارات</div>
+                            </div>
+                        </div>
+                        <div class="cat-tabs">
+                            <div class="cat-tab active">الكل</div>
+                            <div class="cat-tab">رجالي</div>
+                            <div class="cat-tab">نسائي</div>
+                            <div class="cat-tab">أحذية</div>
+                        </div>
+                        <div class="product-grid">
+                            <div class="product-card" id="product1">
+                                <img src="https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=500&q=80" alt="">
+                                <div class="product-card-body">
+                                    <div class="product-card-title">جاكيت جينز كلاسيك</div>
+                                    <div class="product-card-price">25,000 ج.س</div>
+                                    <button class="add-to-cart-btn" id="btnAddToCart2">
+                                        <i class="bi bi-cart-plus"></i> أضف للسلة
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="product-card" id="product2">
+                                <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=80" alt="">
+                                <div class="product-card-body">
+                                    <div class="product-card-title">تيشيرت أساسي أبيض</div>
+                                    <div class="product-card-price">12,000 ج.س</div>
+                                    <button class="add-to-cart-btn">
+                                        <i class="bi bi-cart-plus"></i> أضف للسلة
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="product-card" id="product3">
+                                <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=500&q=80" alt="">
+                                <div class="product-card-body">
+                                    <div class="product-card-title">سنيكرز يومي أبيض</div>
+                                    <div class="product-card-price">30,000 ج.س</div>
+                                    <button class="add-to-cart-btn">
+                                        <i class="bi bi-cart-plus"></i> أضف للسلة
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="product-card" id="product4">
+                                <img src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=500&q=80" alt="">
+                                <div class="product-card-body">
+                                    <div class="product-card-title">قميص كاجوال</div>
+                                    <div class="product-card-price">18,000 ج.س</div>
+                                    <button class="add-to-cart-btn">
+                                        <i class="bi bi-cart-plus"></i> أضف للسلة
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cart-fab" id="floatingCart2">
+                            <div>
+                                <div class="fw-bold" style="font-size:13.5px;"><span style="background:white;color:#04553A;border-radius:50%;padding:2px 8px;margin-left:6px;">1</span> عناصر</div>
+                                <div style="font-size:15.5px;font-weight:800;margin-top:2px;">25,000 ج.س</div>
+                            </div>
+                            <div style="font-weight:800;" id="btnViewCart2">
+                                عرض السلة <i class="bi bi-arrow-left-short fs-4" style="margin-right:-6px;vertical-align:middle;"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- مشهد 2: سلة المشتريات -->
+                    <div id="scene2" class="screen cart-screen">
+                        <div class="cart-header">🛒 سلة المشتريات</div>
+                        <div class="cart-item">
+                            <img class="cart-img" src="https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=150&q=80" alt="">
+                            <div>
+                                <div class="cart-item-name">جاكيت جينز كلاسيك</div>
+                                <div class="cart-item-price">25,000 ج.س</div>
+                            </div>
+                            <div class="qty-control">
+                                <button class="qty-btn">−</button>
+                                <span class="qty-num">1</span>
+                                <button class="qty-btn">+</button>
+                            </div>
+                        </div>
+                        <div class="cart-total">
+                            <span>الإجمالي</span>
+                            <span style="color:#04553A;">25,000 ج.س</span>
+                        </div>
+                        <button class="checkout-btn" id="btnShopCheckout">إتمام الطلب والدفع عند الاستلام</button>
+                    </div>
+
+                    <!-- مشهد 3: تتبع الطلب -->
+                    <div id="scene3" class="screen tracking-screen">
+                        <div class="bg-light min-vh-100 d-flex flex-column">
+  <div class="flex-grow-1 position-relative" style="background: #e2e8f0; overflow:hidden;">
+    <div style="position:absolute; inset:0; background: url('https://w7.pngwing.com/pngs/307/754/png-transparent-map-google-maps-location-nav-app-navigation-map-thumbnail.png') center/cover; opacity: 0.5;"></div>
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); animation:pinBounce 1s infinite alternate;">
+      <i class="bi bi-geo-alt-fill text-danger" style="font-size: 40px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));"></i>
     </div>
-    <div class="step-mockup">
-      <div class="phone">
-        <div class="phone-notch"></div>
-        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
-        <div class="phone-body">
-          <div style="padding:12px 10px;background:#fff;">
-            <div style="font-size:0.72rem;font-weight:800;color:#333;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
-              <span>🏪</span> متجر الأمل – تفاصيل طلبك
-            </div>
-            <textarea class="mock-share-textarea" readonly placeholder="اكتب تفاصيل طلبك هنا:&#10;- 2 كيلو أرز&#10;- زيت نباتي (لتر)&#10;- شاي أسود..."></textarea>
-            <div style="font-size:0.62rem;color:#aaa;margin-bottom:7px;display:flex;align-items:center;gap:4px;">
-              <i class="bi bi-link-45deg" style="color:var(--green)"></i>
-              wajeez.sd/shop/alamal/order
-            </div>
-            <button class="mock-share-btn"><i class="bi bi-whatsapp"></i> شارك الرابط مع الكابتن</button>
-          </div>
-        </div>
+  </div>
+  <div class="bg-white rounded-top-4 shadow-lg p-4 position-relative" style="margin-top: -20px; z-index: 10;">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+      <div>
+        <h5 class="fw-bold mb-1">محمد إبراهيم</h5>
+        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2"><i class="bi bi-bicycle me-1"></i> في الطريق إليك</span>
+      </div>
+      <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 55px; height: 55px; font-size: 1.5rem;">م</div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-3">
+      <div class="text-center">
+        <small class="text-muted d-block">الوقت المتبقي</small>
+        <span class="fw-bold text-dark fs-5">~8 دقائق</span>
+      </div>
+      <div class="text-center border-start ps-3">
+        <small class="text-muted d-block">رقم الطلب</small>
+        <span class="fw-bold text-dark fs-5">#5217</span>
       </div>
     </div>
   </div>
+</div>
+                    </div>
 
-  <!-- STEP 4 -->
-  <div class="step-card">
-    <div class="step-info">
-      <div class="step-tag"><i class="bi bi-bicycle"></i> الخطوة الرابعة</div>
-      <div class="step-number">4</div>
-      <h3>الكابتن يستلم طلبك من المتجر</h3>
-      <p>بعد تأكيد الطلب، يتجه الكابتن للمتجر ويستلم طلبك ثم يتوجّه إليك مباشرةً. تابع حالة طلبك لحظة بلحظة.</p>
-    </div>
-    <div class="step-mockup">
-      <div class="phone">
-        <div class="phone-notch"></div>
-        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
-        <div class="phone-body">
-          <div style="padding:14px 10px;background:#fff;">
-            <div style="font-size:0.72rem;font-weight:800;color:#333;margin-bottom:12px;text-align:center;">حالة طلبك 📦</div>
-            <div class="status-track">
-              <div class="status-step done">
-                <div class="s-icon">✅</div>
-                <div class="s-label">قُبل</div>
-              </div>
-              <div class="status-line done"></div>
-              <div class="status-step active">
-                <div class="s-icon">🛵</div>
-                <div class="s-label">للمتجر</div>
-              </div>
-              <div class="status-line"></div>
-              <div class="status-step">
-                <div class="s-icon">📦</div>
-                <div class="s-label">استلم</div>
-              </div>
-              <div class="status-line"></div>
-              <div class="status-step">
-                <div class="s-icon">🏠</div>
-                <div class="s-label">إليك</div>
-              </div>
+                    <div id="cursor"></div>
+                    <div id="rippleContainer" style="position:absolute; inset:0; pointer-events:none; z-index:9998;"></div>
+                    <div id="particleContainer" style="position:absolute;inset:0;pointer-events:none;z-index:9990;overflow:hidden;"></div>
+                </div>
             </div>
-            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px 10px;margin-top:10px;font-size:0.62rem;color:#92400e;display:flex;align-items:center;gap:5px;">
-              <i class="bi bi-info-circle"></i>
-              الكابتن في الطريق للمتجر — الوقت المتبقي: ~12 دقيقة
-            </div>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- STEP 5 -->
-  <div class="step-card">
-    <div class="step-info">
-      <div class="step-tag"><i class="bi bi-check-circle"></i> الخطوة الخامسة</div>
-      <div class="step-number">5</div>
-      <h3>استلم طلبك وقيّم الكابتن</h3>
-      <p>لما يوصل الكابتن، استلم طلبك وادفع رسوم التوصيل نقداً. قيّم تجربتك مع الكابتن لمساعدة الآخرين.</p>
-    </div>
-    <div class="step-mockup">
-      <div class="phone">
-        <div class="phone-notch"></div>
-        <div class="phone-status"><span>9:41</span><span>▰▰▰</span></div>
-        <div class="phone-body">
-          <div class="mock-complete">
-            <div style="height:20px;"></div>
-            <div class="tick">✅</div>
-            <h4>تم التوصيل بنجاح! 🎉</h4>
-            <p>قيّم تجربتك مع الكابتن أحمد</p>
-            <div class="mock-stars-big">
-              <i class="bi bi-star-fill"></i>
-              <i class="bi bi-star-fill"></i>
-              <i class="bi bi-star-fill"></i>
-              <i class="bi bi-star-fill"></i>
-              <i class="bi bi-star-fill"></i>
-            </div>
-            <div style="font-size:0.62rem;color:#aaa;margin-bottom:8px;">اضغط على النجوم لتقييم الكابتن</div>
-            <button class="mock-rate-btn">إرسال التقييم</button>
-          </div>
+        <div class="watermark">wajeezsd.com</div>
+
+        <!-- الخاتمة -->
+        <div id="endCard">
+            <div class="end-logo-card"><img src="logo-white.png" alt="وجيز"></div>
+            <div class="end-line">طلبك من متجرك المفضل — في الطريق!</div>
+            <div class="end-sub">تسوّق وتتبع — كل شيء في وجيز</div>
+            <div class="end-domain">wajeezsd.com</div>
         </div>
-      </div>
-    </div>
-  </div>
 
+        <div id="countdown"></div>
+    </div>
 </div>
 
-<!-- ─── Footer ─── -->
-<footer class="tutorial-footer">
-  <h3>استكشف المزيد من الدلائل</h3>
-  <p>تعرّف على كل خدمات وجيز</p>
-  <div class="footer-nav">
-    <a href="tutorial-app-order.html"><i class="bi bi-phone"></i> كيف تطلب من التطبيق؟</a>
-    <a href="tutorial-shop-order.html"><i class="bi bi-shop"></i> كيف تطلب من المتاجر؟</a>
-    <a href="tutorial-merchant-register.html"><i class="bi bi-person-badge"></i> كيف تسجّل كتاجر؟</a>
-  </div>
-  <p class="copy">© 2024 وجيز السودان – جميع الحقوق محفوظة</p>
-</footer>
+<!-- طبقة التحكم -->
+<div id="controls">
+    <h1>كيف تطلب من المتاجر عبر وجيز</h1>
+    <p class="hint">اختر مقاس الفيديو، ابدأ تسجيل الشاشة على منطقة المسرح، ثم اضغط زر التشغيل. عد تنازلي قصير ثم يبدأ العرض، وفي النهاية تثبت شاشة الخاتمة — أوقف التسجيل عندها.</p>
+    <div class="mode-switch">
+        <button class="mode-btn active" data-mode="v">عمودي 9:16 (واتساب وريلز)</button>
+        <button class="mode-btn" data-mode="h">أفقي 16:9 (يوتيوب)</button>
+    </div>
+    <button id="btnSound" class="sound-on"><i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل</button>
+    <div id="rotateHint">
+        <i class="bi bi-phone"></i>
+        <span>للنتيجة الأفضل، دوّر هاتفك للوضع الأفقي قبل التشغيل</span>
+    </div>
+    <button id="btnPlay" title="تشغيل"><i class="bi bi-play-fill"></i></button>
+</div>
+<button id="btnReplay">إعادة التشغيل</button>
 
 <script>
-  window.addEventListener('scroll', () => {
-    const pct = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-    document.getElementById('progress-bar').style.width = pct + '%';
-  });
-  const cards = document.querySelectorAll('.step-card');
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); obs.unobserve(e.target); } });
-  }, { threshold: 0.12 });
-  cards.forEach(c => obs.observe(c));
+    const stage = document.getElementById('stage');
+    const cursor = document.getElementById('cursor');
+    const rippleContainer = document.getElementById('rippleContainer');
+    const deviceFrame = document.getElementById('deviceFrame');
+
+    function viewportSize() {
+        if (window.visualViewport) {
+            return { w: window.visualViewport.width, h: window.visualViewport.height };
+        }
+        return { w: document.documentElement.clientWidth, h: document.documentElement.clientHeight };
+    }
+    function fitStage() {
+        const sw = stage.classList.contains('v') ? 1080 : 1920;
+        const sh = stage.classList.contains('v') ? 1920 : 1080;
+        const { w, h } = viewportSize();
+        stage.style.transform = `scale(${Math.min(w / sw, h / sh)})`;
+    }
+    window.addEventListener('resize', () => { fitStage(); updateRotateHint(); });
+    window.addEventListener('orientationchange', () => setTimeout(() => { fitStage(); updateRotateHint(); }, 250));
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', fitStage);
+    }
+    fitStage();
+
+    function updateRotateHint() {
+        const { w, h } = viewportSize();
+        const needRotate = stage.classList.contains('h') && h > w;
+        document.getElementById('rotateHint').classList.toggle('show', needRotate);
+    }
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            stage.classList.remove('v', 'h');
+            stage.classList.add(btn.dataset.mode);
+            fitStage();
+            updateRotateHint();
+        });
+    });
+
+    document.querySelectorAll('.headline').forEach(el => {
+        const parts = [];
+        el.childNodes.forEach(node => {
+            if (node.nodeType === 3) {
+                node.textContent.split(/\s+/).filter(Boolean).forEach(w => parts.push(`<span class="w">${w}</span>`));
+            } else if (node.nodeType === 1) {
+                node.textContent.split(/\s+/).filter(Boolean).forEach(w =>
+                    parts.push(`<span class="w ${node.className}">${w}</span>`));
+            }
+        });
+        el.innerHTML = parts.join(' ');
+    });
+
+    const IMAGES = [
+        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=500&q=80',
+        'https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=150&q=80',
+        'logo-white.png',
+        'logo-white.png'
+    ];
+    function preloadImages() {
+        return Promise.all(IMAGES.map(src => new Promise(resolve => {
+            const img = new Image();
+            img.onload = img.onerror = resolve;
+            img.src = src;
+            setTimeout(resolve, 6000);
+        })));
+    }
+
+    const sfx = (() => {
+        let ctx = null, master = null, enabled = true;
+        function ensure() {
+            if (!ctx) {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+                master = ctx.createGain();
+                master.gain.value = 0.5;
+                master.connect(ctx.destination);
+            }
+            if (ctx.state === 'suspended') ctx.resume();
+            return ctx;
+        }
+        function tone({ type = 'sine', from = 440, to = null, dur = 0.15, vol = 0.4, delay = 0 }) {
+            if (!enabled) return;
+            const c = ensure(), t = c.currentTime + delay;
+            const o = c.createOscillator();
+            o.type = type;
+            o.frequency.setValueAtTime(from, t);
+            if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+            const g = c.createGain();
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(vol, t + 0.012);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            o.connect(g); g.connect(master);
+            o.start(t); o.stop(t + dur + 0.05);
+        }
+        function sweep({ dur = 0.4, from = 300, to = 1800, vol = 0.25, q = 1, delay = 0 }) {
+            if (!enabled) return;
+            const c = ensure(), t = c.currentTime + delay;
+            const len = Math.ceil(c.sampleRate * dur);
+            const buf = c.createBuffer(1, len, c.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+            const src = c.createBufferSource(); src.buffer = buf;
+            const f = c.createBiquadFilter();
+            f.type = 'bandpass'; f.Q.value = q;
+            f.frequency.setValueAtTime(from, t);
+            f.frequency.exponentialRampToValueAtTime(to, t + dur);
+            const g = c.createGain();
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(vol, t + dur * 0.25);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(f); f.connect(g); g.connect(master);
+            src.start(t); src.stop(t + dur + 0.05);
+        }
+        return {
+            unlock() { ensure(); },
+            setEnabled(v) { enabled = v; },
+            tick()      { tone({ from: 950, dur: 0.07, vol: 0.22 }); },
+            go()        { tone({ from: 1350, dur: 0.18, vol: 0.28 }); },
+            tap()       { tone({ type: 'triangle', from: 330, to: 190, dur: 0.08, vol: 0.32 }); },
+            pop()       { tone({ from: 390, to: 640, dur: 0.12, vol: 0.26 }); },
+            whoosh()    { sweep({ dur: 0.38, from: 320, to: 1900, vol: 0.22 }); },
+            textIn()    { sweep({ dur: 0.3, from: 700, to: 2400, vol: 0.13, q: 1.6 }); },
+            swipeUp()   { sweep({ dur: 0.28, from: 500, to: 2300, vol: 0.2, q: 1.4 }); },
+            swipeDown() { sweep({ dur: 0.26, from: 2100, to: 450, vol: 0.18, q: 1.4 }); },
+            impact()    { tone({ from: 160, to: 55, dur: 0.45, vol: 0.55 }); sweep({ dur: 0.2, from: 900, to: 160, vol: 0.22 }); },
+            rise()      { sweep({ dur: 1.0, from: 220, to: 2600, vol: 0.2, q: 1.2 }); },
+            logo()      { [523.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.4, vol: 0.2, delay: i * 0.08 })); },
+            success()   { [659.25, 987.77].forEach((f, i) => tone({ from: f, dur: 0.34, vol: 0.26, delay: i * 0.12 })); },
+            finale()    { [392, 523.25, 659.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.95, vol: 0.18, delay: i * 0.1 })); },
+            move()      { sweep({ dur: 0.6, from: 400, to: 700, vol: 0.04, q: 0.4 }); },
+            ambient()   {
+                if (!enabled || this._amb) return;
+                const c = ensure();
+                this._amb = c.createOscillator();
+                this._amb.type = 'triangle';
+                this._amb.frequency.value = 85;
+                const g = c.createGain();
+                g.gain.value = 0.015;
+                this._amb.connect(g); g.connect(master);
+                this._amb.start();
+            },
+            notification() {
+                [880, 1108, 1320].forEach((f, i) => tone({ from: f, dur: 0.12, vol: 0.3, delay: i * 0.07 }));
+            },
+            cashier() {
+                tone({ from: 1760, dur: 0.08, vol: 0.35 });
+                tone({ from: 2637, dur: 0.06, vol: 0.28, delay: 0.09 });
+                tone({ from: 120, to: 55, dur: 0.5, vol: 0.45, delay: 0.1 });
+            },
+            wooshDeep() {
+                sweep({ dur: 0.55, from: 80, to: 400, vol: 0.35, q: 0.6 });
+                sweep({ dur: 0.45, from: 600, to: 2500, vol: 0.18, q: 1.5, delay: 0.1 });
+            },
+            glitch() {
+                [80, 160, 60, 200, 40].forEach((f, i) => tone({ type: 'sawtooth', from: f * 10, dur: 0.04, vol: 0.15, delay: i * 0.03 }));
+            },
+            rise2() {
+                sweep({ dur: 1.4, from: 120, to: 3000, vol: 0.28, q: 0.9 });
+                tone({ from: 440, to: 880, dur: 1.2, vol: 0.15, delay: 0.2 });
+            },
+            counterTick() {
+                tone({ type: 'triangle', from: 600, dur: 0.03, vol: 0.1 });
+            },
+        };
+    })();
+
+    function frameScale() {
+        return deviceFrame.getBoundingClientRect().width / deviceFrame.offsetWidth;
+    }
+    const moveCursor = (targetId, duration = 1, offsetX = 0, offsetY = 0) => {
+        const tl = gsap.timeline();
+        tl.call(() => sfx.move());
+        tl.to(cursor, {
+            duration,
+            ease: 'power3.inOut',
+            x: () => {
+                const t = document.getElementById(targetId).getBoundingClientRect();
+                const f = deviceFrame.getBoundingClientRect();
+                return (t.left - f.left + t.width / 2) / frameScale() + offsetX;
+            },
+            y: () => {
+                const t = document.getElementById(targetId).getBoundingClientRect();
+                const f = deviceFrame.getBoundingClientRect();
+                return (t.top - f.top + t.height / 2) / frameScale() + offsetY;
+            }
+        });
+        return tl;
+    };
+
+    const clickCursor = (targetId) => {
+        const tl = gsap.timeline();
+        tl.call(() => {
+            sfx.tap();
+            const x = gsap.getProperty(cursor, 'x');
+            const y = gsap.getProperty(cursor, 'y');
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.left = `${x - 19}px`;
+            ripple.style.top = `${y - 19}px`;
+            rippleContainer.appendChild(ripple);
+            gsap.to(ripple, { scale: 2.6, opacity: 0, borderWidth: 0, duration: 0.6, ease: 'power2.out', onComplete: () => ripple.remove() });
+        });
+        tl.to(cursor, { scale: 0.72, duration: 0.1 })
+          .to(cursor, { scale: 1, duration: 0.12 });
+        if (targetId) {
+            const target = document.getElementById(targetId);
+            tl.to(target, { scale: 0.96, duration: 0.1 }, '-=0.2')
+              .to(target, { scale: 1, duration: 0.1 });
+        }
+        return tl;
+    };
+
+    const flashScreen = (color = 'white', dur = 0.12) => {
+        const fl = document.getElementById('flashLayer');
+        fl.style.background = color;
+        gsap.fromTo(fl, { opacity: 0.75 }, { opacity: 0, duration: dur, ease: 'power2.out' });
+    };
+
+    const burstParticles = (count = 18, colors = ['#04553A','#F5A623','#22c55e','#fff']) => {
+        const pc = document.getElementById('particleContainer');
+        const cx = gsap.getProperty(cursor, 'x');
+        const cy = gsap.getProperty(cursor, 'y');
+        for (let i = 0; i < count; i++) {
+            const p = document.createElement('div');
+            const size = 6 + Math.random() * 8;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+            const dist = 60 + Math.random() * 100;
+            p.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:${color};border-radius:50%;left:${cx}px;top:${cy}px;pointer-events:none;`;
+            pc.appendChild(p);
+            gsap.to(p, {
+                x: Math.cos(angle) * dist, y: Math.sin(angle) * dist,
+                opacity: 0, scale: 0.2, duration: 0.7 + Math.random() * 0.4,
+                ease: 'power2.out', onComplete: () => p.remove()
+            });
+        }
+    };
+
+    let _progressDur = 0;
+    const startProgress = (totalDur) => {
+        _progressDur = totalDur;
+        const bar = document.getElementById('cinemaBar');
+        const pulse = document.getElementById('cinemaPulse');
+        const progress = document.getElementById('cinemaProgress');
+        gsap.set(progress, { opacity: 1 });
+        pulse.style.display = 'block';
+        gsap.to(bar, { width: '100%', duration: totalDur, ease: 'none' });
+        gsap.to(pulse, { right: () => `${100 - parseFloat(bar.style.width || '0')}%`, duration: totalDur, ease: 'none' });
+    };
+
+    const startWaveform = () => {
+        const wave = document.getElementById('waveform');
+        const line = document.getElementById('waveLine');
+        gsap.to(wave, { opacity: 1, duration: 1 });
+        let frame = 0;
+        const tick = () => {
+            frame++;
+            const pts = [];
+            for (let x = 0; x <= 1080; x += 12) {
+                const y = 50 + Math.sin((x / 80) + frame * 0.12) * (18 + Math.sin(frame * 0.07) * 12) +
+                             Math.sin((x / 35) + frame * 0.22) * 8;
+                pts.push(`${x},${y}`);
+            }
+            line.setAttribute('points', pts.join(' '));
+            requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    };
+
+    const vibrate = (pattern) => {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+    };
+
+    const STATUS_COLORS = { scene0: '#fff', scene1: '#202124', scene2: '#fff', scene3: '#fff' };
+    const switchScreen = (outId, inId) => {
+        const tl = gsap.timeline();
+        tl.call(() => sfx.whoosh())
+          .to(`#${outId}`, { opacity: 0, scale: 0.96, duration: 0.28 })
+          .set(`#${outId}`, { display: 'none' })
+          .set(`#${inId}`, { display: 'flex', opacity: 0, scale: 1.04 })
+          .to(`#${inId}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, '<')
+          .to('#statusBar', { color: STATUS_COLORS[inId] || '#111', duration: 0.3 }, '<');
+        return tl;
+    };
+
+    const showText = (id) => {
+        const el = document.querySelector(id);
+        const tl = gsap.timeline();
+        tl.call(() => sfx.textIn())
+          .set(el, { visibility: 'visible', opacity: 1 })
+          .fromTo(el.querySelector('.accent'), { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: 'power3.out' })
+          .fromTo(el.querySelectorAll('.headline .w'),
+              { opacity: 0, y: 34, rotateX: -50 },
+              { opacity: 1, y: 0, rotateX: 0, duration: 0.55, stagger: 0.055, ease: 'back.out(1.6)' }, '-=0.25')
+          .to(el.querySelector('.subline'), { opacity: 1, y: 0, duration: 0.6 }, '-=0.15');
+        return tl;
+    };
+    const hideText = (id) => gsap.timeline()
+        .to(id, { opacity: 0, y: -26, duration: 0.45, onComplete: () => {
+            const el = document.querySelector(id);
+            el.style.visibility = 'hidden';
+            gsap.set(el, { y: 0 });
+        }});
+
+    /* ═══ السيناريو ═══ */
+    function playCinematicPromo() {
+        const tl = gsap.timeline();
+        tl.timeScale(1.15);
+        gsap.set('.subline', { y: 16 });
+        startWaveform();
+        startProgress(50);
+
+        // ── الافتتاحية ──
+        tl.set('#introCard', { visibility: 'visible', opacity: 1 })
+          .call(() => { sfx.rise2(); vibrate([30, 50, 80]); })
+          .fromTo('#introCard img', { opacity: 0, scale: 0.55, rotate: -8 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.8, ease: 'back.out(1.4)' })
+          .call(() => sfx.logo())
+          .fromTo('#introCard .t0', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.3')
+          .call(() => sfx.impact())
+          .fromTo('#introCard .t1', { opacity: 0, scale: 1.7 }, { opacity: 1, scale: 1, duration: 0.55, ease: 'power4.out' }, '-=0.05')
+          .fromTo('#introCard .t2', { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.15');
+        tl.to('#introCard', { opacity: 0, scale: 0.94, duration: 0.55, ease: 'power2.in' }, '+=1.5')
+          .set('#introCard', { visibility: 'hidden' });
+
+        // ── دخول الهاتف ──
+        tl.call(() => sfx.ambient())
+          .set('#phoneSlot', { opacity: 1 })
+          .call(() => sfx.whoosh())
+          .from('.device-container', { rotateY: 26, rotateX: 9, y: 90, scale: 0.86, duration: 1.6, ease: 'expo.out' })
+          .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.4, ease: 'power3.inOut' }, '-=0.5')
+          .set(cursor, { x: 190, y: 690, opacity: 1 });
+
+        // ── مشهد 0: قائمة المتاجر ──
+        tl.add(showText('#mt1'), '-=1.2');
+        tl.add(moveCursor('merchant1', 1.2), '+=0.8')
+          .add(clickCursor('merchant1'));
+        tl.call(() => {
+            flashScreen('#22c55e', 0.15);
+            gsap.to('#merchant1', { background: '#f0fdf4', duration: 0.3 });
+        });
+
+        // ── مشهد 1: المتجر ──
+        tl.add(hideText('#mt1'));
+        tl.call(() => { sfx.wooshDeep(); flashScreen('rgba(0,0,0,0.4)', 0.2); });
+        tl.add(switchScreen('scene0', 'scene1'), '<');
+        tl.fromTo('#browserProgress', { width: '0%' }, { width: '100%', duration: 0.8, ease: 'power2.out' })
+          .to('#browserProgress', { opacity: 0, duration: 0.25 });
+        tl.add(showText('#mt2'), '-=0.5');
+
+        tl.to('#product1', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.4')
+          .to('#product2', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35')
+          .to('#product3', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35')
+          .to('#product4', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35');
+
+        tl.add(moveCursor('btnAddToCart2', 1.3), '+=1.0')
+          .add(clickCursor('btnAddToCart2'));
+        tl.call(() => {
+            document.getElementById('btnAddToCart2').innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%; font-size:13px; padding:0 8px;">
+                    <span style="font-size:17px;">−</span>
+                    <span style="background:white; color:#04553A; padding:1px 9px; border-radius:6px; font-weight:800;">1</span>
+                    <span style="font-size:17px;">+</span>
+                </div>`;
+        })
+        .to('#btnAddToCart2', { backgroundColor: '#16a34a', duration: 0.3 })
+        .to('#floatingCart2', { y: 0, duration: 0.5, ease: 'back.out(1.2)' })
+        .call(() => sfx.pop(), null, '<');
+
+        // ── مشهد 2: سلة المشتريات ──
+        tl.add(hideText('#mt2'));
+        tl.call(() => { sfx.wooshDeep(); flashScreen('rgba(0,0,0,0.4)', 0.2); });
+        tl.add(switchScreen('scene1', 'scene2'), '<');
+        tl.add(showText('#mt3'), '-=0.1');
+
+        tl.add(moveCursor('btnShopCheckout', 1.0), '+=1.2')
+          .add(clickCursor('btnShopCheckout'));
+        tl.call(() => {
+            sfx.success();
+            sfx.cashier();
+            vibrate([100, 50, 200]);
+            flashScreen('#F5A623', 0.25);
+            burstParticles(24, ['#04553A','#F5A623','#22c55e','#fff']);
+            Swal.fire({
+                icon: 'success',
+                title: 'تم الطلب!',
+                html: `طلبك من بوتيك لمسة تم إرساله!<br><small class="text-muted mt-2 d-block">رقم الطلب: #5217</small>`,
+                confirmButtonText: 'تتبع الطلب',
+                confirmButtonColor: '#04553A',
+                allowOutsideClick: false,
+                backdrop: 'rgba(0,0,0,0.5)',
+                target: '#deviceFrame',
+                customClass: { container: 'position-absolute', popup: 'rounded-4' },
+                animation: false
+            });
+            gsap.fromTo('.swal2-popup', { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.6, ease: 'expo.out' });
+            const rect = document.getElementById('deviceFrame').getBoundingClientRect();
+            const cx = (rect.left + rect.width / 2) / window.innerWidth;
+            const cy = (rect.top + rect.height / 2) / window.innerHeight;
+            confetti({ particleCount: 220, spread: 80, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
+        });
+
+        tl.to([], { duration: 1.5 });
+        tl.call(() => Swal.close());
+
+        // ── مشهد 3: تتبع الطلب ──
+        tl.add(hideText('#mt3'));
+        tl.call(() => { sfx.wooshDeep(); flashScreen('rgba(0,0,0,0.4)', 0.2); });
+        tl.add(switchScreen('scene2', 'scene3'), '<');
+        tl.add(showText('#mt4'), '-=0.1');
+        tl.to([], { duration: 3 });
+
+        // ── الخاتمة ──
+        tl.add(hideText('#mt4'));
+        tl.to(cursor, { opacity: 0, duration: 0.3 }, '<');
+        tl.to('#phoneSlot', { opacity: 0, y: 60, duration: 0.7, ease: 'power2.in' }, '<')
+          .to('.watermark', { opacity: 0, duration: 0.4 }, '<');
+        tl.set('#endCard', { visibility: 'visible' })
+          .call(() => { sfx.glitch(); flashScreen('white', 0.08); })
+          .to([], { duration: 0.08 })
+          .call(() => { flashScreen('white', 0.06); })
+          .call(() => sfx.finale())
+          .fromTo('#endCard', { opacity: 0 }, { opacity: 1, duration: 0.4 })
+          .fromTo('.end-logo-card', { opacity: 0, scale: 0.9, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '<')
+          .fromTo('.end-line', { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.65 }, '-=0.3')
+          .fromTo('.end-sub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.35')
+          .fromTo('.end-domain', { opacity: 0 }, { opacity: 1, duration: 0.7 }, '-=0.2');
+
+        tl.to('#btnReplay', { opacity: 1, pointerEvents: 'auto', duration: 0.5 }, '+=1.5');
+        return tl;
+    }
+
+    const btnPlay = document.getElementById('btnPlay');
+
+    btnPlay.addEventListener('click', async () => {
+        btnPlay.disabled = true;
+        document.body.classList.add('playing');
+        sfx.unlock();
+
+        try {
+            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+            }
+        } catch (e) {}
+        try { navigator.wakeLock && await navigator.wakeLock.request('screen'); } catch (e) {}
+        try {
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock(stage.classList.contains('h') ? 'landscape' : 'portrait');
+            }
+        } catch (e) {}
+        fitStage();
+
+        await preloadImages();
+        document.fonts && await document.fonts.ready;
+
+        gsap.to('#controls', { opacity: 0, duration: 0.4, onComplete: () => {
+            document.getElementById('controls').style.display = 'none';
+        }});
+
+        const cd = document.getElementById('countdown');
+        const counts = ['3', '2', '1'];
+        const cdTl = gsap.timeline();
+        counts.forEach(n => {
+            cdTl.call(() => { cd.textContent = n; sfx.tick(); })
+                .fromTo(cd, { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 1, duration: 0.3 })
+                .to(cd, { opacity: 0, duration: 0.26 }, '+=0.3');
+        });
+        cdTl.call(() => { cd.textContent = ''; sfx.go(); playCinematicPromo(); });
+    });
+
+    const btnSound = document.getElementById('btnSound');
+    btnSound.addEventListener('click', () => {
+        const on = btnSound.classList.toggle('sound-on');
+        sfx.setEnabled(on);
+        btnSound.innerHTML = on
+            ? '<i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل'
+            : '<i class="bi bi-volume-mute"></i> المؤثرات الصوتية: متوقفة';
+    });
+
+    document.getElementById('btnReplay').addEventListener('click', () => location.reload());
 </script>
 </body>
 </html>

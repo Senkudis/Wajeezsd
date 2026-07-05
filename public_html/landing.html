@@ -147,6 +147,27 @@
             direction: ltr;
             display: inline-block;
         }
+
+        /* --- Nav Logo Filters --- */
+        .nav-logo {
+            filter: brightness(0) invert(0); /* Black in light mode */
+            transition: filter 0.3s;
+        }
+        body.dark-mode .nav-logo {
+            filter: brightness(1) invert(0) !important; /* White in dark mode */
+        }
+
+        /* --- Tutorials Dark Mode Overrides --- */
+        body.dark-mode .tutorials-section {
+            background-color: transparent !important;
+        }
+        body.dark-mode .tutorials-section .text-dark {
+            color: #f8f9fa !important;
+        }
+        body.dark-mode .tutorials-section .glass-card {
+            background-color: #2a2a2a !important;
+            border: 1px solid #444 !important;
+        }
     </style>
 
     <!-- Mobile App Overrides -->
@@ -167,7 +188,7 @@
     <nav class="navbar navbar-expand-lg glass-nav sticky-top" aria-label="التنقل الرئيسي">
         <div class="container">
             <a class="navbar-brand logo" href="index.html">
-                <img src="logo.png" alt="شعار وجيز - خدمة توصيل في أم درمان" height="60">
+                <img src="logo-white.png" alt="شعار وجيز - خدمة توصيل في أم درمان" height="60" class="nav-logo">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                 aria-controls="mainNav" aria-expanded="false" aria-label="تبديل القائمة">
@@ -307,40 +328,44 @@
             </div>
         </section>
 
-        <section id="tutorials" class="py-5 bg-white">
+        <section id="tutorials" class="py-5 tutorials-section">
             <div class="container py-5">
                 <div class="text-center mb-5">
-                    <h2 class="display-5 fw-bold">شروحات تفاعلية</h2>
-                    <p class="text-muted lead">تعرف على طريقة استخدام وجيز بخطوات بسيطة وواضحة</p>
+                    <span class="badge bg-danger mb-2 px-3 py-2 rounded-pill"><i class="bi bi-play-circle-fill ms-1"></i> فيديوهات موشن</span>
+                    <h2 class="display-5 fw-bold">كيف يعمل وجيز؟</h2>
+                    <p class="text-muted lead">شاهد فيديوهات تشرح لك كل شيء عن التطبيق بخطوات عملية</p>
                 </div>
                 <div class="row justify-content-center g-4">
                     <div class="col-md-4">
                         <a href="tutorial-app-order.html" class="text-decoration-none">
-                            <div class="card h-100 card-hover glass-card text-center p-4 border-0 shadow-sm">
-                                <i class="bi bi-phone-fill display-4 text-primary mb-3"></i>
-                                <h4 class="fw-bold text-dark">كيف تطلب من التطبيق؟</h4>
-                                <p class="text-muted">تعرف على كيفية الطلب المباشر من تطبيق وجيز خطوة بخطوة.</p>
-                                <span class="btn btn-outline-primary rounded-pill mt-3">شاهد الشرح</span>
+                            <div class="card h-100 card-hover glass-card text-center p-4 border-0 shadow-sm position-relative overflow-hidden">
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-10" style="z-index: 0;"></div>
+                                <i class="bi bi-play-btn-fill display-4 text-primary mb-3 position-relative z-1"></i>
+                                <h4 class="fw-bold text-dark position-relative z-1">الطلب من التطبيق</h4>
+                                <p class="text-muted position-relative z-1">فيديو يوضح كيفية الطلب والتتبع.</p>
+                                <span class="btn btn-primary rounded-pill mt-3 fw-bold position-relative z-1"><i class="bi bi-play-fill"></i> شاهد الفيديو</span>
                             </div>
                         </a>
                     </div>
                     <div class="col-md-4">
                         <a href="tutorial-shop-order.html" class="text-decoration-none">
-                            <div class="card h-100 card-hover glass-card text-center p-4 border-0 shadow-sm">
-                                <i class="bi bi-shop display-4 text-success mb-3"></i>
-                                <h4 class="fw-bold text-dark">كيف تطلب من متجر؟</h4>
-                                <p class="text-muted">شرح مبسط لطريقة استعراض المتاجر والطلب منها.</p>
-                                <span class="btn btn-outline-success rounded-pill mt-3">شاهد الشرح</span>
+                            <div class="card h-100 card-hover glass-card text-center p-4 border-0 shadow-sm position-relative overflow-hidden">
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-success opacity-10" style="z-index: 0;"></div>
+                                <i class="bi bi-play-btn-fill display-4 text-success mb-3 position-relative z-1"></i>
+                                <h4 class="fw-bold text-dark position-relative z-1">الطلب من متجر</h4>
+                                <p class="text-muted position-relative z-1">فيديو يشرح كيفية تصفح المتاجر والطلب.</p>
+                                <span class="btn btn-success text-white rounded-pill mt-3 fw-bold position-relative z-1"><i class="bi bi-play-fill"></i> شاهد الفيديو</span>
                             </div>
                         </a>
                     </div>
                     <div class="col-md-4">
                         <a href="tutorial-merchant-register.html" class="text-decoration-none">
-                            <div class="card h-100 card-hover glass-card text-center p-4 border-0 shadow-sm">
-                                <i class="bi bi-briefcase-fill display-4 text-warning mb-3"></i>
-                                <h4 class="fw-bold text-dark">التسجيل كتاجر</h4>
-                                <p class="text-muted">شرح لكيفية تسجيل متجرك وعرض منتجاتك على وجيز.</p>
-                                <span class="btn btn-outline-warning rounded-pill mt-3 text-dark">شاهد الشرح</span>
+                            <div class="card h-100 card-hover glass-card text-center p-4 border-0 shadow-sm position-relative overflow-hidden">
+                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-warning opacity-10" style="z-index: 0;"></div>
+                                <i class="bi bi-play-btn-fill display-4 text-warning mb-3 position-relative z-1"></i>
+                                <h4 class="fw-bold text-dark position-relative z-1">التسجيل كتاجر</h4>
+                                <p class="text-muted position-relative z-1">فيديو خطوة بخطوة للبدء في البيع.</p>
+                                <span class="btn btn-warning rounded-pill mt-3 fw-bold text-dark position-relative z-1"><i class="bi bi-play-fill"></i> شاهد الفيديو</span>
                             </div>
                         </a>
                     </div>
