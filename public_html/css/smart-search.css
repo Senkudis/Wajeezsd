@@ -121,7 +121,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px;
+    padding: calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px) 14px 12px;
     background: linear-gradient(135deg, var(--ss-green), var(--ss-green-2));
     box-shadow: 0 4px 16px rgba(4, 85, 58, 0.25);
 }
@@ -183,7 +183,7 @@
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 24px);
+    padding: 14px 14px calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 24px);
 }
 
 /* الحالة الخاملة */

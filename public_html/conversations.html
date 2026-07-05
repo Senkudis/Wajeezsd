@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3.4">
     <style>
         body {
             background: #f8fafc;
@@ -22,7 +22,7 @@
             background: linear-gradient(135deg, #04553A, #0d9d63);
             color: white;
             padding: 16px;
-            padding-top: calc(16px + env(safe-area-inset-top, 0px));
+            padding-top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));
         }
 
         /* ===== Conversations List ===== */
@@ -84,7 +84,7 @@
         .empty-state p  { font-size: 14px; }
     </style>
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=3.4">
     <script src="js/config.js"></script>
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>

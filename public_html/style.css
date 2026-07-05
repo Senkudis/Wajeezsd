@@ -1,14 +1,16 @@
 /* client/style.css - Modernized for Bootstrap 5 & Glassmorphism */
 :root {
     /* Brand Colors */
-    --primary: #0a8754;
+    --primary: #04553A;
     /* Signature Green */
-    --primary-gradient: linear-gradient(135deg, #0a8754 0%, #065f3a 100%);
+    --primary-gradient: linear-gradient(135deg, #04553A 0%, #065f3a 100%);
     --secondary: #2c3e50;
     /* Deep Navy */
     --secondary-gradient: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-    --accent: #f39c12;
-    /* Orange Alert */
+    --accent: #BF8B1F;
+    --gold: #BF8B1F;
+    --gold-light: #D8B765;
+    /* Brand Gold — لمسة وجيز الذهبية */
 
     /* Functional Colors */
     --light: #f8f9fa;
@@ -16,12 +18,34 @@
     --glass-bg: rgba(255, 255, 255, 0.95);
     --glass-border: 1px solid rgba(255, 255, 255, 0.2);
 
-    /* Shadows */
+    /* Shadows — Unified Scale */
     --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 8px 15px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 15px 35px rgba(0, 0, 0, 0.15);
     --shadow-glow: 0 0 20px rgba(10, 135, 84, 0.2);
+    --shadow-brand: 0 8px 25px rgba(4, 85, 58, 0.3);
+
+    /* ✅ Border Radius — Unified Scale */
+    --radius-sm: 8px;    /* tags, small chips */
+    --radius-md: 12px;   /* inputs, small cards */
+    --radius-lg: 16px;   /* cards, panels */
+    --radius-xl: 22px;   /* hero cards, wallet */
+    --radius-pill: 50px; /* buttons, badges */
+    --radius-full: 9999px;
+
+    /* ✅ Transition — Unified */
+    --transition-fast: all 0.2s ease;
+    --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* ✅ Spacing Scale */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
 }
+
 
 body {
     font-family: 'Cairo', 'Segoe UI', sans-serif;
@@ -33,6 +57,23 @@ body {
     padding-bottom: 80px;
     /* Ensure content isn't hidden behind nav */
 }
+
+/* --- Auth Container (Login/Register Pages) --- */
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #f0f2f5 0%, #e8f5e9 100%);
+}
+
+.auth-box {
+    width: 100%;
+    max-width: 440px;
+}
+
+/* --- Loading Splash Screen: moved to css/splash.css --- */
 
 /* --- Typography Overrides --- */
 h1,
@@ -52,7 +93,7 @@ h6 {
     -webkit-backdrop-filter: blur(12px);
     border: var(--glass-border);
     box-shadow: var(--shadow-md);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
 }
 
 @media (max-width: 768px) {
@@ -74,10 +115,10 @@ h6 {
 
 /* --- Button Modernization --- */
 .btn {
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 10px 24px;
     font-weight: 700;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: var(--transition-base);
     border: none;
 }
 
@@ -110,9 +151,9 @@ h6 {
 
 /* --- Card Modernization --- */
 .card-hover {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: var(--transition-base);
     border: none;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
@@ -124,10 +165,10 @@ h6 {
 /* --- Form Elements --- */
 .form-control {
     padding: 12px 16px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     border: 2px solid #eee;
     background-color: #fcfcfc;
-    transition: all 0.3s ease;
+    transition: var(--transition-base);
 }
 
 .form-control:focus {
@@ -183,9 +224,9 @@ h6 {
 .app-header {
     background: var(--secondary-gradient);
     color: white;
-    border-radius: 0 0 30px 30px;
-    padding-bottom: 40px;
-    margin-bottom: -30px;
+    border-radius: 0 0 20px 20px;
+    padding-bottom: 16px;
+    margin-bottom: 0;
     box-shadow: var(--shadow-md);
 }
 
@@ -193,91 +234,10 @@ h6 {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 15px;
-    position: relative;
-    z-index: 10;
     padding: 0 15px;
 }
 
-/* --- Mobile Bottom Nav (FIXED) --- */
-.mobile-nav-glass {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1000;
-    display: flex;
-    display: -webkit-flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 8px 0 10px;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 0;
-    margin: 0;
-    max-width: 100%;
-    box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.06);
-}
-
-.nav-item-link {
-    color: #8e9196;
-    text-decoration: none !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    padding: 6px 10px;
-    border-radius: 12px;
-    min-width: 65px;
-    position: relative;
-}
-
-.nav-item-link i {
-    display: block;
-    font-size: 1.4rem;
-    line-height: 1;
-    transition: transform 0.25s ease;
-}
-
-.nav-item-link span {
-    font-size: 0.68rem;
-    font-weight: 600;
-    white-space: nowrap;
-    letter-spacing: -0.2px;
-    opacity: 0.9;
-}
-
-.nav-item-link:hover {
-    color: var(--primary);
-    background: rgba(10, 135, 84, 0.06);
-    transform: translateY(-1px);
-}
-
-.nav-item-link:hover i {
-    transform: scale(1.1);
-}
-
-.nav-item-link.active {
-    color: var(--primary);
-    background: linear-gradient(135deg, rgba(10, 135, 84, 0.1) 0%, rgba(10, 135, 84, 0.15) 100%);
-    box-shadow: 0 2px 8px rgba(10, 135, 84, 0.15);
-}
-
-.nav-item-link.active i {
-    transform: scale(1.05);
-}
-
-.nav-item-link.active span {
-    opacity: 1;
-    font-weight: 700;
-}
-
-.nav-item-link.active::after {
-    display: none;
-}
+/* --- Mobile Bottom Nav: see enhanced-styles.css for unified definition --- */
 
 /* --- Loading Skeleton Animation --- */
 @keyframes shimmer {
@@ -295,3 +255,223 @@ h6 {
     background: linear-gradient(to right, #eff1f3 4%, #e2e2e2 25%, #eff1f3 36%);
     background-size: 1000px 100%;
 }
+
+/* --- Google Maps Web SDK --- */
+/* The map renders directly in the DOM — no transparency hacks needed */
+
+#map,
+#shopOrderMap {
+    width: 100%;
+    height: 100%;
+}
+
+#static-map-container,
+#shop-map-overlay {
+    background: #e8e8e8; /* Neutral fallback while map tiles load */
+}
+
+/* ─────────────────────────────────────────────────
+   MAP FLOATING ACTION BUTTONS  (Locate / Theme / Layer)
+   Premium Glassmorphism Style
+───────────────────────────────────────────────── */
+.map-fab-btn {
+    /* Size & Shape */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    /* Appearance (Glassmorphism) */
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    outline: none;
+
+    /* Soft but deep layered shadow */
+    box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.05),
+        0 8px 16px rgba(0, 0, 0, 0.1),
+        0 15px 30px rgba(0, 0, 0, 0.08);
+
+    /* Icon */
+    font-size: 1.3rem; /* Slightly larger icon */
+    color: #1e2a36; /* Deep dark blue/gray for premium contrast */
+
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Interaction */
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+
+    /* Smooth spring transition */
+    transition:
+        transform  0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.25s ease,
+        background 0.25s ease,
+        color      0.25s ease;
+}
+
+.map-fab-btn:hover {
+    transform: scale(1.1);
+    background: #f5f5f5;
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.14),
+        0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.map-fab-btn:active {
+    transform: scale(0.9);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggled / active state — green fill */
+.map-fab-btn.is-active {
+    background: linear-gradient(145deg, #04553A, #1aad68);
+    color: #ffffff;
+    box-shadow:
+        0 2px 6px rgba(10, 135, 84, 0.3),
+        0 6px 18px rgba(10, 135, 84, 0.25);
+}
+
+.map-fab-btn.is-active:hover {
+    background: linear-gradient(145deg, #089060, #1ec873);
+}
+
+/* Locate-me — pulsing glow while GPS is fetching */
+.map-fab-btn.is-locating {
+    pointer-events: none;
+    animation: fabGlowPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes fabGlowPulse {
+    0%, 100% {
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.14),
+            0 4px 12px rgba(0, 0, 0, 0.10);
+    }
+    50% {
+        box-shadow:
+            0 2px 6px rgba(10, 135, 84, 0.25),
+            0 6px 22px rgba(10, 135, 84, 0.45);
+    }
+}
+
+
+/* ─────────────────────────────────────────────────
+   MAP SEARCH BAR — night-mode override
+───────────────────────────────────────────────── */
+#static-map-container.map-night .map-search-wrapper,
+#static-map-container.map-night .map-fab-btn {
+    background: #1e2a36;
+    color: #e0e0e0;
+}
+
+#static-map-container.map-night #map-search-input {
+    color: #e0e0e0;
+}
+
+#static-map-container.map-night #map-search-input::placeholder {
+    color: #778899;
+}
+
+/* Hide Google Maps default attribution in fullscreen map to reduce clutter */
+#static-map-container .gm-style-cc { display: none !important; }
+
+/* Invert map tiles robustly for dark mode (bypasses Google Maps styles bug) */
+#static-map-container.map-night #map {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(95%);
+    transition: filter 0.3s ease;
+}
+
+/* ─────────────────────────────────────────────────
+   ROUTE INFO CARD
+───────────────────────────────────────────────── */
+.route-stat-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 14px 8px;
+    text-align: center;
+    transition: background 0.2s ease;
+}
+
+.route-stat-cell:active {
+    background: rgba(10, 135, 84, 0.04);
+}
+
+/* Shimmer on the spans while loading */
+#route-info-card.is-loading #route-distance,
+#route-info-card.is-loading #route-duration,
+#route-info-card.is-loading #route-price {
+    color: transparent !important;
+    background: linear-gradient(90deg, #e0e0e0 25%, #f5f5f5 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: routeShimmer 1.2s infinite linear;
+    border-radius: 6px;
+    min-width: 48px;
+    display: inline-block;
+}
+
+@keyframes routeShimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ─────────────────────────────────────────────────
+   GEOFENCING WARNING BANNER
+───────────────────────────────────────────────── */
+.map-warning-banner {
+    position: absolute;
+    top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 125px); /* Below search bar */
+    left: 16px;
+    right: 16px;
+    background: #dc3545; /* Red */
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(220, 53, 69, 0.4);
+    z-index: 999;
+    pointer-events: auto;
+    
+    /* Animation base state */
+    transform: translateY(0);
+    opacity: 1;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.map-warning-banner.hidden {
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+/* Disabled Confirm Button style */
+button#map-confirm-btn:disabled, 
+button#map-confirm-btn.disabled {
+    background: #8b8b8b !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+/* Make white squircle logo visible on light backgrounds */
+.app-logo { background-color: #04553A; border-radius: 20px; filter: drop-shadow(0 4px 12px rgba(4, 85, 58, 0.2)); }
+
+
+.logo-onbrand { background-color: transparent !important; box-shadow: none !important; filter: none !important; }
+

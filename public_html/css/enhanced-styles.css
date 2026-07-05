@@ -867,7 +867,7 @@ body {
    ======================================== */
 body,
 .main-content {
-    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(100px + var(--sab, env(safe-area-inset-bottom, 0px))) !important;
 }
 
 .mobile-nav-glass {
@@ -882,7 +882,7 @@ body,
     justify-content: space-around !important;
     align-items: center !important;
     padding: 10px 8px !important;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(10px + var(--sab, env(safe-area-inset-bottom, 0px))) !important;
     margin: 0 !important;
     background: rgba(255, 255, 255, 0.98) !important;
     backdrop-filter: blur(20px) !important;

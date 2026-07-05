@@ -144,28 +144,8 @@
             transition: box-shadow 0.8s ease;
         }
         
-        /* تأثير الانعكاس الديناميكي (Glare) */
-        .glare {
-            position: absolute;
-            inset: -100%;
-            background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.12) 55%, transparent 60%);
-            transform: translateX(-100%);
-            z-index: 990;
-            pointer-events: none;
-        }
-        /* توهجات الإطار حسب الحالة الدرامية */
-        .device-frame.glow-red {
-            box-shadow: 0 60px 120px rgba(0,0,0,0.75), inset 0 0 0 2px #2a2a33,
-                        0 0 55px rgba(239, 68, 68, 0.5);
-        }
-        .device-frame.glow-green {
-            box-shadow: 0 60px 120px rgba(0,0,0,0.75), inset 0 0 0 2px #2a2a33,
-                        0 0 55px rgba(37, 211, 102, 0.5);
-        }
-        .device-frame.glow-blue {
-            box-shadow: 0 60px 120px rgba(0,0,0,0.75), inset 0 0 0 2px #2a2a33,
-                        0 0 55px rgba(59, 130, 246, 0.5);
-        }
+        /* Glare disabled — was too distracting */
+        .glare { display: none; }
 
         .watermark {
             position: absolute;
@@ -185,7 +165,7 @@
             gap: 30px; z-index: 400;
             opacity: 0; visibility: hidden;
         }
-        #introCard img { width: 180px; border-radius: 42px; box-shadow: 0 30px 70px rgba(0,0,0,0.55); }
+        #introCard img { width: 280px; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.4)); margin-bottom: 15px; }
         #introCard .t0 {
             color: #7ee2b8; font-weight: 700; letter-spacing: 1px;
             border: 1px solid rgba(126,226,184,0.35);
@@ -367,12 +347,8 @@
             box-shadow: 0 0 0 6px rgba(255,255,255,0.9), 0 15px 30px rgba(0,0,0,0.3);
             color: white; position: relative;
         }
-        .driver-pulse {
-            position: absolute; width: 100%; height: 100%; background: #22c55e;
-            border-radius: 50%; z-index: -1;
-            animation: pulse-ring 1.5s infinite;
-        }
-        @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
+        /* driver-pulse disabled — was too distracting */
+        .driver-pulse { display: none; }
 
         .map-back-btn {
             position: absolute; top: 58px; right: 18px;
@@ -657,10 +633,25 @@
         <div class="grid-lines"></div>
         <div class="vignette"></div>
 
-        <!-- البطاقة الافتتاحية -->
+        <!-- Flash layer -->
+        <div id="flashLayer" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:300;"></div>
+
+        <!-- شريط تقدم سينمائي -->
+        <div id="cinemaProgress" style="position:absolute;bottom:0;left:0;right:0;height:5px;z-index:200;opacity:0;">
+            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,#04553A,#0e9f6e,#F5A623);box-shadow:0 0 14px rgba(245,166,35,0.8);border-radius:0 3px 3px 0;"></div>
+            <div id="cinemaPulse" style="position:absolute;right:100%;top:-4px;width:12px;height:12px;background:#F5A623;border-radius:50%;box-shadow:0 0 10px #F5A623,0 0 20px rgba(245,166,35,0.5);display:none;margin-right:-6px;"></div>
+        </div>
+
+        <!-- موجة صوتية متحركة -->
+        <svg id="waveform" viewBox="0 0 1080 100" preserveAspectRatio="none"
+            style="position:absolute;bottom:80px;left:0;right:0;width:100%;height:120px;z-index:5;opacity:0;pointer-events:none;">
+            <polyline id="waveLine" points="0,50" style="fill:none;stroke:rgba(14,159,110,0.22);stroke-width:3;stroke-linecap:round;"/>
+        </svg>
+
+        <!-- بطاقة العنوان الافتتاحية -->
         <div id="introCard">
-            <img src="icons/icon-512x512.png" alt="وجيز">
-            <div class="t0">وجيز تقدّم لعملائها</div>
+            <img src="logo-white.png" alt="وجيز">
+            <div class="t0">تتبّع حي، لحظة بلحظة</div>
             <div class="t1">تتبع <span class="mega">مباشر</span> لطلبك لحظة بلحظة</div>
             <div class="t2">شاهد مندوبك يتحرك على الخريطة حتى باب بيتك</div>
         </div>
@@ -915,6 +906,7 @@
 
                     <div id="cursor"></div>
                     <div id="rippleContainer" style="position:absolute; inset:0; pointer-events:none; z-index:9998;"></div>
+                    <div id="particleContainer" style="position:absolute;inset:0;pointer-events:none;z-index:9990;overflow:hidden;"></div>
                 </div>
             </div>
         </div>
@@ -1077,14 +1069,25 @@
             textIn()    { sweep({ dur: 0.3, from: 700, to: 2400, vol: 0.13, q: 1.6 }); },
             swipeUp()   { sweep({ dur: 0.28, from: 500, to: 2300, vol: 0.2, q: 1.4 }); },
             tension()   { tone({ from: 220, to: 85, dur: 0.7, vol: 0.35 }); sweep({ dur: 0.4, from: 600, to: 120, vol: 0.18 }); },
-            notify()    { tone({ from: 880, dur: 0.5, vol: 0.2 }); tone({ from: 1108.73, dur: 0.5, vol: 0.2, delay: 0.15 }); },
-            sonar()     { tone({ from: 800, to: 1200, dur: 0.28, vol: 0.06 }); },
+            // ✨ إشعار وجيز — ثلاث نغمات متصاعدة حماسية
+            notify()    { [880, 1108, 1320].forEach((f, i) => tone({ from: f, dur: 0.13, vol: 0.32, delay: i * 0.07 })); },
+            sonar()     { tone({ from: 800, to: 1400, dur: 0.3, vol: 0.07 }); },
             impact()    { tone({ from: 160, to: 55, dur: 0.45, vol: 0.55 }); sweep({ dur: 0.2, from: 900, to: 160, vol: 0.22 }); },
             rise()      { sweep({ dur: 1.0, from: 220, to: 2600, vol: 0.2, q: 1.2 }); },
+            // ✨ صوت صعود أكثر عمقاً للافتتاحية
+            rise2()     { sweep({ dur: 1.4, from: 120, to: 3000, vol: 0.28, q: 0.9 }); tone({ from: 440, to: 880, dur: 1.2, vol: 0.15, delay: 0.2 }); },
             logo()      { [523.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.4, vol: 0.2, delay: i * 0.08 })); },
-            success()   { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone({ from: f, dur: 0.7, vol: 0.16, delay: i * 0.1 })); },
-            finale()    { [392, 523.25, 659.25, 783.99].forEach((f, i) => tone({ from: f, dur: 0.95, vol: 0.18, delay: i * 0.1 })); },
+            // ✨ نجاح التسليم — أقوى وأكثر احتفالاً
+            success()   { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone({ from: f, dur: 0.7, vol: 0.2, delay: i * 0.1 }));
+                          tone({ from: 1567.98, dur: 0.8, vol: 0.18, delay: 0.45 }); },
+            // ✨ انتقال عميق ودرامي
+            wooshDeep() { sweep({ dur: 0.55, from: 80, to: 400, vol: 0.35, q: 0.6 }); sweep({ dur: 0.45, from: 600, to: 2500, vol: 0.18, q: 1.5, delay: 0.1 }); },
+            // ✨ glitch عند الخاتمة
+            glitch()    { [80, 160, 60, 200, 40].forEach((f, i) => tone({ type: 'sawtooth', from: f * 10, dur: 0.04, vol: 0.15, delay: i * 0.03 })); },
+            finale()    { [392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone({ from: f, dur: 0.95, vol: 0.18, delay: i * 0.1 })); },
             move()      { sweep({ dur: 0.6, from: 400, to: 700, vol: 0.04, q: 0.4 }); },
+            // ✨ تيك عداد
+            counterTick() { tone({ type: 'triangle', from: 600, dur: 0.03, vol: 0.08 }); },
             ambient()   { 
                 if (!enabled || this._amb) return;
                 const c = ensure();
@@ -1092,7 +1095,7 @@
                 this._amb.type = 'triangle';
                 this._amb.frequency.value = 85; 
                 const g = c.createGain();
-                g.gain.value = 0.015; // خلفية خفيفة جداً لكسر الصمت
+                g.gain.value = 0.015;
                 this._amb.connect(g); g.connect(master);
                 this._amb.start(); 
             }
@@ -1146,6 +1149,70 @@
         return tl;
     };
 
+    // ─── Flash الشاشة ───
+    const flashScreen = (color = 'white', dur = 0.12) => {
+        const fl = document.getElementById('flashLayer');
+        fl.style.background = color;
+        gsap.fromTo(fl, { opacity: 0.75 }, { opacity: 0, duration: dur, ease: 'power2.out' });
+    };
+
+    // ─── انفجار جسيمات ───
+    const burstParticles = (count = 20, colors = ['#04553A','#F5A623','#22c55e','#fff']) => {
+        const pc = document.getElementById('particleContainer');
+        const cx = gsap.getProperty(cursor, 'x');
+        const cy = gsap.getProperty(cursor, 'y');
+        for (let i = 0; i < count; i++) {
+            const p = document.createElement('div');
+            const size = 6 + Math.random() * 8;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+            const dist = 55 + Math.random() * 110;
+            p.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:${color};border-radius:50%;left:${cx}px;top:${cy}px;pointer-events:none;`;
+            pc.appendChild(p);
+            gsap.to(p, { x: Math.cos(angle)*dist, y: Math.sin(angle)*dist, opacity:0, scale:0.2, duration:0.7+Math.random()*0.4, ease:'power2.out', onComplete:()=>p.remove() });
+        }
+    };
+
+    // ─── موجة صوتية ───
+    const startWaveform = () => {
+        const wave = document.getElementById('waveform');
+        const line = document.getElementById('waveLine');
+        gsap.to(wave, { opacity: 1, duration: 1 });
+        let frame = 0;
+        const tick = () => {
+            frame++;
+            const pts = [];
+            for (let x = 0; x <= 1080; x += 12) {
+                const y = 50 + Math.sin((x/80) + frame*0.12) * (18 + Math.sin(frame*0.07)*12) +
+                               Math.sin((x/35) + frame*0.22) * 8;
+                pts.push(`${x},${y}`);
+            }
+            line.setAttribute('points', pts.join(' '));
+            requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    };
+
+    // ─── شريط التقدم السينمائي ───
+    const startProgress = (totalDur) => {
+        const bar = document.getElementById('cinemaBar');
+        const pulse = document.getElementById('cinemaPulse');
+        const progress = document.getElementById('cinemaProgress');
+        gsap.set(progress, { opacity: 1 });
+        pulse.style.display = 'block';
+        gsap.to(bar, { width: '100%', duration: totalDur, ease: 'none' });
+        // نبض يتبع الشريط
+        const updatePulse = () => {
+            const pct = parseFloat(bar.style.width || '0');
+            pulse.style.right = `${100 - pct}%`;
+            if (pct < 100) requestAnimationFrame(updatePulse);
+        };
+        requestAnimationFrame(updatePulse);
+    };
+
+    // ─── Vibration ───
+    const vibrate = (pattern) => { if (navigator.vibrate) navigator.vibrate(pattern); };
+
     /* لون شريط الحالة لكل مشهد */
     const STATUS_COLORS = { scene0: '#fff', scene1: '#fff', scene2: '#111', scene3: '#fff' };
     const switchScreen = (outId, inId) => {
@@ -1192,9 +1259,13 @@
         tl.timeScale(1.15);
         gsap.set('.subline', { y: 16 });
 
+        // ✨ شريط التقدم + الموجة الصوتية
+        startWaveform();
+        startProgress(55);
+
         // ── الافتتاحية الحماسية ──
         tl.set('#introCard', { visibility: 'visible', opacity: 1 })
-          .call(() => sfx.rise())
+          .call(() => { sfx.rise2(); vibrate([30, 50, 80]); })
           .fromTo('#introCard img', { opacity: 0, scale: 0.55, rotate: -8 }, { opacity: 1, scale: 1, rotate: 0, duration: 0.8, ease: 'back.out(1.4)' })
           .call(() => sfx.logo())
           .fromTo('#introCard .t0', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.3')
@@ -1209,15 +1280,8 @@
           .set('#phoneSlot', { opacity: 1 })
           .call(() => sfx.whoosh()) // صوت دخول الهاتف
           .from('.device-container', { rotateY: 26, rotateX: 9, y: 90, scale: 0.86, duration: 1.6, ease: 'expo.out' })
-          .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.4, ease: 'power3.inOut' }, '-=0.5')
-          .fromTo('#glareOverlay', { x: '-100%' }, { x: '100%', duration: 1.8, ease: 'power1.inOut' }, '-=1.2');
+          .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.4, ease: 'power3.inOut' }, '-=0.5');
         
-        // طفو مستمر خفيف مع انعكاس ضوئي
-        tl.call(() => {
-            gsap.to('.device-container', { y: '-=10', rotateX: '+=2', rotateY: '-=1.5', duration: 3.2, yoyo: true, repeat: -1, ease: 'sine.inOut' });
-            gsap.to('#glareOverlay', { x: '-15%', duration: 3.2, yoyo: true, repeat: -1, ease: 'sine.inOut' });
-        });
-
         // ── الفصل الأول: المشكلة ──
         tl.add(showText('#mt1'), '-=1.2');
         tl.to('#msg1', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.4')
@@ -1227,10 +1291,11 @@
         tl.to('#msg3', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(2)' }, '+=1.0')
           .call(() => sfx.pop(), null, '<');
 
-        // غضب: وميض أحمر + توهج أحمر للإطار
-        tl.call(() => sfx.tension(), null, '+=0.6')
+        // ✨ غضب: وميض أحمر + هزّة + flash
+        tl.call(() => { sfx.tension(); flashScreen('rgba(220,38,38,0.35)', 0.5); }, null, '+=0.6')
           .to('#redOverlay', { opacity: 1, duration: 0.5 }, '<')
           .call(() => deviceFrame.classList.add('glow-red'), null, '<')
+          .to('.device-container', { x: -8, duration: 0.05, yoyo: true, repeat: 7, ease: 'power2.inOut' }, '<')
           .to('.device-container', { scale: 0.97, duration: 0.4, yoyo: true, repeat: 1, ease: 'power2.inOut' }, '<');
 
         // ── الفصل الثاني: الحل (إشعار وجيز) ──
@@ -1240,9 +1305,12 @@
           .call(() => { document.getElementById('timeText').textContent = '09:41'; });
         tl.add(showText('#mt2'), '-=0.2');
 
-        tl.call(() => sfx.notify(), null, '+=0.5')
+        tl.call(() => { sfx.notify(); vibrate([20, 30, 50]); flashScreen('rgba(34,197,94,0.2)', 0.3); }, null, '+=0.5')
           .to('#pushNotif', { y: 0, opacity: 1, duration: 0.6, ease: 'elastic.out(1, 0.7)' }, '<')
-          .call(() => deviceFrame.classList.add('glow-green'), null, '<');
+          .call(() => deviceFrame.classList.add('glow-green'), null, '<')
+          .call(() => { // ✨ ثلاث نبضات ضوئية على الإشعار
+              gsap.to('#pushNotif', { boxShadow:'0 0 30px rgba(34,197,94,0.7)', duration:0.25, yoyo:true, repeat:3 });
+          }, null, '<0.3');
 
         tl.set(cursor, { x: 190, y: 690 })
           .to(cursor, { opacity: 1, duration: 0.3 });
@@ -1256,17 +1324,18 @@
           .call(() => sfx.swipeUp(), null, '<');
         tl.fromTo('#mapContainer',
             { scale: 0.4, x: 0, y: 0 },
-            { scale: 1.35, x: -170, y: -220, duration: 1.0, ease: 'power3.out' }, '-=0.3');
+            { scale: 0.95, x: -120, y: -80, duration: 1.0, ease: 'power3.out' }, '-=0.3');
         tl.add(showText('#mt3'), '-=0.5');
         tl.to(cursor, { opacity: 0, duration: 0.3 }, '<');
 
         // حركة المندوب على المسار + انزياح الخريطة معه
-        tl.to('#activeRoute', { strokeDashoffset: 0, duration: 5.5, ease: 'power2.inOut' }, '+=0.3');
-        tl.to('#activeRouteGlow', { strokeDashoffset: 0, duration: 5.5, ease: 'power2.inOut' }, '<');
-        tl.to('#driverMarker', { duration: 5.5, motionPath: { path: '#activeRoute', align: '#activeRoute', alignOrigin: [0.5, 0.5] }, ease: 'power2.inOut' }, '<');
-        tl.to('#mapContainer', { y: -1430, x: -640, duration: 5.5, ease: 'power2.inOut' }, '<');
+        tl.to('#activeRoute', { strokeDashoffset: 0, duration: 3.5, ease: 'power2.inOut' }, '+=0.3');
+        tl.to('#activeRouteGlow', { strokeDashoffset: 0, duration: 3.5, ease: 'power2.inOut' }, '<');
+        tl.to('#driverMarker', { duration: 3.5, motionPath: { path: '#activeRoute', align: '#activeRoute', alignOrigin: [0.5, 0.5] }, ease: 'power2.inOut' }, '<');
+        tl.to('#mapContainer', { y: -850, x: -450, duration: 3.5, ease: 'power2.inOut' }, '<');
+        // ✨ نبضات سونار + vibration خفيفة كل ثانية
         for (let i = 0; i < 6; i++) {
-            tl.call(() => sfx.sonar(), null, `<${i * 0.9}`);
+            tl.call(() => { sfx.sonar(); vibrate([5]); }, null, `<${i * 0.9}`);
         }
 
         // تحديثات الوقت والمسافة أثناء الرحلة
@@ -1283,15 +1352,17 @@
             gsap.to('.driver-icon-wrapper', { scale: 1.2, duration: 0.3, yoyo: true, repeat: 1 });
         }, null, '-=0.2');
 
-        tl.call(() => sfx.success(), null, '+=0.4')
+        tl.call(() => { sfx.success(); vibrate([100, 50, 200]); flashScreen('rgba(34,197,94,0.3)', 0.4); }, null, '+=0.4')
           .to('#successOverlay', { opacity: 1, duration: 0.6, ease: 'power2.out' }, '<')
           .fromTo('#successOverlay .success-check', { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.6, ease: 'back.out(2)' }, '<0.2')
           .call(() => {
-              // Confetti سحرية من منتصف الهاتف
+              // ✨ Confetti أكثر كثافة + burstParticles
               const rect = document.getElementById('deviceFrame').getBoundingClientRect();
               const cx = (rect.left + rect.width / 2) / window.innerWidth;
               const cy = (rect.top + rect.height / 2) / window.innerHeight;
-              confetti({ particleCount: 120, spread: 80, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
+              confetti({ particleCount: 220, spread: 90, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff', '#fbbf24'], zIndex: 3000, disableForReducedMotion: true });
+              setTimeout(() => confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0.2, y: cy }, colors: ['#F5A623', '#fff'], zIndex: 3000 }), 400);
+              setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 0.8, y: cy }, colors: ['#04553A', '#22c55e'], zIndex: 3000 }), 600);
           }, null, '<0.3');
         tl.add(hideText('#mt3'), '<');
         tl.add(showText('#mt4'), '+=0.2');
@@ -1315,10 +1386,16 @@
         // ── الخاتمة ──
         tl.add(hideText('#mt5'), '+=1.1');
         tl.to(cursor, { opacity: 0, duration: 0.3 }, '<');
-        tl.to('#phoneSlot', { opacity: 0, y: 60, duration: 0.7, ease: 'power2.in' }, '<')
+        // ✨ glitch + flash قبل الخاتمة
+        tl.call(() => { sfx.glitch(); flashScreen('white', 0.07); })
+          .to([], { duration: 0.06 })
+          .call(() => flashScreen('white', 0.05))
+          .to([], { duration: 0.04 })
+          .call(() => flashScreen('white', 0.04));
+        tl.to('#phoneSlot', { opacity: 0, y: 60, duration: 0.7, ease: 'power2.in' }, '<0.1')
           .to('.watermark', { opacity: 0, duration: 0.4 }, '<');
         tl.set('#endCard', { visibility: 'visible' })
-          .call(() => sfx.finale())
+          .call(() => { sfx.finale(); vibrate([50, 30, 50, 30, 150]); })
           .fromTo('#endCard', { opacity: 0 }, { opacity: 1, duration: 0.4 })
           .fromTo('.end-logo-card', { opacity: 0, scale: 0.9, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '<')
           .fromTo('.end-line', { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.65 }, '-=0.3')

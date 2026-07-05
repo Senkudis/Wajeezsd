@@ -17,9 +17,9 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="css/mobile-overrides.css">
-    <link rel="stylesheet" href="css/enhanced-styles.css?v=3.2">
+    <link rel="stylesheet" href="style.css?v=3.4">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=3.4">
+    <link rel="stylesheet" href="css/enhanced-styles.css?v=3.4">
     <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
     <script src="js/config.js"></script>
     <script src="js/city-service.js"></script>
@@ -189,7 +189,7 @@
             .signup-container {
                 padding: 1rem 0.5rem;
                 align-items: flex-start;
-                padding-top: max(1rem, env(safe-area-inset-top));
+                padding-top: max(1rem, var(--sat, env(safe-area-inset-top, 0px)));
             }
 
             .signup-box {
@@ -247,8 +247,8 @@
         /* PWA standalone mode - full-screen feel */
         @media all and (display-mode: standalone) {
             .signup-container {
-                padding-top: max(2rem, env(safe-area-inset-top));
-                padding-bottom: max(1rem, env(safe-area-inset-bottom));
+                padding-top: max(2rem, var(--sat, env(safe-area-inset-top, 0px)));
+                padding-bottom: max(1rem, var(--sab, env(safe-area-inset-bottom, 0px)));
             }
         }
     </style>
@@ -261,8 +261,7 @@
             <!-- Logo -->
             <div class="text-center mb-3">
                 <a href="index.html">
-                    <img src="logo-transparent.png" alt="شعار وجيز" height="60" class="app-logo"
-                        style="object-fit:contain;">
+                    <img src="logo-mark-white.png" alt="???? ????" height="80" style="object-fit:contain; background:#04553A; border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
                 </a>
             </div>
 

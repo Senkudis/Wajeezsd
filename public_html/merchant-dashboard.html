@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <script src="js/config.js"></script>
-    <script src="js/safe-area.js?v=3.3"></script>
+    <script src="js/safe-area.js?v=3.4"></script>
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
     <style>
@@ -251,7 +251,7 @@
 
     <!-- 🔗 Share Store Modal -->
     <div id="shareModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeShareModal()">
-        <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px 18px calc(env(safe-area-inset-bottom,0px) + 22px);box-shadow:0 -8px 40px rgba(0,0,0,0.25);">
+        <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px 18px calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 22px);box-shadow:0 -8px 40px rgba(0,0,0,0.25);">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h6 class="fw-bold mb-0"><i class="bi bi-share-fill text-success"></i> شارك رابط متجرك</h6>
                 <button class="btn btn-sm btn-light rounded-circle" style="width:32px;height:32px;padding:0;" onclick="closeShareModal()"><i class="bi bi-x-lg"></i></button>

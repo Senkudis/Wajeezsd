@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>طلب جديد | وجيز</title>
-    <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png?v=2">
 
     <!-- 🧹 FORCE CACHE CLEAR ON UPDATE -->
     <script>
@@ -98,7 +98,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=2">
 
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self' data: gap: content: 'unsafe-eval'; 
@@ -458,10 +458,10 @@
             background: linear-gradient(135deg, #0d9d63, #2fe07a);
         }
     </style>
-    <link rel="stylesheet" href="css/mobile-overrides.css">
-    <link rel="stylesheet" href="css/enhanced-styles.css?v=3.2">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=3.4">
+    <link rel="stylesheet" href="css/enhanced-styles.css?v=3.4">
     <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
-    <link rel="stylesheet" href="css/smart-search.css">
+    <link rel="stylesheet" href="css/smart-search.css?v=3.4">
 
 
 </head>
@@ -472,7 +472,7 @@
     <script>
         if (!sessionStorage.getItem('splashShown')) {
             document.write('<div class="app-splash" id="appSplash">' +
-                '<div class="splash-card"><img class="splash-logo" src="logo-transparent.png" alt="وجيز"></div>' +
+                '<img class="splash-logo" src="logo-white.png" alt="وجيز" style="width: 220px; height: auto; object-fit: contain; filter: drop-shadow(0 4px 15px rgba(0,0,0,0.3)); position: relative; z-index: 2;">' +
                 '<div class="splash-dots"><span></span><span></span><span></span></div>' +
                 '</div>');
         }
@@ -763,7 +763,7 @@
                  TOP BAR: Close button + Mode Label
             ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ -->
             <div
-                style="pointer-events:none;position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 8px;display:flex;align-items:center;gap:10px;">
+                style="pointer-events:none;position:absolute;top:0;left:0;right:0;padding:calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px) 16px 8px;display:flex;align-items:center;gap:10px;">
                 <button type="button" onclick="window.closeMapUI()"
                     style="pointer-events:auto;touch-action:manipulation;flex-shrink:0;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,0.18);font-size:1.2rem;color:#dc3545;cursor:pointer;display:flex;align-items:center;justify-content:center;">
                     <i class="bi bi-arrow-right"></i>
@@ -780,7 +780,7 @@
             </div>
 
             <!-- 🔍 Search Bar & Banner -->
-            <div style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 68px);left:16px;right:16px;z-index:100001;">
+            <div style="pointer-events:auto;position:absolute;top:calc(var(--sat, env(safe-area-inset-top, 0px)) + 68px);left:16px;right:16px;z-index:100001;">
                 <div style="position:relative;display:flex;align-items:center;">
                     <input type="text" id="map-search-input" placeholder="ابحث عن مكان أو عنوان..."
                         style="width:100%;padding:14px 48px 14px 16px;border:none;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:600;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.12);outline:none;direction:rtl;"
@@ -837,9 +837,9 @@
 
 
 
-                <!-- Day / Night toggle -->
+                <!-- Day / Night toggle (Hidden as requested) -->
                 <button type="button" id="map-theme-btn" onclick="toggleMapTheme()" title="تبديل الثيم"
-                    class="map-fab-btn" style="pointer-events:auto;touch-action:manipulation;">
+                    class="map-fab-btn" style="display:none; pointer-events:auto;touch-action:manipulation;">
                     <i class="bi bi-moon-stars-fill" id="map-theme-icon"></i>
                 </button>
 
@@ -854,7 +854,7 @@
                  BOTTOM CONFIRM BAR
             ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ -->
             <div
-                style="pointer-events:none;position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,rgba(255,255,255,0.98) 30%);">
+                style="pointer-events:none;position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + var(--sab, env(safe-area-inset-bottom, 0px)));background:linear-gradient(transparent,rgba(255,255,255,0.98) 30%);">
                 <div id="map-address-preview"
                     style="font-family:'Cairo',sans-serif;font-size:12.5px;font-weight:600;color:#04553A;text-align:center;margin-bottom:8px;min-height:18px;line-height:1.5;padding:0 6px;">
                     <span style="opacity:.55;">حرّك الخريطة لتحديد موقعك بدقة…</span>
@@ -913,7 +913,7 @@
     <div class="offcanvas offcanvas-start" tabindex="-1" id="sideMenu" aria-labelledby="sideMenuLabel"
         style="width: 80%;">
         <div class="offcanvas-header text-white"
-            style="background: linear-gradient(135deg, #04553A, #065f3a); padding-top: calc(16px + env(safe-area-inset-top, 0px));">
+            style="background: linear-gradient(135deg, #04553A, #065f3a); padding-top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));">
             <div class="d-flex align-items-center gap-2">
                 <img src="logo-white.png" height="44" class="app-logo logo-onbrand"
                     style="object-fit:contain;">
@@ -1074,7 +1074,7 @@
     <script type="module" src="js/app-core.js"></script>
     <script type="module" src="js/native-notifications.js"></script>
 
-    <script src="js/home.js"></script>
+    <script src="js/home.js?v=2.3"></script>
     <script src="js/order-feature.js?v=3.2"></script>
     <script src="js/smart-search.js"></script>
 

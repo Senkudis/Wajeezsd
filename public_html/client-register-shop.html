@@ -169,7 +169,7 @@
         .status-icon.rejected { background: #fee2e2; color: #dc2626; }
     </style>
     <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
-    <script src="js/safe-area.js?v=3.3"></script>
+    <script src="js/safe-area.js?v=3.4"></script>
 </head>
 <body>
 
@@ -337,7 +337,7 @@
         <div class="pin-marker"><i class="bi bi-geo-alt-fill"></i></div>
 
         <!-- Bottom Confirm Sheet -->
-        <div style="position:absolute; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px)); box-shadow:0 -8px 25px rgba(0,0,0,0.15); text-align:center;">
+        <div style="position:absolute; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; padding:20px 16px calc(20px + var(--sab, env(safe-area-inset-bottom, 0px))); box-shadow:0 -8px 25px rgba(0,0,0,0.15); text-align:center;">
             <div id="map-address-preview" style="font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#1e293b; margin-bottom:14px; min-height:22px;">
                 حرّك الخريطة لتحديد موقع المتجر
             </div>

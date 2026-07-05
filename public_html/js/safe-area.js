@@ -29,13 +29,15 @@
         document.head.appendChild(style);
     }
 
-    // env() لا تُقرأ مباشرة من JS — نقيسها عبر عنصر مخفي
+    // القيم لا تُقرأ مباشرة من JS — نقيسها عبر عنصر مخفي.
+    // var(--sat) أولاً: على أندرويد يحقنها الكود الأصلي (MainActivity) بالقيم
+    // الحقيقية لأن env() هناك تُرجع صفراً دائماً؛ وعلى iOS تسقط للـ env().
     function measureInsets() {
         var probe = document.createElement('div');
         probe.style.cssText =
             'position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;' +
-            'padding-top:env(safe-area-inset-top,0px);' +
-            'padding-bottom:env(safe-area-inset-bottom,0px);';
+            'padding-top:var(--sat, env(safe-area-inset-top, 0px));' +
+            'padding-bottom:var(--sab, env(safe-area-inset-bottom, 0px));';
         document.body.appendChild(probe);
         var cs = getComputedStyle(probe);
         var insets = {
@@ -47,12 +49,13 @@
     }
 
     // إضافة inset فوق الحشوة الأصلية — تحفظ الأساس في dataset حتى
-    // تعاد الحسبة بأمان عند تدوير الشاشة دون تراكم
+    // تعاد الحسبة بأمان عند تدوير الشاشة أو وصول قيم جديدة دون تراكم.
+    // لا نمسح أي inline style قبل القراءة: أول قراءة تتم قبل أن نلمس العنصر
+    // أصلاً (يحرسها dataset)، والمسح كان يُصفّر عناصر حشوتها inline.
     function padElement(el, side, inset) {
         var prop = side === 'top' ? 'paddingTop' : 'paddingBottom';
         var key = side === 'top' ? 'wjBasePt' : 'wjBasePb';
         if (el.dataset[key] === undefined) {
-            el.style[prop] = ''; // امسح أي قيمة سابقة منا قبل قراءة الأساس
             el.dataset[key] = parseFloat(getComputedStyle(el)[prop]) || 0;
         }
         el.style[prop] = (parseFloat(el.dataset[key]) + inset) + 'px';
@@ -101,6 +104,9 @@
     }
     // تتغيّر الـ insets عند تدوير الشاشة — أعد الحساب (الأساس محفوظ فلا تراكم)
     window.addEventListener('orientationchange', function () { setTimeout(setup, 300); });
+    // MainActivity يحقن القيم الحقيقية بعد تحميل الصفحة ويطلق هذا الحدث —
+    // أعد الحساب فوراً بالقيم الجديدة (قد يصل الحقن بعد DOMContentLoaded)
+    document.addEventListener('wj-safe-area', setup);
 
     // حقن مبكر للمتغيرات يقلل وميض القفزة قبل DOMContentLoaded
     injectVars();

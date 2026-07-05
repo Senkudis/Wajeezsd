@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3.4">
 
     <style>
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
@@ -53,7 +53,7 @@
 
         .back-btn {
             position: absolute;
-            top: calc(16px + env(safe-area-inset-top, 0px));
+            top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));
             right: 16px;
             z-index: 1001;
             width: 44px;
@@ -76,7 +76,7 @@
         /* Live Badge */
         .live-badge {
             position: absolute;
-            top: calc(16px + env(safe-area-inset-top, 0px));
+            top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));
             left: 16px;
             z-index: 1001;
             background: white;
@@ -105,7 +105,7 @@
         .tracking-card {
             background: white;
             border-radius: 24px 24px 0 0;
-            padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            padding: 0 16px calc(16px + var(--sab, env(safe-area-inset-bottom, 0px)));
             box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
         }
 
@@ -239,7 +239,7 @@
         .eta-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.3); }
     </style>
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=3.4">
     <script src="js/config.js"></script>
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>

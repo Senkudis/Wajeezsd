@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <script src="js/config.js"></script>
-    <script src="js/safe-area.js?v=3.3"></script>
+    <script src="js/safe-area.js?v=3.4"></script>
     <script src="js/fetch-retry.js"></script>
     <script src="js/auth-helper.js"></script>
     <style>
@@ -24,7 +24,7 @@
         /* ── الهيدر ── */
         .page-header {
             background: #fff; color: var(--ink);
-            padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 0;
+            padding: calc(var(--sat, env(safe-area-inset-top, 0px)) + 14px) 16px 0;
             position: sticky; top: 0; z-index: 100;
             border-bottom: 1px solid var(--line);
             box-shadow: 0 2px 12px rgba(15,23,42,0.05);
@@ -213,7 +213,7 @@
             background: #fff; border-top: 1px solid var(--line);
             display: flex; z-index: 1000;
             box-shadow: 0 -4px 20px rgba(15,23,42,0.07);
-            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px));
         }
         .merchant-nav a {
             flex: 1; display: flex; flex-direction: column; align-items: center;

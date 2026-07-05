@@ -9,7 +9,7 @@
     --sal: env(safe-area-inset-left);
     --sar: env(safe-area-inset-right);
     /* Height of the bottom nav + safe area — used for modal padding fixes */
-    --nav-height: calc(72px + env(safe-area-inset-bottom, 0px));
+    --nav-height: calc(72px + var(--sab, env(safe-area-inset-bottom, 0px)));
 }
 
 /* 1. منع تحديد النصوص والصور (تجربة App-like) */
