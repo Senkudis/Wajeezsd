@@ -9,7 +9,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
     <script src="js/config.js?v=2.2"></script>
-    <script src="js/safe-area.js?v=2.2"></script>
+    <script src="js/safe-area.js?v=3.3"></script>
     <script src="js/fetch-retry.js?v=2.2"></script>
     <script src="js/auth-helper.js?v=2.2"></script>
     <style>
@@ -1754,9 +1754,13 @@
         </div>
     </div>
     
-    <!-- Center Pin -->
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;z-index:99;margin-top:-12px;">
-        <i class="bi bi-geo-alt-fill text-danger drop-shadow" style="font-size:3rem; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4));"></i>
+    <!-- Center Pin — green teardrop matching app brand -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;z-index:99;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52" style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35));">
+            <path d="M20 2C11.16 2 4 9.16 4 18c0 10.5 16 32 16 32S36 28.5 36 18C36 9.16 28.84 2 20 2z" fill="#04553A"/>
+            <circle cx="20" cy="18" r="7" fill="white" opacity="0.9"/>
+            <circle cx="20" cy="18" r="4" fill="#04553A"/>
+        </svg>
     </div>
 </div>
 
