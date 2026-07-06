@@ -509,8 +509,8 @@
             </div>
             <div class="mtext" id="mt3">
                 <div class="accent"></div>
-                <div class="headline">راجع سلتك وأكمل <span class="hl">الطلب بثقة</span></div>
-                <div class="subline">الدفع عند الاستلام — بدون بطاقة بنكية</div>
+                <div class="headline">راجع سلتك وحدد <span class="hl">التوصيل</span></div>
+                <div class="subline">مبلغ البضاعة للمتجر، وسعر التوصيل كاش للكابتن عند الاستلام</div>
             </div>
             <div class="mtext" id="mt4">
                 <div class="accent"></div>
@@ -546,21 +546,6 @@
     <div class="card border-0 shadow-sm rounded-4 mb-3 position-relative overflow-hidden" id="merchant1" style="background:white;">
       <div class="row g-0 align-items-center">
         <div class="col-3 p-2">
-          <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200" class="img-fluid rounded-3 object-fit-cover" style="height: 70px; width: 100%;">
-        </div>
-        <div class="col-9 p-2 ps-3">
-          <div class="d-flex justify-content-between align-items-start">
-            <h6 class="fw-bold mb-1 text-dark">مطعم مشاوي العمدة</h6>
-            <span class="badge bg-success-subtle text-success rounded-pill px-2">مفتوح</span>
-          </div>
-          <p class="text-muted small mb-0"><i class="bi bi-star-fill text-warning me-1"></i>4.8 (120 تقييم) • توصيل: 1500 ج.س</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-4 mb-3 position-relative overflow-hidden" id="merchant2" style="background:white;">
-      <div class="row g-0 align-items-center">
-        <div class="col-3 p-2">
           <img src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e08?w=200" class="img-fluid rounded-3 object-fit-cover" style="height: 70px; width: 100%;">
         </div>
         <div class="col-9 p-2 ps-3">
@@ -568,27 +553,28 @@
             <h6 class="fw-bold mb-1 text-dark">بوتيك لمسة</h6>
             <span class="badge bg-success-subtle text-success rounded-pill px-2">مفتوح</span>
           </div>
-          <p class="text-muted small mb-0"><i class="bi bi-star-fill text-warning me-1"></i>4.5 (85 تقييم) • توصيل: 1000 ج.س</p>
+          <p class="text-muted small mb-0"><i class="bi bi-star-fill text-warning me-1"></i>4.8 (120 تقييم) • ملابس وأحذية</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-3 position-relative overflow-hidden" id="merchant2" style="background:white;">
+      <div class="row g-0 align-items-center">
+        <div class="col-3 p-2">
+          <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200" class="img-fluid rounded-3 object-fit-cover" style="height: 70px; width: 100%;">
+        </div>
+        <div class="col-9 p-2 ps-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <h6 class="fw-bold mb-1 text-dark">مطعم مشاوي العمدة</h6>
+            <span class="badge bg-success-subtle text-success rounded-pill px-2">مفتوح</span>
+          </div>
+          <p class="text-muted small mb-0"><i class="bi bi-star-fill text-warning me-1"></i>4.5 (85 تقييم) • مطاعم ووجبات</p>
         </div>
       </div>
     </div>
 
   </div>
 </div>
-                                    <i class="bi bi-chevron-left merchant-arrow"></i>
-                                </div>
-                                <div class="merchant-item" id="merchant2">
-                                    <div class="merchant-icon" style="background:#ede9fe">👗</div>
-                                    <div><div class="merchant-name">بوتيك لمسة</div><div class="merchant-desc">ملابس • 15 منتج</div></div>
-                                    <i class="bi bi-chevron-left merchant-arrow"></i>
-                                </div>
-                                <div class="merchant-item" id="merchant3">
-                                    <div class="merchant-icon" style="background:#dcfce7">🥗</div>
-                                    <div><div class="merchant-name">صحة وعافية</div><div class="merchant-desc">عصائر طازجة • مفتوح</div></div>
-                                    <i class="bi bi-chevron-left merchant-arrow"></i>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- مشهد 1: صفحة المتجر -->
@@ -670,9 +656,9 @@
                         </div>
                     </div>
 
-                    <!-- مشهد 2: سلة المشتريات -->
+                    <!-- مشهد 2: تأكيد الطلب -->
                     <div id="scene2" class="screen cart-screen">
-                        <div class="cart-header">🛒 سلة المشتريات</div>
+                        <div class="cart-header">تأكيد الطلب</div>
                         <div class="cart-item">
                             <img class="cart-img" src="https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=150&q=80" alt="">
                             <div>
@@ -685,11 +671,21 @@
                                 <button class="qty-btn">+</button>
                             </div>
                         </div>
-                        <div class="cart-total">
-                            <span>الإجمالي</span>
-                            <span style="color:#04553A;">25,000 ج.س</span>
+                        <div style="padding:12px 14px;">
+                            <div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:6px;">
+                                <span>مبلغ البضاعة</span><span style="font-weight:800;">25,000 ج.س</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:8px;">
+                                <span>سعر التوصيل <small style="color:#94a3b8;">(قابل للتفاوض)</small></span><span style="font-weight:800;">1,500 ج.س</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;border-top:2px solid #f1f5f9;padding-top:8px;">
+                                <span>الإجمالي</span><span style="color:#04553A;">26,500 ج.س</span>
+                            </div>
                         </div>
-                        <button class="checkout-btn" id="btnShopCheckout">إتمام الطلب والدفع عند الاستلام</button>
+                        <div style="margin:0 14px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:9px 11px;font-size:10.5px;line-height:1.7;color:#92400e;">
+                            مبلغ البضاعة يُحوَّل للمتجر مع إشعار الدفع، وسعر التوصيل يُدفع كاش للكابتن عند الاستلام.
+                        </div>
+                        <button class="checkout-btn" id="btnShopCheckout">إرسال الطلب للمتجر</button>
                     </div>
 
                     <!-- مشهد 3: تتبع الطلب -->

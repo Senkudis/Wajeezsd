@@ -487,17 +487,17 @@
         <div class="text-band">
             <div class="mtext" id="mt1">
                 <div class="accent"></div>
-                <div class="headline">تواصل مع <span class="hl">فريق وجيز</span> عبر واتساب</div>
-                <div class="subline">تواصل سريع وسهل — ردنا فوري في أوقات الدوام</div>
+                <div class="headline">افتح <span class="hl">"انضم كتاجر"</span> داخل التطبيق</div>
+                <div class="subline">كل خطوات التسجيل داخل تطبيق وجيز — بدون أي وسيط</div>
             </div>
             <div class="mtext" id="mt2">
                 <div class="accent"></div>
-                <div class="headline">سجّل <span class="hl">بيانات متجرك</span> وانتظر التفعيل</div>
-                <div class="subline">سيتم مراجعة طلبك وتفعيل متجرك خلال 24 ساعة</div>
+                <div class="headline">املأ <span class="hl">بيانات متجرك</span> وأرسل الطلب</div>
+                <div class="subline">بيانات المتجر وموقعه، حسابك البنكي، وإثبات هويتك</div>
             </div>
             <div class="mtext" id="mt3">
                 <div class="accent"></div>
-                <div class="headline">بعد التفعيل — اشرح <span class="hl">لوحة التاجر</span></div>
+                <div class="headline">بعد الموافقة — <span class="hl">لوحة تاجر</span> متكاملة</div>
                 <div class="subline">تحكم كامل في منتجاتك وطلباتك وإحصائياتك</div>
             </div>
             <div class="mtext" id="mt4">
@@ -523,54 +523,68 @@
                         <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
                     </div>
 
-                    <!-- مشهد 0: واتساب -->
-                    <div id="scene0" class="screen active whatsapp-bg">
-                        <div class="chat-header">
-                            <i class="bi bi-arrow-left"></i>
-                            <div class="wa-avatar">و</div>
-                            <div>
-                                <div class="name">وجيز — دعم التجار</div>
-                                <div class="online">متصل الآن</div>
-                            </div>
+                    <!-- مشهد 0: بوابة الانضمام داخل التطبيق -->
+                    <div id="scene0" class="screen active reg-screen">
+                        <div class="reg-header">
+                            <div class="reg-title">انضم كتاجر في وجيز</div>
+                            <div class="reg-sub">افتح متجرك واعرض منتجاتك أمام آلاف العملاء</div>
                         </div>
-                        <div class="chat-container">
-                            <div class="bubble sent" id="msgReg1">
-                                مرحبا، عايز أسجل متجري في وجيز
-                                <span class="time">9:41 <i class="bi bi-check2-all text-primary"></i></span>
+                        <div style="padding:22px 18px;display:flex;flex-direction:column;gap:13px;">
+                            <div style="width:74px;height:74px;border-radius:22px;background:linear-gradient(135deg,#04553A,#077a54);display:flex;align-items:center;justify-content:center;margin:6px auto 2px;box-shadow:0 8px 20px rgba(4,85,58,0.3);">
+                                <i class="bi bi-shop" style="font-size:34px;color:white;"></i>
                             </div>
-                            <div class="bubble received" id="msgReg2">
-                                أهلاً! كيلك يتفضل يملّي البيانات دي: اسمك، اسم المتجر، العنوان، رقم التليفون
-                                <span class="time">9:42</span>
+                            <div style="text-align:center;font-weight:800;font-size:16px;color:#0f172a;">سجّل متجرك في دقائق</div>
+                            <div style="display:flex;align-items:center;gap:9px;background:#f8fafc;border:1px solid #eef1f4;border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:700;color:#334155;">
+                                <i class="bi bi-check-circle-fill text-success"></i> بيانات المتجر وموقعه على الخريطة
                             </div>
+                            <div style="display:flex;align-items:center;gap:9px;background:#f8fafc;border:1px solid #eef1f4;border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:700;color:#334155;">
+                                <i class="bi bi-check-circle-fill text-success"></i> حساب بنكي لاستلام أرباحك
+                            </div>
+                            <div style="display:flex;align-items:center;gap:9px;background:#f8fafc;border:1px solid #eef1f4;border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:700;color:#334155;">
+                                <i class="bi bi-check-circle-fill text-success"></i> شعار المتجر وإثبات هوية المالك
+                            </div>
+                            <button id="btnStartReg" style="margin-top:6px;background:linear-gradient(135deg,#04553A,#077a54);color:white;border:none;padding:13px;border-radius:12px;font-weight:800;font-size:15px;font-family:inherit;">ابدأ تسجيل متجرك</button>
                         </div>
                     </div>
 
-                    <!-- مشهد 1: فورم التسجيل -->
+                    <!-- مشهد 1: فورم التسجيل داخل التطبيق -->
                     <div id="scene1" class="screen reg-screen">
                         <div class="bg-light min-vh-100 pt-5">
   <div class="bg-success text-white p-3 pt-5 fixed-top text-center" style="background: linear-gradient(135deg,#04553A,#077a54) !important;">
-    <h5 class="fw-bold mb-0">تسجيل متجر جديد</h5>
+    <h5 class="fw-bold mb-0">بيانات المتجر</h5>
   </div>
-  <div class="p-4 mt-5">
-    <div class="card border-0 shadow-sm rounded-4 p-4">
-      <div class="text-center mb-4">
-        <i class="bi bi-shop text-success" style="font-size: 3rem;"></i>
-        <h5 class="fw-bold text-dark mt-2">انضم كشريك لوجيز</h5>
-      </div>
-      <div class="form-floating mb-3">
-        <input type="text" class="form-control bg-light border-0" value="أحمد علي" readonly>
-        <label>الاسم الكامل</label>
-      </div>
-      <div class="form-floating mb-3">
+  <div class="p-3 mt-5">
+    <div class="card border-0 shadow-sm rounded-4 p-3">
+      <div class="form-floating mb-2">
         <input type="text" class="form-control bg-light border-0" value="مطعم الأصدقاء" readonly>
-        <label>اسم المتجر</label>
+        <label>الاسم التجاري للمتجر</label>
       </div>
-      <div class="form-floating mb-3">
-        <input type="text" class="form-control bg-light border-0 fw-bold text-primary" value="أم درمان - شارع النص" id="regAddress" readonly>
-        <label>العنوان</label>
+      <div class="form-floating mb-2">
+        <input type="text" class="form-control bg-light border-0" value="مطاعم ووجبات" readonly>
+        <label>تصنيف المتجر</label>
       </div>
-      <button class="btn btn-success w-100 py-3 rounded-4 fw-bold shadow-sm mt-2" id="btnRegSubmit" style="background: linear-gradient(135deg,#04553A,#077a54) !important; border:none; font-size:1.1rem;">
-        إرسال الطلب
+      <div class="d-flex align-items-center gap-2 bg-light rounded-3 px-3 py-2 mb-2" style="border:1px solid #e2e8f0;">
+        <i class="bi bi-geo-alt-fill text-danger"></i>
+        <span class="fw-bold" style="font-size:13px;color:#0f172a;">تم تحديد موقع المتجر على الخريطة</span>
+        <i class="bi bi-check-circle-fill text-success ms-auto"></i>
+      </div>
+      <div class="form-floating mb-2">
+        <input type="text" class="form-control bg-light border-0" value="بنك الخرطوم — 1234567" readonly>
+        <label>الحساب البنكي لاستلام الأرباح</label>
+      </div>
+      <div class="d-flex gap-2 mb-2">
+        <div class="flex-fill d-flex align-items-center justify-content-center gap-2 bg-light rounded-3 py-2" style="border:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#334155;">
+          <i class="bi bi-image text-success"></i> شعار المتجر
+        </div>
+        <div class="flex-fill d-flex align-items-center justify-content-center gap-2 bg-light rounded-3 py-2" style="border:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#334155;">
+          <i class="bi bi-person-vcard text-success"></i> إثبات الهوية
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2 mb-3" style="font-size:11.5px;color:#475569;">
+        <i class="bi bi-check-square-fill text-success"></i> أوافق على سياسات وشروط التجار
+      </div>
+      <button class="btn btn-success w-100 py-3 rounded-4 fw-bold shadow-sm" id="btnRegSubmit" style="background: linear-gradient(135deg,#04553A,#077a54) !important; border:none; font-size:1.05rem;">
+        إرسال طلب الانضمام
       </button>
     </div>
   </div>
@@ -610,7 +624,7 @@
 
                     <!-- مشهد 3: الطلبات الواردة -->
                     <div id="scene3" class="screen orders-screen">
-                        <div class="orders-header">الطلبات الواردة 🔔</div>
+                        <div class="orders-header">الطلبات الواردة</div>
                         <div style="padding:14px 0">
                             <div class="order-item">
                                 <div class="order-badge new"></div>
@@ -1015,15 +1029,11 @@
           .to('.device-container', { rotateY: 0, rotateX: 0, scale: 1, duration: 1.4, ease: 'power3.inOut' }, '-=0.5')
           .set(cursor, { x: 190, y: 690, opacity: 1 });
 
-        // ── مشهد 0: واتساب ──
+        // ── مشهد 0: بوابة الانضمام داخل التطبيق ──
         tl.add(showText('#mt1'), '-=1.2');
-        // رسالة المستخدم تظهر
-        tl.to('#msgReg1', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.7)' }, '+=0.5')
-          .call(() => sfx.pop(), null, '<');
-        // الرد يظهر بعد لحظة
-        tl.to([], { duration: 1.0 });
-        tl.to('#msgReg2', { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.5)' })
-          .call(() => sfx.notification(), null, '<');
+        tl.add(moveCursor('btnStartReg', 1.2), '+=0.9')
+          .add(clickCursor('btnStartReg'));
+        tl.call(() => { flashScreen('#22c55e', 0.15); vibrate([10, 20, 50]); });
 
         // ── مشهد 1: فورم التسجيل ──
         tl.add(hideText('#mt1'));
@@ -1038,8 +1048,8 @@
             flashScreen('#04553A', 0.18);
             Swal.fire({
                 icon: 'success',
-                title: 'تم إرسال طلب التسجيل!',
-                html: `سنراجع بياناتك وسيتم تفعيل متجرك خلال 24 ساعة.<br><small class="text-muted mt-2 d-block">ستصلك رسالة واتساب عند التفعيل</small>`,
+                title: 'تم إرسال طلب الانضمام!',
+                html: `طلبك الآن قيد المراجعة، ونفعّل متجرك فور الموافقة.<br><small class="text-muted mt-2 d-block">سيصلك إشعار داخل التطبيق عند التفعيل</small>`,
                 confirmButtonText: 'شكراً!',
                 confirmButtonColor: '#04553A',
                 allowOutsideClick: false,
