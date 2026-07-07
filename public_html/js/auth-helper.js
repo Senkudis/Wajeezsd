@@ -35,6 +35,14 @@ const Auth = {
                 localStorage.setItem('userName', user.name);
             }
         }
+
+        // 🔔 توكن FCM مرتبط بالجهاز لا بالحساب — عند تسجيل دخول حساب (قد يكون مختلفاً على
+        // نفس الهاتف) يجب إعادة مزامنة التوكن مع هذا الحساب. نمسح علامتي المزامنة والتهدئة
+        // حتى تُنفّذ الصفحة التالية مزامنة نظيفة عبر NativeNotifications.updateServerToken.
+        try {
+            localStorage.removeItem('fcmToken_synced');
+            localStorage.removeItem('fcmToken_lastAttempt');
+        } catch (_) {}
     },
 
     /**
@@ -155,6 +163,10 @@ const Auth = {
         localStorage.removeItem('captainName');
         localStorage.removeItem('role');
         localStorage.removeItem('userPhone');
+        // 🔔 امسح علامتي مزامنة FCM حتى يُعاد ربط توكن الجهاز بالحساب التالي الذي يسجّل الدخول.
+        // (لا نمسح 'fcmToken' نفسه — فهو توكن الجهاز ويُسرّع المزامنة عند الدخول التالي.)
+        localStorage.removeItem('fcmToken_synced');
+        localStorage.removeItem('fcmToken_lastAttempt');
 
         // ✅ تنظيف الكاش المحلي (cache-manager)
         Object.keys(localStorage).forEach(k => {

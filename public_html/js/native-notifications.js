@@ -225,10 +225,21 @@ const NativeNotifications = {
     },
 
     updateServerToken: async (fcmToken) => {
-        // ✅ Guard 1: تجاهل إن كان نفس التوكن أُرسل بنجاح من قبل
+        // ✅ Guard 1: تجاهل إن كان نفس التوكن أُرسل بنجاح لنفس الحساب من قبل.
+        // 🔑 حرج: توكن FCM مرتبط بالجهاز لا بالحساب. عند تبديل الحسابات على نفس الهاتف
+        // (عميل ← كابتن ← تاجر ← أدمن أثناء الاختبار) كان الحارس القديم يقارن بالتوكن فقط
+        // فيتخطى المزامنة، فلا يُكتب fcmToken للحساب الجديد في القاعدة → لا تصله إشعارات push.
+        // الحل: نربط علامة "تمت المزامنة" بمعرّف المستخدم الحالي أيضاً.
+        let currentUserId = '';
+        try {
+            currentUserId = (window.Auth && window.Auth.getUser && (window.Auth.getUser() || {})._id)
+                || localStorage.getItem('userId') || '';
+        } catch (_) {}
+        const syncKey = `${currentUserId}:${fcmToken}`;
+
         const lastSynced = localStorage.getItem('fcmToken_synced');
-        if (lastSynced === fcmToken) {
-            console.log('🔁 FCM token unchanged — skipping duplicate sync');
+        if (lastSynced === syncKey) {
+            console.log('🔁 FCM token already synced for this account — skipping');
             return;
         }
 
@@ -271,8 +282,9 @@ const NativeNotifications = {
 
             if (res.ok) {
                 console.log('✅ FCM Token Synced with Server');
-                // ✅ سجّل التوكن الناجح حتى لا نُعيد إرساله في الصفحات التالية
-                localStorage.setItem('fcmToken_synced', fcmToken);
+                // ✅ سجّل النجاح مربوطاً بالحساب الحالي حتى لا نُعيد إرساله بلا داعٍ في نفس الجلسة،
+                // مع ضمان إعادة المزامنة تلقائياً عند تبديل الحساب (المفتاح يتضمن userId).
+                localStorage.setItem('fcmToken_synced', syncKey);
             } else {
                 const errText = await res.text().catch(() => '');
                 console.warn('⚠️ Failed to sync FCM token:', res.status, errText);

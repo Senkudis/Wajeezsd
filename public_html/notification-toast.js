@@ -204,8 +204,12 @@ const initNotificationSocket = (userId) => {
             path: '/socket.io', // المسار القياسي
             transports: ['polling', 'websocket'], // polling أولاً لتوافق cPanel/Passenger
             reconnection: true,
-            reconnectionAttempts: 5,         // ✅ حد أقصى لمحاولات إعادة الاتصال
-            reconnectionDelay: 2000,         // ✅ انتظر ثانيتين بين المحاولات
+            // ⚠️ كان الحد 5 محاولات: على الموبايل (تبديل شبكة/دخول الخلفية) كان السوكت
+            // يموت نهائياً بعد انقطاعات قليلة فتتوقف إشعارات داخل التطبيق بصمت لحد إعادة التحميل.
+            // نجعلها لا نهائية مع مهلة تصاعدية بحد أقصى حتى يبقى الاتصال حياً طوال الجلسة.
+            reconnectionAttempts: Infinity,  // ✅ استمر بالمحاولة — لا تستسلم
+            reconnectionDelay: 2000,         // ✅ ابدأ بثانيتين بين المحاولات
+            reconnectionDelayMax: 15000,     // ✅ حد أقصى للتأخّر التصاعدي
             timeout: 10000
         });
 
