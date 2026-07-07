@@ -579,22 +579,20 @@
 
                     <!-- مشهد 1: صفحة المتجر -->
                     <div id="scene1" class="screen store-screen">
-                        <div class="browser-bar">
-                            <div class="url-pill">
-                                <i class="bi bi-lock-fill"></i>
-                                <span><span class="u-domain">wajeezsd.com</span><span class="u-path">/s/boutique</span></span>
-                            </div>
-                            <i class="bi bi-arrow-clockwise"></i>
-                            <i class="bi bi-three-dots-vertical"></i>
-                            <div class="browser-progress" id="browserProgress"></div>
-                        </div>
-                        <div class="shop-hero">
+                        <div class="shop-hero" style="height:172px;">
                             <div class="shop-info-overlay">
                                 <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="bi bi-arrow-right text-white" style="font-size:1.15rem;"></i>
                                     <span class="open-badge"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-left:4px;"></span>مفتوح</span>
                                 </div>
                                 <h2 class="fw-bold mb-0" style="font-size:1.35rem;">بوتيك لمسة</h2>
                                 <div class="text-white-50" style="font-size:12px;">الخرطوم — العمارات</div>
+                            </div>
+                        </div>
+                        <div style="padding:9px 12px 4px;">
+                            <div style="position:relative;">
+                                <i class="bi bi-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:12px;"></i>
+                                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:9px 34px 9px 12px;font-size:12px;color:#9ca3af;">ابحث في منتجات هذا المتجر...</div>
                             </div>
                         </div>
                         <div class="cat-tabs">
@@ -1036,7 +1034,7 @@
         if (navigator.vibrate) navigator.vibrate(pattern);
     };
 
-    const STATUS_COLORS = { scene0: '#fff', scene1: '#202124', scene2: '#fff', scene3: '#fff' };
+    const STATUS_COLORS = { scene0: '#fff', scene1: '#fff', scene2: '#fff', scene3: '#111' };
     const switchScreen = (outId, inId) => {
         const tl = gsap.timeline();
         tl.call(() => sfx.whoosh())
@@ -1108,9 +1106,7 @@
         tl.add(hideText('#mt1'));
         tl.call(() => { sfx.wooshDeep(); flashScreen('rgba(0,0,0,0.4)', 0.2); });
         tl.add(switchScreen('scene0', 'scene1'), '<');
-        tl.fromTo('#browserProgress', { width: '0%' }, { width: '100%', duration: 0.8, ease: 'power2.out' })
-          .to('#browserProgress', { opacity: 0, duration: 0.25 });
-        tl.add(showText('#mt2'), '-=0.5');
+        tl.add(showText('#mt2'), '-=0.2');
 
         tl.to('#product1', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.4')
           .to('#product2', { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.35')
