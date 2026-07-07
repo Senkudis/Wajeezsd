@@ -369,3 +369,27 @@ if (document.readyState === 'loading') {
 // تصدير الدوال للاستخدام العام
 window.showToast = showToast;
 window.initNotificationSocket = initNotificationSocket;
+
+// 🔔 تهيئة تلقائية لسوكت الإشعارات على أي صفحة تُحمِّل هذا الملف —
+// حتى تعمل تنبيهات "التطبيق مفتوح" (toast + صوت) في كل مكان يتصفّحه المستخدم،
+// لا فقط الصفحات التي تستدعي initNotificationSocket يدوياً (كان client-order وغيرها
+// تُحمّل الملف لكن لا تُشغّل السوكت أبداً → لا تنبيه أثناء فتح التطبيق).
+// آمنة: initNotificationSocket فيها حارس Singleton فلا تُنشئ اتصالاً مكرراً.
+(function autoInitNotificationSocket() {
+    function _tryInit() {
+        try {
+            const token = (window.Auth && window.Auth.getToken && window.Auth.getToken())
+                || localStorage.getItem('token') || localStorage.getItem('adminToken');
+            if (!token) return;
+            let uid = '';
+            try { uid = (window.Auth && window.Auth.getUser && (window.Auth.getUser() || {})._id) || ''; } catch (_) {}
+            uid = uid || localStorage.getItem('userId') || '';
+            if (uid) initNotificationSocket(uid); // يتحقق داخلياً من توفّر io
+        } catch (_) { /* غير حرج */ }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _tryInit);
+    } else {
+        _tryInit();
+    }
+})();
