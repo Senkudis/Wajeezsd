@@ -543,6 +543,15 @@
             document.getElementById('shopRatingText').textContent = `${avg > 0 ? avg : 'جديد'} (${cnt} تقييم)`;
             document.getElementById('shopViewsEl').textContent = `• شوهد ${views.toLocaleString('ar-EG')} مرة`;
             ratingBar.style.display = 'flex';
+            // ⭐ اجعل شريط التقييم قابلاً للنقر لعرض آراء العملاء (إن وُجدت)
+            if (cnt > 0) {
+                ratingBar.style.cursor = 'pointer';
+                ratingBar.onclick = openReviews;
+                if (!document.getElementById('reviewsHint')) {
+                    ratingBar.insertAdjacentHTML('beforeend',
+                        '<span id="reviewsHint" style="color:#93c5fd;font-size:11px;font-weight:700;text-decoration:underline;">عرض الآراء</span>');
+                }
+            }
 
             document.getElementById('productsGrid').innerHTML = '';
             renderProducts(allProducts);
@@ -1696,7 +1705,62 @@
             }
         });
     }
+
+    // ⭐ آراء العملاء — ورقة سفلية تُحمَّل عند أول فتح
+    let _reviewsLoaded = false;
+    window.openReviews = async function () {
+        const sheet = document.getElementById('reviewsSheet');
+        sheet.style.display = 'flex';
+        if (_reviewsLoaded) return;
+        const body = document.getElementById('reviewsBody');
+        body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-success"></div></div>';
+        try {
+            const res = await fetch(`${API_URL}/api/places/${placeId}/reviews?limit=30`);
+            const d = await res.json();
+            _reviewsLoaded = true;
+            const avg = d.ratingAvg || 0, cnt = d.ratingCount || 0;
+            const stars = (n) => { let s = ''; for (let i = 1; i <= 5; i++) s += `<i class="bi bi-star${i <= Math.round(n) ? '-fill' : ''}"></i>`; return s; };
+            const header = `<div class="text-center mb-3">
+                <div style="font-size:2rem;font-weight:900;color:#1e293b;">${avg > 0 ? avg : '—'}</div>
+                <div style="color:#f59e0b;font-size:18px;">${stars(avg)}</div>
+                <div class="text-muted small mt-1">${cnt} تقييم</div></div>`;
+            const withComments = (d.reviews || []).filter(r => r.comment && r.comment.trim());
+            if (!withComments.length) {
+                body.innerHTML = header + '<div class="text-muted text-center py-3 small">لا توجد آراء مكتوبة بعد — كن أول من يشارك رأيه بعد طلبك!</div>';
+                return;
+            }
+            const list = withComments.map(r => {
+                const when = new Date(r.createdAt).toLocaleDateString('ar-SD', { year: 'numeric', month: 'short', day: 'numeric' });
+                const name = (r.client && r.client.name) ? escapeHtml(r.client.name) : 'عميل';
+                return `<div style="border-bottom:1px solid #f1f5f9;padding:12px 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold" style="font-size:14px;">${name}</span>
+                        <span style="color:#f59e0b;font-size:13px;">${stars(r.score)}</span>
+                    </div>
+                    <div style="font-size:13px;color:#475569;margin-top:4px;">${escapeHtml(r.comment)}</div>
+                    <div class="text-muted" style="font-size:11px;margin-top:3px;">${when}</div>
+                </div>`;
+            }).join('');
+            body.innerHTML = header + list;
+        } catch (e) {
+            body.innerHTML = '<div class="text-danger text-center py-3">تعذّر تحميل الآراء</div>';
+        }
+    };
+    window.closeReviews = function () { document.getElementById('reviewsSheet').style.display = 'none'; };
 </script>
+
+<!-- ⭐ Reviews bottom sheet -->
+<div id="reviewsSheet" style="display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeReviews()">
+    <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;padding:18px 18px calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 18px);box-shadow:0 -8px 40px rgba(0,0,0,0.25);">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="fw-bold mb-0"><i class="bi bi-star-fill text-warning"></i> آراء العملاء</h6>
+            <button class="btn btn-sm btn-light rounded-circle" style="width:32px;height:32px;padding:0;" onclick="closeReviews()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div id="reviewsBody" style="overflow-y:auto;">
+            <div class="text-center py-4"><div class="spinner-border text-success"></div></div>
+        </div>
+    </div>
+</div>
 
 <!-- 🗺️ Map Container (Hidden by default) -->
 <div id="static-map-container" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647; overflow: hidden; background: #e0f2eb;">
