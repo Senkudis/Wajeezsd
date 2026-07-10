@@ -75,7 +75,7 @@
             <i class="bi bi-arrow-right"></i>
         </a>
         <div class="flex-grow-1">
-            <h5 class="fw-bold mb-0">نقطة البيع</h5>
+            <h5 class="fw-bold mb-0">نقطة البيع <i class="bi bi-question-circle" onclick="showPosHelp()" style="font-size:0.95rem;cursor:pointer;opacity:0.8;"></i></h5>
             <small class="text-white-50" id="todayStats">جاري التحميل...</small>
         </div>
         <button class="btn btn-sm btn-outline-light rounded-3 fw-bold" onclick="showSalesLog()" style="font-size:12px;">
@@ -85,6 +85,23 @@
 </div>
 
 <div class="container-fluid px-3 pt-3">
+    <!-- 💡 شرح نقطة البيع — يظهر مرة واحدة، ويمكن إعادته من زر (؟) بجانب العنوان -->
+    <div id="posExplainer" class="mb-3" style="display:none;">
+        <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fde68a;border-radius:14px;padding:14px 16px;position:relative;">
+            <button onclick="dismissPosHelp()" style="position:absolute;top:8px;left:10px;background:none;border:none;color:#b45309;font-size:1rem;cursor:pointer;"><i class="bi bi-x-lg"></i></button>
+            <div class="fw-bold mb-2" style="color:#92400e;font-size:14px;"><i class="bi bi-upc-scan me-1"></i> ما هي نقطة البيع؟</div>
+            <div style="font-size:12.5px;color:#78350f;line-height:1.7;">
+                لتسجيل <b>البيع المباشر داخل محلك</b> — عندما يشتري زبون منك حضورياً <b>بدون كابتن توصيل</b>.
+                <br>تضغط على المنتجات المطلوبة، تحدد الكمية، وتتمّ البيع. تلقائياً:
+                <div class="mt-2 d-flex flex-column gap-1">
+                    <span><i class="bi bi-check-circle-fill text-success me-1"></i> يُخصم المخزون المباع</span>
+                    <span><i class="bi bi-check-circle-fill text-success me-1"></i> يدخل البيع في تقاريرك وأرباحك</span>
+                    <span><i class="bi bi-check-circle-fill text-success me-1"></i> النقود بيدك مباشرة (لا تُضاف لمحفظة المستحقات)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="position-relative mb-2">
         <i class="bi bi-search position-absolute" style="right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;"></i>
         <input type="text" id="posSearch" oninput="renderProducts()" autocomplete="off"
@@ -243,7 +260,15 @@
             : products;
         const grid = document.getElementById('productsGrid');
         if (!visible.length) {
-            grid.innerHTML = '<div class="text-center py-5 text-muted w-100"><i class="bi bi-box-seam" style="font-size:2.5rem;"></i><div class="fw-bold mt-2">لا منتجات</div></div>';
+            // تمييز: لا منتجات إطلاقاً (يوجّه لإضافة منتجات) أو لا نتائج بحث
+            grid.innerHTML = (products.length === 0)
+                ? `<div class="text-center py-5 text-muted w-100">
+                        <i class="bi bi-box-seam" style="font-size:2.8rem;"></i>
+                        <div class="fw-bold mt-2">لا توجد منتجات في متجرك بعد</div>
+                        <div class="small mb-3">أضف منتجاتك أولاً لتتمكن من بيعها في نقطة البيع</div>
+                        <a href="merchant-products.html" class="btn btn-warning fw-bold text-dark px-4 rounded-3"><i class="bi bi-plus-lg me-1"></i> إضافة منتجات</a>
+                    </div>`
+                : '<div class="text-center py-5 text-muted w-100"><i class="bi bi-search" style="font-size:2.5rem;"></i><div class="fw-bold mt-2">لا منتجات تطابق بحثك</div></div>';
             return;
         }
         grid.innerHTML = visible.map(p => {
@@ -437,6 +462,18 @@
             Swal.fire({ icon: 'success', title: 'تم إلغاء الفاتورة', timer: 1500, showConfirmButton: false });
             showSalesLog(); loadProducts(); loadTodayStats();
         } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    // 💡 شرح نقطة البيع — يظهر تلقائياً أول مرة فقط، ويبقى متاحاً من زر (؟)
+    function showPosHelp() {
+        document.getElementById('posExplainer').style.display = 'block';
+    }
+    function dismissPosHelp() {
+        document.getElementById('posExplainer').style.display = 'none';
+        try { localStorage.setItem('posHelpSeen', '1'); } catch (e) {}
+    }
+    if (!localStorage.getItem('posHelpSeen')) {
+        document.getElementById('posExplainer').style.display = 'block';
     }
 
     loadProducts();

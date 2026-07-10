@@ -16,6 +16,7 @@
         .page-header {
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
         }
         .merchant-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
@@ -30,82 +31,51 @@
         }
         .merchant-nav a.active, .merchant-nav a:hover { color: #10b981; }
         .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
-        
+
         .profile-card {
-            background: white;
-            border-radius: 16px;
+            background: white; border-radius: 16px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            padding: 20px;
+            padding: 18px; margin-bottom: 15px;
+        }
+        .card-title { font-weight: 800; font-size: 14px; color: #334155; margin-bottom: 14px; }
+        /* Cover / logo */
+        .shop-cover {
+            position: relative; height: 150px; border-radius: 16px; overflow: hidden;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex; align-items: center; justify-content: center;
             margin-bottom: 15px;
         }
-        .profile-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
+        .shop-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .shop-cover .placeholder { color: rgba(255,255,255,0.85); font-size: 3rem; }
+        .cover-edit-btn {
+            position: absolute; bottom: 10px; left: 10px;
+            background: rgba(0,0,0,0.55); color: white; border: none;
+            padding: 7px 14px; border-radius: 10px; font-weight: 700; font-size: 12px;
+            display: flex; align-items: center; gap: 6px; cursor: pointer;
         }
-        .profile-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-        }
-        .info-row {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
+        .info-row { display: flex; align-items: center; padding: 11px 0; border-bottom: 1px solid #f1f5f9; }
+        .info-row:last-child { border-bottom: none; }
         .info-icon {
-            width: 35px;
-            height: 35px;
-            border-radius: 10px;
-            background: #f1f5f9;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 15px;
-            font-size: 18px;
+            width: 35px; height: 35px; border-radius: 10px; background: #f1f5f9;
+            color: #64748b; display: flex; align-items: center; justify-content: center;
+            margin-left: 13px; font-size: 17px; flex-shrink: 0;
         }
-        .info-content {
-            flex: 1;
+        .info-content { flex: 1; min-width: 0; }
+        .info-label { font-size: 12px; color: #94a3b8; margin-bottom: 2px; }
+        .info-value { font-weight: 700; color: #334155; font-size: 15px; word-break: break-word; }
+        .form-label { font-weight: 700; font-size: 13px; color: #374151; margin-bottom: 4px; }
+        .day-chip {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 42px; height: 38px; border-radius: 10px; border: 1.5px solid #e2e8f0;
+            background: white; color: #64748b; font-weight: 700; font-size: 12px;
+            cursor: pointer; user-select: none; transition: all 0.15s;
         }
-        .info-label {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-bottom: 2px;
-        }
-        .info-value {
-            font-weight: 700;
-            color: #334155;
-            font-size: 15px;
-        }
+        .day-chip.on { background: #10b981; border-color: #10b981; color: white; }
+        .tier-badge { font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; }
         .logout-btn {
-            background: #fee2e2;
-            color: #dc2626;
-            border: none;
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-        .logout-btn:hover {
-            background: #fca5a5;
-            color: #991b1b;
+            background: #fee2e2; color: #dc2626; border: none; width: 100%;
+            padding: 12px; border-radius: 12px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
         }
     </style>
     <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
@@ -118,15 +88,19 @@
         <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
             <i class="bi bi-arrow-right"></i>
         </a>
-        <div>
-            <h5 class="fw-bold mb-0">ملف المتجر</h5>
-        </div>
+        <h5 class="fw-bold mb-0">ملف المتجر</h5>
     </div>
+    <button id="editToggleBtn" class="btn btn-sm btn-light rounded-3 fw-bold" onclick="enterEditMode()" style="display:none;">
+        <i class="bi bi-pencil-square me-1"></i>تعديل
+    </button>
 </div>
 
 <div class="container-fluid px-3 pt-3" id="profileContainer">
     <div class="text-center py-5"><div class="spinner-border text-success"></div></div>
 </div>
+
+<!-- hidden file input for shop image -->
+<input type="file" id="shopImageInput" accept="image/*" class="d-none" onchange="uploadShopImage(this)">
 
 <nav class="merchant-nav">
     <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
@@ -137,97 +111,283 @@
 </nav>
 
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 <script>
     const token = window.Auth?.getToken() || localStorage.getItem('token');
     if (!token) window.location.href = 'client-login.html';
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
 
+    const H = { 'Authorization': `Bearer ${token}` };
+    const HJ = { ...H, 'Content-Type': 'application/json' };
+    const _getImg = window.getFullImageUrl || ((u) => u || '');
+    const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const DAY_NAMES = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+
+    let place = {};
+    let pUser = {};
+    let editImageUrl = '';   // صورة جديدة أثناء التعديل
+    let editDays = [];       // أيام العمل أثناء التعديل
+
     async function loadProfile() {
         try {
-            const res = await fetch(`${API_URL}/api/merchant/profile`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await fetch(`${API_URL}/api/merchant/profile`, { headers: H });
             const data = await res.json();
-            
-            const pUser = data.user || user;
-            const place = data.place || {};
-
-            const container = document.getElementById('profileContainer');
-            
-            container.innerHTML = `
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <div class="profile-icon">
-                            <i class="bi bi-shop"></i>
-                        </div>
-                        <div>
-                            <h5 class="fw-bold mb-1">${place.name || 'متجر غير معروف'}</h5>
-                            <span class="badge ${place.isActive ? 'bg-success' : 'bg-danger'} rounded-pill">
-                                ${place.isActive ? 'نشط' : 'غير نشط'}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="info-row">
-                        <div class="info-icon"><i class="bi bi-tags-fill"></i></div>
-                        <div class="info-content">
-                            <div class="info-label">التصنيف</div>
-                            <div class="info-value">${place.category?.name || 'غير محدد'}</div>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-icon"><i class="bi bi-geo-alt-fill"></i></div>
-                        <div class="info-content">
-                            <div class="info-label">العنوان</div>
-                            <div class="info-value">${place.address || 'غير محدد'}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="profile-card mt-3">
-                    <h6 class="fw-bold mb-3 text-muted"><i class="bi bi-person-vcard me-2"></i>بيانات التاجر</h6>
-                    <div class="info-row">
-                        <div class="info-icon"><i class="bi bi-person-fill"></i></div>
-                        <div class="info-content">
-                            <div class="info-label">الاسم</div>
-                            <div class="info-value">${pUser.name || 'غير محدد'}</div>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-icon"><i class="bi bi-telephone-fill"></i></div>
-                        <div class="info-content">
-                            <div class="info-label">رقم الهاتف</div>
-                            <div class="info-value">${pUser.phone || 'غير محدد'}</div>
-                        </div>
-                    </div>
-                    ${pUser.email ? `
-                    <div class="info-row">
-                        <div class="info-icon"><i class="bi bi-envelope-fill"></i></div>
-                        <div class="info-content">
-                            <div class="info-label">البريد الإلكتروني</div>
-                            <div class="info-value">${pUser.email}</div>
-                        </div>
-                    </div>` : ''}
-                </div>
-
-                <button class="logout-btn mt-4 mb-4" onclick="logout()">
-                    <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
-                </button>
-            `;
+            place = data.place || {};
+            pUser = data.user || user;
+            document.getElementById('editToggleBtn').style.display = 'inline-flex';
+            renderView();
         } catch (err) {
             document.getElementById('profileContainer').innerHTML =
                 '<div class="alert alert-danger text-center">فشل تحميل بيانات الملف الشخصي</div>';
         }
     }
 
-    function logout() {
-        if (window.Auth) {
-            window.Auth.logout('client-login.html');
-        } else {
-            localStorage.clear();
-            window.location.href = 'client-login.html';
+    // ── وضع العرض ──
+    function renderView() {
+        const wh = place.workingHours || {};
+        const days = Array.isArray(wh.days) ? wh.days : [];
+        const daysTxt = days.length === 7 ? 'كل الأيام'
+            : (days.length ? days.slice().sort().map(d => DAY_NAMES[d]).join('، ') : 'غير محدد');
+        const tierPro = place.tier === 'pro';
+
+        document.getElementById('profileContainer').innerHTML = `
+            <div class="shop-cover">
+                ${place.image_url
+                    ? `<img src="${_getImg(place.image_url)}" alt="${esc(place.name)}" onerror="this.style.display='none';this.parentElement.querySelector('.placeholder').style.display='flex'">`
+                    : ''}
+                <div class="placeholder" style="${place.image_url ? 'display:none' : ''}"><i class="bi bi-shop"></i></div>
+            </div>
+
+            <div class="profile-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h5 class="fw-bold mb-0">${esc(place.name) || 'متجر غير معروف'}</h5>
+                    <span class="badge ${place.is_open ? 'bg-success' : 'bg-secondary'} rounded-pill">${place.is_open ? 'مفتوح الآن' : 'مغلق'}</span>
+                </div>
+                ${place.description ? `<p class="text-muted mb-2" style="font-size:13.5px;">${esc(place.description)}</p>` : ''}
+                <span class="tier-badge" style="background:${tierPro ? '#fef3c7' : '#f1f5f9'};color:${tierPro ? '#b45309' : '#64748b'};">
+                    <i class="bi bi-${tierPro ? 'gem' : 'shop'}"></i> ${tierPro ? 'متجر احترافي' : 'متجر أساسي'}
+                </span>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-title"><i class="bi bi-info-circle text-success me-1"></i> معلومات المتجر</div>
+                ${infoRow('bi-tags-fill', 'التصنيف', place.category?.name || 'غير محدد')}
+                ${infoRow('bi-geo-alt-fill', 'العنوان', place.address || 'غير محدد')}
+                ${infoRow('bi-telephone-fill', 'هاتف المتجر', place.phone || 'غير محدد')}
+                ${infoRow('bi-whatsapp', 'واتساب', place.whatsapp || 'غير محدد')}
+                ${infoRow('bi-clock-fill', 'ساعات العمل', `${wh.open || '—'} — ${wh.close || '—'}`)}
+                ${infoRow('bi-calendar-week-fill', 'أيام العمل', daysTxt)}
+            </div>
+
+            <div class="profile-card">
+                <div class="card-title"><i class="bi bi-bank text-success me-1"></i> الحساب البنكي (للتسويات)</div>
+                ${infoRow('bi-building', 'البنك', place.bankName || 'غير محدد')}
+                ${infoRow('bi-person-badge', 'اسم صاحب الحساب', place.bankAccountName || 'غير محدد')}
+                ${infoRow('bi-credit-card-2-front', 'رقم الحساب', place.bankAccountNumber || 'غير محدد')}
+                ${!place.bankAccountNumber ? `<div class="alert alert-warning small mb-0 mt-2" style="font-size:11.5px;">
+                    <i class="bi bi-exclamation-triangle me-1"></i>أضف حسابك البنكي حتى تتمكن الإدارة من تحويل مستحقاتك عند طلب السحب.</div>` : ''}
+            </div>
+
+            <div class="profile-card">
+                <div class="card-title"><i class="bi bi-person-vcard text-success me-1"></i> بيانات التاجر</div>
+                ${infoRow('bi-person-fill', 'الاسم', pUser.name || 'غير محدد')}
+                ${infoRow('bi-telephone-fill', 'رقم الهاتف', pUser.phone || 'غير محدد')}
+                ${pUser.email ? infoRow('bi-envelope-fill', 'البريد الإلكتروني', pUser.email) : ''}
+            </div>
+
+            <button class="logout-btn mt-2 mb-4" onclick="logout()">
+                <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+            </button>
+        `;
+    }
+
+    function infoRow(icon, label, value) {
+        return `<div class="info-row">
+            <div class="info-icon"><i class="bi ${icon}"></i></div>
+            <div class="info-content">
+                <div class="info-label">${label}</div>
+                <div class="info-value">${esc(value)}</div>
+            </div>
+        </div>`;
+    }
+
+    // ── وضع التعديل ──
+    function enterEditMode() {
+        const wh = place.workingHours || {};
+        editImageUrl = place.image_url || '';
+        editDays = Array.isArray(wh.days) ? wh.days.slice() : [0,1,2,3,4,5,6];
+
+        document.getElementById('editToggleBtn').style.display = 'none';
+        window.scrollTo(0, 0);
+
+        document.getElementById('profileContainer').innerHTML = `
+            <div class="shop-cover" id="editCover">
+                ${editImageUrl
+                    ? `<img id="coverImg" src="${_getImg(editImageUrl)}" alt="cover">`
+                    : ''}
+                <div class="placeholder" id="coverPlaceholder" style="${editImageUrl ? 'display:none' : ''}"><i class="bi bi-shop"></i></div>
+                <button class="cover-edit-btn" onclick="document.getElementById('shopImageInput').click()">
+                    <i class="bi bi-camera-fill"></i> <span id="coverBtnText">تغيير صورة المتجر</span>
+                </button>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-title"><i class="bi bi-info-circle text-success me-1"></i> معلومات المتجر</div>
+                <div class="mb-3">
+                    <label class="form-label">اسم المتجر *</label>
+                    <input type="text" id="fName" class="form-control" maxlength="100" value="${esc(place.name)}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">وصف المتجر</label>
+                    <textarea id="fDesc" class="form-control" rows="2" maxlength="500" placeholder="نبذة قصيرة عن متجرك ومنتجاتك">${esc(place.description)}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">العنوان</label>
+                    <input type="text" id="fAddress" class="form-control" maxlength="200" value="${esc(place.address)}" placeholder="مثال: شارع النيل، الخرطوم">
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label">هاتف المتجر</label>
+                        <input type="tel" id="fPhone" class="form-control" maxlength="20" value="${esc(place.phone)}" placeholder="09xxxxxxxx">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label"><i class="bi bi-whatsapp text-success"></i> واتساب</label>
+                        <input type="tel" id="fWhatsapp" class="form-control" maxlength="20" value="${esc(place.whatsapp)}" placeholder="09xxxxxxxx">
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-title"><i class="bi bi-clock text-success me-1"></i> ساعات وأيام العمل</div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">من (فتح)</label>
+                        <input type="time" id="fOpen" class="form-control" value="${(place.workingHours?.open) || '08:00'}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">إلى (إغلاق)</label>
+                        <input type="time" id="fClose" class="form-control" value="${(place.workingHours?.close) || '22:00'}">
+                    </div>
+                </div>
+                <label class="form-label">أيام العمل</label>
+                <div class="d-flex gap-1 flex-wrap" id="daysWrap">
+                    ${DAY_NAMES.map((d, i) => `<div class="day-chip ${editDays.includes(i) ? 'on' : ''}" data-day="${i}" onclick="toggleDay(${i}, this)">${d}</div>`).join('')}
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="card-title"><i class="bi bi-bank text-success me-1"></i> الحساب البنكي (للتسويات)</div>
+                <div class="alert alert-light border small mb-3" style="font-size:11.5px;">
+                    <i class="bi bi-shield-lock me-1"></i>تُستخدم هذه البيانات لتحويل مستحقاتك عند طلب السحب. تظهر للإدارة فقط.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">اسم البنك</label>
+                    <input type="text" id="fBankName" class="form-control" maxlength="100" value="${esc(place.bankName)}" placeholder="مثال: بنك الخرطوم / بنكك">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">اسم صاحب الحساب</label>
+                    <input type="text" id="fBankAccName" class="form-control" maxlength="100" value="${esc(place.bankAccountName)}">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">رقم الحساب / بنكك</label>
+                    <input type="text" id="fBankAccNum" class="form-control" maxlength="50" value="${esc(place.bankAccountNumber)}" dir="ltr">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mb-4">
+                <button class="btn btn-success flex-grow-1 py-2 fw-bold rounded-3" id="btnSave" onclick="saveProfile()">
+                    <i class="bi bi-check-circle-fill me-1"></i> حفظ التغييرات
+                </button>
+                <button class="btn btn-outline-secondary py-2 fw-bold rounded-3 px-4" onclick="renderView(); document.getElementById('editToggleBtn').style.display='inline-flex';">
+                    إلغاء
+                </button>
+            </div>
+        `;
+    }
+
+    function toggleDay(i, el) {
+        const idx = editDays.indexOf(i);
+        if (idx >= 0) { editDays.splice(idx, 1); el.classList.remove('on'); }
+        else { editDays.push(i); el.classList.add('on'); }
+    }
+
+    async function uploadShopImage(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const btnText = document.getElementById('coverBtnText');
+        const original = btnText ? btnText.textContent : '';
+        if (btnText) btnText.textContent = 'جاري الرفع...';
+
+        const formData = new FormData();
+        formData.append('image', file);
+        try {
+            const res = await fetch(`${API_URL}/api/upload/shop-image`, { method: 'POST', headers: H, body: formData });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.message || 'فشل الرفع');
+            editImageUrl = d.url;
+            const cover = document.getElementById('editCover');
+            let img = document.getElementById('coverImg');
+            if (!img) {
+                img = document.createElement('img');
+                img.id = 'coverImg';
+                cover.insertBefore(img, cover.firstChild);
+                const ph = document.getElementById('coverPlaceholder');
+                if (ph) ph.style.display = 'none';
+            }
+            img.src = _getImg(editImageUrl) + '?t=' + Date.now();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', text: 'تم رفع الصورة', timer: 1400, showConfirmButton: false });
+        } catch (e) {
+            Swal.fire('خطأ', e.message || 'تعذر رفع الصورة', 'error');
+        } finally {
+            if (btnText) btnText.textContent = original;
+            input.value = '';
         }
+    }
+
+    async function saveProfile() {
+        const name = document.getElementById('fName').value.trim();
+        if (!name) { Swal.fire('تنبيه', 'اسم المتجر مطلوب', 'warning'); return; }
+
+        const body = {
+            name,
+            description: document.getElementById('fDesc').value.trim(),
+            address: document.getElementById('fAddress').value.trim(),
+            phone: document.getElementById('fPhone').value.trim(),
+            whatsapp: document.getElementById('fWhatsapp').value.trim(),
+            image_url: editImageUrl,
+            workingHours: {
+                open: document.getElementById('fOpen').value || '08:00',
+                close: document.getElementById('fClose').value || '22:00',
+                days: editDays.length ? editDays : [0,1,2,3,4,5,6]
+            },
+            bankName: document.getElementById('fBankName').value.trim(),
+            bankAccountName: document.getElementById('fBankAccName').value.trim(),
+            bankAccountNumber: document.getElementById('fBankAccNum').value.trim()
+        };
+
+        const btn = document.getElementById('btnSave');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/profile`, { method: 'PUT', headers: HJ, body: JSON.stringify(body) });
+            const d = await res.json();
+            if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل الحفظ', 'error'); return; }
+            place = d.place || place;
+            Swal.fire({ icon: 'success', title: 'تم حفظ التغييرات', timer: 1500, showConfirmButton: false });
+            document.getElementById('editToggleBtn').style.display = 'inline-flex';
+            renderView();
+        } catch (e) {
+            Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> حفظ التغييرات';
+        }
+    }
+
+    function logout() {
+        if (window.Auth) window.Auth.logout('client-login.html');
+        else { localStorage.clear(); window.location.href = 'client-login.html'; }
     }
 
     loadProfile();

@@ -4,7 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
-const { Jimp } = require('jimp');
+const jimpModule = require('jimp');
+const Jimp = jimpModule.Jimp || jimpModule;
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 
@@ -226,7 +227,7 @@ router.post('/product-image', protect, (req, res) => {
             // 🔄 ضغط وتصغير الصورة (Jimp v1: scaleToFit يأخذ كائن، والجودة تُمرر في خيارات write)
             const image = await Jimp.read(req.file.path);
             if (image.bitmap.width > 1000 || image.bitmap.height > 1000) {
-                image.scaleToFit({ w: 1000, h: 1000 });
+                image.scaleToFit(1000, 1000);
             }
             // جودة 85% لتقليل الحجم مع الحفاظ على وضوح عالي للعين (تنطبق على JPEG فقط)
             const isJpeg = /\.jpe?g$/i.test(req.file.path);
@@ -242,6 +243,40 @@ router.post('/product-image', protect, (req, res) => {
             message: 'تم رفع صورة المنتج بنجاح',
             url: fileUrl
         });
+    });
+});
+
+// ==========================================
+// 🏪 رفع صورة المتجر من قِبل التاجر نفسه (لبروفايل متجره)
+//    POST /api/upload/shop-image  (merchant)
+//    place-image أعلاه للأدمن فقط؛ هذا يسمح للتاجر برفع صورة متجره الخاص.
+// ==========================================
+router.post('/shop-image', protect, (req, res) => {
+    req.params.type = 'places';
+    upload.single('image')(req, res, async (err) => {
+        if (err) {
+            return res.status(400).json({ message: err.message || 'خطأ في رفع الصورة' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ message: 'لم يتم اختيار صورة' });
+        }
+        if (req.user.role !== 'merchant') {
+            return res.status(403).json({ message: 'للتجار فقط' });
+        }
+
+        try {
+            const image = await Jimp.read(req.file.path);
+            if (image.bitmap.width > 1000 || image.bitmap.height > 1000) {
+                image.scaleToFit(1000, 1000);
+            }
+            const isJpeg = /\.jpe?g$/i.test(req.file.path);
+            await image.write(req.file.path, isJpeg ? { quality: 85 } : undefined);
+        } catch (jimpErr) {
+            console.error('Error compressing shop image:', jimpErr);
+        }
+
+        const fileUrl = `/uploads/places/${req.file.filename}`;
+        res.json({ success: true, message: 'تم رفع صورة المتجر بنجاح', url: fileUrl });
     });
 });
 

@@ -578,6 +578,56 @@ router.get('/profile', protect, merchantOnly, async (req, res) => {
     }
 });
 
+// PUT /api/merchant/profile — تعديل بيانات المتجر من قِبل صاحبه
+// الحقول المسموح للتاجر بتعديلها فقط (لا يمس التصنيف/المدينة/الباقة/الرصيد — تلك للأدمن)
+router.put('/profile', protect, merchantOnly, async (req, res) => {
+    try {
+        const place = await Place.findOne({ ownerId: req.user._id });
+        if (!place) return res.status(404).json({ message: 'المتجر غير موجود' });
+
+        const {
+            name, description, phone, whatsapp, address, image_url,
+            workingHours, bankAccountName, bankAccountNumber, bankName
+        } = req.body;
+
+        if (typeof name === 'string') {
+            const trimmed = name.trim();
+            if (!trimmed) return res.status(400).json({ message: 'اسم المتجر لا يمكن أن يكون فارغاً' });
+            place.name = trimmed.slice(0, 100);
+        }
+        if (typeof description === 'string') place.description = description.trim().slice(0, 500);
+        if (typeof phone === 'string') place.phone = phone.trim().slice(0, 20);
+        if (typeof whatsapp === 'string') place.whatsapp = whatsapp.trim().slice(0, 20);
+        if (typeof address === 'string') place.address = address.trim().slice(0, 200);
+        if (typeof image_url === 'string') place.image_url = image_url.trim();
+        if (typeof bankAccountName === 'string') place.bankAccountName = bankAccountName.trim().slice(0, 100);
+        if (typeof bankAccountNumber === 'string') place.bankAccountNumber = bankAccountNumber.trim().slice(0, 50);
+        if (typeof bankName === 'string') place.bankName = bankName.trim().slice(0, 100);
+
+        // ساعات العمل — تحقق من صيغة HH:MM وقائمة الأيام (0..6)
+        if (workingHours && typeof workingHours === 'object') {
+            const timeRe = /^([01]?\d|2[0-3]):[0-5]\d$/;
+            if (typeof workingHours.open === 'string' && timeRe.test(workingHours.open)) {
+                place.workingHours.open = workingHours.open;
+            }
+            if (typeof workingHours.close === 'string' && timeRe.test(workingHours.close)) {
+                place.workingHours.close = workingHours.close;
+            }
+            if (Array.isArray(workingHours.days)) {
+                const days = [...new Set(workingHours.days.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))];
+                if (days.length) place.workingHours.days = days;
+            }
+        }
+
+        await place.save();
+        const updated = await Place.findById(place._id).populate('category', 'name icon');
+        res.json({ message: 'تم تحديث بيانات المتجر بنجاح', place: updated });
+    } catch (err) {
+        logger.error({ err }, 'Error updating merchant profile');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // PUT /api/merchant/profile/status — toggle open/closed status
 router.put('/profile/status', protect, merchantOnly, async (req, res) => {
     try {
