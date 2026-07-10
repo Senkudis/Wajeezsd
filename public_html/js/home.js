@@ -661,15 +661,8 @@ window.confirmLocationSelection = function() {
     calculatePrice();
     window.closeMapUI();
 
-    // If BOTH pickup and dropoff are now set, draw the delivery route
-    const pLat = parseFloat(document.getElementById('pickup-lat').value);
-    const pLng = parseFloat(document.getElementById('pickup-lng').value);
-    const dLat = parseFloat(document.getElementById('dropoff-lat').value);
-    const dLng = parseFloat(document.getElementById('dropoff-lng').value);
-
-    if (pLat != null && pLng != null && !isNaN(pLat) && !isNaN(pLng) && dLat != null && dLng != null && !isNaN(dLat) && !isNaN(dLng)) {
-        drawDeliveryRoute({ lat: pLat, lng: pLng }, { lat: dLat, lng: dLng });
-    }
+    // ارسم المسار الكامل عبر كل النقاط المحددة (يشمل النقاط الإضافية إن وُجدت)
+    refreshMultiRoute();
 };
 
 // ══════════════════════════════════════════════════════
@@ -855,23 +848,121 @@ window.toggleMapLayer = function() {
 // Calls the Directions API and draws the route polyline on the map.
 // Does NOT touch pricing — the existing calculatePrice() handles that.
 // ══════════════════════════════════════════════════════
-window.drawDeliveryRoute = function(origin, destination) {
+window.drawDeliveryRoute = function(origin, destination, waypoints) {
     if (!directionsService || !directionsRenderer) return;
 
-    directionsService.route(
-        {
-            origin,
-            destination,
-            travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (response, status) => {
-            if (status === google.maps.DirectionsStatus.OK) {
-                directionsRenderer.setDirections(response);
-            } else {
-                console.warn('⚠️ Directions route failed:', status);
-            }
+    const req = {
+        origin,
+        destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+    };
+    // 🧭 نقاط وسطية للتوصيل متعدد النقاط (بالترتيب، بلا إعادة تحسين تلقائي)
+    if (Array.isArray(waypoints) && waypoints.length) {
+        req.waypoints = waypoints.map(p => ({ location: p, stopover: true }));
+        req.optimizeWaypoints = false;
+    }
+
+    directionsService.route(req, (response, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(response);
+        } else {
+            console.warn('⚠️ Directions route failed:', status);
         }
-    );
+    });
+};
+
+// 🧭 ══════════════════════════════════════════════════════
+// إدارة نقاط التوصيل المتعدد (رحلة واحدة بعدة محطات)
+// ══════════════════════════════════════════════════════
+let _stopCounter = 0;
+
+// يبني قائمة النقاط المرتّبة: كل الاستلامات أولاً (الأساسي + الإضافية) ثم كل التسليمات.
+// كل عنصر: { id, type, latEl, lngEl, addrEl, nameEl, phoneEl }
+window.getOrderedStops = function() {
+    const base = (prefix, type) => ({
+        id: prefix, type,
+        latEl: document.getElementById(`${prefix}-lat`),
+        lngEl: document.getElementById(`${prefix}-lng`),
+        addrEl: document.getElementById(`${prefix}-addr`),
+        nameEl: document.getElementById(`${prefix}-name`),
+        phoneEl: document.getElementById(`${prefix}-phone`)
+    });
+    const extras = Array.from(document.querySelectorAll('#extraStopsList [data-stopid]')).map(card => {
+        const id = card.getAttribute('data-stopid');
+        return {
+            id, type: card.getAttribute('data-type'),
+            latEl: document.getElementById(`${id}-lat`),
+            lngEl: document.getElementById(`${id}-lng`),
+            addrEl: document.getElementById(`${id}-addr`),
+            nameEl: document.getElementById(`${id}-name`),
+            phoneEl: document.getElementById(`${id}-phone`)
+        };
+    });
+    const pickups = [base('pickup', 'pickup'), ...extras.filter(e => e.type === 'pickup')];
+    const dropoffs = [base('dropoff', 'dropoff'), ...extras.filter(e => e.type === 'dropoff')];
+    return [...pickups, ...dropoffs];
+};
+
+// إحداثيات النقاط المرتّبة التي حُدّدت فعلاً على الخريطة
+function _orderedCoords() {
+    return window.getOrderedStops().map(s => ({
+        lat: parseFloat(s.latEl && s.latEl.value),
+        lng: parseFloat(s.lngEl && s.lngEl.value)
+    })).filter(p => !isNaN(p.lat) && !isNaN(p.lng));
+}
+
+window.isMultiStopActive = function() {
+    return document.querySelectorAll('#extraStopsList [data-stopid]').length > 0;
+};
+
+// يضيف بطاقة نقطة إضافية (استلام/تسليم)
+window.addStop = function(type) {
+    _stopCounter++;
+    const id = `stop-${_stopCounter}`;
+    const isPickup = type === 'pickup';
+    const color = isPickup ? '#64748b' : '#04553A';
+    const icon = isPickup ? 'bi-geo-alt-fill' : 'bi-flag-fill';
+    const title = isPickup ? 'نقطة استلام إضافية' : 'وجهة تسليم إضافية';
+    const namePh = isPickup ? 'اسم المرسل / المحل' : 'اسم المستلم';
+
+    const card = document.createElement('div');
+    card.className = 'extra-stop-card mt-3 p-2';
+    card.setAttribute('data-stopid', id);
+    card.setAttribute('data-type', type);
+    card.style.cssText = 'border:1.5px dashed ' + color + '55;border-radius:12px;background:#fff;';
+    card.innerHTML = `
+        <input type="hidden" id="${id}-lat"><input type="hidden" id="${id}-lng">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <span class="fw-bold small" style="color:${color};"><i class="bi ${icon} me-1"></i>${title}</span>
+            <button type="button" class="btn btn-sm text-danger p-0" onclick="removeStop('${id}')" style="font-size:1rem;"><i class="bi bi-x-circle-fill"></i></button>
+        </div>
+        <input type="text" class="form-control form-control-sm bg-white mb-1" id="${id}-addr"
+            placeholder="حدّد الموقع من الخريطة" readonly style="cursor:pointer;" onclick="openMapModal('${id}')">
+        <div class="row g-2">
+            <div class="col-7"><input type="text" id="${id}-name" class="form-control form-control-sm bg-white" placeholder="${namePh}"></div>
+            <div class="col-5"><input type="tel" id="${id}-phone" class="form-control form-control-sm bg-white english-num" placeholder="رقم الهاتف"></div>
+        </div>`;
+    document.getElementById('extraStopsList').appendChild(card);
+    // فتح الخريطة مباشرةً لتحديد موقع النقطة الجديدة
+    openMapModal(id);
+};
+
+window.removeStop = function(id) {
+    const card = document.querySelector(`#extraStopsList [data-stopid="${id}"]`);
+    if (card) card.remove();
+    isPriceManuallyEdited = false; // أعِد التسعير التلقائي بعد التغيير
+    calculatePrice();
+    refreshMultiRoute();
+};
+
+// يعيد رسم المسار الكامل عبر كل النقاط المحددة (وسطية بالترتيب)
+window.refreshMultiRoute = function() {
+    const pts = _orderedCoords();
+    if (pts.length < 2) { if (window.clearRoute) window.clearRoute(); return; }
+    const origin = pts[0];
+    const destination = pts[pts.length - 1];
+    const waypoints = pts.slice(1, -1);
+    drawDeliveryRoute(origin, destination, waypoints);
 };
 
 // ══════════════════════════════════════════════════════
@@ -951,36 +1042,33 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 function calculatePrice() {
-    // 1. Get Coordinates
-    const pLat = parseFloat(document.getElementById('pickup-lat').value);
-    const pLng = parseFloat(document.getElementById('pickup-lng').value);
-    const dLat = parseFloat(document.getElementById('dropoff-lat').value);
-    const dLng = parseFloat(document.getElementById('dropoff-lng').value);
-
-    // 2. Validate
-    if (pLat == null || pLng == null || isNaN(pLat) || isNaN(pLng) || dLat == null || dLng == null || isNaN(dLat) || isNaN(dLng)) return;
-
-    // 3. Prevent overwriting if user manually edited
+    // 1. Prevent overwriting if user manually edited
     if (isPriceManuallyEdited) return;
 
-    // 4. Calculate Distance
-    const distanceKm = calculateDistance(pLat, pLng, dLat, dLng);
+    // 2. النقاط المرتّبة المحددة على الخريطة (الأساسية + الإضافية)
+    const pts = _orderedCoords();
+    if (pts.length < 2) return; // الاستلام والتسليم على الأقل
 
-    // 5. Calculate Price
-    // Default fallback if config not loaded yet
+    // 3. إجمالي المسافة عبر كل المراحل المتتالية
+    let distanceKm = 0;
+    for (let i = 1; i < pts.length; i++) {
+        distanceKm += calculateDistance(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng);
+    }
+
+    // 4. السعر — نفس معادلة النقطتين + رسم النقطة الإضافية (يحدده الأدمن)
     const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
     const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
+    const extraStopFee = (pricingConfig && pricingConfig.extraStopFee) || 0;
+    const extraStops = Math.max(0, pts.length - 2);
 
-    let finalPrice = baseFare + (distanceKm * perKm);
+    let finalPrice = baseFare + (distanceKm * perKm) + (extraStopFee * extraStops);
 
     // Round to nearest 100 for clean numbers
     finalPrice = Math.ceil(finalPrice / 100) * 100;
 
-    // 6. Update UI
+    // 5. Update UI
     const priceInput = document.getElementById('price');
     priceInput.value = finalPrice;
-
-    // Visual Cue (Yellow Border)
     priceInput.classList.add('border-warning', 'border-2');
 }
 
@@ -1066,6 +1154,14 @@ function validateOrder() {
     if (!dPhone || dPhone.length < 10) return warn('رقم هاتف المستلم غير صحيح');
     if (!price || price <= 0) return warn('يرجى تحديد سعر العرض');
 
+    // 🧭 تحقق من النقاط الإضافية — كل نقطة تحتاج موقعاً محدداً
+    const extras = Array.from(document.querySelectorAll('#extraStopsList [data-stopid]'));
+    for (const card of extras) {
+        const id = card.getAttribute('data-stopid');
+        const lat = document.getElementById(`${id}-lat`).value;
+        if (!lat) return warn('يرجى تحديد موقع كل النقاط الإضافية من الخريطة (أو احذف النقطة الفارغة)');
+    }
+
     // التفاصيل إجبارية — لازم العميل يوضح للكابتن
     const details = (document.getElementById('details')?.value || '').trim();
     if (!details) return warn('يرجى كتابة تفاصيل الطلب عشان الكابتن يفهم المطلوب');
@@ -1128,6 +1224,19 @@ window.createOrder = async function() {
             parcelImage: parcelImageToSend,
             scheduledAt: document.getElementById('scheduled-at')?.value || null // ⏰ Scheduling
         };
+
+        // 🧭 توصيل متعدد النقاط — أرسل كل المحطات مرتّبة (استلامات ثم تسليمات)
+        if (window.isMultiStopActive && window.isMultiStopActive()) {
+            data.isMultiStop = true;
+            data.stops = window.getOrderedStops().map(s => ({
+                type: s.type,
+                address: (s.addrEl && s.addrEl.value) || '',
+                contactName: (s.nameEl && s.nameEl.value) || '',
+                contactPhone: (s.phoneEl && s.phoneEl.value) || '',
+                lat: parseFloat(s.latEl && s.latEl.value),
+                lng: parseFloat(s.lngEl && s.lngEl.value)
+            }));
+        }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout

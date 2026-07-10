@@ -626,6 +626,20 @@
                                     <i class="bi bi-bookmark-plus-fill me-1"></i>حفظ هذه الوجهة في عناويني
                                 </button>
                             </div>
+
+                            <!-- 🧭 نقاط إضافية — توصيل متعدد النقاط (رحلة واحدة بعدة محطات) -->
+                            <div id="extraStopsList" class="mt-2"></div>
+                            <div class="d-flex gap-2 mt-3">
+                                <button type="button" class="btn btn-outline-success btn-sm flex-grow-1 fw-bold" onclick="addStop('dropoff')">
+                                    <i class="bi bi-plus-lg me-1"></i>أضف وجهة تسليم
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 fw-bold" onclick="addStop('pickup')">
+                                    <i class="bi bi-plus-lg me-1"></i>أضف نقطة استلام
+                                </button>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:11.5px;">
+                                <i class="bi bi-info-circle"></i> يمر الكابتن على كل نقاط الاستلام أولاً ثم يوصّل للوجهات بالترتيب
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1074,7 +1088,7 @@
     <script type="module" src="js/app-core.js?v=be37438c"></script>
     <script type="module" src="js/native-notifications.js?v=0a4fcfda"></script>
 
-    <script src="js/home.js?v=49b009b9"></script>
+    <script src="js/home.js?v=b58842ad"></script>
     <script src="js/order-feature.js?v=1a514204"></script>
     <script src="js/smart-search.js?v=b37af4cc"></script>
 
