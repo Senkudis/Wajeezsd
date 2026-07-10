@@ -34,20 +34,33 @@ const OrderSchema = new mongoose.Schema(
         // 👇 السعر والمسافة 👇
         distanceType: {
             type: String,
-            enum: ['short', 'medium', 'long'], // قريب، وسط، بعيد
+            enum: ['short', 'medium', 'long', 'custom'], // قريب، وسط، بعيد، مخصص
             required: true
         },
         price: { type: Number, required: true }, // السعر الإجمالي
         appFee: { type: Number, default: 0 }, // نسبة التطبيق
         netRevenue: { type: Number, default: 0 }, // صافي ربح الكابتن
 
-        parcelImage: { type: String }, // 📷 صورة الطرد (اختياري)
+        // 🎟️ كوبون الخصم
+        promoCode:       { type: String, default: null },  // الكود المستخدم
+        discountAmount:  { type: Number, default: 0 },     // قيمة الخصم بالجنيه
+        originalPrice:   { type: Number, default: null },  // السعر قبل الخصم
+
+        parcelImage: { type: String }, // 📷 صورة الطرد (اختياري من العميل)
+        proofOfPickupImage: { type: String }, // 📸 صورة إثبات الاستلام (إلزامية من الكابتن)
+
 
         status: {
             type: String,
-            enum: ['pending', 'accepted', 'picked_up', 'delivered', 'cancelled'],
+            enum: ['pending', 'scheduled', 'accepted', 'picked_up', 'delivered', 'cancelled'],
             default: 'pending',
         },
+        scheduledAt: { type: Date, default: null }, // ⏰ طلب مجدول
+
+        // 🚫 تفاصيل الإلغاء — من ألغى ولماذا
+        cancelledBy: { type: String, enum: ['client', 'captain', 'admin', 'system'], default: null },
+        cancelReason: { type: String, default: null },
+        cancelledAt: { type: Date, default: null },
         location: {
             lat: { type: Number },
             lng: { type: Number }
@@ -62,6 +75,64 @@ const OrderSchema = new mongoose.Schema(
             status: { type: String, enum: ['none', 'pending', 'resolved'], default: 'none' },
             createdAt: { type: Date }
         },
+
+        // 💬 Negotiation System — Multi-Offer (each captain can submit their own)
+        negotiations: [{
+            captainId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            captainName: { type: String },
+            // لقطة من بيانات الكابتن وقت تقديم العرض — لعرض احترافي للعميل
+            captainVehicle: { type: String },
+            captainRating: { type: Number },
+            captainRatingCount: { type: Number },
+            captainPhoto: { type: String },
+            proposedPrice: { type: Number },
+            originalPrice: { type: Number },
+            expiresAt: { type: Date },
+            status: {
+                type: String,
+                enum: ['pending', 'accepted', 'rejected', 'expired', 'withdrawn'],
+                default: 'pending'
+            }
+        }],
+
+        // 💬 [Legacy] kept for backward compat — no longer locks the order
+        negotiation: {
+            isActive: { type: Boolean, default: false },
+            captainId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            proposedPrice: { type: Number },
+            originalPrice: { type: Number },
+            expiresAt: { type: Date },
+            status: {
+                type: String,
+                enum: ['none', 'pending', 'accepted', 'rejected', 'expired'],
+                default: 'none'
+            }
+        },
+
+        // 🛒 Shop/Directory Order Fields
+        orderType: {
+            type: String,
+            enum: ['delivery', 'shop'],
+            default: 'delivery'
+        },
+        shopOrderId: { type: mongoose.Schema.Types.ObjectId, ref: 'ShopOrder' }, // 🔗 ربط بطلب المتجر الأصلي
+        shopId: { type: mongoose.Schema.Types.ObjectId, ref: 'Place' },
+        shopName: { type: String },
+        shopPhone: { type: String },
+        items: [{ type: String }], // list of requested item names / notes
+
+        // 🧾 Pre-payment receipt (shop orders)
+        shopOrderDetails: { type: String },      // تفاصيل الطلبية التي اتفق عليها مع المحل
+        receiptImage: { type: String },          // صورة إشعار الدفع (base64 أو URL)
+
+        // 🌍 Multi-City Isolation — determines which city's captain pool this
+        // order is visible to. Set at creation from req.userCity. Never mutable by client.
+        city: {
+            type: String,
+            enum: ['Khartoum', 'PortSudan'],
+            default: 'Khartoum',
+            required: true
+        }
     },
     { timestamps: true }
 );
@@ -70,9 +141,98 @@ const OrderSchema = new mongoose.Schema(
 OrderSchema.index({ client: 1 });
 OrderSchema.index({ captain: 1 });
 OrderSchema.index({ status: 1 });
-OrderSchema.index({ captain: 1, status: 1 }); // 🔒 Compound index for trips query
-OrderSchema.index({ client: 1, createdAt: -1 }); // 🚀 PERFORMANCE: Queries for "My Orders"
-OrderSchema.index({ status: 1, createdAt: -1 }); // 🚀 PERFORMANCE: Captain sorting pending orders
-OrderSchema.index({ createdAt: -1 }); // For sorting by date
+OrderSchema.index({ captain: 1, status: 1 });       // 🔒 Compound index for trips query
+OrderSchema.index({ client: 1, createdAt: -1 });    // 🚀 PERFORMANCE: Queries for "My Orders"
+OrderSchema.index({ status: 1, createdAt: -1 });    // 🚀 PERFORMANCE: Captain sorting pending orders
+OrderSchema.index({ createdAt: -1 });               // For sorting by date
+OrderSchema.index({ scheduledAt: 1, status: 1 });  // ⏰ For scheduled order cron job
+// 🌍 City-isolation indexes — CRITICAL: prevent cross-city data leakage at the query level
+OrderSchema.index({ city: 1 });                             // Admin city filter
+OrderSchema.index({ city: 1, status: 1 });                  // Captain sees only own-city pending orders
+OrderSchema.index({ city: 1, status: 1, createdAt: -1 });   // City-scoped sorted pending list
+OrderSchema.index({ city: 1, captain: 1, status: 1 });      // Captain's city-scoped active orders
+
+// 🔄 Sync Order status back to ShopOrder
+OrderSchema.post('save', async function(doc) {
+    if (doc.shopOrderId) {
+        try {
+            const ShopOrder = mongoose.model('ShopOrder');
+            const shopOrder = await ShopOrder.findById(doc.shopOrderId);
+            if (shopOrder) {
+                let changed = false;
+                if (doc.status === 'accepted' && shopOrder.status !== 'captain_assigned') {
+                    shopOrder.status = 'captain_assigned';
+                    shopOrder.captain = doc.captain;
+                    changed = true;
+                } else if (doc.status === 'picked_up' && shopOrder.status !== 'picked_up') {
+                    shopOrder.status = 'picked_up';
+                    changed = true;
+                } else if (doc.status === 'delivered' && shopOrder.status !== 'delivered') {
+                    shopOrder.status = 'delivered';
+                    shopOrder.deliveredAt = new Date();
+                    changed = true;
+
+                    // 💼 ERP: قيد دخل البيع في دفتر أستاذ المتجر (مسار التعديل الإداري).
+                    // محمي من الازدواج مع مسار توصيل الكابتن بفهرس فريد على (refId + sale_income).
+                    try {
+                        const goodsAmount = shopOrder.promoAppliesTo === 'products'
+                            ? Math.max(0, shopOrder.itemsTotal - (shopOrder.discountAmount || 0))
+                            : shopOrder.itemsTotal;
+                        if (goodsAmount > 0 && shopOrder.place) {
+                            const { recordLedgerEntry } = require('../utils/erpHelpers');
+                            await recordLedgerEntry({
+                                placeId: shopOrder.place,
+                                type: 'sale_income',
+                                amount: goodsAmount,
+                                refModel: 'ShopOrder',
+                                refId: shopOrder._id,
+                                note: 'دخل بيع — توصيل طلب متجر (مزامنة إدارية)'
+                            });
+                        }
+                    } catch (ledgerErr) {
+                        console.error('Ledger sync (admin path) failed:', ledgerErr.message);
+                    }
+                } else if (doc.status === 'cancelled' && shopOrder.status !== 'cancelled') {
+                    shopOrder.status = 'cancelled';
+                    shopOrder.cancelledBy = shopOrder.cancelledBy || 'admin';
+                    shopOrder.cancelReason = shopOrder.cancelReason || 'إلغاء إداري أو من قبل الكابتن';
+                    changed = true;
+                    
+                    // 📦 استعادة المخزون
+                    if (shopOrder.items && shopOrder.items.length > 0) {
+                        const Product = mongoose.model('Product');
+                        const { recordStockMovement } = require('../utils/erpHelpers');
+                        for (const item of shopOrder.items) {
+                            if (item.productId) {
+                                const prod = await Product.findById(item.productId).select('stock');
+                                if (prod && prod.stock !== null && prod.stock !== undefined) {
+                                    const restored = await Product.findByIdAndUpdate(item.productId, {
+                                        $inc: { stock: item.quantity },
+                                        $set: { isAvailable: true }
+                                    }, { new: true }).select('stock name');
+                                    // 💼 ERP: توثيق حركة الإرجاع (إلغاء إداري/كابتن)
+                                    recordStockMovement({
+                                        placeId: shopOrder.place, productId: item.productId,
+                                        productName: item.name || (restored && restored.name) || '',
+                                        type: 'return', quantity: item.quantity,
+                                        balanceAfter: restored ? restored.stock : null,
+                                        reason: 'إرجاع للمخزون — إلغاء الطلب',
+                                        refModel: 'ShopOrder', refId: shopOrder._id
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (changed) {
+                    await shopOrder.save();
+                }
+            }
+        } catch (err) {
+            console.error('Error syncing Order to ShopOrder:', err);
+        }
+    }
+});
 
 module.exports = mongoose.model('Order', OrderSchema);

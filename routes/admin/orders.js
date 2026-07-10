@@ -95,6 +95,91 @@ router.get('/shop-orders', protect, requirePermission('view_orders'), async (req
     }
 });
 
+// @route   PUT /api/admin/shop-orders/:id/cancel-force
+// @desc    إلغاء إجباري لطلب المتجر من قبل الإدارة وإرجاع المخزون
+router.put('/shop-orders/:id/cancel-force', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const ShopOrder = require('../../models/ShopOrder');
+        const shopOrder = await ShopOrder.findById(req.params.id);
+        if (!shopOrder) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        if (shopOrder.status === 'cancelled') {
+            return res.status(400).json({ message: 'الطلب ملغي مسبقاً' });
+        }
+        if (shopOrder.status === 'ready_for_pickup' || shopOrder.status === 'captain_assigned' || shopOrder.status === 'picked_up' || shopOrder.status === 'delivered') {
+            return res.status(400).json({ message: 'تم إرسال الطلب للتوصيل بالفعل. يرجى إلغاء طلب التوصيل من شاشة الطلبات الرئيسية.' });
+        }
+
+        shopOrder.status = 'cancelled';
+        shopOrder.cancelledBy = 'admin';
+        shopOrder.cancelReason = 'إلغاء إداري (من قِبل لوحة التحكم)';
+        await shopOrder.save();
+
+        // 📦 استعادة المخزون
+        if (shopOrder.items && shopOrder.items.length > 0) {
+            const Product = require('../../models/Product');
+            const { recordStockMovement } = require('../../utils/erpHelpers');
+            for (const item of shopOrder.items) {
+                if (item.productId) {
+                    const prod = await Product.findById(item.productId).select('stock');
+                    if (prod && prod.stock !== null && prod.stock !== undefined) {
+                        const restored = await Product.findByIdAndUpdate(item.productId, {
+                            $inc: { stock: item.quantity },
+                            $set: { isAvailable: true }
+                        }, { new: true }).select('stock name');
+                        // 💼 ERP: توثيق حركة الإرجاع
+                        recordStockMovement({
+                            placeId: shopOrder.place, productId: item.productId,
+                            productName: item.name || (restored && restored.name) || '',
+                            type: 'return', quantity: item.quantity,
+                            balanceAfter: restored ? restored.stock : null,
+                            reason: 'إرجاع للمخزون — إلغاء إداري إجباري',
+                            refModel: 'ShopOrder', refId: shopOrder._id,
+                            createdBy: req.user._id
+                        });
+                    }
+                }
+            }
+        }
+
+        const io = req.app.get('io');
+        const { sendNotification } = require('../../utils/notificationHelper');
+
+        // Notify client
+        if (shopOrder.client) {
+            if (io) io.to(shopOrder.client.toString()).emit('order_status_updated', { orderId: shopOrder._id, status: 'cancelled' });
+            await sendNotification(req.app, {
+                userId: shopOrder.client,
+                title: '⚠️ تم إلغاء الطلب إدارياً',
+                message: `قامت الإدارة بإلغاء طلبك رقم ${shopOrder._id.toString().slice(-6)}.`,
+                type: 'order_update',
+                relatedId: shopOrder._id
+            });
+        }
+
+        // Notify merchant
+        if (shopOrder.place) {
+            const Place = require('../../models/Place');
+            const place = await Place.findById(shopOrder.place);
+            if (place && place.ownerId) {
+                if (io) io.to(place.ownerId.toString()).emit('merchant_order_update', { orderId: shopOrder._id, status: 'cancelled' });
+                await sendNotification(req.app, {
+                    userId: place.ownerId,
+                    title: '⚠️ تم إلغاء الطلب إدارياً',
+                    message: `قامت الإدارة بإلغاء طلب المتجر رقم ${shopOrder._id.toString().slice(-6)}. تم إرجاع المخزون.`,
+                    type: 'order_update',
+                    relatedId: shopOrder._id
+                });
+            }
+        }
+
+        res.json({ message: 'تم إلغاء الطلب إجبارياً واستعادة المخزون', order: shopOrder });
+    } catch (error) {
+        logger.error('Admin shop-order force cancel error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   GET /api/admin/orders/:id
 // @desc    جلب طلب واحد بالتفصيل (لصفحة تفاصيل الطلب)
 

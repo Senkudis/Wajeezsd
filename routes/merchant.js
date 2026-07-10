@@ -51,13 +51,25 @@ router.post('/products', protect, merchantOnly, async (req, res) => {
     try {
         const place = await Place.findOne({ ownerId: req.user._id });
         if (!place) return res.status(404).json({ message: 'لا يوجد متجر مرتبط بحسابك' });
-        const { name, description, price, image, category, sortOrder, stock } = req.body;
+        const { name, description, price, image, category, sortOrder, stock, cost, lowStockThreshold, sku } = req.body;
         if (!name || price === undefined) return res.status(400).json({ message: 'الاسم والسعر مطلوبان' });
-        
+
         // 🛡️ CRITICAL FIX: Validate price is not negative
         const numericPrice = Number(price);
         if (isNaN(numericPrice) || numericPrice < 0) {
             return res.status(400).json({ message: 'السعر يجب أن يكون رقماً موجباً أو صفراً' });
+        }
+
+        // 💼 ERP: سعر التكلفة (اختياري)
+        const numericCost = (cost !== undefined && cost !== null && cost !== '') ? Number(cost) : 0;
+        if (isNaN(numericCost) || numericCost < 0) {
+            return res.status(400).json({ message: 'سعر التكلفة يجب أن يكون رقماً موجباً أو صفراً' });
+        }
+
+        // 💼 ERP: حد تنبيه المخزون المنخفض (اختياري)
+        const thresholdValue = (lowStockThreshold !== undefined && lowStockThreshold !== null && lowStockThreshold !== '') ? parseInt(lowStockThreshold) : null;
+        if (thresholdValue !== null && (isNaN(thresholdValue) || thresholdValue < 0)) {
+            return res.status(400).json({ message: 'حد التنبيه يجب أن يكون رقماً موجباً أو فارغاً' });
         }
 
         // stock: null = غير محدود، رقم موجب = كمية محددة
@@ -69,10 +81,25 @@ router.post('/products', protect, merchantOnly, async (req, res) => {
         const product = await Product.create({
             placeId: place._id,
             name, description, price, image, category, sortOrder,
+            cost: numericCost,
+            lowStockThreshold: thresholdValue,
+            sku: (typeof sku === 'string' ? sku.trim().slice(0, 50) : ''),
             stock: stockValue,
             // لو الكمية صفر عند الإنشاء، اجعله غير متاح مباشرة
             isAvailable: stockValue === 0 ? false : true
         });
+
+        // 💼 ERP: مخزون افتتاحي → حركة توريد في السجل
+        if (stockValue !== null && stockValue > 0) {
+            const { recordStockMovement } = require('../utils/erpHelpers');
+            recordStockMovement({
+                placeId: place._id, productId: product._id, productName: product.name,
+                type: 'purchase', quantity: stockValue, balanceAfter: stockValue,
+                unitCost: numericCost, reason: 'مخزون افتتاحي عند إنشاء المنتج',
+                createdBy: req.user._id
+            });
+        }
+
         res.status(201).json(product);
     } catch (err) {
         logger.error('merchant/products POST error:', err);
@@ -100,6 +127,36 @@ router.put('/products/:id', protect, merchantOnly, async (req, res) => {
                 return res.status(400).json({ message: 'السعر يجب أن يكون رقماً موجباً أو صفراً' });
             }
             updateData.price = numericPrice;
+        }
+
+        // 💼 ERP: التحقق من سعر التكلفة عند تعديله
+        if ('cost' in updateData) {
+            if (updateData.cost === null || updateData.cost === '') {
+                updateData.cost = 0;
+            } else {
+                const numericCost = Number(updateData.cost);
+                if (isNaN(numericCost) || numericCost < 0) {
+                    return res.status(400).json({ message: 'سعر التكلفة يجب أن يكون رقماً موجباً أو صفراً' });
+                }
+                updateData.cost = numericCost;
+            }
+        }
+
+        // 💼 ERP: التحقق من حد تنبيه المخزون عند تعديله
+        if ('lowStockThreshold' in updateData) {
+            if (updateData.lowStockThreshold === null || updateData.lowStockThreshold === '') {
+                updateData.lowStockThreshold = null;
+            } else {
+                const parsedThreshold = parseInt(updateData.lowStockThreshold);
+                if (isNaN(parsedThreshold) || parsedThreshold < 0) {
+                    return res.status(400).json({ message: 'حد التنبيه يجب أن يكون رقماً موجباً أو فارغاً' });
+                }
+                updateData.lowStockThreshold = parsedThreshold;
+            }
+        }
+
+        if ('sku' in updateData) {
+            updateData.sku = (typeof updateData.sku === 'string') ? updateData.sku.trim().slice(0, 50) : '';
         }
 
         if ('stock' in updateData) {
@@ -163,6 +220,7 @@ router.patch('/products/:id/stock', protect, merchantOnly, async (req, res) => {
         if (!product) return res.status(404).json({ message: 'المنتج غير موجود' });
 
         const { stock } = req.body;
+        const previousStock = product.stock; // 💼 ERP: لحساب فرق التسوية
 
         if (stock === null || stock === undefined || stock === '') {
             // غير محدود
@@ -178,6 +236,19 @@ router.patch('/products/:id/stock', protect, merchantOnly, async (req, res) => {
         }
 
         await product.save();
+
+        // 💼 ERP: توثيق التعديل السريع كحركة تسوية (فقط عند تغيّر فعلي لكمية متتبَّعة)
+        if (product.stock !== null && product.stock !== previousStock) {
+            const { recordStockMovement } = require('../utils/erpHelpers');
+            recordStockMovement({
+                placeId: place._id, productId: product._id, productName: product.name,
+                type: 'adjustment',
+                quantity: (previousStock === null || previousStock === undefined) ? product.stock : (product.stock - previousStock),
+                balanceAfter: product.stock,
+                reason: 'تعديل سريع من لوحة التاجر',
+                createdBy: req.user._id
+            });
+        }
 
         // 📡 Feature 1: إرسال تحديث المخزون للعملاء المتواجدين في صفحة المتجر فوراً
         try {
@@ -443,15 +514,25 @@ router.put('/orders/:id/reject', protect, merchantOnly, async (req, res) => {
 
         // 📦 إعادة المخزون للمنتجات عند رفض التاجر
         if (order.items && order.items.length > 0) {
+            const { recordStockMovement } = require('../utils/erpHelpers');
             for (const item of order.items) {
                 if (item.productId) {
                     // أعد الكمية فقط لو كان المنتج يتتبع مخزوناً
                     const Product = require('../models/Product');
                     const prod = await Product.findById(item.productId).select('stock');
                     if (prod && prod.stock !== null && prod.stock !== undefined) {
-                        await Product.findByIdAndUpdate(item.productId, {
+                        const restored = await Product.findByIdAndUpdate(item.productId, {
                             $inc: { stock: item.quantity },
                             $set: { isAvailable: true }
+                        }, { new: true }).select('stock name');
+                        // 💼 ERP: توثيق حركة الإرجاع
+                        recordStockMovement({
+                            placeId: place._id, productId: item.productId,
+                            productName: item.name || (restored && restored.name) || '',
+                            type: 'return', quantity: item.quantity,
+                            balanceAfter: restored ? restored.stock : null,
+                            reason: 'إرجاع للمخزون — رفض الطلب', refModel: 'ShopOrder', refId: order._id,
+                            createdBy: req.user._id
                         });
                     }
                 }
@@ -690,7 +771,8 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
 
             const subtotal = product.price * qty;
             itemsTotal += subtotal;
-            validatedItems.push({ productId: product._id, name: product.name, price: product.price, quantity: qty, subtotal });
+            // 💼 ERP: تثبيت التكلفة (snapshot) وقت الطلب — لدقة تقارير الأرباح تاريخياً
+            validatedItems.push({ productId: product._id, name: product.name, price: product.price, cost: product.cost || 0, quantity: qty, subtotal });
         }
 
         // 🚚 سعر التوصيل: يحدّده العميل (قابل للتفاوض) — مع حدود منطقية، وإلا الافتراضي للمتجر
@@ -743,6 +825,7 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
 
         // 🛡️ CRITICAL FIX: Atomic Stock Reservation with Rollback
         const reservedItems = [];
+        const stockMovementsToLog = []; // 💼 ERP: حركات تُسجَّل بعد نجاح إنشاء الطلب
         let stockError = null;
 
         for (const item of validatedItems) {
@@ -778,6 +861,11 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
                         break;
                     } else {
                         reservedItems.push(item);
+                        // 💼 ERP: توثيق حركة البيع (تُكتب بعد نجاح إنشاء الطلب)
+                        stockMovementsToLog.push({
+                            productId: item.productId, productName: item.name,
+                            quantity: -item.quantity, balanceAfter: updated.stock
+                        });
                         if (updated.stock <= 0 && place.ownerId) {
                             const io = req.app.get('io');
                             if (io) {
@@ -786,6 +874,10 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
                                     productName: updated.name
                                 });
                             }
+                        } else {
+                            // 💼 ERP: تنبيه مخزون منخفض عند الهبوط لحد التنبيه
+                            const { checkLowStockAlert } = require('../utils/erpHelpers');
+                            checkLowStockAlert(req.app, place, updated);
                         }
                     }
 
@@ -825,6 +917,19 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             dropoff,
             notes: notes || '',
         });
+
+        // 💼 ERP: تسجيل حركات المخزون (بيع) مرتبطة بالطلب
+        if (stockMovementsToLog.length > 0) {
+            const { recordStockMovement } = require('../utils/erpHelpers');
+            for (const mv of stockMovementsToLog) {
+                recordStockMovement({
+                    placeId: place._id, productId: mv.productId, productName: mv.productName,
+                    type: 'sale', quantity: mv.quantity, balanceAfter: mv.balanceAfter,
+                    reason: 'بيع — طلب تطبيق', refModel: 'ShopOrder', refId: order._id,
+                    createdBy: req.user._id
+                });
+            }
+        }
 
         // 🎟️ تسجيل استخدام الكوبون بعد نجاح إنشاء الطلب
         if (promoDoc && appliedPromoCode) {
