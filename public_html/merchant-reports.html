@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>التقارير والتحليلات | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js?v=3.5"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
+        }
+        .kpi-card {
+            background: white; border-radius: 16px; padding: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06); height: 100%;
+        }
+        .kpi-num { font-size: 1.35rem; font-weight: 900; line-height: 1.2; }
+        .kpi-label { font-size: 11px; color: #94a3b8; font-weight: 700; }
+        .kpi-icon {
+            width: 34px; height: 34px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+        .section-card {
+            background: white; border-radius: 16px; padding: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 14px;
+        }
+        .section-title { font-weight: 800; font-size: 14px; color: #334155; margin-bottom: 12px; }
+        .period-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px; }
+        .period-tab {
+            border: 1px solid #e2e8f0; background: white; color: #64748b;
+            padding: 7px 16px; border-radius: 99px; font-size: 12.5px; font-weight: 700;
+            white-space: nowrap; cursor: pointer; transition: all 0.15s;
+        }
+        .period-tab.active { background: #f59e0b; border-color: #f59e0b; color: #1a1a2e; }
+        .top-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+        }
+        .top-row:last-child { border-bottom: none; }
+        .rank-badge {
+            width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+            background: #f1f5f9; color: #64748b; font-size: 12px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .rank-badge.r1 { background: #fef3c7; color: #b45309; }
+        .rank-badge.r2 { background: #e2e8f0; color: #475569; }
+        .rank-badge.r3 { background: #ffedd5; color: #c2410c; }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        .profit-pos { color: #16a34a; }
+        .profit-neg { color: #dc2626; }
+    </style>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
+</head>
+<body>
+
+<div class="page-header">
+    <div class="d-flex align-items-center gap-3">
+        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        <div>
+            <h5 class="fw-bold mb-0">التقارير والتحليلات</h5>
+            <small class="text-white-50" id="periodLabel">آخر 7 أيام</small>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-3 pt-3">
+
+    <!-- Period selector -->
+    <div class="period-tabs mb-3" id="periodTabs">
+        <button class="period-tab" data-period="today">اليوم</button>
+        <button class="period-tab active" data-period="week">آخر 7 أيام</button>
+        <button class="period-tab" data-period="month">آخر 30 يوم</button>
+    </div>
+
+    <!-- KPI grid -->
+    <div class="row g-2 mb-3" id="kpiGrid">
+        <div class="col-6">
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">إجمالي المبيعات</div>
+                        <div class="kpi-num text-success" id="kpiRevenue">-</div>
+                    </div>
+                    <div class="kpi-icon" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-cash-stack"></i></div>
+                </div>
+                <div class="kpi-label mt-1" id="kpiRevenueBreakdown"></div>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="kpi-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">الربح الإجمالي</div>
+                        <div class="kpi-num" id="kpiProfit">-</div>
+                    </div>
+                    <div class="kpi-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-graph-up-arrow"></i></div>
+                </div>
+                <div class="kpi-label mt-1" id="kpiCogs"></div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="kpi-card text-center">
+                <div class="kpi-num" style="color:#0f3460;" id="kpiOrders">-</div>
+                <div class="kpi-label">عدد الطلبات</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="kpi-card text-center">
+                <div class="kpi-num" style="color:#0f3460;" id="kpiItems">-</div>
+                <div class="kpi-label">قطعة مباعة</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="kpi-card text-center">
+                <div class="kpi-num" style="color:#0f3460;" id="kpiAvg">-</div>
+                <div class="kpi-label">متوسط الطلب</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales chart -->
+    <div class="section-card">
+        <div class="section-title"><i class="bi bi-bar-chart-fill text-warning me-1"></i> المبيعات اليومية</div>
+        <div style="position:relative;height:220px;">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- P&L -->
+    <div class="section-card">
+        <div class="section-title"><i class="bi bi-calculator-fill text-warning me-1"></i> الأرباح والخسائر</div>
+        <div id="plBox" class="small"><div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div></div>
+    </div>
+
+    <!-- Top products -->
+    <div class="section-card">
+        <div class="section-title"><i class="bi bi-trophy-fill text-warning me-1"></i> الأكثر مبيعاً</div>
+        <div id="topProducts"><div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div></div>
+    </div>
+
+    <!-- Top customers -->
+    <div class="section-card">
+        <div class="section-title"><i class="bi bi-people-fill text-warning me-1"></i> أفضل العملاء</div>
+        <div id="topCustomers"><div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div></div>
+    </div>
+
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
+    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
+    <a href="merchant-pos.html"><i class="bi bi-upc-scan"></i> نقطة بيع</a>
+    <a href="merchant-reports.html" class="active"><i class="bi bi-graph-up"></i> تقارير</a>
+    <a href="merchant-finance.html"><i class="bi bi-wallet2"></i> محاسبة</a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="vendor/chartjs/chart.umd.min.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) window.location.href = 'client-login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+    const H = { 'Authorization': `Bearer ${token}` };
+    const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+    let currentPeriod = 'week';
+    let salesChart = null;
+
+    const periodLabels = { today: 'اليوم', week: 'آخر 7 أيام', month: 'آخر 30 يوم' };
+
+    document.querySelectorAll('.period-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPeriod = btn.dataset.period;
+            document.getElementById('periodLabel').textContent = periodLabels[currentPeriod];
+            loadAll();
+        });
+    });
+
+    async function apiGet(path) {
+        const res = await fetch(`${API_URL}/api/merchant-erp${path}`, { headers: H });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+    }
+
+    async function loadSummary() {
+        try {
+            const d = await apiGet(`/reports/summary?period=${currentPeriod}`);
+            document.getElementById('kpiRevenue').textContent = fmt(d.revenue) + ' ج.س';
+            document.getElementById('kpiRevenueBreakdown').textContent =
+                `تطبيق: ${fmt(d.breakdown.app.revenue)} — نقطة بيع: ${fmt(d.breakdown.pos.revenue)}`;
+            const profitEl = document.getElementById('kpiProfit');
+            profitEl.textContent = fmt(d.grossProfit) + ' ج.س';
+            profitEl.className = 'kpi-num ' + (d.grossProfit >= 0 ? 'profit-pos' : 'profit-neg');
+            document.getElementById('kpiCogs').textContent = `تكلفة البضاعة: ${fmt(d.cogs)} ج.س`;
+            document.getElementById('kpiOrders').textContent = fmt(d.ordersCount);
+            document.getElementById('kpiItems').textContent = fmt(d.itemsSold);
+            document.getElementById('kpiAvg').textContent = fmt(d.avgOrderValue);
+        } catch (e) { console.error('summary', e); }
+    }
+
+    async function loadSeries() {
+        try {
+            const seriesPeriod = currentPeriod === 'today' ? 'week' : currentPeriod;
+            const d = await apiGet(`/reports/sales-series?period=${seriesPeriod}`);
+            const labels = d.series.map(s => s.date.slice(5)); // MM-DD
+            const revenue = d.series.map(s => s.revenue);
+            const profit = d.series.map(s => s.profit);
+
+            if (salesChart) salesChart.destroy();
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.classList.contains('dark-mode');
+            const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+            const tickColor = isDark ? '#94a3b8' : '#64748b';
+            salesChart = new Chart(document.getElementById('salesChart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'المبيعات', data: revenue, backgroundColor: 'rgba(245,158,11,0.75)', borderRadius: 6, maxBarThickness: 26 },
+                        { label: 'الربح', data: profit, type: 'line', borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.3, pointRadius: 3 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { font: { family: 'Cairo', weight: 700 }, color: tickColor } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Cairo', size: 10 }, color: tickColor } },
+                        y: { grid: { color: gridColor }, ticks: { font: { family: 'Cairo', size: 10 }, color: tickColor } }
+                    }
+                }
+            });
+        } catch (e) { console.error('series', e); }
+    }
+
+    async function loadProfit() {
+        try {
+            const d = await apiGet(`/reports/profit?period=${currentPeriod}`);
+            const catLabels = { rent: 'إيجار', salaries: 'رواتب', supplies: 'مشتريات', utilities: 'خدمات', transport: 'مواصلات', other: 'أخرى' };
+            const expRows = (d.expensesByCategory || []).map(e =>
+                `<div class="d-flex justify-content-between py-1 text-muted">
+                    <span>- ${catLabels[e._id] || e._id}</span><span>${fmt(e.total)} ج.س</span>
+                </div>`).join('');
+            const net = d.netProfit;
+            document.getElementById('plBox').innerHTML = `
+                <div class="d-flex justify-content-between py-1 fw-bold"><span>الإيرادات</span><span class="text-success">${fmt(d.revenue)} ج.س</span></div>
+                <div class="d-flex justify-content-between py-1 text-muted"><span>تكلفة البضاعة المباعة</span><span>(${fmt(d.cogs)}) ج.س</span></div>
+                <div class="d-flex justify-content-between py-1 fw-bold border-top pt-2"><span>الربح الإجمالي</span><span class="${d.grossProfit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(d.grossProfit)} ج.س</span></div>
+                <div class="d-flex justify-content-between py-1 text-muted mt-1"><span>المصروفات</span><span>(${fmt(d.expensesTotal)}) ج.س</span></div>
+                ${expRows}
+                <div class="d-flex justify-content-between py-2 border-top mt-1" style="font-size:15px;font-weight:900;">
+                    <span>صافي الربح</span><span class="${net >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(net)} ج.س</span>
+                </div>`;
+        } catch (e) {
+            document.getElementById('plBox').innerHTML = '<div class="text-muted text-center py-2">تعذر التحميل</div>';
+        }
+    }
+
+    async function loadTopProducts() {
+        try {
+            const d = await apiGet(`/reports/top-products?period=${currentPeriod}&limit=8`);
+            if (!d.top.length) {
+                document.getElementById('topProducts').innerHTML = '<div class="text-muted text-center py-3 small">لا مبيعات في هذه الفترة</div>';
+                return;
+            }
+            document.getElementById('topProducts').innerHTML = d.top.map((p, i) => `
+                <div class="top-row">
+                    <div class="rank-badge r${i + 1}">${i + 1}</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold" style="font-size:13.5px;">${p.name}</div>
+                        <div class="text-muted" style="font-size:11px;">${fmt(p.qty)} قطعة — ربح ${fmt(p.profit)} ج.س</div>
+                    </div>
+                    <div class="fw-bold text-success" style="font-size:13px;">${fmt(p.revenue)} ج.س</div>
+                </div>`).join('');
+        } catch (e) {
+            document.getElementById('topProducts').innerHTML = '<div class="text-muted text-center py-2 small">تعذر التحميل</div>';
+        }
+    }
+
+    async function loadCustomers() {
+        try {
+            const d = await apiGet(`/reports/customers?period=${currentPeriod}&limit=8`);
+            if (!d.customers.length) {
+                document.getElementById('topCustomers').innerHTML = '<div class="text-muted text-center py-3 small">لا عملاء في هذه الفترة</div>';
+                return;
+            }
+            document.getElementById('topCustomers').innerHTML = d.customers.map((c, i) => `
+                <div class="top-row">
+                    <div class="rank-badge r${i + 1}">${i + 1}</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold" style="font-size:13.5px;">${c.name}</div>
+                        <div class="text-muted" style="font-size:11px;">${fmt(c.orders)} طلب</div>
+                    </div>
+                    <div class="fw-bold text-success" style="font-size:13px;">${fmt(c.total)} ج.س</div>
+                </div>`).join('');
+        } catch (e) {
+            document.getElementById('topCustomers').innerHTML = '<div class="text-muted text-center py-2 small">تعذر التحميل</div>';
+        }
+    }
+
+    function loadAll() {
+        loadSummary(); loadSeries(); loadProfit(); loadTopProducts(); loadCustomers();
+    }
+    loadAll();
+</script>
+    <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="notification-toast.js"></script>
+</body>
+</html>

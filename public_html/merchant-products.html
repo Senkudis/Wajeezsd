@@ -135,12 +135,23 @@
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label"><i class="bi bi-currency-dollar text-success me-1"></i>السعر (ج.س) *</label>
-                        <input type="number" id="pPrice" class="form-control" placeholder="0" min="0" step="0.5">
+                        <label class="form-label"><i class="bi bi-currency-dollar text-success me-1"></i>سعر البيع (ج.س) *</label>
+                        <input type="number" id="pPrice" class="form-control" placeholder="0" min="0" step="0.5" oninput="updateMarginPreview()">
                     </div>
+                    <div class="col-6">
+                        <label class="form-label"><i class="bi bi-cash-coin text-danger me-1"></i>سعر التكلفة (ج.س)</label>
+                        <input type="number" id="pCost" class="form-control" placeholder="0" min="0" step="0.5" oninput="updateMarginPreview()">
+                    </div>
+                </div>
+                <div id="marginPreview" class="mb-3 d-none" style="font-size:12px;font-weight:700;padding:8px 12px;border-radius:10px;background:#f0fdf4;color:#166534;"></div>
+                <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label"><i class="bi bi-grid-3x3-gap-fill text-info me-1"></i>التصنيف</label>
                         <input type="text" id="pCategory" class="form-control" placeholder="مثال: وجبات رئيسية">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label"><i class="bi bi-upc text-secondary me-1"></i>رمز المنتج (SKU)</label>
+                        <input type="text" id="pSku" class="form-control" maxlength="50" placeholder="اختياري">
                     </div>
                 </div>
                 <div class="mb-3">
@@ -171,6 +182,14 @@
                         <span class="input-group-text bg-light text-muted small">قطعة</span>
                     </div>
                     <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>إذا تركته فارغاً يعني الكمية غير محدودة</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-bell text-warning me-1"></i>حد تنبيه المخزون المنخفض</label>
+                    <div class="input-group">
+                        <input type="number" id="pLowStock" class="form-control" placeholder="مثال: 5" min="0" step="1">
+                        <span class="input-group-text bg-light text-muted small">قطعة</span>
+                    </div>
+                    <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>يصلك تنبيه عندما تنخفض الكمية لهذا الحد</div>
                 </div>
                 <div class="availability-toggle mb-3">
                     <input type="checkbox" id="pAvailable" class="form-check-input" style="width:20px;height:20px;" checked>
@@ -340,12 +359,34 @@
         </div>`;
     }
 
+    // 💼 ERP: معاينة هامش الربح مباشرة أثناء الإدخال
+    window.updateMarginPreview = function() {
+        const price = parseFloat(document.getElementById('pPrice').value) || 0;
+        const cost = parseFloat(document.getElementById('pCost').value) || 0;
+        const box = document.getElementById('marginPreview');
+        if (price <= 0 || cost <= 0) { box.classList.add('d-none'); return; }
+        const profit = price - cost;
+        const margin = ((profit / price) * 100).toFixed(1);
+        box.classList.remove('d-none');
+        if (profit >= 0) {
+            box.style.background = '#f0fdf4'; box.style.color = '#166534';
+            box.innerHTML = `<i class="bi bi-graph-up-arrow me-1"></i>الربح للقطعة: ${profit.toLocaleString('en-US')} ج.س (هامش ${margin}%)`;
+        } else {
+            box.style.background = '#fef2f2'; box.style.color = '#991b1b';
+            box.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>تحذير: سعر البيع أقل من التكلفة (خسارة ${Math.abs(profit).toLocaleString('en-US')} ج.س للقطعة)`;
+        }
+    };
+
     function openAddModal() {
         document.getElementById('editProductId').value = '';
         document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle-fill me-2"></i>إضافة منتج جديد';
         document.getElementById('pName').value = '';
         document.getElementById('pDesc').value = '';
         document.getElementById('pPrice').value = '';
+        document.getElementById('pCost').value = '';
+        document.getElementById('pSku').value = '';
+        document.getElementById('pLowStock').value = '';
+        document.getElementById('marginPreview').classList.add('d-none');
         document.getElementById('pCategory').value = '';
         document.getElementById('pImage').value = '';
         document.getElementById('productImageUpload').value = '';
@@ -363,6 +404,10 @@
         document.getElementById('pName').value = p.name;
         document.getElementById('pDesc').value = p.description || '';
         document.getElementById('pPrice').value = p.price;
+        document.getElementById('pCost').value = p.cost || '';
+        document.getElementById('pSku').value = p.sku || '';
+        document.getElementById('pLowStock').value = (p.lowStockThreshold !== null && p.lowStockThreshold !== undefined) ? p.lowStockThreshold : '';
+        updateMarginPreview();
         document.getElementById('pCategory').value = p.category || '';
         document.getElementById('pImage').value = p.image || '';
         
@@ -453,10 +498,14 @@
         const id = document.getElementById('editProductId').value;
         const stockRaw = document.getElementById('pStock').value.trim();
         const stockVal = stockRaw === '' ? null : parseInt(stockRaw, 10);
+        const lowStockRaw = document.getElementById('pLowStock').value.trim();
         const body = {
             name: document.getElementById('pName').value.trim(),
             description: document.getElementById('pDesc').value.trim(),
             price: parseFloat(document.getElementById('pPrice').value),
+            cost: document.getElementById('pCost').value.trim() === '' ? 0 : parseFloat(document.getElementById('pCost').value),
+            sku: document.getElementById('pSku').value.trim(),
+            lowStockThreshold: lowStockRaw === '' ? null : parseInt(lowStockRaw, 10),
             category: document.getElementById('pCategory').value.trim() || 'عام',
             image: document.getElementById('pImage').value.trim(),
             isAvailable: document.getElementById('pAvailable').checked,

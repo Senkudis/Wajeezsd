@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>إدارة المخزون | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js?v=3.5"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
+        }
+        .tab-bar { display: flex; gap: 6px; padding: 12px; background: #f8fafc; position: sticky; top: 62px; z-index: 99; }
+        .tab-btn {
+            flex: 1; border: 1px solid #e2e8f0; background: white; color: #64748b;
+            padding: 9px 0; border-radius: 12px; font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .tab-btn.active { background: #f59e0b; border-color: #f59e0b; color: #1a1a2e; }
+        .item-card {
+            background: white; border-radius: 14px; padding: 12px 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 10px;
+        }
+        .mv-icon {
+            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        .form-label { font-weight: 700; font-size: 13px; color: #374151; }
+        .modal-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; }
+        .modal-title { font-weight: 800; }
+        .stock-pill { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 99px; }
+    </style>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
+</head>
+<body>
+
+<div class="page-header">
+    <div class="d-flex align-items-center gap-3">
+        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        <div>
+            <h5 class="fw-bold mb-0">إدارة المخزون</h5>
+            <small class="text-white-50" id="headerSub">جاري التحميل...</small>
+        </div>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <button class="tab-btn active" data-tab="low" onclick="switchTab('low', this)">منخفض المخزون</button>
+    <button class="tab-btn" data-tab="movements" onclick="switchTab('movements', this)">سجل الحركات</button>
+</div>
+
+<div class="container-fluid px-3" id="content">
+    <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
+</div>
+
+<!-- Restock modal -->
+<div class="modal fade" id="restockModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title"><i class="bi bi-box-arrow-in-down me-2"></i>توريد بضاعة</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="rsProductId">
+                <div class="fw-bold mb-3" id="rsProductName" style="font-size:15px;"></div>
+                <div class="mb-3">
+                    <label class="form-label">الكمية الموردة *</label>
+                    <input type="number" id="rsQty" class="form-control" min="1" step="1" placeholder="عدد القطع">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">تكلفة الوحدة (ج.س)</label>
+                    <input type="number" id="rsCost" class="form-control" min="0" step="0.5" placeholder="اختياري — يحدّث سعر التكلفة">
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="rsAsExpense" class="form-check-input">
+                    <label for="rsAsExpense" class="form-check-label small fw-bold">تسجيل قيمة التوريد كمصروف (مشتريات)</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 flex-column gap-2">
+                <button class="btn btn-warning w-100 py-2 fw-bold rounded-3 text-dark" onclick="submitRestock()">تأكيد التوريد</button>
+                <button class="btn btn-outline-secondary w-100 rounded-3" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adjust modal -->
+<div class="modal fade" id="adjustModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title"><i class="bi bi-sliders me-2"></i>تسوية جرد</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="adjProductId">
+                <div class="fw-bold mb-1" id="adjProductName" style="font-size:15px;"></div>
+                <div class="text-muted small mb-3" id="adjCurrent"></div>
+                <div class="mb-3">
+                    <label class="form-label">الكمية الفعلية بعد الجرد *</label>
+                    <input type="number" id="adjStock" class="form-control" min="0" step="1" placeholder="الكمية الصحيحة">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">سبب التسوية</label>
+                    <input type="text" id="adjReason" class="form-control" maxlength="200" placeholder="مثال: جرد دوري / تلف / فقد">
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 flex-column gap-2">
+                <button class="btn btn-warning w-100 py-2 fw-bold rounded-3 text-dark" onclick="submitAdjust()">حفظ التسوية</button>
+                <button class="btn btn-outline-secondary w-100 rounded-3" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
+    <a href="merchant-products.html"><i class="bi bi-box-seam-fill"></i> المنتجات</a>
+    <a href="merchant-inventory.html" class="active"><i class="bi bi-boxes"></i> المخزون</a>
+    <a href="merchant-reports.html"><i class="bi bi-graph-up"></i> تقارير</a>
+    <a href="merchant-finance.html"><i class="bi bi-wallet2"></i> محاسبة</a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) window.location.href = 'client-login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+    const H = { 'Authorization': `Bearer ${token}` };
+    const HJ = { ...H, 'Content-Type': 'application/json' };
+    const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+    let currentTab = 'low';
+    let lowStockCache = [];
+    let allProductsCache = [];
+
+    async function apiGet(path) {
+        const res = await fetch(`${API_URL}/api/merchant-erp${path}`, { headers: H });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+    }
+
+    function switchTab(tab, btn) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (tab === 'low') loadLowStock(); else loadMovements(1);
+    }
+
+    async function loadLowStock() {
+        const el = document.getElementById('content');
+        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        try {
+            const d = await apiGet('/inventory/low-stock');
+            lowStockCache = d.products;
+            document.getElementById('headerSub').textContent = `${d.products.length} منتج يحتاج انتباهك`;
+            if (!d.products.length) {
+                el.innerHTML = `<div class="text-center py-5 text-muted">
+                    <i class="bi bi-check-circle" style="font-size:3rem;color:#16a34a;"></i>
+                    <div class="fw-bold mt-2">المخزون بحالة جيدة</div>
+                    <div class="small">لا توجد منتجات تحت حد التنبيه</div></div>`;
+                return;
+            }
+            el.innerHTML = d.products.map(p => {
+                const isOut = p.stock === 0;
+                return `
+                <div class="item-card d-flex align-items-center gap-2">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold" style="font-size:14px;">${p.name}</div>
+                        <div class="d-flex gap-2 align-items-center mt-1">
+                            <span class="stock-pill" style="background:${isOut ? '#fee2e2' : '#ffedd5'};color:${isOut ? '#991b1b' : '#c2410c'};">
+                                ${isOut ? 'نفدت الكمية' : `متبقي ${p.stock}`}
+                            </span>
+                            <span class="text-muted" style="font-size:11px;">حد التنبيه: ${p.lowStockThreshold ?? 5}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column gap-1">
+                        <button class="btn btn-warning btn-sm fw-bold text-dark" style="font-size:12px;" onclick="openRestock('${p._id}')">
+                            <i class="bi bi-box-arrow-in-down"></i> توريد
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm fw-bold" style="font-size:12px;" onclick="openAdjust('${p._id}')">
+                            <i class="bi bi-sliders"></i> تسوية
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            el.innerHTML = '<div class="alert alert-danger m-3">فشل تحميل بيانات المخزون</div>';
+        }
+    }
+
+    const mvMeta = {
+        purchase:   { icon: 'bi-box-arrow-in-down', bg: '#dcfce7', color: '#16a34a', label: 'توريد' },
+        sale:       { icon: 'bi-cart-check',        bg: '#dbeafe', color: '#2563eb', label: 'بيع' },
+        adjustment: { icon: 'bi-sliders',           bg: '#fef3c7', color: '#d97706', label: 'تسوية' },
+        return:     { icon: 'bi-arrow-counterclockwise', bg: '#f3e8ff', color: '#9333ea', label: 'إرجاع' }
+    };
+
+    async function loadMovements(page) {
+        const el = document.getElementById('content');
+        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        try {
+            const d = await apiGet(`/inventory/movements?page=${page}&limit=30`);
+            document.getElementById('headerSub').textContent = `${fmt(d.total)} حركة مسجلة`;
+            if (!d.movements.length) {
+                el.innerHTML = `<div class="text-center py-5 text-muted">
+                    <i class="bi bi-journal-text" style="font-size:3rem;"></i>
+                    <div class="fw-bold mt-2">لا حركات مخزون بعد</div></div>`;
+                return;
+            }
+            const rows = d.movements.map(m => {
+                const meta = mvMeta[m.type] || mvMeta.adjustment;
+                const when = new Date(m.createdAt).toLocaleString('ar-SD', { dateStyle: 'short', timeStyle: 'short' });
+                return `
+                <div class="item-card d-flex align-items-center gap-2">
+                    <div class="mv-icon" style="background:${meta.bg};color:${meta.color};"><i class="bi ${meta.icon}"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold" style="font-size:13.5px;">${m.productName || 'منتج'}</div>
+                        <div class="text-muted" style="font-size:11px;">${meta.label}${m.reason ? ' — ' + m.reason : ''}</div>
+                        <div class="text-muted" style="font-size:10.5px;">${when}</div>
+                    </div>
+                    <div class="text-start">
+                        <div class="fw-bold ${m.quantity >= 0 ? 'text-success' : 'text-danger'}" style="font-size:14px;">
+                            ${m.quantity >= 0 ? '+' : ''}${fmt(m.quantity)}
+                        </div>
+                        ${m.balanceAfter !== null && m.balanceAfter !== undefined ? `<div class="text-muted" style="font-size:10.5px;">رصيد: ${fmt(m.balanceAfter)}</div>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+            const pager = d.totalPages > 1 ? `
+                <div class="d-flex justify-content-center gap-2 py-3">
+                    ${page > 1 ? `<button class="btn btn-sm btn-outline-secondary" onclick="loadMovements(${page - 1})">السابق</button>` : ''}
+                    <span class="small text-muted align-self-center">${page} / ${d.totalPages}</span>
+                    ${page < d.totalPages ? `<button class="btn btn-sm btn-outline-secondary" onclick="loadMovements(${page + 1})">التالي</button>` : ''}
+                </div>` : '';
+            el.innerHTML = rows + pager;
+        } catch (e) {
+            el.innerHTML = '<div class="alert alert-danger m-3">فشل تحميل سجل الحركات</div>';
+        }
+    }
+
+    // ── توريد ──
+    async function ensureProducts() {
+        if (allProductsCache.length) return;
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/products`, { headers: H });
+            const d = await res.json();
+            allProductsCache = d.products || [];
+        } catch (e) {}
+    }
+
+    function findProduct(id) {
+        return lowStockCache.find(p => p._id === id) || allProductsCache.find(p => p._id === id);
+    }
+
+    async function openRestock(id) {
+        await ensureProducts();
+        const p = findProduct(id);
+        if (!p) return;
+        document.getElementById('rsProductId').value = id;
+        document.getElementById('rsProductName').textContent = p.name;
+        document.getElementById('rsQty').value = '';
+        document.getElementById('rsCost').value = p.cost || '';
+        document.getElementById('rsAsExpense').checked = false;
+        new bootstrap.Modal(document.getElementById('restockModal')).show();
+    }
+
+    async function submitRestock() {
+        const body = {
+            productId: document.getElementById('rsProductId').value,
+            quantity: parseInt(document.getElementById('rsQty').value),
+            unitCost: document.getElementById('rsCost').value === '' ? null : parseFloat(document.getElementById('rsCost').value),
+            addAsExpense: document.getElementById('rsAsExpense').checked
+        };
+        if (!body.quantity || body.quantity <= 0) { Swal.fire('تنبيه', 'أدخل كمية صحيحة', 'warning'); return; }
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/inventory/restock`, {
+                method: 'POST', headers: HJ, body: JSON.stringify(body)
+            });
+            const d = await res.json();
+            if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل التوريد', 'error'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('restockModal')).hide();
+            Swal.fire({ icon: 'success', title: d.message, timer: 1800, showConfirmButton: false });
+            loadLowStock();
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    // ── تسوية ──
+    async function openAdjust(id) {
+        await ensureProducts();
+        const p = findProduct(id);
+        if (!p) return;
+        document.getElementById('adjProductId').value = id;
+        document.getElementById('adjProductName').textContent = p.name;
+        document.getElementById('adjCurrent').textContent =
+            (p.stock === null || p.stock === undefined) ? 'الكمية الحالية: غير محدودة' : `الكمية الحالية: ${p.stock}`;
+        document.getElementById('adjStock').value = (p.stock !== null && p.stock !== undefined) ? p.stock : '';
+        document.getElementById('adjReason').value = '';
+        new bootstrap.Modal(document.getElementById('adjustModal')).show();
+    }
+
+    async function submitAdjust() {
+        const raw = document.getElementById('adjStock').value.trim();
+        const body = {
+            productId: document.getElementById('adjProductId').value,
+            newStock: raw === '' ? null : parseInt(raw),
+            reason: document.getElementById('adjReason').value.trim()
+        };
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/inventory/adjust`, {
+                method: 'POST', headers: HJ, body: JSON.stringify(body)
+            });
+            const d = await res.json();
+            if (!res.ok) { Swal.fire('خطأ', d.message || 'فشلت التسوية', 'error'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('adjustModal')).hide();
+            Swal.fire({ icon: 'success', title: 'تمت التسوية', timer: 1500, showConfirmButton: false });
+            loadLowStock();
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    loadLowStock();
+</script>
+    <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="notification-toast.js"></script>
+</body>
+</html>

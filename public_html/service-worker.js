@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-v54';
+const CACHE_NAME = 'wajeez-static-v55';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -240,6 +240,18 @@ self.addEventListener('notificationclick', (event) => {
     // 🏬 Admin — new merchant signup request → merchant requests review
     else if (data.type === 'merchant_request') {
         targetUrl = '/admin-merchant-requests.html';
+    }
+    // 💼 ERP: Merchant — low stock alert → inventory page
+    else if (data.type === 'low_stock') {
+        targetUrl = '/merchant-inventory.html';
+    }
+    // 💼 ERP: Merchant — ledger income / settlement result → finance page
+    else if (data.type === 'shop_ledger' || data.type === 'settlement_approved' || data.type === 'settlement_rejected') {
+        targetUrl = '/merchant-finance.html';
+    }
+    // 💼 ERP: Admin — merchant settlement request → settlements review
+    else if (data.type === 'settlement_request') {
+        targetUrl = '/admin-settlements.html';
     }
     // 🚨 Admin — captain emergency alert → live map
     else if (data.type === 'emergency') {

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>نقطة البيع | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js?v=3.5"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 170px; }
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
+        }
+        .pos-product {
+            background: white; border-radius: 14px; padding: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center;
+            cursor: pointer; transition: all 0.12s; height: 100%;
+            border: 2px solid transparent; user-select: none;
+        }
+        .pos-product:active { transform: scale(0.96); }
+        .pos-product.in-cart { border-color: #f59e0b; background: #fffbeb; }
+        .pos-product .p-name { font-weight: 800; font-size: 12.5px; line-height: 1.3; }
+        .pos-product .p-price { font-weight: 900; font-size: 13px; color: #16a34a; }
+        .pos-product .p-stock { font-size: 10px; color: #94a3b8; font-weight: 700; }
+        .qty-badge {
+            position: absolute; top: -6px; left: -6px;
+            background: #f59e0b; color: #1a1a2e; font-weight: 900; font-size: 12px;
+            min-width: 24px; height: 24px; border-radius: 99px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        .cart-bar {
+            position: fixed; bottom: 66px; left: 0; right: 0; z-index: 998;
+            background: white; border-top: 2px solid #f59e0b;
+            box-shadow: 0 -6px 24px rgba(0,0,0,0.12);
+            padding: 12px 16px;
+        }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        .form-label { font-weight: 700; font-size: 13px; color: #374151; }
+        .modal-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; }
+        .modal-title { font-weight: 800; }
+        .cart-item-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .qty-ctl {
+            width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e2e8f0;
+            background: #f8fafc; font-weight: 900; display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
+</head>
+<body>
+
+<div class="page-header">
+    <div class="d-flex align-items-center gap-3">
+        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        <div class="flex-grow-1">
+            <h5 class="fw-bold mb-0">نقطة البيع</h5>
+            <small class="text-white-50" id="todayStats">جاري التحميل...</small>
+        </div>
+        <button class="btn btn-sm btn-outline-light rounded-3 fw-bold" onclick="showSalesLog()" style="font-size:12px;">
+            <i class="bi bi-clock-history me-1"></i>الفواتير
+        </button>
+    </div>
+</div>
+
+<div class="container-fluid px-3 pt-3">
+    <div class="position-relative mb-2">
+        <i class="bi bi-search position-absolute" style="right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;"></i>
+        <input type="text" id="posSearch" oninput="renderProducts()" autocomplete="off"
+            placeholder="ابحث عن منتج..."
+            class="form-control" style="padding:11px 42px 11px 14px;border-radius:13px;font-weight:600;">
+    </div>
+    <div id="productsGrid" class="row g-2">
+        <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
+    </div>
+</div>
+
+<!-- Cart bar -->
+<div class="cart-bar" id="cartBar" style="display:none;">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <div class="fw-bold" style="font-size:13px;color:#64748b;"><span id="cartCount">0</span> صنف</div>
+            <div class="fw-bold" style="font-size:18px;"><span id="cartTotal">0</span> ج.س</div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger rounded-3 fw-bold btn-sm" onclick="clearCart()"><i class="bi bi-trash"></i></button>
+            <button class="btn btn-warning rounded-3 fw-bold text-dark px-4" onclick="openCheckout()">
+                <i class="bi bi-check2-circle me-1"></i>إتمام البيع
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Checkout modal -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title"><i class="bi bi-receipt-cutoff me-2"></i>إتمام البيع</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="checkoutItems" class="mb-3"></div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label">خصم (ج.س)</label>
+                        <input type="number" id="coDiscount" class="form-control" min="0" value="0" oninput="updateCheckoutTotal()">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">طريقة الدفع</label>
+                        <select id="coPayment" class="form-select">
+                            <option value="cash" selected>نقداً</option>
+                            <option value="bank">تحويل بنكي</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">ملاحظة</label>
+                    <input type="text" id="coNote" class="form-control" maxlength="300" placeholder="اختياري">
+                </div>
+                <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-2">
+                    <span class="fw-bold">الإجمالي النهائي</span>
+                    <span class="fw-bold text-success" style="font-size:1.3rem;" id="coTotal">0 ج.س</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 flex-column gap-2">
+                <button class="btn btn-warning w-100 py-3 fw-bold rounded-3 text-dark" id="btnConfirmSale" onclick="confirmSale()">
+                    <i class="bi bi-check-circle-fill me-2"></i>تأكيد البيع
+                </button>
+                <button class="btn btn-outline-secondary w-100 rounded-3" data-bs-dismiss="modal">رجوع</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales log modal -->
+<div class="modal fade" id="salesLogModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title"><i class="bi bi-clock-history me-2"></i>فواتير نقطة البيع</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3" id="salesLogBody">
+                <div class="text-center py-4"><div class="spinner-border text-warning"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
+    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
+    <a href="merchant-pos.html" class="active"><i class="bi bi-upc-scan"></i> نقطة بيع</a>
+    <a href="merchant-reports.html"><i class="bi bi-graph-up"></i> تقارير</a>
+    <a href="merchant-finance.html"><i class="bi bi-wallet2"></i> محاسبة</a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) window.location.href = 'client-login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+    const H = { 'Authorization': `Bearer ${token}` };
+    const HJ = { ...H, 'Content-Type': 'application/json' };
+    const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+
+    let products = [];
+    let cart = {}; // productId -> qty
+
+    async function loadProducts() {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/products`, { headers: H });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const d = await res.json();
+            products = (d.products || []).filter(p => p.isAvailable || (p.stock !== null && p.stock > 0));
+            renderProducts();
+        } catch (e) {
+            document.getElementById('productsGrid').innerHTML =
+                '<div class="alert alert-danger">فشل تحميل المنتجات</div>';
+        }
+    }
+
+    async function loadTodayStats() {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/pos/sales?limit=1`, { headers: H });
+            if (!res.ok) return;
+            const d = await res.json();
+            document.getElementById('todayStats').textContent =
+                `اليوم: ${fmt(d.today.count)} فاتورة — ${fmt(d.today.revenue)} ج.س`;
+        } catch (e) {}
+    }
+
+    function renderProducts() {
+        const q = (document.getElementById('posSearch').value || '').trim().toLowerCase();
+        const visible = q
+            ? products.filter(p => `${p.name} ${p.category || ''} ${p.sku || ''}`.toLowerCase().includes(q))
+            : products;
+        const grid = document.getElementById('productsGrid');
+        if (!visible.length) {
+            grid.innerHTML = '<div class="text-center py-5 text-muted w-100"><i class="bi bi-box-seam" style="font-size:2.5rem;"></i><div class="fw-bold mt-2">لا منتجات</div></div>';
+            return;
+        }
+        grid.innerHTML = visible.map(p => {
+            const qty = cart[p._id] || 0;
+            const tracked = p.stock !== null && p.stock !== undefined;
+            const out = tracked && p.stock <= 0;
+            return `
+            <div class="col-4">
+                <div class="pos-product position-relative ${qty > 0 ? 'in-cart' : ''} ${out ? 'opacity-50' : ''}"
+                     onclick="${out ? '' : `addToCart('${p._id}')`}">
+                    ${qty > 0 ? `<div class="qty-badge">${qty}</div>` : ''}
+                    <div class="p-name">${p.name}</div>
+                    <div class="p-price">${fmt(p.price)}</div>
+                    <div class="p-stock">${out ? 'نفدت' : (tracked ? `متبقي ${p.stock}` : 'غير محدود')}</div>
+                </div>
+            </div>`;
+        }).join('');
+        updateCartBar();
+    }
+
+    function addToCart(id) {
+        const p = products.find(x => x._id === id);
+        if (!p) return;
+        const current = cart[id] || 0;
+        if (p.stock !== null && p.stock !== undefined && current >= p.stock) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: `متوفر ${p.stock} فقط`, timer: 1500, showConfirmButton: false });
+            return;
+        }
+        cart[id] = current + 1;
+        renderProducts();
+    }
+
+    function decFromCart(id) {
+        if (!cart[id]) return;
+        cart[id]--;
+        if (cart[id] <= 0) delete cart[id];
+        renderProducts();
+        renderCheckoutItems();
+    }
+
+    function incFromCart(id) {
+        addToCart(id);
+        renderCheckoutItems();
+    }
+
+    function clearCart() {
+        cart = {};
+        renderProducts();
+    }
+
+    function cartTotals() {
+        let total = 0, count = 0;
+        for (const [id, qty] of Object.entries(cart)) {
+            const p = products.find(x => x._id === id);
+            if (p) { total += p.price * qty; count += qty; }
+        }
+        return { total, count };
+    }
+
+    function updateCartBar() {
+        const { total, count } = cartTotals();
+        document.getElementById('cartBar').style.display = count > 0 ? 'block' : 'none';
+        document.getElementById('cartCount').textContent = fmt(count);
+        document.getElementById('cartTotal').textContent = fmt(total);
+    }
+
+    function renderCheckoutItems() {
+        const el = document.getElementById('checkoutItems');
+        const rows = Object.entries(cart).map(([id, qty]) => {
+            const p = products.find(x => x._id === id);
+            if (!p) return '';
+            return `
+            <div class="cart-item-row">
+                <div class="flex-grow-1">
+                    <div class="fw-bold" style="font-size:13px;">${p.name}</div>
+                    <div class="text-muted" style="font-size:11px;">${fmt(p.price)} ج.س للقطعة</div>
+                </div>
+                <div class="qty-ctl" onclick="decFromCart('${id}')">-</div>
+                <div class="fw-bold" style="min-width:22px;text-align:center;">${qty}</div>
+                <div class="qty-ctl" onclick="incFromCart('${id}')">+</div>
+                <div class="fw-bold text-success" style="min-width:60px;text-align:left;font-size:13px;">${fmt(p.price * qty)}</div>
+            </div>`;
+        }).join('');
+        el.innerHTML = rows || '<div class="text-muted text-center py-3">السلة فارغة</div>';
+        updateCheckoutTotal();
+    }
+
+    function updateCheckoutTotal() {
+        const { total } = cartTotals();
+        const discount = Math.max(0, Math.min(parseFloat(document.getElementById('coDiscount').value) || 0, total));
+        document.getElementById('coTotal').textContent = fmt(total - discount) + ' ج.س';
+    }
+
+    function openCheckout() {
+        const { count } = cartTotals();
+        if (count === 0) return;
+        document.getElementById('coDiscount').value = 0;
+        document.getElementById('coNote').value = '';
+        document.getElementById('coPayment').value = 'cash';
+        renderCheckoutItems();
+        new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+    }
+
+    async function confirmSale() {
+        const items = Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity }));
+        if (!items.length) return;
+        const btn = document.getElementById('btnConfirmSale');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التسجيل...';
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/pos/sale`, {
+                method: 'POST', headers: HJ,
+                body: JSON.stringify({
+                    items,
+                    discount: parseFloat(document.getElementById('coDiscount').value) || 0,
+                    paymentMethod: document.getElementById('coPayment').value,
+                    note: document.getElementById('coNote').value.trim()
+                })
+            });
+            const d = await res.json();
+            if (!res.ok) { Swal.fire('تنبيه', d.message || 'فشل تسجيل البيع', 'warning'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
+            cart = {};
+            Swal.fire({ icon: 'success', title: 'تم تسجيل البيع', text: `فاتورة بقيمة ${fmt(d.sale.totalAmount)} ج.س`, timer: 2000, showConfirmButton: false });
+            loadProducts(); loadTodayStats();
+        } catch (e) {
+            Swal.fire('خطأ', 'فشل الاتصال', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>تأكيد البيع';
+        }
+    }
+
+    // ── سجل الفواتير ──
+    async function showSalesLog(page = 1) {
+        new bootstrap.Modal(document.getElementById('salesLogModal')).show();
+        const el = document.getElementById('salesLogBody');
+        el.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-warning"></div></div>';
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/pos/sales?page=${page}&limit=15`, { headers: H });
+            const d = await res.json();
+            if (!d.sales.length) {
+                el.innerHTML = '<div class="text-muted text-center py-4">لا فواتير بعد</div>';
+                return;
+            }
+            const rows = d.sales.map(s => {
+                const when = new Date(s.createdAt).toLocaleString('ar-SD', { dateStyle: 'short', timeStyle: 'short' });
+                const itemsTxt = s.items.map(i => `${i.quantity}× ${i.name}`).join('، ');
+                return `
+                <div class="border rounded-3 p-2 mb-2 ${s.isVoided ? 'opacity-50' : ''}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold" style="font-size:14px;">${fmt(s.totalAmount)} ج.س</span>
+                        ${s.isVoided
+                            ? '<span class="badge bg-danger" style="font-size:10px;">ملغاة</span>'
+                            : `<button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:11px;" onclick="voidSale('${s._id}')">إلغاء</button>`}
+                    </div>
+                    <div class="text-muted" style="font-size:11px;">${itemsTxt}</div>
+                    <div class="d-flex justify-content-between text-muted" style="font-size:10.5px;">
+                        <span>${when}</span>
+                        <span>${s.paymentMethod === 'bank' ? 'تحويل بنكي' : 'نقداً'}${s.discount > 0 ? ` — خصم ${fmt(s.discount)}` : ''}</span>
+                    </div>
+                </div>`;
+            }).join('');
+            const pager = d.totalPages > 1 ? `
+                <div class="d-flex justify-content-center gap-2 pt-2">
+                    ${page > 1 ? `<button class="btn btn-sm btn-outline-secondary" onclick="showSalesLog(${page - 1})">السابق</button>` : ''}
+                    <span class="small text-muted align-self-center">${page} / ${d.totalPages}</span>
+                    ${page < d.totalPages ? `<button class="btn btn-sm btn-outline-secondary" onclick="showSalesLog(${page + 1})">التالي</button>` : ''}
+                </div>` : '';
+            el.innerHTML = rows + pager;
+        } catch (e) {
+            el.innerHTML = '<div class="alert alert-danger">فشل تحميل الفواتير</div>';
+        }
+    }
+
+    async function voidSale(id) {
+        const c = await Swal.fire({
+            title: 'إلغاء الفاتورة؟',
+            text: 'سيتم إرجاع الكميات للمخزون وخصم الفاتورة من التقارير.',
+            icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'نعم، ألغِها', cancelButtonText: 'رجوع', confirmButtonColor: '#ef4444',
+            input: 'text', inputPlaceholder: 'سبب الإلغاء (اختياري)'
+        });
+        if (!c.isConfirmed) return;
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/pos/sales/${id}/void`, {
+                method: 'PUT', headers: HJ, body: JSON.stringify({ reason: c.value || '' })
+            });
+            const d = await res.json();
+            if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل الإلغاء', 'error'); return; }
+            Swal.fire({ icon: 'success', title: 'تم إلغاء الفاتورة', timer: 1500, showConfirmButton: false });
+            showSalesLog(); loadProducts(); loadTodayStats();
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    loadProducts();
+    loadTodayStats();
+</script>
+    <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="notification-toast.js"></script>
+</body>
+</html>

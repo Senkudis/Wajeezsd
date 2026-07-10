@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>تسويات التجار | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="vendor/jquery/jquery-3.7.0.min.js"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=3.4">
+
+    <script src="js/config.js"></script>
+    <script src="js/admin-cache-buster.js"></script>
+    <script src="js/auth-helper.js"></script>
+
+    <style>
+        .badge-pending { background: #fef3c7; color: #d97706; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;}
+        .badge-approved { background: #dcfce7; color: #15803d; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;}
+        .badge-rejected { background: #fee2e2; color: #b91c1c; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;}
+        .bank-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; font-size: 12.5px; }
+    </style>
+</head>
+
+<body>
+
+    <div class="wrapper">
+        <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="logo"><i class="fas fa-crown"></i></div>
+                <h2>وَصِّلِي</h2>
+                <p id="adminName">المدير العام</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-label">الإدارة</div>
+                <button class="nav-item" onclick="location.href='admin.html'">
+                    <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                </button>
+                <button class="nav-item active" onclick="location.reload()">
+                    <i class="fas fa-hand-holding-usd"></i><span>تسويات التجار</span>
+                </button>
+
+                <div class="nav-label">روابط سريعة</div>
+                <button class="nav-item" onclick="location.href='admin-finance.html'">
+                    <i class="fas fa-wallet"></i><span>الإدارة المالية</span>
+                </button>
+                <button class="nav-item" onclick="location.href='admin-places.html'">
+                    <i class="fas fa-store"></i><span>المحلات والتصنيفات</span>
+                </button>
+                <button class="nav-item" onclick="location.href='admin-shop-orders.html'">
+                    <i class="fas fa-shopping-basket"></i><span>طلبات المتاجر</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title d-none d-md-block">
+                    <h1>تسويات مستحقات التجار</h1>
+                    <p>مراجعة طلبات سحب المستحقات وتحويلها للتجار</p>
+                </div>
+            </header>
+
+            <div class="content-body">
+                <div class="dashboard-section active section-card">
+                    <div class="section-header">
+                        <h2 class="section-title"><i class="fas fa-list"></i> طلبات التسوية</h2>
+                    </div>
+
+                    <div id="filterTabs" class="d-flex gap-2 flex-wrap mb-3"></div>
+
+                    <div class="table-responsive border rounded-4 p-3 bg-white">
+                        <table class="table table-hover w-100 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>المتجر</th>
+                                    <th>التاجر</th>
+                                    <th>المبلغ</th>
+                                    <th>رصيد المحفظة</th>
+                                    <th>الحساب البنكي</th>
+                                    <th>التاريخ</th>
+                                    <th>الحالة</th>
+                                    <th class="text-center">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="settlementsTable">
+                                <tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-success"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/admin-dashboard.js"></script>
+    <script>
+        // token is already declared in admin-dashboard.js
+        let settlements = [];
+        let _filter = 'pending';
+
+        const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+
+        async function loadSettlements() {
+            try {
+                const res = await fetch(`${API_URL}/api/merchant-erp/admin/settlements`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('فشل التحميل (' + res.status + ')');
+                const d = await res.json();
+                settlements = d.settlements || [];
+                renderTable();
+            } catch (err) {
+                document.getElementById('settlementsTable').innerHTML =
+                    `<tr><td colspan="8" class="text-danger text-center">خطأ في التحميل: ${err.message}</td></tr>`;
+            }
+        }
+
+        window.setFilter = function (f) { _filter = f; renderTable(); };
+
+        function renderFilterTabs() {
+            const counts = {
+                pending: settlements.filter(s => s.status === 'pending').length,
+                approved: settlements.filter(s => s.status === 'approved').length,
+                rejected: settlements.filter(s => s.status === 'rejected').length,
+                all: settlements.length
+            };
+            const tab = (key, label, color) => {
+                const active = _filter === key;
+                return `<button onclick="setFilter('${key}')"
+                    style="border:1.5px solid ${active ? color : '#e2e8f0'};background:${active ? color : '#fff'};color:${active ? '#fff' : '#475569'};border-radius:99px;padding:7px 15px;font-weight:800;font-size:13px;cursor:pointer;font-family:'Cairo',sans-serif;">
+                    ${label} <span style="background:${active ? 'rgba(255,255,255,0.25)' : '#f1f5f9'};border-radius:99px;padding:0 7px;font-size:11px;">${counts[key]}</span>
+                </button>`;
+            };
+            document.getElementById('filterTabs').innerHTML =
+                tab('pending', 'قيد المراجعة', '#f59e0b') +
+                tab('approved', 'تمت الموافقة', '#16a34a') +
+                tab('rejected', 'مرفوض', '#dc2626') +
+                tab('all', 'الكل', '#475569');
+        }
+
+        function renderTable() {
+            renderFilterTabs();
+            const rows = _filter === 'all' ? settlements : settlements.filter(s => s.status === _filter);
+            const tbody = document.getElementById('settlementsTable');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">لا طلبات في هذه القائمة</td></tr>';
+                return;
+            }
+            const badge = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected' };
+            const label = { pending: 'قيد المراجعة', approved: 'تمت الموافقة', rejected: 'مرفوض' };
+            tbody.innerHTML = rows.map(s => {
+                const place = s.placeId || {};
+                const merchant = s.merchantId || {};
+                const when = new Date(s.createdAt).toLocaleString('ar-SD', { dateStyle: 'short', timeStyle: 'short' });
+                const bank = (place.bankName || place.bankAccountNumber)
+                    ? `<div class="bank-box">
+                        <div><b>${place.bankName || '-'}</b></div>
+                        <div dir="ltr">${place.bankAccountNumber || '-'}</div>
+                        <div class="text-muted">${place.bankAccountName || ''}</div>
+                       </div>`
+                    : '<span class="text-muted small">غير مسجل</span>';
+                const actions = s.status === 'pending'
+                    ? `<button class="btn btn-sm btn-success fw-bold me-1" onclick="approveSettlement('${s._id}', ${s.amount})"><i class="fas fa-check"></i> تحويل وموافقة</button>
+                       <button class="btn btn-sm btn-outline-danger fw-bold" onclick="rejectSettlement('${s._id}')"><i class="fas fa-times"></i> رفض</button>`
+                    : (s.status === 'approved' && s.transactionId
+                        ? `<span class="text-muted small">إشعار: ${s.transactionId}</span>`
+                        : (s.adminNote ? `<span class="text-muted small">${s.adminNote}</span>` : '-'));
+                return `
+                <tr>
+                    <td class="fw-bold">${place.name || '-'}<div class="text-muted small">${place.city || ''}</div></td>
+                    <td>${merchant.name || '-'}<div class="text-muted small" dir="ltr">${merchant.phone || ''}</div></td>
+                    <td class="fw-bold text-success">${fmt(s.amount)} ج.س${s.note ? `<div class="text-muted small">${s.note}</div>` : ''}</td>
+                    <td>${fmt(place.shopWalletBalance)} ج.س</td>
+                    <td>${bank}</td>
+                    <td class="small">${when}</td>
+                    <td><span class="${badge[s.status]}">${label[s.status]}</span></td>
+                    <td class="text-center">${actions}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function approveSettlement(id, amount) {
+            const c = await Swal.fire({
+                title: 'تأكيد التحويل والموافقة',
+                html: `<div style="font-family:Cairo;font-size:14px;">حوّل مبلغ <b>${fmt(amount)} ج.س</b> للتاجر أولاً (بنكك)، ثم أدخل رقم إشعار التحويل.<br>سيُخصم المبلغ من رصيد محفظة المتجر فور الموافقة.</div>`,
+                input: 'text',
+                inputPlaceholder: 'رقم إشعار التحويل (اختياري)',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'تم التحويل — وافق', cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#16a34a'
+            });
+            if (!c.isConfirmed) return;
+            try {
+                const res = await fetch(`${API_URL}/api/merchant-erp/admin/settlements/${id}/approve`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transactionId: c.value || '' })
+                });
+                const d = await res.json();
+                if (!res.ok) { Swal.fire('تنبيه', d.message || 'فشلت الموافقة', 'warning'); return; }
+                Swal.fire({ icon: 'success', title: 'تمت الموافقة وخصم المبلغ', timer: 2000, showConfirmButton: false });
+                loadSettlements();
+            } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+        }
+
+        async function rejectSettlement(id) {
+            const c = await Swal.fire({
+                title: 'رفض طلب التسوية',
+                input: 'text', inputPlaceholder: 'سبب الرفض (يظهر للتاجر)',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'رفض', cancelButtonText: 'إلغاء', confirmButtonColor: '#dc2626'
+            });
+            if (!c.isConfirmed) return;
+            try {
+                const res = await fetch(`${API_URL}/api/merchant-erp/admin/settlements/${id}/reject`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminNote: c.value || '' })
+                });
+                const d = await res.json();
+                if (!res.ok) { Swal.fire('تنبيه', d.message || 'فشل الرفض', 'warning'); return; }
+                Swal.fire({ icon: 'success', title: 'تم رفض الطلب', timer: 1500, showConfirmButton: false });
+                loadSettlements();
+            } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+        }
+
+        loadSettlements();
+    </script>
+</body>
+
+</html>

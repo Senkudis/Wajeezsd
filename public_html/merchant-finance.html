@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>المحاسبة والمصروفات | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/safe-area.js?v=3.5"></script>
+    <script src="js/fetch-retry.js"></script>
+    <script src="js/auth-helper.js"></script>
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white; padding: 16px 16px 60px; position: relative;
+        }
+        .wallet-card {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-radius: 18px; padding: 18px; color: #1a1a2e;
+            margin: -50px 14px 14px; position: relative; z-index: 10;
+            box-shadow: 0 8px 24px rgba(245,158,11,0.35);
+        }
+        .wallet-balance { font-size: 2rem; font-weight: 900; line-height: 1.1; }
+        .mini-stat { background: rgba(255,255,255,0.35); border-radius: 12px; padding: 8px 10px; flex: 1; text-align: center; }
+        .mini-stat .n { font-weight: 900; font-size: 14px; }
+        .mini-stat .l { font-size: 10px; font-weight: 700; opacity: 0.75; }
+        .tab-bar { display: flex; gap: 6px; padding: 0 14px 12px; }
+        .tab-btn {
+            flex: 1; border: 1px solid #e2e8f0; background: white; color: #64748b;
+            padding: 9px 0; border-radius: 12px; font-size: 12.5px; font-weight: 700;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .tab-btn.active { background: #1a1a2e; border-color: #1a1a2e; color: #fbbf24; }
+        .item-card {
+            background: white; border-radius: 14px; padding: 12px 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 10px;
+        }
+        .row-icon {
+            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid #f0f0f0;
+            display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none; transition: color 0.2s;
+        }
+        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        .form-label { font-weight: 700; font-size: 13px; color: #374151; }
+        .modal-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; }
+        .modal-title { font-weight: 800; }
+        .status-pill { font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 99px; }
+        .fab {
+            position: fixed; bottom: 80px; left: 20px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white; border: none; font-size: 1.5rem;
+            box-shadow: 0 4px 16px rgba(245,158,11,0.5);
+            display: none; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 999;
+        }
+    </style>
+    <link rel="stylesheet" href="css/dark-mode.css?v=3.2">
+</head>
+<body>
+
+<div class="page-header">
+    <div class="d-flex align-items-center gap-3">
+        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        <div>
+            <h5 class="fw-bold mb-0">المحاسبة والمصروفات</h5>
+            <small class="text-white-50">مستحقاتك لدى وجيز وكشف حسابك</small>
+        </div>
+    </div>
+</div>
+
+<!-- Wallet card -->
+<div class="wallet-card">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <div style="font-size:12px;font-weight:800;opacity:0.75;">رصيد مستحقاتك لدى وجيز</div>
+            <div class="wallet-balance"><span id="walletBalance">-</span> <span style="font-size:1rem;">ج.س</span></div>
+        </div>
+        <button class="btn btn-dark btn-sm fw-bold rounded-3" onclick="openSettlement()">
+            <i class="bi bi-cash-coin me-1"></i>طلب سحب
+        </button>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+        <div class="mini-stat"><div class="n" id="monthIncome">-</div><div class="l">دخل الشهر</div></div>
+        <div class="mini-stat"><div class="n" id="monthSettled">-</div><div class="l">مسحوب</div></div>
+        <div class="mini-stat"><div class="n" id="pendingSettlements">-</div><div class="l">قيد التسوية</div></div>
+        <div class="mini-stat"><div class="n" id="monthExpenses">-</div><div class="l">مصروفات</div></div>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <button class="tab-btn active" data-tab="ledger" onclick="switchTab('ledger', this)">كشف الحساب</button>
+    <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses', this)">المصروفات</button>
+    <button class="tab-btn" data-tab="settlements" onclick="switchTab('settlements', this)">التسويات</button>
+</div>
+
+<div class="container-fluid px-3" id="content">
+    <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
+</div>
+
+<button class="fab" id="fabAddExpense" onclick="openExpenseModal()">
+    <i class="bi bi-plus-lg"></i>
+</button>
+
+<!-- Expense modal -->
+<div class="modal fade" id="expenseModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title" id="expModalTitle"><i class="bi bi-receipt me-2"></i>تسجيل مصروف</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="expId">
+                <div class="mb-3">
+                    <label class="form-label">الفئة *</label>
+                    <select id="expCategory" class="form-select">
+                        <option value="rent">إيجار</option>
+                        <option value="salaries">رواتب</option>
+                        <option value="supplies">مشتريات بضاعة</option>
+                        <option value="utilities">كهرباء وماء وخدمات</option>
+                        <option value="transport">مواصلات</option>
+                        <option value="other" selected>أخرى</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">المبلغ (ج.س) *</label>
+                    <input type="number" id="expAmount" class="form-control" min="1" step="1" placeholder="0">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">الوصف</label>
+                    <input type="text" id="expDesc" class="form-control" maxlength="300" placeholder="مثال: إيجار شهر يوليو">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">التاريخ</label>
+                    <input type="date" id="expDate" class="form-control">
+                </div>
+                <div class="alert alert-light border small mb-0 mt-3" style="font-size:11.5px;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    المصروفات تُستخدم لحساب صافي الربح في التقارير فقط ولا تؤثر على رصيد مستحقاتك.
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 flex-column gap-2">
+                <button class="btn btn-warning w-100 py-2 fw-bold rounded-3 text-dark" onclick="saveExpense()">حفظ</button>
+                <button class="btn btn-outline-secondary w-100 rounded-3" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settlement modal -->
+<div class="modal fade" id="settlementModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title"><i class="bi bi-cash-coin me-2"></i>طلب سحب مستحقات</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning small mb-3" style="font-size:12px;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    سيتم تحويل المبلغ لحسابك البنكي المسجل بعد مراجعة الإدارة، ثم يُخصم من رصيد مستحقاتك.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">المبلغ المطلوب سحبه (ج.س) *</label>
+                    <input type="number" id="stAmount" class="form-control" min="1" step="1" placeholder="0">
+                    <div class="form-text" id="stAvailable"></div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">ملاحظة</label>
+                    <input type="text" id="stNote" class="form-control" maxlength="300" placeholder="اختياري — رقم حساب بديل مثلاً">
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 flex-column gap-2">
+                <button class="btn btn-warning w-100 py-2 fw-bold rounded-3 text-dark" onclick="submitSettlement()">إرسال الطلب</button>
+                <button class="btn btn-outline-secondary w-100 rounded-3" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
+    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
+    <a href="merchant-pos.html"><i class="bi bi-upc-scan"></i> نقطة بيع</a>
+    <a href="merchant-reports.html"><i class="bi bi-graph-up"></i> تقارير</a>
+    <a href="merchant-finance.html" class="active"><i class="bi bi-wallet2"></i> محاسبة</a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) window.location.href = 'client-login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+    const H = { 'Authorization': `Bearer ${token}` };
+    const HJ = { ...H, 'Content-Type': 'application/json' };
+    const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+    let currentTab = 'ledger';
+    let overviewCache = null;
+    let expensesCache = [];
+
+    async function apiGet(path) {
+        const res = await fetch(`${API_URL}/api/merchant-erp${path}`, { headers: H });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+    }
+
+    async function loadOverview() {
+        try {
+            const d = await apiGet('/finance/overview');
+            overviewCache = d;
+            document.getElementById('walletBalance').textContent = fmt(d.walletBalance);
+            document.getElementById('monthIncome').textContent = fmt(d.monthIncome);
+            document.getElementById('monthSettled').textContent = fmt(d.monthSettled);
+            document.getElementById('pendingSettlements').textContent = fmt(d.pendingSettlements);
+            document.getElementById('monthExpenses').textContent = fmt(d.monthExpenses);
+        } catch (e) { console.error('overview', e); }
+    }
+
+    function switchTab(tab, btn) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('fabAddExpense').style.display = tab === 'expenses' ? 'flex' : 'none';
+        if (tab === 'ledger') loadLedger(1);
+        else if (tab === 'expenses') loadExpenses(1);
+        else loadSettlements();
+    }
+
+    // ── كشف الحساب ──
+    const ledgerMeta = {
+        sale_income: { icon: 'bi-bag-check', bg: '#dcfce7', color: '#16a34a', label: 'دخل بيع' },
+        settlement:  { icon: 'bi-bank',      bg: '#dbeafe', color: '#2563eb', label: 'تسوية / سحب' },
+        adjustment:  { icon: 'bi-sliders',   bg: '#fef3c7', color: '#d97706', label: 'تسوية إدارية' }
+    };
+
+    async function loadLedger(page) {
+        const el = document.getElementById('content');
+        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        try {
+            const d = await apiGet(`/finance/ledger?page=${page}&limit=30`);
+            if (!d.entries.length) {
+                el.innerHTML = `<div class="text-center py-5 text-muted">
+                    <i class="bi bi-journal-text" style="font-size:3rem;"></i>
+                    <div class="fw-bold mt-2">لا حركات مالية بعد</div>
+                    <div class="small">سيظهر هنا دخل كل طلب يتم توصيله بنجاح</div></div>`;
+                return;
+            }
+            const rows = d.entries.map(en => {
+                const meta = ledgerMeta[en.type] || ledgerMeta.adjustment;
+                const when = new Date(en.createdAt).toLocaleString('ar-SD', { dateStyle: 'short', timeStyle: 'short' });
+                return `
+                <div class="item-card d-flex align-items-center gap-2">
+                    <div class="row-icon" style="background:${meta.bg};color:${meta.color};"><i class="bi ${meta.icon}"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold" style="font-size:13.5px;">${meta.label}</div>
+                        ${en.note ? `<div class="text-muted" style="font-size:11px;">${en.note}</div>` : ''}
+                        <div class="text-muted" style="font-size:10.5px;">${when}</div>
+                    </div>
+                    <div class="text-start">
+                        <div class="fw-bold ${en.amount >= 0 ? 'text-success' : 'text-danger'}" style="font-size:14px;">
+                            ${en.amount >= 0 ? '+' : ''}${fmt(en.amount)}
+                        </div>
+                        <div class="text-muted" style="font-size:10.5px;">رصيد: ${fmt(en.balanceAfter)}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            const pager = d.totalPages > 1 ? `
+                <div class="d-flex justify-content-center gap-2 py-3">
+                    ${page > 1 ? `<button class="btn btn-sm btn-outline-secondary" onclick="loadLedger(${page - 1})">السابق</button>` : ''}
+                    <span class="small text-muted align-self-center">${page} / ${d.totalPages}</span>
+                    ${page < d.totalPages ? `<button class="btn btn-sm btn-outline-secondary" onclick="loadLedger(${page + 1})">التالي</button>` : ''}
+                </div>` : '';
+            el.innerHTML = rows + pager;
+        } catch (e) {
+            el.innerHTML = '<div class="alert alert-danger m-3">فشل تحميل كشف الحساب</div>';
+        }
+    }
+
+    // ── المصروفات ──
+    const catLabels = { rent: 'إيجار', salaries: 'رواتب', supplies: 'مشتريات', utilities: 'خدمات', transport: 'مواصلات', other: 'أخرى' };
+    const catIcons = { rent: 'bi-house', salaries: 'bi-people', supplies: 'bi-box-seam', utilities: 'bi-lightning', transport: 'bi-truck', other: 'bi-three-dots' };
+
+    async function loadExpenses(page) {
+        const el = document.getElementById('content');
+        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        try {
+            const d = await apiGet(`/expenses?page=${page}&limit=30`);
+            expensesCache = d.expenses;
+            if (!d.expenses.length) {
+                el.innerHTML = `<div class="text-center py-5 text-muted">
+                    <i class="bi bi-receipt" style="font-size:3rem;"></i>
+                    <div class="fw-bold mt-2">لا مصروفات مسجلة</div>
+                    <div class="small">سجّل مصروفاتك التشغيلية لمعرفة صافي ربحك الحقيقي</div>
+                    <button class="btn btn-warning fw-bold text-dark mt-3 px-4" onclick="openExpenseModal()">تسجيل أول مصروف</button></div>`;
+                return;
+            }
+            const totalBar = `<div class="alert alert-light border d-flex justify-content-between fw-bold small mb-2">
+                <span>إجمالي المصروفات المعروضة</span><span class="text-danger">${fmt(d.totalAmount)} ج.س</span></div>`;
+            const rows = d.expenses.map(ex => {
+                const when = new Date(ex.date).toLocaleDateString('ar-SD');
+                return `
+                <div class="item-card d-flex align-items-center gap-2">
+                    <div class="row-icon" style="background:#fee2e2;color:#dc2626;"><i class="bi ${catIcons[ex.category] || 'bi-receipt'}"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold" style="font-size:13.5px;">${catLabels[ex.category] || ex.category}</div>
+                        ${ex.description ? `<div class="text-muted" style="font-size:11px;">${ex.description}</div>` : ''}
+                        <div class="text-muted" style="font-size:10.5px;">${when}</div>
+                    </div>
+                    <div class="d-flex flex-column align-items-end gap-1">
+                        <div class="fw-bold text-danger" style="font-size:14px;">${fmt(ex.amount)} ج.س</div>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-light border py-0 px-2" onclick="editExpense('${ex._id}')"><i class="bi bi-pencil" style="font-size:11px;"></i></button>
+                            <button class="btn btn-sm btn-light border py-0 px-2" onclick="deleteExpense('${ex._id}')"><i class="bi bi-trash text-danger" style="font-size:11px;"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            const pager = d.totalPages > 1 ? `
+                <div class="d-flex justify-content-center gap-2 py-3">
+                    ${page > 1 ? `<button class="btn btn-sm btn-outline-secondary" onclick="loadExpenses(${page - 1})">السابق</button>` : ''}
+                    <span class="small text-muted align-self-center">${page} / ${d.totalPages}</span>
+                    ${page < d.totalPages ? `<button class="btn btn-sm btn-outline-secondary" onclick="loadExpenses(${page + 1})">التالي</button>` : ''}
+                </div>` : '';
+            el.innerHTML = totalBar + rows + pager;
+        } catch (e) {
+            el.innerHTML = '<div class="alert alert-danger m-3">فشل تحميل المصروفات</div>';
+        }
+    }
+
+    function openExpenseModal() {
+        document.getElementById('expId').value = '';
+        document.getElementById('expModalTitle').innerHTML = '<i class="bi bi-receipt me-2"></i>تسجيل مصروف';
+        document.getElementById('expCategory').value = 'other';
+        document.getElementById('expAmount').value = '';
+        document.getElementById('expDesc').value = '';
+        document.getElementById('expDate').value = new Date().toISOString().slice(0, 10);
+        new bootstrap.Modal(document.getElementById('expenseModal')).show();
+    }
+
+    function editExpense(id) {
+        const ex = expensesCache.find(x => x._id === id);
+        if (!ex) return;
+        document.getElementById('expId').value = id;
+        document.getElementById('expModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>تعديل مصروف';
+        document.getElementById('expCategory').value = ex.category;
+        document.getElementById('expAmount').value = ex.amount;
+        document.getElementById('expDesc').value = ex.description || '';
+        document.getElementById('expDate').value = new Date(ex.date).toISOString().slice(0, 10);
+        new bootstrap.Modal(document.getElementById('expenseModal')).show();
+    }
+
+    async function saveExpense() {
+        const id = document.getElementById('expId').value;
+        const body = {
+            category: document.getElementById('expCategory').value,
+            amount: parseFloat(document.getElementById('expAmount').value),
+            description: document.getElementById('expDesc').value.trim(),
+            date: document.getElementById('expDate').value
+        };
+        if (!body.amount || body.amount <= 0) { Swal.fire('تنبيه', 'أدخل مبلغاً صحيحاً', 'warning'); return; }
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/expenses${id ? '/' + id : ''}`, {
+                method: id ? 'PUT' : 'POST', headers: HJ, body: JSON.stringify(body)
+            });
+            const d = await res.json();
+            if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل الحفظ', 'error'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
+            Swal.fire({ icon: 'success', title: 'تم الحفظ', timer: 1400, showConfirmButton: false });
+            loadExpenses(1); loadOverview();
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    async function deleteExpense(id) {
+        const c = await Swal.fire({
+            title: 'حذف المصروف؟', icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'نعم، احذفه', cancelButtonText: 'إلغاء', confirmButtonColor: '#ef4444'
+        });
+        if (!c.isConfirmed) return;
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/expenses/${id}`, { method: 'DELETE', headers: H });
+            if (!res.ok) { const d = await res.json().catch(() => ({})); Swal.fire('خطأ', d.message || 'فشل الحذف', 'error'); return; }
+            loadExpenses(1); loadOverview();
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    // ── التسويات ──
+    const stMeta = {
+        pending:  { bg: '#fef3c7', color: '#b45309', label: 'قيد المراجعة' },
+        approved: { bg: '#dcfce7', color: '#166534', label: 'تمت الموافقة' },
+        rejected: { bg: '#fee2e2', color: '#991b1b', label: 'مرفوض' }
+    };
+
+    async function loadSettlements() {
+        const el = document.getElementById('content');
+        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        try {
+            const d = await apiGet('/finance/settlements');
+            if (!d.settlements.length) {
+                el.innerHTML = `<div class="text-center py-5 text-muted">
+                    <i class="bi bi-bank" style="font-size:3rem;"></i>
+                    <div class="fw-bold mt-2">لا طلبات تسوية بعد</div>
+                    <div class="small">اطلب سحب مستحقاتك من زر "طلب سحب" في الأعلى</div></div>`;
+                return;
+            }
+            el.innerHTML = d.settlements.map(s => {
+                const meta = stMeta[s.status];
+                const when = new Date(s.createdAt).toLocaleString('ar-SD', { dateStyle: 'short', timeStyle: 'short' });
+                return `
+                <div class="item-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold" style="font-size:15px;">${fmt(s.amount)} ج.س</div>
+                        <span class="status-pill" style="background:${meta.bg};color:${meta.color};">${meta.label}</span>
+                    </div>
+                    ${s.note ? `<div class="text-muted small mt-1">${s.note}</div>` : ''}
+                    ${s.status === 'approved' && s.transactionId ? `<div class="text-success small mt-1"><i class="bi bi-check-circle me-1"></i>رقم الإشعار: ${s.transactionId}</div>` : ''}
+                    ${s.status === 'rejected' && s.adminNote ? `<div class="text-danger small mt-1">السبب: ${s.adminNote}</div>` : ''}
+                    <div class="text-muted mt-1" style="font-size:10.5px;">${when}</div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            el.innerHTML = '<div class="alert alert-danger m-3">فشل تحميل التسويات</div>';
+        }
+    }
+
+    function openSettlement() {
+        if (!overviewCache) return;
+        const available = (overviewCache.walletBalance || 0) - (overviewCache.pendingSettlements || 0);
+        document.getElementById('stAmount').value = '';
+        document.getElementById('stNote').value = '';
+        document.getElementById('stAvailable').textContent = `المتاح للسحب: ${fmt(Math.max(0, available))} ج.س`;
+        new bootstrap.Modal(document.getElementById('settlementModal')).show();
+    }
+
+    async function submitSettlement() {
+        const body = {
+            amount: parseFloat(document.getElementById('stAmount').value),
+            note: document.getElementById('stNote').value.trim()
+        };
+        if (!body.amount || body.amount <= 0) { Swal.fire('تنبيه', 'أدخل مبلغاً صحيحاً', 'warning'); return; }
+        try {
+            const res = await fetch(`${API_URL}/api/merchant-erp/finance/settlements`, {
+                method: 'POST', headers: HJ, body: JSON.stringify(body)
+            });
+            const d = await res.json();
+            if (!res.ok) { Swal.fire('تنبيه', d.message || 'فشل إرسال الطلب', 'warning'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('settlementModal')).hide();
+            Swal.fire({ icon: 'success', title: 'تم إرسال طلب التسوية', text: 'ستصلك الموافقة بعد مراجعة الإدارة', timer: 2500, showConfirmButton: false });
+            loadOverview();
+            if (currentTab === 'settlements') loadSettlements();
+        } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+    }
+
+    loadOverview();
+    loadLedger(1);
+</script>
+    <script type="module" src="js/native-notifications.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="notification-toast.js"></script>
+</body>
+</html>
