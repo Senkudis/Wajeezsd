@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-v56';
+const CACHE_NAME = 'wajeez-static-v57';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -257,9 +257,20 @@ self.addEventListener('notificationclick', (event) => {
     else if (data.type === 'emergency') {
         targetUrl = '/admin-live-map.html';
     }
-    // 👨‍💼 Admin — general alert / broadcast → dashboard
-    else if (data.type === 'admin_order_alert' || data.type === 'admin_alert' || data.type === 'broadcast') {
+    // 👨‍💼 Admin — general alert → dashboard
+    // 🧭 (أُخرج broadcast من هنا: البث يصل لعملاء وكباتن وتجار أيضاً —
+    // كان يرمي الجميع على admin.html. السيرفر يرسل الآن data.url حسب الدور،
+    // وهذا مجرد احتياط للإشعارات القديمة)
+    else if (data.type === 'admin_order_alert' || data.type === 'admin_alert') {
         targetUrl = '/admin.html';
+    }
+    // 📣 Broadcast (جمهور مختلط) — صفحة الإشعارات كاحتياط
+    else if (data.type === 'broadcast') {
+        targetUrl = '/notifications.html';
+    }
+    // 💳 Captain — تعديل مديونية/محفظة → صفحة المحفظة
+    else if (data.type === 'wallet_update' || data.type === 'payment_approved' || data.type === 'payment_rejected') {
+        targetUrl = '/captain-wallet.html';
     }
     // 💬 Chat → chat page
     else if (data.type === 'chat' || data.type === 'chat_message') {

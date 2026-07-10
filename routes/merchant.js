@@ -464,7 +464,8 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
             if (tokens.length > 0) {
                 await sendPushToMany(tokens, '🛒 طلب محل جاهز! 🚨', `طلب من ${place.name} بسعر ${newDeliveryOrder.price} ج.س. متاح للتوصيل الآن!`, {
                     type: 'shop_order',
-                    orderId: newDeliveryOrder._id.toString()
+                    orderId: newDeliveryOrder._id.toString(),
+                    url: `/captain-orders.html?highlight=${newDeliveryOrder._id.toString()}` // 🧭 وجهة الكابتن
                 });
             }
         } catch (pushErr) {

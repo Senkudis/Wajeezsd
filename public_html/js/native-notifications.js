@@ -33,13 +33,22 @@ function routeNotificationTap(data) {
     // 🔗 Normalise the record id — server may send it as relatedId or orderId
     const recordId = data ? (data.orderId || data.relatedId || '') : '';
 
-    // 💬 Chat Notification
+    // 💬 Chat Notification (قبل url — لأن رابط المحادثة المحلي يضيف receiverId)
     if (data && (data.type === 'chat' || data.type === 'chat_message')) {
         const orderId = data.orderId || data.order;
         if (orderId) {
             window.location.href = `chat.html?orderId=${orderId}&receiverId=${data.senderId || ''}`;
             return;
         }
+    }
+
+    // 🧭 الرابط المحسوب في السيرفر حسب دور المستقبِل له الأولوية —
+    // خرائط الأنواع أدناه تبقى احتياطاً للإشعارات القديمة/الناقصة فقط.
+    // (utils/pushRouting.js في السيرفر هو مصدر الحقيقة لوجهة كل دور+نوع)
+    const serverUrl = data ? (data.url || data.targetUrl || '') : '';
+    if (serverUrl && serverUrl !== '/') {
+        window.location.href = serverUrl.startsWith('/') ? serverUrl.slice(1) : serverUrl;
+        return;
     }
 
     // ✅ Route by user role
@@ -219,8 +228,9 @@ const NativeNotifications = {
         // 5. Real-world tap path for background/killed taps: MainActivity.java dispatches
         // this once the WebView has a page ready to receive it (see MainActivity.java).
         window.addEventListener('wajeezPushTapped', event => {
-            console.log('👆 Notification Tap (native forward):', event.orderId, event.notifType);
-            routeNotificationTap({ orderId: event.orderId, type: event.notifType });
+            console.log('👆 Notification Tap (native forward):', event.orderId, event.notifType, event.targetUrl);
+            // 🧭 targetUrl: الوجهة المحسوبة في السيرفر حسب دور المستقبِل (لها الأولوية)
+            routeNotificationTap({ orderId: event.orderId, type: event.notifType, url: event.targetUrl || '' });
         });
     },
 

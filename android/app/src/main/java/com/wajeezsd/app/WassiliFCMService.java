@@ -77,6 +77,13 @@ public class WassiliFCMService extends FirebaseMessagingService {
             intent.putExtra("orderId", orderId);
             intent.putExtra("type", type);
         }
+        // 🧭 Server-resolved destination URL (per recipient role) — the JS router gives
+        // this priority over its local type map, so every role lands on its own page.
+        String targetUrl = getOrFallback(data, "url", "");
+        if (targetUrl != null && !targetUrl.isEmpty()) {
+            intent.putExtra("targetUrl", targetUrl);
+            intent.putExtra("type", type);
+        }
 
         int requestCode = NOTIF_ID.getAndIncrement();
         PendingIntent pendingIntent = PendingIntent.getActivity(

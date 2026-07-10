@@ -264,7 +264,8 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
 
                         await sendPushToMany(tokens, title, bodyMsg, {
                             type: orderType === 'shop' ? 'shop_order' : 'new_order',
-                            orderId: order._id.toString()
+                            orderId: order._id.toString(),
+                            url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
                         });
                     }
                     // ملاحظة: إشعار/دفعة الأدمن تُعالَج عبر notifyAdmins (حفظ + socket + push) أعلاه.

@@ -32,6 +32,7 @@ public class MainActivity extends BridgeActivity {
     // buffered here until the WebView has a real page loaded to receive them.
     private String pendingOrderId;
     private String pendingNotifType;
+    private String pendingTargetUrl; // 🧭 server-resolved destination (per recipient role)
     // True once a page has finished loading at least once. Evaluating JS before that
     // targets a not-yet-navigated WebView and is silently lost (JS state doesn't survive
     // the subsequent real navigation), so delivery must wait for the first onPageLoaded.
@@ -131,12 +132,16 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    /** Reads orderId/type extras placed by WassiliFCMService's tap PendingIntent. */
+    /** Reads orderId/type/targetUrl extras placed by WassiliFCMService's tap PendingIntent. */
     private void capturePushExtras(Intent intent) {
         if (intent == null) return;
         String orderId = intent.getStringExtra("orderId");
-        if (orderId == null || orderId.isEmpty()) return;
-        pendingOrderId = orderId;
+        String targetUrl = intent.getStringExtra("targetUrl");
+        // 🧭 Accept taps that carry either a record id or a server-resolved URL —
+        // broadcasts have no orderId but do carry a role-correct destination URL.
+        if ((orderId == null || orderId.isEmpty()) && (targetUrl == null || targetUrl.isEmpty())) return;
+        pendingOrderId = orderId != null ? orderId : "";
+        pendingTargetUrl = targetUrl != null ? targetUrl : "";
         pendingNotifType = intent.getStringExtra("type");
     }
 
@@ -147,19 +152,22 @@ public class MainActivity extends BridgeActivity {
      * notification and its tap Intent manually, bypassing Capacitor's push plugin entirely.
      */
     private void deliverPendingPushTap() {
-        if (pendingOrderId == null || getBridge() == null) return;
+        if ((pendingOrderId == null && pendingTargetUrl == null) || getBridge() == null) return;
 
-        String orderId = pendingOrderId;
+        String orderId = pendingOrderId != null ? pendingOrderId : "";
         String type = pendingNotifType != null ? pendingNotifType : "";
+        String targetUrl = pendingTargetUrl != null ? pendingTargetUrl : "";
         // Clear before firing so a later onPageLoaded (triggered by the routing JS's own
         // navigation to the target page) doesn't re-deliver and redirect again in a loop.
         pendingOrderId = null;
         pendingNotifType = null;
+        pendingTargetUrl = null;
 
         // Field is named notifType (not "type") to avoid colliding with the native,
         // read-only Event.type property that the Capacitor bridge event is built from.
         String eventData = "{\"orderId\":" + JSONObject.quote(orderId) +
-                ",\"notifType\":" + JSONObject.quote(type) + "}";
+                ",\"notifType\":" + JSONObject.quote(type) +
+                ",\"targetUrl\":" + JSONObject.quote(targetUrl) + "}";
         getBridge().triggerWindowJSEvent("wajeezPushTapped", eventData);
     }
 
