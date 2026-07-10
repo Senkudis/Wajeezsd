@@ -21,6 +21,9 @@ const PlaceSchema = new mongoose.Schema({
     bankAccountNumber: { type: String, default: '' }, // 🔢 رقم الحساب (بنكك)
     bankName: { type: String, default: '' }, // 🏢 اسم البنك
     shopWalletBalance: { type: Number, default: 0 }, // 💰 رصيد محفظة المتجر
+    // 💼 ERP: باقة المتجر — basic (ناشئ: منتجات وطلبات ومستحقات فقط)
+    // أو pro (كبير: + نقطة بيع وتقارير ومخزون متقدم ومصروفات). الأدمن يتحكم بها.
+    tier: { type: String, enum: ['basic', 'pro'], default: 'basic' },
     description: { type: String, default: '' }, // وصف المتجر
     city: { type: String, default: 'Khartoum', index: true }, // 🌍 Multi-city isolation
     workingHours: {

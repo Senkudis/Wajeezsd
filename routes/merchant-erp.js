@@ -33,6 +33,19 @@ async function loadPlace(req, res, next) {
 }
 
 // ──────────────────────────────────────────────
+// Middleware: باقة المتجر الاحترافي (pro) فقط
+// الأساسي (basic) يحتفظ بالمنتجات/الطلبات/المستحقات والتسويات —
+// أما التقارير والمخزون المتقدم والمصروفات ونقطة البيع فللاحترافي.
+// ──────────────────────────────────────────────
+function requirePro(req, res, next) {
+    if (req.place && req.place.tier === 'pro') return next();
+    return res.status(403).json({
+        message: 'هذه الميزة متاحة لباقة المتجر الكبير فقط — تواصل مع الإدارة للترقية',
+        code: 'PRO_TIER_REQUIRED'
+    });
+}
+
+// ──────────────────────────────────────────────
 // Helper: نطاق الفترة الزمنية (توقيت السودان UTC+3)
 // ──────────────────────────────────────────────
 function getPeriodRange(period, fromStr, toStr) {
@@ -135,7 +148,7 @@ async function aggregateSales(placeId, from, to) {
 // ══════════════════════════════════════════════
 
 // GET /api/merchant-erp/reports/summary?period=today|week|month|custom&from&to
-router.get('/reports/summary', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/reports/summary', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { from, to } = getPeriodRange(req.query.period, req.query.from, req.query.to);
         const totals = await aggregateSales(req.place._id, from, to);
@@ -159,7 +172,7 @@ router.get('/reports/summary', protect, merchantOnly, loadPlace, async (req, res
 });
 
 // GET /api/merchant-erp/reports/sales-series?period=week|month
-router.get('/reports/sales-series', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/reports/sales-series', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const period = ['week', 'month'].includes(req.query.period) ? req.query.period : 'week';
         const { from, to } = getPeriodRange(period);
@@ -211,7 +224,7 @@ router.get('/reports/sales-series', protect, merchantOnly, loadPlace, async (req
 });
 
 // GET /api/merchant-erp/reports/top-products?period&limit
-router.get('/reports/top-products', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/reports/top-products', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { from, to } = getPeriodRange(req.query.period, req.query.from, req.query.to);
         const limit = Math.min(20, parseInt(req.query.limit) || 10);
@@ -254,7 +267,7 @@ router.get('/reports/top-products', protect, merchantOnly, loadPlace, async (req
 });
 
 // GET /api/merchant-erp/reports/customers?period&limit — أفضل العملاء (طلبات التطبيق)
-router.get('/reports/customers', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/reports/customers', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { from, to } = getPeriodRange(req.query.period, req.query.from, req.query.to);
         const limit = Math.min(20, parseInt(req.query.limit) || 10);
@@ -286,7 +299,7 @@ router.get('/reports/customers', protect, merchantOnly, loadPlace, async (req, r
 });
 
 // GET /api/merchant-erp/reports/profit?period — الأرباح والخسائر (P&L)
-router.get('/reports/profit', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/reports/profit', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { from, to } = getPeriodRange(req.query.period, req.query.from, req.query.to);
         const totals = await aggregateSales(req.place._id, from, to);
@@ -319,7 +332,7 @@ router.get('/reports/profit', protect, merchantOnly, loadPlace, async (req, res)
 // ══════════════════════════════════════════════
 
 // GET /api/merchant-erp/inventory/low-stock
-router.get('/inventory/low-stock', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/inventory/low-stock', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         // المنتجات المتتبَّعة فقط: تحت حد التنبيه المحدد، أو ≤ 5 افتراضياً
         const products = await Product.find({
@@ -335,7 +348,7 @@ router.get('/inventory/low-stock', protect, merchantOnly, loadPlace, async (req,
 });
 
 // GET /api/merchant-erp/inventory/movements?productId&type&page&limit
-router.get('/inventory/movements', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/inventory/movements', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 30);
@@ -356,7 +369,7 @@ router.get('/inventory/movements', protect, merchantOnly, loadPlace, async (req,
 
 // POST /api/merchant-erp/inventory/restock — توريد بضاعة
 // body: { productId, quantity > 0, unitCost?, addAsExpense? }
-router.post('/inventory/restock', protect, merchantOnly, loadPlace, async (req, res) => {
+router.post('/inventory/restock', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { productId, quantity, unitCost, addAsExpense } = req.body;
         const qty = parseInt(quantity);
@@ -405,7 +418,7 @@ router.post('/inventory/restock', protect, merchantOnly, loadPlace, async (req, 
 
 // POST /api/merchant-erp/inventory/adjust — تسوية جرد يدوية
 // body: { productId, newStock (>=0 أو null لإيقاف التتبع), reason }
-router.post('/inventory/adjust', protect, merchantOnly, loadPlace, async (req, res) => {
+router.post('/inventory/adjust', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { productId, newStock, reason } = req.body;
         if (!mongoose.isValidObjectId(productId)) return res.status(400).json({ message: 'المنتج مطلوب' });
@@ -506,7 +519,7 @@ router.get('/finance/ledger', protect, merchantOnly, loadPlace, async (req, res)
 // ── المصروفات (للتقارير فقط — لا تمس رصيد المحفظة) ──
 
 // GET /api/merchant-erp/expenses?page&limit&category&from&to
-router.get('/expenses', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/expenses', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 30);
@@ -529,7 +542,7 @@ router.get('/expenses', protect, merchantOnly, loadPlace, async (req, res) => {
 });
 
 // POST /api/merchant-erp/expenses
-router.post('/expenses', protect, merchantOnly, loadPlace, async (req, res) => {
+router.post('/expenses', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { category, amount, description, date } = req.body;
         const numericAmount = Number(amount);
@@ -552,7 +565,7 @@ router.post('/expenses', protect, merchantOnly, loadPlace, async (req, res) => {
 });
 
 // PUT /api/merchant-erp/expenses/:id
-router.put('/expenses/:id', protect, merchantOnly, loadPlace, async (req, res) => {
+router.put('/expenses/:id', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const updateData = {};
         if ('category' in req.body && ['rent', 'salaries', 'supplies', 'utilities', 'transport', 'other'].includes(req.body.category)) {
@@ -579,7 +592,7 @@ router.put('/expenses/:id', protect, merchantOnly, loadPlace, async (req, res) =
 });
 
 // DELETE /api/merchant-erp/expenses/:id
-router.delete('/expenses/:id', protect, merchantOnly, loadPlace, async (req, res) => {
+router.delete('/expenses/:id', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const expense = await Expense.findOneAndDelete({ _id: req.params.id, placeId: req.place._id });
         if (!expense) return res.status(404).json({ message: 'المصروف غير موجود' });
@@ -753,13 +766,49 @@ router.put('/admin/settlements/:id/reject', protect, adminOnly, requirePermissio
     }
 });
 
+// ── ADMIN: باقة المتجر (ناشئ/كبير) ──
+
+// PUT /api/merchant-erp/admin/places/:id/tier — body: { tier: 'basic' | 'pro' }
+router.put('/admin/places/:id/tier', protect, adminOnly, requirePermission('manage_stores'), async (req, res) => {
+    try {
+        const { tier } = req.body;
+        if (!['basic', 'pro'].includes(tier)) {
+            return res.status(400).json({ message: 'الباقة يجب أن تكون basic أو pro' });
+        }
+        const place = await Place.findByIdAndUpdate(
+            req.params.id,
+            { $set: { tier } },
+            { new: true }
+        ).select('name tier ownerId');
+        if (!place) return res.status(404).json({ message: 'المتجر غير موجود' });
+
+        // إشعار التاجر بتغيير باقته
+        if (place.ownerId) {
+            await sendNotification(req.app, {
+                userId: place.ownerId,
+                title: tier === 'pro' ? 'تمت ترقية متجرك' : 'تم تغيير باقة متجرك',
+                message: tier === 'pro'
+                    ? 'أصبح متجرك على باقة المتجر الكبير — نقطة البيع والتقارير والمخزون المتقدم والمصروفات متاحة الآن من لوحتك.'
+                    : 'أصبح متجرك على الباقة الأساسية. مستحقاتك وتسوياتك تعمل كالمعتاد.',
+                type: 'tier_change',
+                relatedId: place._id
+            });
+        }
+
+        res.json({ message: `تم تغيير باقة "${place.name}" إلى ${tier === 'pro' ? 'متجر كبير' : 'أساسي'}`, place });
+    } catch (err) {
+        logger.error('admin tier change error:', err.message);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // ══════════════════════════════════════════════
 // 🧾 POS — نقطة بيع مباشرة (Walk-in)
 // ══════════════════════════════════════════════
 
 // POST /api/merchant-erp/pos/sale
 // body: { items: [{productId, quantity}], discount?, paymentMethod?, note? }
-router.post('/pos/sale', protect, merchantOnly, loadPlace, async (req, res) => {
+router.post('/pos/sale', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const { items, discount, paymentMethod, note } = req.body;
         if (!Array.isArray(items) || items.length === 0) {
@@ -862,7 +911,7 @@ router.post('/pos/sale', protect, merchantOnly, loadPlace, async (req, res) => {
 });
 
 // GET /api/merchant-erp/pos/sales?page&limit — سجل فواتير نقطة البيع
-router.get('/pos/sales', protect, merchantOnly, loadPlace, async (req, res) => {
+router.get('/pos/sales', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(50, parseInt(req.query.limit) || 20);
@@ -888,7 +937,7 @@ router.get('/pos/sales', protect, merchantOnly, loadPlace, async (req, res) => {
 });
 
 // PUT /api/merchant-erp/pos/sales/:id/void — إلغاء فاتورة وإرجاع المخزون
-router.put('/pos/sales/:id/void', protect, merchantOnly, loadPlace, async (req, res) => {
+router.put('/pos/sales/:id/void', protect, merchantOnly, loadPlace, requirePro, async (req, res) => {
     try {
         // انتقال ذري يمنع الإلغاء المزدوج (وبالتالي الإرجاع المزدوج للمخزون)
         const sale = await PosSale.findOneAndUpdate(

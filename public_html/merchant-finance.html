@@ -305,7 +305,24 @@
         const el = document.getElementById('content');
         el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
         try {
-            const d = await apiGet(`/expenses?page=${page}&limit=30`);
+            // 💼 المصروفات لباقة المتجر الكبير — رسالة ترقية داخل المحتوى للأساسي
+            const check = await fetch(`${API_URL}/api/merchant-erp/expenses?page=${page}&limit=30`, { headers: H });
+            if (check.status === 403) {
+                const b = await check.json().catch(() => ({}));
+                if (b.code === 'PRO_TIER_REQUIRED') {
+                    document.getElementById('fabAddExpense').style.display = 'none';
+                    el.innerHTML = `<div class="text-center py-5" style="max-width:320px;margin:0 auto;">
+                        <div style="width:72px;height:72px;border-radius:20px;background:#fef3c7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+                            <i class="bi bi-lock-fill" style="font-size:1.8rem;color:#d97706;"></i></div>
+                        <div class="fw-bold" style="font-size:16px;">تسجيل المصروفات لباقة المتجر الكبير</div>
+                        <div class="text-muted small mt-2">سجّل الإيجار والرواتب والمشتريات لتعرف صافي ربحك الحقيقي. تواصل مع إدارة وجيز لترقية باقتك.</div>
+                    </div>`;
+                    return;
+                }
+                throw new Error('HTTP 403');
+            }
+            if (!check.ok) throw new Error('HTTP ' + check.status);
+            const d = await check.json();
             expensesCache = d.expenses;
             if (!d.expenses.length) {
                 el.innerHTML = `<div class="text-center py-5 text-muted">

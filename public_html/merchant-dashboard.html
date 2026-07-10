@@ -233,34 +233,45 @@
             </a>
         </div>
     </div>
-    <!-- 💼 ERP: إدارة الأعمال -->
+    <!-- 💼 ERP: إدارة الأعمال — بطاقات pro تُخفى للباقة الأساسية -->
     <div class="section-title"><i class="bi bi-briefcase-fill text-warning"></i> إدارة الأعمال</div>
-    <div class="row g-2 mb-4 align-items-stretch">
-        <div class="col-3">
+    <div class="row g-2 mb-2 align-items-stretch" id="erpGrid">
+        <div class="col-3 erp-pro">
             <a href="merchant-pos.html" class="quick-btn">
                 <i class="bi bi-upc-scan" style="color:#0f3460;"></i>
                 <span>نقطة بيع</span>
             </a>
         </div>
-        <div class="col-3">
+        <div class="col-3 erp-pro">
             <a href="merchant-reports.html" class="quick-btn">
                 <i class="bi bi-graph-up-arrow text-success"></i>
                 <span>التقارير</span>
             </a>
         </div>
-        <div class="col-3">
+        <div class="col-3 erp-pro">
             <a href="merchant-inventory.html" class="quick-btn">
                 <i class="bi bi-boxes text-primary"></i>
                 <span>المخزون</span>
             </a>
         </div>
-        <div class="col-3">
+        <div class="col-3" id="financeCardCol">
             <a href="merchant-finance.html" class="quick-btn">
                 <i class="bi bi-wallet-fill" style="color:#d97706;"></i>
                 <span>المحاسبة</span>
             </a>
         </div>
     </div>
+    <!-- بانر ترقية الباقة (يظهر للأساسي فقط) -->
+    <div id="tierUpsell" class="d-none mb-4" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1px solid #fde68a;border-radius:14px;padding:12px 14px;">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-stars" style="font-size:1.4rem;color:#d97706;"></i>
+            <div>
+                <div class="fw-bold" style="font-size:13px;color:#92400e;">متجرك على الباقة الأساسية</div>
+                <div style="font-size:11.5px;color:#a16207;font-weight:600;">باقة المتجر الكبير تضيف نقطة بيع وتقارير أرباح ومخزوناً متقدماً — تواصل مع إدارة وجيز للترقية.</div>
+            </div>
+        </div>
+    </div>
+    <div class="mb-2"></div>
 
     <!-- Row 2: Order Captain + Share Store -->
     <div class="row g-2 mb-4">
@@ -394,6 +405,15 @@
                 if (data.place.shareCode) {
                     _shareInfo = { code: data.place.shareCode, name: data.place.name };
                 }
+
+                // 💼 باقة المتجر: الأساسي يرى المحاسبة فقط + بانر ترقية،
+                // الاحترافي (pro) يرى نقطة البيع والتقارير والمخزون أيضاً
+                const isPro = data.place.tier === 'pro';
+                document.querySelectorAll('.erp-pro').forEach(el => { el.style.display = isPro ? '' : 'none'; });
+                const upsell = document.getElementById('tierUpsell');
+                if (upsell) upsell.classList.toggle('d-none', isPro);
+                const finCol = document.getElementById('financeCardCol');
+                if (finCol) finCol.className = isPro ? 'col-3' : 'col-6';
             }
 
             const ordersRes = await fetch(`${API_URL}/api/merchant/orders`, { headers: { 'Authorization': `Bearer ${token}` } });

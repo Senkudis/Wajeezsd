@@ -342,8 +342,18 @@ function renderAdminPlacesTable(places) {
                 ${p.is_open
             ? '<span style="background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">مفتوح</span>'
             : '<span style="background:#fee2e2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">مغلق</span>'}
+                ${p.ownerId
+            ? (p.tier === 'pro'
+                ? '<div style="margin-top:4px;"><span style="background:#ede9fe;color:#6d28d9;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;"><i class="fas fa-crown"></i> متجر كبير</span></div>'
+                : '<div style="margin-top:4px;"><span style="background:#f1f5f9;color:#64748b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">باقة أساسية</span></div>')
+            : ''}
             </td>
             <td>
+                ${p.ownerId
+            ? `<button onclick="togglePlaceTier('${p._id}', '${p.tier === 'pro' ? 'pro' : 'basic'}', '${(p.name || '').replace(/'/g, '')}')" title="تغيير باقة المتجر" style="padding:6px 12px;font-size:12px;margin-left:6px;background:${p.tier === 'pro' ? '#6d28d9' : '#94a3b8'};color:#fff;border:none;border-radius:8px;cursor:pointer;">
+                    <i class="fas fa-crown"></i>
+                </button>`
+            : ''}
                 <button onclick="copyAdminShareLink('${p.shareCode || ''}')" class="btn-primary-custom" title="نسخ الرابط القصير" style="padding:6px 12px;font-size:12px;margin-left:6px;background:#0f766e;color:#fff;border:none;border-radius:8px;">
                     <i class="fas fa-link" style="font-size:1.1rem;"></i>
                 </button>
@@ -370,6 +380,33 @@ function renderAdminPlacesTable(places) {
             destroy: true
         });
     }
+}
+
+// 💼 ERP: تبديل باقة المتجر (أساسي/كبير) — للمتاجر المرتبطة بتاجر فقط
+async function togglePlaceTier(placeId, currentTier, placeName) {
+    const newTier = currentTier === 'pro' ? 'basic' : 'pro';
+    const c = await Swal.fire({
+        title: newTier === 'pro' ? 'ترقية لباقة المتجر الكبير؟' : 'إرجاع للباقة الأساسية؟',
+        html: `<div style="font-family:Cairo;font-size:14px;">"${placeName}"<br>${newTier === 'pro'
+            ? 'سيحصل التاجر على: نقطة بيع، تقارير وأرباح، مخزون متقدم، مصروفات.'
+            : 'ستُخفى المزايا المتقدمة عن التاجر. مستحقاته وتسوياته لا تتأثر.'}</div>`,
+        icon: 'question', showCancelButton: true,
+        confirmButtonText: newTier === 'pro' ? 'نعم، رقِّ المتجر' : 'نعم، أرجعه أساسياً',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: newTier === 'pro' ? '#6d28d9' : '#94a3b8'
+    });
+    if (!c.isConfirmed) return;
+    try {
+        const res = await fetch(`${API_URL}/api/merchant-erp/admin/places/${placeId}/tier`, {
+            method: 'PUT',
+            headers: headers(),
+            body: JSON.stringify({ tier: newTier })
+        });
+        const d = await res.json();
+        if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل تغيير الباقة', 'error'); return; }
+        Swal.fire({ icon: 'success', title: d.message, timer: 2000, showConfirmButton: false });
+        loadAdminPlaces();
+    } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); }
 }
 
 function copyAdminShareLink(shareCode) {

@@ -160,8 +160,29 @@
     let lowStockCache = [];
     let allProductsCache = [];
 
+    // 💼 قفل الباقة: الميزة لباقة المتجر الكبير فقط
+    function showTierLock() {
+        if (document.getElementById('tierLock')) return;
+        const d = document.createElement('div');
+        d.id = 'tierLock';
+        d.style.cssText = 'position:fixed;inset:0;z-index:5000;background:#f8fafc;display:flex;align-items:center;justify-content:center;padding:24px;';
+        d.innerHTML = `<div style="text-align:center;max-width:340px;">
+            <div style="width:84px;height:84px;border-radius:24px;background:#fef3c7;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                <i class="bi bi-lock-fill" style="font-size:2.2rem;color:#d97706;"></i></div>
+            <div style="font-weight:900;font-size:18px;">ميزة لباقة المتجر الكبير</div>
+            <div style="color:#64748b;font-size:13px;font-weight:600;margin:8px 0 18px;">متجرك حالياً على الباقة الأساسية. للحصول على إدارة المخزون المتقدمة، تواصل مع إدارة وجيز لترقية باقتك.</div>
+            <a href="merchant-dashboard.html" class="btn btn-warning fw-bold text-dark px-4 rounded-3">العودة للرئيسية</a>
+        </div>`;
+        document.body.appendChild(d);
+    }
+
     async function apiGet(path) {
         const res = await fetch(`${API_URL}/api/merchant-erp${path}`, { headers: H });
+        if (res.status === 403) {
+            const b = await res.json().catch(() => ({}));
+            if (b.code === 'PRO_TIER_REQUIRED') showTierLock();
+            throw new Error('HTTP 403');
+        }
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
     }
