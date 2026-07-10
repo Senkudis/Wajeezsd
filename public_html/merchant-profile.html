@@ -168,6 +168,10 @@
                 <span class="tier-badge" style="background:${tierPro ? '#fef3c7' : '#f1f5f9'};color:${tierPro ? '#b45309' : '#64748b'};">
                     <i class="bi bi-${tierPro ? 'gem' : 'shop'}"></i> ${tierPro ? 'متجر احترافي' : 'متجر أساسي'}
                 </span>
+                ${place.shareCode ? `
+                <button class="btn btn-outline-success w-100 mt-3 fw-bold rounded-3" onclick="previewStore()">
+                    <i class="bi bi-eye me-1"></i> معاينة متجرك كما يراه العميل
+                </button>` : ''}
             </div>
 
             <div class="profile-card">
@@ -383,6 +387,13 @@
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> حفظ التغييرات';
         }
+    }
+
+    // 👁️ معاينة المتجر كما يراه العميل — يفتح صفحة المتجر العامة عبر رابط المشاركة القصير
+    // (نسبي للأصل الحالي ليعمل محلياً وعلى الإنتاج)
+    function previewStore() {
+        if (!place.shareCode) { Swal.fire('تنبيه', 'رابط المتجر غير جاهز بعد', 'info'); return; }
+        window.open(`/s/${place.shareCode}`, '_blank');
     }
 
     function logout() {

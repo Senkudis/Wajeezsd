@@ -304,6 +304,11 @@
                 <button class="btn btn-sm btn-success fw-bold" onclick="copyShareLink()"><i class="bi bi-clipboard"></i> نسخ</button>
             </div>
 
+            <!-- 👁️ معاينة المتجر كما يراه العميل -->
+            <button class="btn w-100 fw-bold btn-outline-dark mb-3" style="border-radius:12px;padding:10px;" onclick="previewStore()">
+                <i class="bi bi-eye"></i> معاينة متجرك كما يراه العميل
+            </button>
+
             <!-- أزرار المشاركة -->
             <div class="row g-2 mb-3">
                 <div class="col-6">
@@ -495,6 +500,12 @@
             _shareQrDone = true;
         }
         document.getElementById('shareModal').style.display = 'flex';
+    }
+
+    // 👁️ معاينة المتجر كما يراه العميل — يفتح صفحة المتجر العامة (رابط نسبي للأصل)
+    function previewStore() {
+        if (!_shareInfo || !_shareInfo.code) { showToast('رابط المتجر غير جاهز بعد'); return; }
+        window.open(`/s/${_shareInfo.code}`, '_blank');
     }
 
     function closeShareModal() {
