@@ -173,8 +173,11 @@
         }
     }
 
+    let _ordersById = {}; // لإعادة الطلب
+
     function renderOrders(orders) {
         const container = document.getElementById('ordersContainer');
+        (orders || []).forEach(o => { _ordersById[o._id] = o; });
         if (!orders.length) {
             container.innerHTML = `<div class="text-center py-5 text-muted">
                 <i class="bi bi-bag-x-fill" style="font-size:4rem;"></i>
@@ -253,9 +256,32 @@
                 </div>
                 ${stepTrack}
                 ${paymentSection}
+                ${['delivered', 'cancelled'].includes(o.status) ? `
+                <button class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2" onclick="reorderShop('${o._id}')">
+                    <i class="bi bi-arrow-repeat me-1"></i> اطلب مرة أخرى
+                </button>` : ''}
             </div>
         </div>`;
     }
+
+    // 🔄 إعادة طلب من متجر — يملأ سلة المتجر بنفس المنتجات ويفتح صفحة المتجر
+    window.reorderShop = function (orderId) {
+        const o = _ordersById[orderId];
+        if (!o) { Swal.fire('تنبيه', 'تعذّر العثور على الطلب', 'info'); return; }
+        const placeId = (o.place && o.place._id) ? o.place._id : o.place;
+        if (!placeId) { Swal.fire('تنبيه', 'هذا المتجر لم يعد متاحاً', 'info'); return; }
+
+        const items = (o.items || [])
+            .filter(it => it.productId)
+            .map(it => ({ id: String(it.productId), qty: parseInt(it.quantity) || 1, name: it.name, price: it.price, image: null }));
+        if (!items.length) { Swal.fire('تنبيه', 'لا يمكن إعادة طلب هذه المنتجات', 'info'); return; }
+
+        try {
+            localStorage.setItem(`wajeez_cart_${placeId}`, JSON.stringify({ items, savedAt: Date.now(), placeId }));
+        } catch (e) {}
+        // reorder=1 → صفحة المتجر تعبّئ السلة تلقائياً وتتحقق من التوفّر الحالي
+        window.location.href = `shop-detail.html?placeId=${placeId}&reorder=1`;
+    };
 
     function selectReceipt(orderId) {
         pendingReceiptOrderId = orderId;

@@ -1640,6 +1640,31 @@
             const product = allProducts.find(p => p._id === item.id);
             return product && product.isAvailable;
         });
+
+        // 🔄 إعادة الطلب: تعبئة السلة تلقائياً (بلا بنر) عند القدوم من "اطلب مرة أخرى"
+        const isReorder = new URLSearchParams(location.search).get('reorder') === '1';
+        if (isReorder) {
+            let restored = 0;
+            savedCart.items.forEach(item => {
+                const product = allProducts.find(p => p._id === item.id);
+                if (product && product.isAvailable) {
+                    cart[item.id] = { product, qty: Math.min(item.qty, product.stock ?? item.qty) };
+                    restored++;
+                }
+            });
+            clearCartStorage();
+            updateCart();
+            const missing = savedCart.items.length - restored;
+            if (restored > 0) {
+                Swal.fire({ toast: true, position: 'top', icon: 'success',
+                    text: missing > 0 ? `تمت إضافة ${restored} منتج — ${missing} غير متوفر حالياً` : `تمت إضافة ${restored} منتج لسلتك`,
+                    timer: 3000, showConfirmButton: false });
+            } else {
+                Swal.fire({ toast: true, position: 'top', icon: 'warning', text: 'منتجات هذا الطلب غير متوفرة حالياً', timer: 3000, showConfirmButton: false });
+            }
+            return;
+        }
+
         if (!validItems.length) { clearCartStorage(); return; }
 
         // عرض بنر استرجاع جذاب أسفل الشاشة
