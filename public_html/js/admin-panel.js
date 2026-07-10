@@ -679,6 +679,10 @@ function renderUsers(users) {
                 <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="toggleUserVerify('${u._id}', false)" title="إلغاء التفعيل (سيُطلب OTP عند الدخول)" style="color:#b45309;">
                     <i class="fas fa-user-lock"></i>
                 </button>`}
+                ${u.phone ? `
+                <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="whatsappActivated('${u._id}')" title="إبلاغ العميل بالتفعيل عبر واتساب" style="color:#25D366;">
+                    <i class="fab fa-whatsapp"></i>
+                </button>` : ''}
                 <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="editUser('${u._id}')" title="تعديل">
                     <i class="fas fa-pen"></i>
                 </button>
@@ -691,6 +695,45 @@ function renderUsers(users) {
             </td>
         </tr>
     `).join('');
+}
+
+// 📞 تطبيع رقم الهاتف لصيغة واتساب الدولية (أرقام فقط، بمفتاح السودان 249)
+// الأرقام في القاعدة مختلطة: 249xxxxxxxxx أو 09xxxxxxxx أو +249xxxxxxxxx
+function toWhatsAppNumber(phone) {
+    let p = String(phone || '').replace(/\D/g, ''); // أزل +، مسافات، شرطات
+    if (!p) return '';
+    if (p.startsWith('00249')) p = p.slice(2);      // 00249… → 249…
+    else if (p.startsWith('0')) p = '249' + p.slice(1); // 09xx… → 2499xx…
+    else if (!p.startsWith('249')) p = '249' + p;   // 9xx… → 2499xx…
+    return p;
+}
+
+// 💬 إبلاغ العميل بتفعيل حسابه عبر واتساب الأدمن (رسالة جاهزة، بلا بوت)
+function whatsappActivated(userId) {
+    const u = allUsers.find(x => x._id === userId);
+    if (!u || !u.phone) { showToast('لا يوجد رقم هاتف لهذا المستخدم'); return; }
+
+    const number = toWhatsAppNumber(u.phone);
+    if (!number) { showToast('رقم الهاتف غير صالح'); return; }
+
+    // اسم المتجر يُذكر كاملاً ("متجر ڤيلورا")، أما الأشخاص فبالاسم الأول فقط
+    const fullName = (u.name || '').trim();
+    const firstName = (u.role === 'merchant' ? fullName : fullName.split(/\s+/)[0]) || 'عميلنا العزيز';
+    const roleLine = u.role === 'captain'
+        ? 'يمكنك الآن تسجيل الدخول لتطبيق الكابتن واستقبال الطلبات.'
+        : (u.role === 'merchant'
+            ? 'يمكنك الآن تسجيل الدخول لإدارة متجرك واستقبال الطلبات.'
+            : 'يمكنك الآن تسجيل الدخول والبدء بطلب التوصيل.');
+
+    const message =
+        `مرحباً ${firstName}،\n\n` +
+        `تم تفعيل حسابك في تطبيق وجيز بنجاح.\n` +
+        `${roleLine}\n\n` +
+        `سجّل الدخول برقم هاتفك وكلمة المرور التي أنشأتها — لا حاجة لكود التفعيل.\n\n` +
+        `wajeezsd.com\nفريق وجيز`;
+
+    // wa.me يفتح واتساب الأدمن (تطبيق أو ويب) بمحادثة العميل والرسالة جاهزة للإرسال
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
 // 📵 تفعيل/إلغاء تفعيل حساب يدوياً — لعملاء لم تصلهم رسالة OTP من مزود الـ SMS
@@ -711,6 +754,22 @@ async function toggleUserVerify(userId, willVerify) {
         const d = await res.json().catch(() => ({}));
         if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل تحديث التفعيل', 'error'); return; }
         loadUsers();
+
+        // 💬 بعد التفعيل: اعرض إبلاغ العميل عبر واتساب.
+        // window.open داخل معالج نقرة الزر مباشرة — لولا ذلك يحجبه المتصفح
+        // (تفويض المستخدم ينتهي بعد await fetch).
+        if (willVerify) {
+            Swal.fire({
+                title: 'تم تفعيل الحساب',
+                text: 'هل تريد إبلاغ العميل عبر واتساب؟ ستُفتح المحادثة برسالة جاهزة.',
+                icon: 'success',
+                showCancelButton: true,
+                confirmButtonText: 'أبلغه عبر واتساب',
+                cancelButtonText: 'لاحقاً',
+                confirmButtonColor: '#25D366'
+            }).then(r => { if (r.isConfirmed) whatsappActivated(userId); });
+            return;
+        }
         showToast(d.message || 'تم تحديث التفعيل');
     } catch(e) { console.error(e); Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); }
 }
