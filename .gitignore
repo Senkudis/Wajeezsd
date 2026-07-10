@@ -1,0 +1,28 @@
+node_modules/
+tmp/
+testsprite_tests/
+env wassili
+.env*
+*firebase-adminsdk*.json
+uploads/
+.idea/
+.vscode/
+*.log
+
+# ملفات مؤقتة ونسخ احتياطية يجب ألا تُرفع للمستودع
+*.zip
+!android/gradle/wrapper/*.zip
+* - Copy.*
+scripts/archive/
+desktop.ini
+
+# 🧹 ملفات تطوير/تصحيح مؤقتة في الجذر (dumps و one-off scripts) — لا تخص المشروع
+base64.txt
+git_history.txt
+git_home_original.txt
+fix-encoding.js
+fix-fffd.js
+fix_index.js
+fix_tutorials.js
+recover_script.js
+recover_script.py
