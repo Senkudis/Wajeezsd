@@ -29,6 +29,22 @@ const OrderSchema = new mongoose.Schema(
             lng: { type: Number }
         },
 
+        // 🧭 توصيل متعدد النقاط — رحلة واحدة بعدة محطات.
+        // pickup/dropoff أعلاه تبقى مرآة لأول استلام وآخر تسليم (توافق كامل مع الكود الحالي).
+        // stops مرتّبة: كل الاستلامات أولاً ثم كل التسليمات، بترتيب زيارة الكابتن.
+        isMultiStop: { type: Boolean, default: false },
+        stops: [{
+            type:         { type: String, enum: ['pickup', 'dropoff'], required: true },
+            address:      { type: String, required: true },
+            contactName:  { type: String, default: '' },
+            contactPhone: { type: String, default: '' },
+            lat:  { type: Number },
+            lng:  { type: Number },
+            note: { type: String, default: '' },
+            done: { type: Boolean, default: false },   // أكملها الكابتن؟
+            doneAt: { type: Date, default: null }
+        }],
+
         details: { type: String },
 
         // 👇 السعر والمسافة 👇
