@@ -626,18 +626,30 @@ async function loadUsers() {
 
 window.filterUsers = function() {
     const city = document.getElementById('userCityFilter')?.value || 'all';
+    const verify = document.getElementById('userVerifyFilter')?.value || 'all';
     const q = (document.getElementById('userSearch')?.value || '').toLowerCase().trim();
     let filtered = allUsers;
 
     if (city !== 'all') {
         filtered = filtered.filter(u => u.city === city);
     }
+    // 📵 فلتر التفعيل — للعملاء الذين لم تصلهم رسالة الـ SMS من المزود
+    if (verify === 'unverified') {
+        filtered = filtered.filter(u => !u.isVerified);
+    } else if (verify === 'verified') {
+        filtered = filtered.filter(u => u.isVerified);
+    }
     if (q) {
-        filtered = filtered.filter(u => 
-            (u.name || '').toLowerCase().includes(q) || 
+        filtered = filtered.filter(u =>
+            (u.name || '').toLowerCase().includes(q) ||
             (u.phone || '').includes(q)
         );
     }
+    // عدّاد غير المفعلين في خيار الفلتر (يلفت نظر الأدمن للحسابات العالقة)
+    const unverifiedCount = allUsers.filter(u => !u.isVerified).length;
+    const sel = document.getElementById('userVerifyFilter');
+    if (sel && sel.options[1]) sel.options[1].textContent = `غير مفعلة (OTP)${unverifiedCount ? ' — ' + unverifiedCount : ''}`;
+
     renderUsers(filtered);
 };
 
@@ -645,7 +657,7 @@ function renderUsers(users) {
     const body = document.getElementById('usersBody');
     if (!body) return;
     if (!users || !users.length) {
-        body.innerHTML = '<tr><td colspan="5"><div class="gv-empty"><i class="fas fa-users"></i><p>لا يوجد مستخدمون</p></div></td></tr>';
+        body.innerHTML = '<tr><td colspan="6"><div class="gv-empty"><i class="fas fa-users"></i><p>لا يوجد مستخدمون</p></div></td></tr>';
         return;
     }
     const roleMap = { client: 'عميل', captain: 'كابتن', merchant: 'تاجر', admin: 'مشرف' };
@@ -656,7 +668,17 @@ function renderUsers(users) {
             <td dir="ltr" style="font-size:13px;">${window.escapeHtml(u.phone || '—')}</td>
             <td><span class="gv-badge ${roleBadge[u.role] || 'pending'}">${roleMap[u.role] || u.role}</span></td>
             <td>${u.isActive ? '<span style="color:var(--gv-success);font-weight:700;">● نشط</span>' : '<span style="color:var(--gv-danger);font-weight:700;">○ معطل</span>'}</td>
+            <td>${u.isVerified
+                ? '<span style="color:var(--gv-success);font-weight:700;font-size:12px;"><i class="fas fa-check-circle"></i> مفعل</span>'
+                : '<span style="background:#fef3c7;color:#b45309;font-weight:800;font-size:11px;padding:3px 9px;border-radius:20px;"><i class="fas fa-envelope-open-text"></i> بانتظار OTP</span>'}</td>
             <td style="white-space:nowrap;">
+                ${!u.isVerified ? `
+                <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="toggleUserVerify('${u._id}', true)" title="تفعيل الحساب يدوياً (لم تصله رسالة SMS)" style="color:var(--gv-success);">
+                    <i class="fas fa-user-check"></i>
+                </button>` : `
+                <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="toggleUserVerify('${u._id}', false)" title="إلغاء التفعيل (سيُطلب OTP عند الدخول)" style="color:#b45309;">
+                    <i class="fas fa-user-lock"></i>
+                </button>`}
                 <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="editUser('${u._id}')" title="تعديل">
                     <i class="fas fa-pen"></i>
                 </button>
@@ -669,6 +691,28 @@ function renderUsers(users) {
             </td>
         </tr>
     `).join('');
+}
+
+// 📵 تفعيل/إلغاء تفعيل حساب يدوياً — لعملاء لم تصلهم رسالة OTP من مزود الـ SMS
+async function toggleUserVerify(userId, willVerify) {
+    const result = await Swal.fire({
+        title: willVerify ? 'تفعيل الحساب يدوياً؟' : 'إلغاء تفعيل الحساب؟',
+        text: willVerify
+            ? 'سيتمكن المستخدم من تسجيل الدخول مباشرة دون كود OTP. استخدمها عندما لا تصل رسالة SMS من المزود.'
+            : 'سيُطلب من المستخدم كود OTP عند محاولة الدخول القادمة.',
+        icon: 'question', showCancelButton: true,
+        confirmButtonText: willVerify ? 'نعم، فعّل الحساب' : 'نعم، ألغِ التفعيل',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: willVerify ? '#10b981' : '#b45309'
+    });
+    if (!result.isConfirmed) return;
+    try {
+        const res = await fetch(`${BASE}/api/admin/user/${userId}/verify`, { method: 'PUT', headers: headers() });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل تحديث التفعيل', 'error'); return; }
+        loadUsers();
+        showToast(d.message || 'تم تحديث التفعيل');
+    } catch(e) { console.error(e); Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); }
 }
 
 async function toggleUserStatus(userId) {

@@ -322,13 +322,18 @@
                             <option value="Khartoum">الخرطوم - أم درمان</option>
                             <option value="PortSudan">بورتسودان</option>
                         </select>
+                        <select id="userVerifyFilter" onchange="filterUsers()" style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;">
+                            <option value="all">الكل (التفعيل)</option>
+                            <option value="unverified">غير مفعلة (OTP)</option>
+                            <option value="verified">مفعلة</option>
+                        </select>
                         <input type="text" id="userSearch" placeholder="بحث بالاسم أو الهاتف..." oninput="filterUsers()"
                             style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;width:220px;">
                     </div>
                 </div>
                 <div class="gv-panel-body" style="overflow-x:auto;">
                     <table class="gv-table">
-                        <thead><tr><th>الاسم</th><th>الهاتف</th><th>الدور</th><th>الحالة</th><th></th></tr></thead>
+                        <thead><tr><th>الاسم</th><th>الهاتف</th><th>الدور</th><th>الحالة</th><th>التفعيل</th><th></th></tr></thead>
                         <tbody id="usersBody"></tbody>
                     </table>
                 </div>
@@ -410,7 +415,7 @@
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 <script src="vendor/chartjs/chart.umd.min.js"></script>
 <script src="js/admin-dashboard.js?v=20260619"></script>
-<script src="js/admin-panel.js?v=20260621b"></script>
+<script src="js/admin-panel.js?v=20260710"></script>
 <script src="js/admin-web-push.js"></script>
 <script type="module" src="js/app-core.js"></script>
 <script type="module" src="js/native-notifications.js"></script>
