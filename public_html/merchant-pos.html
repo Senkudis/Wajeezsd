@@ -392,7 +392,19 @@
             if (!res.ok) { Swal.fire('تنبيه', d.message || 'فشل تسجيل البيع', 'warning'); return; }
             bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
             cart = {};
-            Swal.fire({ icon: 'success', title: 'تم تسجيل البيع', text: `فاتورة بقيمة ${fmt(d.sale.totalAmount)} ج.س`, timer: 2000, showConfirmButton: false });
+            // عرض الإيصال مباشرة بعد البيع (طباعة/مشاركة للعميل)
+            if (d.sale && d.sale._id) {
+                _salesCache[d.sale._id] = d.sale;
+                Swal.fire({
+                    icon: 'success', title: 'تم تسجيل البيع',
+                    text: `فاتورة بقيمة ${fmt(d.sale.totalAmount)} ج.س`,
+                    showConfirmButton: true, confirmButtonText: '<i class="bi bi-receipt"></i> إيصال',
+                    showCancelButton: true, cancelButtonText: 'تم',
+                    confirmButtonColor: '#f59e0b', timer: 4000, timerProgressBar: true
+                }).then(r => { if (r.isConfirmed) shareReceipt(d.sale._id); });
+            } else {
+                Swal.fire({ icon: 'success', title: 'تم تسجيل البيع', timer: 1800, showConfirmButton: false });
+            }
             loadProducts(); loadTodayStats();
         } catch (e) {
             Swal.fire('خطأ', 'فشل الاتصال', 'error');
@@ -403,6 +415,8 @@
     }
 
     // ── سجل الفواتير ──
+    let _salesCache = {}; // id -> sale (لبناء الإيصال)
+
     async function showSalesLog(page = 1) {
         new bootstrap.Modal(document.getElementById('salesLogModal')).show();
         const el = document.getElementById('salesLogBody');
@@ -415,15 +429,19 @@
                 return;
             }
             const rows = d.sales.map(s => {
+                _salesCache[s._id] = s;
                 const when = new Date(s.createdAt).toLocaleString('ar-SD', { dateStyle: 'short', timeStyle: 'short' });
                 const itemsTxt = s.items.map(i => `${i.quantity}× ${i.name}`).join('، ');
                 return `
                 <div class="border rounded-3 p-2 mb-2 ${s.isVoided ? 'opacity-50' : ''}">
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="fw-bold" style="font-size:14px;">${fmt(s.totalAmount)} ج.س</span>
-                        ${s.isVoided
-                            ? '<span class="badge bg-danger" style="font-size:10px;">ملغاة</span>'
-                            : `<button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:11px;" onclick="voidSale('${s._id}')">إلغاء</button>`}
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:11px;" onclick="shareReceipt('${s._id}')" title="إيصال"><i class="bi bi-receipt"></i> إيصال</button>
+                            ${s.isVoided
+                                ? '<span class="badge bg-danger align-self-center" style="font-size:10px;">ملغاة</span>'
+                                : `<button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:11px;" onclick="voidSale('${s._id}')">إلغاء</button>`}
+                        </div>
                     </div>
                     <div class="text-muted" style="font-size:11px;">${itemsTxt}</div>
                     <div class="d-flex justify-content-between text-muted" style="font-size:10.5px;">
@@ -464,6 +482,105 @@
         } catch (e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
     }
 
+    // ── 🧾 الإيصالات ──
+    let shopName = 'متجري';
+    async function loadShopName() {
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/profile`, { headers: H });
+            const d = await res.json();
+            if (d.place && d.place.name) shopName = d.place.name;
+        } catch (e) {}
+    }
+
+    // بناء نص إيصال بسيط (للمشاركة عبر واتساب أو نسخه)
+    function receiptText(sale) {
+        const when = new Date(sale.createdAt).toLocaleString('ar-SD', { dateStyle: 'medium', timeStyle: 'short' });
+        const lines = [];
+        lines.push(`🧾 *${shopName}*`);
+        lines.push(`فاتورة نقطة بيع`);
+        lines.push(`${when}`);
+        lines.push('━━━━━━━━━━━━━━');
+        sale.items.forEach(i => {
+            lines.push(`${i.quantity}× ${i.name}  =  ${fmt(i.subtotal || (i.price * i.quantity))} ج.س`);
+        });
+        lines.push('━━━━━━━━━━━━━━');
+        if (sale.discount > 0) {
+            lines.push(`المجموع: ${fmt(sale.itemsTotal)} ج.س`);
+            lines.push(`الخصم: ${fmt(sale.discount)} ج.س`);
+        }
+        lines.push(`*الإجمالي: ${fmt(sale.totalAmount)} ج.س*`);
+        lines.push(`الدفع: ${sale.paymentMethod === 'bank' ? 'تحويل بنكي' : 'نقداً'}`);
+        lines.push('━━━━━━━━━━━━━━');
+        lines.push('شكراً لتعاملكم معنا 🌟');
+        lines.push('عبر تطبيق وجيز');
+        return lines.join('\n');
+    }
+
+    // بناء HTML إيصال للطباعة (عرض ضيق مناسب لطابعات الإيصالات)
+    function receiptHtml(sale) {
+        const when = new Date(sale.createdAt).toLocaleString('ar-SD', { dateStyle: 'medium', timeStyle: 'short' });
+        const itemRows = sale.items.map(i =>
+            `<tr><td>${i.quantity}× ${i.name}</td><td style="text-align:left;white-space:nowrap;">${fmt(i.subtotal || (i.price * i.quantity))}</td></tr>`
+        ).join('');
+        const discountRows = sale.discount > 0
+            ? `<tr><td>المجموع</td><td style="text-align:left;">${fmt(sale.itemsTotal)}</td></tr>
+               <tr><td>الخصم</td><td style="text-align:left;">- ${fmt(sale.discount)}</td></tr>` : '';
+        return `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">
+            <title>إيصال</title><style>
+            *{font-family:'Cairo',Arial,sans-serif;} body{width:260px;margin:0 auto;padding:12px;color:#000;}
+            h2{text-align:center;margin:0 0 2px;font-size:18px;} .sub{text-align:center;font-size:12px;color:#333;margin-bottom:8px;}
+            hr{border:none;border-top:1px dashed #000;margin:8px 0;}
+            table{width:100%;border-collapse:collapse;font-size:13px;} td{padding:3px 0;vertical-align:top;}
+            .total{font-size:16px;font-weight:800;} .foot{text-align:center;font-size:12px;margin-top:10px;}
+            </style></head><body onload="window.print()">
+            <h2>${shopName}</h2>
+            <div class="sub">فاتورة نقطة بيع<br>${when}</div>
+            <hr><table>${itemRows}</table><hr>
+            <table>${discountRows}
+              <tr class="total"><td>الإجمالي</td><td style="text-align:left;">${fmt(sale.totalAmount)} ج.س</td></tr>
+              <tr><td>الدفع</td><td style="text-align:left;">${sale.paymentMethod === 'bank' ? 'تحويل بنكي' : 'نقداً'}</td></tr>
+            </table><hr>
+            <div class="foot">شكراً لتعاملكم معنا 🌟<br>عبر تطبيق وجيز</div>
+            </body></html>`;
+    }
+
+    // إيصال: اختيار طباعة أو مشاركة
+    async function shareReceipt(id) {
+        const sale = _salesCache[id];
+        if (!sale) { Swal.fire('تنبيه', 'تعذّر العثور على الفاتورة', 'info'); return; }
+        const choice = await Swal.fire({
+            title: 'إيصال الفاتورة',
+            html: `<div style="text-align:right;font-size:13px;white-space:pre-line;background:#f8fafc;border-radius:10px;padding:12px;">${receiptText(sale).replace(/\*/g, '')}</div>`,
+            showCancelButton: true, showDenyButton: true,
+            confirmButtonText: '<i class="bi bi-whatsapp"></i> مشاركة',
+            denyButtonText: '<i class="bi bi-printer"></i> طباعة',
+            cancelButtonText: 'إغلاق',
+            confirmButtonColor: '#25D366', denyButtonColor: '#334155'
+        });
+        if (choice.isConfirmed) doShareReceipt(sale);
+        else if (choice.isDenied) doPrintReceipt(sale);
+    }
+
+    async function doShareReceipt(sale) {
+        const text = receiptText(sale);
+        // navigator.share يفتح ورقة المشاركة (واتساب/غيره) لاختيار العميل
+        if (navigator.share) {
+            try { await navigator.share({ text }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+        }
+        // احتياطي: واتساب بلا رقم (يفتح اختيار جهة الاتصال)
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function doPrintReceipt(sale) {
+        const w = window.open('', '_blank');
+        if (!w) { // منع النوافذ المنبثقة → احتياطي: مشاركة نصية
+            doShareReceipt(sale);
+            return;
+        }
+        w.document.write(receiptHtml(sale));
+        w.document.close();
+    }
+
     // 💡 شرح نقطة البيع — يظهر تلقائياً أول مرة فقط، ويبقى متاحاً من زر (؟)
     function showPosHelp() {
         document.getElementById('posExplainer').style.display = 'block';
@@ -478,6 +595,7 @@
 
     loadProducts();
     loadTodayStats();
+    loadShopName();
 </script>
     <script type="module" src="js/native-notifications.js?v=0a4fcfda"></script>
     <script src="js/theme-manager.js?v=01cb92bf"></script>
