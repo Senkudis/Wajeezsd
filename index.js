@@ -195,6 +195,8 @@ apiRoutes.use('/upload', require('./routes/upload'));
 apiRoutes.use('/places', require('./routes/places'));
 apiRoutes.use('/beacon', require('./routes/beacon'));
 apiRoutes.use('/merchant', require('./routes/merchant'));
+// 💼 ERP Mini للتاجر — تقارير، أرباح، مخزون متقدم، محاسبة، تسويات، نقطة بيع
+apiRoutes.use('/merchant-erp', require('./routes/merchant-erp'));
 const merchantRequestsRoutes = require('./routes/merchantRequests');
 apiRoutes.use('/merchant-requests', merchantRequestsRoutes);
 apiRoutes.use('/banners', require('./routes/banners'));
