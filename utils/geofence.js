@@ -67,4 +67,31 @@ function cityFromCoords(lat, lng) {
     return null;
 }
 
-module.exports = { isInsideSudan, validateOrderLocations, cityFromCoords, CITY_BOUNDS };
+/**
+ * 🧭 التحقق من مواقع محطات التوصيل متعدد النقاط.
+ * كل محطة يجب أن تحمل إحداثيات داخل السودان، وأن تضم القائمة استلاماً وتسليماً على الأقل.
+ * @param {Array<{type:string, lat:number, lng:number, address:string}>} stops
+ * @returns {{ valid: boolean, message?: string }}
+ */
+function validateStopsLocations(stops) {
+    if (!Array.isArray(stops) || stops.length < 2) {
+        return { valid: false, message: 'رحلة النقاط المتعددة تحتاج نقطتين على الأقل' };
+    }
+    const hasPickup = stops.some(s => s && s.type === 'pickup');
+    const hasDropoff = stops.some(s => s && s.type === 'dropoff');
+    if (!hasPickup || !hasDropoff) {
+        return { valid: false, message: 'يجب أن تحتوي الرحلة على نقطة استلام ونقطة تسليم على الأقل' };
+    }
+    for (let i = 0; i < stops.length; i++) {
+        const s = stops[i];
+        if (!s || !s.address) {
+            return { valid: false, message: `النقطة رقم ${i + 1} تحتاج عنواناً` };
+        }
+        if (!isInsideSudan(s.lat, s.lng)) {
+            return { valid: false, message: `موقع النقطة رقم ${i + 1} خارج نطاق الخدمة (السودان فقط)` };
+        }
+    }
+    return { valid: true };
+}
+
+module.exports = { isInsideSudan, validateOrderLocations, validateStopsLocations, cityFromCoords, CITY_BOUNDS };

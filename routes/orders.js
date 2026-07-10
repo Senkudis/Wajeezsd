@@ -89,21 +89,44 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             return res.status(400).json({ message: 'لقد أرسلت هذا الطلب مؤخراً، يرجى الانتظار قليلاً قبل المحاولة مجدداً.' });
         }
 
-        // 🇸🇩 Geofence: Validate locations are inside Sudan
+        // 🇸🇩 Geofence: Validate locations are inside Sudan (pickup/dropoff = mirror of first/last stop)
         const geoCheck = validateOrderLocations(pickup, dropoff);
         if (!geoCheck.valid) {
             return res.status(400).json({ message: geoCheck.message });
         }
+
+        // 🧭 توصيل متعدد النقاط — تحقق من كل المحطات وجهّز نسخة معقّمة (done دائماً false عند الإنشاء)
+        let sanitizedStops = null;
+        const rawStops = Array.isArray(req.body.stops) ? req.body.stops : null;
+        if (rawStops && rawStops.length >= 2) {
+            const { validateStopsLocations } = require('../utils/geofence');
+            const stopsCheck = validateStopsLocations(rawStops);
+            if (!stopsCheck.valid) {
+                return res.status(400).json({ message: stopsCheck.message });
+            }
+            sanitizedStops = rawStops.map(s => ({
+                type: s.type === 'pickup' ? 'pickup' : 'dropoff',
+                address: String(s.address || '').slice(0, 300),
+                contactName: String(s.contactName || '').slice(0, 100),
+                contactPhone: String(s.contactPhone || '').slice(0, 20),
+                lat: Number(s.lat), lng: Number(s.lng),
+                note: String(s.note || '').slice(0, 200),
+                done: false, doneAt: null
+            }));
+        }
+        const isMultiStop = !!sanitizedStops;
 
         // ✅ Get commission rate from the user's CITY Settings (fully isolated per city)
         const settings = await getCachedSettings(req.userCity);
         const commissionRate = settings.commissionRate ?? 0.15; // null-safe fallback only
 
         // ✅ Server-Side Security: Prevent clients from sending an abnormally low price
-        // Uses THIS city's baseFare, not a global one.
+        // Uses THIS city's baseFare, plus the per-extra-stop fee for multi-stop trips.
         const base = settings.baseFare || 1000;
-        if (price < base) {
-            return res.status(400).json({ message: `عذراً، السعر المطلوب (${price}) أقل من الحد الأدنى لتسعيرة مدينة ${req.userCity} (${base})` });
+        const extraStopFee = settings.extraStopFee || 0;
+        const minPrice = base + (isMultiStop ? extraStopFee * Math.max(0, sanitizedStops.length - 2) : 0);
+        if (price < minPrice) {
+            return res.status(400).json({ message: `عذراً، السعر المطلوب (${price}) أقل من الحد الأدنى لتسعيرة مدينة ${req.userCity} (${minPrice})` });
         }
 
         const appFee = price * commissionRate;
@@ -124,6 +147,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             client: req.user.id,
             city: req.userCity,   // 🌍 CRITICAL: stamp city from the authenticated user
             pickup, dropoff, details, distanceType, price,
+            ...(isMultiStop ? { isMultiStop: true, stops: sanitizedStops } : {}),
             appFee, netRevenue,
             parcelImage: parcelImageUrl,
             receiptImage: receiptImageUrl,
@@ -1187,8 +1211,18 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
         if (!updatedOrder) {
             return res.status(400).json({ message: 'الطلب غير متاح أو تم تحديث حالته مسبقاً' });
         }
-        
+
         const order = updatedOrder; // for subsequent logic
+
+        // 🧭 توصيل متعدد النقاط: علّم أول نقطة استلام كمُنجَزة
+        if (order.isMultiStop && Array.isArray(order.stops)) {
+            const firstPickup = order.stops.find(s => s.type === 'pickup' && !s.done);
+            if (firstPickup) {
+                firstPickup.done = true;
+                firstPickup.doneAt = new Date();
+                await order.save();
+            }
+        }
 
         // Sync ShopOrder manually since findOneAndUpdate bypasses post('save')
         if (order.shopOrderId) {
@@ -1228,9 +1262,73 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
 });
 
 
+// @route   PUT /api/orders/:id/stops/:index/done
+// @desc    🧭 توصيل متعدد النقاط: تأكيد إكمال نقطة وسطية (ليست أول استلام ولا آخر نقطة).
+//          أول استلام يمرّ عبر /pickup (بالإثبات)، والنقطة الأخيرة عبر /deliver (بالعمولة).
+router.put('/:id/stops/:index/done', protect, captainOnly, async (req, res) => {
+    try {
+        const idx = parseInt(req.params.index, 10);
+        const order = await Order.findOne({ _id: req.params.id, captain: req.user.id });
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (!order.isMultiStop || !Array.isArray(order.stops)) {
+            return res.status(400).json({ message: 'هذا الطلب ليس متعدد النقاط' });
+        }
+        if (order.status !== 'picked_up') {
+            return res.status(400).json({ message: 'أكّد استلام أول نقطة أولاً' });
+        }
+        if (isNaN(idx) || idx < 0 || idx >= order.stops.length) {
+            return res.status(400).json({ message: 'رقم النقطة غير صالح' });
+        }
+        const stop = order.stops[idx];
+        if (stop.done) return res.status(400).json({ message: 'هذه النقطة مؤكّدة مسبقاً' });
+
+        // النقطة الأخيرة المتبقية تُؤكَّد عبر /deliver (لإتمام التوصيل واحتساب العمولة)
+        const remaining = order.stops.filter(s => !s.done).length;
+        if (remaining <= 1) {
+            return res.status(400).json({ message: 'هذه آخر نقطة — استخدم «تأكيد التسليم»' });
+        }
+
+        stop.done = true;
+        stop.doneAt = new Date();
+        await order.save();
+
+        // إشعار العميل بتقدّم الرحلة (خفيف)
+        const label = stop.type === 'pickup' ? 'استلم من نقطة' : 'سلّم في نقطة';
+        await sendNotification(req.app, {
+            userId: order.client,
+            title: '🧭 تقدّم في التوصيل',
+            message: `الكابتن ${req.user.name} ${label}: ${stop.address}`,
+            type: 'order_update',
+            relatedId: order._id
+        });
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'picked_up' });
+        }
+
+        res.json({ message: 'تم تأكيد النقطة', order });
+    } catch (error) {
+        logger.error({ err: error.message }, 'stop done error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
 // @route   PUT /api/orders/:id/deliver
 router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
     try {
+        // 🧭 توصيل متعدد النقاط: لا يُسمح بالتسليم النهائي إلا بعد إكمال كل النقاط الأخرى.
+        // (النقطة الأخيرة المتبقية هي التي يؤكّدها هذا الـ endpoint.)
+        const multiCheck = await Order.findOne({ _id: req.params.id, captain: req.user.id })
+            .select('isMultiStop stops status');
+        if (multiCheck && multiCheck.isMultiStop && Array.isArray(multiCheck.stops)) {
+            const undone = multiCheck.stops.filter(s => !s.done).length;
+            if (undone > 1) {
+                return res.status(400).json({ message: `أكمل باقي النقاط أولاً — تبقّى ${undone} نقطة قبل التسليم النهائي` });
+            }
+        }
+
         // 🛡️ CRITICAL FIX: Atomic update for delivery state to prevent Double Commission
         const updatedOrder = await Order.findOneAndUpdate(
             { _id: req.params.id, captain: req.user.id, status: 'picked_up' },
@@ -1241,8 +1339,15 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
         if (!updatedOrder) {
             return res.status(400).json({ message: 'الطلب غير متاح للتوصيل أو تم توصيله مسبقاً.' });
         }
-        
+
         const order = updatedOrder; // for subsequent logic
+
+        // 🧭 علّم كل النقاط المتبقية كمُنجَزة عند التسليم النهائي
+        if (order.isMultiStop && Array.isArray(order.stops)) {
+            let changed = false;
+            order.stops.forEach(s => { if (!s.done) { s.done = true; s.doneAt = new Date(); changed = true; } });
+            if (changed) await order.save();
+        }
 
         // Sync ShopOrder manually since findOneAndUpdate bypasses post('save')
         if (order.shopOrderId) {
@@ -1539,7 +1644,8 @@ router.get('/price-config', protect, requireCity, async (req, res) => {
             city: req.userCity,
             baseFare: settings.baseFare ?? 1000,
             costPerKm: settings.costPerKm ?? 200,
-            costPerMinute: settings.costPerMinute ?? 25
+            costPerMinute: settings.costPerMinute ?? 25,
+            extraStopFee: settings.extraStopFee ?? 0   // 🧭 رسم النقطة الإضافية للتوصيل متعدد النقاط
         });
     } catch (error) {
         logger.error({ err: error }, 'Price Config Error');
