@@ -12,6 +12,24 @@ if (!token || !userObj || userObj.role !== 'admin') {
 
 const MAP_API = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
 
+// 🍞 توست احتياطي — الصفحة لا تحمّل notification-toast.js، والنداء بدونه
+// يرمي ReferenceError (نفس إصلاح admin-panel.js)
+if (typeof window.showToast !== 'function') {
+    window.showToast = function (msg, type = 'success') {
+        try {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true, position: 'top-end',
+                    icon: type === 'error' ? 'error' : (type === 'info' ? 'info' : 'success'),
+                    title: msg, timer: 2200, showConfirmButton: false
+                });
+            } else {
+                console.log('[toast]', msg);
+            }
+        } catch (e) { console.log('[toast]', msg); }
+    };
+}
+
 // ── Custom motorcycle SVG icon (inline, no external dependency) ──────────
 function makeCaptainIcon(status, isHighlighted = false) {
     const colors = {

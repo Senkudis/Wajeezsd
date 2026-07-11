@@ -11,6 +11,28 @@ const headers = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'ap
 //  Format numbers in English (not Arabic ٠١٢٣)
 function fmtNum(n) { return Number(n || 0).toLocaleString('en'); }
 
+// 🍞 توست موحّد للوحة الأدمن.
+// 🐛 إصلاح "فشل الاتصال" الوهمي: admin.html لا يحمّل notification-toast.js
+// (المصدر الوحيد لـ showToast)، فكانت النداءات بعد نجاح الحفظ ترمي ReferenceError
+// داخل الـ try — فيُعرض "فشل الاتصال" رغم نجاح التحديث فعلياً.
+if (typeof window.showToast !== 'function') {
+    window.showToast = function (msg, type = 'success') {
+        try {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true, position: 'top-end',
+                    icon: type === 'error' ? 'error' : (type === 'info' ? 'info' : 'success'),
+                    title: msg, timer: 2200, showConfirmButton: false
+                });
+            } else if (typeof window.showSleekToast === 'function') {
+                window.showSleekToast(msg, type);
+            } else {
+                console.log('[toast]', msg);
+            }
+        } catch (e) { console.log('[toast]', msg); }
+    };
+}
+
 // ── State ──
 let allOrders = [];
 let allUsers = [];
