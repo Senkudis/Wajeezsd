@@ -315,7 +315,7 @@
             </div>
 
             <!-- Route Summary — vertical with connector -->
-            <div class="route-row">
+            <div class="route-row" id="routeRow">
                 <div class="route-point-row">
                     <div class="route-icon pickup"><i class="bi bi-geo-alt-fill"></i></div>
                     <div class="route-addr" id="pickup-txt">...</div>
@@ -326,6 +326,9 @@
                     <div class="route-addr" id="dropoff-txt">...</div>
                 </div>
             </div>
+
+            <!-- 🧭 Multi-stop progress list (replaces routeRow when order.isMultiStop) -->
+            <div id="stopsProgress" style="display:none;"></div>
 
             <!-- ETA Bar -->
             <div class="eta-bar" id="eta-container" style="display:none;">
@@ -441,15 +444,24 @@
         };
 
         // Draw real street route between pickup and dropoff (called once after order loads)
-        function drawRouteOnStreets(pickup, dropoff) {
+        // 🧭 waypoints: نقاط وسطية اختيارية للتوصيل متعدد النقاط
+        function drawRouteOnStreets(pickup, dropoff, waypoints) {
             if (!directionsService || !directionsRenderer) return;
             if (!pickup?.lat || !dropoff?.lat) return;
 
-            directionsService.route({
+            const req = {
                 origin: { lat: pickup.lat, lng: pickup.lng },
                 destination: { lat: dropoff.lat, lng: dropoff.lng },
                 travelMode: google.maps.TravelMode.DRIVING
-            }, (result, status) => {
+            };
+            if (Array.isArray(waypoints) && waypoints.length) {
+                req.waypoints = waypoints
+                    .filter(p => p && p.lat && p.lng)
+                    .map(p => ({ location: { lat: p.lat, lng: p.lng }, stopover: true }));
+                req.optimizeWaypoints = false;
+            }
+
+            directionsService.route(req, (result, status) => {
                 if (status === google.maps.DirectionsStatus.OK) {
                     directionsRenderer.setDirections(result);
                     console.log('✅ Real street route drawn on tracking map');
@@ -541,6 +553,46 @@
             }
         }
 
+        // 🧭 قائمة تقدّم المحطات (توصيل متعدد النقاط) — يرى العميل أي نقطة اكتملت لحظياً
+        function renderStopsProgress(order) {
+            const box = document.getElementById('stopsProgress');
+            const routeRow = document.getElementById('routeRow');
+            if (!box) return;
+            const isMulti = order.isMultiStop && Array.isArray(order.stops) && order.stops.length >= 2;
+            if (!isMulti) { box.style.display = 'none'; if (routeRow) routeRow.style.display = ''; return; }
+
+            if (routeRow) routeRow.style.display = 'none';
+            box.style.display = 'block';
+
+            const doneCount = order.stops.filter(s => s.done).length;
+            const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            box.innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <span style="font-weight:800;font-size:13px;color:#334155;">
+                        <i class="bi bi-signpost-split-fill" style="color:#0ea5e9;"></i> رحلة متعددة النقاط
+                    </span>
+                    <span style="font-size:11.5px;font-weight:800;color:#0ea5e9;background:#e0f2fe;border-radius:99px;padding:3px 10px;">
+                        ${doneCount} / ${order.stops.length} اكتملت
+                    </span>
+                </div>
+                ${order.stops.map((s, i) => {
+                    const isP = s.type === 'pickup';
+                    return `
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;${i < order.stops.length - 1 ? 'border-bottom:1px dashed #e2e8f0;' : ''}${s.done ? 'opacity:0.65;' : ''}">
+                        <div class="route-icon ${isP ? 'pickup' : 'dropoff'}" style="width:30px;height:30px;font-size:0.85rem;flex-shrink:0;">
+                            ${s.done ? '<i class="bi bi-check-lg"></i>' : `<i class="bi ${isP ? 'bi-geo-alt-fill' : 'bi-flag-fill'}"></i>`}
+                        </div>
+                        <div style="min-width:0;flex:1;">
+                            <div style="font-size:11px;color:#94a3b8;font-weight:700;">${isP ? 'استلام' : 'تسليم'} ${i + 1}${s.contactName ? ' — ' + esc(s.contactName) : ''}</div>
+                            <div style="font-size:13px;font-weight:700;color:#1e293b;${s.done ? 'text-decoration:line-through;' : ''}">${esc(s.address)}</div>
+                        </div>
+                        ${s.done
+                            ? '<span style="font-size:10.5px;font-weight:800;color:#16a34a;background:#dcfce7;border-radius:99px;padding:2px 9px;align-self:center;">تمت</span>'
+                            : '<span style="font-size:10.5px;font-weight:800;color:#b45309;background:#fef3c7;border-radius:99px;padding:2px 9px;align-self:center;">قادمة</span>'}
+                    </div>`;
+                }).join('')}`;
+        }
+
         function updateUI(order) {
             // Update status steps
             updateStatusSteps(order.status);
@@ -550,6 +602,9 @@
 
             document.getElementById('pickup-txt').textContent = order.pickup?.address || '—';
             document.getElementById('dropoff-txt').textContent = order.dropoff?.address || '—';
+
+            // 🧭 توصيل متعدد النقاط: اعرض قائمة المحطات بتقدّمها بدل ملخص النقطتين
+            renderStopsProgress(order);
 
             const bounds = new google.maps.LatLngBounds();
 
@@ -575,8 +630,12 @@
             }
 
             // Draw real street route between pickup → dropoff
+            // 🧭 عند تعدّد النقاط: المسار الكامل بكل المحطات الوسطية
             if (order.pickup?.lat && order.dropoff?.lat) {
-                drawRouteOnStreets(order.pickup, order.dropoff);
+                const midStops = (order.isMultiStop && Array.isArray(order.stops) && order.stops.length > 2)
+                    ? order.stops.slice(1, -1)
+                    : null;
+                drawRouteOnStreets(order.pickup, order.dropoff, midStops);
             }
 
             // Captain info

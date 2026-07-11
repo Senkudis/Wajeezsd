@@ -647,6 +647,19 @@
                                 <span class="o-id">#${order._id.slice(-6)}</span>
                             </div>
                             <div class="o-body">
+                                ${(order.isMultiStop && Array.isArray(order.stops) && order.stops.length >= 2) ? `
+                                <div class="o-route">
+                                    <div style="margin-bottom:6px;">
+                                        <span style="font-size:11px;font-weight:800;color:#0ea5e9;background:#e0f2fe;border-radius:99px;padding:3px 10px;">
+                                            <i class="bi bi-signpost-split-fill"></i> رحلة متعددة النقاط — ${order.stops.filter(s=>s.done).length}/${order.stops.length} اكتملت
+                                        </span>
+                                    </div>
+                                    ${order.stops.map((s, i) => `
+                                    <div class="o-route-row" style="${s.done ? 'opacity:0.6;' : ''}">
+                                        <i class="bi ${s.done ? 'bi-check-circle-fill' : (s.type === 'pickup' ? 'bi-geo-alt-fill' : 'bi-flag-fill')} ${s.type === 'pickup' ? 'o-ic-from' : 'o-ic-to'}"></i>
+                                        <span class="o-route-txt"><span class="o-route-lbl">${s.type === 'pickup' ? 'استلام' : 'تسليم'} ${i + 1}</span>${escapeHtml(s.address || '')}</span>
+                                    </div>${i < order.stops.length - 1 ? '<div class="o-route-connector"></div>' : ''}`).join('')}
+                                </div>` : `
                                 <div class="o-route">
                                     <div class="o-route-row">
                                         <i class="bi bi-geo-alt-fill o-ic-from"></i>
@@ -657,7 +670,7 @@
                                         <i class="bi bi-flag-fill o-ic-to"></i>
                                         <span class="o-route-txt"><span class="o-route-lbl">إلى</span>${escapeHtml(order.dropoff?.address || 'غير محدد')}</span>
                                     </div>
-                                </div>
+                                </div>`}
 
                                 ${order.details ? `
                                 <div class="o-detail"><span class="o-detail-lbl">التفاصيل:</span> ${escapeHtml(order.details)}</div>` : ''}
