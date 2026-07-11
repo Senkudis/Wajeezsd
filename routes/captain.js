@@ -158,11 +158,24 @@ router.get('/:id/location', protect, async (req, res) => {
         // Allow admin unrestricted access
         if (req.user.role !== 'admin') {
             // Otherwise, ensure the requester has an active order with this captain
-            const activeOrder = await Order.findOne({
+            let activeOrder = await Order.findOne({
                 client: req.user._id,
                 captain: req.params.id,
                 status: { $in: ['accepted', 'picked_up'] }
             }).select('_id').lean();
+
+            // 🏪 التاجر: يتتبع الكابتن الذي يوصّل طلباً نشطاً من متجره
+            if (!activeOrder && req.user.role === 'merchant') {
+                const Place = require('../models/Place');
+                const myPlace = await Place.findOne({ ownerId: req.user._id }).select('_id').lean();
+                if (myPlace) {
+                    activeOrder = await Order.findOne({
+                        shopId: myPlace._id,
+                        captain: req.params.id,
+                        status: { $in: ['accepted', 'picked_up'] }
+                    }).select('_id').lean();
+                }
+            }
 
             if (!activeOrder) {
                 return res.status(403).json({ message: 'غير مصرح — ليس لديك طلب نشط مع هذا الكابتن' });

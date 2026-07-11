@@ -254,6 +254,22 @@ const chatRooms = {};
 
 // ⚡ Location throttle: max 1 update per 3 seconds per captain
 const locationThrottle = {};
+
+// 🏪 كاش صاحب المتجر (shopId → ownerId) — لبثّ موقع الكابتن للتاجر دون استعلام لكل نبضة.
+// TTL بسيط 10 دقائق (ملكية المتجر شبه ثابتة).
+const shopOwnerCache = {};
+async function getShopOwnerId(shopId) {
+    const key = shopId.toString();
+    const hit = shopOwnerCache[key];
+    if (hit && hit.expires > Date.now()) return hit.ownerId;
+    try {
+        const Place = require('./models/Place');
+        const place = await Place.findById(shopId).select('ownerId').lean();
+        const ownerId = place && place.ownerId ? place.ownerId.toString() : null;
+        shopOwnerCache[key] = { ownerId, expires: Date.now() + 10 * 60 * 1000 };
+        return ownerId;
+    } catch (e) { return null; }
+}
 // تنظيف دوري: المداخل كانت تبقى للأبد لكل كابتن أرسل موقعاً — نمو ذاكرة بلا حد
 setInterval(() => {
     const cutoff = Date.now() - 10 * 60 * 1000;
@@ -580,12 +596,17 @@ io.on('connection', (socket) => {
                 if (order && order.client) {
                     io.to(order.client.toString()).emit('captain_location_updated', { orderId, lat, lng });
                 }
+                // 🏪 طلبات المتاجر: بثّ الموقع لصاحب المتجر أيضاً ليتابع التوصيل
+                if (order && order.shopId) {
+                    const ownerId = await getShopOwnerId(order.shopId);
+                    if (ownerId) io.to(ownerId).emit('captain_location_updated', { orderId, lat, lng });
+                }
             } else {
                 // Auto-find: captain didn't send orderId, look up their active orders
                 const activeOrders = await Order.find({
                     captain: userId,
                     status: { $in: ['accepted', 'picked_up'] }
-                }).select('_id client');
+                }).select('_id client shopId');
 
                 for (const order of activeOrders) {
                     if (order.client) {
@@ -593,6 +614,11 @@ io.on('connection', (socket) => {
                             orderId: order._id,
                             lat, lng
                         });
+                    }
+                    // 🏪 بثّ لصاحب المتجر لطلبات المتاجر
+                    if (order.shopId) {
+                        const ownerId = await getShopOwnerId(order.shopId);
+                        if (ownerId) io.to(ownerId).emit('captain_location_updated', { orderId: order._id, lat, lng });
                     }
                 }
             }

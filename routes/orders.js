@@ -1687,7 +1687,16 @@ router.get('/:id', protect, async (req, res) => {
             !req.user.is_blocked  // ✅ FIX: منع الكابتن المحجوب
         );
 
-        if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain) {
+        // 🏪 تاجر المتجر صاحب الطلب يمكنه تتبع توصيل طلبات متجره
+        let isShopOwner = false;
+        if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain &&
+            req.user.role === 'merchant' && order.shopId) {
+            const Place = require('../models/Place');
+            const place = await Place.findById(order.shopId).select('ownerId').lean();
+            isShopOwner = !!(place && place.ownerId && String(place.ownerId) === userId);
+        }
+
+        if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain && !isShopOwner) {
             return res.status(403).json({ message: 'غير مصرح' });
         }
 

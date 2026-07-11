@@ -249,8 +249,8 @@
 
 <body class="bg-light">
 
-    <!-- Back Button -->
-    <a href="client-my-orders.html" class="back-btn">
+    <!-- Back Button (role-aware: التاجر يعود لطلبات متجره) -->
+    <a href="client-my-orders.html" class="back-btn" id="backBtn">
         <i class="bi bi-arrow-right"></i>
     </a>
 
@@ -364,7 +364,14 @@
         const token = localStorage.getItem('token') || localStorage.getItem('clientToken');
         const userId = localStorage.getItem('userId');
 
-        if (!token || !orderId) window.location.href = 'client-my-orders.html';
+        // 🏪 الصفحة تخدم العميل والتاجر — التاجر يعود لطلبات متجره
+        let _userRole = '';
+        try { _userRole = (JSON.parse(localStorage.getItem('user') || '{}').role || ''); } catch (e) {}
+        const homePage = _userRole === 'merchant' ? 'merchant-orders.html' : 'client-my-orders.html';
+        const backBtnEl = document.getElementById('backBtn');
+        if (backBtnEl) backBtnEl.href = homePage;
+
+        if (!token || !orderId) window.location.href = homePage;
 
         let map;
         let captainMarker = null;
@@ -540,7 +547,7 @@
             try {
                 const res = await fetchWithRetry(`${API_URL}/api/orders/${orderId}`, { headers: window.Auth.getAuthHeader() });
                 if (!res.ok) {
-                    Swal.fire('خطأ', 'الطلب غير موجود أو لا يمكن الوصول إليه', 'error').then(() => window.location.href = 'client-my-orders.html');
+                    Swal.fire('خطأ', 'الطلب غير موجود أو لا يمكن الوصول إليه', 'error').then(() => window.location.href = homePage);
                     return;
                 }
                 const order = await res.json();

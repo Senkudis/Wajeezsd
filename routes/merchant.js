@@ -307,6 +307,35 @@ router.get('/orders', protect, merchantOnly, async (req, res) => {
     }
 });
 
+// GET /api/merchant/orders/:id/delivery-order — 🧭 معرّف طلب التوصيل المرتبط بطلب المتجر
+// يستخدمه زر "تتبع الكابتن" في لوحة التاجر لفتح صفحة التتبع (tracking.html?orderId=...)
+router.get('/orders/:id/delivery-order', protect, merchantOnly, async (req, res) => {
+    try {
+        const place = await Place.findOne({ ownerId: req.user._id });
+        if (!place) return res.status(404).json({ message: 'لا يوجد متجر مرتبط بحسابك' });
+
+        // تأكد أن طلب المتجر يخص متجر هذا التاجر
+        const shopOrder = await ShopOrder.findOne({ _id: req.params.id, place: place._id }).select('_id');
+        if (!shopOrder) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        const Order = require('../models/Order');
+        const deliveryOrder = await Order.findOne({ shopOrderId: shopOrder._id })
+            .select('_id status captain').lean();
+        if (!deliveryOrder) {
+            return res.status(404).json({ message: 'لم يُنشأ طلب توصيل لهذا الطلب بعد' });
+        }
+
+        res.json({
+            orderId: deliveryOrder._id,
+            status: deliveryOrder.status,
+            hasCaptain: !!deliveryOrder.captain
+        });
+    } catch (err) {
+        logger.error({ err: err.message }, 'delivery-order lookup error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // PUT /api/merchant/orders/:id/accept — merchant accepts & starts preparing
 router.put('/orders/:id/accept', protect, merchantOnly, async (req, res) => {
     try {

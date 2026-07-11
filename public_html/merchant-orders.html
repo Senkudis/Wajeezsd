@@ -480,6 +480,9 @@
                 ${capPhone ? `<a href="tel:${capPhone}" class="d-block mt-1" style="font-size:12px;color:#047857;">
                     <i class="bi bi-telephone-fill"></i> ${capPhone}</a>` : ''}
             </div>
+            <button class="btn-primary-step btn-green" style="margin-top:8px;" onclick="trackCaptain('${id}', this)">
+                <i class="bi bi-geo-alt-fill"></i> تتبع الكابتن على الخريطة
+            </button>
             <div class="next-action" style="padding-top:0;">${secondary}</div>`;
         }
 
@@ -624,6 +627,24 @@
         if (!btn) return;
         btn.disabled = true;
         btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${txt}`;
+    }
+
+    // 🧭 تتبع الكابتن على الخريطة — يحوّل طلب المتجر لمعرّف طلب التوصيل ويفتح صفحة التتبع
+    async function trackCaptain(shopOrderId, btn) {
+        const og = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> جاري الفتح...'; }
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders/${shopOrderId}/delivery-order`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) { Swal.fire('تنبيه', d.message || 'تعذر فتح التتبع', 'info'); return; }
+            window.location.href = `tracking.html?orderId=${d.orderId}`;
+        } catch (e) {
+            Swal.fire('خطأ', 'فشل الاتصال', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = og; }
+        }
     }
 
     async function acceptOrder(id, btn) {
