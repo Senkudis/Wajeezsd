@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, adminOnly } = require('../middleware/authMiddleware');
+const logger = require('../utils/logger');
 
 // @route   GET /api/notifications
 // @desc    جلب جميع إشعارات المستخدم الحالي
@@ -25,51 +26,75 @@ router.get('/', protect, async (req, res) => {
             totalNotifications: total
         });
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({ message: 'Server error fetching notifications' });
     }
 });
 
-// @route   POST /api/notifications
-// @desc    إنشاء إشعار جديد وإرساله فوراً (للتجربة أو من الأدمن)
-router.post('/', protect, async (req, res) => {
+// @route   GET /api/notifications/unread-count
+// @desc    جلب عدد الإشعارات غير المقروءة
+router.get('/unread-count', protect, async (req, res) => {
     try {
-        const { userId, title, body, type } = req.body;
+        const count = await Notification.countDocuments({ user: req.user.id, isRead: false });
+        res.json({ unreadCount: count });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Server error fetching unread count' });
+    }
+});
+
+// @route   POST /api/notifications
+// @desc    إنشاء إشعار جديد وإرساله فوراً (للأدمن فقط)
+router.post('/', protect, adminOnly, async (req, res) => {
+    try {
+        const { userId, title, message, type } = req.body;
 
         // 1. حفظ الإشعار في قاعدة البيانات
         const notification = await Notification.create({
             user: userId, // الشخص اللي حيوصله الإشعار
             title: title,
-            body: body,
+            message: message, // ✅ FIX: was 'body' — model field is 'message'
             type: type || 'system', // نوع الإشعار (نظام، طلب، شات...)
             isRead: false
         });
 
         // 2. إرسال الإشعار فوراً عبر Socket.io
-        // بنجيب الـ io اللي عرفناه في index.js
         const io = req.app.get('io');
-
-        // نرسل الإشعار لغرفة المستخدم (باستخدام الـ ID حقه)
         if (io) {
             io.to(userId).emit('new_notification', notification);
-            console.log(`🔔 Notification sent to user ${userId}`);
+            logger.info(`🔔 Notification sent to user ${userId}`);
         }
 
         res.status(201).json(notification);
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({ message: 'Server error creating notification' });
     }
 });
 
+// @route   PUT /api/notifications/mark-all-read
+// @desc    تعليم جميع إشعارات المستخدم كمقروءة دفعةً واحدة
+// ⚠️ يجب أن يكون قبل /:id/read وإلا Express يعتبر 'mark-all-read' كـ id
+router.put('/mark-all-read', protect, async (req, res) => {
+    try {
+        await Notification.updateMany(
+            { user: req.user.id, isRead: false },
+            { $set: { isRead: true } }
+        );
+        res.json({ message: 'تم تحديد جميع الإشعارات كمقروءة', success: true });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   PUT /api/notifications/:id/read
-// @desc    تعليم الإشعار كمقروء
+// @desc    تعليم إشعار واحد كمقروء
 router.put('/:id/read', protect, async (req, res) => {
     try {
         const notification = await Notification.findById(req.params.id);
         if (!notification) return res.status(404).json({ message: 'Not found' });
 
-        // التأكد من أن المستخدم هو صاحب الإشعار
         if (notification.user.toString() !== req.user.id) {
             return res.status(403).json({ message: 'Not authorized' });
         }
@@ -78,7 +103,7 @@ router.put('/:id/read', protect, async (req, res) => {
         await notification.save();
         res.json(notification);
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });

@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const { getVerificationEmailTemplate } = require("./emailTemplate");
+const logger = require('./logger');
 
 /**
  * إرسال بريد إلكتروني باستخدام SMTP مع إعدادات Secure SSL/TLS
@@ -27,17 +28,17 @@ const sendEmail = async (email, subject, content, isVerification = false) => {
         }
 
         const info = await transporter.sendMail({
-            from: `"${process.env.EMAIL_FROM_NAME || 'تطبيق وصل-لي'}" <${process.env.EMAIL_USER}>`,
+            from: `"${process.env.EMAIL_FROM_NAME || 'تطبيق وجيز'}" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: subject,
             html: htmlContent, 
             text: content.toString().replace(/<[^>]*>?/gm, '') 
         });
 
-        console.log("✅ Email sent successfully. Message ID:", info.messageId);
+        logger.info({ messageId: info.messageId }, 'Email sent successfully');
         return info;
     } catch (error) {
-        console.error("❌ Email failed:", error.message);
+        logger.error({ err: error }, 'Email send failed');
         return null;
     }
 };

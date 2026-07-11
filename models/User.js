@@ -1,25 +1,27 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { VEHICLE_VALUES } = require('../utils/vehicleTypes');
 
 const UserSchema = new mongoose.Schema(
     {
         name: { type: String, required: true },
         phone: { type: String, required: true, unique: true },
-        email: { type: String, required: true, unique: true },
+        email: { type: String, unique: true, sparse: true },
         password: { type: String, required: true },
         resetCode: { type: String },
+        resetCodeExpires: { type: Date },
 
         // ✅ حافظنا على الأدوار القديمة
         role: {
             type: String,
-            enum: ['customer', 'client', 'captain', 'admin'],
+            enum: ['customer', 'client', 'captain', 'admin', 'merchant'],
             default: 'client'
         },
 
         // ✅ حافظنا على نوع المركبة للكابتن
         vehicleType: {
             type: String,
-            enum: ['bicycle', 'electric', 'motorcycle']
+            enum: VEHICLE_VALUES   // المصدر المركزي: utils/vehicleTypes.js
         },
         currentLocation: {
             lat: { type: Number },
@@ -27,7 +29,25 @@ const UserSchema = new mongoose.Schema(
             updatedAt: { type: Date }
         },
 
-        isActive: { type: Boolean, default: true },
+        isActive: { type: Boolean, default: true }, // ← Admin-controlled: false = account suspended
+
+        // ← Captain-controlled: whether they are available to receive orders (does NOT affect login)
+        isAvailableForWork: { type: Boolean, default: false },
+
+        // ✅ FIX #17: Captains default to 'pending' (require admin approval); others default to 'approved'
+        approvalStatus: {
+            type: String,
+            enum: ['pending', 'approved', 'rejected'],
+            default: function () {
+                return (this.role === 'captain' || this.role === 'merchant') ? 'pending' : 'approved';
+            }
+        },
+        documents: {
+            driverLicense: { type: String },  // URL الرخصة
+            profilePhoto: { type: String },   // صورة شخصية
+            vehiclePhoto: { type: String }    // صورة المركبة
+        },
+        rejectionReason: { type: String },
 
         // 👇 الإضافات الجديدة للتفعيل والأمان 👇
         isVerified: { type: Boolean, default: false },
@@ -43,19 +63,89 @@ const UserSchema = new mongoose.Schema(
         ratingCount: { type: Number, default: 0 },
         averageRating: { type: Number, default: 5.0 }, // Default starts high or neutral
 
-        // 💰 Earnings
+        // 💰 Earnings (Legacy — positive accumulation)
         wallet: { type: Number, default: 0 },
 
+        // 💳 Negative Wallet & Credit Limit System
+        // wallet_balance: صافي رصيد المحفظة (يبدأ من 0 وينخفض مع كل طلب نقدي)
+        // credit_limit: الحد الأقصى للمديونية المسموحة (سالب)
+        // is_blocked: هل الكابتن محجوب بسبب تجاوز الحد الائتماني
+        wallet_balance: { type: Number, default: 0 },
+        credit_limit: { type: Number, default: -5000 },
+        is_blocked: { type: Boolean, default: false },
+
         // 🔔 FCM for Native Notifications
-        fcmToken: { type: String }
+        fcmToken: { type: String },
+
+        // 📒 دفتر العناوين — عناوين محفوظة للعميل (المنزل، العمل، ...)
+        savedAddresses: [{
+            label:        { type: String, default: 'عنوان' },   // اسم مختصر: المنزل / العمل
+            address:      { type: String, required: true },
+            lat:          { type: Number },
+            lng:          { type: Number },
+            contactName:  { type: String, default: '' },
+            contactPhone: { type: String, default: '' },
+            createdAt:    { type: Date, default: Date.now }
+        }],
+
+        // 🌍 Multi-City Isolation — determines which city's socket room,
+        // orders, captains, and pricing this user belongs to.
+        city: {
+            type: String,
+            enum: ['Khartoum', 'PortSudan'],
+            default: 'Khartoum',
+            required: true
+        },
+
+        // 🔐 Admin Role & Permissions System
+        // adminRole: تُحدد نوع الأدمن (super_admin له كل الصلاحيات، sub_admin له صلاحيات محددة)
+        // null = ليس أدمن (لا يُطبق على المستخدمين العاديين)
+        adminRole: {
+            type: String,
+            enum: ['super_admin', 'sub_admin'],
+            default: null,
+            sparse: true
+        },
+        // permissions: قائمة الصلاحيات المسموحة للـ sub_admin
+        // مثال: ['view_orders', 'manage_captains', 'view_stats', 'view_map']
+        permissions: {
+            type: [String],
+            default: [],
+            enum: [
+                'view_orders', 'manage_orders',
+                'view_captains', 'manage_captains',
+                'view_stores', 'manage_stores',
+                'view_stats',         // إحصائيات مبسطة بدون أرباح وعملاء
+                'view_map',
+                'view_complaints',
+                'view_categories', 'manage_categories',
+                // 🆕 صلاحيات إضافية
+                'view_users', 'manage_users',       // العملاء/المستخدمون
+                'view_finance', 'manage_finance',   // الديون، الدفعات، السجل المالي
+                'view_revenue',                     // لوحة الأرباح الكاملة
+                'send_notifications',               // الإشعارات والبث
+                'manage_banners',                   // البانرات الإعلانية
+            ]
+        },
+
+        // 🔑 Trusted Devices — قائمة الأجهزة الموثوقة للأدمن المساعد
+        // كل جهاز يدخل لأول مرة يُحفظ هنا بعد موافقة super_admin
+        trustedDevices: [
+            {
+                deviceId:   { type: String },
+                deviceInfo: { type: String },
+                addedAt:    { type: Date, default: Date.now }
+            }
+        ]
     },
     { timestamps: true }
 );
 
-UserSchema.pre('save', async function () {
-    if (!this.isModified('password')) return;
+UserSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
 });
 
 UserSchema.methods.matchPassword = async function (enteredPassword) {
@@ -64,6 +154,9 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
 
 // 🔒 PERFORMANCE: Database Indexes
 // unique: true already creates indexes for these fields; avoid duplicate indexes
-UserSchema.index({ role: 1, isActive: 1 }); // For finding active captains
+UserSchema.index({ role: 1, isActive: 1 });                             // For finding active captains (legacy)
+UserSchema.index({ city: 1 });                                          // For city-filtered admin queries
+UserSchema.index({ city: 1, role: 1, isActive: 1 });                    // City-scoped captain lookup
+UserSchema.index({ city: 1, role: 1, isAvailableForWork: 1 });          // City-scoped captain dispatch
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,8 +1,10 @@
 const { sendWhatsAppNotification } = require('../services/whatsappService');
 const User = require('../models/User');
 const axios = require('axios');
+const logger = require('./logger');
 
-const BOT_API_URL = 'http://localhost:3000';
+// مسار البوت المحلي (للتطوير) أو من متغير البيئة (للإنتاج)
+const BOT_API_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3000';
 const BOT_API_KEY = 'scrt_whatsapp_api_key_2026';
 
 /**
@@ -15,7 +17,7 @@ async function checkBotSubscription(phone) {
         });
         return response.data.subscribed === true;
     } catch (error) {
-        console.log(`⚠️ Could not check subscription for ${phone}`);
+        logger.info(`⚠️ Could not check subscription for ${phone}`);
         return false;
     }
 }
@@ -30,13 +32,13 @@ async function sendWhatsAppIfSubscribed(userId, message) {
         const user = await User.findById(userId);
 
         if (!user) {
-            console.log(`⚠️ User ${userId} not found`);
+            logger.info(`⚠️ User ${userId} not found`);
             return false;
         }
 
         // التحقق من وجود رقم هاتف
         if (!user.phone) {
-            console.log(`⚠️ User ${user.name} has no phone number`);
+            logger.info(`⚠️ User ${user.name} has no phone number`);
             return false;
         }
 
@@ -44,7 +46,7 @@ async function sendWhatsAppIfSubscribed(userId, message) {
         const isSubscribed = await checkBotSubscription(user.phone);
 
         if (!isSubscribed) {
-            console.log(`ℹ️ User ${user.name} (${user.phone}) is not subscribed. Ask them to send "اشتراك" to WhatsApp bot.`);
+            logger.info(`ℹ️ User ${user.name} (${user.phone}) is not subscribed. Ask them to send "اشتراك" to WhatsApp bot.`);
             return false;
         }
 
@@ -52,14 +54,14 @@ async function sendWhatsAppIfSubscribed(userId, message) {
         const result = await sendWhatsAppNotification(user.phone, message);
 
         if (result) {
-            console.log(`✅ WhatsApp sent to ${user.name} (${user.phone})`);
+            logger.info(`✅ WhatsApp sent to ${user.name} (${user.phone})`);
             return true;
         } else {
-            console.log(`❌ Failed to send WhatsApp to ${user.name}`);
+            logger.info(`❌ Failed to send WhatsApp to ${user.name}`);
             return false;
         }
     } catch (error) {
-        console.error(`❌ WhatsApp Helper Error:`, error.message);
+        logger.error(`❌ WhatsApp Helper Error:`, error.message);
         return false;
     }
 }
@@ -70,23 +72,23 @@ async function sendWhatsAppIfSubscribed(userId, message) {
 const OrderMessages = {
     // عند قبول الطلب من الكابتن
     orderAccepted: (captainName, orderId) =>
-        `🎉 *تم قبول طلبك!*\n\nالكابتن *${captainName}* وافق على طلبك #${orderId.slice(-6)} وهو في الطريق إليك الآن.\n\nشكراً لاستخدامك وصل-لي 🚗`,
+        `🎉 *تم قبول طلبك!*\n\nالكابتن *${captainName}* وافق على طلبك #${orderId.slice(-6)} وهو في الطريق إليك الآن.\n\nشكراً لاستخدامك وجيز 🚗`,
 
     // عند استلام الطلب من موقع الاستلام
     orderPickedUp: (captainName, orderId) =>
-        `📦 *تم استلام الطلب*\n\nالكابتن *${captainName}* استلم طلبك #${orderId.slice(-6)} وهو الآن في طريقه للتوصيل.\n\nوصل-لي 🚗`,
+        `📦 *تم استلام الطلب*\n\nالكابتن *${captainName}* استلم طلبك #${orderId.slice(-6)} وهو الآن في طريقه للتوصيل.\n\nوجيز 🚗`,
 
     // عند التوصيل
     orderDelivered: (orderId) =>
-        `✅ *تم التوصيل بنجاح!*\n\nتم توصيل طلبك #${orderId.slice(-6)} بنجاح.\n\nشكراً لاستخدامك وصل-لي! لا تنسى تقييم الكابتن ⭐\n\nوصل-لي 🚗`,
+        `✅ *تم التوصيل بنجاح!*\n\nتم توصيل طلبك #${orderId.slice(-6)} بنجاح.\n\nشكراً لاستخدامك وجيز! لا تنسى تقييم الكابتن ⭐\n\nوجيز 🚗`,
 
     // للكابتن عند تعيين طلب له
     captainAssigned: (clientName, orderId, pickup, dropoff, price) =>
-        `🚀 *طلب جديد!*\n\nالعميل: *${clientName}*\nرقم الطلب: #${orderId.slice(-6)}\n\n📍 من: ${pickup}\n🏁 إلى: ${dropoff}\n\n💰 المبلغ: ${price} ج.س\n\nوصل-لي 🚗`,
+        `🚀 *طلب جديد!*\n\nالعميل: *${clientName}*\nرقم الطلب: #${orderId.slice(-6)}\n\n📍 من: ${pickup}\n🏁 إلى: ${dropoff}\n\n💰 المبلغ: ${price} ج.س\n\nوجيز 🚗`,
 
     // عند إلغاء الطلب
     orderCancelled: (orderId) =>
-        `⚠️ *تم إلغاء الطلب*\n\nتم إلغاء الطلب #${orderId.slice(-6)}.\n\nوصل-لي 🚗`
+        `⚠️ *تم إلغاء الطلب*\n\nتم إلغاء الطلب #${orderId.slice(-6)}.\n\nوجيز 🚗`
 };
 
 module.exports = {

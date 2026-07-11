@@ -26,3 +26,20 @@ fix_index.js
 fix_tutorials.js
 recover_script.js
 recover_script.py
+
+# 🔐 سكربتات اختبار تحوي توكن مزود SMS حقيقياً مكشوفاً — ممنوع رفعها
+test_sms.js
+test_sms2.js
+
+# نسخة مؤقتة كاملة من المشروع
+tmp2/
+
+# إعدادات أدوات الذكاء الاصطناعي المحلية (خاصة بالجهاز)
+.agents/
+.codex/
+.kiro/
+.claude/settings.json
+.claude/launch.json
+
+# ملف فارغ عالق
+cairo.css

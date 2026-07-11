@@ -10,6 +10,12 @@ const emergencyAlertSchema = new mongoose.Schema({
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
     },
+    // 🌍 مدينة الكابتن — تُستخدم لتوجيه التنبيه للأدمن المساعد المسؤول عنها
+    city: {
+        type: String,
+        enum: ['Khartoum', 'PortSudan'],
+        default: 'Khartoum'
+    },
     status: {
         type: String,
         enum: ['pending', 'acknowledged', 'resolved'],

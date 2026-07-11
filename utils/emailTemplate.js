@@ -1,5 +1,5 @@
 /**
- * قالب بريد إلكتروني احترافي لتطبيق وصل-لي
+ * قالب بريد إلكتروني احترافي لتطبيق وجيز
  * @param {string} code - كود التفعيل
  * @returns {string} HTML content
  */
@@ -26,7 +26,7 @@ const getVerificationEmailTemplate = (code) => {
                 box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             }
             .header {
-                background-color: #0a8754; /* اللون الأخضر الخاص بالموقع */
+                background-color: #04553A; /* اللون الأخضر الخاص بالموقع */
                 padding: 30px;
                 text-align: center;
             }
@@ -41,7 +41,7 @@ const getVerificationEmailTemplate = (code) => {
             .content h1 {
                 font-size: 24px;
                 margin-bottom: 20px;
-                color: #0a8754;
+                color: #04553A;
             }
             .content p {
                 font-size: 16px;
@@ -50,12 +50,12 @@ const getVerificationEmailTemplate = (code) => {
             }
             .code-box {
                 background-color: #f8f9fa;
-                border: 2px dashed #0a8754;
+                border: 2px dashed #04553A;
                 padding: 20px;
                 font-size: 32px;
                 font-weight: bold;
                 letter-spacing: 5px;
-                color: #0a8754;
+                color: #04553A;
                 border-radius: 10px;
                 display: inline-block;
                 margin-bottom: 30px;
@@ -71,7 +71,7 @@ const getVerificationEmailTemplate = (code) => {
                 margin: 5px 0;
             }
             .btn {
-                background-color: #0a8754;
+                background-color: #04553A;
                 color: white;
                 padding: 12px 25px;
                 text-decoration: none;
@@ -85,16 +85,16 @@ const getVerificationEmailTemplate = (code) => {
         <div class="container">
             <div class="header">
                 <!-- يمكن استبدال هذا الرابط برابط شعار موقعك الفعلي -->
-                <h2 style="color: white; margin: 0;">وصل-لي</h2>
+                <h2 style="color: white; margin: 0;">وجيز</h2>
             </div>
             <div class="content">
                 <h1>تفعيل حسابك</h1>
-                <p>مرحباً بك في تطبيق <strong>وصل-لي</strong>. يسعدنا انضمامك إلينا! يرجى استخدام كود التفعيل أدناه لإتمام عملية التسجيل:</p>
+                <p>مرحباً بك في تطبيق <strong>وجيز</strong>. يسعدنا انضمامك إلينا! يرجى استخدام كود التفعيل أدناه لإتمام عملية التسجيل:</p>
                 <div class="code-box">${code}</div>
                 <p>إذا لم تكن قد طلبت هذا الكود، يرجى تجاهل هذا البريد الإلكتروني.</p>
             </div>
             <div class="footer">
-                <p>جميع الحقوق محفوظة &copy; 2026 تطبيق وصل-لي</p>
+                <p>جميع الحقوق محفوظة &copy; 2026 تطبيق وجيز</p>
                 <p>خدمة توصيل سريعة وآمنة</p>
             </div>
         </div>

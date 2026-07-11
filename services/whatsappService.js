@@ -1,13 +1,17 @@
 const axios = require('axios');
+const logger = require('../utils/logger');
 
-const BOT_API_URL = 'http://localhost:3000';
+// ✅ يقرأ من .env — غيّر WHATSAPP_BOT_URL في السيرفر لرابط Render
+const BOT_API_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3000';
+const BOT_API_KEY = process.env.WHATSAPP_API_KEY || 'scrt_whatsapp_api_key_2026';
 
 // Configure Axios instance
 const botApi = axios.create({
     baseURL: BOT_API_URL,
+    timeout: 15000, // 15 ثانية timeout
     headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'scrt_whatsapp_api_key_2026' // API Key from bot .env
+        'x-api-key': BOT_API_KEY
     }
 });
 
@@ -22,21 +26,16 @@ const sendWhatsAppOTP = async (phone, message) => {
             number: phone,
             message: message
         });
-        console.log(`✅ MongoDB-Bot: OTP sent to ${phone}`);
+        logger.info({ phone }, 'WhatsApp OTP sent');
         return response.data;
     } catch (error) {
-        console.error(`❌ MongoDB-Bot Error (OTP):`, error.message);
+        logger.error({ err: error.message }, 'WhatsApp OTP send error');
         // We generally don't want to crash the main app if bot is down, 
         // so we might return null or false, or rethrow depending on strictness.
         return null;
     }
 };
 
-/**
- * Send Notification via WhatsApp
- * @param {string} phone - The user's phone number
- * @param {string} message - The notification content
- */
 const mongoose = require('mongoose');
 
 /**
@@ -55,11 +54,9 @@ const sendWhatsAppNotification = async (phone, message) => {
 
             if (subscription && subscription.whatsappId) {
                 targetId = subscription.whatsappId;
-                console.log(`✅ MongoDB-Bot: Resolved ${phone} -> ${targetId}`);
+                logger.debug({ phone, targetId }, 'Resolved WhatsApp ID from subscription');
             } else {
-                console.log(`⚠️ MongoDB-Bot: No subscription found for ${phone}, trying fallback to phone.`);
-                // Fallback for legacy or direct @c.us usage
-                // If it's a normalized number 249..., appended @c.us usually works if they don't have LID enabled
+                logger.debug({ phone }, 'No subscription found, using phone as fallback');
             }
         }
 
@@ -68,10 +65,10 @@ const sendWhatsAppNotification = async (phone, message) => {
             phone: targetId,
             message: message
         });
-        console.log(`✅ MongoDB-Bot: Notification sent to ${targetId} (User: ${phone})`);
+        logger.info({ targetId, phone }, 'WhatsApp notification sent');
         return response.data;
     } catch (error) {
-        console.error(`❌ MongoDB-Bot Error (Notification):`, error.message);
+        logger.error({ err: error.message }, 'WhatsApp notification send error');
         return null;
     }
 };

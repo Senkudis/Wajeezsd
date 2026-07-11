@@ -16,8 +16,16 @@ const NotificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        // ضفنا هنا الأنواع الجديدة عشان يقبلها (order_accepted, order_completed)
-        enum: ['system', 'order_accepted', 'order_completed', 'order_update', 'chat'],
+        enum: [
+            'system',
+            'order_accepted', 'order_completed', 'order_update',
+            'chat', 'chat_message',
+            // 🛍️ Shop order notifications
+            'shop_order_update', 'new_shop_order',
+            'payment_receipt', 'payment_confirmed', 'payment_reminder',
+            // 🚨 Emergency SOS
+            'emergency'
+        ],
         default: 'system'
     },
     relatedId: { // حقل اختياري لربط الإشعار بالطلب
@@ -36,5 +44,7 @@ const NotificationSchema = new mongoose.Schema({
 
 // 🚀 Performance Index
 NotificationSchema.index({ user: 1, createdAt: -1 });
+// 🔑 Compound index for upsert deduplication: one unread chat_message per (user, relatedId)
+NotificationSchema.index({ user: 1, type: 1, relatedId: 1, isRead: 1 });
 
 module.exports = mongoose.model('Notification', NotificationSchema);

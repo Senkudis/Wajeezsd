@@ -200,6 +200,23 @@ router.get('/resolve/:code', async (req, res) => {
 });
 
 // ============================================================
+// @route   GET /api/places/resolve-product/:id
+// @desc    Public: حلّ معرّف المنتج لمعرفة المتجر التابع له
+//          يستخدمه معالج الـ deep link في التطبيق
+// ============================================================
+router.get('/resolve-product/:id', async (req, res) => {
+    try {
+        const id = String(req.params.id || '').trim();
+        if (!/^[0-9a-fA-F]{24}$/.test(id)) return res.status(400).json({ message: 'معرف غير صالح' });
+        const product = await require('../models/Product').findById(id).select('placeId name').lean();
+        if (!product) return res.status(404).json({ message: 'المنتج غير موجود' });
+        res.json({ placeId: product.placeId, productId: product._id, name: product.name });
+    } catch (err) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// ============================================================
 // @route   GET /api/places/:id
 // @desc    Get a single place by ID
 // ============================================================

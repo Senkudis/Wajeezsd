@@ -21,6 +21,9 @@ const MessageSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        tempId: {
+            type: String, // To sync optimistic UI messages
+        },
         isRead: {
             type: Boolean,
             default: false,
