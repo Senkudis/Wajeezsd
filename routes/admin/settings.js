@@ -97,7 +97,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
         const city = VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum';
 
         const allowedFields = [
-            'baseFare', 'costPerKm', 'costPerMinute',
+            'baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee',
             'commissionRate', 'adminPhone',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
@@ -111,7 +111,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             }
         }
 
-        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'commissionRate', 'defaultCreditLimit'];
+        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'commissionRate', 'defaultCreditLimit'];
         for (const field of numericFields) {
             if (updates[field] !== undefined) {
                 let rawVal = updates[field];

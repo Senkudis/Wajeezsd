@@ -23,14 +23,15 @@ async function loadSettings() {
         // Fill form with current values
         document.getElementById('baseFare').value = settings.baseFare || 10;
         document.getElementById('costPerKm').value = settings.costPerKm || 5;
+        if (document.getElementById('extraStopFee')) document.getElementById('extraStopFee').value = settings.extraStopFee || 0;
         document.getElementById('costPerMinute').value = settings.costPerMinute || 2;
         document.getElementById('commissionRate').value = settings.commissionRate || 0.15;
         document.getElementById('adminPhone').value = settings.adminPhone || '249112046348';
         
         // App Settings
         if (document.getElementById('appVersion')) {
-            document.getElementById('appVersion').value = settings.appVersion || '1.0.4';
-            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '1.0.4';
+            document.getElementById('appVersion').value = settings.appVersion || '1.0.6';
+            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '1.0.6';
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }
@@ -61,6 +62,7 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
     const data = {
         baseFare: parseFloat(document.getElementById('baseFare').value),
         costPerKm: parseFloat(document.getElementById('costPerKm').value),
+        extraStopFee: parseFloat(document.getElementById('extraStopFee')?.value) || 0,
         costPerMinute: parseFloat(document.getElementById('costPerMinute').value),
         commissionRate: parseFloat(document.getElementById('commissionRate').value),
         adminPhone: document.getElementById('adminPhone').value.trim(),
