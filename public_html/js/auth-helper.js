@@ -238,21 +238,33 @@ const Auth = {
             if (!res.ok) return;
 
             const serverUser = await res.json();
-            const localUser = Auth.getUser();
-            const localRole = localStorage.getItem('role') || (localUser && localUser.role);
+            const localUser = Auth.getUser() || {};
+            // 🐛 إصلاح: الجلسات القديمة قد لا تحمل مفتاح 'role' — كان الشرط يتخطى
+            // المزامنة بصمت عندها، فيبقى التاجر الجديد عالقاً بدور "عميل"
+            const localRole = localStorage.getItem('role') || localUser.role || '';
 
             // إذا تغيّر الدور في السيرفر عن اللي في localStorage
-            if (serverUser.role && localRole && serverUser.role !== localRole) {
-                // تحديث localStorage فوراً
-                localStorage.setItem('role', serverUser.role);
-                if (localUser) {
-                    localUser.role = serverUser.role;
-                    localUser.approvalStatus = serverUser.approvalStatus;
-                    localStorage.setItem(Auth.USER_KEY, JSON.stringify(localUser));
-                }
+            if (serverUser.role && serverUser.role !== localRole) {
+                // 🔑 جدّد التوكن أولاً حتى يحمل الدور الجديد — بدونه كان التاجر
+                // المُوافَق عليه يحتاج تسجيل خروج/دخول يدوياً
+                let freshToken = Auth.getToken();
+                try {
+                    const rt = await fetch(`${API_BASE}/api/auth/refresh`, {
+                        method: 'POST',
+                        headers: Auth.getAuthHeader()
+                    });
+                    if (rt.ok) {
+                        const rtData = await rt.json();
+                        if (rtData.token) freshToken = rtData.token;
+                    }
+                } catch (_) { /* نكمل بالتوكن الحالي — السيرفر يقرأ الدور من القاعدة */ }
+
+                // تحديث كل مفاتيح التخزين دفعة واحدة (token, user, role, merchantName,
+                // وأعلام مزامنة FCM) عبر setAuth — نفس مسار تسجيل الدخول تماماً
+                Auth.setAuth(freshToken, { ...localUser, ...serverUser });
 
                 // 🎉 إذا صار تاجر — أعرض رسالة ترحيبية ونقله للوحته
-                if (serverUser.role === 'merchant' && localRole === 'client') {
+                if (serverUser.role === 'merchant' && localRole !== 'merchant') {
                     if (typeof Swal !== 'undefined') {
                         const result = await Swal.fire({
                             icon: 'success',
@@ -275,7 +287,7 @@ const Auth = {
                 }
 
                 // 🚗 إذا صار كابتن
-                if (serverUser.role === 'captain' && localRole === 'client') {
+                if (serverUser.role === 'captain' && localRole !== 'captain') {
                     if (typeof Swal !== 'undefined') {
                         const result = await Swal.fire({
                             icon: 'success',
@@ -308,6 +320,7 @@ if (Auth.isAuthenticated()) {
     setInterval(() => {
         if (Auth.isAuthenticated()) {
             Auth.autoRefreshToken();
+            Auth.syncRole(); // 🔄 يلتقط ترقية الدور حتى في الجلسات الطويلة المفتوحة
         }
     }, 30 * 60 * 1000); // كل 30 دقيقة
 }

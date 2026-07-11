@@ -284,6 +284,21 @@ router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
                 logger.error('Merchant approve notification error:', notifErr.message);
             }
 
+            // 🔄 تحديث فوري لجلسة المستخدم المفتوحة: دوره تغيّر في القاعدة (client → merchant)
+            // لكن توكنه وبياناته المخزنة في الجهاز ما زالت "عميل" — نبثّ حدثاً يلتقطه
+            // auth-helper ليجدّد التوكن والبيانات تلقائياً دون تسجيل خروج يدوي.
+            try {
+                const io = req.app.get('io');
+                if (io) {
+                    io.to(request.userId.toString()).emit('account_role_changed', {
+                        role: 'merchant',
+                        businessName: request.businessName
+                    });
+                }
+            } catch (sockErr) {
+                logger.error('Role-change socket emit failed:', sockErr.message);
+            }
+
             await logAdminAction(req, 'approve_store', `تم قبول المتجر: ${request.businessName}`, request.userId, request.businessName, { phone: request.phone });
 
             // ✅ ربط الإحالة بـ userId و placeId عند القبول (لتتبع الأوردرات لاحقاً)

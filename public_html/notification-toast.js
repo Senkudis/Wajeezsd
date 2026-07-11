@@ -272,6 +272,14 @@ const initNotificationSocket = (userId) => {
             }
         });
 
+        // 🔄 ترقية الدور لحظياً (مثلاً: الأدمن وافق على طلب تاجر) — يجدّد التوكن
+        // وبيانات الجهاز فوراً دون تسجيل خروج/دخول أو حتى إعادة تحميل الصفحة
+        socket.on('account_role_changed', () => {
+            if (window.Auth && typeof window.Auth.syncRole === 'function') {
+                window.Auth.syncRole();
+            }
+        });
+
         socket.on('connect_error', (err) => {
             // تجاهل الأخطاء الصامتة
             // console.warn('Socket connect error', err);
