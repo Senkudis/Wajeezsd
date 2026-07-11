@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>دخول الإدارة | وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green: #04553A; --green-dark: #033d2a; --green-light: #e8f5ee;
+  --gold: #D4A843;
+  --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
+  --gray-400: #94a3b8; --gray-500: #64748b; --gray-600: #475569;
+  --gray-700: #334155; --gray-800: #1e293b; --gray-900: #0f172a;
+  --danger: #ef4444; --danger-light: #fef2f2;
+}
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Tajawal', -apple-system, sans-serif;
+  direction: rtl;
+  min-height: 100vh;
+  display: flex;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  -webkit-font-smoothing: antialiased;
+}
+
+.split { display: flex; width: 100%; min-height: 100vh; }
+
+/* Art Panel */
+.panel-art {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(150deg, #080c18 0%, #0b1d13 60%, #080c18 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 52px;
+  text-align: center;
+}
+.panel-art-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(4,85,58,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(4,85,58,0.1) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.panel-art-blob {
+  position: absolute;
+  width: 480px; height: 480px;
+  border-radius: 50%;
+  filter: blur(90px);
+  top: -100px; right: -100px;
+  background: radial-gradient(circle, rgba(4,85,58,0.28) 0%, transparent 70%);
+}
+.art-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 340px;
+}
+.art-logo-wrap {
+  width: 80px; height: 80px;
+  margin: 0 auto 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+.art-logo-wrap img { width: 52px; height: 52px; object-fit: contain; }
+.art-h1 { font-size: 32px; font-weight: 900; color: white; margin-bottom: 10px; line-height: 1.2; }
+.art-h1 span { color: var(--gold); }
+.art-p { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.75; margin-bottom: 40px; }
+.art-features { display: flex; flex-direction: column; gap: 10px; }
+.art-feature {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px; padding: 12px 16px;
+  text-align: right; font-size: 13px;
+  color: rgba(255,255,255,0.75); font-weight: 600;
+}
+.art-feature i { width: 17px; height: 17px; color: var(--gold); flex-shrink: 0; }
+
+/* Form Panel */
+.panel-form {
+  width: 460px;
+  flex-shrink: 0;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-y: auto;
+  box-shadow: -4px 0 40px rgba(0,0,0,0.08);
+}
+.form-header {
+  padding: 28px 36px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.form-logo { width: 30px; height: 30px; flex-shrink: 0; }
+.form-logo img { width: 100%; height: 100%; object-fit: contain; filter: invert(26%) sepia(78%) saturate(464%) hue-rotate(113deg) brightness(82%); }
+.form-brand-name { font-size: 17px; font-weight: 900; color: var(--green); }
+
+.form-body {
+  flex: 1;
+  padding: 36px 36px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Form heading */
+.login-h { font-size: 26px; font-weight: 900; color: var(--gray-900); margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--gray-500); line-height: 1.65; margin-bottom: 28px; }
+
+/* Fields */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-weight: 700; color: var(--gray-600); margin-bottom: 7px; }
+.input-wrap { position: relative; }
+.input-wrap > i[data-lucide] {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; color: var(--gray-400); pointer-events: none;
+}
+.fi {
+  width: 100%; padding: 11px 40px 11px 14px;
+  border-radius: 10px; border: 1.5px solid var(--gray-200);
+  background: var(--gray-50); font-family: inherit; font-size: 14px;
+  color: var(--gray-900); transition: all 0.18s;
+}
+.fi:focus { border-color: var(--green); background: white; box-shadow: 0 0 0 3px rgba(4,85,58,0.08); outline: none; }
+.fi::placeholder { color: var(--gray-400); font-weight: 400; }
+.eye-btn {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--gray-400);
+  display: flex; align-items: center; padding: 0;
+}
+.eye-btn:hover { color: var(--gray-600); }
+.eye-btn i { width: 16px; height: 16px; }
+
+/* Alert */
+.alert {
+  padding: 11px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  display: flex; align-items: flex-start; gap: 9px; margin-bottom: 16px;
+}
+.alert i { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+.alert-error { background: var(--danger-light); color: #b91c1c; border: 1px solid #fecaca; }
+
+/* Button */
+.btn {
+  width: 100%; padding: 12px; border-radius: 10px;
+  font-family: inherit; font-size: 14px; font-weight: 800; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.18s;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+.btn i { width: 16px; height: 16px; }
+.btn-primary { background: var(--green); color: white; box-shadow: 0 2px 10px rgba(4,85,58,0.22); }
+.btn-primary:hover:not(:disabled) { background: var(--green-dark); }
+.spinner { display:none; width:17px; height:17px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; }
+.btn.loading .btn-text, .btn.loading > i { display:none; }
+.btn.loading .spinner { display:inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.back-link {
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+  margin-top: 22px; font-size: 12px; color: var(--gray-500); text-decoration: none; transition: color 0.18s;
+}
+.back-link:hover { color: var(--green); }
+.back-link i { width: 14px; height: 14px; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .panel-art { display: none; }
+  .panel-form { width: 100%; box-shadow: none; }
+  .form-body { padding: 28px 28px 48px; justify-content: flex-start; }
+  .form-header { padding: 20px 28px 0; }
+}
+@media (max-width: 480px) {
+  .form-body { padding: 24px 20px 40px; }
+  .form-header { padding: 18px 20px 0; }
+  .login-h { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<div class="split">
+
+  <!-- Decorative Panel -->
+  <div class="panel-art">
+    <div class="panel-art-grid"></div>
+    <div class="panel-art-blob"></div>
+    <div class="art-content">
+      <div class="art-logo-wrap">
+        <img src="../assets/logo-mark-white.png" alt="وجيز">
+      </div>
+      <h1 class="art-h1">لوحة <span>الإدارة</span></h1>
+      <p class="art-p">سجّل دخولك كمشرف لإدارة المسوقين وإحالات المتاجر في منصة وجيز</p>
+      <div class="art-features">
+        <div class="art-feature"><i data-lucide="users"></i> إدارة المسوقين</div>
+        <div class="art-feature"><i data-lucide="store"></i> مراجعة طلبات المتاجر</div>
+        <div class="art-feature"><i data-lucide="bar-chart-2"></i> إحصائيات الإحالات</div>
+        <div class="art-feature"><i data-lucide="gift"></i> إدارة المكافآت</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Panel -->
+  <div class="panel-form">
+    <div class="form-header">
+      <div class="form-logo">
+        <img src="../assets/logo-mark-white.png" alt="وجيز">
+      </div>
+      <span class="form-brand-name">وجيز</span>
+    </div>
+
+    <div class="form-body">
+      <h2 class="login-h">مرحباً بك</h2>
+      <p class="login-sub">أدخل بيانات حساب الأدمن للوصول إلى لوحة التحكم</p>
+
+      <div id="form-alert"></div>
+
+      <div class="form-group">
+        <label class="form-label">البريد الإلكتروني أو رقم الجوال</label>
+        <div class="input-wrap">
+          <i data-lucide="mail"></i>
+          <input type="text" class="fi" id="identifier" placeholder="البريد أو رقم الهاتف" dir="ltr" autocomplete="username">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">كلمة المرور</label>
+        <div class="input-wrap">
+          <i data-lucide="lock"></i>
+          <input type="password" class="fi" id="password" placeholder="••••••••" autocomplete="current-password"
+                 onkeypress="if(event.key==='Enter') doLogin()">
+          <button class="eye-btn" type="button" onclick="togglePwd()" id="eye-btn">
+            <i data-lucide="eye" id="eye-icon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()">
+        <span class="btn-text">دخول</span>
+        <i data-lucide="log-in"></i>
+        <div class="spinner"></div>
+      </button>
+
+      <a href="../index.html" class="back-link">
+        <i data-lucide="arrow-right"></i>
+        العودة للرئيسية
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API_URL = 'https://wajeezsd.com/api';
+lucide.createIcons();
+
+// Check if already logged in
+const existingToken = localStorage.getItem('ref_admin_token');
+if (existingToken) {
+  try {
+    const payload = JSON.parse(atob(existingToken.split('.')[1]));
+    if (payload.exp * 1000 > Date.now()) window.location.replace('dashboard.html');
+  } catch(e) { localStorage.removeItem('ref_admin_token'); }
+}
+
+async function doLogin() {
+  const identifier = document.getElementById('identifier').value.trim();
+  const password   = document.getElementById('password').value;
+  clearAlert();
+  if (!identifier || !password) { showAlert('يرجى إدخال البريد الإلكتروني وكلمة المرور'); return; }
+  setLoading(true);
+  try {
+    const data = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email: identifier, password }) });
+    if (data?.token) {
+      const user = data.user || {};
+      if (user.role !== 'admin') { showAlert('هذا الحساب ليس لديه صلاحيات الأدمن'); return; }
+      localStorage.setItem('ref_admin_token', data.token);
+      localStorage.setItem('ref_admin_user', JSON.stringify(user));
+      window.location.replace('dashboard.html');
+    } else {
+      showAlert('حدث خطأ غير متوقع، يرجى المحاولة مجدداً');
+    }
+  } catch(err) {
+    showAlert(err.message || 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function apiFetch(endpoint, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  const res = await fetch(`${API_URL}${endpoint}`, { ...opts, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || `خطأ ${res.status}`);
+  return data;
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('login-btn');
+  btn.disabled = on; btn.classList.toggle('loading', on);
+}
+function showAlert(msg) {
+  const el = document.getElementById('form-alert');
+  el.innerHTML = `<div class="alert alert-error"><i data-lucide="alert-circle"></i>${msg}</div>`;
+  lucide.createIcons({ root: el });
+}
+function clearAlert() { document.getElementById('form-alert').innerHTML = ''; }
+function togglePwd() {
+  const inp  = document.getElementById('password');
+  const icon = document.getElementById('eye-icon');
+  if (inp.type === 'password') {
+    inp.type = 'text'; icon.setAttribute('data-lucide', 'eye-off');
+  } else {
+    inp.type = 'password'; icon.setAttribute('data-lucide', 'eye');
+  }
+  lucide.createIcons({ root: document.getElementById('eye-btn') });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>طلبات المسوّقين | وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+/* ── Card grid ── */
+.req-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── Request card ── */
+.req-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  animation: fadeInUp 0.3s ease both;
+}
+.req-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--green-light);
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.req-card.removing {
+  animation: fadeOut 0.35s ease forwards;
+}
+@keyframes fadeOut {
+  to { opacity: 0; transform: scale(0.95); }
+}
+
+/* ── Card header ── */
+.req-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.req-avatar {
+  width: 48px; height: 48px;
+  background: var(--green);
+  color: white;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900;
+  flex-shrink: 0;
+}
+.req-name {
+  font-size: 16px; font-weight: 800;
+  color: var(--gray-900); line-height: 1.2;
+}
+.req-sub {
+  font-size: 12px; color: var(--gray-500); margin-top: 2px;
+}
+
+/* ── Card meta ── */
+.req-meta { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.req-meta-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--gray-600);
+}
+.req-meta-row i { width: 14px; height: 14px; flex-shrink: 0; color: var(--gray-400); }
+.req-notes {
+  font-size: 12px; color: var(--gray-500);
+  background: var(--gray-50); border-radius: 8px;
+  padding: 8px 10px; margin-bottom: 10px;
+  line-height: 1.55; border: 1px solid var(--gray-100);
+}
+
+/* ── Source label ── */
+.req-source {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 9px; border-radius: 99px;
+  margin-bottom: 12px;
+}
+.req-source.self  { background: rgba(4,85,58,0.08); color: var(--green); }
+.req-source.admin { background: var(--gray-100); color: var(--gray-600); }
+.req-source i { width: 12px; height: 12px; }
+
+/* ── Actions ── */
+.req-actions { display: flex; gap: 8px; margin-top: 14px; }
+.req-actions .btn { flex: 1; justify-content: center; }
+
+/* ── Empty state ── */
+.empty-pending {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 80px 20px; text-align: center;
+  color: var(--gray-400);
+}
+.empty-pending .ep-icon {
+  width: 64px; height: 64px; background: var(--gray-100);
+  border-radius: 20px; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.empty-pending .ep-icon i { width: 30px; height: 30px; color: var(--gray-400); }
+.empty-pending h3 { font-size: 18px; font-weight: 800; color: var(--gray-700); margin-bottom: 6px; }
+.empty-pending p  { font-size: 14px; }
+
+/* ── Sidebar local overrides ── */
+.sidebar-logo { display: flex; align-items: center; gap: 10px; }
+.sidebar-logo-img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.sidebar-logo-text { font-size: 16px; font-weight: 800; color: white; line-height: 1; }
+.sidebar-logo-sub  { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+.sidebar-brand { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.nav-item { display: flex; align-items: center; gap: 10px; }
+.nav-item i.lucide { width: 17px; height: 17px; flex-shrink: 0; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="admin-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <img src="../assets/logo-mark-white.png" alt="وجيز" class="sidebar-logo-img">
+        <div>
+          <div class="sidebar-logo-text">وجيز</div>
+          <div class="sidebar-logo-sub">نظام الإحالات</div>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">الإدارة</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> لوحة التحكم</a>
+        <a href="marketers.html" class="nav-item"><i data-lucide="users"></i> المسوّقون</a>
+        <a href="pending.html" class="nav-item active"><i data-lucide="clock"></i> طلبات المسوّقين<span class="nav-badge" id="pendingBadge" style="display:none;"></span></a>
+        <a href="referrals.html" class="nav-item"><i data-lucide="link-2"></i> الإحالات</a>
+        <a href="rewards.html" class="nav-item"><i data-lucide="gift"></i> المكافآت</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> الإعدادات</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">عام</div>
+        <a href="../index.html" class="nav-item"><i data-lucide="home"></i> الرئيسية</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="nav-item" id="logoutBtn" style="width:100%;color:rgba(255,255,255,0.6);">
+        <i data-lucide="log-out"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="mobile-menu-btn" id="mobileMenuBtn"><i data-lucide="menu"></i></button>
+      <div class="topbar-left">
+        <div class="topbar-title" style="display:flex;align-items:center;gap:10px;">
+          طلبات المسوّقين
+          <span class="badge badge-gold" id="countBadge" style="display:none;"></span>
+        </div>
+        <div class="topbar-sub">مراجعة طلبات التسجيل الجديدة</div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="refreshBtn" title="تحديث"><i data-lucide="refresh-cw"></i></button>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <div id="cardsGrid" class="req-grid">
+        <!-- Loading skeleton -->
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--gray-400);">
+          <div style="width:32px;height:32px;border:3px solid var(--green-light);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;"></div>
+          جاري التحميل...
+        </div>
+      </div>
+    </div><!-- /page-body -->
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════
+     MODAL: تأكيد الرفض
+═══════════════════════════════════ -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">تأكيد الرفض</div>
+      <button class="modal-close" onclick="closeRejectModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:10px 0;">
+        <div style="width:52px;height:52px;background:var(--danger-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <i data-lucide="x-circle" style="width:24px;height:24px;color:var(--danger);"></i>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:var(--gray-900);margin-bottom:8px;">رفض طلب التسجيل؟</div>
+        <div style="font-size:13px;color:var(--gray-500);line-height:1.65;">
+          سيتم تغيير حالة
+          <strong id="rejectModalName" style="color:var(--danger);"></strong>
+          إلى غير نشط. يمكنك تفعيله لاحقاً من صفحة المسوّقين.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <input type="hidden" id="rejectId">
+      <button class="btn btn-ghost" onclick="closeRejectModal()">إلغاء</button>
+      <button class="btn btn-danger-outline" id="rejectConfirmBtn" onclick="confirmReject()">
+        <i data-lucide="x-circle"></i>
+        <span class="btn-label">نعم، رفض الطلب</span>
+        <div class="btn-spinner" style="border-color:rgba(239,68,68,0.3);border-top-color:var(--danger);"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="../js/app.js"></script>
+<script>
+lucide.createIcons();
+
+if (!Auth.getToken()) window.location.replace('login.html');
+
+// ── Navigation ──
+document.getElementById('mobileMenuBtn').onclick = () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('open');
+};
+document.getElementById('sidebarBackdrop').onclick = () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('open');
+};
+document.getElementById('logoutBtn').onclick = () => { Auth.clearSession(); window.location.replace('login.html'); };
+document.getElementById('refreshBtn').onclick = loadPending;
+
+let pendingList = [];
+
+// ── Load ──
+async function loadPending() {
+  const btn = document.getElementById('refreshBtn');
+  btn.innerHTML = '<i data-lucide="loader-2" style="width:16px;height:16px;animation:spin .7s linear infinite;"></i>';
+  lucide.createIcons({ root: btn });
+  try {
+    pendingList = await apiFetch('/referral/marketers?status=pending');
+    renderCards(pendingList);
+  } catch(e) {
+    showToast('تعذَّر تحميل الطلبات: ' + (e.message || ''), 'error');
+  } finally {
+    btn.innerHTML = '<i data-lucide="refresh-cw"></i>';
+    lucide.createIcons({ root: btn });
+  }
+}
+
+// ── Render Cards ──
+function renderCards(data) {
+  const grid      = document.getElementById('cardsGrid');
+  const badge     = document.getElementById('countBadge');
+
+  if (!data.length) {
+    badge.style.display = 'none';
+    grid.innerHTML = `
+      <div class="empty-pending">
+        <div class="ep-icon"><i data-lucide="check-circle"></i></div>
+        <h3>لا توجد طلبات معلقة</h3>
+        <p>جميع الطلبات مراجعة</p>
+      </div>`;
+    lucide.createIcons({ root: grid }); return;
+  }
+
+  badge.textContent    = data.length;
+  badge.style.display  = 'inline';
+
+  grid.innerHTML = data.map((m, idx) => {
+    const initial   = escapeHtml((m.name || 'م').charAt(0));
+    const isSelf    = !m.createdBy || m.createdBy === 'self';
+    const sourceClass = isSelf ? 'self' : 'admin';
+    const sourceIcon  = isSelf ? 'user' : 'shield';
+    const sourceText  = isSelf ? 'مسجَّل بنفسه' : 'مضاف من الأدمن';
+    const notesHtml   = m.notes
+      ? `<div class="req-notes">${escapeHtml(m.notes)}</div>`
+      : '';
+
+    return `<div class="req-card" id="card-${m._id}" style="animation-delay:${idx * 0.05}s;">
+      <div class="req-card-header">
+        <div class="req-avatar">${initial}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="req-name">${escapeHtml(m.name || '—')}</div>
+          <div class="req-sub">طلب تسجيل معلق</div>
+        </div>
+      </div>
+
+      <div class="req-meta">
+        <div class="req-meta-row">
+          <i data-lucide="phone"></i>
+          <span dir="ltr" style="font-variant-numeric:tabular-nums;">${escapeHtml(m.phone || '—')}</span>
+        </div>
+        <div class="req-meta-row">
+          <i data-lucide="calendar"></i>
+          <span>${formatDate(m.createdAt)}</span>
+        </div>
+      </div>
+
+      ${notesHtml}
+
+      <div>
+        <span class="req-source ${sourceClass}">
+          <i data-lucide="${sourceIcon}"></i>
+          ${sourceText}
+        </span>
+      </div>
+
+      <div class="req-actions">
+        <button class="btn btn-primary btn-sm" id="approve-btn-${m._id}" onclick="approveMarketer('${m._id}')">
+          <i data-lucide="check"></i>
+          <span class="btn-label">قبول وتفعيل</span>
+          <div class="btn-spinner"></div>
+        </button>
+        <button class="btn btn-danger-outline btn-sm" onclick="openRejectModal('${m._id}', '${escapeHtml(m.name || '')}')">
+          <i data-lucide="x"></i> رفض
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  lucide.createIcons({ root: grid });
+}
+
+// ── Approve ──
+async function approveMarketer(id) {
+  const btn = document.getElementById(`approve-btn-${id}`);
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+  try {
+    await apiFetch(`/referral/marketers/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'active' })
+    });
+    showToast('تم قبول وتفعيل المسوق بنجاح', 'success');
+    removeCard(id);
+  } catch(e) {
+    showToast('تعذَّر قبول الطلب: ' + (e.message || ''), 'error');
+    if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+  }
+}
+
+// ── Reject Modal ──
+function openRejectModal(id, name) {
+  document.getElementById('rejectId').value = id;
+  document.getElementById('rejectModalName').textContent = name;
+  document.getElementById('rejectModal').classList.add('open');
+  lucide.createIcons({ root: document.getElementById('rejectModal') });
+}
+function closeRejectModal() {
+  document.getElementById('rejectModal').classList.remove('open');
+}
+document.getElementById('rejectModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('rejectModal')) closeRejectModal();
+});
+
+async function confirmReject() {
+  const id  = document.getElementById('rejectId').value;
+  const btn = document.getElementById('rejectConfirmBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+  try {
+    await apiFetch(`/referral/marketers/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'inactive' })
+    });
+    closeRejectModal();
+    showToast('تم رفض الطلب', 'success');
+    removeCard(id);
+  } catch(e) {
+    showToast('تعذَّر رفض الطلب: ' + (e.message || ''), 'error');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+// ── Remove card with fade ──
+function removeCard(id) {
+  const card = document.getElementById(`card-${id}`);
+  if (!card) { loadPending(); return; }
+  card.classList.add('removing');
+  card.addEventListener('animationend', () => {
+    card.remove();
+    // Update count badge
+    const remaining = document.querySelectorAll('[id^="card-"]').length;
+    const badge = document.getElementById('countBadge');
+    if (remaining === 0) {
+      badge.style.display = 'none';
+      const grid = document.getElementById('cardsGrid');
+      grid.innerHTML = `
+        <div class="empty-pending">
+          <div class="ep-icon"><i data-lucide="check-circle"></i></div>
+          <h3>لا توجد طلبات معلقة</h3>
+          <p>جميع الطلبات مراجعة</p>
+        </div>`;
+      lucide.createIcons({ root: grid });
+    } else {
+      badge.textContent = remaining;
+    }
+  }, { once: true });
+}
+
+loadPending();
+startPendingPolling();
+</script>
+</body>
+</html>

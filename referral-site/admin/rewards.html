@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>إدارة المكافآت | وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+.admin-shell { display: flex; min-height: 100vh; }
+.sidebar-logo { display: flex; align-items: center; gap: 10px; }
+.sidebar-logo-img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.sidebar-logo-text { font-size: 16px; font-weight: 800; color: white; line-height: 1; }
+.sidebar-logo-sub  { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+.sidebar-brand { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.nav-item { display: flex; align-items: center; gap: 10px; }
+.nav-item i.lucide { width: 17px; height: 17px; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader { width: 28px; height: 28px; border: 3px solid var(--green-light); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto; }
+
+/* Reward summary cards */
+.reward-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Marketer reward card grid */
+.reward-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.marketer-reward-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.marketer-reward-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.marketer-reward-card.has-reward {
+  border-color: rgba(212,168,67,0.3);
+}
+.marketer-reward-card.has-reward::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 4px; height: 100%;
+  background: var(--gold);
+  border-radius: 0 16px 16px 0;
+}
+
+.mrc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.mrc-avatar {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: var(--green);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 900;
+  flex-shrink: 0;
+}
+.mrc-name { font-size: 15px; font-weight: 800; color: var(--gray-900); }
+.mrc-code { font-size: 11px; font-weight: 700; color: var(--gray-400); margin-top: 2px; font-family: monospace; }
+.mrc-stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.mrc-stat {
+  flex: 1;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.mrc-stat-val { font-size: 18px; font-weight: 900; color: var(--green); }
+.mrc-stat-lbl { font-size: 10px; color: var(--gray-500); font-weight: 600; margin-top: 2px; }
+
+.mrc-reward-display {
+  background: var(--gold-light);
+  border: 1.5px solid rgba(212,168,67,0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mrc-reward-display i { width: 15px; height: 15px; color: var(--gold); flex-shrink: 0; }
+.mrc-reward-text { font-size: 13px; font-weight: 700; color: #78350f; flex: 1; }
+
+.mrc-no-reward {
+  background: var(--gray-50);
+  border: 1.5px dashed var(--gray-300);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-400);
+  font-weight: 600;
+}
+
+/* Inline reward input */
+.mrc-input-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mrc-input {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gray-200);
+  background: var(--gray-50);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--gray-900);
+  transition: all 0.18s;
+}
+.mrc-input:focus { border-color: var(--green); background: white; box-shadow: 0 0 0 3px rgba(4,85,58,0.08); outline: none; }
+.mrc-save-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--green);
+  color: white;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mrc-save-btn:hover { background: var(--green-dark); }
+.mrc-save-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.mrc-save-btn i { width: 14px; height: 14px; }
+.mrc-save-btn .mini-spin {
+  display: none; width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+.mrc-save-btn.loading i { display: none; }
+.mrc-save-btn.loading .mini-spin { display: inline-block; }
+
+.status-badge-inline {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+}
+.status-badge-inline.active   { background: var(--green-light); color: var(--green); }
+.status-badge-inline.inactive { background: var(--danger-light); color: var(--danger); }
+.status-badge-inline.pending  { background: var(--gold-light); color: #92681a; }
+
+/* Bulk reward modal */
+.bulk-preview-list { max-height: 260px; overflow-y: auto; }
+.bulk-preview-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--gray-100);
+  font-size: 13px;
+}
+.bulk-preview-item:last-child { border-bottom: none; }
+
+/* Filter tabs */
+.filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.tab-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  border: 1.5px solid var(--gray-200);
+  background: white; color: var(--gray-600);
+  cursor: pointer; transition: all 0.18s;
+}
+.tab-btn:hover { border-color: var(--green); color: var(--green); }
+.tab-btn.active { background: var(--green); color: white; border-color: var(--green); }
+.tab-btn .count-chip {
+  background: rgba(255,255,255,0.2);
+  padding: 1px 6px; border-radius: 99px; font-size: 11px;
+}
+.tab-btn:not(.active) .count-chip { background: var(--gray-100); color: var(--gray-500); }
+
+@media (max-width: 900px) { .reward-overview { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) {
+  .reward-overview { grid-template-columns: 1fr; }
+  .reward-grid { grid-template-columns: 1fr; }
+  .filter-tabs { gap: 4px; }
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="admin-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <img src="../assets/logo-mark-white.png" alt="وجيز" class="sidebar-logo-img">
+        <div>
+          <div class="sidebar-logo-text">وجيز</div>
+          <div class="sidebar-logo-sub">نظام الإحالات</div>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">الإدارة</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> لوحة التحكم</a>
+        <a href="marketers.html" class="nav-item"><i data-lucide="users"></i> المسوّقون</a>
+        <a href="pending.html"   class="nav-item"><i data-lucide="clock"></i> طلبات المسوّقين<span class="nav-badge" id="pendingBadge" style="display:none;"></span></a>
+        <a href="referrals.html" class="nav-item"><i data-lucide="link-2"></i> الإحالات</a>
+        <a href="rewards.html"   class="nav-item active"><i data-lucide="gift"></i> المكافآت</a>
+        <a href="settings.html"  class="nav-item"><i data-lucide="settings"></i> الإعدادات</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">عام</div>
+        <a href="../index.html" class="nav-item"><i data-lucide="home"></i> الرئيسية</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="nav-item" id="logoutBtn" style="width:100%;color:rgba(255,255,255,0.6);">
+        <i data-lucide="log-out"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="mobile-menu-btn" id="mobileMenuBtn"><i data-lucide="menu"></i></button>
+      <div class="topbar-left">
+        <div class="topbar-title">المكافآت</div>
+        <div class="topbar-sub">إدارة مكافآت المسوّقين</div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="refreshBtn" title="تحديث"><i data-lucide="refresh-cw"></i></button>
+        <button class="btn btn-gold btn-sm" onclick="openBulkModal()">
+          <i data-lucide="layers"></i> <span class="btn-label">تعيين جماعي</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="page-body">
+
+      <!-- Overview Stats -->
+      <div class="reward-overview" id="rewardOverview">
+        <div class="stat-card"><div class="stat-icon gold"><i data-lucide="gift"></i></div><div><div class="stat-val" id="ov-total">—</div><div class="stat-lbl">المسوقون النشطون</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><i data-lucide="check-circle"></i></div><div><div class="stat-val" id="ov-assigned">—</div><div class="stat-lbl">لديهم مكافأة محددة</div></div></div>
+        <div class="stat-card"><div class="stat-icon red"><i data-lucide="minus-circle"></i></div><div><div class="stat-val" id="ov-none">—</div><div class="stat-lbl">بدون مكافأة</div></div></div>
+      </div>
+
+      <!-- Search + Filter tabs -->
+      <div class="card" style="padding:16px 18px;margin-bottom:16px;">
+        <div class="search-wrap" style="margin-bottom:14px;">
+          <i data-lucide="search"></i>
+          <input type="text" class="search-input" id="searchInput" placeholder="ابحث باسم المسوق أو كوده..." oninput="filterCards()">
+        </div>
+        <div class="filter-tabs" id="filterTabs">
+          <button class="tab-btn active" data-filter="all" onclick="setFilter('all', this)">
+            الكل <span class="count-chip" id="chip-all">0</span>
+          </button>
+          <button class="tab-btn" data-filter="active" onclick="setFilter('active', this)">
+            نشط <span class="count-chip" id="chip-active">0</span>
+          </button>
+          <button class="tab-btn" data-filter="has" onclick="setFilter('has', this)">
+            لديه مكافأة <span class="count-chip" id="chip-has">0</span>
+          </button>
+          <button class="tab-btn" data-filter="none" onclick="setFilter('none', this)">
+            بدون مكافأة <span class="count-chip" id="chip-none">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="reward-grid" id="rewardGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:52px;">
+          <div class="loader"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: تعيين مكافأة جماعي
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">
+      <div class="modal-title">تعيين مكافأة جماعية</div>
+      <button class="modal-close" onclick="closeModal('bulkModal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="bulkAlert"></div>
+
+      <div class="form-group">
+        <label class="form-label">نص المكافأة</label>
+        <div class="input-wrap">
+          <i class="fi-icon" data-lucide="tag"></i>
+          <input type="text" class="fi has-icon" id="bulkRewardText" placeholder="مثال: 500 جنيه لكل متجر مؤهَّل">
+        </div>
+        <div class="field-hint">سيُطبَّق هذا النص على المسوقين المحددين أدناه</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">تطبيق على</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--gray-700);">
+            <input type="radio" name="bulkTarget" value="active" id="bulkActive" checked> المسوقون النشطون فقط
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--gray-700);">
+            <input type="radio" name="bulkTarget" value="none"> من ليس لديهم مكافأة
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--gray-700);">
+            <input type="radio" name="bulkTarget" value="all"> جميع المسوقين
+          </label>
+        </div>
+      </div>
+
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--gray-500);margin-bottom:10px;">
+          المسوقون المتأثرون (<span id="bulkCount">0</span>)
+        </div>
+        <div class="bulk-preview-list" id="bulkPreviewList">
+          <div style="text-align:center;color:var(--gray-400);font-size:13px;">اختر الفئة لمعاينة القائمة</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('bulkModal')">إلغاء</button>
+      <button class="btn btn-gold" id="bulkBtn" onclick="applyBulkReward()">
+        <i data-lucide="layers"></i>
+        <span class="btn-label">تطبيق على الكل</span>
+        <div class="btn-spinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/app.js"></script>
+<script>
+lucide.createIcons();
+
+let allMarketers = [];
+let currentFilter = 'all';
+
+// ── Auth & Navigation ──
+if (!Auth.getToken()) { window.location.replace('login.html'); }
+document.getElementById('mobileMenuBtn').onclick = () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('open');
+};
+document.getElementById('sidebarBackdrop').onclick = () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('open');
+};
+document.getElementById('logoutBtn').onclick = () => { Auth.clearSession(); window.location.replace('login.html'); };
+document.getElementById('refreshBtn').onclick = loadData;
+
+// Update bulk preview when radio changes
+document.querySelectorAll('input[name="bulkTarget"]').forEach(r => {
+  r.addEventListener('change', updateBulkPreview);
+});
+
+// ── Load Data ──
+async function loadData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.innerHTML = '<i data-lucide="loader-2" style="width:16px;height:16px;animation:spin .7s linear infinite;"></i>';
+  lucide.createIcons({ root: btn });
+  try {
+    allMarketers = await apiFetch('/referral/marketers');
+    updateOverview();
+    updateChips();
+    renderCards();
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.innerHTML = '<i data-lucide="refresh-cw"></i>';
+    lucide.createIcons({ root: btn });
+  }
+}
+
+function updateOverview() {
+  const active   = allMarketers.filter(m => m.status === 'active');
+  const assigned = allMarketers.filter(m => m.reward && m.reward.trim());
+  const none     = allMarketers.filter(m => !m.reward || !m.reward.trim());
+  document.getElementById('ov-total').textContent    = active.length;
+  document.getElementById('ov-assigned').textContent = assigned.length;
+  document.getElementById('ov-none').textContent     = none.length;
+}
+
+function updateChips() {
+  document.getElementById('chip-all').textContent    = allMarketers.length;
+  document.getElementById('chip-active').textContent = allMarketers.filter(m => m.status === 'active').length;
+  document.getElementById('chip-has').textContent    = allMarketers.filter(m => m.reward && m.reward.trim()).length;
+  document.getElementById('chip-none').textContent   = allMarketers.filter(m => !m.reward || !m.reward.trim()).length;
+}
+
+// ── Filter ──
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderCards();
+}
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return allMarketers.filter(m => {
+    const matchQ = !q || (m.name||'').toLowerCase().includes(q) || (m.referralCode||'').toLowerCase().includes(q);
+    let matchF = true;
+    if (currentFilter === 'active') matchF = m.status === 'active';
+    if (currentFilter === 'has')    matchF = !!(m.reward && m.reward.trim());
+    if (currentFilter === 'none')   matchF = !(m.reward && m.reward.trim());
+    return matchQ && matchF;
+  });
+}
+
+function filterCards() { renderCards(); }
+
+// ── Render Cards ──
+function renderCards() {
+  const data = getFiltered();
+  const grid = document.getElementById('rewardGrid');
+
+  if (!data.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;">
+      <div class="empty-state">
+        <i data-lucide="gift"></i>
+        <h3>لا توجد نتائج</h3>
+        <p>لا يوجد مسوقون يطابقون الفلتر الحالي</p>
+      </div>
+    </div>`;
+    lucide.createIcons({ root: grid }); return;
+  }
+
+  grid.innerHTML = data.map(m => {
+    const hasReward = m.reward && m.reward.trim();
+    const statusMap = { active:'نشط', inactive:'موقوف', pending:'معلق' };
+    return `<div class="marketer-reward-card ${hasReward ? 'has-reward' : ''}">
+      <div class="mrc-header">
+        <div class="mrc-avatar">${escapeHtml((m.name||'م').charAt(0))}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="mrc-name">${escapeHtml(m.name||'—')}</div>
+            <span class="status-badge-inline ${m.status}">${statusMap[m.status]||''}</span>
+          </div>
+          <div class="mrc-code">${escapeHtml(m.referralCode||'—')}</div>
+        </div>
+      </div>
+
+      <div class="mrc-stats">
+        <div class="mrc-stat">
+          <div class="mrc-stat-val">${m.referralCount||0}</div>
+          <div class="mrc-stat-lbl">إحالة</div>
+        </div>
+        <div class="mrc-stat">
+          <div class="mrc-stat-val" style="font-size:13px;color:var(--gray-600);">${escapeHtml(m.phone||'—')}</div>
+          <div class="mrc-stat-lbl">رقم الهاتف</div>
+        </div>
+      </div>
+
+      ${hasReward
+        ? `<div class="mrc-reward-display">
+             <i data-lucide="gift"></i>
+             <span class="mrc-reward-text">${escapeHtml(m.reward)}</span>
+           </div>`
+        : `<div class="mrc-no-reward">لا توجد مكافأة محددة</div>`
+      }
+
+      <div class="mrc-input-wrap">
+        <input type="text" class="mrc-input" id="ri-${m._id}"
+          value="${escapeHtml(m.reward||'')}"
+          placeholder="اكتب نص المكافأة...">
+        <button class="mrc-save-btn" id="rb-${m._id}" onclick="saveInlineReward('${m._id}')">
+          <i data-lucide="check"></i>
+          <div class="mini-spin"></div>
+          حفظ
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  lucide.createIcons({ root: grid });
+}
+
+// ── Inline Save Reward ──
+async function saveInlineReward(id) {
+  const input = document.getElementById(`ri-${id}`);
+  const btn   = document.getElementById(`rb-${id}`);
+  const reward = input.value.trim();
+  btn.classList.add('loading');
+  btn.disabled = true;
+  try {
+    await apiFetch(`/referral/marketers/${id}/reward`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reward })
+    });
+    showToast(reward ? 'تم حفظ المكافأة' : 'تم إزالة المكافأة', 'success');
+    // Update local data without full reload for speed
+    const m = allMarketers.find(x => x._id === id);
+    if (m) m.reward = reward;
+    updateOverview();
+    updateChips();
+    renderCards();
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+// ── Bulk Reward ──
+function openBulkModal() {
+  document.getElementById('bulkRewardText').value = '';
+  document.getElementById('bulkAlert').innerHTML = '';
+  document.getElementById('bulkActive').checked = true;
+  updateBulkPreview();
+  openModal('bulkModal');
+}
+
+function updateBulkPreview() {
+  const target = document.querySelector('input[name="bulkTarget"]:checked')?.value || 'active';
+  let targets = [];
+  if (target === 'active') targets = allMarketers.filter(m => m.status === 'active');
+  else if (target === 'none') targets = allMarketers.filter(m => !m.reward || !m.reward.trim());
+  else targets = allMarketers;
+
+  document.getElementById('bulkCount').textContent = targets.length;
+  const list = document.getElementById('bulkPreviewList');
+  if (!targets.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--gray-400);font-size:13px;padding:10px 0;">لا يوجد مسوقون في هذه الفئة</div>';
+    return;
+  }
+  list.innerHTML = targets.slice(0, 20).map(m => `
+    <div class="bulk-preview-item">
+      <div class="avatar avatar-green avatar-sm">${escapeHtml((m.name||'م').charAt(0))}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(m.name||'—')}</div>
+        <div style="font-size:11px;color:var(--gray-400);">${escapeHtml(m.referralCode||'—')}</div>
+      </div>
+      ${m.reward ? `<span style="font-size:11px;color:#92681a;background:var(--gold-light);padding:2px 8px;border-radius:99px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(m.reward)}</span>` : ''}
+    </div>
+  `).join('') + (targets.length > 20 ? `<div style="text-align:center;font-size:12px;color:var(--gray-400);padding:8px 0;">+ ${targets.length - 20} آخرين</div>` : '');
+}
+
+async function applyBulkReward() {
+  const reward = document.getElementById('bulkRewardText').value.trim();
+  const target = document.querySelector('input[name="bulkTarget"]:checked')?.value || 'active';
+  const alertEl = document.getElementById('bulkAlert');
+  alertEl.innerHTML = '';
+
+  let targets = [];
+  if (target === 'active') targets = allMarketers.filter(m => m.status === 'active');
+  else if (target === 'none') targets = allMarketers.filter(m => !m.reward || !m.reward.trim());
+  else targets = allMarketers;
+
+  if (!targets.length) {
+    alertEl.innerHTML = mkAlert('error', 'لا يوجد مسوقون في هذه الفئة');
+    lucide.createIcons({ root: alertEl }); return;
+  }
+
+  setBtnLoading('bulkBtn', true);
+  try {
+    // Sequential calls (avoids rate limiting)
+    let done = 0;
+    for (const m of targets) {
+      await apiFetch(`/referral/marketers/${m._id}/reward`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reward })
+      });
+      done++;
+    }
+    closeModal('bulkModal');
+    showToast(`تم تحديث ${done} مسوق`, 'success');
+    await loadData();
+  } catch(e) {
+    alertEl.innerHTML = mkAlert('error', e.message);
+    lucide.createIcons({ root: alertEl });
+  } finally {
+    setBtnLoading('bulkBtn', false);
+  }
+}
+
+// ── Helpers ──
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function setBtnLoading(btnId, on) {
+  document.getElementById(btnId).classList.toggle('loading', on);
+  document.getElementById(btnId).disabled = on;
+}
+function mkAlert(type, msg) {
+  const icons = { error:'alert-circle', success:'check-circle', info:'info' };
+  return `<div class="alert alert-${type}"><i data-lucide="${icons[type]||'info'}"></i>${msg}</div>`;
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+loadData();
+startPendingPolling();
+</script>
+</body>
+</html>

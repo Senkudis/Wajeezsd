@@ -8,7 +8,8 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { Jimp } = require('jimp');
+const jimpModule = require('jimp');
+const Jimp = jimpModule.Jimp || jimpModule;
 
 const uploadsDir = path.join(__dirname, 'public_html', 'uploads');
 const foldersToCompress = ['products', 'places'];
@@ -21,16 +22,51 @@ async function processImage(filePath) {
     const sizeBefore = fs.statSync(filePath).size;
     if (sizeBefore < MIN_SIZE) return { status: 'skipped', sizeBefore, sizeAfter: sizeBefore };
 
-    const image = await Jimp.read(filePath);
+    let image;
+    try {
+        image = await Jimp.read(filePath);
+    } catch (readErr) {
+        // إذا فشلت القراءة (الملف تالف أو غير مدعوم)، نعتبره متخطى وليس فشل في العملية
+        console.warn(`⚠️ Skipped unreadable/corrupt image: ${filePath}`, readErr.message);
+        return { status: 'skipped_corrupt', sizeBefore, sizeAfter: sizeBefore };
+    }
 
     if (image.bitmap.width > MAX_WIDTH || image.bitmap.height > MAX_WIDTH) {
-        // Jimp v1: scaleToFit يأخذ كائن { w, h }
-        image.scaleToFit({ w: MAX_WIDTH, h: MAX_WIDTH });
+        try {
+            // Jimp v0.x: scaleToFit يأخذ المعاملات بالأرقام
+            image.scaleToFit(MAX_WIDTH, MAX_WIDTH);
+        } catch (err) {
+            // Jimp v1.x: scaleToFit يأخذ كائن { w, h }
+            image.scaleToFit({ w: MAX_WIDTH, h: MAX_WIDTH });
+        }
     }
 
     // الجودة تنطبق على JPEG فقط؛ PNG تُصغّر أبعادها فقط
     const isJpeg = /\.jpe?g$/i.test(filePath);
-    await image.write(filePath, isJpeg ? { quality: QUALITY } : undefined);
+
+    try {
+        // Jimp v1.x — quality مدمج في المعامل الأول أو يُضبط عبر dالمتغير
+        if (isJpeg) {
+            // v0.x: image.quality() موجودة
+            if (typeof image.quality === 'function') {
+                image.quality(QUALITY);
+                await image.writeAsync(filePath);
+            } else {
+                // v1.x: write يقبل JpegOptions في بعض الإصدارات
+                await image.write(filePath);
+            }
+        } else {
+            await image.write(filePath);
+        }
+    } catch (writeErr) {
+        // fallback: جرب writeAsync (Jimp v0.x)
+        if (typeof image.writeAsync === 'function') {
+            if (isJpeg && typeof image.quality === 'function') image.quality(QUALITY);
+            await image.writeAsync(filePath);
+        } else {
+            throw writeErr;
+        }
+    }
 
     const sizeAfter = fs.statSync(filePath).size;
     return { status: 'ok', sizeBefore, sizeAfter };
@@ -51,7 +87,7 @@ async function run() {
             const filePath = path.join(dir, file);
             try {
                 const r = await processImage(filePath);
-                if (r.status === 'skipped') {
+                if (r.status === 'skipped' || r.status === 'skipped_corrupt') {
                     stats.skipped++;
                 } else {
                     stats.processed++;

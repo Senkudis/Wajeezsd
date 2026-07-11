@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>لوحة المسوق | وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green: #04553A; --green-dark: #033d2a; --green-mid: #065c41; --green-light: #e8f5ee;
+  --gold: #D4A843; --gold-light: #fbf6e9;
+  --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
+  --gray-400: #94a3b8; --gray-500: #64748b; --gray-700: #334155; --gray-900: #0f172a;
+  --danger: #ef4444; --success: #10b981;
+  --radius: 14px; --radius-sm: 10px;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Tajawal', sans-serif;
+  direction: rtl;
+  background: var(--gray-50);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════ */
+#login-screen { min-height: 100vh; display: flex; }
+
+.ls-art {
+  flex: 1;
+  background: linear-gradient(160deg, #0a0e1a 0%, #0d1f16 50%, #0a1510 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 48px; text-align: center; position: relative; overflow: hidden;
+}
+.ls-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(4,85,58,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(4,85,58,0.12) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.ls-blob {
+  position: absolute; width: 500px; height: 500px; border-radius: 50%;
+  filter: blur(80px); top: -100px; right: -100px;
+  background: radial-gradient(circle, rgba(4,85,58,0.3) 0%, transparent 70%);
+  animation: blobF 9s ease-in-out infinite;
+}
+@keyframes blobF { 0%,100%{transform:translate(0,0)} 50%{transform:translate(12px,-12px)} }
+.ls-content { position: relative; z-index: 1; }
+.ls-logo {
+  width: 80px; height: 80px; margin: 0 auto 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.ls-logo img { width: 50px; height: 50px; object-fit: contain; }
+.ls-title { font-size: 34px; font-weight: 900; color: white; margin-bottom: 10px; line-height: 1.2; }
+.ls-title span { color: var(--gold); }
+.ls-sub   { font-size: 15px; color: rgba(255,255,255,0.6); max-width: 300px; line-height: 1.7; margin-bottom: 40px; }
+.ls-perks { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin: 0 auto; }
+.ls-perk  {
+  display: flex; align-items: center; gap: 12px; text-align: right;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 12px 16px;
+  color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 600;
+}
+.ls-perk i { width: 18px; height: 18px; color: var(--gold); flex-shrink: 0; }
+
+/* Form side */
+.ls-form {
+  width: 460px; min-width: 460px; background: white;
+  display: flex; align-items: center; justify-content: center;
+  padding: 52px 48px; overflow-y: auto;
+}
+.lf-inner { width: 100%; max-width: 340px; }
+.lf-logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+.lf-logo-mark {
+  width: 36px; height: 36px; object-fit: contain;
+  filter: invert(26%) sepia(78%) saturate(464%) hue-rotate(113deg) brightness(82%);
+}
+.lf-logo-name { font-size: 19px; font-weight: 900; color: var(--green); }
+.lf-h   { font-size: 26px; font-weight: 900; color: var(--gray-900); margin-bottom: 6px; }
+.lf-sub { font-size: 13px; color: var(--gray-500); margin-bottom: 30px; line-height: 1.65; }
+
+.form-group  { margin-bottom: 16px; }
+.form-label  { display: block; font-size: 12px; font-weight: 800; color: var(--gray-700); margin-bottom: 7px; letter-spacing:.3px; }
+.input-wrap  { position: relative; display: flex; align-items: center; }
+.input-wrap > i { position: absolute; right: 13px; width: 17px; height: 17px; color: var(--gray-400); pointer-events: none; }
+.input-wrap:focus-within > i { color: var(--green); }
+.fi {
+  width: 100%; padding: 13px 44px 13px 14px;
+  border: 1.5px solid var(--gray-200); border-radius: 12px;
+  font-family: 'Tajawal',sans-serif; font-size: 14px; font-weight: 500;
+  color: var(--gray-900); background: var(--gray-50); outline: none; transition: all 0.2s;
+}
+.fi:focus { border-color: var(--green); background: white; box-shadow: 0 0 0 4px rgba(4,85,58,0.08); }
+.fi::placeholder { color: var(--gray-400); font-weight: 400; }
+.fi.code-fi { letter-spacing: 2px; font-weight: 900; font-size: 16px; text-transform: uppercase; }
+
+.err-alert {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 12px; margin-bottom: 14px;
+  background: #fef2f2; color: var(--danger); border: 1px solid #fecaca;
+  font-size: 13px; font-weight: 600;
+}
+.err-alert i { width: 17px; height: 17px; flex-shrink: 0; }
+
+.btn-enter {
+  width: 100%; padding: 14px; border-radius: 12px;
+  background: var(--green); color: white; border: none;
+  font-family: 'Tajawal',sans-serif; font-size: 15px; font-weight: 800;
+  cursor: pointer; transition: all 0.25s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 6px 20px rgba(4,85,58,0.2);
+}
+.btn-enter:hover:not(:disabled) { background: var(--green-dark); }
+.btn-enter:active { transform: scale(0.98); }
+.btn-enter:disabled { opacity: 0.65; cursor: not-allowed; }
+.btn-enter i { width: 18px; height: 18px; }
+.btn-enter .spin-ic {
+  display: none; width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.3); border-top-color: white;
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+.btn-enter.loading .btn-text, .btn-enter.loading > i { display: none; }
+.btn-enter.loading .spin-ic { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.lf-foot { text-align: center; margin-top: 20px; font-size: 13px; color: var(--gray-500); }
+.lf-foot a { color: var(--green); font-weight: 700; text-decoration: none; }
+
+/* ══════════════════════════════
+   DASHBOARD SCREEN
+══════════════════════════════ */
+#dash-screen { display: none; flex-direction: column; min-height: 100vh; }
+
+/* Topbar */
+.topbar {
+  background: white; border-bottom: 1px solid var(--gray-200);
+  padding: 0 20px; height: 60px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 40;
+}
+.topbar-brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.topbar-logo  { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+.topbar-name  { font-size: 17px; font-weight: 900; color: var(--gray-900); white-space: nowrap; }
+.topbar-tag   {
+  font-size: 10px; font-weight: 800; letter-spacing: .5px;
+  background: var(--green-light); color: var(--green);
+  padding: 3px 9px; border-radius: 99px; white-space: nowrap; flex-shrink: 0;
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.topbar-av {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--green); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; flex-shrink: 0;
+}
+.topbar-uname { font-size: 13px; font-weight: 700; color: var(--gray-900); }
+.btn-logout {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 12px; border-radius: 9px;
+  background: var(--gray-100); color: var(--gray-700); border: none;
+  font-family: 'Tajawal',sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.btn-logout:hover { background: #fef2f2; color: var(--danger); }
+.btn-logout i { width: 14px; height: 14px; }
+
+/* Hero Banner */
+.hero-banner {
+  background: linear-gradient(135deg, var(--green-mid), var(--green));
+  padding: 24px 20px; position: relative; overflow: hidden;
+}
+.hero-banner::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+.hero-inner {
+  position: relative; z-index: 1;
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+}
+.hero-left { display: flex; align-items: center; gap: 14px; }
+.hero-av {
+  width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 22px; font-weight: 900;
+}
+.hero-greet { font-size: 12px; color: rgba(255,255,255,0.65); margin-bottom: 3px; }
+.hero-name  { font-size: 18px; font-weight: 900; color: white; }
+.hero-code-pill {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+  padding: 5px 12px; border-radius: 99px; margin-top: 8px; transition: background 0.2s;
+}
+.hero-code-pill:hover { background: rgba(255,255,255,0.18); }
+.hero-code-pill i   { width: 13px; height: 13px; color: var(--gold); }
+.hero-code-pill span { font-size: 13px; font-weight: 900; color: white; letter-spacing: 1px; font-family: monospace; }
+
+.reward-pill {
+  background: rgba(212,168,67,0.15); border: 1.5px solid rgba(212,168,67,0.3);
+  border-radius: 14px; padding: 12px 18px; min-width: 180px;
+}
+.rp-label { font-size: 11px; color: rgba(255,255,255,0.65); margin-bottom: 4px; }
+.rp-value { font-size: 16px; font-weight: 900; color: var(--gold); }
+
+/* ── Content wrapper ── */
+.content-wrap {
+  max-width: 1100px; margin: 0 auto; padding: 20px;
+  width: 100%;
+}
+
+/* Stats */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: white; border-radius: var(--radius); border: 1px solid var(--gray-200);
+  padding: 18px 16px; display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow-sm); transition: all 0.2s;
+}
+.stat-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.sc-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sc-icon i { width: 20px; height: 20px; }
+.sc-icon.green { background: var(--green-light); color: var(--green); }
+.sc-icon.gold  { background: var(--gold-light); color: var(--gold); }
+.sc-icon.blue  { background: #eff6ff; color: #3b82f6; }
+.sc-val { font-size: 22px; font-weight: 900; color: var(--gray-900); }
+.sc-lbl { font-size: 12px; color: var(--gray-500); font-weight: 600; margin-top: 2px; }
+
+/* Reward banner */
+.reward-bar-inner {
+  display: none; align-items: center; gap: 14px;
+  background: var(--gold-light); border: 1.5px solid rgba(212,168,67,0.35);
+  border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px;
+}
+.reward-bar-icon {
+  width: 42px; height: 42px; border-radius: 12px; background: var(--gold);
+  color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.reward-bar-icon i { width: 20px; height: 20px; }
+.reward-bar-text .rbl { font-size: 12px; font-weight: 800; color: #92400e; }
+.reward-bar-text .rbv { font-size: 15px; font-weight: 900; color: #b45309; margin-top: 2px; }
+.reward-bar-note { margin-right: auto; text-align: center; background: rgba(212,168,67,0.15); border-radius: 10px; padding: 8px 14px; flex-shrink: 0; }
+.reward-bar-note .rl { font-size: 11px; color: #92400e; font-weight: 700; }
+.reward-bar-note .rv { font-size: 12px; color: #b45309; font-weight: 800; }
+
+/* Main grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 18px;
+}
+.card {
+  background: white; border-radius: var(--radius);
+  border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--gray-100);
+}
+.card-title { font-size: 14px; font-weight: 800; color: var(--gray-900); display: flex; align-items: center; gap: 8px; }
+.card-title i { width: 17px; height: 17px; color: var(--green); }
+.card-badge {
+  background: var(--green-light); color: var(--green);
+  font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 99px;
+}
+
+/* Table */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 14px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200);
+  font-size: 11px; font-weight: 700; color: var(--gray-500); text-align: right; white-space: nowrap;
+}
+tbody td {
+  padding: 13px 14px; border-bottom: 1px solid var(--gray-100);
+  font-size: 13px; color: var(--gray-800); vertical-align: middle;
+}
+tbody tr:hover td { background: var(--gray-50); }
+tbody tr:last-child td { border-bottom: none; }
+
+.store-av {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--green-light); color: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; flex-shrink: 0;
+}
+.store-av.qualified { background: linear-gradient(135deg, var(--gold), #f0c84a); color: white; }
+
+.badge-gold { display: inline-flex; align-items: center; gap: 4px; background: var(--gold-light); color: #92681a; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; }
+.badge-gray { display: inline-flex; align-items: center; gap: 4px; background: var(--gray-100); color: var(--gray-500); padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.badge-gold i, .badge-gray i { width: 11px; height: 11px; }
+
+.empty-state { text-align: center; padding: 44px 20px; color: var(--gray-400); }
+.empty-state i { width: 44px; height: 44px; margin: 0 auto 12px; opacity: 0.3; display: block; }
+.empty-state p { font-size: 14px; font-weight: 700; color: var(--gray-600); margin-bottom: 4px; }
+.empty-state small { font-size: 12px; color: var(--gray-400); }
+
+/* Link block */
+.link-block {
+  display: flex; gap: 8px; align-items: center;
+  background: var(--gray-50); border: 1.5px solid var(--gray-200);
+  border-radius: 11px; padding: 10px 12px; margin: 14px 16px 6px;
+}
+.link-text {
+  flex: 1; min-width: 0; font-size: 12px; color: var(--gray-700);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  direction: ltr; font-weight: 600;
+}
+.btn-copy {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  padding: 8px 14px; border-radius: 9px;
+  background: var(--green); color: white; border: none;
+  font-family: 'Tajawal',sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.btn-copy:hover { background: var(--green-dark); }
+.btn-copy i { width: 14px; height: 14px; }
+.link-hint {
+  font-size: 11px; color: var(--gray-400);
+  padding: 0 16px 14px; display: flex; align-items: center; gap: 5px;
+}
+.link-hint i { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* QR */
+.qr-inner { padding: 18px; display: flex; flex-direction: column; align-items: center; }
+.qr-frame {
+  border: 3px solid var(--green-light); border-radius: 16px;
+  padding: 10px; background: white; box-shadow: 0 4px 16px rgba(4,85,58,0.1);
+  position: relative;
+}
+.qr-logo-ov {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 42px; height: 42px; background: var(--green); border-radius: 10px;
+  border: 3px solid white;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.qr-code-label { font-size: 15px; font-weight: 900; color: var(--green); letter-spacing: 2px; margin: 12px 0 3px; }
+.qr-hint-text  { font-size: 11px; color: var(--gray-400); margin-bottom: 14px; }
+.qr-btns { display: flex; gap: 8px; width: 100%; }
+.qb {
+  flex: 1; padding: 10px; border-radius: 10px;
+  font-family: 'Tajawal',sans-serif; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  text-decoration: none; cursor: pointer; border: none; transition: all 0.2s;
+}
+.qb i { width: 15px; height: 15px; }
+.qb-dl { background: var(--green); color: white; }
+.qb-dl:hover { background: var(--green-dark); }
+.qb-wa { background: #25d366; color: white; }
+.qb-wa:hover { background: #1db954; }
+
+/* Toast */
+.toasts { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; width: 90%; max-width: 340px; }
+.tst {
+  background: var(--gray-900); color: white;
+  padding: 11px 18px; border-radius: 12px;
+  font-size: 14px; font-weight: 700; width: 100%; text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  animation: tIn .3s cubic-bezier(0.4,0,0.2,1);
+}
+.tst.ok { background: var(--success); }
+.tst.er { background: var(--danger); }
+@keyframes tIn { from { opacity:0; transform:translateY(10px) scale(0.96); } to { opacity:1; transform:none; } }
+
+/* ══════════════════════════════
+   RESPONSIVE — TABLET
+══════════════════════════════ */
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ══════════════════════════════
+   RESPONSIVE — PHONE (≤ 768px)
+══════════════════════════════ */
+@media (max-width: 768px) {
+  /* Login */
+  .ls-art  { display: none; }
+  .ls-form { width: 100%; min-width: 0; padding: 36px 24px; min-height: 100vh; }
+
+  /* Topbar */
+  .topbar { padding: 0 16px; height: 56px; }
+  .topbar-name { font-size: 15px; }
+  .topbar-uname { display: none; }
+  .btn-logout span { display: none; }
+  .btn-logout { padding: 7px 10px; }
+
+  /* Hero */
+  .hero-banner { padding: 20px 16px; }
+  .hero-name { font-size: 16px; }
+  .hero-av   { width: 46px; height: 46px; font-size: 18px; }
+  .reward-pill {
+    min-width: 0; flex: 1;
+    padding: 10px 14px;
+  }
+  .rp-value { font-size: 14px; }
+
+  /* Content */
+  .content-wrap { padding: 14px 14px; }
+
+  /* Stats — 2 columns on phone */
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stats-row .stat-card:last-child { grid-column: 1 / -1; }
+  .stat-card { padding: 14px 12px; gap: 10px; }
+  .sc-icon { width: 38px; height: 38px; border-radius: 10px; }
+  .sc-icon i { width: 17px; height: 17px; }
+  .sc-val { font-size: 20px; }
+  .sc-lbl { font-size: 11px; }
+
+  /* Reward bar */
+  .reward-bar-inner { flex-wrap: wrap; gap: 10px; }
+  .reward-bar-note  { margin-right: 0; }
+
+  /* Table — hide less critical columns */
+  .col-phone, .col-date { display: none; }
+
+  /* QR compact */
+  .qr-inner { padding: 14px; }
+}
+
+/* ══════════════════════════════
+   RESPONSIVE — SMALL PHONE (≤ 480px)
+══════════════════════════════ */
+@media (max-width: 480px) {
+  .hero-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .reward-pill { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+  .rp-label { margin-bottom: 0; }
+  .lf-h { font-size: 22px; }
+  .content-wrap { padding: 12px; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════ LOGIN ══════ -->
+<div id="login-screen">
+  <div class="ls-art">
+    <div class="ls-grid"></div>
+    <div class="ls-blob"></div>
+    <div class="ls-content">
+      <div class="ls-logo"><img src="../assets/logo-mark-white.png" alt="وجيز"></div>
+      <h1 class="ls-title">لوحة <span>المسوق</span></h1>
+      <p class="ls-sub">تتبع إحالاتك وتابع أداءك لحظة بلحظة مع منصة وجيز</p>
+      <div class="ls-perks">
+        <div class="ls-perk"><i data-lucide="store"></i> متاجرك المسجَّلة</div>
+        <div class="ls-perk"><i data-lucide="gift"></i> مكافآتك ونقاطك</div>
+        <div class="ls-perk"><i data-lucide="qr-code"></i> QR Code الخاص بك</div>
+        <div class="ls-perk"><i data-lucide="link-2"></i> رابط الدعوة الشخصي</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ls-form">
+    <div class="lf-inner">
+      <div class="lf-logo-row">
+        <img class="lf-logo-mark" src="../assets/logo-mark-white.png" alt="وجيز">
+        <span class="lf-logo-name">وجيز</span>
+      </div>
+      <h2 class="lf-h">دخول المسوق</h2>
+      <p class="lf-sub">أدخل رقم هاتفك وكود دعوتك لعرض لوحتك وإحصائياتك</p>
+
+      <div id="login-err"></div>
+
+      <div class="form-group">
+        <label class="form-label">رقم الهاتف</label>
+        <div class="input-wrap">
+          <i data-lucide="phone"></i>
+          <input class="fi" id="l-phone" type="tel" placeholder="09XXXXXXXX" dir="ltr" autocomplete="tel">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">كود الدعوة الخاص بك</label>
+        <div class="input-wrap">
+          <i data-lucide="key"></i>
+          <input class="fi code-fi" id="l-code" type="text" placeholder="WJZ-XXXX" dir="ltr"
+                 autocomplete="off" onkeypress="if(event.key==='Enter') doLogin()">
+        </div>
+      </div>
+
+      <button class="btn-enter" id="login-btn" onclick="doLogin()">
+        <span class="btn-text">دخول للوحتي</span>
+        <i data-lucide="arrow-left"></i>
+        <div class="spin-ic"></div>
+      </button>
+
+      <div class="lf-foot">ما عندك حساب؟ <a href="../register.html">سجّل كمسوق</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ DASHBOARD ══════ -->
+<div id="dash-screen">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <img src="../assets/logo-mark-white.png" alt="وجيز" class="topbar-logo">
+      <span class="topbar-name">وجيز</span>
+      <span class="topbar-tag">المسوّقون</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-av" id="tb-av">م</div>
+      <span class="topbar-uname" id="tb-name">...</span>
+      <button class="btn-logout" onclick="doLogout()">
+        <i data-lucide="log-out"></i>
+        <span>خروج</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <div class="hero-banner">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-av" id="hero-av">م</div>
+        <div>
+          <div class="hero-greet">أهلاً وسهلاً،</div>
+          <div class="hero-name" id="hero-name">...</div>
+          <div class="hero-code-pill" onclick="copyCode()">
+            <i data-lucide="fingerprint"></i>
+            <span id="hero-code">WJZ-????</span>
+            <i data-lucide="copy"></i>
+          </div>
+        </div>
+      </div>
+      <div class="reward-pill" id="reward-pill" style="display:none;">
+        <div class="rp-label">مكافأتك لكل متجر مؤهَّل</div>
+        <div class="rp-value" id="reward-val">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-wrap">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="sc-icon green"><i data-lucide="store"></i></div>
+        <div><div class="sc-val" id="st-total">0</div><div class="sc-lbl">متجر مسجَّل</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon gold"><i data-lucide="gift"></i></div>
+        <div>
+          <div class="sc-val" id="st-qualified" style="color:#b8922f;">0</div>
+          <div class="sc-lbl" style="color:#b8922f;font-weight:700;">متجر مؤهَّل للمكافأة</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-icon blue"><i data-lucide="package"></i></div>
+        <div><div class="sc-val" id="st-orders">0</div><div class="sc-lbl">إجمالي الأوردرات</div></div>
+      </div>
+    </div>
+
+    <!-- Reward Bar -->
+    <div class="reward-bar-inner" id="reward-bar">
+      <div class="reward-bar-icon"><i data-lucide="gift"></i></div>
+      <div class="reward-bar-text">
+        <div class="rbl">مكافأتك لكل متجر مؤهَّل</div>
+        <div class="rbv" id="reward-bar-val">—</div>
+      </div>
+      <div class="reward-bar-note">
+        <div class="rl">المتجر مؤهَّل عند</div>
+        <div class="rv">أول أوردر مكتمل</div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+
+      <!-- Referrals Table -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i data-lucide="store"></i> المتاجر المسجَّلة عبرك</div>
+          <span class="card-badge" id="refs-count">0 متجر</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>المتجر</th>
+                <th>صاحب المتجر</th>
+                <th class="col-phone">الهاتف</th>
+                <th>الأوردرات</th>
+                <th class="col-date">التاريخ</th>
+              </tr>
+            </thead>
+            <tbody id="refs-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Invite Link Card -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i data-lucide="link-2"></i> رابط الدعوة</div>
+          </div>
+          <div class="link-block">
+            <div class="link-text" id="my-link">...</div>
+            <button class="btn-copy" onclick="copyLink()">
+              <i data-lucide="copy"></i> نسخ
+            </button>
+          </div>
+          <div class="link-hint">
+            <i data-lucide="info"></i>
+            كل متجر يُسجَّل من هذا الرابط يُحسب باسمك تلقائياً
+          </div>
+        </div>
+
+        <!-- QR Code Card -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i data-lucide="qr-code"></i> QR Code</div>
+            <span style="font-size:11px;color:var(--gray-400);font-weight:600;">اطبع أو شارك</span>
+          </div>
+          <div class="qr-inner">
+            <div class="qr-frame">
+              <div id="qr-container"></div>
+              <div class="qr-logo-ov">
+              <img id="qr-logo-img" src="../assets/logo-mark-white.png" alt="وجيز" style="width:26px;height:26px;object-fit:contain;display:block;">
+            </div>
+            </div>
+            <div class="qr-code-label" id="qr-code-lbl">WJZ-????</div>
+            <div class="qr-hint-text">وجيز — نظام الدعوات</div>
+            <div class="qr-btns">
+              <button class="qb qb-dl" onclick="downloadQR()">
+                <i data-lucide="download"></i> تحميل
+              </button>
+              <a class="qb qb-wa" id="wa-btn" href="#" target="_blank">
+                <i data-lucide="message-circle"></i> واتساب
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right column -->
+    </div><!-- /main-grid -->
+
+  </div><!-- /content-wrap -->
+</div><!-- /dash-screen -->
+
+<div class="toasts" id="toasts"></div>
+
+<script src="../js/app.js"></script>
+<script>
+let myCode = '';
+const API = 'https://wajeezsd.com/api';
+
+lucide.createIcons();
+
+/* ── Login ── */
+async function doLogin() {
+  const phone  = document.getElementById('l-phone').value.trim();
+  const code   = document.getElementById('l-code').value.trim().toUpperCase();
+  const errDiv = document.getElementById('login-err');
+  const btn    = document.getElementById('login-btn');
+
+  errDiv.innerHTML = '';
+  if (!phone || !code) { showLoginErr('أدخل رقم الهاتف وكود الدعوة'); return; }
+
+  btn.disabled = true; btn.classList.add('loading');
+  try {
+    const data = await callApi('/referral/marketer-login', {
+      method: 'POST',
+      body: JSON.stringify({ phone, referralCode: code })
+    });
+    renderDash(data);
+  } catch(e) {
+    showLoginErr(e.message || 'بيانات غير صحيحة');
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+}
+
+function showLoginErr(msg) {
+  const errDiv = document.getElementById('login-err');
+  errDiv.innerHTML = `<div class="err-alert"><i data-lucide="alert-circle"></i> ${msg}</div>`;
+  lucide.createIcons({ root: errDiv });
+}
+
+/* ── Render Dashboard ── */
+function renderDash(data) {
+  document.getElementById('login-screen').style.display = 'none';
+  const dash = document.getElementById('dash-screen');
+  dash.style.display = 'flex';
+  window.scrollTo(0, 0);
+
+  const m    = data.marketer;
+  myCode     = m.referralCode;
+  const init = (m.name || 'م').charAt(0);
+
+  document.getElementById('tb-av').textContent     = init;
+  document.getElementById('tb-name').textContent   = m.name;
+  document.getElementById('hero-av').textContent   = init;
+  document.getElementById('hero-name').textContent = m.name;
+  document.getElementById('hero-code').textContent = m.referralCode;
+
+  document.getElementById('st-total').textContent     = data.total || 0;
+  document.getElementById('st-qualified').textContent = data.qualifiedStores || 0;
+  document.getElementById('st-orders').textContent    = data.totalQualifiedOrders || 0;
+
+  // Reward
+  if (m.reward && m.reward.trim()) {
+    document.getElementById('reward-val').textContent     = m.reward;
+    document.getElementById('reward-bar-val').textContent = m.reward;
+    document.getElementById('reward-pill').style.display  = 'block';
+    document.getElementById('reward-bar').style.display   = 'flex';
+    lucide.createIcons({ root: document.getElementById('reward-bar') });
+  }
+
+  const link = `${window.location.origin}/invite.html?ref=${m.referralCode}`;
+  document.getElementById('my-link').textContent = link;
+  generateQR(link, m.referralCode);
+
+  const waText = encodeURIComponent(`سجّل متجرك في وجيز من رابطي الخاص\n${link}`);
+  document.getElementById('wa-btn').href = `https://wa.me/?text=${waText}`;
+
+  renderRefs(data.referrals || [], data.total || 0);
+  lucide.createIcons();
+}
+
+/* ── Referrals Table ── */
+function renderRefs(refs, total) {
+  document.getElementById('refs-count').textContent = `${total} متجر`;
+  const tbody = document.getElementById('refs-body');
+  if (!refs.length) {
+    tbody.innerHTML = `<tr><td colspan="5">
+      <div class="empty-state">
+        <i data-lucide="store"></i>
+        <p>لا توجد إحالات بعد</p>
+        <small>شارك رابطك وابدأ كسب الإحالات</small>
+      </div></td></tr>`;
+    lucide.createIcons({ root: tbody }); return;
+  }
+  tbody.innerHTML = refs.map(r => {
+    const q   = r.qualifiedOrders || 0;
+    const isQ = q > 0;
+    const badge = isQ
+      ? `<span class="badge-gold"><i data-lucide="star"></i>${q} أوردر</span>`
+      : `<span class="badge-gray"><i data-lucide="clock"></i>لا أوردرات</span>`;
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:10px;">
+        <div class="store-av ${isQ ? 'qualified' : ''}">${escapeHtml((r.businessName||'م').charAt(0))}</div>
+        <div>
+          <div style="font-weight:700;font-size:13px;">${escapeHtml(r.businessName||'—')}</div>
+          ${isQ ? `<div style="font-size:11px;color:#b8922f;font-weight:700;">مؤهَّل للمكافأة</div>` : ''}
+        </div>
+      </div></td>
+      <td>${escapeHtml(r.ownerName||'—')}</td>
+      <td class="col-phone" dir="ltr" style="color:var(--gray-500);">${escapeHtml(r.phone||'—')}</td>
+      <td>${badge}</td>
+      <td class="col-date" style="color:var(--gray-400);font-size:12px;">${fmtDate(r.createdAt)}</td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons({ root: tbody });
+}
+
+/* ── QR ── */
+function generateQR(link, code) {
+  document.getElementById('qr-container').innerHTML = '';
+  const size = window.innerWidth <= 480 ? 160 : 180;
+  new QRCode(document.getElementById('qr-container'), {
+    text: link, width: size, height: size,
+    colorDark: '#04553A', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+  document.getElementById('qr-code-lbl').textContent = code;
+}
+
+function downloadQR() {
+  const qrEl = document.querySelector('#qr-container canvas') || document.querySelector('#qr-container img');
+  if (!qrEl) { toast('QR غير جاهز', 'er'); return; }
+  const PAD=24, W=240, qS=W-PAD*2, H=qS+PAD*2+48;
+  const fc = document.createElement('canvas'); fc.width=W; fc.height=H;
+  const ctx = fc.getContext('2d');
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.roundRect(0,0,W,H,16); ctx.fill();
+  ctx.strokeStyle='#04553A'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.roundRect(2,2,W-4,H-4,14); ctx.stroke();
+  ctx.drawImage(qrEl, PAD, PAD, qS, qS);
+  const cx=W/2, cy=PAD+qS/2, r=22;
+  // White circle background
+  ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(cx,cy,r+5,0,Math.PI*2); ctx.fill();
+  // Green rounded square
+  ctx.fillStyle='#04553A';
+  ctx.beginPath(); ctx.roundRect(cx-r,cy-r,r*2,r*2,8); ctx.fill();
+  // Draw logo image
+  const logoImg = document.getElementById('qr-logo-img');
+  const lS = r * 1.4; // logo size inside the square
+  ctx.drawImage(logoImg, cx - lS/2, cy - lS/2, lS, lS);
+  // Labels
+  ctx.fillStyle='#04553A'; ctx.font='bold 13px Arial'; ctx.textAlign='center';
+  ctx.fillText(myCode, W/2, qS+PAD+18);
+  ctx.fillStyle='#9aa3af'; ctx.font='10px Arial';
+  ctx.fillText('wajeezsd.com', W/2, qS+PAD+34);
+  const a=document.createElement('a'); a.download=`wajeez-qr-${myCode}.png`; a.href=fc.toDataURL('image/png'); a.click();
+  toast('تم تحميل QR Code','ok');
+}
+
+/* ── Actions ── */
+function copyLink() {
+  navigator.clipboard.writeText(`${window.location.origin}/invite.html?ref=${myCode}`)
+    .then(() => toast('تم نسخ الرابط','ok'));
+}
+function copyCode() {
+  navigator.clipboard.writeText(myCode).then(() => toast('تم نسخ الكود','ok'));
+}
+function doLogout() {
+  document.getElementById('dash-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('l-phone').value = '';
+  document.getElementById('l-code').value  = '';
+  myCode = '';
+}
+
+/* ── Helpers ── */
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = `tst ${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ar-SA', { year:'numeric', month:'short', day:'numeric' });
+}
+function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function callApi(endpoint, opts={}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers||{}) };
+  return fetch(`${API}${endpoint}`, { ...opts, headers })
+    .then(r => r.json().then(d => { if (!r.ok) throw new Error(d.message || `خطأ ${r.status}`); return d; }));
+}
+</script>
+</body>
+</html>

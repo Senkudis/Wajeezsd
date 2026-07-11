@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>إدارة المسوقين | وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+/* ── Admin Shell ── */
+.admin-shell { display: flex; min-height: 100vh; }
+.sidebar-logo { display: flex; align-items: center; gap: 10px; }
+.sidebar-logo-img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.sidebar-logo-text { font-size: 16px; font-weight: 800; color: white; line-height: 1; }
+.sidebar-logo-sub  { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+.sidebar-brand { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.nav-section { margin-bottom: 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; }
+.nav-item i.lucide { width: 17px; height: 17px; flex-shrink: 0; }
+
+/* ── Filters ── */
+.filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filter-row .search-wrap { flex: 1; min-width: 200px; }
+.filter-row select.fi { width: 150px; }
+
+/* ── Table extras ── */
+.copy-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 7px;
+  background: var(--gray-100); color: var(--gray-600); border: none;
+  font-family: 'Tajawal', sans-serif; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s;
+}
+.copy-btn:hover { background: var(--green-light); color: var(--green); }
+.copy-btn i { width: 13px; height: 13px; }
+
+.action-cell { display: flex; align-items: center; gap: 6px; }
+
+/* Reward pill */
+.reward-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--gold-light); color: #92681a;
+  border: 1px solid rgba(212,168,67,0.25);
+  padding: 3px 10px; border-radius: 99px;
+  font-size: 12px; font-weight: 700; max-width: 160px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.reward-pill i { width: 12px; height: 12px; flex-shrink: 0; }
+.reward-empty {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--gray-400); font-size: 12px;
+}
+.reward-empty i { width: 12px; height: 12px; }
+
+/* Stats summary bar */
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* Status indicator dot */
+.status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.dot-active   { background: var(--success); }
+.dot-inactive { background: var(--danger); }
+.dot-pending  { background: var(--gold); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader { width: 28px; height: 28px; border: 3px solid var(--green-light); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto; }
+@media (max-width: 900px) { .summary-bar { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) {
+  .summary-bar { grid-template-columns: 1fr 1fr; }
+  .filter-row { flex-direction: column; align-items: stretch; }
+  .filter-row select.fi { width: 100%; }
+}
+@media (max-width: 480px) { .summary-bar { grid-template-columns: 1fr 1fr; } }
+
+/* ── Mobile Cards vs Desktop Table ── */
+.marketers-cards  { display: none; }
+.marketers-table  { display: block; }
+
+@media (max-width: 768px) {
+  .marketers-table  { display: none !important; }
+  .marketers-cards  { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+  .col-date, .col-link { display: none; }
+}
+
+/* ── Marketer Card ── */
+.mk-card {
+  background: white; border: 1px solid var(--gray-200);
+  border-radius: var(--radius); padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: var(--shadow-xs);
+}
+.mk-card-top {
+  display: flex; align-items: center; gap: 12px;
+}
+.mk-card-av {
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  background: var(--green-light); color: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 16px;
+}
+.mk-card-name  { font-size: 14px; font-weight: 800; color: var(--gray-900); }
+.mk-card-phone { font-size: 12px; color: var(--gray-500); direction: ltr; margin-top: 2px; }
+.mk-card-badge-wrap { margin-right: auto; flex-shrink: 0; }
+.mk-card-meta {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mk-meta-item {
+  background: var(--gray-50); border-radius: 9px; padding: 8px 10px;
+}
+.mk-meta-lbl { font-size: 10px; font-weight: 700; color: var(--gray-400); margin-bottom: 3px; letter-spacing:.3px; }
+.mk-meta-val { font-size: 13px; font-weight: 700; color: var(--gray-800); display: flex; align-items: center; gap: 5px; }
+.mk-meta-val i { width: 12px; height: 12px; flex-shrink: 0; }
+.mk-card-actions {
+  display: flex; gap: 7px; flex-wrap: wrap;
+}
+.mk-card-actions .btn { flex: 1; justify-content: center; min-width: 0; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="admin-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <img src="../assets/logo-mark-white.png" alt="وجيز" class="sidebar-logo-img">
+        <div>
+          <div class="sidebar-logo-text">وجيز</div>
+          <div class="sidebar-logo-sub">نظام الإحالات</div>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">الإدارة</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> لوحة التحكم</a>
+        <a href="marketers.html" class="nav-item active"><i data-lucide="users"></i> المسوّقون</a>
+        <a href="pending.html"   class="nav-item"><i data-lucide="clock"></i> طلبات المسوّقين<span class="nav-badge" id="pendingBadge" style="display:none;"></span></a>
+        <a href="referrals.html" class="nav-item"><i data-lucide="link-2"></i> الإحالات</a>
+        <a href="rewards.html"   class="nav-item"><i data-lucide="gift"></i> المكافآت</a>
+        <a href="settings.html"  class="nav-item"><i data-lucide="settings"></i> الإعدادات</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">عام</div>
+        <a href="../index.html" class="nav-item"><i data-lucide="home"></i> الرئيسية</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="nav-item" id="logoutBtn" style="width:100%;color:rgba(255,255,255,0.6);">
+        <i data-lucide="log-out"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="mobile-menu-btn" id="mobileMenuBtn"><i data-lucide="menu"></i></button>
+      <div class="topbar-left">
+        <div class="topbar-title">المسوّقون</div>
+        <div class="topbar-sub">إدارة المسوقين والمكافآت</div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="refreshBtn" title="تحديث"><i data-lucide="refresh-cw"></i></button>
+        <button class="btn btn-ghost btn-sm" onclick="doExportCSV()">
+          <i data-lucide="download"></i> <span class="btn-label">تصدير CSV</span>
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+          <i data-lucide="user-plus"></i> <span class="btn-label">إضافة مسوق</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="page-body">
+
+      <!-- Summary Stats -->
+      <div class="summary-bar" id="summaryBar">
+        <div class="stat-card"><div class="stat-icon green"><i data-lucide="users"></i></div><div><div class="stat-val" id="s-total">—</div><div class="stat-lbl">إجمالي المسوقين</div></div></div>
+        <div class="stat-card"><div class="stat-icon green"><i data-lucide="user-check"></i></div><div><div class="stat-val" id="s-active">—</div><div class="stat-lbl">نشطون</div></div></div>
+        <div class="stat-card"><div class="stat-icon gold"><i data-lucide="clock"></i></div><div><div class="stat-val" id="s-pending">—</div><div class="stat-lbl">في الانتظار</div></div></div>
+        <div class="stat-card"><div class="stat-icon red"><i data-lucide="pause-circle"></i></div><div><div class="stat-val" id="s-inactive">—</div><div class="stat-lbl">موقوف</div></div></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card" style="margin-bottom:16px; padding:14px 18px;">
+        <div class="filter-row">
+          <div class="search-wrap">
+            <i data-lucide="search"></i>
+            <input type="text" class="search-input" id="searchInput" placeholder="ابحث بالاسم أو الهاتف أو الكود..." oninput="filterMarketers()">
+          </div>
+          <select class="fi" id="statusFilter" onchange="filterMarketers()">
+            <option value="">كل الحالات</option>
+            <option value="active">نشط</option>
+            <option value="inactive">موقوف</option>
+            <option value="pending">معلق</option>
+          </select>
+          <select class="fi" id="rewardFilter" onchange="filterMarketers()" style="width:140px;">
+            <option value="">كل المكافآت</option>
+            <option value="has">لديه مكافأة</option>
+            <option value="none">بدون مكافأة</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table (desktop) + Cards (mobile) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i data-lucide="users"></i> قائمة المسوقين</div>
+          <span class="badge badge-green" id="countBadge">0 مسوق</span>
+        </div>
+        <!-- Desktop Table -->
+        <div class="table-wrap marketers-table">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>المسوق</th>
+                <th>رقم الهاتف</th>
+                <th>كود الدعوة</th>
+                <th class="col-link">رابط الدعوة</th>
+                <th>الإحالات</th>
+                <th>المكافأة</th>
+                <th>الحالة</th>
+                <th class="col-date">تاريخ التسجيل</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="marketersTbody">
+              <tr><td colspan="9" style="text-align:center;padding:52px;">
+                <div class="loader"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Mobile Cards -->
+        <div class="marketers-cards" id="marketersCards"></div>
+      </div>
+
+    </div><!-- /page-body -->
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: إضافة مسوق
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">إضافة مسوق جديد</div>
+      <button class="modal-close" onclick="closeModal('addModal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="addAlert"></div>
+      <div class="form-group">
+        <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+        <div class="input-wrap">
+          <i class="fi-icon" data-lucide="user"></i>
+          <input type="text" class="fi has-icon" id="addName" placeholder="محمد أحمد">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">رقم الهاتف <span class="required">*</span></label>
+        <div class="input-wrap">
+          <i class="fi-icon" data-lucide="phone"></i>
+          <input type="tel" class="fi has-icon" id="addPhone" placeholder="09XXXXXXXX" dir="ltr">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات (اختياري)</label>
+        <textarea class="fi" id="addNotes" rows="2" placeholder="ملاحظات..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">إلغاء</button>
+      <button class="btn btn-primary" id="addBtn" onclick="addMarketer()">
+        <i data-lucide="user-plus"></i>
+        <span class="btn-label">إضافة وتفعيل</span>
+        <div class="btn-spinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: تعديل بيانات المسوق
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">تعديل بيانات المسوق</div>
+      <button class="modal-close" onclick="closeModal('editModal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="editAlert"></div>
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+        <div class="input-wrap">
+          <i class="fi-icon" data-lucide="user"></i>
+          <input type="text" class="fi has-icon" id="editName">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">رقم الهاتف <span class="required">*</span></label>
+        <div class="input-wrap">
+          <i class="fi-icon" data-lucide="phone"></i>
+          <input type="tel" class="fi has-icon" id="editPhone" dir="ltr">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظات</label>
+        <textarea class="fi" id="editNotes" rows="2" placeholder="ملاحظات..."></textarea>
+      </div>
+      <hr class="divider">
+      <div class="form-group">
+        <label class="form-label">
+          <i data-lucide="gift" style="width:14px;height:14px;display:inline;vertical-align:middle;color:var(--gold);"></i>
+          المكافأة
+        </label>
+        <div class="input-wrap">
+          <i class="fi-icon" data-lucide="tag"></i>
+          <input type="text" class="fi has-icon" id="editReward" placeholder="مثال: 500 جنيه لكل متجر مؤهَّل">
+        </div>
+        <div class="field-hint">ما يُعرض للمسوق كمكافأة نصية — اتركه فارغاً إن لم يكن لديه مكافأة خاصة</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('editModal')">إلغاء</button>
+      <button class="btn btn-primary" id="editBtn" onclick="saveEdit()">
+        <i data-lucide="save"></i>
+        <span class="btn-label">حفظ التعديلات</span>
+        <div class="btn-spinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: المكافأة فقط (سريع)
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="rewardModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">تعديل مكافأة — <span id="rewardModalName" style="color:var(--green);"></span></div>
+      <button class="modal-close" onclick="closeModal('rewardModal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="rewardAlert"></div>
+      <input type="hidden" id="rewardId">
+
+      <!-- Current reward display -->
+      <div id="currentRewardBox" style="background:var(--gold-light);border:1px solid rgba(212,168,67,0.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:none;">
+        <div style="font-size:11px;font-weight:700;color:#92681a;margin-bottom:4px;">المكافأة الحالية</div>
+        <div style="font-size:14px;font-weight:700;color:#78350f;" id="currentRewardText"></div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">نص المكافأة الجديدة</label>
+        <div class="input-wrap">
+          <i class="fi-icon" data-lucide="tag"></i>
+          <input type="text" class="fi has-icon" id="rewardInput" placeholder="مثال: 500 جنيه لكل متجر مؤهَّل">
+        </div>
+        <div class="field-hint">اتركه فارغاً لحذف المكافأة الحالية</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('rewardModal')">إلغاء</button>
+      <button class="btn btn-gold" id="rewardBtn" onclick="saveReward()">
+        <i data-lucide="gift"></i>
+        <span class="btn-label">حفظ المكافأة</span>
+        <div class="btn-spinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: إحالات المسوق
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="refModal">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <div class="modal-title">إحالات — <span id="refModalName" style="color:var(--green);"></span></div>
+      <button class="modal-close" onclick="closeModal('refModal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="refModalBody" style="padding:20px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: تأكيد الحذف
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">تأكيد الحذف</div>
+      <button class="modal-close" onclick="closeModal('deleteModal')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:10px 0;">
+        <div style="width:52px;height:52px;background:var(--danger-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <i data-lucide="trash-2" style="width:24px;height:24px;color:var(--danger);"></i>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:var(--gray-900);margin-bottom:8px;">حذف المسوق نهائياً؟</div>
+        <div style="font-size:13px;color:var(--gray-500);line-height:1.65;">
+          سيتم حذف <strong id="deleteModalName" style="color:var(--danger);"></strong> وجميع بياناته بشكل نهائي. هذا الإجراء لا يمكن التراجع عنه.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <input type="hidden" id="deleteId">
+      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">إلغاء</button>
+      <button class="btn btn-danger-outline" id="deleteBtn" onclick="confirmDelete()">
+        <i data-lucide="trash-2"></i>
+        <span class="btn-label">نعم، احذف</span>
+        <div class="btn-spinner" style="border-color:rgba(239,68,68,0.3);border-top-color:var(--danger);"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+<script src="../js/app.js"></script>
+<script>
+lucide.createIcons();
+
+let allMarketers = [];
+
+// ── Auth & Navigation ──
+if (!Auth.getToken()) { window.location.replace('login.html'); }
+document.getElementById('mobileMenuBtn').onclick = () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('open');
+};
+document.getElementById('sidebarBackdrop').onclick = () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('open');
+};
+document.getElementById('logoutBtn').onclick = () => { Auth.clearSession(); window.location.replace('login.html'); };
+document.getElementById('refreshBtn').onclick = loadMarketers;
+
+// ── Load Data ──
+async function loadMarketers() {
+  const btn = document.getElementById('refreshBtn');
+  btn.innerHTML = '<i data-lucide="loader-2" style="width:16px;height:16px;animation:spin .7s linear infinite;"></i>';
+  lucide.createIcons({ root: btn });
+  try {
+    allMarketers = await apiFetch('/referral/marketers');
+    renderMarketers(allMarketers);
+    updateSummary(allMarketers);
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.innerHTML = '<i data-lucide="refresh-cw"></i>';
+    lucide.createIcons({ root: btn });
+  }
+}
+
+function updateSummary(data) {
+  document.getElementById('s-total').textContent   = data.length;
+  document.getElementById('s-active').textContent  = data.filter(m => m.status === 'active').length;
+  document.getElementById('s-pending').textContent = data.filter(m => m.status === 'pending').length;
+  document.getElementById('s-inactive').textContent= data.filter(m => m.status === 'inactive').length;
+}
+
+// ── Render Table + Mobile Cards ──
+function renderMarketers(data) {
+  const tbody = document.getElementById('marketersTbody');
+  const cards = document.getElementById('marketersCards');
+  document.getElementById('countBadge').textContent = `${data.length} مسوق`;
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+      <i data-lucide="users"></i><h3>لا يوجد مسوقون</h3><p>لا توجد نتائج تطابق البحث</p>
+    </div></td></tr>`;
+    cards.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--gray-400);"><i data-lucide="users" style="width:40px;height:40px;margin:0 auto 12px;display:block;opacity:.3;"></i><p style="font-size:14px;font-weight:700;">لا يوجد مسوقون</p></div>`;
+    lucide.createIcons({ root: tbody });
+    lucide.createIcons({ root: cards });
+    return;
+  }
+
+  const inviteBase = REFERRAL_SITE_URL + '/invite.html?ref=';
+
+  // ─── Desktop Table Rows ───
+  tbody.innerHTML = data.map(m => {
+    const link = inviteBase + (m.referralCode || '');
+    const statusBadge = {
+      active:   '<span class="badge badge-green"><span class="status-dot dot-active"></span>نشط</span>',
+      inactive: '<span class="badge badge-red"><span class="status-dot dot-inactive"></span>موقوف</span>',
+      pending:  '<span class="badge badge-gold"><span class="status-dot dot-pending"></span>معلق</span>'
+    }[m.status] || '<span class="badge badge-gray">—</span>';
+    const rewardHtml = m.reward
+      ? `<span class="reward-pill" title="${escapeHtml(m.reward)}"><i data-lucide="gift"></i>${escapeHtml(m.reward)}</span>`
+      : `<span class="reward-empty"><i data-lucide="minus"></i>غير محدد</span>`;
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar avatar-green" style="font-size:13px;">${escapeHtml((m.name||'م').charAt(0))}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;">${escapeHtml(m.name||'—')}</div>
+            ${m.notes ? `<div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${escapeHtml(m.notes.slice(0,40))}${m.notes.length>40?'…':''}</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td dir="ltr" style="font-size:13px;color:var(--gray-600);">${escapeHtml(m.phone||'—')}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span class="code-pill">${escapeHtml(m.referralCode||'—')}</span>
+          <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(m.referralCode||'')}','تم نسخ الكود!')"><i data-lucide="copy"></i></button>
+        </div>
+      </td>
+      <td class="col-link">
+        <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(link)}','تم نسخ الرابط!')"><i data-lucide="link-2"></i> نسخ الرابط</button>
+      </td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="showReferrals('${m._id}','${escapeHtml(m.name||'')}')">
+          <i data-lucide="eye"></i> ${m.referralCount||0}
+        </button>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${rewardHtml}
+          <button class="copy-btn" onclick="openRewardModal('${m._id}','${escapeHtml(m.name||'')}','${escapeHtml(m.reward||'')}')" title="تعديل"><i data-lucide="pencil"></i></button>
+        </div>
+      </td>
+      <td>${statusBadge}</td>
+      <td class="col-date" style="font-size:12px;color:var(--gray-400);">${formatDate(m.createdAt)}</td>
+      <td>
+        <div class="action-cell">
+          ${m.status === 'active'
+            ? `<button class="btn btn-ghost btn-sm" onclick="setStatus('${m._id}','inactive')"><i data-lucide="pause-circle"></i> إيقاف</button>`
+            : `<button class="btn btn-primary btn-sm" onclick="setStatus('${m._id}','active')"><i data-lucide="play-circle"></i> تفعيل</button>`}
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal('${m._id}')"><i data-lucide="pencil"></i></button>
+          <button class="btn btn-danger-outline btn-sm" onclick="openDeleteModal('${m._id}','${escapeHtml(m.name||'')}')">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // ─── Mobile Cards ───
+  cards.innerHTML = data.map(m => {
+    const statusBadge = {
+      active:   '<span class="badge badge-green"><span class="status-dot dot-active"></span>نشط</span>',
+      inactive: '<span class="badge badge-red"><span class="status-dot dot-inactive"></span>موقوف</span>',
+      pending:  '<span class="badge badge-gold"><span class="status-dot dot-pending"></span>معلق</span>'
+    }[m.status] || '<span class="badge badge-gray">—</span>';
+    const rewardLabel = m.reward ? escapeHtml(m.reward) : 'غير محدد';
+    const statusToggleBtn = m.status === 'active'
+      ? `<button class="btn btn-ghost btn-sm" onclick="setStatus('${m._id}','inactive')"><i data-lucide="pause-circle"></i> إيقاف</button>`
+      : `<button class="btn btn-primary btn-sm" onclick="setStatus('${m._id}','active')"><i data-lucide="play-circle"></i> تفعيل</button>`;
+    return `<div class="mk-card">
+      <div class="mk-card-top">
+        <div class="mk-card-av">${escapeHtml((m.name||'م').charAt(0))}</div>
+        <div style="min-width:0;flex:1;">
+          <div class="mk-card-name">${escapeHtml(m.name||'—')}</div>
+          <div class="mk-card-phone">${escapeHtml(m.phone||'—')}</div>
+        </div>
+        <div class="mk-card-badge-wrap">${statusBadge}</div>
+      </div>
+      <div class="mk-card-meta">
+        <div class="mk-meta-item">
+          <div class="mk-meta-lbl">كود الدعوة</div>
+          <div class="mk-meta-val">
+            <span class="code-pill" style="font-size:11px;">${escapeHtml(m.referralCode||'—')}</span>
+            <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(m.referralCode||'')}','تم نسخ الكود!')"><i data-lucide="copy"></i></button>
+          </div>
+        </div>
+        <div class="mk-meta-item">
+          <div class="mk-meta-lbl">الإحالات</div>
+          <div class="mk-meta-val">
+            <button class="btn btn-ghost btn-sm" style="padding:3px 8px;" onclick="showReferrals('${m._id}','${escapeHtml(m.name||'')}')">
+              <i data-lucide="eye"></i> ${m.referralCount||0} متجر
+            </button>
+          </div>
+        </div>
+        <div class="mk-meta-item" style="grid-column:1/-1;">
+          <div class="mk-meta-lbl">المكافأة</div>
+          <div class="mk-meta-val" style="justify-content:space-between;">
+            <span style="font-size:12px;color:${m.reward ? '#92681a' : 'var(--gray-400)'}">${rewardLabel}</span>
+            <button class="copy-btn" onclick="openRewardModal('${m._id}','${escapeHtml(m.name||'')}','${escapeHtml(m.reward||'')}')"><i data-lucide="pencil"></i> تعديل</button>
+          </div>
+        </div>
+      </div>
+      <div class="mk-card-actions">
+        ${statusToggleBtn}
+        <button class="btn btn-ghost btn-sm" onclick="openEditModal('${m._id}')"><i data-lucide="pencil"></i> تعديل</button>
+        <button class="btn btn-danger-outline btn-sm" onclick="openDeleteModal('${m._id}','${escapeHtml(m.name||'')}')"><i data-lucide="trash-2"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+
+  lucide.createIcons({ root: tbody });
+  lucide.createIcons({ root: cards });
+}
+
+// ── Filters ──
+function filterMarketers() {
+  const q  = document.getElementById('searchInput').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value;
+  const rw = document.getElementById('rewardFilter').value;
+  renderMarketers(allMarketers.filter(m => {
+    const matchQ  = !q  || (m.name||'').toLowerCase().includes(q) || (m.phone||'').includes(q) || (m.referralCode||'').toLowerCase().includes(q);
+    const matchSt = !st || m.status === st;
+    const matchRw = !rw || (rw === 'has' ? !!m.reward : !m.reward);
+    return matchQ && matchSt && matchRw;
+  }));
+}
+
+// ── Add Marketer ──
+function openAddModal() { openModal('addModal'); }
+async function addMarketer() {
+  const name  = document.getElementById('addName').value.trim();
+  const phone = document.getElementById('addPhone').value.trim();
+  const notes = document.getElementById('addNotes').value.trim();
+  const alertEl = document.getElementById('addAlert');
+  alertEl.innerHTML = '';
+  if (!name || !phone) {
+    alertEl.innerHTML = mkAlert('error', 'الاسم ورقم الهاتف مطلوبان');
+    lucide.createIcons({ root: alertEl }); return;
+  }
+  setBtnLoading('addBtn', true);
+  try {
+    await apiFetch('/referral/marketers', { method:'POST', body: JSON.stringify({ name, phone, notes }) });
+    closeModal('addModal');
+    showToast('تم إضافة المسوق بنجاح', 'success');
+    document.getElementById('addName').value = '';
+    document.getElementById('addPhone').value = '';
+    document.getElementById('addNotes').value = '';
+    await loadMarketers();
+  } catch(e) {
+    alertEl.innerHTML = mkAlert('error', e.message);
+    lucide.createIcons({ root: alertEl });
+  } finally {
+    setBtnLoading('addBtn', false);
+  }
+}
+
+// ── Edit Marketer ──
+function openEditModal(id) {
+  const m = allMarketers.find(x => x._id === id);
+  if (!m) return;
+  document.getElementById('editId').value     = m._id;
+  document.getElementById('editName').value   = m.name   || '';
+  document.getElementById('editPhone').value  = m.phone  || '';
+  document.getElementById('editNotes').value  = m.notes  || '';
+  document.getElementById('editReward').value = m.reward || '';
+  document.getElementById('editAlert').innerHTML = '';
+  openModal('editModal');
+}
+async function saveEdit() {
+  const id     = document.getElementById('editId').value;
+  const name   = document.getElementById('editName').value.trim();
+  const phone  = document.getElementById('editPhone').value.trim();
+  const notes  = document.getElementById('editNotes').value.trim();
+  const reward = document.getElementById('editReward').value.trim();
+  const alertEl = document.getElementById('editAlert');
+  alertEl.innerHTML = '';
+  if (!name || !phone) {
+    alertEl.innerHTML = mkAlert('error', 'الاسم ورقم الهاتف مطلوبان');
+    lucide.createIcons({ root: alertEl }); return;
+  }
+  setBtnLoading('editBtn', true);
+  try {
+    await apiFetch(`/referral/marketers/${id}`, { method:'PATCH', body: JSON.stringify({ name, phone, notes, reward }) });
+    closeModal('editModal');
+    showToast('تم حفظ التعديلات', 'success');
+    await loadMarketers();
+  } catch(e) {
+    alertEl.innerHTML = mkAlert('error', e.message);
+    lucide.createIcons({ root: alertEl });
+  } finally {
+    setBtnLoading('editBtn', false);
+  }
+}
+
+// ── Reward Modal ──
+function openRewardModal(id, name, currentReward) {
+  document.getElementById('rewardId').value   = id;
+  document.getElementById('rewardModalName').textContent = name;
+  document.getElementById('rewardInput').value = currentReward;
+  document.getElementById('rewardAlert').innerHTML = '';
+  const box = document.getElementById('currentRewardBox');
+  if (currentReward) {
+    box.style.display = 'block';
+    document.getElementById('currentRewardText').textContent = currentReward;
+  } else {
+    box.style.display = 'none';
+  }
+  openModal('rewardModal');
+}
+async function saveReward() {
+  const id     = document.getElementById('rewardId').value;
+  const reward = document.getElementById('rewardInput').value.trim();
+  const alertEl = document.getElementById('rewardAlert');
+  alertEl.innerHTML = '';
+  setBtnLoading('rewardBtn', true);
+  try {
+    await apiFetch(`/referral/marketers/${id}/reward`, { method:'PATCH', body: JSON.stringify({ reward }) });
+    closeModal('rewardModal');
+    showToast(reward ? 'تم تحديث المكافأة' : 'تم إزالة المكافأة', 'success');
+    await loadMarketers();
+  } catch(e) {
+    alertEl.innerHTML = mkAlert('error', e.message);
+    lucide.createIcons({ root: alertEl });
+  } finally {
+    setBtnLoading('rewardBtn', false);
+  }
+}
+
+// ── Status Toggle ──
+async function setStatus(id, status) {
+  try {
+    await apiFetch(`/referral/marketers/${id}/status`, { method:'PATCH', body: JSON.stringify({ status }) });
+    showToast(status === 'active' ? 'تم تفعيل المسوق' : 'تم إيقاف المسوق', 'success');
+    await loadMarketers();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ── Delete Marketer ──
+function openDeleteModal(id, name) {
+  document.getElementById('deleteId').value = id;
+  document.getElementById('deleteModalName').textContent = name;
+  openModal('deleteModal');
+}
+async function confirmDelete() {
+  const id = document.getElementById('deleteId').value;
+  setBtnLoading('deleteBtn', true);
+  try {
+    await apiFetch(`/referral/marketers/${id}`, { method:'DELETE' });
+    closeModal('deleteModal');
+    showToast('تم حذف المسوق', 'success');
+    await loadMarketers();
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    setBtnLoading('deleteBtn', false);
+  }
+}
+
+// ── Referrals Modal ──
+async function showReferrals(id, name) {
+  document.getElementById('refModalName').textContent = name;
+  document.getElementById('refModalBody').innerHTML = `<div style="text-align:center;padding:32px;"><div class="loader"></div></div>`;
+  openModal('refModal');
+  try {
+    const refs = await apiFetch(`/referral/marketers/${id}/referrals`);
+    if (!refs.length) {
+      document.getElementById('refModalBody').innerHTML = `<div class="empty-state" style="padding:40px 20px;">
+        <i data-lucide="link-2"></i><h3>لا توجد إحالات</h3><p>لم يُحِل هذا المسوق أي متجر بعد</p>
+      </div>`;
+      lucide.createIcons({ root: document.getElementById('refModalBody') }); return;
+    }
+    document.getElementById('refModalBody').innerHTML = `
+      <div style="padding:12px 16px;background:var(--gray-50);border-bottom:1px solid var(--gray-200);font-size:13px;font-weight:700;color:var(--gray-600);">
+        إجمالي الإحالات: <strong style="color:var(--green);">${refs.length}</strong>
+      </div>
+      <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>المتجر</th><th>صاحب المتجر</th><th>الهاتف</th><th>طلبات مؤهَّلة</th><th>التاريخ</th></tr></thead>
+        <tbody>${refs.map(r => `<tr>
+          <td><strong>${escapeHtml(r.businessName||'—')}</strong></td>
+          <td>${escapeHtml(r.ownerName||'—')}</td>
+          <td dir="ltr" style="font-size:13px;color:var(--gray-500);">${escapeHtml(r.phone||'—')}</td>
+          <td><span class="badge ${r.qualifiedOrders > 0 ? 'badge-green' : 'badge-gray'}">${r.qualifiedOrders||0}</span></td>
+          <td style="font-size:12px;color:var(--gray-400);">${formatDate(r.createdAt)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+  } catch(e) {
+    document.getElementById('refModalBody').innerHTML = `<div style="padding:20px;"><div class="alert alert-error"><i data-lucide="alert-circle"></i>${e.message}</div></div>`;
+    lucide.createIcons({ root: document.getElementById('refModalBody') });
+  }
+}
+
+// ── Modal Helpers ──
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function setBtnLoading(btnId, on) {
+  document.getElementById(btnId).classList.toggle('loading', on);
+  document.getElementById(btnId).disabled = on;
+}
+
+function mkAlert(type, msg) {
+  const icons = { error:'alert-circle', success:'check-circle', info:'info' };
+  return `<div class="alert alert-${type}"><i data-lucide="${icons[type]||'info'}"></i>${msg}</div>`;
+}
+
+// Close modal on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+loadMarketers();
+startPendingPolling();
+
+function doExportCSV() {
+  const rows = allMarketers.map(m => ({
+    '\u0627\u0644\u0627\u0633\u0645':           m.name   || '',
+    '\u0631\u0642\u0645_\u0627\u0644\u0647\u0627\u062a\u0641':     m.phone  || '',
+    '\u0643\u0648\u062f_\u0627\u0644\u062f\u0639\u0648\u0629':    m.referralCode || '',
+    '\u0627\u0644\u062d\u0627\u0644\u0629':          m.status || '',
+    '\u0639\u062f\u062f_\u0627\u0644\u0625\u062d\u0627\u0644\u0627\u062a':   m.referralCount || 0,
+    '\u0627\u0644\u0645\u0643\u0627\u0641\u0623\u0629':         m.reward || '',
+    '\u0627\u0644\u0645\u0644\u0627\u062d\u0638\u0627\u062a':        m.notes  || '',
+    '\u062a\u0627\u0631\u064a\u062e_\u0627\u0644\u062a\u0633\u062c\u064a\u0644':  m.createdAt ? new Date(m.createdAt).toLocaleDateString('ar-SA') : ''
+  }));
+  exportCSV(rows, `\u0627\u0644\u0645\u0633\u0648\u0642\u0648\u0646_${new Date().toISOString().split('T')[0]}.csv`);
+}
+</script>
+</body>
+</html>

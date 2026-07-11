@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سجّل متجرك في وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+    --green:#04553A; --green-dark:#033d2a; --green-light:#e8f5ee;
+    --gold:#D4A843; --gold-light:#fbf6e9;
+    --gray-50:#f8fafc; --gray-100:#f1f5f9; --gray-200:#e2e8f0;
+    --gray-400:#94a3b8; --gray-500:#64748b; --gray-700:#334155; --gray-900:#0f172a;
+    --danger:#ef4444; --success:#10b981;
+    --radius:16px; 
+    --shadow-sm:0 2px 8px rgba(4,85,58,0.06);
+    --shadow-md:0 8px 24px rgba(4,85,58,0.08);
+    --shadow-lg:0 20px 40px rgba(4,85,58,0.12);
+}
+body{
+    font-family:'Tajawal',sans-serif;
+    direction:rtl;
+    background:var(--gray-50);
+    color:var(--gray-900);
+    min-height:100vh;
+    overflow-x:hidden;
+}
+
+/* ── Navbar ── */
+.navbar{
+    background:rgba(255,255,255,0.9);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(0,0,0,0.05);
+    padding:16px 24px;
+    position:sticky; top:0; z-index:50;
+    display:flex; justify-content:space-between; align-items:center;
+}
+.brand-wrap{display:flex;align-items:center;gap:12px;}
+.brand-logo{
+    width:40px; height:40px;
+    background:var(--green);
+    border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    color:white; font-weight:900; font-size:18px;
+    box-shadow:0 4px 12px rgba(4,85,58,0.2);
+}
+.brand-text{display:flex;flex-direction:column;}
+.brand-title{font-size:18px;font-weight:900;color:var(--gray-900);line-height:1.2;}
+.brand-sub{font-size:12px;color:var(--gray-500);font-weight:500;}
+
+.ref-badge{
+    background:var(--gold-light);
+    border:1px solid rgba(212,168,67,0.3);
+    color:var(--gold);
+    padding:6px 14px; border-radius:99px;
+    font-size:12px; font-weight:800;
+    display:flex; align-items:center; gap:6px;
+    display:none;
+}
+.ref-badge i{width:14px;height:14px;}
+
+/* ── Container ── */
+.container{
+    max-width:700px;
+    margin:0 auto;
+    padding:32px 20px 60px;
+}
+
+/* ── Cards & Sections ── */
+.card{
+    background:white;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-md);
+    border:1px solid rgba(0,0,0,0.04);
+    padding:32px;
+    margin-bottom:24px;
+    transition:transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-header{
+    display:flex; align-items:center; gap:12px;
+    margin-bottom:24px;
+    padding-bottom:16px;
+    border-bottom:1px solid var(--gray-100);
+}
+.card-icon{
+    width:40px; height:40px;
+    background:var(--green-light);
+    color:var(--green);
+    border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+}
+.card-title{
+    font-size:18px; font-weight:800; color:var(--gray-900);
+}
+
+/* ── Auth Tabs ── */
+.auth-header{text-align:center;margin-bottom:32px;}
+.auth-header h1{font-size:24px;font-weight:900;color:var(--gray-900);margin-bottom:8px;}
+.auth-header p{font-size:14px;color:var(--gray-500);}
+
+.tabs{
+    display:flex; background:var(--gray-100);
+    padding:4px; border-radius:12px;
+    margin-bottom:28px; position:relative;
+}
+.tab{
+    flex:1; padding:12px;
+    text-align:center; font-size:14px; font-weight:700;
+    color:var(--gray-500); cursor:pointer;
+    border-radius:10px; transition:all 0.3s ease;
+}
+.tab.active{
+    background:white; color:var(--green);
+    box-shadow:var(--shadow-sm);
+}
+
+/* ── Form Inputs ── */
+.form-group{margin-bottom:20px; position:relative;}
+.form-label{
+    display:block; font-size:13px; font-weight:700; 
+    color:var(--gray-700); margin-bottom:8px;
+}
+.input-wrapper{
+    position:relative;
+    display:flex; align-items:center;
+}
+.input-wrapper i.lucide{
+    position:absolute; right:14px;
+    width:18px; height:18px;
+    color:var(--gray-500);
+    transition:color 0.3s ease;
+}
+.form-control{
+    width:100%; padding:14px 44px 14px 14px;
+    border:1.5px solid var(--gray-200); border-radius:12px;
+    font-family:'Tajawal',sans-serif; font-size:14px; font-weight:500;
+    color:var(--gray-900); background:var(--gray-50);
+    outline:none; transition:all 0.2s;
+}
+.form-control:focus{
+    border-color:var(--green);
+    background:white;
+    box-shadow:0 0 0 4px rgba(4,85,58,0.1);
+}
+.form-control:focus + i.lucide, .input-wrapper:focus-within i.lucide {
+    color:var(--green);
+}
+.form-control::placeholder{color:var(--gray-400);font-weight:400;}
+.eye-btn{
+    position:absolute; left:14px;
+    background:none; border:none; cursor:pointer;
+    color:var(--gray-400); display:flex; align-items:center; padding:0;
+}
+.eye-btn:hover{color:var(--gray-600);}
+.eye-btn i{width:18px; height:18px;}
+
+select.form-control{cursor:pointer; padding-right:14px;}
+textarea.form-control{resize:vertical;min-height:100px;}
+
+.otp-row{display:flex;gap:10px;justify-content:center;margin-bottom:20px;direction:ltr;}
+.otp-input{
+    width:50px; height:50px; text-align:center;
+    font-size:24px; font-weight:800; border-radius:12px;
+    border:1.5px solid var(--gray-200); background:var(--gray-50);
+    outline:none; font-family:'Tajawal',sans-serif;
+    color:var(--gray-900); transition:all 0.2s;
+}
+.otp-input:focus{
+    border-color:var(--green); background:white;
+    box-shadow:0 0 0 4px rgba(4,85,58,0.1);
+}
+
+/* Map Select Button */
+.map-selector{
+    width:100%; padding:14px 16px;
+    border:1.5px solid var(--gray-200); border-radius:12px;
+    background:var(--gray-50); cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'Tajawal',sans-serif; font-size:14px; font-weight:600;
+    color:var(--gray-700); transition:all 0.2s;
+}
+.map-selector:hover{border-color:var(--green);background:white;}
+.map-selector.selected{
+    border-color:var(--green); background:var(--green-light); color:var(--green);
+}
+.map-selector .loc-content{display:flex;align-items:center;gap:10px;}
+.map-selector i.lucide{width:18px;height:18px;}
+
+/* ── Upload Area ── */
+.upload-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+}
+.upload-box{
+    border:2px dashed var(--gray-200); border-radius:14px;
+    padding:24px 16px; text-align:center; cursor:pointer;
+    background:var(--gray-50); transition:all 0.2s ease;
+    position:relative; overflow:hidden;
+}
+.upload-box:hover{border-color:var(--green); background:white;}
+.upload-box.has-file{border-color:var(--green); border-style:solid; background:var(--green-light);}
+.upload-icon{
+    width:48px; height:48px; margin:0 auto 12px;
+    background:white; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gray-500); box-shadow:var(--shadow-sm);
+    transition:all 0.3s ease;
+}
+.upload-box:hover .upload-icon{color:var(--green);transform:translateY(-2px);}
+.upload-box.has-file .upload-icon{color:var(--green);background:white;}
+.upload-title{font-size:14px;font-weight:800;color:var(--gray-900);margin-bottom:4px;}
+.upload-sub{font-size:12px;color:var(--gray-500);}
+.upload-preview{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; display:none; border-radius:12px;
+    z-index:1;
+}
+.upload-overlay{
+    position:absolute; inset:0; background:rgba(0,0,0,0.5);
+    color:white; font-size:13px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity 0.2s; z-index:2;
+}
+.upload-box:hover .upload-overlay{opacity:1;}
+
+/* ── Buttons ── */
+.btn{
+    width:100%; padding:15px; border-radius:12px;
+    font-family:'Tajawal',sans-serif; font-size:15px; font-weight:800;
+    border:none; cursor:pointer; transition:all 0.25s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn:active{transform:scale(0.98);}
+.btn-primary{background:var(--green);color:white;}
+.btn-primary:hover{background:var(--green-dark);box-shadow:0 6px 20px rgba(4,85,58,0.2);}
+.btn-gold{background:var(--gold);color:white;}
+.btn-gold:hover{background:#c29938;box-shadow:0 6px 20px rgba(212,168,67,0.3);}
+.btn:disabled{opacity:0.7;cursor:not-allowed;transform:none;}
+.btn i.lucide{width:18px;height:18px;}
+
+/* Spinner */
+.spinner{
+    display:none; width:20px; height:20px;
+    border:3px solid rgba(255,255,255,0.3);
+    border-top-color:white; border-radius:50%;
+    animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.btn.loading .btn-text, .btn.loading i.lucide{display:none;}
+.btn.loading .spinner{display:inline-block;}
+
+/* ── Alerts ── */
+.alert{
+    padding:12px 16px; border-radius:12px;
+    font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px;
+    margin-bottom:20px; animation:fadeIn 0.3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.alert-error{background:#fef2f2;color:var(--danger);border:1px solid #fecaca;}
+.alert-success{background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;}
+.alert i.lucide{width:18px;height:18px;flex-shrink:0;}
+
+/* Terms Checkbox */
+.terms-wrapper{
+    display:flex; align-items:flex-start; gap:12px; margin-bottom:24px;
+    cursor:pointer; padding:16px; background:var(--gray-50);
+    border-radius:12px; border:1px solid var(--gray-200);
+}
+.terms-wrapper input{
+    width:20px; height:20px; accent-color:var(--green); flex-shrink:0; margin-top:2px;
+}
+.terms-text{
+    font-size:13px; color:var(--gray-700); line-height:1.6;
+}
+
+/* ── Google Maps Modal ── */
+#mapModal{
+    position:fixed; inset:0; z-index:100;
+    background:white; display:none; flex-direction:column;
+}
+#mapModal.active{display:flex;}
+.map-top-bar{
+    padding:16px; background:white; border-bottom:1px solid var(--gray-200);
+    display:flex; align-items:center; gap:12px; z-index:10;
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+}
+.map-close-btn{
+    width:44px; height:44px; border-radius:12px; border:none;
+    background:var(--gray-100); color:var(--gray-700);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0; transition:all 0.2s;
+}
+.map-close-btn:hover{background:var(--gray-200);}
+.map-search-box{position:relative; flex:1;}
+.map-search-box input{
+    width:100%; padding:14px 44px 14px 14px;
+    border:1.5px solid var(--gray-200); border-radius:12px;
+    font-family:'Tajawal',sans-serif; font-size:14px; outline:none;
+}
+.map-search-box input:focus{border-color:var(--green);}
+.map-search-box i.lucide{
+    position:absolute; right:14px; top:50%; transform:translateY(-50%);
+    color:var(--gray-400); width:18px; height:18px;
+}
+#map{flex:1; width:100%; position:relative; background:#f0f0f0;}
+#map-results{
+    position:absolute; top:calc(100% + 8px); left:0; right:0;
+    background:white; border-radius:12px; box-shadow:var(--shadow-lg);
+    max-height:250px; overflow-y:auto; z-index:20;
+}
+.map-result-item{
+    padding:14px 16px; border-bottom:1px solid var(--gray-100);
+    cursor:pointer; display:flex; align-items:center; gap:12px; font-size:14px; font-weight:500;
+}
+.map-result-item:hover{background:var(--gray-50);color:var(--green);}
+
+.map-center-pin{
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-100%);
+    z-index:20; pointer-events:none;
+    color:var(--danger); margin-top:-8px;
+    filter:drop-shadow(0 8px 12px rgba(239,68,68,0.4));
+}
+.map-center-pin i.lucide{width:42px;height:42px;fill:var(--danger);}
+
+.map-bottom-sheet{
+    position:absolute; bottom:0; left:0; right:0; z-index:10;
+    background:white; border-radius:24px 24px 0 0;
+    padding:24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    box-shadow:0 -10px 40px rgba(0,0,0,0.1);
+    text-align:center; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+#mapModal.active .map-bottom-sheet{transform:translateY(0);}
+#map-addr-preview{font-size:15px; font-weight:800; color:var(--gray-900); margin-bottom:20px; line-height:1.5;}
+
+/* ── Success State ── */
+.success-card{
+    background:white; border-radius:24px; padding:48px 24px;
+    text-align:center; box-shadow:var(--shadow-lg);
+    animation:scaleIn 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes scaleIn{from{transform:scale(0.95);opacity:0;} to{transform:scale(1);opacity:1;}}
+.success-icon-wrap{
+    width:96px; height:96px; background:var(--green-light);
+    color:var(--green); border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto 24px;
+}
+.success-icon-wrap i.lucide{width:48px;height:48px;}
+
+/* Utils */
+.hidden{display:none !important;}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .container { padding: 24px 16px; margin: 20px auto; }
+    .auth-header h1 { font-size: 26px; }
+    .upload-grid { grid-template-columns: 1fr; }
+    .btn { padding: 12px; font-size: 14px; }
+    .form-control { padding: 12px; font-size: 14px; }
+    .input-wrapper i.lucide { width: 18px; height: 18px; }
+    .otp-input { width: 40px; height: 40px; font-size: 20px; }
+    .success-card { padding: 32px 20px; }
+    .card-title { font-size: 16px; }
+    .brand-title { font-size: 20px; }
+}
+@media (max-width: 480px) {
+    .auth-header h1 { font-size: 22px; }
+    .otp-input { width: 36px; height: 36px; font-size: 18px; }
+    .otp-row { gap: 6px; }
+    .btn-text { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand-wrap">
+        <div class="brand-logo">و</div>
+        <div class="brand-text">
+            <span class="brand-title">وجيز</span>
+            <span class="brand-sub">بوابة التجار</span>
+        </div>
+    </div>
+    <div class="ref-badge" id="ref-chip">
+        <i data-lucide="link"></i>
+        <span id="ref-name-chip"></span>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- ── AUTH SECTION ── -->
+    <div id="auth-section">
+        <div class="auth-header">
+            <h1>أهلاً بك في منصة شركاء وجيز</h1>
+            <p>أنشئ حساباً جديداً أو سجل دخولك للبدء بإنشاء متجرك</p>
+        </div>
+
+        <div class="card" id="auth-forms">
+            <div class="tabs">
+                <div class="tab active" id="tab-login" onclick="switchTab('login')">تسجيل دخول</div>
+                <div class="tab" id="tab-register" onclick="switchTab('register')">إنشاء حساب</div>
+            </div>
+
+            <div id="auth-alert"></div>
+
+            <!-- Register Form (Redirect) -->
+            <div id="register-form" class="hidden">
+                <div style="text-align: center; padding: 40px 20px;">
+                    <div style="width: 64px; height: 64px; background: var(--green-light); color: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                        <i data-lucide="external-link" style="width: 32px; height: 32px;"></i>
+                    </div>
+                    <h3 style="font-size: 18px; font-weight: 800; color: var(--gray-900); margin-bottom: 8px;">إنشاء حساب جديد</h3>
+                    <p style="font-size: 14px; color: var(--gray-500); margin-bottom: 24px; line-height: 1.6;">يتم إنشاء الحسابات الجديدة عبر البوابة الرئيسية لوجيز. اضغط على الزر أدناه للانتقال وإكمال التسجيل.</p>
+                    <a href="https://wajeezsd.com/client-register.html" class="btn btn-primary" style="text-decoration: none;">
+                        <span class="btn-text">الانتقال لصفحة التسجيل</span>
+                        <i data-lucide="arrow-left"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form">
+                <div class="form-group">
+                    <label class="form-label">البريد الإلكتروني أو رقم الهاتف *</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="user"></i>
+                        <input type="text" class="form-control" id="l-identifier" placeholder="أدخل حسابك" dir="ltr">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">كلمة المرور *</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock"></i>
+                        <input type="password" class="form-control" id="l-pass" placeholder="كلمة المرور" style="padding-left:40px;">
+                        <button class="eye-btn" type="button" onclick="togglePwd('l-pass', this)">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="login-btn" onclick="doLogin()">
+                    <span class="btn-text">تسجيل الدخول</span>
+                    <div class="spinner"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- OTP Form (Hidden initially) -->
+        <div class="card hidden" id="otp-form">
+            <h2 style="font-size:18px; font-weight:800; margin-bottom:10px; text-align:center;">تفعيل الحساب</h2>
+            <p style="font-size:13px; color:var(--gray-500); margin-bottom:24px; text-align:center;">أدخل الرمز المكون من 6 أرقام المرسل إليك</p>
+            <div id="otp-alert"></div>
+            <div class="otp-row">
+                <input type="text" maxlength="1" class="otp-input" id="otp1" oninput="focusNext(this, 'otp2')">
+                <input type="text" maxlength="1" class="otp-input" id="otp2" oninput="focusNext(this, 'otp3')" onkeydown="focusPrev(event, this, 'otp1')">
+                <input type="text" maxlength="1" class="otp-input" id="otp3" oninput="focusNext(this, 'otp4')" onkeydown="focusPrev(event, this, 'otp2')">
+                <input type="text" maxlength="1" class="otp-input" id="otp4" oninput="focusNext(this, 'otp5')" onkeydown="focusPrev(event, this, 'otp3')">
+                <input type="text" maxlength="1" class="otp-input" id="otp5" oninput="focusNext(this, 'otp6')" onkeydown="focusPrev(event, this, 'otp4')">
+                <input type="text" maxlength="1" class="otp-input" id="otp6" onkeydown="focusPrev(event, this, 'otp5')">
+            </div>
+            <button class="btn btn-primary" id="otp-btn" onclick="verifyOTP()">
+                <span class="btn-text">تأكيد الرمز</span>
+                <div class="spinner"></div>
+            </button>
+            <div style="text-align:center; margin-top:16px;">
+                <button class="btn btn-ghost" style="padding:10px; font-size:13px;" onclick="resendOTP()" id="resend-btn">
+                    <i data-lucide="refresh-cw"></i> إرسال رمز جديد
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SHOP REGISTRATION SECTION ── -->
+    <div id="shop-section" class="hidden">
+        <div class="auth-header">
+            <h1>أكمل بيانات متجرك</h1>
+            <p>سجل بيانات نشاطك التجاري للبدء في تلقي الطلبات</p>
+        </div>
+
+        <div id="shop-alert"></div>
+
+        <!-- Basic Info -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i data-lucide="store"></i></div>
+                <div class="card-title">بيانات المتجر</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم المتجر / النشاط التجاري *</label>
+                <div class="input-wrapper">
+                    <i data-lucide="type"></i>
+                    <input type="text" class="form-control" id="f-bname" placeholder="اسم مطعمك أو متجرك" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">مجال العمل (التصنيف) *</label>
+                <div class="input-wrapper">
+                    <select class="form-control no-icon" id="f-category" onchange="toggleOtherInput('f-category', 'f-category-other-wrap')" required>
+                        <option value="" disabled selected>اختر مجال عملك...</option>
+                    </select>
+                </div>
+                <div class="input-wrapper hidden" id="f-category-other-wrap" style="margin-top:12px;">
+                    <i data-lucide="edit-3"></i>
+                    <input type="text" class="form-control" id="f-category-other" placeholder="اكتب مجال عملك هنا...">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">وصف المتجر (اختياري)</label>
+                <div class="input-wrapper">
+                    <textarea class="form-control no-icon" id="f-desc" placeholder="نبذة عن المتجر وأهم المنتجات..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i data-lucide="map-pin"></i></div>
+                <div class="card-title">الموقع الجغرافي</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">موقع المتجر على الخريطة *</label>
+                <div class="map-selector" id="map-trigger" onclick="openMap()">
+                    <div class="loc-content">
+                        <i data-lucide="map"></i>
+                        <span id="loc-text">انقر لتحديد موقعك بدقة على الخريطة</span>
+                    </div>
+                    <i data-lucide="chevron-left"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">العنوان التفصيلي *</label>
+                <div class="input-wrapper">
+                    <textarea class="form-control no-icon" id="f-address" placeholder="المدينة، الحي، الشارع، علامة مميزة..." required rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uploads -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i data-lucide="upload-cloud"></i></div>
+                <div class="card-title">الصور والمرفقات</div>
+            </div>
+            <div class="upload-grid">
+                <!-- Logo -->
+                <div class="upload-box" id="logo-area" onclick="document.getElementById('logo-input').click()">
+                    <div class="upload-icon"><i data-lucide="image"></i></div>
+                    <div class="upload-title">شعار المتجر *</div>
+                    <div class="upload-sub">صورة الشعار الرسمي</div>
+                    <img id="logo-preview" class="upload-preview">
+                    <div class="upload-overlay">تغيير الصورة</div>
+                    <input type="file" id="logo-input" accept="image/*" hidden onchange="handleFile(this,'logo')">
+                </div>
+                <!-- ID -->
+                <div class="upload-box" id="id-area" onclick="document.getElementById('id-input').click()">
+                    <div class="upload-icon"><i data-lucide="id-card"></i></div>
+                    <div class="upload-title">إثبات الهوية *</div>
+                    <div class="upload-sub">بطاقة قومية أو جواز سفر</div>
+                    <img id="id-preview" class="upload-preview">
+                    <div class="upload-overlay">تغيير الصورة</div>
+                    <input type="file" id="id-input" accept="image/*" hidden onchange="handleFile(this,'id')">
+                </div>
+            </div>
+        </div>
+
+        <!-- Owner & Bank -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon"><i data-lucide="landmark"></i></div>
+                <div class="card-title">البيانات المالية والمالك</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم مالك المتجر *</label>
+                <div class="input-wrapper">
+                    <i data-lucide="user"></i>
+                    <input type="text" class="form-control" id="f-owner" placeholder="الاسم الرباعي للمالك" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">هاتف التواصل للمتجر *</label>
+                <div class="input-wrapper">
+                    <i data-lucide="phone"></i>
+                    <input type="tel" class="form-control" id="f-phone" placeholder="09XXXXXXXX" dir="ltr" required>
+                </div>
+            </div>
+            <hr style="border:none;border-top:1px dashed var(--gray-200);margin:24px 0;">
+            <div class="form-group">
+                <label class="form-label">اسم البنك / المحفظة *</label>
+                <div class="input-wrapper">
+                    <select class="form-control no-icon" id="f-bank" onchange="toggleOtherInput('f-bank', 'f-bank-other-wrap')" required>
+                        <option value="" disabled selected>اختر البنك لاستلام مستحقاتك...</option>
+                    </select>
+                </div>
+                <div class="input-wrapper hidden" id="f-bank-other-wrap" style="margin-top:12px;">
+                    <i data-lucide="edit-3"></i>
+                    <input type="text" class="form-control" id="f-bank-other" placeholder="اكتب اسم البنك أو المحفظة هنا...">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">رقم الحساب / الموبايل *</label>
+                <div class="input-wrapper">
+                    <input type="text" class="form-control no-icon" id="f-bank-num" placeholder="رقم الحساب" dir="ltr" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الاسم الكامل لصاحب الحساب البنكي *</label>
+                <div class="input-wrapper">
+                    <input type="text" class="form-control no-icon" id="f-bank-owner" placeholder="تأكد من مطابقته للاسم في البنك" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms & Submit -->
+        <label class="terms-wrapper">
+            <input type="checkbox" id="terms-check">
+            <div class="terms-text">
+                أقر وأوافق على <span onclick="openTermsModal()" style="color:var(--gold);text-decoration:underline;font-weight:bold;cursor:pointer;">سياسات وشروط التجار</span> في منصة وجيز، وأتعهد بأن جميع البيانات والمرفقات المُدخلة صحيحة تماماً.
+            </div>
+        </label>
+
+        <button class="btn btn-gold" id="submit-btn" onclick="submitForm()">
+            <span class="btn-text">إرسال طلب الانضمام</span>
+            <i data-lucide="send"></i>
+            <div class="spinner"></div>
+        </button>
+    </div>
+
+
+    <!-- ── SUCCESS STATE ── -->
+    <div id="success-section" class="hidden">
+        <div class="success-card">
+            <div class="success-icon-wrap">
+                <i data-lucide="check-circle"></i>
+            </div>
+            <h2 style="font-size:26px;font-weight:900;margin-bottom:12px;color:var(--gray-900);">طلبك قيد المراجعة!</h2>
+            <p style="color:var(--gray-500);font-size:16px;line-height:1.7;margin-bottom:24px;">
+                شكراً لك! لقد استلمنا طلب تسجيل متجرك بنجاح.<br>
+                سيقوم فريق وجيز بمراجعة بياناتك والرد عليك في أقرب وقت.
+            </p>
+            <div style="background:var(--green-light); border-radius:12px; padding:16px; display:inline-flex; align-items:center; gap:12px; color:var(--green); font-weight:700; margin-bottom:32px;">
+                <i data-lucide="bell" style="width:20px;height:20px;"></i>
+                ستصلك رسالة فور قبول المتجر
+            </div>
+            <br>
+            <a href="index.html" class="btn btn-primary" style="text-decoration:none; max-width:250px; margin:0 auto;">
+                <span class="btn-text">العودة للرئيسية</span>
+                <i data-lucide="home"></i>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── TERMS MODAL ── -->
+<div id="termsModal" class="modal-overlay hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:all 0.3s;">
+    <div class="modal-content" style="background:#fff;border-radius:16px;width:90%;max-width:500px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.1);transform:translateY(20px);transition:all 0.3s;">
+        <div style="padding:20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between;">
+            <h3 style="margin:0;font-size:18px;color:var(--gray-900);">سياسات وشروط التجار</h3>
+            <button onclick="closeTermsModal()" style="background:none;border:none;color:var(--gray-500);cursor:pointer;"><i data-lucide="x"></i></button>
+        </div>
+        <div style="padding:20px;overflow-y:auto;font-size:14px;color:var(--gray-600);line-height:1.8;">
+            <p style="font-size:13px; color:#64748b; background:#f8fafc; border-radius:10px; padding:12px 14px; line-height:1.8;">
+                مرحباً بك في منصة <strong>وجيز</strong>. تُشكل هذه الاتفاقية ("الشروط والأحكام") عقداً قانونياً ملزماً بين منصة "وجيز" (المشار إليها بـ "المنصة" أو "الإدارة") وبين المتجر/التاجر (المشار إليه بـ "التاجر" أو "المتجر") المتقدم بطلب التسجيل.<br><br>
+                يسري العمل بهذه الشروط فور الموافقة على طلب انضمام المتجر وتفعيل الحساب على المنصة.
+            </p>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--gray-900);font-size:15px;font-weight:bold;">1. شروط الأهلية والتسجيل</h4>
+                <ul style="padding-right:20px;margin-bottom:15px;">
+                    <li><strong>صحة البيانات:</strong> يلتزم التاجر بتقديم معلومات صحيحة ودقيقة وكاملة أثناء التسجيل، بما في ذلك الاسم التجاري، اسم المالك، أرقام الهواتف، الموقع الجغرافي الدقيق للمتجر، والوثائق الرسمية المطلوبة.</li>
+                    <li><strong>تحديث البيانات:</strong> يتحمل التاجر مسؤولية تحديث بياناته فور حدوث أي تغيير.</li>
+                    <li><strong>أمن الحساب:</strong> التاجر مسؤول مسؤولية كاملة عن الحفاظ على سرية بيانات تسجيل الدخول الخاصة بمتجره.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--gray-900);font-size:15px;font-weight:bold;">2. تسعير المنتجات وجودتها</h4>
+                <ul style="padding-right:20px;margin-bottom:15px;">
+                    <li><strong>تطابق الأسعار:</strong> يلتزم التاجر التزاماً تاماً بأن تكون أسعار السلع والمنتجات المعروضة على تطبيق "وجيز" مطابقة تماماً لأسعارها الفعلية داخل المحل التجاري.</li>
+                    <li><strong>جودة المنتجات:</strong> يضمن التاجر جودة المنتجات المباعة وسلامتها، وصلاحيتها للاستهلاك البشري (للمواد الغذائية والمشروبات).</li>
+                    <li><strong>تحديث المخزون:</strong> يلتزم التاجر بتحديث قائمة منتجاته وأسعارها وتوفرها بانتظام عبر لوحة التحكم الخاصة به.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--gray-900);font-size:15px;font-weight:bold;">3. استقبال وتجهيز الطلبات</h4>
+                <ul style="padding-right:20px;margin-bottom:15px;">
+                    <li><strong>سرعة التجهيز:</strong> يلتزم المتجر بقبول وتجهيز الطلبات الواردة إليه عبر التطبيق في أسرع وقت ممكن.</li>
+                    <li><strong>التعبئة والتغليف:</strong> يجب تغليف المنتجات بطريقة آمنة وصحية ومقاومة للتسرب أو التلف أثناء النقل.</li>
+                    <li><strong>مطابقة الطلب:</strong> يلتزم التاجر بمراجعة تفاصيل الفاتورة والمنتجات المحددة وتجهيزها مطابقةً تماماً لطلب العميل.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--gray-900);font-size:15px;font-weight:bold;">4. العمولات والمعاملات المالية</h4>
+                <ul style="padding-right:20px;margin-bottom:15px;">
+                    <li><strong>نسبة عمولة المنصة:</strong> يتم تحصيل رسوم اشتراك التاجر من التطبيق شهرياً حسب المبلغ المتفق عليه من الإدارة.</li>
+                    <li><strong>طرق تحصيل الأرباح:</strong> يتم تحويل مستحقات التاجر المالية عبر الحساب البنكي أو المحفظة الإلكترونية.</li>
+                    <li><strong>إثبات المعاملات:</strong> يجب أن تتم كافة المعاملات المالية وقبول المبالغ وفق الآلية البرمجية المعتمدة بالتطبيق.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--red);font-size:15px;font-weight:bold;">5. المنتجات والأنشطة المحظورة</h4>
+                <p>يُمنع منعاً باتاً عرض أو بيع أي من المنتجات التالية على المنصة:</p>
+                <ol style="padding-right:20px;margin-bottom:15px;">
+                    <li>المواد غير القانونية، المخدرات، المؤثرات العقلية، أو الأدوية دون ترخيص مسبق.</li>
+                    <li>الأسلحة، الذخائر، والمواد المتفجرة أو سريعة الاشتعال.</li>
+                    <li>التبغ، السجائر الإلكترونية، والمنتجات الكحولية.</li>
+                    <li>أي مواد يُمنع تداولها أو بيعها بموجب القوانين والتشريعات المحلية السارية.</li>
+                </ol>
+            </div>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--gray-900);font-size:15px;font-weight:bold;">6. إلغاء الطلبات والنزاعات</h4>
+                <ul style="padding-right:20px;margin-bottom:15px;">
+                    <li><strong>سياسة الإلغاء:</strong> يحق للمنصة اتخاذ إجراءات انضباطية ضد المتجر في حال تكرار إلغاء الطلبات المقبولة دون عذر مقبول.</li>
+                    <li><strong>النزاعات:</strong> في حال نشوء أي خلاف بين التاجر والكابتن أو العميل، يلتزم التاجر بعدم التصعيد الشخصي وإحالة النزاع فوراً لخدمة دعم العملاء.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--gray-900);font-size:15px;font-weight:bold;">7. السرية وحماية بيانات العملاء</h4>
+                <ul style="padding-right:20px;margin-bottom:15px;">
+                    <li><strong>خصوصية البيانات:</strong> يلتزم التاجر بالمحافظة على سرية بيانات العملاء التي تظهر له لإتمام الطلب.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:20px;">
+                <h4 style="color:var(--gray-900);font-size:15px;font-weight:bold;">8. التعديلات وإنهاء الخدمة</h4>
+                <ul style="padding-right:20px;margin-bottom:15px;">
+                    <li><strong>تعديل الشروط:</strong> تحق للمنصة مراجعة وتعديل هذه الشروط والسياسات في أي وقت.</li>
+                    <li><strong>إنهاء الشراكة:</strong> يحق لأي من الطرفين إنهاء هذه الاتفاقية في أي وقت مع تقديم إخطار مسبق للطرف الآخر.</li>
+                </ul>
+            </div>
+
+            <p style="font-size:12px; color:#94a3b8; text-align:center; padding-top:8px;">
+                بالموافقة على هذه الشروط، يُقر التاجر بأنه قرأ وفهم كافة البنود الواردة أعلاه ويوافق على الالتزام الكامل بها.
+            </p>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid var(--gray-200);text-align:left;">
+            <button onclick="closeTermsModal()" class="btn btn-primary" style="padding:8px 24px;border-radius:8px;">حسناً، فهمت</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay.active { opacity:1 !important; pointer-events:auto !important; }
+    .modal-overlay.active .modal-content { transform:translateY(0) !important; }
+</style>
+
+<script>
+function openTermsModal() { document.getElementById('termsModal').classList.add('active'); lucide.createIcons(); }
+function closeTermsModal() { document.getElementById('termsModal').classList.remove('active'); }
+</script>
+
+<!-- ── MAP MODAL ── -->
+<div id="mapModal">
+    <div class="map-top-bar">
+        <button class="map-close-btn" onclick="closeMap()"><i data-lucide="x"></i></button>
+        <div class="map-search-box">
+            <i data-lucide="search"></i>
+            <input type="text" id="map-search" placeholder="ابحث عن اسم منطقة أو شارع..." oninput="handleMapSearch()" onkeypress="if(event.key==='Enter')doGeocode()">
+            <div id="map-results"></div>
+        </div>
+    </div>
+    <div id="map"></div>
+    <div class="map-center-pin"><i data-lucide="map-pin"></i></div>
+    <div class="map-bottom-sheet">
+        <div id="map-addr-preview">جاري تحديد الموقع...</div>
+        <button class="btn btn-primary" onclick="confirmLocation()">
+            <span class="btn-text">تأكيد هذا الموقع</span>
+            <i data-lucide="check"></i>
+        </button>
+    </div>
+</div>
+
+<script>
+// Initialize Lucide Icons
+lucide.createIcons();
+
+const API_URL = 'https://wajeezsd.com';
+const MAPS_KEY = 'AIzaSyAL5kVp0spgfmY8_q3Mw0L08qqLBE6Kdcc';
+
+// State
+let token = localStorage.getItem('token') || '';
+let currentEmail = ''; // For OTP verify
+let selectedLocation = null;
+let map = null, geocoder = null;
+let files = { logo: null, id: null };
+let referralCode = '';
+
+(function init() {
+    const params = new URLSearchParams(window.location.search);
+    referralCode = params.get('ref') || sessionStorage.getItem('referralCode') || '';
+    if (referralCode) {
+        const refChip = document.getElementById('ref-chip');
+        refChip.style.display = 'flex';
+        document.getElementById('ref-name-chip').textContent = referralCode;
+        sessionStorage.setItem('referralCode', referralCode);
+    }
+    if (token) {
+        showShopForm();
+    }
+})();
+
+// Auth Tabs
+function switchTab(tab) {
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+    document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('auth-alert').innerHTML = '';
+}
+
+// Focus helpers for OTP
+function focusNext(input, nextId) { if(input.value.length === 1 && nextId) document.getElementById(nextId).focus(); }
+function focusPrev(e, input, prevId) { if(e.key === 'Backspace' && input.value.length === 0 && prevId) document.getElementById(prevId).focus(); }
+
+async function doRegister() {
+    const name = document.getElementById('r-name').value.trim();
+    const email = document.getElementById('r-email').value.trim();
+    const phone = document.getElementById('r-phone').value.trim();
+    const password = document.getElementById('r-pass').value;
+    
+    if (!name || !email || !phone || !password) return setAlert('auth-alert', 'يرجى تعبئة جميع الحقول المطلوبة', 'error');
+    if (password.length < 6) return setAlert('auth-alert', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+
+    setBtnLoading('reg-btn', true);
+    setAlert('auth-alert', '');
+    try {
+        const res = await apiFetch('/api/auth/register', 'POST', { name, email, phone, password });
+        currentEmail = email;
+        document.getElementById('auth-forms').classList.add('hidden');
+        document.getElementById('otp-form').classList.remove('hidden');
+        setAlert('otp-alert', 'تم إرسال رمز التفعيل بنجاح', 'success');
+    } catch(e) {
+        setAlert('auth-alert', e.message, 'error');
+    } finally {
+        setBtnLoading('reg-btn', false);
+    }
+}
+
+function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+    } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+    }
+    lucide.createIcons({ root: btn });
+}
+
+async function doLogin() {
+    const identifier = document.getElementById('l-identifier').value.trim();
+    const password = document.getElementById('l-pass').value;
+    
+    if (!identifier || !password) return setAlert('auth-alert', 'يرجى إدخال بيانات الدخول', 'error');
+
+    setBtnLoading('login-btn', true);
+    setAlert('auth-alert', '');
+    try {
+        const res = await apiFetch('/api/auth/login', 'POST', { email: identifier, password });
+        token = res.token;
+        localStorage.setItem('token', token);
+        if (res.user) localStorage.setItem('user', JSON.stringify(res.user));
+        showShopForm();
+    } catch(e) {
+        if (e.code === 'ACCOUNT_NOT_VERIFIED' && e.email) {
+            currentEmail = e.email;
+            document.getElementById('auth-forms').classList.add('hidden');
+            document.getElementById('otp-form').classList.remove('hidden');
+            setAlert('otp-alert', e.message, 'info');
+        } else {
+            setAlert('auth-alert', e.message, 'error');
+        }
+    } finally {
+        setBtnLoading('login-btn', false);
+    }
+}
+
+async function verifyOTP() {
+    let code = '';
+    for(let i=1; i<=6; i++) code += document.getElementById('otp'+i).value;
+    if (code.length < 6) return setAlert('otp-alert', 'أدخل الرمز المكون من 6 أرقام', 'error');
+
+    setBtnLoading('otp-btn', true);
+    try {
+        const res = await apiFetch('/api/auth/verify-email', 'POST', { email: currentEmail, code });
+        token = res.token;
+        localStorage.setItem('token', token);
+        if (res.user) localStorage.setItem('user', JSON.stringify(res.user));
+        showShopForm();
+    } catch(e) {
+        setAlert('otp-alert', e.message, 'error');
+    } finally {
+        setBtnLoading('otp-btn', false);
+    }
+}
+
+async function resendOTP() {
+    setAlert('otp-alert', 'جاري إرسال الرمز...', 'info');
+    try {
+        await apiFetch('/api/auth/resend-code', 'POST', { email: currentEmail });
+        setAlert('otp-alert', 'تم إعادة إرسال الرمز بنجاح', 'success');
+    } catch(e) {
+        setAlert('otp-alert', e.message, 'error');
+    }
+}
+
+async function showShopForm() {
+    document.getElementById('auth-section').classList.add('hidden');
+    document.getElementById('shop-section').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    loadFormData();
+    loadGoogleMaps();
+}
+
+async function loadFormData() {
+    try {
+        const data = await apiFetch('/api/merchant-requests/form-data', 'GET');
+        const catSel = document.getElementById('f-category');
+        (data.categories || []).forEach(c => {
+            catSel.innerHTML += `<option value="${c._id || c.name}">${c.name}</option>`;
+        });
+        catSel.innerHTML += `<option value="أخرى">أخرى (غير مدرج)</option>`;
+        
+        const bankSel = document.getElementById('f-bank');
+        (data.banks || ['بنك الخرطوم','بنك أمدرمان الوطني','بنك فيصل الإسلامي']).forEach(b => {
+            bankSel.innerHTML += `<option value="${b}">${b}</option>`;
+        });
+        bankSel.innerHTML += `<option value="أخرى">أخرى (بنك آخر)</option>`;
+    } catch(e) {
+        const fallbackCats = ['مطعم','صيدلية','سوبر ماركت','أخرى'];
+        const fallbackBanks = ['بنك الخرطوم','بنك أمدرمان الوطني','بنك فيصل الإسلامي','أخرى'];
+        fallbackCats.forEach(c => document.getElementById('f-category').innerHTML += `<option value="${c}">${c}</option>`);
+        fallbackBanks.forEach(b => document.getElementById('f-bank').innerHTML += `<option value="${b}">${b}</option>`);
+    }
+}
+
+function toggleOtherInput(selectId, wrapId) {
+    const val = document.getElementById(selectId).value;
+    const wrap = document.getElementById(wrapId);
+    if (val === 'أخرى' || val === 'other') {
+        wrap.classList.remove('hidden');
+    } else {
+        wrap.classList.add('hidden');
+    }
+}
+
+// File handling
+function handleFile(input, type) {
+    const file = input.files[0];
+    if (!file) return;
+    files[type] = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const preview = document.getElementById(`${type}-preview`);
+        const area = document.getElementById(`${type}-area`);
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        area.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('image', file); // Endpoint expects 'image' field
+    const res = await fetch(`${API_URL}/api/upload/merchant-proof`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'فشل رفع الصورة');
+    return data.url;
+}
+
+// Submitting Form
+async function submitForm() {
+    let finalCategory = document.getElementById('f-category').value;
+    if (finalCategory === 'أخرى' || finalCategory === 'other') {
+        finalCategory = document.getElementById('f-category-other').value.trim();
+    }
+
+    let finalBank = document.getElementById('f-bank').value;
+    if (finalBank === 'أخرى' || finalBank === 'other') {
+        finalBank = document.getElementById('f-bank-other').value.trim();
+    }
+
+    const d = {
+        businessName: document.getElementById('f-bname').value.trim(),
+        category: finalCategory,
+        description: document.getElementById('f-desc').value.trim(),
+        address: document.getElementById('f-address').value.trim(),
+        ownerName: document.getElementById('f-owner').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
+        bankAccount: finalBank,
+        bankAccountNumber: document.getElementById('f-bank-num').value.trim(),
+        bankAccountOwner: document.getElementById('f-bank-owner').value.trim()
+    };
+
+    if (!d.businessName || !d.category || !d.address || !d.ownerName || !d.phone || !d.bankAccount || !d.bankAccountNumber || !d.bankAccountOwner) {
+        return setAlert('shop-alert', 'يرجى تعبئة جميع الحقول المطلوبة بعلامة (*)', 'error');
+    }
+    if (!selectedLocation) return setAlert('shop-alert', 'يرجى تحديد موقع المتجر على الخريطة', 'error');
+    if (!files.logo || !files.id) return setAlert('shop-alert', 'يرجى إرفاق شعار المتجر وإثبات الهوية', 'error');
+    if (!document.getElementById('terms-check').checked) return setAlert('shop-alert', 'يجب الموافقة على سياسات وشروط التجار', 'error');
+
+    setBtnLoading('submit-btn', true);
+    setAlert('shop-alert', 'جاري رفع الصور والبيانات...', 'info');
+
+    try {
+        const logoImage = await uploadFile(files.logo);
+        const idImage = await uploadFile(files.id);
+
+        const payload = {
+            ...d,
+            location: selectedLocation,
+            logoImage,
+            idImage,
+            referralCode
+        };
+
+        await apiFetch('/api/merchant-requests', 'POST', payload);
+        
+        document.getElementById('shop-section').classList.add('hidden');
+        document.getElementById('success-section').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch(e) {
+        setAlert('shop-alert', e.message, 'error');
+    } finally {
+        setBtnLoading('submit-btn', false);
+    }
+}
+
+// Maps Logic
+function loadGoogleMaps() {
+    if (window.google && window.google.maps) return;
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places&language=ar&callback=initMap`;
+    script.async = true; script.defer = true;
+    window.initMap = function() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: 15.5007, lng: 32.5599 }, zoom: 13,
+            disableDefaultUI: true, zoomControl: true
+        });
+        geocoder = new google.maps.Geocoder();
+        map.addListener('dragend', () => reverseGeocode(map.getCenter()));
+        map.addListener('zoom_changed', () => reverseGeocode(map.getCenter()));
+        // Auto location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                map.setCenter(p); map.setZoom(16); reverseGeocode(p);
+            });
+        }
+    };
+    document.head.appendChild(script);
+}
+
+function openMap() { document.getElementById('mapModal').classList.add('active'); if(map) google.maps.event.trigger(map,'resize'); }
+function closeMap() { document.getElementById('mapModal').classList.remove('active'); }
+
+function reverseGeocode(latLng) {
+    if(!geocoder) return;
+    geocoder.geocode({ location: latLng }, (res, status) => {
+        const txt = document.getElementById('map-addr-preview');
+        if (status === 'OK' && res[0]) {
+            txt.textContent = res[0].formatted_address;
+            selectedLocation = { lat: latLng.lat(), lng: latLng.lng(), address: res[0].formatted_address };
+        } else {
+            txt.textContent = 'موقع غير معروف';
+            selectedLocation = { lat: latLng.lat(), lng: latLng.lng(), address: 'موقع غير معروف' };
+        }
+    });
+}
+
+function confirmLocation() {
+    if (!selectedLocation) return;
+    document.getElementById('loc-text').textContent = selectedLocation.address;
+    document.getElementById('map-trigger').classList.add('selected');
+    closeMap();
+}
+
+let mapSearchTimeout;
+function handleMapSearch() {
+    clearTimeout(mapSearchTimeout);
+    mapSearchTimeout = setTimeout(doGeocode, 800);
+}
+
+function doGeocode() {
+    const q = document.getElementById('map-search').value.trim();
+    if (!q || !geocoder) { document.getElementById('map-results').innerHTML = ''; return; }
+    geocoder.geocode({ address: q + ', Sudan' }, (res, status) => {
+        const list = document.getElementById('map-results');
+        list.innerHTML = '';
+        if (status === 'OK' && res.length) {
+            res.slice(0,4).forEach(place => {
+                const div = document.createElement('div');
+                div.className = 'map-result-item';
+                div.innerHTML = `<i data-lucide="map-pin"></i> ${place.formatted_address}`;
+                div.onclick = () => {
+                    map.setCenter(place.geometry.location);
+                    map.setZoom(16);
+                    reverseGeocode(place.geometry.location);
+                    list.innerHTML = '';
+                    document.getElementById('map-search').value = '';
+                };
+                list.appendChild(div);
+            });
+            lucide.createIcons({ root: list });
+        }
+    });
+}
+
+// Utils
+async function apiFetch(endpoint, method = 'GET', body = null) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const opts = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(`${API_URL}${endpoint}`, opts);
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) {
+        const err = new Error(data.message || `خطأ ${res.status}`);
+        err.code = data.code;
+        err.email = data.email;
+        throw err;
+    }
+    return data;
+}
+
+function setAlert(id, msg, type = 'error') {
+    const el = document.getElementById(id);
+    if (!msg) { el.innerHTML = ''; return; }
+    const icons = { error: 'alert-circle', success: 'check-circle', info: 'info' };
+    el.innerHTML = `<div class="alert alert-${type}"><i data-lucide="${icons[type]}"></i> ${msg}</div>`;
+    lucide.createIcons({ root: el });
+}
+
+function setBtnLoading(id, isLoading) {
+    document.getElementById(id).classList.toggle('loading', isLoading);
+    document.getElementById(id).disabled = isLoading;
+}
+</script>
+</body>
+</html>

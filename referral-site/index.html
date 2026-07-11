@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>وجيز — نظام الإحالات</title>
+  <meta name="description" content="انضم لفريق مسوقي وجيز واحصل على رابط دعوة خاص. كل متجر يُسجَّل من رابطك يُحسب لك تلقائياً." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #04553A;
+      --green-dark: #060d0a;
+      --green-mid: #0c1f15;
+      --gold: #D4A843;
+      --white: #ffffff;
+      --text-muted: rgba(255,255,255,0.55);
+      --border-subtle: rgba(255,255,255,0.07);
+      --card-bg: rgba(255,255,255,0.04);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: var(--green-dark);
+      color: var(--white);
+      direction: rtl;
+      overflow-x: hidden;
+    }
+
+    /* ===================== GRID PATTERN ===================== */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(4,85,58,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(4,85,58,0.08) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===================== NAVBAR ===================== */
+    #navbar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 64px;
+      background: rgba(6,13,10,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .nav-logo span {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.3px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-outline-nav {
+      padding: 8px 20px;
+      border: 1.5px solid rgba(255,255,255,0.55);
+      background: transparent;
+      color: var(--white);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .btn-outline-nav:hover {
+      border-color: var(--white);
+      background: rgba(255,255,255,0.07);
+    }
+
+    .btn-solid-nav {
+      padding: 8px 18px;
+      background: var(--green);
+      color: var(--white);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: background 0.2s, transform 0.15s;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .btn-solid-nav:hover {
+      background: #055c40;
+      transform: translateY(-1px);
+    }
+
+    /* Hamburger */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--white);
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Mobile overlay */
+    #mobile-menu {
+      display: none;
+      position: fixed;
+      inset: 0;
+      top: 64px;
+      background: rgba(6,13,10,0.97);
+      backdrop-filter: blur(20px);
+      z-index: 999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    #mobile-menu.open { display: flex; }
+
+    #mobile-menu a {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--white);
+      text-decoration: none;
+      padding: 14px 40px;
+      border-radius: 12px;
+      width: 260px;
+      text-align: center;
+      transition: background 0.2s;
+    }
+
+    #mobile-menu a.m-outline {
+      border: 1.5px solid rgba(255,255,255,0.4);
+    }
+
+    #mobile-menu a.m-solid {
+      background: var(--green);
+    }
+
+    #mobile-menu a:hover { background: rgba(255,255,255,0.08); }
+    #mobile-menu a.m-solid:hover { background: #055c40; }
+
+    /* ===================== HERO ===================== */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 100px 24px 80px;
+      overflow: hidden;
+    }
+
+    #hero .grid-overlay { z-index: 0; }
+
+    /* Radial glow behind hero */
+    #hero::before {
+      content: '';
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse at center, rgba(4,85,58,0.22) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(212,168,67,0.12);
+      border: 1px solid rgba(212,168,67,0.3);
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 32px;
+      letter-spacing: 0.3px;
+    }
+
+    .hero-badge .badge-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--gold);
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    .hero-heading {
+      font-size: 60px;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 24px;
+    }
+
+    .hero-heading .line-white { color: var(--white); display: block; }
+    .hero-heading .line-gold { color: var(--gold); display: block; }
+
+    .hero-sub {
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto 40px;
+      line-height: 1.75;
+    }
+
+    .hero-ctas {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      padding: 15px 36px;
+      background: var(--gold);
+      color: #1a1105;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      border-radius: 12px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 24px rgba(212,168,67,0.28);
+    }
+
+    .btn-primary:hover {
+      background: #e0b44e;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(212,168,67,0.38);
+    }
+
+    .btn-secondary {
+      padding: 15px 36px;
+      background: transparent;
+      color: var(--white);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-2px);
+    }
+
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.45;
+      animation: bounce-down 2.2s ease-in-out infinite;
+      z-index: 1;
+    }
+
+    .scroll-indicator span {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--white);
+    }
+
+    @keyframes bounce-down {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(7px); }
+    }
+
+    /* ===================== STATS STRIP ===================== */
+    #stats {
+      background: rgba(4,85,58,0.88);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 0;
+    }
+
+    .stats-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .stat-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 24px;
+      position: relative;
+    }
+
+    .stat-item + .stat-item::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 20%;
+      height: 60%;
+      width: 1px;
+      background: rgba(255,255,255,0.18);
+    }
+
+    .stat-number {
+      font-size: 42px;
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .stat-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.75);
+      margin-top: 6px;
+    }
+
+    /* ===================== HOW IT WORKS ===================== */
+    #how {
+      padding: 96px 24px;
+      position: relative;
+    }
+
+    .section-label {
+      display: block;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 38px;
+      font-weight: 900;
+      color: var(--white);
+      margin-bottom: 60px;
+      letter-spacing: -0.5px;
+    }
+
+    .steps-grid {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 32px 28px;
+      position: relative;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .step-card:hover {
+      border-color: rgba(212,168,67,0.25);
+      transform: translateY(-4px);
+    }
+
+    /* connector line between cards */
+    .steps-grid .step-card:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: -10px;
+      top: 44px;
+      width: 20px;
+      height: 1px;
+      background: rgba(212,168,67,0.2);
+    }
+
+    .step-badge {
+      width: 42px;
+      height: 42px;
+      background: rgba(212,168,67,0.12);
+      border: 1px solid rgba(212,168,67,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 20px;
+    }
+
+    .step-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 10px;
+    }
+
+    .step-desc {
+      font-size: 15px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.7;
+    }
+
+    /* ===================== FEATURES ===================== */
+    #features {
+      padding: 0 24px 96px;
+      position: relative;
+    }
+
+    .features-grid {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 30px 28px;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(4,85,58,0.5);
+      transform: translateY(-3px);
+    }
+
+    .feature-icon-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: rgba(4,85,58,0.18);
+      border: 1px solid rgba(4,85,58,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #5bc48a;
+    }
+
+    .feature-icon-wrap svg { width: 20px; height: 20px; }
+
+    .feature-body {}
+
+    .feature-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 7px;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.48);
+      line-height: 1.65;
+    }
+
+    /* ===================== CTA BANNER ===================== */
+    #cta-banner {
+      background: var(--green);
+      position: relative;
+      overflow: hidden;
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    #cta-banner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .cta-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .cta-title {
+      font-size: 38px;
+      font-weight: 900;
+      color: var(--white);
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .cta-sub {
+      font-size: 16px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 36px;
+    }
+
+    .btn-cta {
+      display: inline-block;
+      padding: 15px 44px;
+      background: var(--gold);
+      color: #1a1105;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.2s;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+
+    .btn-cta:hover {
+      background: #e0b44e;
+      transform: translateY(-2px);
+    }
+
+    /* ===================== FOOTER ===================== */
+    footer {
+      background: var(--green-dark);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      text-decoration: none;
+    }
+
+    .footer-logo img {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+      opacity: 0.7;
+    }
+
+    .footer-logo span {
+      font-size: 18px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .footer-tagline {
+      font-size: 12px;
+      color: rgba(255,255,255,0.28);
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(255,255,255,0.25);
+    }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 768px) {
+      #navbar { padding: 0 20px; }
+      .nav-actions { display: none; }
+      .hamburger { display: flex; }
+
+      .hero-heading { font-size: 36px; letter-spacing: -0.5px; }
+      .hero-sub { font-size: 16px; }
+      .hero-ctas { flex-direction: column; gap: 12px; }
+      .hero-ctas a { width: 100%; max-width: 300px; text-align: center; }
+
+      .stats-inner { flex-direction: column; }
+      .stat-item + .stat-item::before {
+        right: 15%;
+        top: 0;
+        width: 70%;
+        height: 1px;
+        left: auto;
+      }
+
+      .steps-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+
+      .section-title { font-size: 28px; }
+      .cta-title { font-size: 28px; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-heading { font-size: 30px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav id="navbar">
+    <a href="index.html" class="nav-logo">
+      <img src="assets/logo-mark-white.png" alt="وجيز" />
+      <span>وجيز</span>
+    </a>
+    <div class="nav-actions">
+      <a href="register.html" class="btn-outline-nav">انضم كمسوق</a>
+      <a href="admin/login.html" class="btn-solid-nav">الإدارة</a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="قائمة التنقل">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu">
+    <a href="register.html" class="m-outline">انضم كمسوق</a>
+    <a href="marketer/dashboard.html" class="m-solid">لوحة المسوق</a>
+    <a href="admin/login.html">الإدارة</a>
+  </div>
+
+  <!-- ===== HERO ===== -->
+  <section id="hero">
+    <div class="grid-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        برنامج الإحالة الرسمي لوجيز
+      </div>
+      <h1 class="hero-heading">
+        <span class="line-white">وسّع شبكتك</span>
+        <span class="line-gold">وابن دخلاً حقيقياً</span>
+      </h1>
+      <p class="hero-sub">
+        انضم لفريق مسوقي وجيز واحصل على رابط دعوة خاص. كل متجر يُسجَّل من رابطك يُحسب لك تلقائياً.
+      </p>
+      <div class="hero-ctas">
+        <a href="register.html" class="btn-primary">ابدأ الآن</a>
+        <a href="marketer/dashboard.html" class="btn-secondary">لوحة المسوق</a>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <i data-lucide="chevron-down" style="width:22px;height:22px;"></i>
+    </div>
+  </section>
+
+  <!-- ===== STATS STRIP ===== -->
+  <section id="stats">
+    <div class="stats-inner">
+      <div class="stat-item">
+        <div class="stat-number">+500</div>
+        <div class="stat-label">متجر مسجَّل</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">+120</div>
+        <div class="stat-label">مسوق نشط</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">100%</div>
+        <div class="stat-label">متابعة آنية</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section id="how">
+    <span class="section-label">كيف تبدأ؟</span>
+    <h2 class="section-title">كيف تعمل المنصة</h2>
+    <div class="steps-grid">
+
+      <div class="step-card">
+        <div class="step-badge">1</div>
+        <div class="step-title">سجّل</div>
+        <div class="step-desc">أرسل طلبك بمعلوماتك الأساسية، نراجعه خلال 24 ساعة.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">2</div>
+        <div class="step-title">احصل على رابطك</div>
+        <div class="step-desc">بعد القبول، تحصل على رابط دعوة ورمز QR خاص بك.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-badge">3</div>
+        <div class="step-title">تابع وكسب</div>
+        <div class="step-desc">كل متجر يُسجَّل من رابطك يُحسب باسمك وتحصل على مكافأتك.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== FEATURES ===== -->
+  <section id="features">
+    <span class="section-label">المزايا</span>
+    <h2 class="section-title">لماذا وجيز؟</h2>
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon-wrap">
+          <i data-lucide="link-2"></i>
+        </div>
+        <div class="feature-body">
+          <div class="feature-title">رابط دعوة شخصي</div>
+          <div class="feature-desc">رابط ورمز QR مخصص لك تشاركه أينما تريد.</div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrap">
+          <i data-lucide="activity"></i>
+        </div>
+        <div class="feature-body">
+          <div class="feature-title">متابعة آنية</div>
+          <div class="feature-desc">تابع إحالاتك وأوردراتك لحظة بلحظة دون تأخير.</div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrap">
+          <i data-lucide="gift"></i>
+        </div>
+        <div class="feature-body">
+          <div class="feature-title">مكافأة لكل متجر</div>
+          <div class="feature-desc">احصل على مكافأتك عند أول أوردر مكتمل.</div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrap">
+          <i data-lucide="layout-dashboard"></i>
+        </div>
+        <div class="feature-body">
+          <div class="feature-title">لوحة تحكم واضحة</div>
+          <div class="feature-desc">بيانات مبسّطة ومرتبة في مكان واحد.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== CTA BANNER ===== -->
+  <section id="cta-banner">
+    <div class="cta-inner">
+      <div class="cta-title">مستعد للانضمام؟</div>
+      <div class="cta-sub">الفرصة متاحة الآن — انضم اليوم وابدأ في بناء دخلك</div>
+      <a href="register.html" class="btn-cta">سجّل الآن</a>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <a href="index.html" class="footer-logo">
+      <img src="assets/logo-mark-white.png" alt="وجيز" />
+      <span>وجيز</span>
+    </a>
+    <div class="footer-tagline">نظام الإحالات</div>
+    <div class="footer-copy">© 2025 وجيز — جميع الحقوق محفوظة</div>
+  </footer>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    // Hamburger toggle
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('open');
+      mobileMenu.classList.toggle('open');
+      document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
+    });
+
+    // Close mobile menu on link click
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        hamburger.classList.remove('open');
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+      });
+    });
+
+    // Init lucide icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>

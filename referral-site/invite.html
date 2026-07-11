@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دعوة لتسجيل متجرك | وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green: #04553A; --green-dark: #033d2a; --green-light: #e8f5ee;
+  --gold: #D4A843; --gold-light: #fbf6e9;
+  --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
+  --gray-400: #94a3b8; --gray-500: #64748b; --gray-700: #334155; --gray-900: #0f172a;
+  --danger: #ef4444;
+}
+body {
+  font-family: 'Tajawal', sans-serif; direction: rtl; min-height: 100vh;
+  background: linear-gradient(135deg, #0a0e1a 0%, #0d1f16 50%, #0a1510 100%);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  -webkit-font-smoothing: antialiased;
+  position: relative; overflow: hidden;
+}
+/* Background grid */
+body::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(4,85,58,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(4,85,58,0.1) 1px, transparent 1px);
+  background-size: 44px 44px; pointer-events: none;
+}
+/* Blobs */
+.blob { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+.blob-1 {
+  width: 600px; height: 600px; top: -200px; right: -150px;
+  background: radial-gradient(circle, rgba(4,85,58,0.25) 0%, transparent 70%);
+  animation: blobF 10s ease-in-out infinite;
+}
+.blob-2 {
+  width: 500px; height: 500px; bottom: -200px; left: -150px;
+  background: radial-gradient(circle, rgba(212,168,67,0.1) 0%, transparent 70%);
+  animation: blobF 13s ease-in-out infinite reverse;
+}
+@keyframes blobF { 0%,100%{transform:translate(0,0)} 50%{transform:translate(12px,-12px)} }
+
+/* Card */
+.invite-card {
+  position: relative; z-index: 1;
+  background: white; border-radius: 28px;
+  max-width: 500px; width: 100%;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.4);
+  animation: cardIn 0.5s cubic-bezier(0.4,0,0.2,1);
+  overflow: hidden;
+}
+@keyframes cardIn { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:none; } }
+
+/* Card header strip */
+.card-strip {
+  background: linear-gradient(135deg, var(--green), #0a7a54);
+  padding: 32px 32px 28px; text-align: center; position: relative; overflow: hidden;
+}
+.card-strip::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,0.06) 1px,transparent 1px), linear-gradient(90deg,rgba(255,255,255,0.06) 1px,transparent 1px);
+  background-size: 28px 28px;
+}
+.brand-mark {
+  width: 72px; height: 72px; margin: 0 auto 16px; position: relative; z-index: 1;
+  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 900; color: white;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.card-strip h1 { font-size: 22px; font-weight: 900; color: white; position: relative; z-index: 1; margin-bottom: 6px; }
+.card-strip p  { font-size: 14px; color: rgba(255,255,255,0.75); position: relative; z-index: 1; line-height: 1.6; }
+
+/* Card body */
+.card-body { padding: 28px 32px 32px; }
+
+/* Loading */
+.loading-state { text-align: center; padding: 40px 0; color: var(--gray-500); }
+.loader {
+  width: 48px; height: 48px; margin: 0 auto 16px;
+  border: 4px solid var(--green-light);
+  border-top-color: var(--green);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Marketer Info */
+.marketer-card {
+  display: flex; align-items: center; gap: 16px; text-align: right;
+  background: var(--green-light); border: 1.5px solid rgba(4,85,58,0.12);
+  border-radius: 16px; padding: 16px 20px; margin-bottom: 24px;
+}
+.marketer-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 900; font-size: 20px; flex-shrink: 0;
+}
+.marketer-info { flex: 1; min-width: 0; }
+.marketer-from  { font-size: 12px; color: var(--gray-500); margin-bottom: 3px; }
+.marketer-name  { font-size: 16px; font-weight: 800; color: var(--green); }
+.marketer-code  {
+  display: inline-block; margin-top: 4px;
+  background: var(--green); color: white;
+  padding: 2px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: .5px; font-family: monospace;
+}
+
+/* Features grid */
+.features {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px;
+}
+.feat-chip {
+  background: var(--gray-50); border: 1px solid var(--gray-200);
+  border-radius: 12px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 600; color: var(--gray-700);
+  transition: all 0.2s;
+}
+.feat-chip:hover { border-color: var(--green); background: white; }
+.feat-chip i { width: 18px; height: 18px; color: var(--green); flex-shrink: 0; }
+
+/* CTA Button */
+.btn-cta {
+  width: 100%; padding: 16px; border-radius: 14px;
+  background: var(--green); color: white; border: none;
+  font-family: 'Tajawal',sans-serif; font-size: 16px; font-weight: 800;
+  cursor: pointer; transition: all 0.25s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(4,85,58,0.25);
+}
+.btn-cta:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(4,85,58,0.35); }
+.btn-cta i { width: 20px; height: 20px; }
+.btn-secondary {
+  width: 100%; padding: 12px; border-radius: 12px;
+  background: transparent; color: var(--green); border: 1.5px solid var(--green);
+  font-family: 'Tajawal',sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; margin-top: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  text-decoration: none;
+}
+.btn-secondary:hover { background: var(--green-light); }
+.btn-secondary i { width: 16px; height: 16px; }
+
+.hint { font-size: 12px; color: var(--gray-400); text-align: center; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.hint i { width: 14px; height: 14px; }
+
+/* Invalid */
+.invalid-state { text-align: center; padding: 16px 0; }
+.invalid-icon {
+  width: 72px; height: 72px; margin: 0 auto 20px;
+  background: #fef2f2; color: #ef4444; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.invalid-icon i { width: 36px; height: 36px; }
+.invalid-title { font-size: 20px; font-weight: 900; color: var(--gray-900); margin-bottom: 8px; }
+.invalid-text  { font-size: 14px; color: var(--gray-500); line-height: 1.7; margin-bottom: 24px; }
+
+@media (max-width: 480px) {
+  .card-body { padding: 24px 20px 28px; }
+  .card-strip { padding: 28px 24px 24px; }
+  .features { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div class="invite-card">
+  <!-- Strip header with brand -->
+  <div class="card-strip">
+    <div class="brand-mark">و</div>
+    <h1>مرحباً في وجيز! 🎉</h1>
+    <p>تمت دعوتك للانضمام لأكبر شبكة توصيل ذكي في السودان</p>
+  </div>
+
+  <div class="card-body">
+    <!-- Loading State -->
+    <div id="loading-state">
+      <div class="loading-state">
+        <div class="loader"></div>
+        <p>جاري التحقق من رابط الدعوة...</p>
+      </div>
+    </div>
+
+    <!-- Valid State -->
+    <div id="valid-state" style="display:none;">
+      <div class="marketer-card">
+        <div class="marketer-avatar" id="marketer-initial">م</div>
+        <div class="marketer-info">
+          <div class="marketer-from">تمت دعوتك من قِبَل</div>
+          <div class="marketer-name" id="marketer-name">...</div>
+          <div class="marketer-code" id="marketer-code"></div>
+        </div>
+      </div>
+
+      <div class="features">
+        <div class="feat-chip"><i data-lucide="trending-up"></i> نمّ مبيعاتك</div>
+        <div class="feat-chip"><i data-lucide="zap"></i> توصيل سريع</div>
+        <div class="feat-chip"><i data-lucide="smartphone"></i> تطبيق ذكي</div>
+        <div class="feat-chip"><i data-lucide="headphones"></i> دعم مستمر</div>
+      </div>
+
+      <a href="#" id="register-btn" class="btn-cta">
+        <i data-lucide="store"></i>
+        سجّل متجرك الآن مجاناً
+      </a>
+      <p class="hint"><i data-lucide="shield-check"></i> التسجيل مجاني ولا يحتاج بطاقة ائتمان</p>
+    </div>
+
+    <!-- Invalid State -->
+    <div id="invalid-state" style="display:none;">
+      <div class="invalid-state">
+        <div class="invalid-icon"><i data-lucide="x-circle"></i></div>
+        <div class="invalid-title">رابط غير صالح</div>
+        <p class="invalid-text">هذا الرابط غير صحيح أو انتهت صلاحيته. تواصل مع الشخص الذي أرسل لك الرابط.</p>
+        <a href="register.html" class="btn-secondary">
+          <i data-lucide="user-plus"></i>
+          سجّل كمسوق بنفسك
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://wajeezsd.com/api';
+lucide.createIcons();
+
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const refCode = params.get('ref');
+  if (!refCode) { showState('invalid'); return; }
+
+  try {
+    const data = await apiFetch(`/referral/validate/${refCode}`);
+    if (data.valid && data.marketer) {
+      const m = data.marketer;
+      document.getElementById('marketer-name').textContent    = m.name;
+      document.getElementById('marketer-code').textContent    = m.code;
+      document.getElementById('marketer-initial').textContent = m.name.charAt(0);
+      sessionStorage.setItem('referralCode', m.code);
+      sessionStorage.setItem('referralMarketer', m.name);
+      document.getElementById('register-btn').href = `shop-register.html?ref=${encodeURIComponent(m.code)}`;
+      showState('valid');
+    } else {
+      showState('invalid');
+    }
+  } catch(e) {
+    showState('invalid');
+  }
+})();
+
+function showState(state) {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('valid-state').style.display   = state === 'valid'   ? 'block' : 'none';
+  document.getElementById('invalid-state').style.display = state === 'invalid' ? 'block' : 'none';
+  lucide.createIcons();
+}
+
+async function apiFetch(endpoint) {
+  const res = await fetch(`${API_URL}${endpoint}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || `خطأ ${res.status}`);
+  return data;
+}
+</script>
+</body>
+</html>

@@ -1,20 +1,31 @@
+RewriteEngine On
+RewriteRule ^api(/.*)?$ - [L]
+
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/elnakazf/wassil-api"
+PassengerBaseURI "/api"
+PassengerNodejs "/home/elnakazf/nodevenv/wassil-api/24/bin/node"
+PassengerAppType node
+PassengerStartupFile index.js
+
 PassengerAppRoot "/home/elnakazf/wassili.site"
 PassengerBaseURI "/"
 PassengerNodejs "/home/elnakazf/nodevenv/wassili.site/24/bin/node"
 PassengerAppType node
 PassengerStartupFile index.js
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
-# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+
+# CLOUDLINUX ENV VARS — Secrets removed from source control.
+# Configure JWT_SECRET, EMAIL_PASS, MONGO_URI, WHATSAPP_API_KEY via
+# CloudLinux/Passenger environment panel or external .env file.
 <IfModule Litespeed>
 SetEnv EMAIL_FROM_NAME تطبيق وصل-لي
-SetEnv EMAIL_PASS bCbjYijJpW3P249
+SetEnv EMAIL_HOST wassili.site
 SetEnv EMAIL_PORT 465
 SetEnv EMAIL_SECURE true
 SetEnv EMAIL_USER wassili@wassili.site
-SetEnv JWT_SECRET wassili_secret_key_2025
-SetEnv MONGO_URI mongodb+srv://diaakardmash_db_user:t575rwL8lfCvGxRT@wassili-db.ty4o3dv.mongodb.net/?appName=wassili-db
 SetEnv PORT 5000
-SetEnv EMAIL_HOST wassili.site
+SetEnv WHATSAPP_BOT_URL http://localhost:3000
+SetEnv ADMIN_PHONE 249112046348
 </IfModule>
-# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
+# Configure secrets via CloudLinux environment panel (not in source control)

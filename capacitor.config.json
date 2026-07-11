@@ -1,5 +1,32 @@
 {
-  "appId": "com.wassili.app",
-  "appName": "Wassili",
-  "webDir": "public_html"
+  "appId": "com.wajeezsd.app",
+  "appName": "وجيز",
+  "webDir": "public_html",
+  "backgroundColor": "#00000000",
+  "server": {
+    "hostname": "wajeezsd.secure.local",
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ],
+      "icon": "ic_stat_wassili",
+      "iconColor": "#04553A",
+      "sound": "wassili_bell"
+    },
+    "GoogleAuth": {
+      "clientId": "168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com",
+      "scopes": [
+        "profile",
+        "email"
+      ],
+      "serverClientId": "168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
 }

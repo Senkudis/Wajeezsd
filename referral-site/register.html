@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>انضم كمسوق | وجيز</title>
+  <meta name="description" content="انضم كمسوق في منصة وجيز واحصل على رابط دعوة فريد وتابع إحالاتك." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:        #04553A;
+      --green-dark:   #033d2a;
+      --green-mid:    #060d0a;
+      --green-bg:     #0c1f15;
+      --gold:         #D4A843;
+      --gold-light:   #fdf6e3;
+      --gray-50:      #f8fafc;
+      --gray-100:     #f1f5f9;
+      --gray-200:     #e2e8f0;
+      --gray-400:     #94a3b8;
+      --gray-500:     #64748b;
+      --gray-700:     #334155;
+      --gray-900:     #0f172a;
+      --danger:       #ef4444;
+      --danger-bg:    #fef2f2;
+      --success:      #10b981;
+      --success-bg:   #ecfdf5;
+      --radius:       14px;
+      --radius-sm:    10px;
+      --shadow-sm:    0 1px 4px rgba(0,0,0,0.06);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.10);
+    }
+
+    html { height: 100%; -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      direction: rtl;
+      min-height: 100vh;
+      display: flex;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ======================================
+       ART PANEL (Left / decorative)
+       ====================================== */
+    .art-panel {
+      flex: 0 0 42%;
+      background: linear-gradient(160deg, var(--green-mid) 0%, var(--green-bg) 55%, var(--green-mid) 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 52px;
+      text-align: center;
+    }
+
+    /* Grid pattern */
+    .art-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(4,85,58,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(4,85,58,0.1) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+    }
+
+    /* Radial glow */
+    .art-panel::after {
+      content: '';
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 480px; height: 480px;
+      background: radial-gradient(circle, rgba(4,85,58,0.3) 0%, transparent 65%);
+      filter: blur(40px);
+      pointer-events: none;
+    }
+
+    .art-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 360px;
+    }
+
+    .art-logo {
+      width: 72px; height: 72px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 28px;
+      overflow: hidden;
+    }
+
+    .art-logo img { width: 46px; height: 46px; object-fit: contain; }
+
+    .art-heading {
+      font-size: 30px;
+      font-weight: 900;
+      color: white;
+      line-height: 1.25;
+      margin-bottom: 14px;
+      letter-spacing: -0.3px;
+    }
+
+    .art-heading .gold { color: var(--gold); }
+
+    .art-sub {
+      font-size: 15px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.75;
+      margin-bottom: 40px;
+    }
+
+    .art-benefits {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: right;
+      width: 100%;
+    }
+
+    .art-benefit {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    .art-benefit-icon {
+      width: 34px; height: 34px; flex-shrink: 0;
+      background: rgba(212,168,67,0.12);
+      border: 1px solid rgba(212,168,67,0.25);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold);
+    }
+
+    .art-benefit-icon i { width: 17px; height: 17px; }
+    .art-benefit-text { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); }
+
+    .art-back {
+      position: absolute;
+      top: 24px; right: 24px;
+      display: flex; align-items: center; gap: 6px;
+      color: rgba(255,255,255,0.45);
+      font-size: 13px; font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s;
+      z-index: 2;
+    }
+    .art-back:hover { color: rgba(255,255,255,0.8); }
+    .art-back i { width: 15px; height: 15px; }
+
+    /* ======================================
+       FORM PANEL (Right)
+       ====================================== */
+    .form-panel {
+      flex: 1;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 40px;
+      overflow-y: auto;
+    }
+
+    .form-inner {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Logo row */
+    .fp-logo {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 36px;
+    }
+    .fp-logo-img {
+      width: 34px; height: 34px; object-fit: contain;
+      filter: invert(24%) sepia(80%) saturate(450%) hue-rotate(112deg) brightness(80%);
+    }
+    .fp-logo-name { font-size: 19px; font-weight: 900; color: var(--green); }
+
+    /* Heading */
+    .fp-heading { font-size: 27px; font-weight: 900; color: var(--gray-900); margin-bottom: 7px; }
+    .fp-sub {
+      font-size: 14px; color: var(--gray-500);
+      line-height: 1.65; margin-bottom: 32px;
+    }
+
+    /* Alert */
+    .fp-alert {
+      display: none;
+      align-items: flex-start; gap: 10px;
+      padding: 12px 15px;
+      border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    .fp-alert.show { display: flex; }
+    .fp-alert i { width: 17px; height: 17px; flex-shrink: 0; margin-top: 1px; }
+    .fp-alert.error   { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
+    .fp-alert.success { background: var(--success-bg); color: #047857; border: 1px solid #a7f3d0; }
+
+    /* Form Group */
+    .fg { margin-bottom: 18px; }
+    .fg-label {
+      display: block;
+      font-size: 12px; font-weight: 800;
+      color: var(--gray-700);
+      margin-bottom: 7px;
+      letter-spacing: 0.3px;
+    }
+    .fg-required { color: var(--danger); margin-right: 2px; }
+
+    .fg-wrap {
+      position: relative;
+      display: flex; align-items: center;
+    }
+    .fg-icon {
+      position: absolute;
+      right: 13px;
+      width: 17px; height: 17px;
+      color: var(--gray-400);
+      pointer-events: none;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+    .fg-wrap:focus-within .fg-icon { color: var(--green); }
+
+    .fg-input {
+      width: 100%;
+      padding: 13px 44px 13px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 14px; font-weight: 500;
+      color: var(--gray-900);
+      background: var(--gray-50);
+      outline: none;
+      transition: all 0.2s;
+      appearance: none;
+    }
+    .fg-input::placeholder { color: var(--gray-400); font-weight: 400; }
+    .fg-input:focus {
+      border-color: var(--green);
+      background: white;
+      box-shadow: 0 0 0 4px rgba(4,85,58,0.08);
+    }
+    .fg-input.invalid { border-color: var(--danger); }
+    .fg-input.invalid:focus { box-shadow: 0 0 0 4px rgba(239,68,68,0.08); }
+
+    textarea.fg-input {
+      padding-top: 12px;
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.6;
+    }
+
+    /* Submit button */
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 16px; font-weight: 800;
+      cursor: pointer;
+      transition: all 0.22s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 16px rgba(4,85,58,0.22);
+      margin-top: 6px;
+    }
+    .btn-submit:hover:not(:disabled) { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(4,85,58,0.3); }
+    .btn-submit:active { transform: scale(0.99); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-submit i { width: 18px; height: 18px; }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading .spinner { display: block; }
+    .loading .btn-text, .loading > i { display: none; }
+
+    /* Footer links */
+    .fp-links {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 22px;
+      font-size: 13px; color: var(--gray-400);
+    }
+    .fp-links a { color: var(--green); font-weight: 700; text-decoration: none; }
+    .fp-links a:hover { text-decoration: underline; }
+    .fp-sep { color: var(--gray-200); }
+
+    /* ======================================
+       SUCCESS STATE
+       ====================================== */
+    #success-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px 0;
+    }
+    #success-state.show { display: flex; }
+
+    .success-icon {
+      width: 80px; height: 80px;
+      background: var(--success-bg);
+      border: 2px solid #a7f3d0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      color: var(--success);
+    }
+    .success-icon i { width: 38px; height: 38px; }
+
+    .success-title {
+      font-size: 24px; font-weight: 900;
+      color: var(--gray-900); margin-bottom: 10px;
+    }
+    .success-sub {
+      font-size: 14px; color: var(--gray-500);
+      line-height: 1.7; max-width: 320px;
+      margin-bottom: 28px;
+    }
+    .btn-back-home {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 24px; border-radius: var(--radius-sm);
+      background: var(--gray-100); color: var(--gray-700);
+      border: none; font-family: 'Tajawal',sans-serif;
+      font-size: 14px; font-weight: 700;
+      text-decoration: none; cursor: pointer; transition: all 0.18s;
+    }
+    .btn-back-home:hover { background: var(--gray-200); }
+    .btn-back-home i { width: 16px; height: 16px; }
+
+    /* ======================================
+       RESPONSIVE
+       ====================================== */
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .art-panel { display: none; }
+      .form-panel { padding: 40px 24px; min-height: 100vh; align-items: flex-start; padding-top: 56px; }
+      .fp-heading { font-size: 23px; }
+    }
+
+    @media (max-width: 480px) {
+      .form-panel { padding: 36px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======== ART PANEL ======== -->
+  <div class="art-panel">
+    <a href="index.html" class="art-back">
+      <i data-lucide="arrow-right"></i>
+      الرئيسية
+    </a>
+
+    <div class="art-inner">
+      <div class="art-logo">
+        <img src="assets/logo-mark-white.png" alt="وجيز" />
+      </div>
+
+      <h1 class="art-heading">
+        انضم كمسوق<br>في <span class="gold">وجيز</span>
+      </h1>
+
+      <p class="art-sub">
+        ساعد المتاجر على الانضمام واكسب مكافأتك عن كل متجر يُسجَّل من رابطك
+      </p>
+
+      <div class="art-benefits">
+        <div class="art-benefit">
+          <div class="art-benefit-icon"><i data-lucide="link-2"></i></div>
+          <div class="art-benefit-text">رابط دعوة خاص بك</div>
+        </div>
+        <div class="art-benefit">
+          <div class="art-benefit-icon"><i data-lucide="qr-code"></i></div>
+          <div class="art-benefit-text">QR Code قابل للطباعة</div>
+        </div>
+        <div class="art-benefit">
+          <div class="art-benefit-icon"><i data-lucide="gift"></i></div>
+          <div class="art-benefit-text">مكافأة عن كل متجر</div>
+        </div>
+        <div class="art-benefit">
+          <div class="art-benefit-icon"><i data-lucide="bar-chart-2"></i></div>
+          <div class="art-benefit-text">لوحة لمتابعة إحالاتك</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== FORM PANEL ======== -->
+  <div class="form-panel">
+    <div class="form-inner">
+
+      <!-- Logo -->
+      <div class="fp-logo">
+        <img class="fp-logo-img" src="assets/logo-mark-white.png" alt="وجيز" />
+        <span class="fp-logo-name">وجيز</span>
+      </div>
+
+      <!-- Form State -->
+      <div id="form-state">
+        <h2 class="fp-heading">إنشاء حساب مسوق</h2>
+        <p class="fp-sub">أرسل طلبك وسنراجعه ونرد عليك خلال 24 ساعة</p>
+
+        <!-- Alert -->
+        <div class="fp-alert error" id="fp-alert">
+          <i data-lucide="alert-circle"></i>
+          <span id="fp-alert-msg"></span>
+        </div>
+
+        <!-- Name -->
+        <div class="fg">
+          <label class="fg-label" for="r-name">
+            الاسم الكامل <span class="fg-required">*</span>
+          </label>
+          <div class="fg-wrap">
+            <i class="fg-icon" data-lucide="user"></i>
+            <input class="fg-input" id="r-name" type="text"
+              placeholder="محمد عبدالله" autocomplete="name" />
+          </div>
+        </div>
+
+        <!-- Phone -->
+        <div class="fg">
+          <label class="fg-label" for="r-phone">
+            رقم الهاتف <span class="fg-required">*</span>
+          </label>
+          <div class="fg-wrap">
+            <i class="fg-icon" data-lucide="phone"></i>
+            <input class="fg-input" id="r-phone" type="tel"
+              placeholder="09XXXXXXXX" dir="ltr" autocomplete="tel" />
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="fg">
+          <label class="fg-label" for="r-notes">
+            ملاحظات
+            <span style="color:var(--gray-400);font-weight:500;">(اختياري)</span>
+          </label>
+          <div class="fg-wrap">
+            <textarea class="fg-input" id="r-notes" rows="3"
+              placeholder="أي تفاصيل إضافية..."></textarea>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn-submit" id="submit-btn" onclick="submitForm()">
+          <i data-lucide="send"></i>
+          <span class="btn-text">إرسال الطلب</span>
+          <div class="spinner"></div>
+        </button>
+
+        <!-- Footer links -->
+        <div class="fp-links">
+          <a href="marketer/dashboard.html">لوحة المسوق</a>
+          <span class="fp-sep">|</span>
+          <a href="admin/login.html">لوحة الإدارة</a>
+        </div>
+      </div>
+
+      <!-- Success State -->
+      <div id="success-state">
+        <div class="success-icon">
+          <i data-lucide="check-circle-2"></i>
+        </div>
+        <div class="success-title">تم إرسال طلبك!</div>
+        <div class="success-sub">
+          سنراجع بياناتك ونتواصل معك قريباً لتفعيل حسابك كمسوق في وجيز
+        </div>
+        <a href="index.html" class="btn-back-home">
+          <i data-lucide="home"></i>
+          العودة للرئيسية
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    const API = 'https://wajeezsd.com/api';
+
+    lucide.createIcons();
+
+    function showAlert(msg, type = 'error') {
+      const el  = document.getElementById('fp-alert');
+      const txt = document.getElementById('fp-alert-msg');
+      el.className = `fp-alert ${type} show`;
+      txt.textContent = msg;
+      lucide.createIcons({ root: el });
+    }
+
+    function hideAlert() {
+      document.getElementById('fp-alert').classList.remove('show');
+    }
+
+    async function submitForm() {
+      const name  = document.getElementById('r-name').value.trim();
+      const phone = document.getElementById('r-phone').value.trim();
+      const notes = document.getElementById('r-notes').value.trim();
+      const btn   = document.getElementById('submit-btn');
+
+      // Validate
+      hideAlert();
+      let valid = true;
+
+      if (!name) {
+        document.getElementById('r-name').classList.add('invalid');
+        valid = false;
+      } else {
+        document.getElementById('r-name').classList.remove('invalid');
+      }
+
+      if (!phone) {
+        document.getElementById('r-phone').classList.add('invalid');
+        valid = false;
+      } else {
+        document.getElementById('r-phone').classList.remove('invalid');
+      }
+
+      if (!valid) {
+        showAlert('الرجاء تعبئة الاسم ورقم الهاتف');
+        return;
+      }
+
+      // Submit
+      btn.disabled = true;
+      btn.classList.add('loading');
+
+      try {
+        const res = await fetch(`${API}/referral/marketers-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, notes })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.message || `خطأ ${res.status}`);
+        }
+
+        // Show success
+        document.getElementById('form-state').style.display = 'none';
+        const succ = document.getElementById('success-state');
+        succ.classList.add('show');
+        lucide.createIcons({ root: succ });
+
+      } catch (e) {
+        showAlert(e.message || 'حدث خطأ، حاول مجدداً');
+        btn.disabled = false;
+        btn.classList.remove('loading');
+      }
+    }
+
+    // Enter key submits
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey && e.target.tagName !== 'TEXTAREA') {
+        submitForm();
+      }
+    });
+
+    // Clear invalid on input
+    ['r-name', 'r-phone'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function() {
+        this.classList.remove('invalid');
+        hideAlert();
+      });
+    });
+  </script>
+</body>
+</html>

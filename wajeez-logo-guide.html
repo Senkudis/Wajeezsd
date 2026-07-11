@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Wajeez Brand Guide — دليل شعار وجيز</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Inter:wght@400;600;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Tajawal', sans-serif; background: #f0f2f5; color: #1a1a1a; }
+
+        /* ── CONTROLS ── */
+        .lang-toggle {
+            position: fixed; top: 20px; right: 20px; z-index: 999;
+            display: flex; gap: 0; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,.2);
+        }
+        .lang-toggle button {
+            padding: 10px 20px; border: none; font-size: 14px; font-weight: 700;
+            cursor: pointer; transition: all .2s; font-family: 'Tajawal', sans-serif;
+        }
+        .lang-toggle button.active { background: #04553A; color: #fff; }
+        .lang-toggle button:not(.active) { background: #fff; color: #04553A; }
+        .print-btn {
+            position: fixed; top: 20px; left: 20px; z-index: 999;
+            background: #04553A; color: #fff; border: none; padding: 12px 24px;
+            border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+            font-family: 'Tajawal', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,.2);
+        }
+        .print-btn:hover { background: #033A27; }
+
+        /* ── PAGES ── */
+        .page {
+            width: 210mm; min-height: 297mm; margin: 20px auto; padding: 18mm 20mm;
+            page-break-after: always; position: relative; background: #fff;
+            box-shadow: 0 2px 20px rgba(0,0,0,.08); border-radius: 4px;
+        }
+
+        /* ── COVER ── */
+        .cover {
+            background: linear-gradient(135deg, #04553A 0%, #033A27 60%, #0d1117 100%);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; text-align: center; color: #fff;
+        }
+        .cover img.main-logo { width: 380px; margin-bottom: 40px; filter: drop-shadow(0 10px 40px rgba(0,0,0,.4)); }
+        .cover h1 { font-size: 38px; font-weight: 900; margin-bottom: 10px; }
+        .cover .subtitle { font-size: 17px; color: rgba(255,255,255,.55); margin-bottom: 50px; }
+        .cover .brand-bar {
+            padding: 12px 30px; background: rgba(255,255,255,.08);
+            border-radius: 50px; font-size: 13px; color: rgba(255,255,255,.55);
+        }
+        .cover .brand-bar span { color: #F5A623; font-weight: 700; }
+
+        /* ── TYPOGRAPHY ── */
+        .section-title {
+            font-size: 23px; font-weight: 900; color: #04553A;
+            border-bottom: 3px solid #F5A623; padding-bottom: 9px; margin-bottom: 20px;
+        }
+        .desc { margin-bottom: 20px; color: #555; line-height: 1.9; font-size: 14px; }
+
+        /* ── LOGO CARDS ── */
+        .logo-row { display: flex; gap: 18px; margin-bottom: 26px; flex-wrap: wrap; justify-content: center; }
+        .logo-card {
+            border: 2px solid #e0e0e0; border-radius: 14px; padding: 22px;
+            text-align: center; flex: 1; min-width: 190px;
+        }
+        /* Backgrounds */
+        .logo-card.dark, .icon-card.dark         { background: #0d1117; border-color: #333; }
+        .logo-card.green-bg, .icon-card.green-bg { background: #04553A; border-color: #04553A; }
+        .logo-card.gold-bg, .icon-card.gold-bg   { background: #F5A623; border-color: #F5A623; }
+
+        /* Checkerboard: shows PNG transparency without hiding white-on-white */
+        .logo-card.checker {
+            background-color: #e8e8e8;
+            background-image:
+                linear-gradient(45deg, #fff 25%, transparent 25%),
+                linear-gradient(-45deg, #fff 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #fff 75%),
+                linear-gradient(-45deg, transparent 75%, #fff 75%);
+            background-size: 18px 18px;
+            background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+        }
+
+        .logo-card img { max-width: 100%; max-height: 130px; object-fit: contain; margin-bottom: 12px; }
+        .logo-card .label { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 5px; }
+        .logo-card.dark .label,
+        .logo-card.green-bg .label,
+        .logo-card.gold-bg .label { color: rgba(255,255,255,.85); }
+        .logo-card .file-name { font-size: 10px; color: #999; font-family: monospace; direction: ltr; }
+
+        /* ── DOWNLOAD BUTTON ── */
+        .dl-btn {
+            display: inline-flex; align-items: center; gap: 5px; margin-top: 10px;
+            padding: 6px 14px; background: #04553A; color: #fff; border: none;
+            border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+            text-decoration: none; font-family: 'Tajawal', sans-serif; transition: background .2s;
+        }
+        .dl-btn:hover { background: #033A27; }
+        .dl-btn.gold { background: #F5A623; color: #0d1117; }
+        .dl-btn.gold:hover { background: #e69a1f; }
+
+        /* ── ICON GRID ── */
+        .icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+        .icon-card {
+            border: 2px solid #e0e0e0; border-radius: 14px; padding: 18px;
+            text-align: center; display: flex; flex-direction: column; align-items: center;
+        }
+        .icon-card img { width: 85px; height: 85px; object-fit: contain; margin-bottom: 10px; }
+        .icon-card .label { font-size: 11px; font-weight: 700; color: #555; margin-bottom: 8px; }
+
+        /* ── COLORS ── */
+        .color-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 26px; }
+        .color-swatch { border-radius: 14px; padding: 22px; color: #fff; text-align: center; }
+        .color-swatch h3 { font-size: 15px; margin-bottom: 4px; }
+        .color-swatch .hex { font-size: 20px; font-weight: 900; letter-spacing: 2px; margin-bottom: 2px; }
+        .color-swatch .rgb { font-size: 11px; opacity: .7; }
+
+        /* ── GUIDELINES ── */
+        .guidelines-list { list-style: none; padding: 0; }
+        .guidelines-list li {
+            padding: 11px 15px; margin-bottom: 8px; background: #f8faf9;
+            border-right: 4px solid #04553A; border-radius: 8px; font-size: 13px; line-height: 1.8;
+        }
+        .guidelines-list li strong { color: #04553A; }
+
+        /* ── DOWNLOAD SECTION ── */
+        .download-section {
+            background: linear-gradient(135deg, #04553A, #033A27);
+            border-radius: 14px; padding: 26px; margin-top: 18px;
+        }
+        .download-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 18px; }
+        .download-item {
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px; padding: 16px; text-align: center;
+        }
+        .download-item .icon-preview {
+            width: 75px; height: 75px; margin: 0 auto 10px;
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .download-item .icon-preview img { width: 100%; height: 100%; object-fit: contain; }
+        .download-item .name { color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+        .download-item .size { color: rgba(255,255,255,.45); font-size: 11px; margin-bottom: 10px; }
+
+        /* ── FOOTER ── */
+        .footer-note {
+            position: absolute; bottom: 10mm; left: 20mm; right: 20mm;
+            text-align: center; font-size: 9px; color: #bbb; border-top: 1px solid #eee; padding-top: 6px;
+        }
+
+        /* ── WARNING BOX ── */
+        .warning-box {
+            background: #fff8e6; border: 1.5px solid #F5A623; border-radius: 10px;
+            padding: 12px 16px; font-size: 12px; color: #7a5000; margin-top: 6px;
+        }
+
+        @media print {
+            body { background: #fff; }
+            .page { margin: 0; box-shadow: none; border-radius: 0; }
+            .no-print { display: none !important; }
+            .dl-btn { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="lang-toggle no-print">
+    <button id="btn-ar" class="active" onclick="switchLang('ar')">عربي</button>
+    <button id="btn-en" onclick="switchLang('en')">English</button>
+</div>
+<button class="print-btn no-print" onclick="window.print()">📄 حفظ PDF</button>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- ARABIC VERSION                                      -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="content-ar">
+
+<!-- ─── AR: PAGE 1 COVER ─── -->
+<div class="page cover">
+    <img class="main-logo" src="logo-full.png" alt="Wajeez Full Logo">
+    <h1>دليل الشعار والهوية البصرية</h1>
+    <p class="subtitle">Logo & Brand Identity Guide</p>
+    <div class="brand-bar">الإصدار <span>1.0</span> &nbsp;•&nbsp; يوليو 2026 &nbsp;•&nbsp; <span>جودة عالية — Print Ready</span></div>
+</div>
+
+<!-- ─── AR: PAGE 2 FULL LOGO ─── -->
+<div class="page">
+    <h2 class="section-title">١. الشعار الكامل (Full Logo)</h2>
+    <p class="desc">الشعار الكامل يشمل الأيقونة الدائرية + اسم "وجيز" بالعربي + WAJEEZ بالإنجليزي + الشعار التوضيحي. للمواد الرسمية والطباعة الكبيرة.</p>
+    <div class="logo-row">
+        <div class="logo-card" style="background:#f7f7f7;">
+            <img src="logo-full.png" alt="Full Logo Light">
+            <div class="label">على خلفية فاتحة ✅</div>
+            <div class="file-name">logo-full.png</div>
+            <a href="logo-full.png" download="wajeez-logo-full-HQ.png" class="dl-btn">⬇ تحميل PNG</a>
+        </div>
+        <div class="logo-card dark">
+            <img src="logo-full.png" alt="Full Logo Dark">
+            <div class="label">على خلفية داكنة ✅</div>
+            <div class="file-name">logo-full.png</div>
+            <a href="logo-full.png" download="wajeez-logo-full-HQ.png" class="dl-btn gold">⬇ تحميل PNG</a>
+        </div>
+    </div>
+
+    <h2 class="section-title">٢. الشعار الأبيض العريض (White Wide)</h2>
+    <p class="desc">للـ Headers والمواقع ذات المساحة الأفقية وجوانب المركبات — يُستخدم فقط على خلفية خضراء أو داكنة.</p>
+    <div class="logo-row">
+        <div class="logo-card green-bg">
+            <img src="logo-white.png" alt="White Wide - Green">
+            <div class="label">على الأخضر ✅</div>
+            <div class="file-name">logo-white.png</div>
+            <a href="logo-white.png" download="wajeez-logo-white-HQ.png" class="dl-btn gold">⬇ تحميل</a>
+        </div>
+        <div class="logo-card dark">
+            <img src="logo-white.png" alt="White Wide - Dark">
+            <div class="label">على الداكن ✅</div>
+            <div class="file-name">logo-white.png</div>
+            <a href="logo-white.png" download="wajeez-logo-white-HQ.png" class="dl-btn gold">⬇ تحميل</a>
+        </div>
+    </div>
+    <div class="warning-box">
+        ⚠️ <strong>تنبيه:</strong> الشعار الأبيض لا يُستخدم أبداً على خلفية بيضاء — الخلفية يجب أن تكون داكنة أو خضراء.
+    </div>
+    <div class="footer-note">وجيز — دليل الشعار والهوية البصرية | صفحة ٢</div>
+</div>
+
+<!-- ─── AR: PAGE 3 ICONS ─── -->
+<div class="page">
+    <h2 class="section-title">٣. الأيقونة الدائرية (Icon Mark)</h2>
+    <p class="desc">الأيقونة وحدها للمساحات الصغيرة: أيقونة التطبيق، الفافيكون، ملصقات الركشات والمواتر.</p>
+    <div class="icon-grid">
+        <!-- Green bg: icon is fully visible -->
+        <div class="icon-card green-bg">
+            <img src="icon-green.png" alt="Icon on Green" style="width:85px;height:85px;object-fit:contain;">
+            <div class="label" style="color:#fff;">على أخضر ✅</div>
+            <a href="icon-green.png" download="wajeez-icon-HQ.png" class="dl-btn gold" style="font-size:10px;padding:4px 10px;">⬇ تحميل</a>
+        </div>
+        <!-- Dark bg: icon visible -->
+        <div class="icon-card dark">
+            <img src="icon-green.png" alt="Icon on Dark" style="width:85px;height:85px;object-fit:contain;">
+            <div class="label" style="color:#aaa;">على داكن ✅</div>
+            <a href="icon-green.png" download="wajeez-icon-HQ.png" class="dl-btn gold" style="font-size:10px;padding:4px 10px;">⬇ تحميل</a>
+        </div>
+        <!-- Gold bg: visible -->
+        <div class="icon-card gold-bg">
+            <img src="icon-green.png" alt="Icon on Gold" style="width:85px;height:85px;object-fit:contain;">
+            <div class="label" style="color:#fff;">على ذهبي ✅</div>
+        </div>
+    </div>
+    <div class="warning-box" style="margin-bottom:20px;">
+        ⚠️ <strong>تنبيه:</strong> الأيقونة تحتوي على دائرة خضراء — تجنب الخلفية الخضراء أو البيضاء. الأفضل: <strong>داكن أو أسود</strong>.
+    </div>
+
+    <h2 class="section-title">٤. الأيقونة الشفافة (Transparent)</h2>
+    <p class="desc">النسخة الشفافة — مثالية للطباعة على الأسطح الملونة والركشات والمواتر.</p>
+    <div class="logo-row">
+        <div class="logo-card green-bg" style="flex:1;">
+            <img src="icon-green.png" alt="Transparent on Green" style="height:130px;">
+            <div class="label" style="color:#fff;">شفاف على أخضر ✅<br><small>(مثالي للركشات)</small></div>
+            <a href="icon-green.png" download="wajeez-transparent-HQ.png" class="dl-btn gold" style="font-size:10px;">⬇ تحميل HQ</a>
+        </div>
+        <div class="logo-card dark" style="flex:1;">
+            <img src="icon-green.png" alt="Transparent on Dark" style="height:130px;">
+            <div class="label" style="color:#aaa;">شفاف على داكن ✅</div>
+        </div>
+        <div class="logo-card checker" style="flex:1;">
+            <img src="icon-green.png" alt="Transparent PNG" style="height:130px;">
+            <div class="label">شفاف (Checkerboard = PNG شفاف)</div>
+        </div>
+    </div>
+    <div class="footer-note">وجيز — دليل الشعار والهوية البصرية | صفحة ٣</div>
+</div>
+
+<!-- ─── AR: PAGE 4 COLORS ─── -->
+<div class="page">
+    <h2 class="section-title">٥. الألوان الرسمية (Brand Colors)</h2>
+    <p class="desc">الألوان الرسمية لهوية وجيز — يجب الالتزام بها في جميع المواد التسويقية والطباعة.</p>
+    <div class="color-grid">
+        <div class="color-swatch" style="background:#04553A;">
+            <h3>الأخضر الأساسي</h3>
+            <div class="hex">#04553A</div>
+            <div class="rgb">RGB: 4, 85, 58</div>
+            <div class="rgb">CMYK: 95, 0, 32, 67</div>
+            <div class="rgb">Pantone: 7484 C</div>
+        </div>
+        <div class="color-swatch" style="background:#F5A623;">
+            <h3>الذهبي</h3>
+            <div class="hex">#F5A623</div>
+            <div class="rgb">RGB: 245, 166, 35</div>
+            <div class="rgb">CMYK: 0, 32, 86, 4</div>
+            <div class="rgb">Pantone: 7409 C</div>
+        </div>
+        <div class="color-swatch" style="background:#0a8754;">
+            <h3>الأخضر الفاتح</h3>
+            <div class="hex">#0A8754</div>
+            <div class="rgb">RGB: 10, 135, 84</div>
+            <div class="rgb">CMYK: 93, 0, 38, 47</div>
+        </div>
+        <div class="color-swatch" style="background:#0d1117; border:2px solid #333;">
+            <h3>الداكن</h3>
+            <div class="hex">#0D1117</div>
+            <div class="rgb">RGB: 13, 17, 23</div>
+            <div class="rgb">CMYK: 43, 26, 0, 91</div>
+        </div>
+    </div>
+
+    <h2 class="section-title" style="margin-top:22px;">٦. الخطوط (Typography)</h2>
+    <div style="background:#f8faf9; padding:20px; border-radius:12px; margin-bottom:12px;">
+        <p style="font-size:28px; font-weight:900; color:#04553A; margin-bottom:6px;">خط Tajawal — العناوين</p>
+        <p style="font-size:12px; color:#888;">Google Fonts — Tajawal Bold 900</p>
+    </div>
+    <div style="background:#f8faf9; padding:20px; border-radius:12px;">
+        <p style="font-size:16px; color:#333; margin-bottom:6px;">خط Tajawal — النص العادي. توصيل وجيز لكل ما تحتاجه.</p>
+        <p style="font-size:12px; color:#888;">Google Fonts — Tajawal Regular 400</p>
+    </div>
+    <div class="footer-note">وجيز — دليل الشعار والهوية البصرية | صفحة ٤</div>
+</div>
+
+<!-- ─── AR: PAGE 5 GUIDELINES + DOWNLOADS ─── -->
+<div class="page">
+    <h2 class="section-title">٧. إرشادات الطباعة للمصانع</h2>
+    <p class="desc">للمصانع والمطابع — للطباعة على الركشات والمواتر والدراجات النارية:</p>
+    <ul class="guidelines-list">
+        <li><strong>الحد الأدنى للحجم:</strong> لا يقل عرض الشعار عن 40 ملم عند الطباعة.</li>
+        <li><strong>المنطقة الآمنة:</strong> مسافة فارغة = نصف ارتفاع الأيقونة من كل جانب.</li>
+        <li><strong>الخلفيات المسموحة فقط:</strong> الأخضر الداكن #04553A، أسود، أو أبيض (للشعار الكامل فقط).</li>
+        <li><strong>لا تغيّر الألوان:</strong> الألوان الرسمية فقط — أخضر + ذهبي.</li>
+        <li><strong>لا تشوّه الشعار:</strong> حافظ على نسبة الأبعاد الأصلية دائماً.</li>
+        <li><strong>للركشات والمواتر:</strong> <code>icon-green.png</code> على خلفية خضراء داكنة. الحجم ≥ 30×30 سم.</li>
+        <li><strong>الأيقونة تتكون من:</strong> حرف "C" أخضر دائري + سهم ذهبي — وحدة واحدة لا تُفصل.</li>
+    </ul>
+
+    <div class="download-section">
+        <h3 style="color:#F5A623; font-size:18px; text-align:center; margin-bottom:4px;">📥 تحميل جميع ملفات الشعار</h3>
+        <p style="color:rgba(255,255,255,.5); text-align:center; font-size:12px;">بجودة عالية — جاهزة للطباعة المباشرة</p>
+        <div class="download-grid">
+            <div class="download-item">
+                <div class="icon-preview" style="background:#f5f5f5;">
+                    <img src="logo-full.png" alt="Full">
+                </div>
+                <div class="name">الشعار الكامل</div>
+                <div class="size">logo-full.png</div>
+                <a href="logo-full.png" download="wajeez-logo-full-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ تحميل HQ</a>
+            </div>
+            <div class="download-item">
+                <div class="icon-preview" style="background:#04553A;">
+                    <img src="icon-green.png" alt="Icon">
+                </div>
+                <div class="name">الأيقونة الدائرية فقط</div>
+                <div class="size">icon-green.png</div>
+                <a href="icon-green.png" download="wajeez-icon-circle-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ تحميل HQ</a>
+            </div>
+            <div class="download-item">
+                <div class="icon-preview" style="background:#04553A;">
+                    <img src="logo-white.png" alt="White">
+                </div>
+                <div class="name">الشعار الأبيض العريض</div>
+                <div class="size">logo-white.png</div>
+                <a href="logo-white.png" download="wajeez-logo-white-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ تحميل HQ</a>
+            </div>
+            <div class="download-item">
+                <div class="icon-preview" style="background:#0d1117;">
+                    <img src="icon-green.png" alt="Transparent">
+                </div>
+                <div class="name">الأيقونة الشفافة للركشات</div>
+                <div class="size">icon-green.png</div>
+                <a href="icon-green.png" download="wajeez-transparent-vehicles-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ تحميل HQ</a>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top:14px; background:#04553A; border-radius:12px; padding:18px; text-align:center;">
+        <p style="color:#F5A623; font-size:15px; font-weight:700; margin-bottom:4px;">📞 للتواصل مع فريق التصميم</p>
+        <p style="color:#fff; font-size:15px; direction:ltr;">WhatsApp: +249 112 046 348</p>
+    </div>
+    <div class="footer-note">وجيز — دليل الشعار والهوية البصرية | صفحة ٥</div>
+</div>
+
+</div><!-- /#content-ar -->
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- ENGLISH VERSION                                     -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="content-en" lang="en" style="display:none; font-family:'Inter',sans-serif; direction:ltr; text-align:left;">
+
+<!-- ─── EN: PAGE 1 COVER ─── -->
+<div class="page cover">
+    <img class="main-logo" src="logo-full.png" alt="Wajeez Full Logo">
+    <h1 style="font-family:'Inter',sans-serif;">Logo & Brand Identity Guide</h1>
+    <p class="subtitle">دليل الشعار والهوية البصرية</p>
+    <div class="brand-bar">Version <span>1.0</span> &nbsp;•&nbsp; July 2026 &nbsp;•&nbsp; <span>High Quality — Print Ready</span></div>
+</div>
+
+<!-- ─── EN: PAGE 2 FULL LOGO ─── -->
+<div class="page">
+    <h2 class="section-title" style="font-family:'Inter',sans-serif;">1. Full Logo</h2>
+    <p class="desc">The full logo includes the circular icon + Arabic name "وجيز" + "WAJEEZ" + tagline. Use for official materials and large-format printing.</p>
+    <div class="logo-row">
+        <div class="logo-card" style="background:#f7f7f7;">
+            <img src="logo-full.png" alt="Full Logo Light">
+            <div class="label">Light Background ✅</div>
+            <div class="file-name">logo-full.png</div>
+            <a href="logo-full.png" download="wajeez-logo-full-HQ.png" class="dl-btn">⬇ Download PNG</a>
+        </div>
+        <div class="logo-card dark">
+            <img src="logo-full.png" alt="Full Logo Dark">
+            <div class="label">Dark Background ✅</div>
+            <div class="file-name">logo-full.png</div>
+            <a href="logo-full.png" download="wajeez-logo-full-HQ.png" class="dl-btn gold">⬇ Download PNG</a>
+        </div>
+    </div>
+
+    <h2 class="section-title" style="font-family:'Inter',sans-serif;">2. White Wide Logo</h2>
+    <p class="desc">For headers, wide layouts, and vehicle branding (tuk-tuks, motorcycles). Use only on green or dark backgrounds.</p>
+    <div class="logo-row">
+        <div class="logo-card green-bg">
+            <img src="logo-white.png" alt="White Wide - Green">
+            <div class="label">On Green ✅</div>
+            <a href="logo-white.png" download="wajeez-logo-white-HQ.png" class="dl-btn gold">⬇ Download</a>
+        </div>
+        <div class="logo-card dark">
+            <img src="logo-white.png" alt="White Wide - Dark">
+            <div class="label">On Dark ✅</div>
+            <a href="logo-white.png" download="wajeez-logo-white-HQ.png" class="dl-btn gold">⬇ Download</a>
+        </div>
+    </div>
+    <div class="warning-box">
+        ⚠️ <strong>Warning:</strong> The white logo must NEVER be used on a white background. Always use on green or dark.
+    </div>
+    <div class="footer-note">Wajeez — Logo & Brand Identity Guide | Page 2</div>
+</div>
+
+<!-- ─── EN: PAGE 3 ICONS ─── -->
+<div class="page">
+    <h2 class="section-title" style="font-family:'Inter',sans-serif;">3. Icon Mark</h2>
+    <p class="desc">The standalone icon is used for: app icon, favicon, vehicle stickers, and small promotional materials.</p>
+    <div class="icon-grid">
+        <div class="icon-card green-bg">
+            <img src="icon-green.png" alt="Icon on Green">
+            <div class="label" style="color:#fff;">On Green ✅</div>
+            <a href="icon-green.png" download="wajeez-icon-HQ.png" class="dl-btn gold" style="font-size:10px;padding:4px 10px;">⬇ Download</a>
+        </div>
+        <div class="icon-card dark">
+            <img src="icon-green.png" alt="Icon on Dark">
+            <div class="label" style="color:#aaa;">On Dark ✅</div>
+            <a href="icon-green.png" download="wajeez-icon-HQ.png" class="dl-btn gold" style="font-size:10px;padding:4px 10px;">⬇ Download</a>
+        </div>
+        <div class="icon-card gold-bg">
+            <img src="icon-green.png" alt="Icon on Gold">
+            <div class="label" style="color:#fff;">On Gold ✅</div>
+        </div>
+    </div>
+    <div class="warning-box" style="margin-bottom:20px;">
+        ⚠️ <strong>Note:</strong> The icon contains a green circle — avoid placing it on green or white backgrounds. Best on dark or black.
+    </div>
+
+    <h2 class="section-title" style="font-family:'Inter',sans-serif;">4. Transparent Icon (for vehicles)</h2>
+    <p class="desc">No-background version — perfect for printing on colored surfaces, tuk-tuks, and motorcycles.</p>
+    <div class="logo-row">
+        <div class="logo-card green-bg" style="flex:1;">
+            <img src="icon-green.png" alt="Transparent on Green" style="height:130px;">
+            <div class="label" style="color:#fff;">On Green ✅ (Best for vehicles)</div>
+            <a href="icon-green.png" download="wajeez-transparent-HQ.png" class="dl-btn gold" style="font-size:10px;">⬇ Download HQ</a>
+        </div>
+        <div class="logo-card dark" style="flex:1;">
+            <img src="icon-green.png" alt="Transparent on Dark" style="height:130px;">
+            <div class="label" style="color:#aaa;">On Dark ✅</div>
+        </div>
+        <div class="logo-card checker" style="flex:1;">
+            <img src="icon-green.png" alt="Transparent PNG" style="height:130px;">
+            <div class="label">Transparent PNG (checkerboard = transparency)</div>
+        </div>
+    </div>
+    <div class="footer-note">Wajeez — Logo & Brand Identity Guide | Page 3</div>
+</div>
+
+<!-- ─── EN: PAGE 4 COLORS ─── -->
+<div class="page">
+    <h2 class="section-title" style="font-family:'Inter',sans-serif;">5. Brand Colors</h2>
+    <p class="desc">Official Wajeez brand colors — must be used consistently across all print and digital materials.</p>
+    <div class="color-grid">
+        <div class="color-swatch" style="background:#04553A;">
+            <h3>Primary Green</h3>
+            <div class="hex">#04553A</div>
+            <div class="rgb">RGB: 4, 85, 58</div>
+            <div class="rgb">CMYK: 95, 0, 32, 67</div>
+            <div class="rgb">Pantone: 7484 C</div>
+        </div>
+        <div class="color-swatch" style="background:#F5A623;">
+            <h3>Gold / Amber</h3>
+            <div class="hex">#F5A623</div>
+            <div class="rgb">RGB: 245, 166, 35</div>
+            <div class="rgb">CMYK: 0, 32, 86, 4</div>
+            <div class="rgb">Pantone: 7409 C</div>
+        </div>
+        <div class="color-swatch" style="background:#0a8754;">
+            <h3>Light Green</h3>
+            <div class="hex">#0A8754</div>
+            <div class="rgb">RGB: 10, 135, 84</div>
+            <div class="rgb">CMYK: 93, 0, 38, 47</div>
+        </div>
+        <div class="color-swatch" style="background:#0d1117; border:2px solid #333;">
+            <h3>Dark</h3>
+            <div class="hex">#0D1117</div>
+            <div class="rgb">RGB: 13, 17, 23</div>
+            <div class="rgb">CMYK: 43, 26, 0, 91</div>
+        </div>
+    </div>
+    <h2 class="section-title" style="margin-top:22px; font-family:'Inter',sans-serif;">6. Typography</h2>
+    <div style="background:#f8faf9; padding:20px; border-radius:12px; margin-bottom:12px;">
+        <p style="font-size:26px; font-weight:800; color:#04553A; margin-bottom:6px; font-family:'Inter',sans-serif;">Inter / Tajawal — Headings</p>
+        <p style="font-size:12px; color:#888;">Tajawal Bold 900 (Arabic) / Inter Bold 800 (English)</p>
+    </div>
+    <div style="background:#f8faf9; padding:20px; border-radius:12px;">
+        <p style="font-size:16px; color:#333; margin-bottom:6px; font-family:'Inter',sans-serif;">Inter Regular — Body text. Fast delivery for everything you need.</p>
+        <p style="font-size:12px; color:#888;">Google Fonts — Inter Regular 400</p>
+    </div>
+    <div class="footer-note">Wajeez — Logo & Brand Identity Guide | Page 4</div>
+</div>
+
+<!-- ─── EN: PAGE 5 GUIDELINES + DOWNLOADS ─── -->
+<div class="page">
+    <h2 class="section-title" style="font-family:'Inter',sans-serif;">7. Print Guidelines for Manufacturers</h2>
+    <p class="desc">For print shops and manufacturers — especially vehicle stickers (tuk-tuks, motorcycles):</p>
+    <ul class="guidelines-list" style="border-right:none;">
+        <li style="border-right:none; border-left:4px solid #04553A;"><strong>Minimum Size:</strong> Logo width must not be less than 40mm for print.</li>
+        <li style="border-right:none; border-left:4px solid #04553A;"><strong>Safe Zone:</strong> Clear space = half the icon height on each side.</li>
+        <li style="border-right:none; border-left:4px solid #04553A;"><strong>Allowed Backgrounds:</strong> Dark green #04553A, black, or white (for full logo only).</li>
+        <li style="border-right:none; border-left:4px solid #04553A;"><strong>Do Not Alter Colors:</strong> Use official colors only — green + gold.</li>
+        <li style="border-right:none; border-left:4px solid #04553A;"><strong>Do Not Distort:</strong> Always maintain the original aspect ratio.</li>
+        <li style="border-right:none; border-left:4px solid #04553A;"><strong>For Vehicles:</strong> Use <code>icon-green.png</code> on dark green background. Size ≥ 30×30 cm.</li>
+        <li style="border-right:none; border-left:4px solid #04553A;"><strong>Icon Elements:</strong> Green circular "C" + golden arrow chevron — one unit, never separate.</li>
+    </ul>
+
+    <div class="download-section">
+        <h3 style="color:#F5A623; font-size:17px; text-align:center; margin-bottom:4px; font-family:'Inter',sans-serif;">📥 Download All Logo Files</h3>
+        <p style="color:rgba(255,255,255,.5); text-align:center; font-size:12px;">High quality — print ready</p>
+        <div class="download-grid">
+            <div class="download-item">
+                <div class="icon-preview" style="background:#f5f5f5;">
+                    <img src="logo-full.png" alt="Full">
+                </div>
+                <div class="name">Full Logo</div>
+                <div class="size">logo-full.png</div>
+                <a href="logo-full.png" download="wajeez-logo-full-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ Download HQ</a>
+            </div>
+            <div class="download-item">
+                <div class="icon-preview" style="background:#04553A;">
+                    <img src="icon-green.png" alt="Icon">
+                </div>
+                <div class="name">Circle Icon Only</div>
+                <div class="size">icon-green.png</div>
+                <a href="icon-green.png" download="wajeez-icon-circle-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ Download HQ</a>
+            </div>
+            <div class="download-item">
+                <div class="icon-preview" style="background:#04553A;">
+                    <img src="logo-white.png" alt="White">
+                </div>
+                <div class="name">White Wide Logo</div>
+                <div class="size">logo-white.png</div>
+                <a href="logo-white.png" download="wajeez-logo-white-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ Download HQ</a>
+            </div>
+            <div class="download-item">
+                <div class="icon-preview" style="background:#0d1117;">
+                    <img src="icon-green.png" alt="Transparent">
+                </div>
+                <div class="name">Transparent (Vehicles)</div>
+                <div class="size">icon-green.png</div>
+                <a href="icon-green.png" download="wajeez-transparent-vehicles-HQ.png" class="dl-btn gold" style="font-size:11px;">⬇ Download HQ</a>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top:14px; background:#04553A; border-radius:12px; padding:18px; text-align:center;">
+        <p style="color:#F5A623; font-size:15px; font-weight:700; margin-bottom:4px;">📞 Contact the Design Team</p>
+        <p style="color:#fff; font-size:15px;">WhatsApp: +249 112 046 348</p>
+    </div>
+    <div class="footer-note">Wajeez — Logo & Brand Identity Guide | Page 5</div>
+</div>
+
+</div><!-- /#content-en -->
+
+<script>
+function switchLang(lang) {
+    document.getElementById('content-ar').style.display = lang === 'ar' ? 'block' : 'none';
+    document.getElementById('content-en').style.display = lang === 'en' ? 'block' : 'none';
+    document.getElementById('btn-ar').className = lang === 'ar' ? 'active' : '';
+    document.getElementById('btn-en').className = lang === 'en' ? 'active' : '';
+}
+</script>
+
+</body>
+</html>

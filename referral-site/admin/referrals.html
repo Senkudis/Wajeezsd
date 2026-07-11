@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>الإحالات | وجيز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+/* ── Summary bar ── */
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) { .summary-bar { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .summary-bar { grid-template-columns: 1fr; } }
+
+/* ── Filter row ── */
+.filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filter-row .search-wrap { flex: 1; min-width: 200px; }
+.filter-row select.fi { width: 160px; }
+@media (max-width: 600px) {
+  .filter-row { flex-direction: column; align-items: stretch; }
+  .filter-row select.fi { width: 100%; }
+}
+
+/* ── QO inline edit ── */
+.qo-cell { display: inline-flex; align-items: center; }
+.qo-display {
+  display: inline-flex; align-items: center; gap: 5px;
+  cursor: pointer; border-radius: 6px; padding: 2px 4px;
+  transition: background 0.15s;
+}
+.qo-display:hover { background: var(--gray-100); }
+
+.qo-edit-wrap {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.qo-input {
+  width: 70px; padding: 4px 8px; border-radius: 7px;
+  border: 1.5px solid var(--green); font-family: 'Tajawal', sans-serif;
+  font-size: 14px; font-weight: 700; color: var(--gray-900);
+  outline: none; text-align: center;
+}
+.qo-save-btn, .qo-cancel-btn {
+  width: 26px; height: 26px; border-radius: 6px; border: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.qo-save-btn   { background: var(--green); color: white; }
+.qo-save-btn:hover   { background: #035e40; }
+.qo-cancel-btn { background: var(--gray-100); color: var(--gray-600); }
+.qo-cancel-btn:hover { background: var(--gray-200); }
+.qo-save-btn   i, .qo-cancel-btn i { width: 13px; height: 13px; }
+
+/* ── Responsive hide ── */
+@media (max-width: 768px) { .col-date { display: none; } }
+
+/* ── Spin ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader { width: 28px; height: 28px; border: 3px solid var(--green-light); border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto; }
+
+/* ── Sidebar local overrides (copy from marketers) ── */
+.sidebar-logo { display: flex; align-items: center; gap: 10px; }
+.sidebar-logo-img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.sidebar-logo-text { font-size: 16px; font-weight: 800; color: white; line-height: 1; }
+.sidebar-logo-sub  { font-size: 10px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+.sidebar-brand { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.nav-item { display: flex; align-items: center; gap: 10px; }
+.nav-item i.lucide { width: 17px; height: 17px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+<div class="admin-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">
+        <img src="../assets/logo-mark-white.png" alt="وجيز" class="sidebar-logo-img">
+        <div>
+          <div class="sidebar-logo-text">وجيز</div>
+          <div class="sidebar-logo-sub">نظام الإحالات</div>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">الإدارة</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> لوحة التحكم</a>
+        <a href="marketers.html" class="nav-item"><i data-lucide="users"></i> المسوّقون</a>
+        <a href="pending.html" class="nav-item"><i data-lucide="clock"></i> طلبات المسوّقين<span class="nav-badge" id="pendingBadge" style="display:none;"></span></a>
+        <a href="referrals.html" class="nav-item active"><i data-lucide="link-2"></i> الإحالات</a>
+        <a href="rewards.html" class="nav-item"><i data-lucide="gift"></i> المكافآت</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> الإعدادات</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">عام</div>
+        <a href="../index.html" class="nav-item"><i data-lucide="home"></i> الرئيسية</a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="nav-item" id="logoutBtn" style="width:100%;color:rgba(255,255,255,0.6);">
+        <i data-lucide="log-out"></i> تسجيل الخروج
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="mobile-menu-btn" id="mobileMenuBtn"><i data-lucide="menu"></i></button>
+      <div class="topbar-left">
+        <div class="topbar-title">الإحالات</div>
+        <div class="topbar-sub">كل المتاجر المسجَّلة عبر روابط الدعوة</div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="refreshBtn" title="تحديث"><i data-lucide="refresh-cw"></i></button>
+        <button class="btn btn-ghost btn-sm" id="exportBtn"><i data-lucide="download"></i> <span class="btn-label">تصدير CSV</span></button>
+      </div>
+    </header>
+
+    <div class="page-body">
+
+      <!-- Summary Bar -->
+      <div class="summary-bar" id="summaryBar">
+        <div class="stat-card">
+          <div class="stat-icon green"><i data-lucide="link-2"></i></div>
+          <div><div class="stat-val" id="s-total">—</div><div class="stat-lbl">إجمالي الإحالات</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i data-lucide="check-circle"></i></div>
+          <div><div class="stat-val" id="s-qualified">—</div><div class="stat-lbl">متاجر مؤهَّلة</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon gold"><i data-lucide="shopping-bag"></i></div>
+          <div><div class="stat-val" id="s-orders">—</div><div class="stat-lbl">إجمالي الطلبات المؤهَّلة</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i data-lucide="calendar"></i></div>
+          <div><div class="stat-val" id="s-month">—</div><div class="stat-lbl">هذا الشهر</div></div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card" style="margin-bottom:16px;padding:14px 18px;">
+        <div class="filter-row">
+          <div class="search-wrap">
+            <i data-lucide="search"></i>
+            <input type="text" class="search-input" id="searchInput"
+              placeholder="ابحث باسم المتجر أو المسوق..." oninput="applyFilters()">
+          </div>
+          <select class="fi" id="dateFilter" onchange="applyFilters()">
+            <option value="">الكل</option>
+            <option value="this_month">هذا الشهر</option>
+            <option value="last_month">الشهر الماضي</option>
+          </select>
+          <select class="fi" id="statusFilter" onchange="applyFilters()">
+            <option value="">الكل</option>
+            <option value="qualified">مؤهَّل</option>
+            <option value="unqualified">غير مؤهَّل</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i data-lucide="link-2"></i> قائمة الإحالات</div>
+          <span class="badge badge-green" id="countBadge">0 إحالة</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>المتجر</th>
+                <th>صاحب المتجر</th>
+                <th>الهاتف</th>
+                <th>المسوّق</th>
+                <th>طلبات مؤهَّلة</th>
+                <th class="col-date">التاريخ</th>
+              </tr>
+            </thead>
+            <tbody id="refsTbody">
+              <tr><td colspan="6" style="text-align:center;padding:52px;">
+                <div class="loader"></div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /page-body -->
+  </main>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="../js/app.js"></script>
+<script>
+lucide.createIcons();
+
+if (!Auth.getToken()) window.location.replace('login.html');
+
+// ── Navigation ──
+document.getElementById('mobileMenuBtn').onclick = () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('open');
+};
+document.getElementById('sidebarBackdrop').onclick = () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('open');
+};
+document.getElementById('logoutBtn').onclick = () => { Auth.clearSession(); window.location.replace('login.html'); };
+document.getElementById('refreshBtn').onclick = loadReferrals;
+document.getElementById('exportBtn').onclick  = doExportCSV;
+
+let allRefs = [];
+
+// ── Load ──
+async function loadReferrals() {
+  const btn = document.getElementById('refreshBtn');
+  btn.innerHTML = '<i data-lucide="loader-2" style="width:16px;height:16px;animation:spin .7s linear infinite;"></i>';
+  lucide.createIcons({ root: btn });
+  try {
+    allRefs = await apiFetch('/referral/referrals');
+    updateSummary(allRefs);
+    applyFilters();
+  } catch(e) {
+    showToast('تعذَّر تحميل الإحالات: ' + (e.message || ''), 'error');
+  } finally {
+    btn.innerHTML = '<i data-lucide="refresh-cw"></i>';
+    lucide.createIcons({ root: btn });
+  }
+}
+
+// ── Summary ──
+function updateSummary(data) {
+  const now   = new Date();
+  const month = now.getMonth();
+  const year  = now.getFullYear();
+  const thisMonth = data.filter(r => {
+    const d = new Date(r.createdAt);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+  document.getElementById('s-total').textContent     = data.length;
+  document.getElementById('s-qualified').textContent = data.filter(r => (r.qualifiedOrders || 0) > 0).length;
+  document.getElementById('s-orders').textContent    = data.reduce((acc, r) => acc + (r.qualifiedOrders || 0), 0);
+  document.getElementById('s-month').textContent     = thisMonth.length;
+  lucide.createIcons({ root: document.getElementById('summaryBar') });
+}
+
+// ── Filters ──
+function applyFilters() {
+  const q   = document.getElementById('searchInput').value.toLowerCase();
+  const df  = document.getElementById('dateFilter').value;
+  const sf  = document.getElementById('statusFilter').value;
+  const now = new Date();
+
+  const filtered = allRefs.filter(r => {
+    // Search
+    const mName = (r.marketerId?.name || '').toLowerCase();
+    const mCode = (r.marketerId?.referralCode || '').toLowerCase();
+    const matchQ = !q ||
+      (r.businessName || '').toLowerCase().includes(q) ||
+      (r.ownerName    || '').toLowerCase().includes(q) ||
+      mName.includes(q) || mCode.includes(q);
+
+    // Date filter
+    let matchD = true;
+    if (df) {
+      const d = new Date(r.createdAt);
+      if (df === 'this_month') {
+        matchD = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      } else if (df === 'last_month') {
+        const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        matchD = d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
+      }
+    }
+
+    // Status filter
+    let matchS = true;
+    if (sf === 'qualified')   matchS = (r.qualifiedOrders || 0) > 0;
+    if (sf === 'unqualified') matchS = (r.qualifiedOrders || 0) === 0;
+
+    return matchQ && matchD && matchS;
+  });
+
+  renderRefs(filtered);
+}
+
+// ── Render ──
+function renderRefs(data) {
+  const tbody = document.getElementById('refsTbody');
+  document.getElementById('countBadge').textContent = `${data.length} إحالة`;
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <i data-lucide="link-2"></i>
+      <h3>لا توجد إحالات</h3>
+      <p>لا توجد نتائج تطابق الفلاتر المحددة</p>
+    </div></td></tr>`;
+    lucide.createIcons({ root: tbody }); return;
+  }
+
+  tbody.innerHTML = data.map(r => {
+    const mName = escapeHtml(r.marketerId?.name || '—');
+    const mCode = escapeHtml(r.marketerId?.referralCode || '—');
+    const qo    = r.qualifiedOrders || 0;
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar avatar-green" style="font-size:13px;">${escapeHtml((r.businessName || 'م').charAt(0))}</div>
+          <div style="font-weight:700;font-size:14px;">${escapeHtml(r.businessName || '—')}</div>
+        </div>
+      </td>
+      <td style="font-size:13px;color:var(--gray-700);">${escapeHtml(r.ownerName || '—')}</td>
+      <td dir="ltr" style="font-size:12px;color:var(--gray-500);font-variant-numeric:tabular-nums;">${escapeHtml(r.phone || '—')}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:600;">${mName}</span>
+          <span class="code-pill">${mCode}</span>
+        </div>
+      </td>
+      <td>
+        <div class="qo-cell" id="qo-${r._id}">
+          <span class="qo-display" onclick="editQO('${r._id}', ${qo})">
+            <span class="badge badge-${qo > 0 ? 'green' : 'gray'}">${qo}</span>
+            <i data-lucide="pencil" style="width:12px;height:12px;color:var(--gray-400);"></i>
+          </span>
+        </div>
+      </td>
+      <td class="col-date">
+        <span class="badge badge-gray">${formatDate(r.createdAt)}</span>
+      </td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons({ root: tbody });
+}
+
+// ── Inline QO Edit ──
+function editQO(id, currentVal) {
+  const cell = document.getElementById(`qo-${id}`);
+  if (!cell) return;
+  cell.innerHTML = `
+    <div class="qo-edit-wrap">
+      <input type="number" min="0" class="qo-input" id="qo-input-${id}" value="${currentVal}">
+      <button class="qo-save-btn"   id="qo-save-${id}"   onclick="saveQO('${id}')"   title="حفظ"><i data-lucide="check"></i></button>
+      <button class="qo-cancel-btn" id="qo-cancel-${id}" onclick="cancelQO('${id}', ${currentVal})" title="إلغاء"><i data-lucide="x"></i></button>
+    </div>`;
+  lucide.createIcons({ root: cell });
+  const inp = document.getElementById(`qo-input-${id}`);
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  saveQO(id);
+    if (e.key === 'Escape') cancelQO(id, currentVal);
+  });
+}
+
+function cancelQO(id, originalVal) {
+  const cell = document.getElementById(`qo-${id}`);
+  if (!cell) return;
+  cell.innerHTML = `
+    <span class="qo-display" onclick="editQO('${id}', ${originalVal})">
+      <span class="badge badge-${originalVal > 0 ? 'green' : 'gray'}">${originalVal}</span>
+      <i data-lucide="pencil" style="width:12px;height:12px;color:var(--gray-400);"></i>
+    </span>`;
+  lucide.createIcons({ root: cell });
+}
+
+async function saveQO(id) {
+  const inp = document.getElementById(`qo-input-${id}`);
+  if (!inp) return;
+  const val = parseInt(inp.value, 10);
+  if (isNaN(val) || val < 0) { showToast('أدخِل رقماً صحيحاً', 'error'); return; }
+
+  const saveBtn = document.getElementById(`qo-save-${id}`);
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i data-lucide="loader-2" style="width:12px;height:12px;animation:spin .7s linear infinite;"></i>'; lucide.createIcons({ root: saveBtn }); }
+
+  try {
+    await apiFetch(`/referral/referrals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ qualifiedOrders: val })
+    });
+    // Update local data
+    const ref = allRefs.find(r => r._id === id);
+    if (ref) ref.qualifiedOrders = val;
+
+    const cell = document.getElementById(`qo-${id}`);
+    if (cell) {
+      cell.innerHTML = `
+        <span class="qo-display" onclick="editQO('${id}', ${val})">
+          <span class="badge badge-${val > 0 ? 'green' : 'gray'}">${val}</span>
+          <i data-lucide="pencil" style="width:12px;height:12px;color:var(--gray-400);"></i>
+        </span>`;
+      lucide.createIcons({ root: cell });
+    }
+    updateSummary(allRefs);
+    showToast('تم تحديث الطلبات المؤهَّلة', 'success');
+  } catch(e) {
+    showToast('تعذَّر الحفظ: ' + (e.message || ''), 'error');
+    const ref = allRefs.find(r => r._id === id);
+    cancelQO(id, ref?.qualifiedOrders ?? 0);
+  }
+}
+
+// ── CSV Export ──
+function doExportCSV() {
+  const rows = allRefs.map(r => ({
+    'اسم_المتجر':     r.businessName || '',
+    'صاحب_المتجر':    r.ownerName    || '',
+    'الهاتف':         r.phone        || '',
+    'اسم_المسوق':     r.marketerId?.name          || '',
+    'كود_المسوق':     r.marketerId?.referralCode  || '',
+    'طلبات_مؤهَّلة':  r.qualifiedOrders || 0,
+    'التاريخ':        formatDate(r.createdAt)
+  }));
+  exportCSV(rows, 'referrals.csv');
+}
+
+loadReferrals();
+startPendingPolling();
+</script>
+</body>
+</html>
