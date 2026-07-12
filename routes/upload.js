@@ -9,6 +9,26 @@ const Jimp = jimpModule.Jimp || jimpModule;
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 
+// 🔄 ضغط وتصغير صورة — متوافق مع Jimp v0.x و v1 معاً.
+// السبب: package.json يطلب v1 لكن سيرفر الاستضافة قد يحمل v0 قديمة في node_modules،
+// وواجهتا scaleToFit/write مختلفتان بينهما (v0: write(path, cb) — تمرير options كان
+// يرمي "cb must be a function" ويُفشل الضغط بصمت على الإنتاج).
+async function compressImageFile(filePath, maxSize = 1000, quality = 85) {
+    const image = await Jimp.read(filePath);
+    const isV0 = typeof image.writeAsync === 'function'; // writeAsync موجودة في v0 فقط
+    if (image.bitmap.width > maxSize || image.bitmap.height > maxSize) {
+        if (isV0) image.scaleToFit(maxSize, maxSize);
+        else image.scaleToFit({ w: maxSize, h: maxSize });
+    }
+    const isJpeg = /\.jpe?g$/i.test(filePath);
+    if (isV0) {
+        if (isJpeg && typeof image.quality === 'function') image.quality(quality);
+        await image.writeAsync(filePath);
+    } else {
+        await image.write(filePath, isJpeg ? { quality } : undefined);
+    }
+}
+
 // ==========================================
 // 📁 Multer Storage Config
 // ==========================================
@@ -224,14 +244,7 @@ router.post('/product-image', protect, (req, res) => {
         }
 
         try {
-            // 🔄 ضغط وتصغير الصورة (Jimp v1: scaleToFit يأخذ كائن، والجودة تُمرر في خيارات write)
-            const image = await Jimp.read(req.file.path);
-            if (image.bitmap.width > 1000 || image.bitmap.height > 1000) {
-                image.scaleToFit(1000, 1000);
-            }
-            // جودة 85% لتقليل الحجم مع الحفاظ على وضوح عالي للعين (تنطبق على JPEG فقط)
-            const isJpeg = /\.jpe?g$/i.test(req.file.path);
-            await image.write(req.file.path, isJpeg ? { quality: 85 } : undefined);
+            await compressImageFile(req.file.path);
         } catch (jimpErr) {
             console.error('Error compressing product image:', jimpErr);
             // نستمر في العمل حتى لو فشل الضغط
@@ -265,12 +278,7 @@ router.post('/shop-image', protect, (req, res) => {
         }
 
         try {
-            const image = await Jimp.read(req.file.path);
-            if (image.bitmap.width > 1000 || image.bitmap.height > 1000) {
-                image.scaleToFit(1000, 1000);
-            }
-            const isJpeg = /\.jpe?g$/i.test(req.file.path);
-            await image.write(req.file.path, isJpeg ? { quality: 85 } : undefined);
+            await compressImageFile(req.file.path);
         } catch (jimpErr) {
             console.error('Error compressing shop image:', jimpErr);
         }
