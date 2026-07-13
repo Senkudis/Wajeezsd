@@ -233,8 +233,8 @@
             </a>
         </div>
     </div>
-    <!-- 💼 ERP: إدارة الأعمال — بطاقات pro تُخفى للباقة الأساسية -->
-    <div class="section-title"><i class="bi bi-briefcase-fill text-warning"></i> إدارة الأعمال</div>
+    <!-- 💼 ERP: إدارة الأعمال — القسم كامل يظهر للباقة الاحترافية (pro) فقط -->
+    <div class="section-title" id="erpSectionTitle"><i class="bi bi-briefcase-fill text-warning"></i> إدارة الأعمال</div>
     <div class="row g-2 mb-2 align-items-stretch" id="erpGrid">
         <div class="col-3 erp-pro">
             <a href="merchant-pos.html" class="quick-btn">
@@ -411,14 +411,21 @@
                     _shareInfo = { code: data.place.shareCode, name: data.place.name };
                 }
 
-                // 💼 باقة المتجر: الأساسي يرى المحاسبة فقط + بانر ترقية،
-                // الاحترافي (pro) يرى نقطة البيع والتقارير والمخزون أيضاً
+                // 💼 باقة المتجر: قسم "إدارة الأعمال" كامل (نقطة بيع/تقارير/مخزون/محاسبة
+                // + بانر الترقية) يظهر للباقة الاحترافية (pro) فقط. الأساسي لا يرى شيئاً منه
+                // — العميل يحاسب التاجر مباشرةً على رقم حسابه، فلا داعي للمحاسبة ولا الإعلان.
                 const isPro = data.place.tier === 'pro';
-                document.querySelectorAll('.erp-pro').forEach(el => { el.style.display = isPro ? '' : 'none'; });
+                const erpTitle = document.getElementById('erpSectionTitle');
+                const erpGrid = document.getElementById('erpGrid');
                 const upsell = document.getElementById('tierUpsell');
-                if (upsell) upsell.classList.toggle('d-none', isPro);
-                const finCol = document.getElementById('financeCardCol');
-                if (finCol) finCol.className = isPro ? 'col-3' : 'col-6';
+                if (erpTitle) erpTitle.style.display = isPro ? '' : 'none';
+                if (erpGrid) erpGrid.style.display = isPro ? '' : 'none';
+                if (upsell) upsell.classList.add('d-none'); // لا نعرض إعلان الباقات إطلاقاً
+                if (isPro) {
+                    document.querySelectorAll('.erp-pro').forEach(el => { el.style.display = ''; });
+                    const finCol = document.getElementById('financeCardCol');
+                    if (finCol) finCol.className = 'col-3';
+                }
             }
 
             const ordersRes = await fetch(`${API_URL}/api/merchant/orders`, { headers: { 'Authorization': `Bearer ${token}` } });
