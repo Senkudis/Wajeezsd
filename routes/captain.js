@@ -3,14 +3,16 @@ const router = express.Router();
 const Order = require('../models/Order');
 const { protect, captainOnly } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
-const { rateLimit } = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 // ✅ FIX #12: Rate limiter for wallet payment submissions
 // Max 3 payment requests per 10 minutes per captain
+// 🔑 express-rate-limit v8: يجب تمرير req.ip عبر ipKeyGenerator (تطبيع IPv6)
+// وإلا رمى ValidationError وعطّل تحميل الملف كاملاً عند الإقلاع.
 const walletPayLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
     max: 3,
-    keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+    keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req.ip),
     message: { message: 'لقد أرسلت عدداً كبيراً من طلبات الدفع. انتظر 10 دقائق قبل المحاولة مجدداً.' },
     standardHeaders: true,
     legacyHeaders: false,
