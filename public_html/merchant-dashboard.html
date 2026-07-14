@@ -513,10 +513,15 @@
         document.getElementById('shareModal').style.display = 'flex';
     }
 
-    // 👁️ معاينة المتجر كما يراه العميل — يفتح صفحة المتجر العامة (رابط نسبي للأصل)
+    // 👁️ معاينة المتجر كما يراه العميل — يفتح صفحة المتجر العامة.
+    // ⚠️ يجب أن يكون الرابط **مطلقاً**: كان `/s/${code}` نسبياً للأصل، وأصلُ التطبيق المثبّت
+    // هو wajeezsd.secure.local (أصول محزومة داخل الـ APK، لا خادم)، فكان المتصفّح يبحث عن
+    // الصفحة بين ملفات الحزمة ويفشل بـ ERR_HTTP_RESPONSE_CODE_FAILURE. نفس الرابط المعروض
+    // في مودال المشاركة هو الصحيح — وهو ما يراه العميل فعلاً.
     function previewStore() {
-        if (!_shareInfo || !_shareInfo.code) { showToast('رابط المتجر غير جاهز بعد'); return; }
-        window.open(`/s/${_shareInfo.code}`, '_blank');
+        const url = shareUrl();
+        if (!url) { showToast('رابط المتجر غير جاهز بعد'); return; }
+        window.open(url, '_blank');
     }
 
     function closeShareModal() {

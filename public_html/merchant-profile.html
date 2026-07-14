@@ -389,11 +389,13 @@
         }
     }
 
-    // 👁️ معاينة المتجر كما يراه العميل — يفتح صفحة المتجر العامة عبر رابط المشاركة القصير
-    // (نسبي للأصل الحالي ليعمل محلياً وعلى الإنتاج)
+    // 👁️ معاينة المتجر كما يراه العميل — يفتح صفحة المتجر العامة عبر رابط المشاركة القصير.
+    // ⚠️ يجب أن يكون مطلقاً: كان `/s/${code}` نسبياً للأصل، وأصلُ التطبيق المثبّت هو
+    // wajeezsd.secure.local (أصول محزومة داخل الـ APK، لا خادم) — فيفشل بـ
+    // ERR_HTTP_RESPONSE_CODE_FAILURE. الرابط المطلق هو ما يراه العميل فعلاً.
     function previewStore() {
         if (!place.shareCode) { Swal.fire('تنبيه', 'رابط المتجر غير جاهز بعد', 'info'); return; }
-        window.open(`/s/${place.shareCode}`, '_blank');
+        window.open(`https://wajeezsd.com/s/${place.shareCode}`, '_blank');
     }
 
     function logout() {
