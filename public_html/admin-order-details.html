@@ -279,10 +279,11 @@ function renderOrder(o) {
         </div>` : ''}
 
         <!-- Map -->
-        ${(o.pickup?.lat && o.dropoff?.lat) ? `
+        ${hasMappableRoute(o) ? `
         <div class="od-card" style="margin-bottom:20px;">
             <div class="od-card-title"><i class="fas fa-route"></i> مسار التوصيل</div>
             <div class="od-map" id="orderMap"></div>
+            <div id="orderRouteSummary" style="padding:8px 4px 0;font-size:12px;color:#64748b;"></div>
         </div>` : ''}
 
         <!-- Actions -->
@@ -300,9 +301,36 @@ function renderOrder(o) {
     `;
 
     // Init map if coordinates exist
-    if (o.pickup?.lat && o.dropoff?.lat) {
+    if (hasMappableRoute(o)) {
         setTimeout(() => initOrderMap(o), 500);
     }
+}
+
+/**
+ * نقاط المسار بترتيب الزيارة.
+ * ⚠️ للرحلات متعددة النقاط المصدرُ هو o.stops. أما pickup/dropoff فهما مجرّد مرآة لأول
+ * استلام وآخر تسليم (عقد models/Order.js) — الاعتماد عليهما وحدهما كان يُسقط كلَّ المحطات
+ * الوسطى من الخريطة، فتظهر رحلةٌ بخمس محطات للأدمن كنقطتين وخطٍّ مستقيم بينهما.
+ */
+function routePoints(o) {
+    if (o.isMultiStop && Array.isArray(o.stops) && o.stops.length >= 2) {
+        return o.stops
+            .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
+            .map((s, i) => ({
+                lat: s.lat, lng: s.lng,
+                type: s.type, done: !!s.done,
+                label: `${s.type === 'pickup' ? 'استلام' : 'تسليم'} ${i + 1}`,
+                address: s.address || ''
+            }));
+    }
+    const pts = [];
+    if (o.pickup?.lat  != null) pts.push({ lat: o.pickup.lat,  lng: o.pickup.lng,  type: 'pickup',  done: false, label: 'الاستلام', address: o.pickup.address  || '' });
+    if (o.dropoff?.lat != null) pts.push({ lat: o.dropoff.lat, lng: o.dropoff.lng, type: 'dropoff', done: false, label: 'التسليم',  address: o.dropoff.address || '' });
+    return pts;
+}
+
+function hasMappableRoute(o) {
+    return routePoints(o).length >= 2;
 }
 
 function initOrderMap(o) {
@@ -310,28 +338,68 @@ function initOrderMap(o) {
     const el = document.getElementById('orderMap');
     if (!el) return;
 
+    const pts = routePoints(o);
+    if (pts.length < 2) return;
+
     const map = new google.maps.Map(el, {
-        center: { lat: o.pickup.lat, lng: o.pickup.lng }, zoom: 13,
+        center: { lat: pts[0].lat, lng: pts[0].lng }, zoom: 13,
         disableDefaultUI: true, zoomControl: true,
         styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
     });
 
-    (typeof WajeezMarkers !== 'undefined')
-        ? new google.maps.Marker({ position: { lat: o.pickup.lat, lng: o.pickup.lng }, map, title: 'نقطة الاستلام', icon: WajeezMarkers.pickup(), zIndex: 2 })
-        : new google.maps.Marker({ position: { lat: o.pickup.lat, lng: o.pickup.lng }, map, label: { text: 'A', color: 'white', fontWeight: '800' } });
-    (typeof WajeezMarkers !== 'undefined')
-        ? new google.maps.Marker({ position: { lat: o.dropoff.lat, lng: o.dropoff.lng }, map, title: 'نقطة التسليم', icon: WajeezMarkers.dropoff(), zIndex: 2 })
-        : new google.maps.Marker({ position: { lat: o.dropoff.lat, lng: o.dropoff.lng }, map, label: { text: 'B', color: 'white', fontWeight: '800' } });
+    // دبابيس مرقّمة بترتيب الزيارة: أزرق = استلام، أحمر = تسليم، رمادي = محطة تمّت.
+    // (نفس دلالة الألوان في شاشة الكابتن — الأدمن والكابتن يجب أن يريا الرحلة نفسها)
+    pts.forEach((p, i) => {
+        new google.maps.Marker({
+            position: { lat: p.lat, lng: p.lng },
+            map,
+            title: `${p.label}${p.address ? ' — ' + p.address : ''}${p.done ? ' (تمّت)' : ''}`,
+            label: { text: String(i + 1), color: '#fff', fontWeight: '800', fontSize: '12px' },
+            zIndex: 2,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 13,
+                fillColor: p.done ? '#94a3b8' : (p.type === 'pickup' ? '#2563eb' : '#dc2626'),
+                fillOpacity: 1,
+                strokeColor: '#fff',
+                strokeWeight: 2
+            }
+        });
+    });
 
     const bounds = new google.maps.LatLngBounds();
-    bounds.extend({ lat: o.pickup.lat, lng: o.pickup.lng });
-    bounds.extend({ lat: o.dropoff.lat, lng: o.dropoff.lng });
+    pts.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
     map.fitBounds(bounds, 50);
 
-    // Draw line
-    new google.maps.Polyline({
-        path: [{ lat: o.pickup.lat, lng: o.pickup.lng }, { lat: o.dropoff.lat, lng: o.dropoff.lng }],
-        map, strokeColor: '#6366f1', strokeWeight: 3, strokeOpacity: 0.7
+    const summary = document.getElementById('orderRouteSummary');
+
+    // المسار الحقيقي على الطرق عبر كل المحطات بالترتيب.
+    // ⚠️ بلا optimizeWaypoints: الترتيب المخزَّن هو المعتمد فعلاً في التنفيذ، والأدمن يجب
+    // أن يرى ما سيسلكه الكابتن لا مساراً أمثل افتراضياً.
+    new google.maps.DirectionsService().route({
+        origin:      { lat: pts[0].lat, lng: pts[0].lng },
+        destination: { lat: pts[pts.length - 1].lat, lng: pts[pts.length - 1].lng },
+        waypoints:   pts.slice(1, -1).map(p => ({ location: { lat: p.lat, lng: p.lng }, stopover: true })),
+        optimizeWaypoints: false,
+        travelMode: google.maps.TravelMode.DRIVING
+    }).then(res => {
+        new google.maps.DirectionsRenderer({
+            map, directions: res,
+            suppressMarkers: true,                 // دبابيسنا المرقّمة أوضح من A/B/C
+            polylineOptions: { strokeColor: '#6366f1', strokeWeight: 5, strokeOpacity: 0.85 }
+        });
+        const legs = res.routes[0].legs;
+        const km  = legs.reduce((s, l) => s + l.distance.value, 0) / 1000;
+        const min = legs.reduce((s, l) => s + l.duration.value, 0) / 60;
+        if (summary) summary.textContent = `${pts.length} محطات • ${km.toFixed(1)} كم • ~${Math.round(min)} دقيقة على الطرق`;
+    }).catch(() => {
+        // تعذّر Directions (المفتاح/الشبكة) — لا نترك الخريطة بلا مسار: خطٌّ مستقيم يمرّ
+        // بكل المحطات بالترتيب. أضعف من مسار الطرق، لكنه لا يُخفي محطةً كما كان يحدث.
+        new google.maps.Polyline({
+            path: pts.map(p => ({ lat: p.lat, lng: p.lng })),
+            map, strokeColor: '#6366f1', strokeWeight: 3, strokeOpacity: 0.7
+        });
+        if (summary) summary.textContent = `${pts.length} محطات — تعذّر حساب مسار الطرق (خط تقريبي)`;
     });
 }
 
