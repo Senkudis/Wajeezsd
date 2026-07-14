@@ -19,6 +19,8 @@
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/theme-manager.js?v=01cb92bf"></script>
     <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/geo.js?v=b7e21c45"></script>
+    <script src="js/maps-loader.js?v=b7e21c45"></script>
     <script src="vendor/image-compression/browser-image-compression.js"></script>
 
     <style>
@@ -119,6 +121,8 @@
                 }
                 
                 const orders = await response.json();
+                // تُقرأ من خريطة المسار وزر إعادة الترتيب — تفادياً لجلب الطلب مرة أخرى عند كل نقرة
+                window._missions = orders;
                 const container = document.getElementById('missions-container');
                 container.innerHTML = '';
 
@@ -164,6 +168,20 @@
                             <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill mb-2">
                                 <i class="bi bi-signpost-split-fill me-1"></i>رحلة متعددة النقاط — أكمل النقاط بالترتيب
                             </span>
+
+                            <!-- 🗺️ الرحلة ككل: خريطة المسار الكامل + اقتراح ترتيب أقصر من موقع الكابتن -->
+                            <div class="d-flex gap-2 mb-2">
+                                <button class="btn btn-sm btn-primary rounded-pill flex-fill fw-bold py-2"
+                                        onclick="openRouteMap('${order._id}')">
+                                    <i class="bi bi-map-fill me-1"></i> عرض المسار كامل
+                                </button>
+                                ${undoneCount >= 2 ? `
+                                <button class="btn btn-sm btn-outline-primary rounded-pill flex-fill fw-bold py-2"
+                                        onclick="suggestRoute('${order._id}')">
+                                    <i class="bi bi-shuffle me-1"></i> رتّب لي أفضل مسار
+                                </button>` : ''}
+                            </div>
+
                             ${order.stops.map((s, i) => {
                                 const isP = s.type === 'pickup';
                                 const isLastUndone = !s.done && undoneCount === 1;
@@ -606,8 +624,206 @@
             }
         }
 
+        // ================================================================
+        // 🗺️ خريطة المسار الكامل — الكابتن يرى الرحلة ككل قبل أن يتحرّك
+        //
+        // كانت الشاشة قائمةً نصية فقط: زر «اتجاهات» لكل محطة على حدة يفتح Google Maps
+        // لنقطة واحدة. فلا يرى الكابتن شكل الرحلة ولا أين تقع النقاط من بعضها.
+        // هنا نرسم المسار الحقيقي على الطرق عبر Directions API، بترتيب المحطات المخزَّن،
+        // انطلاقاً من موقع الكابتن الفعلي.
+        // ================================================================
+        let _routeMap = null;
+        let _routeRenderer = null;
+
+        async function openRouteMap(orderId) {
+            const order = (window._missions || []).find(o => o._id === orderId);
+            if (!order || !Array.isArray(order.stops)) return;
+
+            const remaining = order.stops.filter(s => !s.done && Number.isFinite(s.lat) && Number.isFinite(s.lng));
+            if (remaining.length === 0) {
+                Swal.fire({ icon: 'info', text: 'كل المحطات مكتملة', confirmButtonColor: '#04553A' });
+                return;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('routeMapModal'));
+            modal.show();
+
+            const summaryEl = document.getElementById('routeSummary');
+            summaryEl.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split"></i> جاري تحديد موقعك ورسم المسار…</span>';
+
+            try {
+                await loadGoogleMaps({ libraries: 'geometry' });
+
+                // نقطة الانطلاق = موقع الكابتن الفعلي، لا أول محطة — وإلا فالمسار المعروض ليس مساره
+                let origin = null;
+                try {
+                    origin = await window.WajeezGeo.getPrecise({ minAccuracy: 50, maxWait: 8000 });
+                } catch (_) {
+                    origin = { lat: remaining[0].lat, lng: remaining[0].lng };   // بلا GPS: ابدأ من أول محطة
+                }
+
+                const mapEl = document.getElementById('routeMapCanvas');
+                if (!_routeMap) {
+                    _routeMap = new google.maps.Map(mapEl, {
+                        center: { lat: origin.lat, lng: origin.lng },
+                        zoom: 13,
+                        mapTypeControl: false,
+                        streetViewControl: false,
+                        fullscreenControl: false
+                    });
+                    _routeRenderer = new google.maps.DirectionsRenderer({
+                        map: _routeMap,
+                        suppressMarkers: true,     // نرسم دبابيسنا المرقّمة بدلاً من A/B/C
+                        polylineOptions: { strokeColor: '#04553A', strokeWeight: 5, strokeOpacity: 0.85 }
+                    });
+                } else {
+                    _routeRenderer.setMap(_routeMap);
+                }
+                google.maps.event.trigger(_routeMap, 'resize');
+
+                // ⚠️ لا optimizeWaypoints هنا: جوجل لا يفهم قيد «كل الاستلامات قبل أي تسليم»،
+                // فقد يعيد ترتيباً يسلّم طرداً قبل استلامه. الترتيب يحسمه زر «رتّب لي أفضل مسار»
+                // (utils/routeOptimizer.js) الذي يحترم القيد؛ هنا نرسم الترتيب المعتمد كما هو.
+                const service = new google.maps.DirectionsService();
+                const result = await service.route({
+                    origin: { lat: origin.lat, lng: origin.lng },
+                    destination: { lat: remaining[remaining.length - 1].lat, lng: remaining[remaining.length - 1].lng },
+                    waypoints: remaining.slice(0, -1).map(s => ({
+                        location: { lat: s.lat, lng: s.lng },
+                        stopover: true
+                    })),
+                    optimizeWaypoints: false,
+                    travelMode: google.maps.TravelMode.DRIVING
+                });
+
+                _routeRenderer.setDirections(result);
+
+                // دبابيس مرقّمة بترتيب الزيارة + تمييز الاستلام عن التسليم
+                (window._routeMarkers || []).forEach(m => m.setMap && m.setMap(null));
+                window._routeMarkers = [];
+
+                window._routeMarkers.push(new google.maps.Marker({
+                    map: _routeMap,
+                    position: { lat: origin.lat, lng: origin.lng },
+                    title: 'موقعك الحالي',
+                    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#0d6efd', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 }
+                }));
+
+                remaining.forEach((s, i) => {
+                    const isPickup = s.type === 'pickup';
+                    window._routeMarkers.push(new google.maps.Marker({
+                        map: _routeMap,
+                        position: { lat: s.lat, lng: s.lng },
+                        label: { text: String(i + 1), color: '#fff', fontWeight: 'bold', fontSize: '13px' },
+                        title: `${isPickup ? 'استلام' : 'تسليم'}: ${s.address || ''}`,
+                        // أزرق = استلام، أحمر = تسليم — نفس دلالة الألوان في القائمة النصية أسفل
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 13,
+                            fillColor: isPickup ? '#0d6efd' : '#dc3545',
+                            fillOpacity: 1,
+                            strokeColor: '#fff',
+                            strokeWeight: 2
+                        }
+                    }));
+                });
+
+                // المسافة والزمن الحقيقيان على الطرق (مجموع كل المقاطع)
+                const legs = result.routes[0].legs;
+                const totalKm  = legs.reduce((s, l) => s + l.distance.value, 0) / 1000;
+                const totalMin = legs.reduce((s, l) => s + l.duration.value, 0) / 60;
+
+                summaryEl.innerHTML = `
+                    <div class="d-flex justify-content-around text-center">
+                        <div><small class="text-muted d-block">المسافة</small><strong>${totalKm.toFixed(1)} كم</strong></div>
+                        <div><small class="text-muted d-block">الزمن التقريبي</small><strong>${Math.round(totalMin)} دقيقة</strong></div>
+                        <div><small class="text-muted d-block">المحطات</small><strong>${remaining.length}</strong></div>
+                    </div>`;
+            } catch (err) {
+                console.error('route map failed:', err);
+                summaryEl.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> تعذّر رسم المسار — تحقق من الاتصال</span>`;
+            }
+        }
+
+        // ================================================================
+        // 🔀 اقتراح ترتيب أقصر — من موقع الكابتن الفعلي.
+        // القرار للكابتن: هو يعرف الطريق المقطوع والاتجاه الواحد والزحمة، لا الخوارزمية.
+        // ================================================================
+        async function suggestRoute(orderId) {
+            try {
+                Swal.fire({ title: 'جاري تحديد موقعك…', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+
+                const fix = await window.WajeezGeo.getPrecise({ minAccuracy: 50, maxWait: 10000 });
+
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${orderId}/stops/suggest-route`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${Auth.getToken()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat: fix.lat, lng: fix.lng })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'تعذّر حساب أفضل مسار');
+
+                if (!data.changed) {
+                    Swal.fire({ icon: 'success', title: 'ترتيبك ممتاز أصلاً', text: 'ما لقينا مساراً أقصر من الحالي.', confirmButtonColor: '#04553A' });
+                    return;
+                }
+
+                const listHtml = data.stops
+                    .filter(s => !s.done)
+                    .map((s, i) => `<div style="text-align:right;padding:4px 0;border-bottom:1px solid #eee;">
+                        <b>${i + 1}.</b> <span style="color:${s.type === 'pickup' ? '#0d6efd' : '#dc3545'}">
+                        ${s.type === 'pickup' ? 'استلام' : 'تسليم'}</span> — ${s.address || ''}</div>`)
+                    .join('');
+
+                const confirmed = await Swal.fire({
+                    title: `توفير ${data.savedKm} كم`,
+                    html: `<div style="font-size:0.9rem;">
+                             <div class="mb-2 text-muted">الحالي: ${data.currentKm} كم &nbsp;→&nbsp; المقترح: <b>${data.optimizedKm} كم</b></div>
+                             ${listHtml}
+                           </div>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'اعتمد هذا الترتيب',
+                    cancelButtonText: 'خلّيك على الحالي',
+                    confirmButtonColor: '#04553A'
+                });
+                if (!confirmed.isConfirmed) return;
+
+                const applyRes = await fetchWithRetry(`${API_URL}/api/orders/${orderId}/stops/reorder`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${Auth.getToken()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order: data.order })
+                });
+                const applyData = await applyRes.json();
+                if (!applyRes.ok) throw new Error(applyData.message || 'تعذّر حفظ الترتيب');
+
+                await Swal.fire({ icon: 'success', title: 'تم تحديث المسار', timer: 1400, showConfirmButton: false });
+                fetchMissions();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'تعذّر الترتيب', text: err.message, confirmButtonColor: '#04553A' });
+            }
+        }
+
         fetchMissions();
     </script>
+
+    <!-- =============================================
+         🗺️ Modal: المسار الكامل للرحلة متعددة النقاط
+    ============================================= -->
+    <div class="modal fade" id="routeMapModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg mx-2">
+            <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+                <div class="modal-header border-0" style="background:linear-gradient(135deg,#04553A,#0a8754);color:white;">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-map-fill me-2"></i>المسار الكامل</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="routeMapCanvas" style="width:100%;height:60vh;min-height:320px;background:#eee;"></div>
+                    <div id="routeSummary" class="p-3 border-top bg-light small"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- WhatsApp Subscription Modal -->
 

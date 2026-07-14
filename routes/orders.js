@@ -1327,6 +1327,130 @@ router.put('/:id/stops/:index/done', protect, captainOnly, async (req, res) => {
 });
 
 
+// ============================================================================
+// 🧭 ترتيب محطات الرحلة متعددة النقاط
+//
+// الترتيب المخزَّن هو ترتيب إدخال العميل حرفياً — لا علاقة له بالجغرافيا. هذان
+// المساران يعطيان الكابتن ترتيباً أقصر محسوباً من موقعه الفعلي، ويتركان له القرار:
+// الكابتن يعرف الشارع (طريق مقطوع، اتجاه واحد، زحمة) أكثر من أي خوارزمية.
+//
+// القيد المحفوظ في الحالتين: كل الاستلامات قبل أي تسليم، والمحطات المكتملة لا تتحرّك.
+// ============================================================================
+
+// جلب الطلب مع التحققات المشتركة بين المسارين
+async function loadReorderableOrder(req, res) {
+    const order = await Order.findOne({ _id: req.params.id, captain: req.user.id });
+    if (!order) { res.status(404).json({ message: 'الطلب غير موجود' }); return null; }
+    if (!order.isMultiStop || !Array.isArray(order.stops) || order.stops.length < 2) {
+        res.status(400).json({ message: 'هذا الطلب ليس متعدد النقاط' }); return null;
+    }
+    // بعد التسليم النهائي لم يعد للترتيب معنى
+    if (!['accepted', 'picked_up'].includes(order.status)) {
+        res.status(400).json({ message: 'لا يمكن إعادة ترتيب رحلة منتهية' }); return null;
+    }
+    return order;
+}
+
+// @route   POST /api/orders/:id/stops/suggest-route
+// @desc    يقترح ترتيباً أقصر من موقع الكابتن — اقتراح فقط، لا يحفظ شيئاً
+// @access  Captain (صاحب الطلب)
+router.post('/:id/stops/suggest-route', protect, captainOnly, async (req, res) => {
+    try {
+        const order = await loadReorderableOrder(req, res);
+        if (!order) return;
+
+        const lat = Number(req.body.lat);
+        const lng = Number(req.body.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            return res.status(400).json({ message: 'موقعك الحالي مطلوب لحساب أفضل مسار' });
+        }
+
+        const { optimizeStops } = require('../utils/routeOptimizer');
+        const result = optimizeStops(order.stops, { lat, lng });
+
+        res.json({
+            order: result.order,                              // فهارس بالترتيب المقترح
+            stops: result.order.map(i => order.stops[i]),     // المحطات نفسها، جاهزة للعرض
+            currentKm: result.currentKm,
+            optimizedKm: result.optimizedKm,
+            savedKm: result.savedKm,
+            changed: result.changed
+        });
+    } catch (error) {
+        // أخطاء المُحسِّن رسائلها عربية موجّهة للمستخدم (بلا إحداثيات / موقع غير صالح)
+        logger.warn({ err: error.message, orderId: req.params.id }, 'suggest-route failed');
+        res.status(400).json({ message: error.message || 'تعذّر حساب أفضل مسار' });
+    }
+});
+
+// @route   PUT /api/orders/:id/stops/reorder
+// @desc    يطبّق ترتيباً وافق عليه الكابتن
+// @access  Captain (صاحب الطلب)
+router.put('/:id/stops/reorder', protect, captainOnly, async (req, res) => {
+    try {
+        const order = await loadReorderableOrder(req, res);
+        if (!order) return;
+
+        const newOrder = req.body.order;
+        const n = order.stops.length;
+
+        // 🔒 لا نثق بالعميل: يجب أن يكون الترتيب تبديلاً كاملاً لفهارس المحطات — لا أكثر ولا أقل.
+        // بدون هذا يستطيع كابتن مُعدِّل للطلب حذف محطة أو تكرارها.
+        if (!Array.isArray(newOrder) || newOrder.length !== n) {
+            return res.status(400).json({ message: 'ترتيب غير صالح' });
+        }
+        const seen = new Set(newOrder);
+        if (seen.size !== n || newOrder.some(i => !Number.isInteger(i) || i < 0 || i >= n)) {
+            return res.status(400).json({ message: 'ترتيب غير صالح' });
+        }
+
+        const reordered = newOrder.map(i => order.stops[i]);
+
+        // 🔒 القيد نفسه يُفرض هنا أيضاً — الاقتراح يحترمه، لكن هذا المسار عام ولا يفترض حسن النية
+        const firstDropoff = reordered.findIndex(s => s.type !== 'pickup');
+        const lastPickup   = reordered.map(s => s.type).lastIndexOf('pickup');
+        if (firstDropoff !== -1 && lastPickup > firstDropoff) {
+            return res.status(400).json({ message: 'لا يمكن تسليم طرد قبل استلامه — كل الاستلامات أولاً' });
+        }
+
+        // 🔒 المحطات المكتملة سجلٌّ لما حدث فعلاً: يجب أن تبقى في المقدّمة وبترتيبها الزمني
+        const doneCount = order.stops.filter(s => s.done).length;
+        if (reordered.slice(0, doneCount).some(s => !s.done)) {
+            return res.status(400).json({ message: 'لا يمكن تحريك المحطات المكتملة' });
+        }
+
+        order.stops = reordered;
+
+        // pickup/dropoff مرآةٌ لأول استلام وآخر تسليم (عقد موثّق في models/Order.js) —
+        // بدون تحديثها هنا تشير بطاقةُ الطلب وشاشةُ التتبّع لنقاطٍ لم تعد في مكانها بالمسار.
+        const firstPickup = reordered.find(s => s.type === 'pickup');
+        const lastDropoff = [...reordered].reverse().find(s => s.type === 'dropoff');
+        if (firstPickup && Number.isFinite(firstPickup.lat)) {
+            order.pickup.address = firstPickup.address;
+            order.pickup.lat = firstPickup.lat;
+            order.pickup.lng = firstPickup.lng;
+            if (firstPickup.contactName)  order.pickup.contactName  = firstPickup.contactName;
+            if (firstPickup.contactPhone) order.pickup.contactPhone = firstPickup.contactPhone;
+        }
+        if (lastDropoff && Number.isFinite(lastDropoff.lat)) {
+            order.dropoff.address = lastDropoff.address;
+            order.dropoff.lat = lastDropoff.lat;
+            order.dropoff.lng = lastDropoff.lng;
+            if (lastDropoff.contactName)  order.dropoff.receiverName  = lastDropoff.contactName;
+            if (lastDropoff.contactPhone) order.dropoff.receiverPhone = lastDropoff.contactPhone;
+        }
+
+        await order.save();
+        logger.info({ orderId: order._id, captain: req.user.id }, 'Captain reordered trip stops');
+
+        res.json({ message: 'تم تحديث ترتيب المسار', order });
+    } catch (error) {
+        logger.error({ err: error.message }, 'stops reorder error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
 // @route   PUT /api/orders/:id/deliver
 router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
     try {
