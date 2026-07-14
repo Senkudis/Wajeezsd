@@ -233,9 +233,13 @@
             </a>
         </div>
     </div>
-    <!-- 💼 ERP: إدارة الأعمال — القسم كامل يظهر للباقة الاحترافية (pro) فقط -->
-    <div class="section-title" id="erpSectionTitle"><i class="bi bi-briefcase-fill text-warning"></i> إدارة الأعمال</div>
-    <div class="row g-2 mb-2 align-items-stretch" id="erpGrid">
+    <!-- 💼 ERP: إدارة الأعمال — القسم كامل يظهر للباقة الاحترافية (pro) فقط.
+         ⚠️ مخفيّ في الماركب افتراضياً وليس بالـ JS: كان ظاهراً ثم يُخفى بعد وصول ردّ
+         /api/merchant/profile، فيراه تاجرُ الباقة الأساسية يومض عند كل فتح للصفحة.
+         الإخفاء الافتراضي يجعل الفشل آمناً أيضاً: إن تعثّر الطلب لا تظهر ميزات مدفوعة
+         لمن لم يدفع. الإظهار حصراً عند تأكّد tier === 'pro' أدناه. -->
+    <div class="section-title" id="erpSectionTitle" style="display:none;"><i class="bi bi-briefcase-fill text-warning"></i> إدارة الأعمال</div>
+    <div class="row g-2 mb-2 align-items-stretch" id="erpGrid" style="display:none;">
         <div class="col-3 erp-pro">
             <a href="merchant-pos.html" class="quick-btn">
                 <i class="bi bi-upc-scan" style="color:#0f3460;"></i>
