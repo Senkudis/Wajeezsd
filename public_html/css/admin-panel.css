@@ -249,6 +249,46 @@ h2, h3, h4, .gv-stat-info h2, .gv-order-price, .gv-status-bar-count,
 
 .gv-panel-body { padding: 20px 22px; }
 
+/* ── شريط أدوات اللوحة (فلاتر + بحث) ──
+   المشكلة التي يحلّها: كان الصفّ inline بلا flex-wrap وحقل البحث بعرض ثابت 220px،
+   فعلى شاشة الهاتف تتجاوز العناصر عرض الحاوية ويُقصّ حقلُ البحث خارج الشاشة تماماً.
+   هنا: يلتفّ الصفّ، والبحث يأخذ المتبقّي ويهبط لسطر كامل عند الضيق (min-width:0
+   ضروري وإلا رفض عنصرُ flex الانكماشَ دون عرضه الافتراضي). */
+.gv-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.gv-toolbar-select,
+.gv-toolbar-search {
+    padding: 7px 12px;
+    border: 1px solid var(--gv-border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    min-width: 0;              /* يسمح بالانكماش داخل flex */
+    background: var(--gv-card, #fff);
+    color: inherit;
+}
+
+.gv-toolbar-select { cursor: pointer; flex: 0 1 auto; }
+
+/* يتمدّد ليملأ المتبقّي، ولا ينزل تحت 150px قبل أن يلتفّ لسطره الخاص */
+.gv-toolbar-search { flex: 1 1 180px; max-width: 260px; }
+
+@media (max-width: 640px) {
+    .gv-panel-header { flex-wrap: wrap; gap: 10px; }
+    .gv-toolbar { justify-content: stretch; }
+    /* على الهاتف: البحث سطر كامل — أهمّ من الفلاتر ويجب ألا يُقصّ أبداً */
+    .gv-toolbar-search { flex: 1 1 100%; max-width: none; order: -1; }
+    .gv-toolbar-select { flex: 1 1 calc(50% - 5px); }
+}
+
 /* ── Live Orders Feed ── */
 .gv-orders-feed { max-height: 500px; overflow-y: auto; }
 

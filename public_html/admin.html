@@ -6,7 +6,7 @@
     <title>لوحة التحكم | وجيز</title>
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="css/admin-panel.css?v=3077157e">
+    <link rel="stylesheet" href="css/admin-panel.css?v=f294c7cb">
     <script src="js/config.js?v=b84e6b6a"></script>
     <script src="js/admin-cache-buster.js?v=d70c699f"></script>
     <script src="js/vehicle-types.js?v=eedaff8e"></script>
@@ -316,19 +316,22 @@
             <div class="gv-panel">
                 <div class="gv-panel-header" style="flex-wrap:wrap;gap:10px;">
                     <div class="gv-panel-title"><i class="fas fa-users"></i> جميع المستخدمين</div>
-                    <div style="display:flex;gap:10px;align-items:center;">
-                        <select id="userCityFilter" onchange="filterUsers()" style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;">
+                    <!-- ⚠️ flex-wrap ضروري: بدونه كان الفلتران + حقل البحث (220px ثابتة) يتجاوزون
+                         عرض شاشة الهاتف فيُقصّ حقل البحث خارج الشاشة ولا يظهر إطلاقاً.
+                         البحث يأخذ المساحة المتبقية (flex) ويهبط لسطر كامل عند الضيق. -->
+                    <div class="gv-toolbar">
+                        <select id="userCityFilter" onchange="filterUsers()" class="gv-toolbar-select">
                             <option value="all">الكل (المدن)</option>
                             <option value="Khartoum">الخرطوم - أم درمان</option>
                             <option value="PortSudan">بورتسودان</option>
                         </select>
-                        <select id="userVerifyFilter" onchange="filterUsers()" style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;">
+                        <select id="userVerifyFilter" onchange="filterUsers()" class="gv-toolbar-select">
                             <option value="all">الكل (التفعيل)</option>
                             <option value="unverified">غير مفعلة (OTP)</option>
                             <option value="verified">مفعلة</option>
                         </select>
                         <input type="text" id="userSearch" placeholder="بحث بالاسم أو الهاتف..." oninput="filterUsers()"
-                            style="padding:7px 12px;border:1px solid var(--gv-border);border-radius:8px;font-family:inherit;font-size:12px;width:220px;">
+                            class="gv-toolbar-search">
                     </div>
                 </div>
                 <div class="gv-panel-body" style="overflow-x:auto;">
