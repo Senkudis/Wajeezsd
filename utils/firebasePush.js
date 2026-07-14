@@ -64,6 +64,86 @@ function isFirebaseReady() {
     return initialized;
 }
 
+// ── بناء الرسالة الهجينة ───────────────────────────────────────────────────────
+//
+// 🚨 لماذا هجينة (notification + data) بعد أن كانت data-only:
+//   رسالة data-only **تحتاج عملية التطبيق حيّة** لتبني الإشعار في onMessageReceived().
+//   حين يقتل النظام العملية — تحسين البطارية، مسح التطبيق من الـ recents، أو رومات
+//   OEM الشرسة (Xiaomi/Infinix/Tecno/Oppo، وهي الأكثر انتشاراً لدى مستخدمينا) —
+//   يوصّل FCM الرسالة ولا يوجد من يعرضها، **فتضيع بصمت**. هذا هو السبب الجذري
+//   لشكوى «إشعار الطلب مرة يجي ومرة لا».
+//
+//   مع notification payload يعرضه نظام أندرويد بنفسه حتى لو كانت العملية ميتة تماماً.
+//
+// ✅ ولماذا لم نخسر شيئاً بالمقابل:
+//   - التطبيق في المقدّمة: FCM لا يعرض تلقائياً، بل يستدعي onMessageReceived() ومعها
+//     notification + data معاً → WassiliFCMService يبني إشعار BigText بقناته وصوته كالعادة.
+//   - التطبيق في الخلفية/مقتول: النظام يعرض الإشعار من android.notification (نمرّر له
+//     channel_id فيأخذ نفس الجرس والاهتزاز واللون من القناة التي ينشئها MainActivity).
+//   - لا تكرار: الحالتان متعارضتان — إمّا onMessageReceived أو العرض التلقائي، لا الاثنان.
+//   - الـ deep-link سليم: عند العرض التلقائي يضع FCM مفاتيح data في extras الـ Intent،
+//     و MainActivity.readPushExtras() يقرأ "orderId" / "type" / "targetUrl". لذلك نرسل
+//     targetUrl **داخل data** (إضافةً إلى url) — بدونه يصل المفتاح باسم "url" فقط ولا
+//     تجده MainActivity، فيفتح التطبيق على الصفحة الافتراضية بدل الطلب المقصود.
+
+// نفس تعيين WassiliFCMService.resolveChannel — القناة تحدّد الصوت والاهتزاز واللون
+function resolveChannel(type) {
+    switch (type) {
+        case 'chat_message':      return 'chat_alerts';
+        case 'admin_order_alert':
+        case 'system':            return 'admin_alerts';
+        default:                  return 'wassili_notifications';
+    }
+}
+
+function buildMessage(title, body, data = {}, opts = {}) {
+    const type = String(data.type || 'system');
+    const url  = data.url ? String(data.url) : '';
+
+    const payload = {
+        ...Object.fromEntries(
+            Object.entries(data).map(([k, v]) => [k, String(v)])
+        ),
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        // BigText: النص الكامل بلا اقتطاع — يقرأه WassiliFCMService في حالة المقدّمة
+        notif_title: String(title),
+        notif_body:  String(body)
+    };
+    // 🔑 اسم المفتاح الذي تقرأه MainActivity من extras عند العرض التلقائي (خلفية/مقتول)
+    if (url) payload.targetUrl = url;
+
+    return {
+        // يعرضه النظام بنفسه إن كانت عملية التطبيق ميتة — هذا هو جوهر الإصلاح
+        notification: { title: String(title), body: String(body) },
+        data: payload,
+        android: {
+            priority: 'high',
+            notification: {
+                channelId: resolveChannel(type),     // نفس قناة MainActivity → نفس الجرس واللون
+                icon: 'ic_stat_wassili',
+                color: type === 'chat_message' ? '#6f42c1'
+                     : resolveChannel(type) === 'admin_alerts' ? '#dc3545' : '#0a8754',
+                defaultSound: false,
+                sound: 'wassili_bell',               // لأندرويد 7 وأقدم (8+ يأخذه من القناة)
+                // تجميع الإشعارات لكل طلب/محادثة على حدة — لا يبتلع طلبٌ جديد إشعارَ سابقه
+                tag: data.orderId ? `${type}_${data.orderId}` : undefined
+            }
+        },
+        apns: {
+            payload: { aps: { sound: 'wassili_bell.wav', badge: 1 } },
+            fcmOptions: { imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png' }
+        },
+        webpush: {
+            notification: Object.assign({
+                title,
+                body,
+                icon: 'https://wajeezsd.com/icons/icon-192x192.png'
+            }, opts.webpushExtra || {}),
+            fcmOptions: { link: opts.link || 'https://wajeezsd.com/' }
+        }
+    };
+}
+
 /**
  * Send FCM Push Notification to a specific user
  * @param {string} fcmToken - User's FCM device token
@@ -79,51 +159,12 @@ async function sendPush(fcmToken, title, body, data = {}) {
     // في catch ترمي ReferenceError ولا تُرسل شيئاً أبداً (كل فشل عابر = إشعار ضائع للأبد).
     const message = {
         token: fcmToken,
-        // ⚠️ No top-level `notification` and no `android.notification` block, on purpose:
-        // any notification payload for Android makes FCM auto-display it via the OS when the
-        // app is backgrounded/killed, which SKIPS WassiliFCMService.onMessageReceived() and
-        // loses the orderId/type needed for tap deep-linking (see WassiliFCMService.java).
-        // Data-only messages are documented, stable FCM behavior that always invoke
-        // onMessageReceived() — foreground, background, and killed alike.
-        // Web/PWA notifications are unaffected: `webpush.notification` below still gives
-        // browsers a real title/body/image (service-worker.js reads that independently).
-        data: {
-            ...Object.fromEntries(
-                Object.entries(data).map(([k, v]) => [k, String(v)])
-            ),
-            click_action: 'FLUTTER_NOTIFICATION_CLICK',
-            // ✅ BigText: send full text in data so WassiliFCMService builds expandable notification
-            notif_title: String(title),
-            notif_body:  String(body)   // full text — no substring truncation
-        },
-        android: {
-            priority: 'high'
-        },
-        apns: {
-            payload: {
-                aps: {
-                    sound: 'wassili_bell.wav',
-                    badge: 1
-                }
-            },
-            fcmOptions: {
-                imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png'
-            }
-        },
-        // Web push (PWA in browser) — carries its own notification payload since the
-        // top-level one was removed for the Android data-only fix above.
-        webpush: {
-            notification: {
-                title,
-                body,
-                icon: 'https://wajeezsd.com/icons/icon-192x192.png',
+        ...buildMessage(title, body, data, {
+            webpushExtra: {
                 image: 'https://wajeezsd.com/logo-transparent.png',
                 vibrate: [200, 100, 200]
-            },
-            fcmOptions: {
-                link: 'https://wajeezsd.com/'
             }
-        }
+        })
     };
 
     try {
@@ -174,34 +215,8 @@ async function sendPushToMany(fcmTokens, title, body, data = {}) {
     const validTokens = [...new Set(fcmTokens.filter(t => t && t.length > 10))];
     if (validTokens.length === 0) return { success: 0, failure: 0 };
 
-    // الرسالة الأساسية — تُعاد لكل دفعة
-    // ⚠️ Data-only for Android (no top-level `notification`, no `android.notification`) so
-    // WassiliFCMService.onMessageReceived() always runs — see comment in sendPush() above.
-    const baseMessage = {
-        data: {
-            ...Object.fromEntries(
-                Object.entries(data).map(([k, v]) => [k, String(v)])
-            ),
-            // ✅ BigText: full text for expandable notification on Android
-            notif_title: String(title),
-            notif_body:  String(body)
-        },
-        android: {
-            priority: 'high'
-        },
-        apns: {
-            payload: { aps: { sound: 'wassili_bell.wav', badge: 1 } },
-            fcmOptions: { imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png' }
-        },
-        webpush: {
-            notification: {
-                title,
-                body,
-                icon: 'https://wajeezsd.com/icons/icon-192x192.png'
-            },
-            fcmOptions: { link: 'https://wajeezsd.com/' }
-        }
-    };
+    // الرسالة الأساسية — تُعاد لكل دفعة (هجينة: notification + data، انظر buildMessage أعلاه)
+    const baseMessage = buildMessage(title, body, data);
 
     // 🚨 FCM يفرض حداً صارماً قدره 500 توكن لكل استدعاء sendEachForMulticast.
     // الإرسال دفعة واحدة فوق 500 كان يُفشل البث بالكامل ("مستخدمين ما بتصلهم").
@@ -304,39 +319,16 @@ async function sendChatPush(fcmToken, title, body, data = {}) {
     if (!initialized || !fcmToken) return false;
 
     try {
-        // ⚠️ Data-only for Android — no top-level `notification`, no `android.notification`
-        // — so WassiliFCMService.onMessageReceived() always runs and builds the chat notification
-        // itself (channel/sound/color) from `data.type` / `notif_title` / `notif_body` below.
-        // See comment in sendPush() above for why.
+        // القناة (chat_alerts) تُشتقّ من data.type داخل buildMessage — نفس تعيين WassiliFCMService
         const message = {
             token: fcmToken,
-            data: {
-                ...Object.fromEntries(
-                    Object.entries(data).map(([k, v]) => [k, String(v)])
-                ),
-                click_action: 'FLUTTER_NOTIFICATION_CLICK',
-                notif_title: String(title),
-                notif_body:  String(body)
-            },
-            android: {
-                priority: 'high'
-            },
-            apns: {
-                payload: { aps: { sound: 'wassili_bell.wav', badge: 1 } },
-                fcmOptions: { imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png' }
-            },
-            webpush: {
-                notification: {
-                    title,
-                    body,
-                    icon: 'https://wajeezsd.com/icons/icon-192x192.png',
-                    tag: data.orderId ? `chat_${data.orderId}` : undefined, // Collapses multiple notifications
+            ...buildMessage(title, body, { ...data, type: data.type || 'chat_message' }, {
+                webpushExtra: {
+                    tag: data.orderId ? `chat_${data.orderId}` : undefined, // يجمّع رسائل نفس المحادثة
                     renotify: true
                 },
-                fcmOptions: {
-                    link: data.orderId ? `https://wajeezsd.com/chat.html?orderId=${data.orderId}` : 'https://wajeezsd.com/'
-                }
-            }
+                link: data.orderId ? `https://wajeezsd.com/chat.html?orderId=${data.orderId}` : 'https://wajeezsd.com/'
+            })
         };
 
         const response = await admin.messaging().send(message);

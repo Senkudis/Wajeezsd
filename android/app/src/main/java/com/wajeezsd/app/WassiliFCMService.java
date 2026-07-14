@@ -21,15 +21,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * WassiliFCMService — Intercepts FCM messages and builds BigText expandable notifications.
  *
- * ✅ Why: utils/firebasePush.js sends Android messages as data-only (no top-level
- *    `notification`, no `android.notification`). Per documented, stable FCM behavior,
- *    that guarantees onMessageReceived() below runs in EVERY app state — foreground,
- *    background, and killed — instead of the OS auto-displaying (and bypassing this
- *    method) whenever a notification payload is present. This is what lets the tap
- *    PendingIntent's orderId/type extras reach MainActivity.java reliably every time.
- *    We read notif_title & notif_body from the data payload (sent by the Node.js server)
- *    and display them using NotificationCompat.BigTextStyle, which lets the user
- *    expand the notification by swiping down on it — exactly like WhatsApp.
+ * ✅ Why: utils/firebasePush.js sends HYBRID messages (notification + data).
+ *
+ *    - App in FOREGROUND → FCM does not auto-display; it calls onMessageReceived() below,
+ *      which reads notif_title / notif_body from the data payload and builds a
+ *      NotificationCompat.BigTextStyle notification (expandable, like WhatsApp) with our
+ *      own channel, bell sound and brand colour.
+ *
+ *    - App in BACKGROUND or KILLED → the OS displays the `notification` payload itself,
+ *      taking sound/vibration/colour from the channel id we pass in android.notification.
+ *      This method does NOT run, and that is the point: a data-only message needs a live
+ *      app process to build the notification, so whenever the OS had killed the process
+ *      (battery optimisation, swipe-away, aggressive OEM ROMs) the push was received but
+ *      silently never shown — the root cause of "the order notification sometimes arrives
+ *      and sometimes doesn't".
+ *
+ *    Deep-linking survives both paths: on auto-display FCM copies the data keys into the
+ *    launch Intent's extras, and MainActivity.readPushExtras() reads orderId / type /
+ *    targetUrl — which is why the server also sends `targetUrl` inside data, not just `url`.
  *
  * ✅ Channels used:
  *    - wassili_notifications  → general & order notifications  (green)
