@@ -9,7 +9,9 @@
     "test": "vitest --run",
     "cache": "node scripts/bump-cache.js",
     "cache:check": "node scripts/bump-cache.js --check",
-    "build": "echo \"✅ No build required for raw HTML/JS project\""
+    "build": "echo \"✅ No build required for raw HTML/JS project\"",
+    "version:check": "node scripts/check-version.js",
+    "version:set": "node scripts/check-version.js --set"
   },
   "keywords": [],
   "author": "",
