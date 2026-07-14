@@ -43,12 +43,18 @@
             height: 100%;
         }
 
+        /* ⚠️ اللوحة fixed خارج تدفّق الصفحة، وكانت بلا أي حدّ لارتفاعها: كلما زادت محطات
+           الرحلة طالت اللوحة وابتلعت الخريطة تحتها حتى لم يبقَ منها إلا شريط ضيق.
+           الآن: سقف للارتفاع + تمرير داخلي ⇒ الخريطة تحتفظ دائماً بأكثر من نصف الشاشة. */
         .info-panel {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             z-index: 1000;
+            max-height: 45vh;   /* الخريطة تحتفظ بأكثر من نصف الشاشة دائماً */
+            display: flex;              /* حتى تتمدّد البطاقة وتتمرّر داخلها لا خارجها */
+            flex-direction: column;
         }
 
         .back-btn {
@@ -107,6 +113,19 @@
             border-radius: 24px 24px 0 0;
             padding: 0 16px calc(16px + var(--sab, env(safe-area-inset-bottom, 0px)));
             box-shadow: 0 -8px 40px rgba(0,0,0,0.12);
+            /* المحتوى الزائد (محطات كثيرة) يتمرّر داخل البطاقة بدل أن يطيلها فوق الخريطة */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;   /* لا يسحب الخريطة خلفه عند نهاية التمرير */
+            min-height: 0;                  /* ضروري: عنصر flex يرفض الانكماش دون محتواه بدونها */
+        }
+
+        /* المقبض يبقى ملتصقاً بأعلى البطاقة أثناء التمرير — مؤشّر بصري أن ما تحته يتمرّر */
+        .drag-handle {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 2;
         }
 
         /* Drag Handle */
@@ -685,7 +704,11 @@
             }
 
             if (!bounds.isEmpty()) {
-                map.fitBounds(bounds, { top: 80, bottom: 280, left: 40, right: 40 });
+                // ⚠️ كان الحشو السفلي ثابتاً (280px): مع لوحة أطول من ذلك تختفي الدبابيس السفلية
+                // خلفها. نقيس ارتفاع اللوحة الفعلي حتى تُحتسب المنطقة المرئية من الخريطة وحدها.
+                const panel = document.querySelector('.info-panel');
+                const panelH = panel ? Math.ceil(panel.getBoundingClientRect().height) : 280;
+                map.fitBounds(bounds, { top: 80, bottom: panelH + 24, left: 40, right: 40 });
             }
         }
 
