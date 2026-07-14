@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-a06273d2';
+const CACHE_NAME = 'wajeez-static-b7e21c45';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -190,8 +190,12 @@ self.addEventListener('push', (event) => {
             { action: 'dismiss', title: '✕ إغلاق' }
         ],
 
-        // Tag prevents duplicate notifications of same type
-        tag: 'wajeezsd-' + (payload.type || 'general'),
+        // 🏷️ Tag: يجب أن يكون فريداً لكل سجلّ (طلب/محادثة) لا لكل «نوع».
+        // كان `wajeezsd-<type>` فقط، فكانت كل تنبيهات الطلبات الجديدة تتشارك نفس الـ tag
+        // ويستبدل الطلب الجديد إشعارَ الطلب السابق في شريط الإشعارات — فتبدو الإشعارات
+        // للإدارة وكأنها «مرات تجي ومرات لا». نُبقي التجميع فقط داخل نفس المحادثة/الطلب.
+        tag: 'wajeezsd-' + (payload.type || 'general') +
+             (payload.orderId || payload.relatedId ? '-' + (payload.orderId || payload.relatedId) : ''),
         renotify: true
     };
 

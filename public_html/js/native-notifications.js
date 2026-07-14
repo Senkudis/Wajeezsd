@@ -253,14 +253,20 @@ const NativeNotifications = {
             return;
         }
 
-        // ✅ Guard 2: Debounce — لا إرسال مزدوج خلال 10 ثوانٍ
+        // ✅ Guard 2: Debounce — لا إرسال مزدوج خلال 10 ثوانٍ **لنفس المفتاح فقط**.
+        // 🔑 حرج: الـ debounce القديم كان يقارن بالوقت وحده. عند تدوير FCM للتوكن، تُطلق
+        // init() مزامنة التوكن المخزّن ثم يصل حدث registration بتوكن *جديد* خلال ثوانٍ —
+        // فيُكبح الجديد ويظل السيرفر شايلاً التوكن الميت (ثم يحذفه تلقائياً عند الفشل)،
+        // فلا تصل إشعارات لهذا الجهاز حتى إعادة فتح التطبيق. الآن الكبح يخصّ نفس المفتاح.
         const now = Date.now();
+        const lastAttemptKey = localStorage.getItem('fcmToken_lastAttemptKey') || '';
         const lastAttempt = parseInt(localStorage.getItem('fcmToken_lastAttempt') || '0', 10);
-        if (now - lastAttempt < 10000) {
-            console.log('⏳ FCM sync debounced — too soon since last attempt');
+        if (lastAttemptKey === syncKey && now - lastAttempt < 10000) {
+            console.log('⏳ FCM sync debounced — same token/account, too soon since last attempt');
             return;
         }
         localStorage.setItem('fcmToken_lastAttempt', String(now));
+        localStorage.setItem('fcmToken_lastAttemptKey', syncKey);
 
         // ✅ Guard 3: in-flight guard — لا طلبان في نفس الوقت
         if (NativeNotifications._fcmSyncing) {

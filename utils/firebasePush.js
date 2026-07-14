@@ -75,56 +75,58 @@ function isFirebaseReady() {
 async function sendPush(fcmToken, title, body, data = {}) {
     if (!initialized || !fcmToken) return false;
 
-    try {
-        const message = {
-            token: fcmToken,
-            // ⚠️ No top-level `notification` and no `android.notification` block, on purpose:
-            // any notification payload for Android makes FCM auto-display it via the OS when the
-            // app is backgrounded/killed, which SKIPS WassiliFCMService.onMessageReceived() and
-            // loses the orderId/type needed for tap deep-linking (see WassiliFCMService.java).
-            // Data-only messages are documented, stable FCM behavior that always invoke
-            // onMessageReceived() — foreground, background, and killed alike.
-            // Web/PWA notifications are unaffected: `webpush.notification` below still gives
-            // browsers a real title/body/image (service-worker.js reads that independently).
-            data: {
-                ...Object.fromEntries(
-                    Object.entries(data).map(([k, v]) => [k, String(v)])
-                ),
-                click_action: 'FLUTTER_NOTIFICATION_CLICK',
-                // ✅ BigText: send full text in data so WassiliFCMService builds expandable notification
-                notif_title: String(title),
-                notif_body:  String(body)   // full text — no substring truncation
-            },
-            android: {
-                priority: 'high'
-            },
-            apns: {
-                payload: {
-                    aps: {
-                        sound: 'wassili_bell.wav',
-                        badge: 1
-                    }
-                },
-                fcmOptions: {
-                    imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png'
+    // ⚠️ يجب أن يبقى `message` خارج بلوك try — كان معرّفاً بداخله، فكانت إعادة المحاولة
+    // في catch ترمي ReferenceError ولا تُرسل شيئاً أبداً (كل فشل عابر = إشعار ضائع للأبد).
+    const message = {
+        token: fcmToken,
+        // ⚠️ No top-level `notification` and no `android.notification` block, on purpose:
+        // any notification payload for Android makes FCM auto-display it via the OS when the
+        // app is backgrounded/killed, which SKIPS WassiliFCMService.onMessageReceived() and
+        // loses the orderId/type needed for tap deep-linking (see WassiliFCMService.java).
+        // Data-only messages are documented, stable FCM behavior that always invoke
+        // onMessageReceived() — foreground, background, and killed alike.
+        // Web/PWA notifications are unaffected: `webpush.notification` below still gives
+        // browsers a real title/body/image (service-worker.js reads that independently).
+        data: {
+            ...Object.fromEntries(
+                Object.entries(data).map(([k, v]) => [k, String(v)])
+            ),
+            click_action: 'FLUTTER_NOTIFICATION_CLICK',
+            // ✅ BigText: send full text in data so WassiliFCMService builds expandable notification
+            notif_title: String(title),
+            notif_body:  String(body)   // full text — no substring truncation
+        },
+        android: {
+            priority: 'high'
+        },
+        apns: {
+            payload: {
+                aps: {
+                    sound: 'wassili_bell.wav',
+                    badge: 1
                 }
             },
-            // Web push (PWA in browser) — carries its own notification payload since the
-            // top-level one was removed for the Android data-only fix above.
-            webpush: {
-                notification: {
-                    title,
-                    body,
-                    icon: 'https://wajeezsd.com/icons/icon-192x192.png',
-                    image: 'https://wajeezsd.com/logo-transparent.png',
-                    vibrate: [200, 100, 200]
-                },
-                fcmOptions: {
-                    link: 'https://wajeezsd.com/'
-                }
+            fcmOptions: {
+                imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png'
             }
-        };
+        },
+        // Web push (PWA in browser) — carries its own notification payload since the
+        // top-level one was removed for the Android data-only fix above.
+        webpush: {
+            notification: {
+                title,
+                body,
+                icon: 'https://wajeezsd.com/icons/icon-192x192.png',
+                image: 'https://wajeezsd.com/logo-transparent.png',
+                vibrate: [200, 100, 200]
+            },
+            fcmOptions: {
+                link: 'https://wajeezsd.com/'
+            }
+        }
+    };
 
+    try {
         const response = await admin.messaging().send(message);
         logger.debug({ title, response }, 'FCM Push sent');
         return true;
@@ -216,29 +218,57 @@ async function sendPushToMany(fcmTokens, title, body, data = {}) {
     const deadTokens = [];
 
     const results = await Promise.all(batches.map(async (batch) => {
-        try {
+        // 🔁 إرسال دفعة + إعادة محاولة واحدة للتوكنات التي فشلت لسبب عابر (شبكة/خادم FCM).
+        // بدون هذا كان أي خطأ عابر يعني ضياع إشعار الطلب نهائياً لذلك الكابتن — وهو أحد
+        // أسباب "الإشعار مرات يجي ومرات لا".
+        const isDead = (code) => code === 'messaging/registration-token-not-registered' ||
+                                 code === 'messaging/invalid-registration-token' ||
+                                 code === 'messaging/invalid-argument';
+
+        const sendBatch = async (tokens) => {
             const response = await admin.messaging().sendEachForMulticast({
-                tokens: batch,
+                tokens,
                 ...baseMessage
             });
+            const retryable = [];
             response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    const code = resp.error?.code || '';
-                    errors.push(resp.error?.message || code || 'Unknown Error');
-                    // اجمع التوكنات الميتة لحذفها لاحقاً
-                    if (code === 'messaging/registration-token-not-registered' ||
-                        code === 'messaging/invalid-registration-token' ||
-                        code === 'messaging/invalid-argument') {
-                        deadTokens.push(batch[idx]);
-                    }
-                }
+                if (resp.success) return;
+                const code = resp.error?.code || '';
+                errors.push(resp.error?.message || code || 'Unknown Error');
+                if (isDead(code)) deadTokens.push(tokens[idx]);
+                else retryable.push(tokens[idx]);   // خطأ عابر — يستحق محاولة ثانية
             });
-            return { s: response.successCount, f: response.failureCount };
+            return { s: response.successCount, f: response.failureCount, retryable };
+        };
+
+        let first;
+        try {
+            first = await sendBatch(batch);
         } catch (error) {
-            // فشل الدفعة كاملةً (لا يُسقط بقية الدفعات)
-            logger.error('❌ FCM batch error:', error.message);
+            // فشل الدفعة كاملةً — أعد المحاولة مرة واحدة بعد ثانيتين (لا يُسقط بقية الدفعات)
+            logger.error('❌ FCM batch error — retrying in 2s:', error.message);
             errors.push(error.message);
-            return { s: 0, f: batch.length };
+            try {
+                await new Promise(r => setTimeout(r, 2000));
+                first = await sendBatch(batch);
+            } catch (retryErr) {
+                logger.error('❌ FCM batch retry also failed:', retryErr.message);
+                errors.push(retryErr.message);
+                return { s: 0, f: batch.length };
+            }
+        }
+
+        if (first.retryable.length === 0) return { s: first.s, f: first.f };
+
+        // إعادة محاولة للتوكنات العابرة الفشل فقط
+        try {
+            await new Promise(r => setTimeout(r, 2000));
+            const second = await sendBatch(first.retryable);
+            logger.info(`🔁 FCM retry: ${second.s}/${first.retryable.length} recovered`);
+            return { s: first.s + second.s, f: first.f - second.s };
+        } catch (retryErr) {
+            logger.error('❌ FCM per-token retry failed:', retryErr.message);
+            return { s: first.s, f: first.f };
         }
     }));
 
@@ -330,55 +360,16 @@ async function sendChatPush(fcmToken, title, body, data = {}) {
 }
 
 /**
- * Send FCM Push to Admins (with distinct channel, sound, and color)
+ * Send FCM Push to Admins.
+ *
+ * ⚠️ يفوّض لـ sendPushToMany عمداً: القناة/الصوت/اللون تُحسم في الجهاز من `data.type`
+ * (WassiliFCMService.resolveChannel) لا من هذه الدالة — فالرسالتان متطابقتان أصلاً.
+ * النسخة السابقة كانت تكرّر بناء الرسالة يدوياً وتفقد بذلك: إزالة التوكنات المكرّرة،
+ * التقسيم إلى دفعات ≤500، إعادة المحاولة عند الفشل العابر، وحذف التوكنات الميتة —
+ * فكان تنبيه الأدمن يضيع نهائياً عند أول خطأ عابر.
  */
 async function sendAdminPushToMany(fcmTokens, title, body, data = {}) {
-    if (!initialized || !fcmTokens || fcmTokens.length === 0) {
-        return { success: 0, failure: 0 };
-    }
-
-    const validTokens = fcmTokens.filter(t => t && t.length > 10);
-    if (validTokens.length === 0) return { success: 0, failure: 0 };
-
-    try {
-        // ⚠️ Data-only for Android — see comment in sendPush() above.
-        const message = {
-            data: {
-                ...Object.fromEntries(
-                    Object.entries(data).map(([k, v]) => [k, String(v)])
-                ),
-                // ✅ BigText: full text for expandable notification on Android
-                notif_title: String(title),
-                notif_body:  String(body)
-            },
-            android: {
-                priority: 'high'
-            },
-            apns: {
-                payload: { aps: { sound: 'wassili_bell.wav', badge: 1 } },
-                fcmOptions: { imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png' }
-            },
-            webpush: {
-                notification: {
-                    title,
-                    body,
-                    icon: 'https://wajeezsd.com/icons/icon-192x192.png'
-                },
-                fcmOptions: { link: 'https://wajeezsd.com/' }
-            }
-        };
-
-        const response = await admin.messaging().sendEachForMulticast({
-            tokens: validTokens,
-            ...message
-        });
-
-        logger.info(`📤 FCM Admin Multicast: ${response.successCount} sent, ${response.failureCount} failed`);
-        return { success: response.successCount, failure: response.failureCount };
-    } catch (error) {
-        logger.error('❌ FCM Admin Multicast error:', error.message);
-        return { success: 0, failure: validTokens.length };
-    }
+    return sendPushToMany(fcmTokens, title, body, data);
 }
 
 module.exports = { sendPush, sendPushToMany, sendChatPush, sendAdminPushToMany, initFirebase, isFirebaseReady };

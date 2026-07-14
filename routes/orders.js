@@ -256,14 +256,17 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                     });
                 }
 
-                // ✅ إشعار الأدمن: يُحفظ في القاعدة (سجلّ دائم يظهر باللوحة) + socket فوري + FCM push
-                notifyAdmins(req.app, {
-                    title: 'طلب جديد',
-                    message: `طلب ${orderType === 'shop' ? 'محل' : 'توصيل'} جديد بسعر ${order.price} ج.س — ${order.city}`,
-                    type: 'admin_order_alert',
-                    relatedId: order._id
-                });
             }
+
+            // ✅ إشعار الأدمن: يُحفظ في القاعدة (سجلّ دائم يظهر باللوحة) + socket فوري + FCM push.
+            // ⚠️ خارج شرط `if (io)` عمداً: كان بالداخل، فلو لم يكن io مهيّأً لا يصل الأدمن
+            // إشعارَ push ولا يُحفظ له سجلّ إطلاقاً. الـ push لا يعتمد على السوكت.
+            notifyAdmins(req.app, {
+                title: 'طلب جديد',
+                message: `طلب ${orderType === 'shop' ? 'محل' : 'توصيل'} جديد بسعر ${order.price} ج.س — ${order.city}`,
+                type: 'admin_order_alert',
+                relatedId: order._id
+            });
 
             // 📣 Multicast Push for All Orders (Delivery & Shop)
             // Fire and forget to prevent HTTP timeouts
@@ -280,17 +283,26 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                     }).select('fcmToken');
 
                     const tokens = activeCaptains.map(c => c.fcmToken);
-                    if (tokens.length > 0) {
+                    if (tokens.length === 0) {
+                        // 🔍 قابلية التشخيص: بدون هذا السطر كان "ما وصل إشعار للكباتن" حالةً صامتة
+                        // لا نعرف أهي صفر توكنات (مدينة/isActive/توكن مفقود) أم فشل إرسال.
+                        logger.warn({ orderId: order._id, city: order.city }, 'New order: no captain FCM tokens in city — push skipped');
+                    } else {
                         const title = orderType === 'shop' ? '🛒 طلب محل جديد! 🚨' : '📦 طلب توصيل جديد! 🚨';
                         const bodyMsg = orderType === 'shop'
                             ? `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س. عرض التفاصيل!`
                             : `طلب توصيل جديد متاح بسعر ${order.price} ج.س! عرض التفاصيل`;
 
-                        await sendPushToMany(tokens, title, bodyMsg, {
+                        const result = await sendPushToMany(tokens, title, bodyMsg, {
                             type: orderType === 'shop' ? 'shop_order' : 'new_order',
                             orderId: order._id.toString(),
                             url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
                         });
+                        logger.info({
+                            orderId: order._id, city: order.city,
+                            targeted: tokens.length, sent: result.success, failed: result.failure,
+                            errors: result.errors
+                        }, 'New order captain push result');
                     }
                     // ملاحظة: إشعار/دفعة الأدمن تُعالَج عبر notifyAdmins (حفظ + socket + push) أعلاه.
                 } catch (pushErr) {
