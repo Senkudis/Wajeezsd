@@ -273,35 +273,14 @@ function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
 // 📍 Get User Location (Promisified) — كاش 3 دقائق
 // ==========================================
 function getUserLocation() {
-    return new Promise((resolve, reject) => {
-        // ترتيب المتاجر بالمسافة لا يحتاج دقة أمتار — كاش 3 دقائق يكفي تماماً
-        const cacheAge = window.userLocationTs ? (Date.now() - window.userLocationTs) : Infinity;
-        if (window.userLocation && cacheAge < 180000) {
-            return resolve(window.userLocation);
-        }
-
-        if (!navigator.geolocation) {
-            // إذا لم يدعم المتصفح GPS لكن عندنا موقع قديم، نستخدمه
-            if (window.userLocation) return resolve(window.userLocation);
-            reject(new Error('متصفحك لا يدعم تحديد الموقع'));
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                window.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                window.userLocationTs = Date.now(); // سجّل وقت الحصول على الموقع
-                resolve(window.userLocation);
-            },
-            (err) => {
-                // في حالة الفشل، استخدم الموقع القديم إذا كان موجوداً
-                if (window.userLocation) return resolve(window.userLocation);
-                reject(new Error('يرجى تفعيل الـ GPS لنتمكن من عرض المحلات القريبة منك!'));
-            },
-            // دقة عادية (شبكة/واي فاي) أسرع بكثير من GPS الدقيق وكافية لترتيب المتاجر،
-            // وقبول موقع عمره دقيقتان يلغي الانتظار غالباً. كانت: دقة عالية + 10 ثوانٍ!
-            { enableHighAccuracy: false, timeout: 6000, maximumAge: 120000 }
-        );
+    // 📍 موقع تقريبي — لترتيب المتاجر بالمسافة فقط، لا يحتاج دقة أمتار.
+    // ⚠️ يفوّض لـ WajeezGeo.getCoarse (js/geo.js): الكاش الخشن هناك منفصل عن الكاش الدقيق،
+    // فلم يعد الموقعُ الخشنُ (±كيلومترات، عمره دقيقتان) يدهس الموقعَ الدقيق الذي يعتمد عليه
+    // دبوسُ الطلب. كانت النسخة القديمة تكتب كليهما في window.userLocation نفسه.
+    return window.WajeezGeo.getCoarse().then((loc) => {
+        window.userLocation = loc;
+        window.userLocationTs = Date.now();
+        return loc;
     });
 }
 
@@ -846,20 +825,49 @@ window.openShopOrderConfirmModal = async function() {
         }
 
         // 8. Initialize Google Maps Web SDK
-        window.shopMapLocateMe = function () {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    window.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    if (window.shopOrderMapInstance) {
-                        try {
-                            window.shopOrderMapInstance.panTo(window.userLocation);
-                            window.shopOrderMapInstance.setZoom(15);
-                        } catch (e) { console.warn('panTo failed:', e); }
+        // 📍 «حدّد موقعي» — الدبوس هو مركز الخريطة، فدقّة هذه القراءة = دقّة عنوان الطلب.
+        // ⚠️ كانت getCurrentPosition لقطةً واحدة: أندرويد يعيد أول fix متاح (غالباً من الشبكة
+        // بدقّة 500–2000م) حتى مع enableHighAccuracy، فيهبط الدبوس بعيداً عن المستخدم.
+        // WajeezGeo.getPrecise يراقب القراءات ويأخذ أدقّها حتى تنزل تحت 30م أو تنتهي المهلة.
+        window.shopMapLocateMe = async function () {
+            const btn = document.getElementById('shopMapLocateBtn');
+            const ogHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-crosshair"></i> جاري الضبط…'; }
+
+            try {
+                const fix = await window.WajeezGeo.getPrecise({
+                    onProgress: (f) => {
+                        // حرّك الخريطة مع كل تحسّن — يرى المستخدم الدبوس يتقارب بدل شاشة جامدة
+                        if (window.shopOrderMapInstance) {
+                            try { window.shopOrderMapInstance.panTo({ lat: f.lat, lng: f.lng }); } catch (_) {}
+                        }
+                        if (btn) btn.innerHTML = `<i class="bi bi-crosshair"></i> ±${Math.round(f.accuracy)} م…`;
                     }
-                },
-                () => Swal.fire({ icon: 'warning', text: 'تعذّر تحديد موقعك، تأكد من تفعيل الـ GPS', confirmButtonColor: '#04553A' }),
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-            );
+                });
+
+                window.userLocation = { lat: fix.lat, lng: fix.lng };
+                if (window.shopOrderMapInstance) {
+                    window.shopOrderMapInstance.panTo({ lat: fix.lat, lng: fix.lng });
+                    // كلما كانت القراءة أدق سمحنا بتقريب أكبر — التقريب على قراءة خشنة يضلّل
+                    window.shopOrderMapInstance.setZoom(fix.accuracy <= 30 ? 18 : fix.accuracy <= 100 ? 16 : 15);
+                }
+                if (window.checkShopDeliveryZone) window.checkShopDeliveryZone();
+                if (window._shopDrawRoute) window._shopDrawRoute();
+
+                // اعرض جودة القراءة صراحةً: القراءة الضعيفة يجب أن تدفع المستخدم لتحريك الدبوس يدوياً
+                if (fix.accuracy > window.WajeezGeo.ACCEPTABLE_M) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'الموقع تقريبي',
+                        text: window.WajeezGeo.describeAccuracy(fix.accuracy),
+                        confirmButtonColor: '#04553A'
+                    });
+                }
+            } catch (e) {
+                Swal.fire({ icon: 'warning', text: e.message || 'تعذّر تحديد موقعك، تأكد من تفعيل الـ GPS', confirmButtonColor: '#04553A' });
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = ogHtml; }
+            }
         };
 
         if (window.shopOrderMapInstance) {

@@ -815,7 +815,7 @@
         </div>
 
         <!-- Locate Me Button -->
-        <button onclick="window.shopMapLocateMe && window.shopMapLocateMe()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: #04553A; padding: 10px 16px;">
+        <button id="shopMapLocateBtn" onclick="window.shopMapLocateMe && window.shopMapLocateMe()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: #04553A; padding: 10px 16px;">
             <i class="bi bi-crosshair2 fs-5"></i>
             <span style="font-size: 12px;">موقعي</span>
         </button>
@@ -881,6 +881,7 @@
     <script src="js/console-cleaner.js?v=10115678"></script>
     <script src="js/theme-manager.js?v=01cb92bf"></script>
     <script src="js/city-service.js?v=34b5af79"></script>
+    <script src="js/geo.js?v=b7e21c45"></script>
     <script type="module" src="js/app-core.js?v=6f651ead"></script>
     <script type="module" src="js/native-notifications.js?v=b7e21c45"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>

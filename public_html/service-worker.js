@@ -14,6 +14,7 @@ const ASSETS_TO_CACHE = [
     '/js/config.js',
     '/notification-toast.js',
     '/js/native-notifications.js',
+    '/js/geo.js',
     '/js/home.js',
     '/js/order-feature.js',
     '/js/auth-helper.js',
