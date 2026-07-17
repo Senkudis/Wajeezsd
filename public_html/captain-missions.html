@@ -113,6 +113,36 @@
             socket.on('new_order_available', () => fetchMissions());
         }
 
+        // ⏱️ كتلة ETA + الخط الزمني المصغّر للكابتن (أنماط inline — مستقلة عن CSS الصفحة)
+        function missionProgressHtml(order) {
+            let html = '';
+            if (order.eta && order.eta.text && !['delivered', 'cancelled'].includes(order.status)) {
+                html += `<div style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#04553A,#0a7a54);color:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;font-weight:800;margin-bottom:10px;">
+                    <i class="bi bi-clock-history"></i> زمن التوصيل المتوقّع ~${order.eta.text}${order.eta.distanceKm != null ? ` · ${order.eta.distanceKm} كم` : ''}
+                </div>`;
+            }
+            const tl = order.timeline;
+            if (tl && Array.isArray(tl.steps) && tl.steps.length) {
+                const fmt = (iso) => { if (!iso) return ''; try { return new Date(iso).toLocaleTimeString('ar-SD', { hour: '2-digit', minute: '2-digit' }); } catch (_) { return ''; } };
+                html += `<div style="display:flex;margin-bottom:12px;">${tl.steps.map((s, i) => {
+                    const last = i === tl.steps.length - 1;
+                    const color = s.cancelled ? '#ef4444' : (s.done ? '#22c55e' : '#cbd5e1');
+                    const active = s.key === tl.current && !s.cancelled;
+                    const bg = s.cancelled ? '#ef4444' : (active ? '#04553A' : (s.done ? '#22c55e' : '#fff'));
+                    const fg = (s.done || active || s.cancelled) ? '#fff' : '#94a3b8';
+                    const icon = s.cancelled ? '<i class="bi bi-x"></i>' : (s.done ? '<i class="bi bi-check"></i>' : '');
+                    const lineColor = s.done ? '#22c55e' : '#e2e8f0';
+                    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
+                        ${!last ? `<div style="position:absolute;top:9px;left:calc(50% + 10px);right:calc(-50% + 10px);height:2px;background:${lineColor};"></div>` : ''}
+                        <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${color};background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;">${icon}</div>
+                        <div style="font-size:9px;font-weight:700;color:${(s.done || active) ? '#04553A' : '#94a3b8'};margin-top:3px;text-align:center;">${s.label}</div>
+                        <div style="font-size:8.5px;font-weight:700;color:#94a3b8;min-height:10px;">${fmt(s.at)}</div>
+                    </div>`;
+                }).join('')}</div>`;
+            }
+            return html;
+        }
+
         async function fetchMissions() {
             try {
                 const response = await fetchWithRetry(`${API_URL}/api/orders/my-missions`, {
@@ -230,6 +260,7 @@
                                 </div>
                                 
                                 <div class="p-3">
+                                    ${missionProgressHtml(order)}
                                     ${locationBlock !== null ? locationBlock : `
                                     <div class="mb-3">
                                         <!-- قسم الاستلام مع زر الخريطة -->

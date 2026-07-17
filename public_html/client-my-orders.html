@@ -142,6 +142,32 @@
             background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 9px 11px;
         }
         body.dark-mode .o-route { background: #0f172a; border-color: #334155; }
+
+        /* ⏱️ ETA + الخط الزمني المصغّر داخل بطاقة الطلب */
+        .o-eta {
+            display: flex; align-items: center; gap: 6px; margin-top: 8px;
+            background: linear-gradient(135deg,#04553A,#0a7a54); color: #fff;
+            border-radius: 10px; padding: 7px 11px; font-size: 12.5px; font-weight: 800;
+        }
+        .o-timeline { display: flex; margin-top: 10px; }
+        .o-tl-step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .o-tl-step:not(:last-child)::after {
+            content: ''; position: absolute; top: 9px; left: calc(50% + 10px); right: calc(-50% + 10px);
+            height: 2px; background: #e2e8f0;
+        }
+        .o-tl-step.done:not(:last-child)::after { background: #22c55e; }
+        .o-tl-dot {
+            width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e2e8f0; background: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8;
+            z-index: 1;
+        }
+        .o-tl-step.done .o-tl-dot { background: #22c55e; border-color: #22c55e; color: #fff; }
+        .o-tl-step.active .o-tl-dot { background: #04553A; border-color: #04553A; color: #fff; }
+        .o-tl-step.cancelled .o-tl-dot { background: #ef4444; border-color: #ef4444; color: #fff; }
+        .o-tl-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; margin-top: 3px; text-align: center; }
+        .o-tl-step.done .o-tl-lbl, .o-tl-step.active .o-tl-lbl { color: #04553A; }
+        .o-tl-time { font-size: 8.5px; font-weight: 700; color: #94a3b8; min-height: 10px; }
+        body.dark-mode .o-tl-lbl, body.dark-mode .o-tl-time { color: #64748b; }
         .o-route-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; min-width: 0; }
         .o-route-row i { font-size: 13px; flex-shrink: 0; }
         .o-ic-from { color: #04553A; }
@@ -460,6 +486,37 @@
                 return getStatusName(order.status);
             };
 
+            // ⏱️ يبني كتلة ETA + الخط الزمني المصغّر من بيانات السيرفر (order.eta / order.timeline)
+            const orderProgressHtml = (order) => {
+                let html = '';
+
+                // ETA — للطلبات الجارية فقط
+                if (order.eta && order.eta.text && !['delivered', 'cancelled'].includes(order.status)) {
+                    html += `<div class="o-eta"><i class="bi bi-clock-history"></i> يصل خلال ~${order.eta.text}</div>`;
+                }
+
+                // الخط الزمني — من طوابع السيرفر
+                const tl = order.timeline;
+                if (tl && Array.isArray(tl.steps) && tl.steps.length) {
+                    const fmt = (iso) => {
+                        if (!iso) return '';
+                        try { return new Date(iso).toLocaleTimeString('ar-SD', { hour: '2-digit', minute: '2-digit' }); }
+                        catch (_) { return ''; }
+                    };
+                    const icon = (key, done) => key === 'cancelled' ? '<i class="bi bi-x"></i>'
+                        : done ? '<i class="bi bi-check"></i>' : '';
+                    html += `<div class="o-timeline">${tl.steps.map(s => {
+                        const cls = s.cancelled ? 'cancelled' : (s.done ? (s.key === tl.current ? 'active done' : 'done') : '');
+                        return `<div class="o-tl-step ${cls}">
+                            <div class="o-tl-dot">${icon(s.key, s.done)}</div>
+                            <div class="o-tl-lbl">${escapeHtml(s.label)}</div>
+                            <div class="o-tl-time">${fmt(s.at)}</div>
+                        </div>`;
+                    }).join('')}</div>`;
+                }
+                return html;
+            };
+
             const ratedOrders = new Set();
             let currentPage = 1;
             let currentTotalPages = 1;
@@ -671,6 +728,8 @@
                                         <span class="o-route-txt"><span class="o-route-lbl">إلى</span>${escapeHtml(order.dropoff?.address || 'غير محدد')}</span>
                                     </div>
                                 </div>`}
+
+                                ${orderProgressHtml(order)}
 
                                 ${order.details ? `
                                 <div class="o-detail"><span class="o-detail-lbl">التفاصيل:</span> ${escapeHtml(order.details)}</div>` : ''}

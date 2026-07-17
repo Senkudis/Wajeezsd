@@ -636,6 +636,11 @@ router.get('/my-orders', protect, async (req, res) => {
                 status: mappedStatus,
                 realShopStatus: so.status,
                 createdAt: so.createdAt,
+                // ⏱️ طوابع الانتقالات للخط الزمني (متوفّرة إن سجّلها ShopOrder، وإلا تُتجاهل)
+                acceptedAt: so.acceptedAt || so.captainAssignedAt || null,
+                pickedUpAt: so.pickedUpAt || null,
+                deliveredAt: so.deliveredAt || null,
+                cancelledAt: so.cancelledAt || null,
                 captain: so.captain || (relatedDelivery ? relatedDelivery.captain : null),
                 isRated: false,
                 proofOfPickupImage: so.proofOfPickupImage,
@@ -656,6 +661,10 @@ router.get('/my-orders', protect, async (req, res) => {
         const allOrders = [...orders, ...mappedShopOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const skip = (page - 1) * limit;
         const paginatedOrders = allOrders.slice(skip, skip + limit);
+
+        // 📊 إثراء كل طلب بالخط الزمني و ETA (بعد الترقيم لتوفير الحساب) — مصدر مشترك
+        const { enrichOrder } = require('../utils/orderEnrich');
+        paginatedOrders.forEach(enrichOrder);
 
         // ✅ BUG-014 FIX: استخدام عدادات DB الحقيقية للـ pagination بدلاً من طول المصفوفة المقطوعة
         // allOrders.length تعكس فقط ما تم جلبه (MAX_FETCH=200) وليس الإجمالي الحقيقي في DB
@@ -689,7 +698,12 @@ router.get('/my-missions', protect, captainOnly, async (req, res) => {
             status: { $in: ['accepted', 'picked_up'] }
         })
             .populate('client', 'name phone')
-            .sort({ updatedAt: -1 });
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        // 📊 إثراء بالخط الزمني و ETA (للكابتن: تقدّم المهمة ووقت الوصول للتسليم)
+        const { enrichOrder } = require('../utils/orderEnrich');
+        orders.forEach(enrichOrder);
 
         res.json(orders);
     } catch (err) {
@@ -1873,22 +1887,8 @@ router.get('/:id', protect, async (req, res) => {
             return res.status(403).json({ message: 'غير مصرح' });
         }
 
-        // 📊 إثراء الرد بالخط الزمني و ETA (بيانات محسوبة، لا تُخزَّن).
-        const { buildTimeline } = require('../utils/orderTimeline');
-        order.timeline = buildTimeline(order);
-
-        // ⏱️ ETA — يُعرض فقط للطلبات الجارية (قبل التسليم/الإلغاء).
-        if (!['delivered', 'cancelled'].includes(order.status)) {
-            const { haversineKm } = require('../utils/geofence');
-            const { estimateEtaMinutes, formatEta } = require('../utils/eta');
-            const km = haversineKm(order.pickup, order.dropoff);
-            if (km != null) {
-                const extraStops = order.isMultiStop && Array.isArray(order.stops)
-                    ? Math.max(0, order.stops.length - 2) : 0;
-                const minutes = estimateEtaMinutes(km, { extraStops });
-                order.eta = { distanceKm: Math.round(km * 10) / 10, ...formatEta(minutes) };
-            }
-        }
+        // 📊 إثراء الرد بالخط الزمني و ETA (بيانات محسوبة، لا تُخزَّن) — مصدر مشترك.
+        require('../utils/orderEnrich').enrichOrder(order);
 
         res.json(order);
     } catch (error) {
