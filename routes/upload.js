@@ -7,7 +7,17 @@ const mongoose = require('mongoose');
 const jimpModule = require('jimp');
 const Jimp = jimpModule.Jimp || jimpModule;
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { MIME_EXT, detectImageExtOfFile, safeUnlink, safeUploadName } = require('../utils/imageUpload');
 const User = require('../models/User');
+
+// 🛡️ يمنع أي دور غير المطلوب من الوصول لـ multer أصلاً.
+// كان فحص الدور يأتي بعد كتابة الملف على القرص، فالـ 403 لا يمنع الرفع.
+const requireRole = (role) => (req, res, next) => {
+    if (!req.user || req.user.role !== role) {
+        return res.status(403).json({ message: 'غير مصرح' });
+    }
+    next();
+};
 
 // 🔄 ضغط وتصغير صورة — متوافق مع Jimp v0.x و v1 معاً.
 // السبب: package.json يطلب v1 لكن سيرفر الاستضافة قد يحمل v0 قديمة في node_modules،
@@ -52,19 +62,48 @@ const storage = multer.diskStorage({
         cb(null, path.join(uploadDir, type));
     },
     filename: (req, file, cb) => {
-        const uniqueName = `${req.user._id}_${Date.now()}${path.extname(file.originalname)}`;
-        cb(null, uniqueName);
+        // 🛡️ CRITICAL: الامتداد من القائمة البيضاء — لا من اسم الملف الذي يرسله العميل.
+        // كان path.extname(file.originalname) يسمح برفع "shell.php" أو "x.html"
+        // (لأن fileFilter يفحص mimetype وهي ترويسة يزوّرها العميل بحرية) فيُحفظ
+        // داخل public_html ويُقدَّم من نفس أصل التطبيق ⇒ XSS مخزّن، واحتمال تنفيذ PHP.
+        cb(null, safeUploadName(req.user._id, file.mimetype));
     }
 });
 
 const fileFilter = (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (allowed.includes(file.mimetype)) {
+    // فحص مبدئي فقط — mimetype غير موثوقة. التحقق الحقيقي بعد الكتابة عبر magic bytes.
+    if (MIME_EXT[file.mimetype]) {
         cb(null, true);
     } else {
         cb(new Error('نوع الملف غير مدعوم — يرجى رفع JPG أو PNG أو WebP'), false);
     }
 };
+
+/**
+ * 🛡️ يتحقق أن كل ملف مرفوع صورة حقيقية بفحص محتواه، ويحذف المزيّف.
+ * يُستدعى بعد multer لأن ترويسة Content-Type وحدها لا تثبت شيئاً.
+ * @returns {Promise<string|null>} رسالة الخطأ، أو null عند السلامة
+ */
+async function rejectNonImages(req) {
+    const files = [];
+    if (req.file) files.push(req.file);
+    if (req.files) {
+        // upload.fields يعطي كائناً {حقل: [ملفات]}، وupload.array يعطي مصفوفة
+        for (const v of Object.values(req.files)) {
+            Array.isArray(v) ? files.push(...v) : files.push(v);
+        }
+    }
+
+    for (const f of files) {
+        const realExt = await detectImageExtOfFile(f.path);
+        if (!realExt) {
+            // محتوى ليس صورة إطلاقاً — احذف كل ملفات هذا الطلب ولا تُبقِ أثراً
+            await Promise.all(files.map(x => safeUnlink(x.path)));
+            return 'الملف ليس صورة صالحة';
+        }
+    }
+    return null;
+}
 
 const upload = multer({
     storage,
@@ -84,6 +123,8 @@ router.post('/profile-photo', protect, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         const fileUrl = `/uploads/profiles/${req.file.filename}`;
 
@@ -115,6 +156,12 @@ router.post('/captain-docs', protect, (req, res) => {
         if (err) {
             return res.status(400).json({ message: err.message || 'خطأ في رفع الملفات' });
         }
+        // بلا هذا كان req.files غير معرّف عند طلب بلا ملفات ⇒ TypeError ⇒ 500
+        if (!req.files || Object.keys(req.files).length === 0) {
+            return res.status(400).json({ message: 'لم يتم اختيار أي ملف' });
+        }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         const updates = {};
         if (req.files.driverLicense) {
@@ -151,6 +198,8 @@ router.post('/parcel-image', protect, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         const fileUrl = `/uploads/parcels/${req.file.filename}`;
 
@@ -165,7 +214,7 @@ router.post('/parcel-image', protect, (req, res) => {
 // ==========================================
 // 🏪 4. رفع صورة غلاف المحل (Place Image) - Admin Only
 // ==========================================
-router.post('/place-image', protect, (req, res) => {
+router.post('/place-image', protect, requireRole('admin'), (req, res) => {
     req.params.type = 'places';
     upload.single('placeImage')(req, res, async (err) => {
         if (err) {
@@ -174,9 +223,8 @@ router.post('/place-image', protect, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: 'Admins only' });
-        }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         const fileUrl = `/uploads/places/${req.file.filename}`;
         res.json({ success: true, url: fileUrl });
@@ -186,7 +234,7 @@ router.post('/place-image', protect, (req, res) => {
 // ==========================================
 // 📸 5. رفع صورة إثبات الاستلام (Proof of Pickup) — Captain Only
 // ==========================================
-router.post('/proof-image', protect, (req, res) => {
+router.post('/proof-image', protect, requireRole('captain'), (req, res) => {
     req.params.type = 'proofs';
     upload.single('proofImage')(req, res, async (err) => {
         if (err) {
@@ -195,9 +243,8 @@ router.post('/proof-image', protect, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
-        if (req.user.role !== 'captain') {
-            return res.status(403).json({ message: 'مخصص للكباتن فقط' });
-        }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         const fileUrl = `/uploads/proofs/${req.file.filename}`;
         res.json({
@@ -220,6 +267,8 @@ router.post('/merchant-proof', protect, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         const fileUrl = `/uploads/proofs/${req.file.filename}`;
         res.json({
@@ -242,6 +291,8 @@ router.post('/product-image', protect, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         try {
             await compressImageFile(req.file.path);
@@ -264,7 +315,7 @@ router.post('/product-image', protect, (req, res) => {
 //    POST /api/upload/shop-image  (merchant)
 //    place-image أعلاه للأدمن فقط؛ هذا يسمح للتاجر برفع صورة متجره الخاص.
 // ==========================================
-router.post('/shop-image', protect, (req, res) => {
+router.post('/shop-image', protect, requireRole('merchant'), (req, res) => {
     req.params.type = 'places';
     upload.single('image')(req, res, async (err) => {
         if (err) {
@@ -273,9 +324,8 @@ router.post('/shop-image', protect, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
-        if (req.user.role !== 'merchant') {
-            return res.status(403).json({ message: 'للتجار فقط' });
-        }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         try {
             await compressImageFile(req.file.path);
@@ -296,7 +346,8 @@ router.post('/shop-image', protect, (req, res) => {
 // ==========================================
 const captainPhotoStorage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, path.join(uploadDir, 'profiles')),
-    filename: (req, file, cb) => cb(null, `captain_${req.params.id}_${Date.now()}${path.extname(file.originalname)}`)
+    // 🛡️ الامتداد من القائمة البيضاء لا من اسم الملف — نفس ثغرة storage أعلاه
+    filename: (req, file, cb) => cb(null, safeUploadName(`captain${req.params.id}`, file.mimetype))
 });
 const captainPhotoUpload = multer({ storage: captainPhotoStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -313,6 +364,8 @@ router.post('/admin/captain-photo/:id', protect, adminOnly, (req, res) => {
         if (!req.file) {
             return res.status(400).json({ message: 'لم يتم اختيار صورة' });
         }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
 
         try {
             const fileUrl = `/uploads/profiles/${req.file.filename}`;

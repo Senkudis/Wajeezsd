@@ -1,0 +1,33 @@
+# 🛡️ مجلد الرفع — محتوى يرسله المستخدمون. لا يُنفَّذ هنا شيء أبداً.
+#
+# خطّ الدفاع الأول في الكود: routes/upload.js يفرض امتداداً من قائمة بيضاء
+# (jpg/png/webp) ويتحقق من محتوى الصورة عبر magic bytes. هذا الملف خطّ ثانٍ
+# يبقى فعّالاً لو عاد خلل في تلك الطبقة أو أُضيف مسار رفع جديد نسي الفحص.
+
+# ── 1) تعطيل تنفيذ السكربتات ─────────────────────────────────
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule lsapi_module>
+    php_flag engine off
+</IfModule>
+
+Options -ExecCGI -Indexes
+
+<IfModule mod_mime.c>
+    RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .pl .py .jsp .asp .aspx .sh .cgi
+    RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .pl .py .jsp .asp .aspx .sh .cgi
+</IfModule>
+
+# ── 2) لا يُقدَّم إلا الصور ───────────────────────────────────
+# قائمة حظر صريحة: أوضح وأقل هشاشة من نفي بالـ regex، وتغطّي ناقلات
+# التنفيذ (php…) وناقلات XSS المخزّن (html/svg/xml/js) معاً.
+<FilesMatch "(?i)\.(php|phtml|php[0-9]|phps|phar|pl|py|rb|jsp|asp|aspx|sh|bash|cgi|exe|htaccess|htpasswd|html?|xht(ml)?|shtml|svgz?|xml|js|mjs|json)$">
+    Require all denied
+</FilesMatch>
+
+# ── 3) امنع تخمين المتصفح لنوع المحتوى ───────────────────────
+# بدون nosniff قد يُصيّر متصفح ملفاً بامتداد .jpg كـ HTML لو بدا محتواه كذلك.
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>

@@ -5,6 +5,10 @@ env wassili
 .env*
 *firebase-adminsdk*.json
 uploads/
+# استثناء: ملف حماية مجلد الرفع يجب أن يُرفع ويصل للإنتاج (يمنع تنفيذ ما يُرفع)
+!public_html/uploads/
+public_html/uploads/*
+!public_html/uploads/.htaccess
 .idea/
 .vscode/
 *.log

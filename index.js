@@ -159,13 +159,18 @@ logger.info('Server is starting...');
 // 🖼️ Serve uploaded images with cross-origin headers
 app.use(['/uploads', '/api/uploads'], (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    // 🛡️ محتوى يرفعه المستخدمون: امنع تخمين النوع ومنع تصييره كصفحة.
+    // public_html/uploads/.htaccess يفعل المثل حين يخدم LiteSpeed الملف مباشرةً،
+    // لكنه يُتجاهل تماماً حين يخدمه express.static — فالطبقتان مطلوبتان.
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
     // Dynamic origin checking — only allow approved origins
     const requestOrigin = req.headers.origin;
     if (requestOrigin && approvedOrigins.includes(requestOrigin)) {
         res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     }
     next();
-}, 
+},
 // 1. البحث في المجلد الجديد أولاً
 express.static(path.join(__dirname, 'public_html', 'uploads')),
 // 2. البحث في المجلد القديم للتوافق مع الصور المرفوعة سابقاً
