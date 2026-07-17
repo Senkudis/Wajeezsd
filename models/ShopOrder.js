@@ -70,9 +70,13 @@ const ShopOrderSchema = new mongoose.Schema({
     cancelReason: { type: String, default: '' },
 
     proofOfPickupImage: { type: String, default: null }, // صورة إثبات الاستلام
-    merchantConfirmedAt: { type: Date, default: null },
-    readyAt: { type: Date, default: null },
-    deliveredAt: { type: Date, default: null },
+    // ⏱️ طوابع انتقالات الحالة — تُغذّي الخط الزمني المرئي (نظير طوابع Order)
+    merchantConfirmedAt: { type: Date, default: null }, // التاجر قبل وبدأ التجهيز
+    readyAt:             { type: Date, default: null }, // جاهز للاستلام
+    captainAssignedAt:   { type: Date, default: null }, // كابتن قبل الطلب
+    pickedUpAt:          { type: Date, default: null }, // كابتن استلم من المتجر
+    deliveredAt:         { type: Date, default: null }, // وصل للعميل
+    cancelledAt:         { type: Date, default: null }, // أُلغي
 
 }, { timestamps: true });
 

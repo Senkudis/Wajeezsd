@@ -113,6 +113,7 @@ router.put('/shop-orders/:id/cancel-force', protect, requirePermission('manage_o
         shopOrder.status = 'cancelled';
         shopOrder.cancelledBy = 'admin';
         shopOrder.cancelReason = 'إلغاء إداري (من قِبل لوحة التحكم)';
+        shopOrder.cancelledAt = new Date();   // ⏱️ للخط الزمني
         await shopOrder.save();
 
         // 📦 استعادة المخزون

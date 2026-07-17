@@ -535,7 +535,8 @@ router.put('/orders/:id/reject', protect, merchantOnly, async (req, res) => {
                 $set: {
                     status: 'cancelled',
                     cancelledBy: 'merchant',
-                    cancelReason: reason || 'رفض التاجر'
+                    cancelReason: reason || 'رفض التاجر',
+                    cancelledAt: new Date()   // ⏱️ للخط الزمني
                 }
             },
             { new: true }

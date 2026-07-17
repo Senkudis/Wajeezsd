@@ -378,6 +378,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
             shopOrder.status = 'cancelled';
             shopOrder.cancelledBy = 'client';
             shopOrder.cancelReason = 'إلغاء من قبل العميل';
+            shopOrder.cancelledAt = new Date();   // ⏱️ للخط الزمني
             await shopOrder.save();
 
             // ✅ FIX #2 + #14: استعادة المخزون عند إلغاء العميل لـ ShopOrder
@@ -636,8 +637,10 @@ router.get('/my-orders', protect, async (req, res) => {
                 status: mappedStatus,
                 realShopStatus: so.status,
                 createdAt: so.createdAt,
-                // ⏱️ طوابع الانتقالات للخط الزمني (متوفّرة إن سجّلها ShopOrder، وإلا تُتجاهل)
-                acceptedAt: so.acceptedAt || so.captainAssignedAt || null,
+                // ⏱️ طوابع الانتقالات للخط الزمني. acceptedAt = لحظة قبول التاجر
+                // (أول حالة تُقابل 'accepted' في mappedStatus) ليتّسق الخط مع الحالة المعروضة؛
+                // وإلا قبول الكابتن احتياطاً.
+                acceptedAt: so.merchantConfirmedAt || so.captainAssignedAt || null,
                 pickedUpAt: so.pickedUpAt || null,
                 deliveredAt: so.deliveredAt || null,
                 cancelledAt: so.cancelledAt || null,
@@ -961,7 +964,8 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                     const ShopOrder = require('../models/ShopOrder');
                     await ShopOrder.findByIdAndUpdate(updatedOrder.shopOrderId, {
                         status: 'captain_assigned',
-                        captain: updatedOrder.captain
+                        captain: updatedOrder.captain,
+                        captainAssignedAt: new Date()   // ⏱️ للخط الزمني
                     });
                 } catch (err) { logger.error('Error syncing ShopOrder negotiate', err); }
             }
@@ -1142,7 +1146,8 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
                      const ShopOrder = require('../models/ShopOrder');
                      await ShopOrder.findByIdAndUpdate(order.shopOrderId, {
                          status: 'captain_assigned',
-                         captain: order.captain
+                         captain: order.captain,
+                         captainAssignedAt: new Date()   // ⏱️ للخط الزمني
                      });
                  } catch (err) { logger.error('Error syncing ShopOrder', err); }
              }
@@ -1291,7 +1296,7 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
         if (order.shopOrderId) {
             try {
                 const ShopOrder = require('../models/ShopOrder');
-                await ShopOrder.findByIdAndUpdate(order.shopOrderId, { status: 'picked_up' });
+                await ShopOrder.findByIdAndUpdate(order.shopOrderId, { status: 'picked_up', pickedUpAt: new Date() });
             } catch (err) { logger.error('Error syncing ShopOrder pickup', err); }
         }
 

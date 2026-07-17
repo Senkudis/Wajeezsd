@@ -38,6 +38,35 @@ describe('enrichOrder', () => {
         expect(multi.eta.minutes).toBeGreaterThan(single.eta.minutes);
     });
 
+    it('طلب متجر مُسلَّم بكل الطوابع: خط زمني مكتمل (بعد المخطط الجديد)', () => {
+        // يحاكي شكل الطلب بعد تعيين /my-orders: acceptedAt←merchantConfirmedAt
+        const shopMapped = {
+            orderType: 'shop', status: 'delivered',
+            pickup: { address: '🏪 متجر' }, dropoff: { address: 'بيت العميل' },
+            createdAt: new Date('2026-07-17T10:00:00Z'),
+            acceptedAt: new Date('2026-07-17T10:03:00Z'),   // من merchantConfirmedAt
+            pickedUpAt: new Date('2026-07-17T10:25:00Z'),
+            deliveredAt: new Date('2026-07-17T10:50:00Z')
+        };
+        const o = enrichOrder(shopMapped);
+        expect(o.timeline.current).toBe('delivered');
+        expect(o.timeline.steps.every(s => s.done)).toBe(true);
+        expect(o.eta).toBeUndefined(); // لا إحداثيات استلام
+    });
+
+    it('طلب متجر ملغى: خط زمني يعرض الإلغاء بوقته', () => {
+        const o = enrichOrder({
+            orderType: 'shop', status: 'cancelled',
+            pickup: { address: 'متجر' }, dropoff: { address: 'بيت' },
+            createdAt: new Date('2026-07-17T10:00:00Z'),
+            cancelledAt: new Date('2026-07-17T10:08:00Z')
+        });
+        expect(o.timeline.cancelled).toBe(true);
+        const last = o.timeline.steps[o.timeline.steps.length - 1];
+        expect(last.key).toBe('cancelled');
+        expect(last.at).toBeTruthy();
+    });
+
     it('يتحمّل طلباً فارغاً/معدوماً', () => {
         expect(enrichOrder(null)).toBeNull();
         const empty = enrichOrder({});
