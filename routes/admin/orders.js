@@ -192,12 +192,15 @@ router.get('/orders/:id', protect, requirePermission('view_orders'), async (req,
         }
         const order = await Order.findById(req.params.id)
             .populate('client', 'name phone')
-            .populate('captain', 'name phone');
+            .populate('captain', 'name phone')
+            .lean();
         if (!order) return res.status(404).json({ message: 'Not found' });
         // 🌍 sub_admin لا يرى طلباً خارج مدينته
         if (req.user.adminRole === 'sub_admin' && order.city !== req.user.city) {
             return res.status(403).json({ message: 'غير مصرح — هذا الطلب خارج مدينتك' });
         }
+        // 📊 إثراء بالخط الزمني و ETA — مصدر مشترك مع بقية المسارات
+        require('../../utils/orderEnrich').enrichOrder(order);
         res.json(order);
     } catch (error) {
         logger.error("Order Details Error:", error);

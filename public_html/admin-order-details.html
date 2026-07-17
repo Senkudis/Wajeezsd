@@ -78,7 +78,11 @@
             box-shadow: 0 0 0 2px #6366f1;
         }
         .od-timeline li.done::before { background: #10b981; box-shadow: 0 0 0 2px #10b981; }
-        .od-timeline li .tl-title { font-size: 13px; font-weight: 700; }
+        .od-timeline li.active::before { background: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.3); }
+        .od-timeline li.cancelled::before { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
+        .od-timeline li .tl-title { font-size: 13px; font-weight: 700; color: #94a3b8; }
+        .od-timeline li.done .tl-title, .od-timeline li.active .tl-title { color: #1e293b; }
+        .od-timeline li.cancelled .tl-title { color: #ef4444; }
         .od-timeline li .tl-time { font-size: 11px; color: #94a3b8; }
 
         .od-actions {
@@ -171,6 +175,34 @@ async function loadOrder() {
     }
 }
 
+// ⏱️ بطاقة الخط الزمني — من o.timeline الذي يبنيه السيرفر (طوابع الانتقالات)
+function renderTimelineCard(o) {
+    const tl = o.timeline;
+    if (!tl || !Array.isArray(tl.steps) || !tl.steps.length) return '';
+    const fmt = (iso) => {
+        if (!iso) return 'بانتظار';
+        try { return new Date(iso).toLocaleString('ar-SA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+        catch (_) { return '—'; }
+    };
+    const items = tl.steps.map(s => {
+        const cls = s.cancelled ? 'cancelled' : (s.done ? (s.key === tl.current ? 'active done' : 'done') : '');
+        return `<li class="${cls}">
+            <div class="tl-title">${s.label}</div>
+            <div class="tl-time">${fmt(s.at)}</div>
+        </li>`;
+    }).join('');
+    const eta = (o.eta && o.eta.text && !['delivered', 'cancelled'].includes(o.status))
+        ? `<div style="margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#4338ca;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;">
+             <i class="fas fa-clock"></i> زمن الوصول المتوقّع ~${o.eta.text}${o.eta.distanceKm != null ? ` · ${o.eta.distanceKm} كم` : ''}
+           </div>` : '';
+    return `
+        <div class="od-card" style="margin-bottom:16px;">
+            <div class="od-card-title"><i class="fas fa-stream" style="color:#6366f1;"></i> الخط الزمني للطلب</div>
+            ${eta}
+            <ul class="od-timeline">${items}</ul>
+        </div>`;
+}
+
 function renderOrder(o) {
     const container = document.getElementById('mainContainer');
     const createdDate = new Date(o.createdAt).toLocaleString('ar-SA');
@@ -245,6 +277,9 @@ function renderOrder(o) {
                 </span>
             </div>`).join('')}
         </div>` : ''}
+
+        <!-- ⏱️ Status timeline -->
+        ${renderTimelineCard(o)}
 
         <!-- Pricing & Details -->
         <div class="od-grid">
