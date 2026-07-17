@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
 const protect = async (req, res, next) => {
     let token;
@@ -63,7 +64,7 @@ const protect = async (req, res, next) => {
         // The DB role (req.user.role) is always authoritative for access control.
         if (decoded.role && decoded.role !== req.user.role) {
             // Log for monitoring, but don't block — the user may need to call /me to discover their new role
-            console.warn(`[Auth] Role mismatch: JWT=${decoded.role}, DB=${req.user.role}, user=${req.user._id}`);
+            logger.warn({ jwtRole: decoded.role, dbRole: req.user.role, userId: req.user._id }, '[Auth] Role mismatch');
         }
 
         // 🔒 Security: Check scope for restricted tokens (e.g. upload_only)

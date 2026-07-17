@@ -9,6 +9,7 @@ const Jimp = jimpModule.Jimp || jimpModule;
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const { MIME_EXT, detectImageExtOfFile, safeUnlink, safeUploadName } = require('../utils/imageUpload');
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
 // 🛡️ يمنع أي دور غير المطلوب من الوصول لـ multer أصلاً.
 // كان فحص الدور يأتي بعد كتابة الملف على القرص، فالـ 403 لا يمنع الرفع.
@@ -297,7 +298,7 @@ router.post('/product-image', protect, (req, res) => {
         try {
             await compressImageFile(req.file.path);
         } catch (jimpErr) {
-            console.error('Error compressing product image:', jimpErr);
+            logger.error({ err: jimpErr }, 'Error compressing product image');
             // نستمر في العمل حتى لو فشل الضغط
         }
 
@@ -330,7 +331,7 @@ router.post('/shop-image', protect, requireRole('merchant'), (req, res) => {
         try {
             await compressImageFile(req.file.path);
         } catch (jimpErr) {
-            console.error('Error compressing shop image:', jimpErr);
+            logger.error({ err: jimpErr }, 'Error compressing shop image');
         }
 
         const fileUrl = `/uploads/places/${req.file.filename}`;

@@ -872,7 +872,6 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
         }
 
         // BUG #29 FIX: Validate captainId is a valid MongoDB ObjectId before using it
-        const mongoose = require('mongoose');
         if (!mongoose.Types.ObjectId.isValid(captainId)) {
             return res.status(400).json({ message: 'معرف الكابتن غير صالح' });
         }
@@ -1829,7 +1828,6 @@ router.get('/price-config', protect, requireCity, async (req, res) => {
 // ✅ FIX #20 (guard): Validate :id is a valid ObjectId before hitting DB
 router.get('/:id', protect, async (req, res) => {
     try {
-        const mongoose = require('mongoose');
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({ message: 'معرف الطلب غير صحيح' });
         }

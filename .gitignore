@@ -38,6 +38,9 @@ test_sms2.js
 # نسخة مؤقتة كاملة من المشروع
 tmp2/
 
+# كاش graphify (AST) — قابل للتوليد عبر `graphify update`، لا داعي لتعقّبه
+graphify-out/cache/
+
 # إعدادات أدوات الذكاء الاصطناعي المحلية (خاصة بالجهاز)
 .agents/
 .codex/
