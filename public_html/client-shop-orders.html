@@ -333,7 +333,10 @@
     loadOrders();
 
     // 🔴 Real-time: update order status without full reload
-    const socket = io(API_URL, { transports: ['polling', 'websocket'] });
+    const socket = io(API_URL, {
+        transports: ['polling', 'websocket'],
+        auth: { token: localStorage.getItem('token') }
+    });
     const userId = (window.Auth?.getUser()?._id) || localStorage.getItem('userId');
     socket.on('connect', () => {
         if (userId) socket.emit('user_join', userId);

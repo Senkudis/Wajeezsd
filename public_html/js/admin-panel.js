@@ -77,7 +77,7 @@ function showBrowserNotif(title, body, orderId) {
 }
 
 // ── Socket.io ──
-const socket = io(BASE, { transports: ['polling', 'websocket'], reconnection: true, reconnectionDelay: 2000 });
+const socket = io(BASE, { transports: ['polling', 'websocket'], reconnection: true, reconnectionDelay: 2000, auth: { token } });
 
 // Request notification permission as soon as the page loads
 document.addEventListener('DOMContentLoaded', requestBrowserNotifPermission);

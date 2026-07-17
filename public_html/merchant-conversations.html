@@ -460,7 +460,11 @@
 
         // ===== Socket.IO =====
         function initSocket() {
-            socket = io(apiBase, { reconnection: true, transports: ['polling', 'websocket'] });
+            socket = io(apiBase, {
+                reconnection: true,
+                transports: ['polling', 'websocket'],
+                auth: { token: localStorage.getItem('token') }
+            });
 
             socket.on('connect', () => {
                 if (myId) socket.emit('user_join', myId);

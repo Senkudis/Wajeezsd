@@ -678,7 +678,9 @@ const AppCore = {
         // 2. Real-time Updates (Socket.io)
         if (window.io) {
             const BASE = window.API_BASE_URL || window.API_URL || 'https://wajeezsd.com';
-            const socket = window.io(BASE);
+            const socket = window.io(BASE, {
+                auth: { token: localStorage.getItem('adminToken') || localStorage.getItem('token') }
+            });
 
             socket.on('new_order', () => {
                 window._ordersBadgeCount = (window._ordersBadgeCount || 0) + 1;

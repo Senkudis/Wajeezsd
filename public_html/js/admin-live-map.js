@@ -179,7 +179,8 @@ const socket = io(MAP_API, {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: Infinity,
-    reconnectionDelay: 2000
+    reconnectionDelay: 2000,
+    auth: { token }
 });
 
 socket.on('connect', () => {

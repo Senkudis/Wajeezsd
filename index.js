@@ -282,6 +282,47 @@ setInterval(() => {
 app.set('io', io);
 app.set('chatRooms', chatRooms);
 
+// ==========================================
+// 🔐 Socket.io Authentication
+// ==========================================
+// الهوية تُشتق من JWT حصراً — لا من أي قيمة يرسلها العميل.
+// قبل هذا، كان user_join يثق بالـ userId القادم من العميل، فأمكن لأي شخص
+// انتحال أي مستخدم (بما فيهم الأدمن) وقراءة رسائله وإشعاراته.
+const { resolveSocketIdentity } = require('./utils/socketAuth');
+
+// ⚠️ مرحلة انتقالية: الاتصال بلا توكن مسموح لكنه لا يُمنح أي صلاحية —
+// لا غرفة شخصية، لا إرسال رسائل، لا admin_join. السبب أن نسخ أندرويد المثبّتة
+// تحمل واجهة مدمجة قديمة لا ترسل توكناً، فالرفض الفوري يضعها في حلقة إعادة اتصال.
+// بعد رفع minVersion وفرض التحديث: استبدل `return next()` بـ `next(new Error('unauthorized'))`.
+io.use(async (socket, next) => {
+    socket.authUserId = null;
+    socket.userRole = null;
+    socket.authUserCity = null;
+
+    const token = (socket.handshake.auth && socket.handshake.auth.token) ||
+                  (socket.handshake.query && socket.handshake.query.token);
+
+    try {
+        const identity = await resolveSocketIdentity(
+            token,
+            (id) => User.findById(id).select('role city isActive').lean()
+        );
+
+        if (!identity) {
+            logger.warn({ socketId: socket.id }, '[SocketAuth] Unauthenticated connection — no privileges granted');
+            return next();
+        }
+
+        // 🔑 المصدر الوحيد للهوية من هنا فصاعداً
+        socket.authUserId = identity.userId;
+        socket.userRole = identity.role;
+        socket.authUserCity = identity.city;
+    } catch (err) {
+        logger.error({ err, socketId: socket.id }, '[SocketAuth] Lookup failed — no privileges granted');
+    }
+    next();
+});
+
 // تشغيل المهام المجدولة — فقط بعد اتصال قاعدة البيانات
 mongoose.connection.once('connected', () => {
     startScheduler(app);
@@ -303,44 +344,38 @@ io.on('connection', (socket) => {
     // ✅ user_join: handles both first-connect and RECONNECT.
     // Mobile clients MUST emit this inside socket.on('connect', ...) — not just once —
     // so that after a network drop the new socket ID rejoins all required rooms.
-    socket.on('user_join', async (userId) => {
-        if (!userId) return;
-        const cleanId = String(userId).trim(); // ✅ Normalise always
+    // 🔒 الهوية تأتي من التوكن (io.use) — الوسيط الذي يرسله العميل يُتجاهل عمداً.
+    socket.on('user_join', async () => {
+        if (!socket.authUserId) {
+            logger.warn({ socketId: socket.id }, '[SocketAuth] user_join without a valid token — ignored');
+            return;
+        }
+        const cleanId = socket.authUserId;
         activeUsers[cleanId] = socket.id;
         socket.userId = cleanId;
         socket.join(cleanId); // Personal room for direct messages (chat, notifications)
 
-        // 🌍 City Room — fetch from DB and join city-specific broadcast room.
+        // 🌍 City Room — القيم مُحمّلة مسبقاً في io.use من نفس استعلام المصادقة.
         // This ensures captains/clients ONLY receive order events for their city.
         // Runs on every connect AND reconnect (new socket ID = must rejoin all rooms).
-        try {
-            const userDoc = await User.findById(cleanId).select('city role').lean();
-            const userCity = userDoc && userDoc.city ? userDoc.city : null;
+        const userCity = socket.authUserCity;
+        if (userCity) {
+            const cityRoom = `room_${userCity}`;
+            socket.userCity = userCity;
+            socket.join(cityRoom);
+            logger.debug({ userId: cleanId, role: socket.userRole, cityRoom }, 'User joined city room');
+        } else {
+            // Legacy user — city not yet set (migration may not have run).
+            // Default to Khartoum so the app keeps working; log a warning.
+            socket.userCity = 'Khartoum';
+            socket.join('room_Khartoum');
+            logger.warn({ userId: cleanId }, '[City] User has no city field — defaulted to room_Khartoum. Run migration.');
+        }
 
-            // ✅ FIX #3: Store user role on socket for authorization checks (e.g. admin_join)
-            socket.userRole = userDoc?.role || null;
-
-            if (userCity) {
-                const cityRoom = `room_${userCity}`;
-                socket.userCity = userCity;
-                socket.join(cityRoom);
-                logger.debug({ userId: cleanId, role: userDoc.role, cityRoom }, 'User joined city room');
-            } else {
-                // Legacy user — city not yet set (migration may not have run).
-                // Default to Khartoum so the app keeps working; log a warning.
-                socket.userCity = 'Khartoum';
-                socket.join('room_Khartoum');
-                logger.warn({ userId: cleanId }, '[City] User has no city field — defaulted to room_Khartoum. Run migration.');
-            }
-
-            // ✅ FIX #1: If admin reconnects, auto-rejoin admin_room
-            if (userDoc?.role === 'admin') {
-                socket.join('admin_room');
-                logger.info({ userId: cleanId }, 'Admin auto-joined admin_room on user_join');
-            }
-        } catch (cityErr) {
-            // Non-fatal: user still gets their personal room. Log and continue.
-            logger.error({ err: cityErr, userId: cleanId }, '[City] Failed to fetch city on user_join');
+        // ✅ FIX #1: If admin reconnects, auto-rejoin admin_room
+        if (socket.userRole === 'admin') {
+            socket.join('admin_room');
+            logger.info({ userId: cleanId }, 'Admin auto-joined admin_room on user_join');
         }
 
         // ✅ FIX #3: Only notify admin_room + the user themselves — stop broadcasting to everyone
@@ -350,9 +385,9 @@ io.on('connection', (socket) => {
     });
 
     // ✅ FIX #1: admin_join now verifies the user is actually an admin
-    // socket.userRole is set during user_join from the DB — cannot be spoofed
+    // socket.userRole is derived from the verified JWT in io.use — cannot be spoofed
     socket.on('admin_join', () => {
-        if (socket.userRole !== 'admin') {
+        if (!socket.authUserId || socket.userRole !== 'admin') {
             logger.warn({ socketId: socket.id, userId: socket.userId, role: socket.userRole }, 'Unauthorized admin_join attempt — blocked');
             return; // Silently ignore unauthorized attempts
         }
@@ -362,7 +397,7 @@ io.on('connection', (socket) => {
 
     // ✅ Chat room presence tracking — frontend emits this when chat.html opens
     socket.on('join_chat_room', (orderId) => {
-        if (!socket.userId || !orderId) return;
+        if (!socket.authUserId || !socket.userId || !orderId) return;
         if (!chatRooms[socket.userId]) chatRooms[socket.userId] = new Set();
         chatRooms[socket.userId].add(String(orderId));
         logger.debug({ userId: socket.userId, orderId }, 'User joined chat room');
@@ -370,6 +405,9 @@ io.on('connection', (socket) => {
 
     // 🛒 Feature 1: عملاء ينضمون لغرفة المتجر لتلقي تحديثات المخزون فوراً
     socket.on('join_shop_room', (placeId) => {
+        // غرفة المتجر تبثّ تحديثات المخزون فقط (بيانات عامة أصلاً على صفحة المتجر)،
+        // لكن نشترط جلسة موثّقة لمنع اشتراك مجهولين بلا حساب.
+        if (!socket.authUserId) return;
         if (placeId && /^[0-9a-fA-F]{24}$/.test(String(placeId))) {
             socket.join(`shop_${placeId}`);
             logger.debug({ socketId: socket.id, placeId }, 'Client joined shop room for stock updates');
@@ -397,14 +435,18 @@ io.on('connection', (socket) => {
         };
 
         try {
-            const sender = String(data.sender || data.senderId || '').trim();
+            // 🔒 المرسِل يُشتق من التوكن حصراً — data.sender يُتجاهل.
+            if (!socket.authUserId) {
+                return sendAck({ status: 'error', error: 'جلسة غير موثّقة — يرجى إعادة تسجيل الدخول' });
+            }
+            const sender = socket.authUserId;
             const receiver = String(data.receiver || data.receiverId || '').trim();
             const order = String(data.order || data.orderId || '').trim();
 
             // ✅ FIX #6: Validate required fields FIRST before identity checks
             // Prevents misleading "Unauthorized" errors when fields are simply missing
-            if (!sender || !receiver || !order || !data.text) {
-                logger.error({ sender: !!sender, receiver: !!receiver, order: !!order, text: !!data.text }, 'Missing fields in send_message');
+            if (!receiver || !order || !data.text) {
+                logger.error({ receiver: !!receiver, order: !!order, text: !!data.text }, 'Missing fields in send_message');
                 return sendAck({ status: 'error', error: 'Missing required fields' });
             }
 
@@ -415,15 +457,8 @@ io.on('connection', (socket) => {
                 return sendAck({ status: 'error', error: 'حسابك موقوف بسبب تجاوز الحد الائتماني. يرجى السداد أولاً.' });
             }
 
-            // 🔒 Security: تحقق من هوية المرسل عبر socket.userId المحدد في user_join
-            if (!socket.userId) {
-                logger.warn('[Chat] socket.userId not set — user_join may not have fired yet');
-                return sendAck({ status: 'error', error: 'Not joined yet, please reconnect' });
-            }
-            if (socket.userId !== sender) {
-                logger.warn({ socketUserId: socket.userId, claimedSender: sender }, '[Chat] userId mismatch — blocking');
-                return sendAck({ status: 'error', error: 'Unauthorized sender ID' });
-            }
+            // ملاحظة: فحص تطابق socket.userId مع data.sender أُزيل — لم يعد له معنى
+            // بعد أن صار المرسِل يُشتق من التوكن مباشرةً ولا يقبل أي إدخال من العميل.
 
             // 🔒 Authorization: verify both sender and receiver are parties to the order
             // First try normal Order, then fall back to ShopOrder (for merchant-client chat)
@@ -551,21 +586,24 @@ io.on('connection', (socket) => {
 
     // ✅ FIX: typing events — نرسل للـ room مباشرة بدل activeUsers[socketId]
     // كل مستخدم يجوين room باسم userId عند user_join، فالإرسال للـ room أموثوق
+    // 🔒 sender من التوكن — وإلا أمكن انتحال مؤشر "يكتب الآن" باسم أي مستخدم.
     socket.on('typing', (data) => {
+        if (!socket.authUserId) return;
         const receiver = data.receiver || data.receiverId;
         if (receiver) {
             io.to(String(receiver)).emit('user_typing', {
-                sender: data.sender || data.senderId || socket.userId,
+                sender: socket.authUserId,
                 receiver
             });
         }
     });
 
     socket.on('stop_typing', (data) => {
+        if (!socket.authUserId) return;
         const receiver = data.receiver || data.receiverId;
         if (receiver) {
             io.to(String(receiver)).emit('user_stop_typing', {
-                sender: data.sender || data.senderId || socket.userId,
+                sender: socket.authUserId,
                 receiver
             });
         }
@@ -573,33 +611,38 @@ io.on('connection', (socket) => {
 
     socket.on('update_location', async (data) => {
         try {
-            const { userId, lat, lng, orderId } = data;
-            if (!userId || !lat || !lng) return;
+            // 🔒 الهوية من التوكن حصراً — data.userId يُتجاهل (كان يسمح بتزوير موقع أي كابتن).
+            if (!socket.authUserId) return;
+            const userId = socket.authUserId;
+            const { lat, lng, orderId } = data;
+            if (!lat || !lng) return;
 
             // ⚡ Throttle: ignore if updated less than 3 seconds ago
             const _now = Date.now();
             if (locationThrottle[userId] && _now - locationThrottle[userId] < 3000) return;
             locationThrottle[userId] = _now;
 
-            // 🔒 Identity check: prevent location spoofing
-            // Allow if socket.userId matches, OR if socket.userId is not yet set (grace period)
-            if (socket.userId && String(data.userId) !== socket.userId) {
-                logger.warn({ dataUserId: data.userId, socketUserId: socket.userId }, 'update_location identity mismatch — blocked');
-                return;
-            }
-
             await User.findByIdAndUpdate(userId, { currentLocation: { lat, lng, updatedAt: new Date() } });
 
             if (orderId) {
                 // Direct: forward to the specific order's client
-                const order = await Order.findById(orderId);
-                if (order && order.client) {
-                    io.to(order.client.toString()).emit('captain_location_updated', { orderId, lat, lng });
-                }
-                // 🏪 طلبات المتاجر: بثّ الموقع لصاحب المتجر أيضاً ليتابع التوصيل
-                if (order && order.shopId) {
-                    const ownerId = await getShopOwnerId(order.shopId);
-                    if (ownerId) io.to(ownerId).emit('captain_location_updated', { orderId, lat, lng });
+                // 🔒 لا بدّ أن يكون المُرسِل كابتن هذا الطلب — وإلا أمكن لأي حساب موثّق
+                // بثّ موقع كابتن مزيّف لشاشة تتبع أي عميل عبر تمرير orderId عشوائي.
+                const order = await Order.findById(orderId).select('client captain shopId');
+                const ownsOrder = !!(order && order.captain && order.captain.toString() === userId);
+                if (!ownsOrder) {
+                    // لا نقطع المُعالِج: موقع الكابتن نفسه حُفظ وخريطة الإدارة أدناه يجب أن تتحدّث
+                    // حتى لو أرسل التطبيق orderId قديماً بعد إعادة إسناد الطلب.
+                    logger.warn({ userId, orderId }, 'update_location for an order the user does not captain — forwarding skipped');
+                } else {
+                    if (order.client) {
+                        io.to(order.client.toString()).emit('captain_location_updated', { orderId, lat, lng });
+                    }
+                    // 🏪 طلبات المتاجر: بثّ الموقع لصاحب المتجر أيضاً ليتابع التوصيل
+                    if (order.shopId) {
+                        const ownerId = await getShopOwnerId(order.shopId);
+                        if (ownerId) io.to(ownerId).emit('captain_location_updated', { orderId, lat, lng });
+                    }
                 }
             } else {
                 // Auto-find: captain didn't send orderId, look up their active orders

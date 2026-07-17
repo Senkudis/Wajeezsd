@@ -446,7 +446,10 @@ function initMap() {
             // Connect socket if not already connected via Notifications
             if (!customerSocket || !customerSocket.connected) {
                 if (typeof io !== 'undefined') {
-                    customerSocket = io(serverUrl, { transports: ['websocket', 'polling'] });
+                    customerSocket = io(serverUrl, {
+                        transports: ['websocket', 'polling'],
+                        auth: { token: localStorage.getItem('token') }
+                    });
                     window.socket = customerSocket; 
                 }
             }

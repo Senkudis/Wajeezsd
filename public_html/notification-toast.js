@@ -203,6 +203,8 @@ const initNotificationSocket = (userId) => {
         const socket = io(serverUrl, {
             path: '/socket.io', // المسار القياسي
             transports: ['polling', 'websocket'], // polling أولاً لتوافق cPanel/Passenger
+            // 🔒 الهوية تُشتق من هذا التوكن في السيرفر — user_join لم يعد يقبل userId من العميل.
+            auth: { token: localStorage.getItem('adminToken') || localStorage.getItem('token') },
             reconnection: true,
             // ⚠️ كان الحد 5 محاولات: على الموبايل (تبديل شبكة/دخول الخلفية) كان السوكت
             // يموت نهائياً بعد انقطاعات قليلة فتتوقف إشعارات داخل التطبيق بصمت لحد إعادة التحميل.
