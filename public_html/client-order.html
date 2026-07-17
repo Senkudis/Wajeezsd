@@ -168,11 +168,23 @@
         }
 
         /* ─── Place Cards — Premium Vertical ─── */
-        #places-list {
+        #places-list,
+        .featured-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
+        /* 🏬 عنوان قسم المحلات القريبة */
+        .featured-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #04553A;
+            margin: 4px 2px 12px;
+        }
+        .featured-head i { font-size: 18px; }
         .place-card {
             background: white;
             border-radius: 18px;
@@ -885,7 +897,7 @@
     <script type="module" src="js/app-core.js?v=9e5b3229"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/order-feature.js?v=7d7c5665"></script>
+    <script src="js/order-feature.js?v=02b9128d"></script>
     <script src="js/home-banners.js?v=5f77eb1f"></script>
 
     <script>
@@ -920,6 +932,8 @@
                     </div>`;
             } else {
                 fetchCategories();
+                // 🏬 اعرض المحلات القريبة فوراً أسفل التصنيفات (بلا اختيار تصنيف أولاً)
+                if (typeof loadFeaturedShops === 'function') loadFeaturedShops();
             }
         });
 

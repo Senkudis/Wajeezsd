@@ -420,6 +420,84 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
     }
 }
 
+// ==========================================
+// 🏬 المحلات القريبة — تُعرض فوراً عند دخول قسم التسوق (بلا اختيار تصنيف أولاً)
+// يعالج شكوى: العميل يدخل التسوّق فلا يجد محلاً مباشرةً، بل تصنيفات فقط.
+// يُملأ حاوية #featured-section أسفل شبكة التصنيفات بكل المحلات مرتّبة بالأقرب.
+// آمن: يخرج بهدوء إن لم توجد الحاوية (مثل index.html بلا featured-section).
+// ==========================================
+let _featuredSeq = 0;
+window.loadFeaturedShops = async function () {
+    const section = document.getElementById('featured-section');
+    if (!section) return; // الصفحة لا تحوي قسم المحلات القريبة
+
+    const seq = ++_featuredSeq;
+    const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
+    const cacheKey = `wajeez_featured_${currentCity}`;
+
+    const HEAD = `<div class="featured-head"><i class="bi bi-shop-window"></i> المحلات القريبة منك</div>`;
+
+    // فلترة (استبعاد متجر التاجر نفسه) + ترتيب بالمسافة + رندر
+    const finalize = (places, loc) => {
+        const uid = localStorage.getItem('userId');
+        if (uid) places = places.filter(p => (p.ownerId ? p.ownerId.toString() : null) !== uid);
+
+        if (loc && loc.lat != null) {
+            places = places.map(p => {
+                p.distanceKm = calculateHaversineDistance(loc.lat, loc.lng, p.location?.lat ?? 0, p.location?.lng ?? 0);
+                return p;
+            }).sort((a, b) => a.distanceKm - b.distanceKm);
+        }
+        window._allPlacesCache = places; // للبحث العام
+
+        if (!places.length) { section.innerHTML = ''; return; }
+        section.innerHTML = HEAD + `<div class="featured-grid" id="featured-grid"></div>`;
+        renderPlacesList(places, document.getElementById('featured-grid'));
+    };
+
+    // ⚡ SWR: اعرض الكاش فوراً ثم حدّث من الشبكة (نفس نمط loadPlaces)
+    let hadCache = false;
+    try {
+        const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (cached && Array.isArray(cached.places) && cached.places.length) {
+            hadCache = true;
+            finalize(cached.places.slice(), window.userLocation || null);
+        }
+    } catch (_) {}
+
+    if (!hadCache) {
+        section.innerHTML = HEAD + `<div class="featured-grid">` +
+            [1, 2, 3, 4].map(() => `<div class="skeleton-card">
+                <div class="skeleton skeleton-cover"></div>
+                <div class="skeleton-body">
+                    <div class="skeleton skeleton-line" style="width:60%;"></div>
+                    <div class="skeleton skeleton-line" style="width:40%;"></div>
+                </div></div>`).join('') + `</div>`;
+    }
+
+    // GPS والشبكة بالتوازي — الشبكة لا تنتظر GPS
+    const locPromise = getUserLocation().catch(() => null);
+    try {
+        const res = await fetch(`${API_URL}/api/places?city=${encodeURIComponent(currentCity)}`);
+        if (!res.ok) throw new Error('فشل تحميل المحلات');
+        const places = await res.json();
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), places })); } catch (_) {}
+        if (seq !== _featuredSeq) return; // تغيّرت المدينة/الحالة أثناء الجلب
+
+        const loc = await Promise.race([
+            locPromise,
+            new Promise(r => setTimeout(() => r(window.userLocation || null), 1200))
+        ]);
+        if (seq !== _featuredSeq) return;
+        finalize(places.slice(), loc);
+
+        if (!loc) locPromise.then(late => { if (late && seq === _featuredSeq) finalize(places.slice(), late); });
+    } catch (err) {
+        if (seq !== _featuredSeq || hadCache) return; // الكاش أفضل من رسالة خطأ
+        section.innerHTML = ''; // فشل صامت — التصنيفات فوقها تبقى صالحة للتصفّح
+    }
+};
+
 // يُنسّق الأعداد الكبيرة بشكل مختصر: 980 → "980"، 1200 → "1.2k"، 25000 → "25k"
 function formatCompactCount(n) {
     n = Number(n) || 0;
