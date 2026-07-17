@@ -73,7 +73,8 @@ const transporter = nodemailer.createTransport({
 //            and rejects body.city spoofing attempts.
 router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async (req, res) => {
     try {
-        const { pickup, dropoff, details, price, distanceType, scheduledAt, orderType, shopId, shopName, shopPhone, items, promoCode, discountAmount } = req.body;
+        // ملاحظة: discountAmount لا يُقرأ من العميل عمداً — يُحسب خادمياً أدناه.
+        const { pickup, dropoff, details, price, distanceType, scheduledAt, orderType, shopId, shopName, shopPhone, items, promoCode } = req.body;
 
         // Duplicate Check
         const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
@@ -143,6 +144,47 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
         const isScheduled = scheduledAt && new Date(scheduledAt) > new Date();
         const orderStatus = isScheduled ? 'scheduled' : 'pending';
 
+        // 🎟️ الكوبون: يُتحقَّق ويُحسب خادمياً — لا يُوثق بأي discountAmount من العميل.
+        // كان الإنشاء يخزّن قيمة العميل مباشرةً (حتى لكود وهمي/منتهٍ) ويتخطّى فحوصات
+        // المدينة/الحد الأدنى/حد المستخدم التي يطبّقها /apply-promo.
+        // نتيجة أي فشل: خصم صفر وكود ملغى — لا نُبقي أثراً مفبركاً.
+        let appliedPromoCode = null;
+        let serverDiscount = 0;
+        let validatedPromoDoc = null;
+        if (promoCode) {
+            const { validatePromo, computeDiscount } = require('../utils/promo');
+            const PromoCode = require('../models/PromoCode');
+            const now = new Date();
+            const promoDoc = await PromoCode.findOne({
+                code: String(promoCode).toUpperCase().trim(),
+                isActive: true,
+                validFrom: { $lte: now },
+                validUntil: { $gte: now }
+            }).lean();
+
+            // قيمة الطلب الأساس من قيم موثوقة خادمياً: الأجرة (price) هي المتاح الوحيد
+            // عند الإنشاء. البضاعة تُخصم في مسار المتجر المنفصل عبر ShopOrder.
+            const fullOrderValue = Number(price) || 0;
+            const check = promoDoc
+                ? validatePromo(promoDoc, { userId: req.user._id, userCity: req.userCity, fullOrderValue })
+                : { ok: false };
+
+            if (check.ok) {
+                const { discount } = computeDiscount(promoDoc, {
+                    productsTotal: Number(req.body.productsTotal) || 0,
+                    deliveryFee: Number(price) || 0,
+                    fullOrderValue
+                });
+                if (discount > 0) {
+                    serverDiscount = discount;
+                    appliedPromoCode = promoDoc.code;
+                    validatedPromoDoc = promoDoc;
+                }
+            } else {
+                logger.info({ promoCode, reason: check.error }, 'Promo rejected at order creation — stored discount = 0');
+            }
+        }
+
         const orderData = {
             client: req.user.id,
             city: req.userCity,   // 🌍 CRITICAL: stamp city from the authenticated user
@@ -154,8 +196,8 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             status: orderStatus,
             scheduledAt: isScheduled ? new Date(scheduledAt) : null,
             orderType: orderType || 'delivery',
-            promoCode: promoCode || null,
-            discountAmount: discountAmount || 0
+            promoCode: appliedPromoCode,      // 🔒 الكود المُتحقَّق فقط، أو null
+            discountAmount: serverDiscount    // 🔒 القيمة الخادمية فقط
         };
 
         if (orderType === 'shop') {
@@ -177,57 +219,37 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
 
         const order = await Order.create(orderData);
 
-        // ✅ تحديث عداد الكوبون إذا تم استخدامه + التحقق من صحة الخصم
-        if (promoCode && discountAmount > 0) {
+        // ✅ تحديث عداد الكوبون — فقط للكود الذي تحقّقنا منه وأنتج خصماً فعلياً.
+        // الخصم هنا هو serverDiscount المحسوب أعلاه؛ لا إعادة حساب من قيمة العميل.
+        if (validatedPromoDoc && serverDiscount > 0) {
             const PromoCode = require('../models/PromoCode');
-            const promoDoc = await PromoCode.findOne({
-                code: promoCode.toUpperCase(),
-                isActive: true,
-                validFrom: { $lte: new Date() },
-                validUntil: { $gte: new Date() }
-            }).lean();
-
-            if (promoDoc) {
-                // ✅ إعادة حساب الخصم من السيرفر لمنع تلاعب الـ client
-                let serverDiscount = 0;
-                const orderValue = order.price + Number(discountAmount); // السعر الأصلي قبل الخصم
-                if (promoDoc.type === 'percentage') {
-                    serverDiscount = (orderValue * promoDoc.value) / 100;
-                    if (promoDoc.maxDiscount) serverDiscount = Math.min(serverDiscount, promoDoc.maxDiscount);
-                } else {
-                    serverDiscount = Math.min(promoDoc.value, orderValue);
-                }
-                serverDiscount = Math.round(serverDiscount * 100) / 100;
-
-                // ✅ BUG-002 FIX: Atomic update with usageLimit check — prevents race condition
-                // where concurrent requests bypass the usage cap
-                const atomicPromoFilter = {
-                    code: promoCode.toUpperCase(),
-                    $or: [
-                        { usageLimit: null },
-                        { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
-                    ]
-                };
-                const updatedPromo = await PromoCode.findOneAndUpdate(
-                    atomicPromoFilter,
-                    {
-                        $inc: { usedCount: 1 },
-                        $push: {
-                            usedBy: {
-                                user: req.user.id,
-                                usedAt: new Date(),
-                                orderId: order._id,
-                                discountAmount: serverDiscount
-                            }
+            // ✅ BUG-002: تحديث ذرّي بشرط usageLimit — يمنع سباق يتخطّى الحد الأقصى
+            const atomicPromoFilter = {
+                code: validatedPromoDoc.code,
+                $or: [
+                    { usageLimit: null },
+                    { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
+                ]
+            };
+            const updatedPromo = await PromoCode.findOneAndUpdate(
+                atomicPromoFilter,
+                {
+                    $inc: { usedCount: 1 },
+                    $push: {
+                        usedBy: {
+                            user: req.user.id,
+                            usedAt: new Date(),
+                            orderId: order._id,
+                            discountAmount: serverDiscount
                         }
                     }
-                ).catch(err => {
-                    logger.error({ err }, 'Failed to update PromoCode usage');
-                    return null;
-                });
-                if (!updatedPromo) {
-                    logger.warn({ promoCode, orderId: order._id }, 'Promo code usage limit reached during atomic check');
                 }
+            ).catch(err => {
+                logger.error({ err }, 'Failed to update PromoCode usage');
+                return null;
+            });
+            if (!updatedPromo) {
+                logger.warn({ promoCode: validatedPromoDoc.code, orderId: order._id }, 'Promo code usage limit reached during atomic check');
             }
         }
 
@@ -1868,72 +1890,40 @@ router.post('/apply-promo', protect, async (req, res) => {
             validUntil: { $gte: now }
         });
 
-        if (!promo) {
-            return res.status(404).json({ message: 'كود الخصم غير صحيح أو منتهي الصلاحية' });
+        // 🔒 نفس المنطق المشترك المستخدم في إنشاء الطلب — مصدر واحد يمنع تباين المسارين.
+        // ✅ BUG-006: المدينة تُقارن بمدينة المستخدم المصادق عليه لا بما يرسله العميل.
+        const { validatePromo, computeDiscount } = require('../utils/promo');
+        const check = validatePromo(promo, {
+            userId: req.user._id,
+            userCity: req.user.city,
+            fullOrderValue
+        });
+        if (!check.ok) {
+            const status = check.error.includes('غير صحيح') ? 404 : 400;
+            return res.status(status).json({ message: check.error });
         }
 
-        // فحص الحد الإجمالي
-        if (promo.usageLimit !== null && promo.usedCount >= promo.usageLimit) {
-            return res.status(400).json({ message: 'عذراً! لقد وصل هذا الكود لحده الأقصى من الاستخدام' });
+        const calc = computeDiscount(promo, {
+            productsTotal: Number(productsTotal) || 0,
+            deliveryFee: Number(deliveryFee) || 0,
+            fullOrderValue
+        });
+        if (calc.error) {
+            return res.status(400).json({ message: calc.error });
         }
-
-        // فحص استخدام نفس المستخدم
-        const userUsages = promo.usedBy.filter(u => u.user && u.user.toString() === req.user._id.toString()).length;
-        if (userUsages >= promo.userUsageLimit) {
-            return res.status(400).json({ message: 'لقد استخدمت هذا الكود الحد المسموح لك' });
-        }
-
-        // فحص الحد الأدنى للطلب (يُحسب على قيمة الطلب الكاملة)
-        if (fullOrderValue < promo.minOrderValue) {
-            return res.status(400).json({ message: `الحد الأدنى لاستخدام هذا الكود هو ${promo.minOrderValue} ج.س` });
-        }
-
-        // ✅ BUG-006 FIX: استخدام مدينة المستخدم المصادق عليه، وليس ما يرسله العميل في body
-        const userCity = req.user.city;
-        if (promo.city !== 'all' && promo.city !== userCity) {
-            return res.status(400).json({ message: 'هذا الكود غير متاح في مدينتك' });
-        }
-
-        // 🎯 تحديد المبلغ الأساس الذي يُطبَّق عليه الخصم حسب نطاق الكود
-        const scope = promo.appliesTo || 'total';
-        let base, scopeLabel;
-        if (scope === 'products') {
-            base = Number(productsTotal);
-            scopeLabel = 'المنتجات';
-            if (!base || isNaN(base) || base <= 0) {
-                return res.status(400).json({ message: 'هذا الكود يُطبَّق على المنتجات فقط، ولا توجد منتجات في الطلب' });
-            }
-        } else if (scope === 'delivery') {
-            // في الطلب العادي تكون قيمة التوصيل هي قيمة الطلب كاملة
-            base = Number(deliveryFee) || Number(orderValue) || 0;
-            scopeLabel = 'التوصيل';
-            if (!base || isNaN(base) || base <= 0) {
-                return res.status(400).json({ message: 'هذا الكود يُطبَّق على التوصيل فقط، ولا يوجد سعر توصيل صالح' });
-            }
-        } else {
-            base = fullOrderValue;
-            scopeLabel = 'الإجمالي';
-        }
-
-        // حساب قيمة الخصم على المبلغ الأساس
-        let discount = 0;
-        if (promo.type === 'percentage') {
-            discount = (base * promo.value) / 100;
-            if (promo.maxDiscount !== null) discount = Math.min(discount, promo.maxDiscount);
-        } else {
-            discount = Math.min(promo.value, base);
-        }
-        discount = Math.round(discount * 100) / 100;
+        const scope = calc.scope;
+        const scopeLabel = scope === 'products' ? 'المنتجات' : (scope === 'delivery' ? 'التوصيل' : 'الإجمالي');
+        const discount = calc.discount;
 
         res.json({
             valid:         true,
             code:          promo.code,
             type:          promo.type,
             value:         promo.value,
-            appliesTo:     scope,        // نطاق الكود: products | delivery | total
-            scopeLabel,                  // وصف عربي للنطاق
-            discount,                    // قيمة الخصم
-            finalPrice:    Math.max(0, fullOrderValue - discount), // الإجمالي بعد الخصم
+            appliesTo:     scope,
+            scopeLabel,
+            discount,
+            finalPrice:    Math.max(0, fullOrderValue - discount),
             description:   promo.description
         });
     } catch (error) {
