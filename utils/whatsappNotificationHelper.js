@@ -5,7 +5,8 @@ const logger = require('./logger');
 
 // مسار البوت المحلي (للتطوير) أو من متغير البيئة (للإنتاج)
 const BOT_API_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3000';
-const BOT_API_KEY = 'scrt_whatsapp_api_key_2026';
+// 🔒 لا مفتاح مكتوب حرفياً — يُضبط عبر لوحة البيئة (نفس سياسة .htaccess).
+const BOT_API_KEY = process.env.WHATSAPP_API_KEY || '';
 
 /**
  * التحقق من اشتراك المستخدم في البوت

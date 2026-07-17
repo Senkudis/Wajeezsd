@@ -3,7 +3,11 @@ const logger = require('../utils/logger');
 
 // ✅ يقرأ من .env — غيّر WHATSAPP_BOT_URL في السيرفر لرابط Render
 const BOT_API_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3000';
-const BOT_API_KEY = process.env.WHATSAPP_API_KEY || 'scrt_whatsapp_api_key_2026';
+// 🔒 لا مفتاح مكتوب حرفياً — يُضبط عبر لوحة البيئة (نفس سياسة .htaccess).
+const BOT_API_KEY = process.env.WHATSAPP_API_KEY || '';
+if (!BOT_API_KEY) {
+    logger.warn('WHATSAPP_API_KEY غير مضبوط — إشعارات/OTP واتساب قد لا تعمل');
+}
 
 // Configure Axios instance
 const botApi = axios.create({
