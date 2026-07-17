@@ -36,8 +36,9 @@ function validatePromo(promo, { userId, userCity, fullOrderValue }) {
         return { ok: false, error: `الحد الأدنى لاستخدام هذا الكود هو ${promo.minOrderValue} ج.س` };
     }
 
-    // المدينة — تُقارن بمدينة المستخدم المصادق عليه لا بما يرسله العميل
-    if (promo.city && promo.city !== 'all' && promo.city !== userCity) {
+    // المدينة — تُقارن بمدينة المستخدم/المتجر لا بما يرسله العميل.
+    // userCity فارغ ⇒ يُتخطّى الفحص (متجر قديم بلا مدينة — تساهلٌ مقصود).
+    if (userCity && promo.city && promo.city !== 'all' && promo.city !== userCity) {
         return { ok: false, error: 'هذا الكود غير متاح في مدينتك' };
     }
 

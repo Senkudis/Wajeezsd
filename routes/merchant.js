@@ -864,12 +864,14 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
 
         const originalTotal = itemsTotal + deliveryFee;
 
-        // 🎟️ إعادة التحقق من كود الخصم في السيرفر (لا نثق بقيمة الخصم من العميل)
+        // 🎟️ إعادة التحقق من كود الخصم في السيرفر (لا نثق بقيمة الخصم من العميل).
+        // يستخدم نفس منطق utils/promo المشترك مع إنشاء الطلب و/apply-promo — مصدر واحد.
         let discountAmount = 0;
         let appliedPromoCode = null;
         let promoAppliesTo = 'total';
         let promoDoc = null;
         if (promoCode && typeof promoCode === 'string') {
+            const { validatePromo, computeDiscount } = require('../utils/promo');
             const now = new Date();
             promoDoc = await PromoCode.findOne({
                 code: promoCode.toUpperCase().trim(),
@@ -877,25 +879,19 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
                 validFrom:  { $lte: now },
                 validUntil: { $gte: now }
             });
-            if (promoDoc) {
-                const underTotalLimit = promoDoc.usageLimit === null || promoDoc.usedCount < promoDoc.usageLimit;
-                const userUsages = promoDoc.usedBy.filter(u => u.user && u.user.toString() === req.user._id.toString()).length;
-                const underUserLimit = userUsages < promoDoc.userUsageLimit;
-                const meetsMin = originalTotal >= promoDoc.minOrderValue;
-                const cityOk = promoDoc.city === 'all' || !place.city || promoDoc.city === place.city;
-
-                if (underTotalLimit && underUserLimit && meetsMin && cityOk) {
-                    const scope = promoDoc.appliesTo || 'total';
-                    const base = scope === 'products' ? itemsTotal
-                               : scope === 'delivery' ? deliveryFee
-                               : originalTotal;
-                    if (base > 0) {
-                        let d = promoDoc.type === 'percentage' ? (base * promoDoc.value) / 100 : Math.min(promoDoc.value, base);
-                        if (promoDoc.type === 'percentage' && promoDoc.maxDiscount !== null) d = Math.min(d, promoDoc.maxDiscount);
-                        discountAmount = Math.round(d);
-                        appliedPromoCode = promoDoc.code;
-                        promoAppliesTo = scope;
-                    }
+            const check = promoDoc
+                ? validatePromo(promoDoc, { userId: req.user._id, userCity: place.city, fullOrderValue: originalTotal })
+                : { ok: false };
+            if (check.ok) {
+                const { discount, scope } = computeDiscount(promoDoc, {
+                    productsTotal: itemsTotal,
+                    deliveryFee,
+                    fullOrderValue: originalTotal
+                });
+                if (discount > 0) {
+                    discountAmount = Math.round(discount); // مبالغ صحيحة كما كان
+                    appliedPromoCode = promoDoc.code;
+                    promoAppliesTo = scope;
                 }
             }
             // كود غير صالح → يُتجاهل بهدوء (الخصم = 0) دون رفض الطلب

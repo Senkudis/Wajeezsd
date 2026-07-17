@@ -54,6 +54,12 @@ describe('validatePromo', () => {
     it('يقبل كوبون city=all في أي مدينة', () => {
         expect(validatePromo({ ...basePromo, city: 'all' }, { ...ctx, userCity: 'PortSudan' }).ok).toBe(true);
     });
+
+    it('يتخطّى فحص المدينة عند غياب مدينة المستخدم/المتجر (تساهل مقصود)', () => {
+        // مسار ShopOrder يمرّر place.city؛ متجر قديم بلا مدينة يجب ألا يُرفض كوبونه
+        expect(validatePromo({ ...basePromo, city: 'Khartoum' }, { ...ctx, userCity: undefined }).ok).toBe(true);
+        expect(validatePromo({ ...basePromo, city: 'Khartoum' }, { ...ctx, userCity: '' }).ok).toBe(true);
+    });
 });
 
 describe('computeDiscount', () => {
