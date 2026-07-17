@@ -94,4 +94,24 @@ function validateStopsLocations(stops) {
     return { valid: true };
 }
 
-module.exports = { isInsideSudan, validateOrderLocations, validateStopsLocations, cityFromCoords, CITY_BOUNDS };
+/**
+ * 📏 المسافة بين نقطتين بالكيلومترات (صيغة Haversine).
+ * @param {{lat:number,lng:number}} a
+ * @param {{lat:number,lng:number}} b
+ * @returns {number|null} المسافة بالكم، أو null إذا نقصت إحداثيات
+ */
+function haversineKm(a, b) {
+    if (!a || !b) return null;
+    const lat1 = Number(a.lat), lng1 = Number(a.lng);
+    const lat2 = Number(b.lat), lng2 = Number(b.lng);
+    if ([lat1, lng1, lat2, lng2].some(v => !Number.isFinite(v))) return null;
+    const R = 6371; // نصف قطر الأرض بالكم
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const s = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+module.exports = { isInsideSudan, validateOrderLocations, validateStopsLocations, cityFromCoords, haversineKm, CITY_BOUNDS };

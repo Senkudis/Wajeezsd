@@ -253,6 +253,9 @@
             border-radius: 12px; padding: 10px 16px; margin-top: 12px;
             color: white;
         }
+        .step-time { font-size: 9px; color: #94a3b8; font-weight: 700; margin-top: 2px; min-height: 11px; }
+        .step-item.done .step-time, .step-item.active .step-time { color: #04553A; }
+        .captain-rating { font-size: 11px; color: #f59e0b; font-weight: 800; }
         .eta-bar .eta-label { font-size: 11px; opacity: 0.8; }
         .eta-bar .eta-value { font-size: 15px; font-weight: 800; }
         .eta-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.3); }
@@ -301,18 +304,22 @@
                 <div class="step-item" id="step-pending">
                     <div class="step-circle"><i class="bi bi-clock"></i></div>
                     <div class="step-label">انتظار</div>
+                    <div class="step-time" id="time-placed"></div>
                 </div>
                 <div class="step-item" id="step-accepted">
                     <div class="step-circle"><i class="bi bi-person-check"></i></div>
                     <div class="step-label">قُبل</div>
+                    <div class="step-time" id="time-accepted"></div>
                 </div>
                 <div class="step-item" id="step-picked_up">
                     <div class="step-circle"><i class="bi bi-box2-fill"></i></div>
                     <div class="step-label">استلم</div>
+                    <div class="step-time" id="time-picked_up"></div>
                 </div>
                 <div class="step-item" id="step-delivered">
                     <div class="step-circle"><i class="bi bi-check2-circle"></i></div>
                     <div class="step-label">وصل</div>
+                    <div class="step-time" id="time-delivered"></div>
                 </div>
             </div>
 
@@ -321,7 +328,10 @@
                 <div class="captain-avatar" id="captain-avatar">🏍</div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:700;font-size:13px;color:#1e293b;" id="captain-name">الكابتن</div>
-                    <div style="font-size:11px;color:#64748b;" id="captain-vehicle">—</div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <span style="font-size:11px;color:#64748b;" id="captain-vehicle">—</span>
+                        <span class="captain-rating" id="captain-rating" style="display:none;"></span>
+                    </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <a href="#" id="captain-call-btn" class="btn btn-success btn-sm rounded-circle" style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
@@ -548,6 +558,25 @@
             mb.className = `status-pill status-${status}`;
         }
 
+        // ⏱️ يعرض أوقات انتقالات الحالة تحت كل مرحلة (الخط الزمني من السيرفر)
+        function renderTimeline(order) {
+            const tl = order.timeline;
+            if (!tl || !Array.isArray(tl.steps)) return;
+            const fmt = (iso) => {
+                if (!iso) return '';
+                try {
+                    return new Date(iso).toLocaleTimeString('ar-SD', { hour: '2-digit', minute: '2-digit' });
+                } catch (_) { return ''; }
+            };
+            // مفاتيح السيرفر (placed) تُقابل عنصر الواجهة (pending)
+            const map = { placed: 'time-placed', accepted: 'time-accepted', picked_up: 'time-picked_up', delivered: 'time-delivered' };
+            tl.steps.forEach(step => {
+                const id = map[step.key];
+                const el = id && document.getElementById(id);
+                if (el) el.textContent = step.done && step.at ? fmt(step.at) : '';
+            });
+        }
+
         // ===== Smooth Marker Animation =====
         function animateMarker(marker, from, to, duration = 500) {
             const start = Date.now();
@@ -622,6 +651,20 @@
         function updateUI(order) {
             // Update status steps
             updateStatusSteps(order.status);
+            // ⏱️ أوقات المراحل (الخط الزمني)
+            renderTimeline(order);
+
+            // ⏱️ ETA من السيرفر — يملأ الفجوة قبل ظهور موقع الكابتن الحيّ.
+            // بمجرد وصول موقع الكابتن، updateETA (أدق) يستبدل هذه القيمة.
+            if (order.eta && order.eta.text && !(order.captain && order.captain.currentLocation)) {
+                document.getElementById('eta-container').style.display = 'flex';
+                document.getElementById('eta-text').textContent = '~' + order.eta.text;
+                if (order.eta.distanceKm != null) {
+                    document.getElementById('eta-distance').textContent = order.eta.distanceKm < 1
+                        ? `${(order.eta.distanceKm * 1000).toFixed(0)} م`
+                        : `${order.eta.distanceKm.toFixed(1)} كم`;
+                }
+            }
 
             // Price
             if (order.price) document.getElementById('order-price').textContent = `${order.price} ج.س`;
@@ -671,6 +714,18 @@
                 document.getElementById('captain-name').textContent = order.captain.name || 'الكابتن';
                 document.getElementById('captain-vehicle').textContent = order.captain.vehicleType
                     ? window.VehicleTypes.iconLabel(order.captain.vehicleType) : '—';
+
+                // ⭐ تقييم الكابتن الظاهر — يُطمئن العميل قبل/أثناء التوصيل
+                const ratingEl = document.getElementById('captain-rating');
+                if (ratingEl) {
+                    const rc = order.captain.ratingCount || 0;
+                    if (rc > 0 && order.captain.averageRating) {
+                        ratingEl.style.display = '';
+                        ratingEl.textContent = `⭐ ${Number(order.captain.averageRating).toFixed(1)} (${rc})`;
+                    } else {
+                        ratingEl.style.display = 'none';
+                    }
+                }
 
                 // 📷 Captain profile photo
                 const avatarEl = document.getElementById('captain-avatar');

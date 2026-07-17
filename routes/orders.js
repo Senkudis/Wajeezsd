@@ -927,6 +927,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                         price: order.price,
                         captain: order.captain,
                         status: 'accepted',
+                        acceptedAt: new Date(),   // ⏱️ للخط الزمني
                         negotiation: order.negotiation,
                         negotiations: order.negotiations,
                         appFee: order.appFee,
@@ -1085,10 +1086,11 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
         // 🛡️ CRITICAL FIX: Atomic update to prevent Race Condition
         const updatedOrder = await Order.findOneAndUpdate(
             { _id: req.params.id, status: 'pending' },
-            { 
-                $set: { 
-                    status: 'accepted', 
+            {
+                $set: {
+                    status: 'accepted',
                     captain: req.user.id,
+                    acceptedAt: new Date(),   // ⏱️ للخط الزمني
                     negotiation: { isActive: false, status: 'none' }
                 }
             },
@@ -1245,9 +1247,10 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
         // 🛡️ CRITICAL FIX: Atomic update for pickup state
         const updatedOrder = await Order.findOneAndUpdate(
             { _id: req.params.id, captain: req.user.id, status: 'accepted' },
-            { 
-                $set: { 
+            {
+                $set: {
                     status: 'picked_up',
+                    pickedUpAt: new Date(),   // ⏱️ للخط الزمني
                     proofOfPickupImage: proofImage
                 }
             },
@@ -1834,7 +1837,8 @@ router.get('/:id', protect, async (req, res) => {
 
         const order = await Order.findById(req.params.id)
             .populate('client', 'name phone')
-            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto')
+            // ⭐ averageRating/ratingCount: لإظهار تقييم الكابتن للعميل
+            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount')
             .lean();
 
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
@@ -1867,6 +1871,23 @@ router.get('/:id', protect, async (req, res) => {
 
         if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain && !isShopOwner) {
             return res.status(403).json({ message: 'غير مصرح' });
+        }
+
+        // 📊 إثراء الرد بالخط الزمني و ETA (بيانات محسوبة، لا تُخزَّن).
+        const { buildTimeline } = require('../utils/orderTimeline');
+        order.timeline = buildTimeline(order);
+
+        // ⏱️ ETA — يُعرض فقط للطلبات الجارية (قبل التسليم/الإلغاء).
+        if (!['delivered', 'cancelled'].includes(order.status)) {
+            const { haversineKm } = require('../utils/geofence');
+            const { estimateEtaMinutes, formatEta } = require('../utils/eta');
+            const km = haversineKm(order.pickup, order.dropoff);
+            if (km != null) {
+                const extraStops = order.isMultiStop && Array.isArray(order.stops)
+                    ? Math.max(0, order.stops.length - 2) : 0;
+                const minutes = estimateEtaMinutes(km, { extraStops });
+                order.eta = { distanceKm: Math.round(km * 10) / 10, ...formatEta(minutes) };
+            }
         }
 
         res.json(order);

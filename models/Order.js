@@ -73,6 +73,13 @@ const OrderSchema = new mongoose.Schema(
         },
         scheduledAt: { type: Date, default: null }, // ⏰ طلب مجدول
 
+        // ⏱️ طوابع انتقالات الحالة — تُغذّي الخط الزمني المرئي للعميل.
+        // ملاحظة: deliveredAt كان يُكتب في معالج التسليم دون تعريفه هنا، فيُسقطه
+        // وضع mongoose الصارم صامتاً (وقت التسليم لم يكن يُحفظ). تعريفه هنا يصلح ذلك.
+        acceptedAt:  { type: Date, default: null },
+        pickedUpAt:  { type: Date, default: null },
+        deliveredAt: { type: Date, default: null },
+
         // 🚫 تفاصيل الإلغاء — من ألغى ولماذا
         cancelledBy: { type: String, enum: ['client', 'captain', 'admin', 'system'], default: null },
         cancelReason: { type: String, default: null },
