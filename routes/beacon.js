@@ -5,9 +5,13 @@
  */
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
+const { verifySocketToken } = require('../utils/socketAuth');
+const { authorizeChatMessage } = require('../utils/chatAuth');
 const logger = require('../utils/logger');
 const Message = require('../models/Message');
+const User = require('../models/User');
+const Order = require('../models/Order');
+const ShopOrder = require('../models/ShopOrder');
 
 router.post('/', async (req, res) => {
     try {
@@ -18,31 +22,41 @@ router.post('/', async (req, res) => {
             try { body = JSON.parse(body); } catch (_) { body = {}; }
         }
 
-        const { receiver, order, text, tempId, _token } = body;
+        const { receiver, order, tempId, _token } = body;
+        let { text } = body;
 
         if (!_token || !receiver || !order || !text) {
             return res.status(400).json({ message: 'بيانات ناقصة' });
         }
 
-        // التحقق من التوكن يدوياً (لأن protect middleware يستخدم Authorization header)
-        let decoded;
-        try {
-            decoded = jwt.verify(_token, process.env.JWT_SECRET);
-        } catch (primaryErr) {
-            // 🛟 Fallback: accept legacy-signed tokens from old mobile apps
-            const legacy = process.env.JWT_SECRET_LEGACY;
-            if (legacy && legacy.length > 0) {
-                try {
-                    decoded = jwt.verify(_token, legacy);
-                } catch (_) {
-                    return res.status(401).json({ message: 'توكن غير صالح' });
-                }
-            } else {
-                return res.status(401).json({ message: 'توكن غير صالح' });
-            }
+        // 🔒 المرسِل يُشتق من التوكن الموقّع حصراً (نفس منطق السوكت، مع دعم LEGACY)
+        const decoded = verifySocketToken(_token);
+        if (!decoded || !decoded.userId) {
+            return res.status(401).json({ message: 'توكن غير صالح' });
+        }
+        // التوكنات المقيّدة (upload_only) لا تُرسل رسائل
+        if (decoded.scope && decoded.scope !== 'full') {
+            return res.status(403).json({ message: 'توكن مقيّد' });
+        }
+        const sender = String(decoded.userId).trim();
+
+        // ✅ حدّ الطول — مطابقة لـ POST /api/chat (كان غائباً تماماً هنا)
+        if (typeof text !== 'string') {
+            return res.status(400).json({ message: 'نص غير صالح' });
+        }
+        if (text.length > 1000) {
+            return res.status(400).json({ message: 'الرسالة طويلة جداً (الحد الأقصى 1000 حرف)' });
         }
 
-        const sender = String(decoded.userId).trim();
+        // 🔒 التفويض: كان /api/beacon يحفظ أي رسالة لأي مستخدم بلا أي فحص.
+        // الآن نفس فحوصات send_message وPOST /api/chat: طرفا الطلب، الحجب، الإغلاق.
+        const authz = await authorizeChatMessage(
+            { sender, receiver, order },
+            { User, Order, ShopOrder }
+        );
+        if (!authz.ok) {
+            return res.status(authz.status || 403).json({ message: authz.error });
+        }
 
         // التحقق من أن الرسالة لم تُحفظ مسبقاً (منع التكرار إذا جاء sendBeacon بعد Socket ACK)
         if (tempId) {
