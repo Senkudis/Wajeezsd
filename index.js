@@ -255,6 +255,25 @@ const globalLimiter = rateLimit({
 // meaning the global 100-req pool could exhaust before the stricter auth limit triggered.
 // The authLimiter is now declared and used directly inside routes/auth.js.
 
+// 🩺 Health check — قبل rate limiter (فحوصات المراقبة يجب ألا تُخنق).
+// يعرض حالة الاتصال بقاعدة البيانات ووقت التشغيل والذاكرة — معياري لموازِن
+// الحمل ولوحات المراقبة والتنبيه عند التعطّل. يُقدَّم على /api/health و/health.
+const healthHandler = (req, res) => {
+    const dbState = mongoose.connection.readyState; // 1 = connected
+    const healthy = dbState === 1;
+    const mem = process.memoryUsage();
+    res.status(healthy ? 200 : 503).json({
+        status: healthy ? 'ok' : 'degraded',
+        uptimeSeconds: Math.floor(process.uptime()),
+        db: { state: ['disconnected', 'connected', 'connecting', 'disconnecting'][dbState] || 'unknown', ok: healthy },
+        memoryMB: { rss: Math.round(mem.rss / 1048576), heapUsed: Math.round(mem.heapUsed / 1048576) },
+        version: require('./package.json').version,
+        timestamp: new Date().toISOString()
+    });
+};
+app.get('/api/health', healthHandler);
+app.get('/health', healthHandler);
+
 // Mount the API router (globalLimiter applies to all /api routes)
 app.use('/api', globalLimiter, apiRoutes);
 
@@ -719,9 +738,16 @@ server.listen(PORT, () => {
 });
 
 // 🧯 المعالجة العالمية للأخطاء غير الملتقَطة
+const errorTracker = require('./utils/errorTracker');
+
 // unhandledRejection: نكتفي بالتسجيل — كثير من رفض الوعود غير حرج، وإسقاط السيرفر عليه مبالغة.
 process.on('unhandledRejection', (reason) => {
     logger.error({ reason: String(reason) }, 'Unhandled Promise Rejection');
+    errorTracker.record({
+        message: 'UnhandledRejection: ' + String(reason && reason.message || reason),
+        stack: reason && reason.stack,
+        statusCode: 500, path: '(process)', method: 'unhandledRejection'
+    });
 });
 
 // uncaughtException: بعده تكون حالة العملية غير موثوقة (اتصالات/ذاكرة تالفة).

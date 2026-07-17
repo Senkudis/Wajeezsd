@@ -206,7 +206,18 @@ router.delete('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
     }
 });
 
-// @route   GET /api/admin/dashboard-limited
-// @desc    إحصائيات مبسطة للـ sub-admin (بدون أرباح وعدد العملاء)
+// @route   GET /api/admin/errors
+// @desc    آخر أخطاء الإنتاج (مخزن في الذاكرة) — مراقبة سريعة للمسؤول الرئيسي
+router.get('/errors', protect, superAdminOnly, (req, res) => {
+    try {
+        const errorTracker = require('../../utils/errorTracker');
+        res.json({
+            count: errorTracker.count(),
+            errors: errorTracker.list(req.query.limit)
+        });
+    } catch (e) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
 
 module.exports = router;

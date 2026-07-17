@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const errorTracker = require('../utils/errorTracker');
 
 /**
  * notFound — يُستدعى عندما لا يطابق أي route الطلب (404).
@@ -51,6 +52,15 @@ const errorHandler = (err, req, res, next) => {
     // سجّل كل خطأ 500 بالتفصيل (الأخطاء غير المتوقعة)
     if (statusCode >= 500) {
         logger.error({ err, path: req.originalUrl, method: req.method }, 'Unhandled route error');
+        // 🔭 مراقبة: خزّن الخطأ مع سياقه ليظهر للمسؤول عبر /api/admin/errors
+        errorTracker.record({
+            message: err.message,
+            stack: err.stack,
+            statusCode,
+            path: req.originalUrl,
+            method: req.method,
+            userId: req.user && req.user._id
+        });
     } else {
         logger.warn({ message, path: req.originalUrl }, 'Handled request error');
     }
