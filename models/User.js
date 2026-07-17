@@ -6,7 +6,9 @@ const UserSchema = new mongoose.Schema(
     {
         name: { type: String, required: true },
         phone: { type: String, required: true, unique: true },
-        email: { type: String, unique: true, sparse: true },
+        // lowercase+trim: يضمن تخزيناً موحّداً للبريد في كل المسارات (تسجيل، جوجل، OTP)
+        // فلا يتعذّر الدخول لاحقاً لأن /login يبحث دائماً بصيغة صغيرة الأحرف.
+        email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
         password: { type: String, required: true },
         resetCode: { type: String },
         resetCodeExpires: { type: Date },

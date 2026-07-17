@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Order = require('../models/Order');
 const User = require('../models/User');
@@ -202,14 +203,26 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
 
         if (orderType === 'shop') {
             const Place = require('../models/Place');
-            const place = await Place.findById(shopId);
-            if (place && place.ownerId && place.ownerId.toString() === req.user.id.toString()) {
+            // 🔒 تحقّق أن المتجر موجود ونشط — كان الفحص `if (place && ...)` يمرّ عند
+            // عدم وجوده فيُنشأ طلب يتيم بمعرّف متجر عشوائي.
+            if (!shopId || !mongoose.Types.ObjectId.isValid(shopId)) {
+                return res.status(400).json({ message: 'معرّف المتجر غير صالح' });
+            }
+            const place = await Place.findById(shopId).select('ownerId name phone isActive');
+            if (!place) {
+                return res.status(404).json({ message: 'المتجر غير موجود' });
+            }
+            if (place.isActive === false) {
+                return res.status(400).json({ message: 'هذا المتجر غير متاح حالياً' });
+            }
+            if (place.ownerId && place.ownerId.toString() === req.user.id.toString()) {
                 return res.status(403).json({ message: 'لا يمكنك الطلب من متجرك الخاص' });
             }
 
             orderData.shopId = shopId;
-            orderData.shopName = shopName;
-            orderData.shopPhone = shopPhone;
+            // 🔒 الاسم والهاتف من قاعدة البيانات لا من العميل (منع تخزين قيم مزوّرة)
+            orderData.shopName = place.name || shopName || '';
+            orderData.shopPhone = place.phone || shopPhone || '';
             orderData.items = items;
             // حفظ تفاصيل الطلبية كنص (للعرض في كارت الكابتن)
             if (req.body.shopOrderDetails) {

@@ -45,13 +45,22 @@ const otpLimiter = rateLimit({
 // ==========================================
 router.get('/check-subscription/:phone', async (req, res) => {
     try {
-        const { phone } = req.params;
+        // 🔒 المسار غير محمي ويُمرَّر لخدمة داخلية — لولا التحقق أمكن حقن مسار
+        //    (مثل ../admin) لفحص نقاط داخلية على البوت. نطبّع ونتحقق بصرامة ونُرمّز.
+        const phone = normalizePhone(req.params.phone);
+        if (!phone || !/^\d{6,15}$/.test(phone)) {
+            return res.status(400).json({ subscribed: false, error: 'رقم غير صالح' });
+        }
         const BOT_API_URL = process.env.BOT_API_URL || 'http://localhost:3000'; // Local Bot Service
         const BOT_API_KEY = process.env.WHATSAPP_API_KEY || '';
 
-        const response = await axios.get(`${BOT_API_URL}/check-subscription/${phone}`, {
-            headers: { 'x-api-key': BOT_API_KEY }
-        });
+        const response = await axios.get(
+            `${BOT_API_URL}/check-subscription/${encodeURIComponent(phone)}`,
+            {
+                headers: { 'x-api-key': BOT_API_KEY },
+                timeout: 5000
+            }
+        );
 
         res.json(response.data);
     } catch (error) {
@@ -143,6 +152,10 @@ router.post('/register-captain', otpLimiter, async (req, res) => {
             return res.status(400).json({ message: 'جميع الحقول مطلوبة' });
         }
 
+        // 🔒 تطبيع البريد — /login يبحث دائماً بـ toLowerCase، فبريد فيه حرف كبير
+        // كان يُخزَّن كما هو ولا يُطابَق أبداً عند الدخول (والحساب يصير غير قابل للاستخدام).
+        // كما يمنع حسابين متمايزين بحرف كبير يتخطّيان فحص "البريد مسجل مسبقاً".
+        email = String(email).toLowerCase().trim();
         phone = normalizePhone(phone);
 
         // Check existing
@@ -995,6 +1008,20 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
             });
             await user.save();
             logger.info(`🎉 Standalone OTP new user created: (${phone}) → ${fallbackEmail}`);
+        }
+
+        // 🔒 بوابة الدخول — نفس فحوصات /login بالضبط. بدونها كان دخول OTP يتخطّى
+        // الإيقاف والموافقة: حساب أوقفته الإدارة (isActive) أو كابتن مرفوض/معلّق
+        // يستعيد وصوله عبر SMS. (الحسابات المُنشأة للتوّ أعلاه isActive=true وapproved.)
+        // التجّار لا يُحجبون هنا تماشياً مع /login — إيقافهم يتم عبر isActive.
+        if (!user.isActive) {
+            return res.status(403).json({ message: 'حسابك موقوف. تواصل مع الإدارة.' });
+        }
+        if (user.role === 'captain' && user.approvalStatus === 'pending') {
+            return res.status(403).json({ message: 'حسابك قيد المراجعة من الإدارة. سيتم إشعارك عند الموافقة.' });
+        }
+        if (user.role === 'captain' && user.approvalStatus === 'rejected') {
+            return res.status(403).json({ message: 'تم رفض طلبك. تواصل مع الإدارة لمزيد من التفاصيل.' });
         }
 
         // 4. Generate JWT & Return

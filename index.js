@@ -51,6 +51,13 @@ const server = http.createServer(app);
 // Allows rate limiters to use real client IP from X-Forwarded-For header
 app.set('trust proxy', 1);
 
+// 🛡️ NoSQL injection على الاستعلام — يُعالَج عند التحليل (المصدر).
+// في Express 5 صار req.query getter يُرجع كائناً جديداً في كل قراءة، فحذف
+// المفاتيح منه بعد القراءة يقع على نسخة تُرمى (protection وهمية). الحل الصحيح
+// هو مُحلّل استعلام يجرّد مفاتيح عوامل Mongo ($...) عند بناء الكائن نفسه.
+const { parseSafeQuery } = require('./utils/querySanitizer');
+app.set('query parser', parseSafeQuery);
+
 // ✅ Approved CORS origins — used by both Socket.io and Express CORS
 const approvedOrigins = [
     'https://wajeezsd.com',
@@ -146,8 +153,9 @@ const sanitizeObject = (obj) => {
 };
 
 app.use((req, res, next) => {
+    // req.body وreq.params خصائص عادية قابلة للتعديل فالتعقيم يعمل عليها فعلاً.
+    // req.query لا يُعقَّم هنا (getter يُرجع نسخة جديدة) — يُعالَج في مُحلّل الاستعلام أعلاه.
     if (req.body) sanitizeObject(req.body);
-    if (req.query) sanitizeObject(req.query);
     if (req.params) sanitizeObject(req.params);
     next();
 });
