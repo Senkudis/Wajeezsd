@@ -262,10 +262,15 @@ const healthHandler = (req, res) => {
     const dbState = mongoose.connection.readyState; // 1 = connected
     const healthy = dbState === 1;
     const mem = process.memoryUsage();
+    // 🔔 حالة Push (FCM): إن لم يُهيّأ Firebase تُعطَّل إشعارات الخلفية بصمت —
+    // إظهارها هنا يكشف التعطّل فوراً بدل اكتشافه من شكاوى المستخدمين.
+    let pushReady = false;
+    try { pushReady = require('./utils/firebasePush').isFirebaseReady(); } catch (_) {}
     res.status(healthy ? 200 : 503).json({
         status: healthy ? 'ok' : 'degraded',
         uptimeSeconds: Math.floor(process.uptime()),
         db: { state: ['disconnected', 'connected', 'connecting', 'disconnecting'][dbState] || 'unknown', ok: healthy },
+        push: { provider: 'fcm', ready: pushReady },
         memoryMB: { rss: Math.round(mem.rss / 1048576), heapUsed: Math.round(mem.heapUsed / 1048576) },
         version: require('./package.json').version,
         timestamp: new Date().toISOString()
