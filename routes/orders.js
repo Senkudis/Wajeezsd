@@ -349,6 +349,11 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                         targeted: near.length, sent: r1.success, failed: r1.failure
                     }, 'New order captain push (wave 1 — nearest)');
 
+                    // لا موجة ثانية (كل الكباتن في الأولى) ⇒ علّم البثّ للكل مكتملاً
+                    if (rest.length === 0) {
+                        await Order.updateOne({ _id: order._id }, { $set: { dispatchedAllAt: new Date() } });
+                    }
+
                     // 🌊 الموجة 2: بقية كباتن المدينة بعد مهلة قصيرة، فقط إن ظلّ الطلب معلّقاً.
                     // شبكة أمان: لو ضاع إشعار الأقرب ولم يُقبل الطلب، يصل الجميع خلال ~18ث.
                     // (لو قَبِل الأقرب سريعاً لا نُزعج البقية — الطلب لم يعد متاحاً.)
@@ -358,6 +363,8 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                                 const fresh = await Order.findById(order._id).select('status captain');
                                 if (fresh && fresh.status === 'pending' && !fresh.captain) {
                                     const r2 = await sendPushToMany(rest, title, bodyMsg, pushData);
+                                    // 🏷️ علّم أن البثّ للكل تمّ — يمنع شبكة الأمان في scheduler من التكرار
+                                    await Order.updateOne({ _id: order._id }, { $set: { dispatchedAllAt: new Date() } });
                                     logger.info({
                                         orderId: order._id, city: order.city, wave: 2,
                                         targeted: rest.length, sent: r2.success, failed: r2.failure

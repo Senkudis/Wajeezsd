@@ -231,6 +231,58 @@ const startScheduler = (app) => {
         }
     });
 
+    // 📣 شبكة أمان لتوزيع الطلبات — كل دقيقة.
+    // الموجة 2 (بثّ الطلب لكل الكباتن) تُطلق عبر مؤقّت في ذاكرة العملية؛ لو أُعيد
+    // تشغيل السيرفر خلال نافذته يُفقَد المؤقّت فلا يصل الإشعار لبقية الكباتن.
+    // هنا نلتقط أي طلب معلّق غير مُسنَد مضى عليه >90ث ولم يُبَثّ للكل، فنبثّه ونعلّمه.
+    cron.schedule('* * * * *', async () => {
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) return;
+        try {
+            const cutoff = new Date(Date.now() - 90 * 1000); // مهلة كافية لمؤقّت الموجة 2 الطبيعي
+            const stale = await Order.find({
+                status: 'pending',
+                captain: null,
+                dispatchedAllAt: null,
+                scheduledAt: null,
+                createdAt: { $lt: cutoff }
+            }).select('_id city orderType shopName price').limit(50);
+
+            if (!stale.length) return;
+
+            const { sendPushToMany } = require('./utils/firebasePush');
+            for (const order of stale) {
+                try {
+                    const captains = await User.find({
+                        role: 'captain', city: order.city,
+                        fcmToken: { $exists: true, $ne: null }, isActive: true
+                    }).select('fcmToken');
+                    const tokens = [...new Set(captains.map(c => c.fcmToken).filter(Boolean))];
+
+                    // علّم البثّ أولاً (ذري) لمنع تكرار الإطلاق لو تأخّر الإرسال
+                    await Order.updateOne({ _id: order._id }, { $set: { dispatchedAllAt: new Date() } });
+
+                    if (tokens.length) {
+                        const title = order.orderType === 'shop' ? '🛒 طلب محل جديد! 🚨' : '📦 طلب توصيل جديد! 🚨';
+                        const bodyMsg = order.orderType === 'shop'
+                            ? `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س. عرض التفاصيل!`
+                            : `طلب توصيل جديد متاح بسعر ${order.price} ج.س! عرض التفاصيل`;
+                        await sendPushToMany(tokens, title, bodyMsg, {
+                            type: order.orderType === 'shop' ? 'shop_order' : 'new_order',
+                            orderId: order._id.toString(),
+                            url: `/captain-orders.html?highlight=${order._id.toString()}`
+                        });
+                        logger.info({ orderId: order._id, city: order.city, targeted: tokens.length }, 'Dispatch safety-net: broadcast to all city captains');
+                    }
+                } catch (oneErr) {
+                    logger.error({ err: oneErr, orderId: order._id }, 'Dispatch safety-net failed for order');
+                }
+            }
+        } catch (error) {
+            logger.error({ err: error }, 'Dispatch safety-net scheduler error');
+        }
+    });
+
     // 📊 Daily Admin Report — every day at 08:00
     cron.schedule('0 8 * * *', async () => {
         const mongoose = require('mongoose');

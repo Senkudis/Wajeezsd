@@ -80,6 +80,10 @@ const OrderSchema = new mongoose.Schema(
         pickedUpAt:  { type: Date, default: null },
         deliveredAt: { type: Date, default: null },
 
+        // 📣 وقت بثّ الطلب لكل الكباتن (الموجة 2). null = لم يُبَثّ للكل بعد.
+        // شبكة الأمان في scheduler تلتقط الطلبات المعلّقة التي ضاع مؤقّت موجتها الثانية.
+        dispatchedAllAt: { type: Date, default: null },
+
         // 🚫 تفاصيل الإلغاء — من ألغى ولماذا
         cancelledBy: { type: String, enum: ['client', 'captain', 'admin', 'system'], default: null },
         cancelReason: { type: String, default: null },
