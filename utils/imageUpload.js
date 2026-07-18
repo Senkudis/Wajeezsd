@@ -134,7 +134,50 @@ function safeUploadName(prefix, mimetype) {
     return `${cleanPrefix}_${Date.now()}_${rand}${ext}`;
 }
 
+// مجلد الرفع الذي يخدمه LiteSpeed مباشرةً على الإنتاج (نفس وجهة multer)
+const PUBLIC_UPLOADS_DIR = path.join(__dirname, '..', 'public_html', 'uploads');
+
+/**
+ * يحوّل صورة Base64 إلى ملف داخل public_html/uploads/<subdir> ويُرجع رابطها،
+ * بدل تخزين الـ base64 الثقيل داخل مستند الطلب (يضخّم المستند ويبطئ الاستعلامات).
+ *
+ * متوافق مع القديم:
+ *  - مدخل فارغ ⇒ null
+ *  - رابط مخزّن مسبقاً (/uploads أو http) ⇒ يُعاد كما هو (idempotent)
+ *  - data:image صالح ⇒ يُحفظ ملفاً ويُعاد الرابط
+ *  - أي شيء آخر (غير متوقّع) ⇒ null (لا نخزّن قمامة)
+ *
+ * @param {string} input        base64 data URI أو رابط مخزّن
+ * @param {string} [subdir]     مجلد فرعي داخل uploads (parcels/proofs…)
+ * @returns {string|null}       الرابط أو null
+ */
+function saveBase64ToUploads(input, subdir = 'parcels') {
+    if (!input || typeof input !== 'string') return null;
+    if (input.startsWith('/uploads/') || input.startsWith('http://') || input.startsWith('https://')) {
+        return input; // مخزّن مسبقاً — لا تُعد التحويل
+    }
+    if (!input.startsWith('data:image')) return null;
+
+    const matches = input.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!matches) return null;
+    const ext = MIME_EXT[matches[1].toLowerCase()];
+    if (!ext) return null;
+
+    const buffer = Buffer.from(matches[2], 'base64');
+    // 🔒 المحتوى الفعلي يجب أن يطابق النوع المُعلَن (نفس درع saveBase64Image)
+    if (detectImageExt(buffer) !== ext) return null;
+
+    // منع اجتياز المسار عبر subdir
+    const safeSub = path.basename(String(subdir || 'parcels'));
+    const dir = path.join(PUBLIC_UPLOADS_DIR, safeSub);
+    fs.mkdirSync(dir, { recursive: true });
+
+    const filename = `img_${Date.now()}_${require('crypto').randomBytes(6).toString('hex')}${ext}`;
+    fs.writeFileSync(path.join(dir, filename), buffer);
+    return `/uploads/${safeSub}/${filename}`;
+}
+
 module.exports = {
-    saveBase64Image, deleteImage, safeUploadName,
+    saveBase64Image, deleteImage, safeUploadName, saveBase64ToUploads,
     MIME_EXT, detectImageExt, detectImageExtOfFile, safeUnlink
 };

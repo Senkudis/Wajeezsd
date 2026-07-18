@@ -134,12 +134,15 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
         const appFee = price * commissionRate;
         const netRevenue = price - appFee;
 
-        // 🖼️ Store parcel image as-is (Base64 compressed on client ~500KB)
-        // File system saving was unreliable on cPanel — MongoDB storage is safer
-        const parcelImageUrl = req.body.parcelImage || null;
-
-        // 🧾 Store receipt image as-is (Base64 compressed on client)
-        const receiptImageUrl = req.body.receiptImage || null;
+        // 🖼️ صور الطلب: تُحوَّل من Base64 إلى ملفات بدل تخزينها داخل المستند
+        // (كان الـ base64 ~500KB يُضخّم كل مستند طلب ويبطئ استعلامات القوائم).
+        // متوافق مع القديم: لو فشل التحويل أو كان فارغاً ⇒ null بلا كسر الطلب.
+        const { saveBase64ToUploads } = require('../utils/imageUpload');
+        let parcelImageUrl = null, receiptImageUrl = null;
+        try { parcelImageUrl = saveBase64ToUploads(req.body.parcelImage, 'parcels'); }
+        catch (e) { logger.error({ err: e }, 'parcelImage save failed'); }
+        try { receiptImageUrl = saveBase64ToUploads(req.body.receiptImage, 'proofs'); }
+        catch (e) { logger.error({ err: e }, 'receiptImage save failed'); }
 
         // ⏰ Scheduled order support
         const isScheduled = scheduledAt && new Date(scheduledAt) > new Date();
@@ -561,8 +564,12 @@ router.put('/shop/:id/upload-receipt', protect, async (req, res) => {
 
         const order = await ShopOrder.findOne({ _id: req.params.id, client: req.user.id });
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
-        
-        order.paymentReceiptImage = receiptImage;
+
+        // 🧾 حوّل إشعار الدفع من Base64 إلى ملف (بدل تخزينه داخل مستند ShopOrder)
+        const { saveBase64ToUploads } = require('../utils/imageUpload');
+        const savedReceipt = saveBase64ToUploads(receiptImage, 'proofs');
+        if (!savedReceipt) return res.status(400).json({ message: 'صورة الإشعار غير صالحة' });
+        order.paymentReceiptImage = savedReceipt;
         order.paymentStatus = 'receipt_sent';
         await order.save();
 

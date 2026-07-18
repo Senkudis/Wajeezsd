@@ -1075,9 +1075,13 @@ router.put('/client/orders/:id/payment-receipt', protect, async (req, res) => {
     try {
         const { receiptImage } = req.body;
         if (!receiptImage) return res.status(400).json({ message: 'صورة الإيصال مطلوبة' });
+        // 🧾 حوّل من Base64 إلى ملف بدل تخزينه داخل المستند (اتساق مع المسار التوأم)
+        const { saveBase64ToUploads } = require('../utils/imageUpload');
+        const savedReceipt = saveBase64ToUploads(receiptImage, 'proofs');
+        if (!savedReceipt) return res.status(400).json({ message: 'صورة الإيصال غير صالحة' });
         const order = await ShopOrder.findOneAndUpdate(
             { _id: req.params.id, client: req.user._id },
-            { paymentReceiptImage: receiptImage, paymentStatus: 'receipt_sent' },
+            { paymentReceiptImage: savedReceipt, paymentStatus: 'receipt_sent' },
             { new: true }
         );
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
