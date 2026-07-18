@@ -303,41 +303,69 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                 relatedId: order._id
             });
 
-            // 📣 Multicast Push for All Orders (Delivery & Shop)
+            // 📣 توزيع ذكي للكباتن: الأقرب أولاً ثم البقية جميعاً كشبكة أمان.
             // Fire and forget to prevent HTTP timeouts
             setImmediate(async () => {
                 try {
-                    const { sendPushToMany, sendAdminPushToMany } = require('../utils/firebasePush');
-                    
-                    // 1. Send Push ONLY to captains in the same city
+                    const { sendPushToMany } = require('../utils/firebasePush');
+                    const { planDispatch } = require('../utils/captainDispatch');
+
+                    // كباتن المدينة الفعّالون ذوو توكن FCM (+ موقعهم للترتيب بالقرب)
                     const activeCaptains = await User.find({
                         role: 'captain',
                         city: order.city,   // 🌍 Scoped to order's city
                         fcmToken: { $exists: true, $ne: null },
                         isActive: true              // account not suspended by admin
-                    }).select('fcmToken');
+                    }).select('fcmToken currentLocation');
 
-                    const tokens = activeCaptains.map(c => c.fcmToken);
-                    if (tokens.length === 0) {
-                        // 🔍 قابلية التشخيص: بدون هذا السطر كان "ما وصل إشعار للكباتن" حالةً صامتة
-                        // لا نعرف أهي صفر توكنات (مدينة/isActive/توكن مفقود) أم فشل إرسال.
+                    const { near, rest } = planDispatch(
+                        activeCaptains.map(c => ({ fcmToken: c.fcmToken, currentLocation: c.currentLocation })),
+                        order.pickup
+                    );
+
+                    if (near.length === 0) {
+                        // 🔍 قابلية التشخيص: صفر توكنات (مدينة/isActive/توكن مفقود) — حالة كانت صامتة
                         logger.warn({ orderId: order._id, city: order.city }, 'New order: no captain FCM tokens in city — push skipped');
-                    } else {
-                        const title = orderType === 'shop' ? '🛒 طلب محل جديد! 🚨' : '📦 طلب توصيل جديد! 🚨';
-                        const bodyMsg = orderType === 'shop'
-                            ? `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س. عرض التفاصيل!`
-                            : `طلب توصيل جديد متاح بسعر ${order.price} ج.س! عرض التفاصيل`;
+                        return;
+                    }
 
-                        const result = await sendPushToMany(tokens, title, bodyMsg, {
-                            type: orderType === 'shop' ? 'shop_order' : 'new_order',
-                            orderId: order._id.toString(),
-                            url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
-                        });
-                        logger.info({
-                            orderId: order._id, city: order.city,
-                            targeted: tokens.length, sent: result.success, failed: result.failure,
-                            errors: result.errors
-                        }, 'New order captain push result');
+                    const title = orderType === 'shop' ? '🛒 طلب محل جديد! 🚨' : '📦 طلب توصيل جديد! 🚨';
+                    const bodyMsg = orderType === 'shop'
+                        ? `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س. عرض التفاصيل!`
+                        : `طلب توصيل جديد متاح بسعر ${order.price} ج.س! عرض التفاصيل`;
+                    const pushData = {
+                        type: orderType === 'shop' ? 'shop_order' : 'new_order',
+                        orderId: order._id.toString(),
+                        url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
+                    };
+
+                    // 🌊 الموجة 1: الأقرب فوراً
+                    const r1 = await sendPushToMany(near, title, bodyMsg, pushData);
+                    logger.info({
+                        orderId: order._id, city: order.city, wave: 1,
+                        targeted: near.length, sent: r1.success, failed: r1.failure
+                    }, 'New order captain push (wave 1 — nearest)');
+
+                    // 🌊 الموجة 2: بقية كباتن المدينة بعد مهلة قصيرة، فقط إن ظلّ الطلب معلّقاً.
+                    // شبكة أمان: لو ضاع إشعار الأقرب ولم يُقبل الطلب، يصل الجميع خلال ~18ث.
+                    // (لو قَبِل الأقرب سريعاً لا نُزعج البقية — الطلب لم يعد متاحاً.)
+                    if (rest.length) {
+                        setTimeout(async () => {
+                            try {
+                                const fresh = await Order.findById(order._id).select('status captain');
+                                if (fresh && fresh.status === 'pending' && !fresh.captain) {
+                                    const r2 = await sendPushToMany(rest, title, bodyMsg, pushData);
+                                    logger.info({
+                                        orderId: order._id, city: order.city, wave: 2,
+                                        targeted: rest.length, sent: r2.success, failed: r2.failure
+                                    }, 'New order captain push (wave 2 — fallback to all)');
+                                } else {
+                                    logger.debug({ orderId: order._id }, 'Wave 2 skipped — order no longer pending');
+                                }
+                            } catch (w2Err) {
+                                logger.error({ err: w2Err, orderId: order._id }, 'Wave 2 push failed');
+                            }
+                        }, 18000);
                     }
                     // ملاحظة: إشعار/دفعة الأدمن تُعالَج عبر notifyAdmins (حفظ + socket + push) أعلاه.
                 } catch (pushErr) {
