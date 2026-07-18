@@ -230,6 +230,17 @@
         }
         .place-card-status.open { background: rgba(10,135,84,0.92); }
         .place-card-status.closed { background: rgba(220,38,38,0.9); }
+        /* 🏷️ شارة القسم — الزاوية العلوية المقابلة لشارة الحالة */
+        .place-card-cat {
+            position: absolute; top: 8px; inset-inline-start: 8px;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; font-size: 10px; font-weight: 800;
+            border-radius: 999px; color: #04553A;
+            background: rgba(255,255,255,0.92); backdrop-filter: blur(4px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.14);
+            max-width: 65%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .place-card-cat i { font-size: 11px; }
 
         .place-card-body {
             display: flex; flex-direction: column;
@@ -897,7 +908,7 @@
     <script type="module" src="js/app-core.js?v=9e5b3229"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/order-feature.js?v=02b9128d"></script>
+    <script src="js/order-feature.js?v=f4b3f5d3"></script>
     <script src="js/home-banners.js?v=5f77eb1f"></script>
 
     <script>

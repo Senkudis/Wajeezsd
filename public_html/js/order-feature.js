@@ -452,7 +452,7 @@ window.loadFeaturedShops = async function () {
 
         if (!places.length) { section.innerHTML = ''; return; }
         section.innerHTML = HEAD + `<div class="featured-grid" id="featured-grid"></div>`;
-        renderPlacesList(places, document.getElementById('featured-grid'));
+        renderPlacesList(places, document.getElementById('featured-grid'), '', { showCategory: true });
     };
 
     // ⚡ SWR: اعرض الكاش فوراً ثم حدّث من الشبكة (نفس نمط loadPlaces)
@@ -506,8 +506,11 @@ function formatCompactCount(n) {
     return (k >= 10 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, '')) + 'k';
 }
 
-// ─── Shared place card renderer (used by loadPlaces + search) ───
-window.renderPlacesList = function(places, container, prependHtml = '') {
+// ─── Shared place card renderer (used by loadPlaces + featured + search) ───
+// opts.showCategory: يعرض شارة القسم على البطاقة — مفيد في العرض المختلط
+// (المحلات القريبة/البحث) حيث لا يعرف العميل قسم كل محل. يُترك مطفأً في
+// التصفّح داخل قسم محدّد (القسم معروف أصلاً، فالشارة تكرار).
+window.renderPlacesList = function(places, container, prependHtml = '', opts = {}) {
     const defaultImage = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80';
 
     const html = places.map((p, idx) => {
@@ -515,6 +518,12 @@ window.renderPlacesList = function(places, container, prependHtml = '') {
         const imgSrc = getFullImageUrl(p.image_url) || defaultImage;
         const dist = p.distanceKm != null ? `${Number(p.distanceKm).toFixed(1)} كم` : '-- كم';
         const views = formatCompactCount(p.viewsCount || 0);
+
+        // 🏷️ شارة القسم — تظهر فقط عند طلبها ومتى توفّر القسم مأهولاً (name/icon)
+        const cat = (opts.showCategory && p.category && typeof p.category === 'object') ? p.category : null;
+        const catBadge = cat
+            ? `<div class="place-card-cat"><i class="bi ${cat.icon || 'bi-shop'}"></i> ${escapeHtml(cat.name || '')}</div>`
+            : '';
 
         // التقييم: يظهر النجمة والمعدّل وعدد المقيّمين، أو شارة "جديد" إن لم يُقيّم بعد
         const ratingHtml = p.ratingAvg > 0
@@ -534,6 +543,7 @@ window.renderPlacesList = function(places, container, prependHtml = '') {
                 <img src="${imgSrc}" alt="${escapeHtml(p.name)}"
                     onerror="this.src='${defaultImage}'">
                 <div class="place-card-cover-overlay"></div>
+                ${catBadge}
                 ${menuBtn}
                 <div class="place-card-status ${isOpen ? 'open' : 'closed'}">
                     <span class="status-dot"></span>${isOpen ? 'مفتوح' : 'مغلق'}
