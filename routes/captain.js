@@ -469,10 +469,12 @@ router.post('/wallet/pay', protect, captainOnly, walletPayLimiter, async (req, r
             });
         }
 
-        // تخزين صورة الإيصال مباشرة كـ Base64 في قاعدة البيانات لتجنب مشاكل الأذونات على cPanel
+        // 🧾 تحويل إيصال السداد من Base64 إلى ملف (بدل تخزينه داخل المستند)
         let receiptImageUrl = null;
         if (receiptImage) {
-            receiptImageUrl = receiptImage; // حفظ الـ Base64 مباشرة
+            const { saveBase64ToUploads } = require('../utils/imageUpload');
+            receiptImageUrl = saveBase64ToUploads(receiptImage, 'proofs');
+            if (!receiptImageUrl) return res.status(400).json({ message: 'صورة الإيصال غير صالحة' });
         }
 
         // حفظ الطلب في DB

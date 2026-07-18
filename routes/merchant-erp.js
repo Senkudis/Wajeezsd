@@ -685,6 +685,10 @@ router.get('/admin/settlements', protect, adminOnly, requirePermission('view_fin
 // body: { transactionId?, receiptImage? }
 router.put('/admin/settlements/:id/approve', protect, adminOnly, requirePermission('manage_finance'), async (req, res) => {
     try {
+        // 🧾 تحويل إيصال التسوية من Base64 إلى ملف قبل التخزين (بدل حشوه في المستند)
+        const { saveBase64ToUploads } = require('../utils/imageUpload');
+        const savedReceipt = saveBase64ToUploads(req.body.receiptImage, 'proofs');
+
         // انتقال ذري: pending → approved (يمنع الموافقة المزدوجة)
         const settlement = await SettlementRequest.findOneAndUpdate(
             { _id: req.params.id, status: 'pending' },
@@ -692,7 +696,7 @@ router.put('/admin/settlements/:id/approve', protect, adminOnly, requirePermissi
                 $set: {
                     status: 'approved',
                     transactionId: (req.body.transactionId || '').slice(0, 100),
-                    receiptImage: req.body.receiptImage || null,
+                    receiptImage: savedReceipt,
                     reviewedBy: req.user._id,
                     reviewedAt: new Date()
                 }
