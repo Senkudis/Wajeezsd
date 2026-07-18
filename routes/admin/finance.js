@@ -352,7 +352,9 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         const exceedsDebt = requestedAmount > debt;
         const overpayment = exceedsDebt ? (requestedAmount - debt) : 0;
 
-        // If admin didn't confirm overpayment, reject and inform
+        // If admin didn't confirm overpayment, reject and inform.
+        // ⚠️ يجب أن يسبق المطالبة الذرية أدناه — يرجع قبل أي تغيير حالة، فيمكن للأدمن
+        // إعادة المحاولة مع confirmOverpayment والطلب ما زال pending.
         if (exceedsDebt && !req.body.confirmOverpayment) {
             return res.status(400).json({
                 message: 'overpayment_warning',
@@ -363,7 +365,20 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
             });
         }
 
-        // ✅ Atomic update using $inc
+        // 🛡️ CRITICAL: مطالبة ذرية بالطلب قبل تعديل الرصيد — تمنع الموافقة المزدوجة
+        // (نقرتان/أدمنان) من إضافة الرصيد مرتين لدفعة واحدة (تصفير مديونية مضاعف).
+        // كان الفحص السابق status==='pending' غير ذري مع تعديل الرصيد.
+        const claimed = await PaymentRequest.findOneAndUpdate(
+            { _id: req.params.id, status: 'pending' },
+            { $set: { status: 'approved', reviewedBy: req.user._id, reviewedAt: new Date(),
+                      ...(req.body.deductAmount !== undefined ? { deductedAmount: requestedAmount } : {}) } },
+            { new: true }
+        );
+        if (!claimed) {
+            return res.status(400).json({ message: 'هذا الطلب تمت مراجعته بالفعل' });
+        }
+
+        // ✅ Atomic update using $inc (يُنفَّذ مرة واحدة فقط — الفائز بالمطالبة أعلاه)
         captain = await User.findByIdAndUpdate(
             payReq.captainId,
             { $inc: { wallet_balance: requestedAmount } },
@@ -391,14 +406,7 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         const newBalance = captain.wallet_balance;
         const actualDeduction = requestedAmount; // We added this, though it may have been capped
 
-        // تحديث الطلب
-        payReq.status = 'approved';
-        payReq.reviewedBy = req.user._id;
-        payReq.reviewedAt = new Date();
-        if (req.body.deductAmount !== undefined) {
-            payReq.deductedAmount = actualDeduction;
-        }
-        await payReq.save();
+        // الطلب حُدِّث ذرياً أعلاه (claimed) — لا حاجة لحفظ ثانٍ.
 
         // 📡 Real-Time Unblock: notify captain immediately via socket
         const ioInst = req.app.get('io');
