@@ -511,6 +511,7 @@
         .sr-dist { color:#04553A; }
         .sr-rate { color:#b45309; }
         .sr-rate i { color:#f59e0b; }
+        .sr-cat { color:#04553A; display:inline-flex; align-items:center; gap:3px; background:#ecfdf5; border-radius:999px; padding:1px 8px; font-size:10.5px; font-weight:800; }
         .sr-dot { display:inline-block; width:7px; height:7px; border-radius:50%; vertical-align:middle; }
         .sr-open { color:#059669; font-weight:800; display:inline-flex; align-items:center; gap:4px; }
         .sr-open .sr-dot { background:#22c55e; }
@@ -908,7 +909,7 @@
     <script type="module" src="js/app-core.js?v=9e5b3229"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/order-feature.js?v=f4b3f5d3"></script>
+    <script src="js/order-feature.js?v=b6739da4"></script>
     <script src="js/home-banners.js?v=5f77eb1f"></script>
 
     <script>
@@ -1131,12 +1132,15 @@
                     const status = pl.is_open
                         ? `<span class="sr-open"><span class="sr-dot"></span> مفتوح</span>`
                         : `<span class="sr-closed"><span class="sr-dot"></span> مغلق</span>`;
+                    // 🏷️ اسم القسم — يظهر في نتائج البحث المختلطة (اتساق مع بطاقات المحلات القريبة)
+                    const cat = (pl.category && typeof pl.category === 'object') ? pl.category : null;
+                    const catHtml = cat ? `<span class="sr-cat"><i class="bi ${cat.icon || 'bi-shop'}"></i> ${escapeHtml(cat.name || '')}</span>` : '';
                     return `
                     <div class="search-result-card" onclick="location.href='shop-detail.html?placeId=${pl._id}'">
                         <img src="${img}" onerror="this.src='${defaultImg}'" class="sr-img" loading="lazy">
                         <div class="sr-body">
                             <div class="sr-name">${escapeHtml(pl.name)}</div>
-                            <div class="sr-sub">${status} ${ratingHtml(pl.ratingAvg)} ${dist}</div>
+                            <div class="sr-sub">${status} ${catHtml} ${ratingHtml(pl.ratingAvg)} ${dist}</div>
                         </div>
                         <i class="bi bi-chevron-left sr-arrow"></i>
                     </div>`;

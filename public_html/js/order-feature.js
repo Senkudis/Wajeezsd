@@ -269,6 +269,18 @@ function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
     return R * c * 1.15; // 1.15 — طريق أقصر من المتوسط الطولاني للمدينة
 }
 
+// 🔀 ترتيب المحلات: المفتوحة أولاً ثم الأقرب. يعمل دائماً (حتى بلا GPS —
+// المسافة تُستخدم فقط عند توفّرها). السبب: محل مغلق أقرب كان يظهر فوق محل
+// مفتوح أبعد، فينقر العميل على محل لا يستطيع الطلب منه.
+function sortShopsOpenFirst(places) {
+    return places.sort((a, b) => {
+        const ao = a.is_open ? 1 : 0, bo = b.is_open ? 1 : 0;
+        if (ao !== bo) return bo - ao;                 // المفتوحة أولاً
+        if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm; // ثم الأقرب
+        return 0;
+    });
+}
+
 // ==========================================
 // 📍 Get User Location (Promisified) — كاش 3 دقائق
 // ==========================================
@@ -331,9 +343,10 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
                 const plng = p.location?.lng ?? 0;
                 p.distanceKm = calculateHaversineDistance(loc.lat, loc.lng, plat, plng);
                 return p;
-            }).sort((a, b) => a.distanceKm - b.distanceKm);
+            });
         }
         // بدون GPS تبقى distanceKm غير معرّفة — renderPlacesList يتعامل معها
+        places = sortShopsOpenFirst(places); // المفتوحة أولاً ثم الأقرب (يعمل بلا GPS أيضاً)
 
         placesData = places; // cache for modal
         window._allPlacesCache = places; // for global search
@@ -446,8 +459,9 @@ window.loadFeaturedShops = async function () {
             places = places.map(p => {
                 p.distanceKm = calculateHaversineDistance(loc.lat, loc.lng, p.location?.lat ?? 0, p.location?.lng ?? 0);
                 return p;
-            }).sort((a, b) => a.distanceKm - b.distanceKm);
+            });
         }
+        places = sortShopsOpenFirst(places); // المفتوحة أولاً ثم الأقرب (يعمل بلا GPS أيضاً)
         window._allPlacesCache = places; // للبحث العام
 
         if (!places.length) { section.innerHTML = ''; return; }
