@@ -82,6 +82,19 @@ function validateStopsLocations(stops) {
     if (!hasPickup || !hasDropoff) {
         return { valid: false, message: 'يجب أن تحتوي الرحلة على نقطة استلام ونقطة تسليم على الأقل' };
     }
+
+    // 🔒 كل الاستلامات قبل أي تسليم — لا يُسلَّم طرد قبل استلامه.
+    // (نفس القيد الذي تفرضه إعادة الترتيب والمُحسِّن — يُفرض هنا عند الإنشاء أيضاً.)
+    // غير 'pickup' يُعامَل تسليماً، مطابقةً لتعقيم الإنشاء.
+    let seenDropoff = false;
+    for (const s of stops) {
+        const isPickup = s && s.type === 'pickup';
+        if (!isPickup) seenDropoff = true;
+        else if (seenDropoff) {
+            return { valid: false, message: 'رتّب كل نقاط الاستلام قبل نقاط التسليم' };
+        }
+    }
+
     for (let i = 0; i < stops.length; i++) {
         const s = stops[i];
         if (!s || !s.address) {

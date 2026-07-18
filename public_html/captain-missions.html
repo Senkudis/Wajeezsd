@@ -222,7 +222,9 @@
                                 if (s.done) {
                                     btn = `<span class="badge bg-success rounded-pill"><i class="bi bi-check-lg"></i> تم</span>`;
                                 } else if (order.status === 'picked_up' && !isLastUndone) {
-                                    btn = `<button class="btn btn-sm btn-outline-success rounded-pill px-2 py-1" style="font-size:0.72rem;" onclick="markStopDone('${order._id}', ${i})">تأكيد</button>`;
+                                    // 🔒 نُمرّر _id المحطة (أمتن من الفهرس)، مع الفهرس احتياطاً إن غاب
+                                    const ref = s._id || i;
+                                    btn = `<button class="btn btn-sm btn-outline-success rounded-pill px-2 py-1" style="font-size:0.72rem;" onclick="markStopDone('${order._id}', '${ref}')">تأكيد</button>`;
                                 } else if (isLastUndone) {
                                     btn = `<span class="badge bg-warning text-dark rounded-pill">الأخيرة</span>`;
                                 } else {

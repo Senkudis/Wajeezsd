@@ -1372,12 +1372,13 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
 });
 
 
-// @route   PUT /api/orders/:id/stops/:index/done
+// @route   PUT /api/orders/:id/stops/:stopRef/done
 // @desc    🧭 توصيل متعدد النقاط: تأكيد إكمال نقطة وسطية (ليست أول استلام ولا آخر نقطة).
 //          أول استلام يمرّ عبر /pickup (بالإثبات)، والنقطة الأخيرة عبر /deliver (بالعمولة).
-router.put('/:id/stops/:index/done', protect, captainOnly, async (req, res) => {
+//          stopRef يقبل معرّف المحطة (_id) — الأمتن — أو فهرسها (للتوافق مع النسخ القديمة).
+router.put('/:id/stops/:stopRef/done', protect, captainOnly, async (req, res) => {
     try {
-        const idx = parseInt(req.params.index, 10);
+        const ref = String(req.params.stopRef);
         const order = await Order.findOne({ _id: req.params.id, captain: req.user.id });
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
         if (!order.isMultiStop || !Array.isArray(order.stops)) {
@@ -1386,10 +1387,19 @@ router.put('/:id/stops/:index/done', protect, captainOnly, async (req, res) => {
         if (order.status !== 'picked_up') {
             return res.status(400).json({ message: 'أكّد استلام أول نقطة أولاً' });
         }
-        if (isNaN(idx) || idx < 0 || idx >= order.stops.length) {
+
+        // 🔒 عنونة بالـ _id (24-hex) لتفادي إصابة نقطة خاطئة لو تغيّر الترتيب؛
+        //    وإلا فالفهرس (نسخ قديمة). كلاهما يشير لنفس المحطات.
+        let stop = null;
+        if (/^[0-9a-fA-F]{24}$/.test(ref)) {
+            stop = order.stops.id(ref);
+        } else {
+            const idx = parseInt(ref, 10);
+            if (!isNaN(idx) && idx >= 0 && idx < order.stops.length) stop = order.stops[idx];
+        }
+        if (!stop) {
             return res.status(400).json({ message: 'رقم النقطة غير صالح' });
         }
-        const stop = order.stops[idx];
         if (stop.done) return res.status(400).json({ message: 'هذه النقطة مؤكّدة مسبقاً' });
 
         // النقطة الأخيرة المتبقية تُؤكَّد عبر /deliver (لإتمام التوصيل واحتساب العمولة)
