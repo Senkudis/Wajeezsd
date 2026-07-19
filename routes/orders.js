@@ -233,6 +233,34 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             }
         }
 
+        // 🛒 خدمة "اشترِ لي": محل غير مسجّل + أصناف نصية + سعر بضاعة يُحسم لاحقاً.
+        // price هنا = أجرة الخدمة (كالتوصيل، عليها العمولة). البضاعة نقدية بين العميل والكابتن.
+        if (orderType === 'errand') {
+            const { validateErrandInput } = require('../utils/errand');
+            const chk = validateErrandInput({ shopId, shopName, pickup, items });
+            if (!chk.valid) return res.status(400).json({ message: chk.message });
+
+            // محل منسّق؟ خذ اسمه الرسمي من القاعدة. وإلا الاسم المخصّص من العميل.
+            let curatedId = null, resolvedName = shopName;
+            if (shopId && mongoose.Types.ObjectId.isValid(shopId)) {
+                const Place = require('../models/Place');
+                const place = await Place.findById(shopId).select('name errandEnabled isActive').lean();
+                if (place && place.errandEnabled !== false && place.isActive !== false) {
+                    curatedId = place._id;
+                    resolvedName = place.name;
+                }
+            }
+
+            orderData.orderType = 'errand';
+            orderData.shopId = curatedId;
+            orderData.shopName = String(resolvedName || 'محل').slice(0, 120);
+            orderData.items = chk.items.map(s => s.slice(0, 200));
+            orderData.errand = {
+                budget: Number(req.body.budget) > 0 ? Number(req.body.budget) : null,
+                quoteStatus: 'none'
+            };
+        }
+
         const order = await Order.create(orderData);
 
         // ✅ تحديث عداد الكوبون — فقط للكود الذي تحقّقنا منه وأنتج خصماً فعلياً.
@@ -299,9 +327,10 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             // ✅ إشعار الأدمن: يُحفظ في القاعدة (سجلّ دائم يظهر باللوحة) + socket فوري + FCM push.
             // ⚠️ خارج شرط `if (io)` عمداً: كان بالداخل، فلو لم يكن io مهيّأً لا يصل الأدمن
             // إشعارَ push ولا يُحفظ له سجلّ إطلاقاً. الـ push لا يعتمد على السوكت.
+            const _kindLabel = orderType === 'shop' ? 'محل' : orderType === 'errand' ? 'شراء' : 'توصيل';
             notifyAdmins(req.app, {
                 title: 'طلب جديد',
-                message: `طلب ${orderType === 'shop' ? 'محل' : 'توصيل'} جديد بسعر ${order.price} ج.س — ${order.city}`,
+                message: `طلب ${_kindLabel} جديد بسعر ${order.price} ج.س — ${order.city}`,
                 type: 'admin_order_alert',
                 relatedId: order._id
             });
@@ -332,12 +361,22 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                         return;
                     }
 
-                    const title = orderType === 'shop' ? '🛒 طلب محل جديد! 🚨' : '📦 طلب توصيل جديد! 🚨';
-                    const bodyMsg = orderType === 'shop'
-                        ? `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س. عرض التفاصيل!`
-                        : `طلب توصيل جديد متاح بسعر ${order.price} ج.س! عرض التفاصيل`;
+                    let title, bodyMsg, pushType;
+                    if (orderType === 'shop') {
+                        title = '🛒 طلب محل جديد! 🚨';
+                        bodyMsg = `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س. عرض التفاصيل!`;
+                        pushType = 'shop_order';
+                    } else if (orderType === 'errand') {
+                        title = '🛍️ طلب شراء جديد! 🚨';
+                        bodyMsg = `اشترِ من ${order.shopName || 'محل'} — أجرة الخدمة ${order.price} ج.س. عرض التفاصيل!`;
+                        pushType = 'errand';
+                    } else {
+                        title = '📦 طلب توصيل جديد! 🚨';
+                        bodyMsg = `طلب توصيل جديد متاح بسعر ${order.price} ج.س! عرض التفاصيل`;
+                        pushType = 'new_order';
+                    }
                     const pushData = {
-                        type: orderType === 'shop' ? 'shop_order' : 'new_order',
+                        type: pushType,
                         orderId: order._id.toString(),
                         url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
                     };
@@ -1305,6 +1344,15 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
             return res.status(400).json({ message: 'يجب رفع صورة إثبات الاستلام قبل التأكيد' });
         }
 
+        // 🛒 errand: لا شراء (pickup) قبل أن يؤكّد العميل سعر البضاعة — يحمي الطرفين
+        const errandPre = await Order.findOne({ _id: req.params.id, captain: req.user.id })
+            .select('orderType errand status');
+        if (errandPre && errandPre.orderType === 'errand') {
+            const { canMarkPurchased } = require('../utils/errand');
+            const chk = canMarkPurchased(errandPre);
+            if (!chk.ok) return res.status(400).json({ message: chk.message });
+        }
+
         // 🛡️ CRITICAL FIX: Atomic update for pickup state
         const updatedOrder = await Order.findOneAndUpdate(
             { _id: req.params.id, captain: req.user.id, status: 'accepted' },
@@ -1767,6 +1815,108 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
 });
 
 
+// ═══════════════════════════════════════════════════════════════════
+// 🛒 خدمة "اشترِ لي" (errand) — عرض سعر البضاعة وتأكيده قبل الشراء
+// ═══════════════════════════════════════════════════════════════════
+
+// @route   POST /api/orders/:id/errand/quote  (الكابتن يُدخل سعر البضاعة عند المحل)
+router.post('/:id/errand/quote', protect, captainOnly, async (req, res) => {
+    try {
+        const { canSubmitQuote, validateQuoteAmount } = require('../utils/errand');
+        const amountChk = validateQuoteAmount(req.body.amount);
+        if (!amountChk.valid) return res.status(400).json({ message: amountChk.message });
+
+        const order = await Order.findOne({ _id: req.params.id, captain: req.user.id });
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        const chk = canSubmitQuote(order);
+        if (!chk.ok) return res.status(400).json({ message: chk.message });
+
+        order.errand.goodsQuote = amountChk.amount;
+        order.errand.quoteStatus = 'quoted';
+        order.errand.quotedAt = new Date();
+        await order.save();
+
+        // إشعار العميل ليؤكّد/يرفض السعر
+        await sendNotification(req.app, {
+            userId: order.client,
+            title: '🛍️ سعر طلبك جاهز',
+            message: `سعر البضاعة من ${order.shopName || 'المحل'}: ${amountChk.amount} ج.س. أكّد لبدء الشراء.`,
+            type: 'errand_quote',
+            relatedId: order._id
+        });
+        const io = req.app.get('io');
+        if (io) io.to(order.client.toString()).emit('errand_quote', {
+            orderId: order._id, amount: amountChk.amount, shopName: order.shopName
+        });
+
+        res.json({ message: 'تم إرسال السعر للعميل', order });
+    } catch (error) {
+        logger.error({ err: error.message }, 'errand quote error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   PUT /api/orders/:id/errand/respond  (العميل يوافق/يرفض السعر)  body: { accept }
+router.put('/:id/errand/respond', protect, async (req, res) => {
+    try {
+        const { canRespondQuote } = require('../utils/errand');
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (String(order.client) !== req.user.id) {
+            return res.status(403).json({ message: 'غير مصرح' });
+        }
+        const chk = canRespondQuote(order);
+        if (!chk.ok) return res.status(400).json({ message: chk.message });
+
+        const accept = req.body.accept === true || req.body.accept === 'true';
+        order.errand.respondedAt = new Date();
+        const io = req.app.get('io');
+
+        if (accept) {
+            order.errand.quoteStatus = 'confirmed';
+            order.errand.finalGoodsCost = order.errand.goodsQuote;
+            await order.save();
+
+            if (order.captain) {
+                await sendNotification(req.app, {
+                    userId: order.captain,
+                    title: '✅ وافق العميل على السعر',
+                    message: `وافق العميل على ${order.errand.goodsQuote} ج.س. يمكنك الشراء الآن.`,
+                    type: 'order_update',
+                    relatedId: order._id
+                });
+                if (io) io.to(order.captain.toString()).emit('errand_quote_confirmed', { orderId: order._id });
+            }
+            return res.json({ message: 'تم تأكيد السعر — سيبدأ الكابتن بالشراء', order });
+        }
+
+        // رفض: يُلغى الطلب (المرحلة 1 بلا رسوم انتقال تلقائية)
+        order.errand.quoteStatus = 'declined';
+        order.status = 'cancelled';
+        order.cancelledBy = 'client';
+        order.cancelReason = 'رفض العميل سعر البضاعة';
+        order.cancelledAt = new Date();
+        await order.save();
+
+        if (order.captain) {
+            await sendNotification(req.app, {
+                userId: order.captain,
+                title: '❌ رفض العميل السعر',
+                message: 'رفض العميل سعر البضاعة وأُلغي الطلب.',
+                type: 'order_cancelled',
+                relatedId: order._id
+            });
+            if (io) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
+        }
+        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
+
+        res.json({ message: 'تم رفض السعر وإلغاء الطلب', order });
+    } catch (error) {
+        logger.error({ err: error.message }, 'errand respond error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 
 // @route   POST /api/orders/:id/complain

@@ -139,7 +139,8 @@ const OrderSchema = new mongoose.Schema(
         // 🛒 Shop/Directory Order Fields
         orderType: {
             type: String,
-            enum: ['delivery', 'shop'],
+            // errand = "اشترِ لي": الكابتن يشتري من محل غير مسجّل نيابةً عن العميل
+            enum: ['delivery', 'shop', 'errand'],
             default: 'delivery'
         },
         shopOrderId: { type: mongoose.Schema.Types.ObjectId, ref: 'ShopOrder' }, // 🔗 ربط بطلب المتجر الأصلي
@@ -147,6 +148,19 @@ const OrderSchema = new mongoose.Schema(
         shopName: { type: String },
         shopPhone: { type: String },
         items: [{ type: String }], // list of requested item names / notes
+
+        // 🛒 خدمة "اشترِ لي" (errand): سعر البضاعة مجهول حتى يصل الكابتن المحل.
+        // price (أعلاه) = أجرة الخدمة فقط (عليها العمولة). البضاعة مالٌ يمرّ بين
+        // العميل والكابتن نقداً، خارج دفتر التطبيق. حالياً الدفع نقدي (المحفظة لاحقاً).
+        errand: {
+            budget:        { type: Number, default: null },   // سقف تقديري اختياري من العميل
+            goodsQuote:    { type: Number, default: null },   // سعر البضاعة الذي أدخله الكابتن عند المحل
+            quoteStatus:   { type: String, enum: ['none', 'quoted', 'confirmed', 'declined'], default: 'none' },
+            quotedAt:      { type: Date, default: null },
+            respondedAt:   { type: Date, default: null },
+            finalGoodsCost:{ type: Number, default: null },   // ما دُفع فعلاً (= goodsQuote عند التأكيد)
+            receiptImage:  { type: String, default: null }    // صورة إيصال/بضاعة (اختياري)
+        },
 
         // 🧾 Pre-payment receipt (shop orders)
         shopOrderDetails: { type: String },      // تفاصيل الطلبية التي اتفق عليها مع المحل

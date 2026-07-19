@@ -53,6 +53,8 @@ router.get('/', async (req, res) => {
         const { category_id, city } = req.query;
         const query = { isActive: true };
         if (category_id) query.category = category_id;
+        // 🛒 قائمة أماكن "اشترِ لي" المنسّقة (?errand=1) لمنتقي خدمة الشراء
+        if (req.query.errand === '1' || req.query.errand === 'true') query.errandEnabled = true;
 
         // 🌍 City isolation: only return places in the requested city.
         // If city='all', bypass the city filter (useful for admin dashboard).

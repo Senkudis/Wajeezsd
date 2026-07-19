@@ -34,6 +34,9 @@ const PlaceSchema = new mongoose.Schema({
     isOpenOverride: { type: Boolean, default: null }, // null = auto-compute
     isActive: { type: Boolean, default: true },
     deliveryAvailable: { type: Boolean, default: true },
+    // 🛒 مكان "اشترِ لي": يضيفه الأدمن لمحلٍّ مشهور غير مسجّل (بلا ownerId/منتجات).
+    // العميل يطلب منه عبر خدمة errand فيذهب الكابتن ويشتري نيابةً عنه.
+    errandEnabled: { type: Boolean, default: false },
     menu: { type: String, default: '' },
     notes: { type: String, default: '' },
 

@@ -34,6 +34,7 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'order_delivered':
                 case 'order_cancelled':
                 case 'order_expired':
+                case 'errand_quote':   // 🛒 سعر البضاعة بانتظار تأكيد العميل — يفتح التتبّع للتأكيد
                     return r ? `/tracking.html?orderId=${r}` : '/client-my-orders.html';
                 default:
                     return '/notifications.html';
@@ -43,6 +44,7 @@ function resolvePushUrl(role, type, relatedId) {
             switch (type) {
                 case 'new_order':
                 case 'shop_order':
+                case 'errand':   // 🛒 طلب "اشترِ لي" جديد
                 case 'offer_expired':
                 case 'offer_expiry_reminder':
                 case 'order_expired':
