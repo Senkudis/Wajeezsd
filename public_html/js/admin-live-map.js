@@ -335,8 +335,68 @@ async function loadInitialCaptains() {
         renderSearchList(captains);
         setTimeout(() => document.getElementById('mapLoader').style.display = 'none', 800);
 
+        // 🚨 قدِم من إشعار نجدة؟ تمركّز على موقع التنبيه (?alert=<id>)
+        focusEmergencyFromUrl();
+
     } catch (err) {
         console.error('Fetch active-captains error:', err);
+    }
+}
+
+// 🚨 تمركُز الخريطة على موقع نجدة الكابتن عند القدوم من إشعار الطوارئ.
+// موقع النجدة (حيث ضغط الكابتن الزر) هو المهم — قد يختلف عن موقعه الحيّ.
+let _emergencyFocused = false;
+let _emergencyMarker = null;
+let _emergencyRetries = 0;
+async function focusEmergencyFromUrl() {
+    if (_emergencyFocused) return;
+    const alertId = new URLSearchParams(location.search).get('alert');
+    if (!alertId) return;
+    // الخريطة قد لا تكون جاهزة بعد (callback جوجل) — أعِد المحاولة دون استهلاك العلم
+    if (!adminMap) {
+        if (_emergencyRetries++ < 20) setTimeout(focusEmergencyFromUrl, 500);
+        return;
+    }
+    _emergencyFocused = true;
+    try {
+        const res = await fetch(`${MAP_API}/api/admin/emergency-alerts`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const alerts = await res.json();
+        const alert = alerts.find(a => String(a._id) === String(alertId));
+        if (!alert || !alert.location || !alert.location.lat) {
+            showToast('⚠️ تعذّر تحديد موقع تنبيه الطوارئ');
+            return;
+        }
+        const { lat, lng } = alert.location;
+        const capName = (alert.captain && alert.captain.name) || 'كابتن';
+
+        if (!adminMap) return;
+        adminMap.panTo({ lat, lng });
+        adminMap.setZoom(16);
+
+        // ماركر نجدة مميّز (أحمر نابض) عند نقطة الاستغاثة
+        if (_emergencyMarker) _emergencyMarker.setMap(null);
+        _emergencyMarker = new google.maps.Marker({
+            position: { lat, lng }, map: adminMap,
+            title: `🚨 نجدة: ${capName}`,
+            zIndex: 99999,
+            animation: google.maps.Animation.BOUNCE,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 16, fillColor: '#dc2626', fillOpacity: 0.95,
+                strokeColor: '#fff', strokeWeight: 3
+            }
+        });
+        const info = new google.maps.InfoWindow({
+            content: `<div style="font-family:'Cairo',sans-serif;font-weight:800;color:#dc2626;">🚨 نجدة — ${capName}</div>
+                      <div style="font-family:'Cairo',sans-serif;font-size:12px;color:#475569;">${new Date(alert.createdAt).toLocaleString('ar-SD')}</div>`
+        });
+        info.open(adminMap, _emergencyMarker);
+        showToast(`🚨 موقع نجدة الكابتن ${capName}`);
+    } catch (e) {
+        console.error('emergency focus failed', e);
     }
 }
 

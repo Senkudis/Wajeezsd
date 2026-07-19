@@ -1697,7 +1697,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                         userId: captain._id,
                         title: '⛔ تم إيقاف حسابك',
                         message: 'تجاوزت الحد الائتماني. يرجى سداد المديونية لإعادة تفعيل الحساب.',
-                        type: 'system',
+                        type: 'wallet_update',   // 🧭 نقرة الإشعار تفتح المحفظة للسداد لا صفحة الإشعارات
                         relatedId: order._id
                     });
                 } catch (notifErr) {

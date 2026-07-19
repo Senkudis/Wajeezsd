@@ -89,7 +89,8 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'settlement_request':
                     return '/admin-settlements.html';
                 case 'emergency':
-                    return '/admin-live-map.html';
+                    // ?alert=<id> ليتمركز الخريطة على موقع نجدة الكابتن مباشرةً
+                    return r ? `/admin-live-map.html?alert=${r}` : '/admin-live-map.html';
                 case 'payment_receipt':
                 case 'payment_request':
                     return '/admin-finance.html';
