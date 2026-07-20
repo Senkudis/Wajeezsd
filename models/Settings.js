@@ -30,6 +30,12 @@ const settingsSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    // 🚕 رسوم انتقال خدمة "اشترِ لي" عند رفض العميل السعر بعد وصول الكابتن (0 = بلا رسوم)
+    errandTripFee: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     costPerMinute: {
         type: Number,
         default: 2,

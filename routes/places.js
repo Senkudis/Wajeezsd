@@ -364,7 +364,9 @@ router.post('/', protect, async (req, res) => {
             city: resolvedCity,
             isActive: true,
             isOpenOverride: true,
-            deliveryAvailable: true
+            deliveryAvailable: true,
+            // 🛒 مكان "اشترِ لي" (يضيفه الأدمن بلا حساب تاجر)
+            errandEnabled: req.body.errandEnabled === true || req.body.errandEnabled === 'true'
         });
 
         // 🔗 كود مشاركة قصير للمتجر الجديد — wajeezsd.com/s/<code>

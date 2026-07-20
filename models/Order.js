@@ -159,7 +159,10 @@ const OrderSchema = new mongoose.Schema(
             quotedAt:      { type: Date, default: null },
             respondedAt:   { type: Date, default: null },
             finalGoodsCost:{ type: Number, default: null },   // ما دُفع فعلاً (= goodsQuote عند التأكيد)
-            receiptImage:  { type: String, default: null }    // صورة إيصال/بضاعة (اختياري)
+            receiptImage:  { type: String, default: null },   // صورة إيصال/بضاعة الشراء
+            // 🚕 رسوم انتقال تُسجَّل عند رفض العميل السعر بعد وصول الكابتن (تعويض وقته).
+            // تُسجَّل هنا للمتابعة؛ التسوية المالية الفعلية تأتي مع نظام المحفظة لاحقاً.
+            tripFee:       { type: Number, default: 0 }
         },
 
         // 🧾 Pre-payment receipt (shop orders)

@@ -98,6 +98,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
 
         const allowedFields = [
             'baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee',
+            'errandTripFee',
             'commissionRate', 'adminPhone',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
@@ -111,7 +112,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             }
         }
 
-        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'commissionRate', 'defaultCreditLimit'];
+        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'commissionRate', 'defaultCreditLimit'];
         for (const field of numericFields) {
             if (updates[field] !== undefined) {
                 let rawVal = updates[field];

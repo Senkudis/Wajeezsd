@@ -1372,6 +1372,12 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
 
         const order = updatedOrder; // for subsequent logic
 
+        // 🛒 errand: صورة الاستلام هي إيصال/بضاعة الشراء — احفظها في errand.receiptImage
+        if (order.orderType === 'errand' && order.errand) {
+            order.errand.receiptImage = proofImage;
+            await order.save();
+        }
+
         // 🧭 توصيل متعدد النقاط: علّم أول نقطة استلام كمُنجَزة
         if (order.isMultiStop && Array.isArray(order.stops)) {
             const firstPickup = order.stops.find(s => s.type === 'pickup' && !s.done);
@@ -1891,8 +1897,16 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
             return res.json({ message: 'تم تأكيد السعر — سيبدأ الكابتن بالشراء', order });
         }
 
-        // رفض: يُلغى الطلب (المرحلة 1 بلا رسوم انتقال تلقائية)
+        // رفض: يُلغى الطلب. تُسجَّل رسوم انتقال للكابتن (تعويض وقته) إن حُدّدت.
+        // 🚕 التسوية المالية الفعلية للرسوم تأتي مع نظام المحفظة لاحقاً — هنا تسجيل وإشعار.
+        let tripFee = 0;
+        try {
+            const s = await getCachedSettings(order.city || 'Khartoum');
+            tripFee = Number(s.errandTripFee) > 0 ? Number(s.errandTripFee) : 0;
+        } catch (_) {}
+
         order.errand.quoteStatus = 'declined';
+        order.errand.tripFee = tripFee;
         order.status = 'cancelled';
         order.cancelledBy = 'client';
         order.cancelReason = 'رفض العميل سعر البضاعة';
@@ -1903,7 +1917,9 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
             await sendNotification(req.app, {
                 userId: order.captain,
                 title: '❌ رفض العميل السعر',
-                message: 'رفض العميل سعر البضاعة وأُلغي الطلب.',
+                message: tripFee > 0
+                    ? `رفض العميل سعر البضاعة وأُلغي الطلب. ستُحتسب لك رسوم انتقال ${tripFee} ج.س.`
+                    : 'رفض العميل سعر البضاعة وأُلغي الطلب.',
                 type: 'order_cancelled',
                 relatedId: order._id
             });

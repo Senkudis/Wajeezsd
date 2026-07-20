@@ -451,6 +451,8 @@ async function openEditPlaceModal(id) {
         document.getElementById('editPlaceOpen').value = p.workingHours?.open || '08:00';
         document.getElementById('editPlaceClose').value = p.workingHours?.close || '22:00';
         document.getElementById('editPlaceIsOpen').value = p.is_open ? '1' : '0'; // manual override
+        const errandChk = document.getElementById('editPlaceErrand');
+        if (errandChk) errandChk.checked = !!p.errandEnabled; // 🛒 مكان "اشترِ لي"
         document.getElementById('editPlaceLat').value = p.location?.lat || '';
         document.getElementById('editPlaceLng').value = p.location?.lng || '';
 
@@ -606,6 +608,7 @@ async function submitEditPlace(e) {
         address: document.getElementById('editPlaceAddress').value.trim(),
         notes: document.getElementById('editPlaceNotes').value.trim(),
         city: document.getElementById('editPlaceCity').value, // 🌍 City field
+        errandEnabled: !!document.getElementById('editPlaceErrand')?.checked, // 🛒 مكان "اشترِ لي"
         workingHours: {
             open: document.getElementById('editPlaceOpen').value,
             close: document.getElementById('editPlaceClose').value,
