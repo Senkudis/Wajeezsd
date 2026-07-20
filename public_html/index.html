@@ -570,7 +570,7 @@
                             </div>
 
                             <div class="mb-4 position-relative">
-                                <label class="text-muted small fw-bold d-block mb-2">من وين؟ (موقع الاستلام)</label>
+                                <label class="text-muted small fw-bold d-block mb-2" id="pickup-section-label">من وين؟ (موقع الاستلام)</label>
                                 <button type="button" class="btn map-select-btn map-select-btn-pickup w-100 mb-2"
                                     onclick="event.preventDefault(); event.stopPropagation(); openMapModal('pickup')">
                                     <i class="bi bi-geo-alt-fill me-2"></i>تحديد من الخريطة
@@ -646,12 +646,32 @@
 
                 <div class="section-card">
                     <div class="section-title">
-                        <i class="bi bi-box-seam-fill"></i> تفاصيل الطلب
+                        <i class="bi bi-box-seam-fill"></i> <span id="details-card-title">تفاصيل الطلب</span>
                     </div>
+
+                    <!-- 🛍️ حقول خدمة "اشترِ لي" — تظهر فقط في وضع errand -->
+                    <div id="errand-fields" class="d-none">
+                        <div id="errand-shop-banner"
+                            style="display:flex;align-items:center;gap:9px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border-radius:14px;padding:11px 13px;margin-bottom:14px;font-weight:700;">
+                            <i class="bi bi-bag-heart-fill" style="font-size:20px;"></i>
+                            <span id="errand-shop-name">المحل</span>
+                        </div>
+                        <label class="text-muted small fw-bold d-block mb-1">ماذا تريد أن يشتري لك الكابتن؟</label>
+                        <textarea id="errand-items" class="form-control mb-3" rows="3" maxlength="800"
+                            placeholder="اكتب الأصناف، كل صنف في سطر:&#10;- شاورما دجاج ×2&#10;- عصير مانجو كبير"></textarea>
+                        <label class="text-muted small fw-bold d-block mb-1">ميزانية تقديرية للبضاعة (اختياري)</label>
+                        <input type="number" id="errand-budget" class="form-control mb-1" lang="en" dir="ltr"
+                            placeholder="مثلاً 5000" min="0" inputmode="numeric">
+                        <div class="small text-muted mb-3" style="line-height:1.5;">
+                            <i class="bi bi-info-circle-fill text-primary"></i>
+                            السعر النهائي للبضاعة يؤكّده الكابتن من المحل قبل الشراء. المبلغ أدناه = <b>أجرة التوصيل فقط</b>.
+                        </div>
+                    </div>
+
                     <textarea id="details" class="form-control mb-3" rows="2"
                         placeholder="وصف للأغراض (مثلاً: كيس ملابس، مستندات...)" maxlength="500"></textarea>
 
-                    <label class="parcel-upload-btn w-100" for="parcel-image">
+                    <label class="parcel-upload-btn w-100" for="parcel-image" id="parcel-upload-label">
                         <i class="bi bi-camera-fill"></i>
                         <span>📷 صورة للطرد (اختياري)</span>
                     </label>
@@ -1089,7 +1109,7 @@
     <script type="module" src="js/app-core.js?v=9e5b3229"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
 
-    <script src="js/home.js?v=6175d3f3"></script>
+    <script src="js/home.js?v=e8223cdb"></script>
     <script src="js/order-feature.js?v=b6739da4"></script>
     <script src="js/smart-search.js?v=b37af4cc"></script>
 

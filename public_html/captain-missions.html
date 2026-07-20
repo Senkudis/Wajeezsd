@@ -174,11 +174,31 @@
                     const isMulti = order.isMultiStop && Array.isArray(order.stops) && order.stops.length >= 2;
                     const undoneCount = isMulti ? order.stops.filter(s => !s.done).length : 0;
 
+                    const isErrand = order.orderType === 'errand';
+                    const eq = (order.errand && order.errand.quoteStatus) || 'none';
+
                     let actionBtn = '';
-                    if (order.status === 'accepted') {
+                    if (order.status === 'accepted' && isErrand && eq !== 'confirmed') {
+                        // 🛍️ errand: أدخِل سعر البضاعة وانتظر تأكيد العميل قبل الشراء
+                        if (eq === 'quoted') {
+                            actionBtn = `
+                            <div class="alert alert-info py-2 mb-2 rounded-3 small fw-bold text-center">
+                                <i class="bi bi-hourglass-split me-1"></i> بانتظار تأكيد العميل للسعر (${order.errand.goodsQuote} ج.س)
+                            </div>
+                            <button class="btn btn-outline-primary w-100 py-2 fw-bold mb-2 rounded-3" onclick="openErrandQuote('${order._id}', ${order.errand.goodsQuote || ''})">
+                                <i class="bi bi-pencil-square me-1"></i> تعديل السعر
+                            </button>`;
+                        } else {
+                            actionBtn = `
+                            <button class="btn btn-primary w-100 py-2 fw-bold mb-2 shadow-sm rounded-3" onclick="openErrandQuote('${order._id}', '')">
+                                <i class="bi bi-cash-coin me-2"></i> أدخِل سعر البضاعة
+                            </button>`;
+                        }
+                    } else if (order.status === 'accepted') {
+                        const buyLabel = isErrand ? 'صوّر البضاعة وأكّد الشراء' : `صوّر الطلبية وأكّد ${isMulti ? 'أول استلام' : 'الاستلام'}`;
                         actionBtn = `
                         <button class="btn btn-warning w-100 py-2 fw-bold text-dark mb-2 shadow-sm rounded-3" onclick="openPickupPhotoModal('${order._id}')">
-                            <i class="bi bi-camera-fill me-2"></i> صوّر الطلبية وأكّد ${isMulti ? 'أول استلام' : 'الاستلام'}
+                            <i class="bi bi-camera-fill me-2"></i> ${buyLabel}
                         </button>`;
                     } else if (order.status === 'picked_up') {
                         if (isMulti && undoneCount > 1) {
@@ -321,12 +341,23 @@
                                         </div>
                                     </div>`}
 
+                                    ${isErrand && Array.isArray(order.items) && order.items.length ? `
+                                    <div class="p-2 rounded mb-3" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+                                        <div class="fw-bold mb-1" style="color:#6d28d9;font-size:0.85rem;">
+                                            <i class="bi bi-bag-check-fill me-1"></i> المطلوب شراؤه${order.errand && order.errand.budget ? ` — ميزانية تقديرية: ${order.errand.budget} ج.س` : ''}
+                                        </div>
+                                        <ul class="mb-0 ps-3" style="font-size:0.9rem;color:#1e293b;">
+                                            ${order.items.map(it => `<li>${(it || '').toString().replace(/[<>]/g, '')}</li>`).join('')}
+                                        </ul>
+                                    </div>` : ''}
+
+                                    ${order.details ? `
                                     <div class="bg-light p-2 rounded mb-3 border border-light">
                                         <div class="d-flex gap-2">
                                             <i class="bi bi-info-circle text-primary mt-1"></i>
                                             <p class="mb-0 small text-secondary">${order.details || ''}</p>
                                         </div>
-                                    </div>
+                                    </div>` : ''}
 
                                     ${actionBtn}
                                     
@@ -543,6 +574,37 @@
         }
 
         // 🧭 توصيل متعدد النقاط: تأكيد إكمال نقطة وسطية
+        // 🛍️ errand: الكابتن يُدخل سعر البضاعة عند المحل → يُرسل للعميل للتأكيد
+        async function openErrandQuote(id, current) {
+            const { value: amount } = await Swal.fire({
+                title: 'سعر البضاعة من المحل',
+                input: 'number',
+                inputValue: current || '',
+                inputPlaceholder: 'إجمالي سعر البضاعة (ج.س)',
+                inputAttributes: { min: 1, step: 'any', inputmode: 'numeric' },
+                showCancelButton: true,
+                confirmButtonText: 'إرسال للعميل',
+                cancelButtonText: 'تراجع',
+                confirmButtonColor: '#4f46e5',
+                inputValidator: v => (!v || Number(v) <= 0) ? 'أدخل سعراً صحيحاً أكبر من صفر' : undefined
+            });
+            if (!amount) return;
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${id}/errand/quote`, {
+                    method: 'POST',
+                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: Number(amount) })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'أُرسل السعر للعميل', text: 'سيصلك إشعار عند موافقته لتبدأ الشراء.', timer: 2200, showConfirmButton: false });
+                    fetchMissions();
+                } else {
+                    Swal.fire('خطأ', data.message || 'تعذّر إرسال السعر', 'error');
+                }
+            } catch (e) { showNetworkError(e); }
+        }
+
         async function markStopDone(id, index) {
             const result = await Swal.fire({
                 title: 'تأكيد إكمال النقطة',

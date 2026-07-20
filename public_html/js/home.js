@@ -1228,6 +1228,26 @@ window.createOrder = async function() {
             scheduledAt: document.getElementById('scheduled-at')?.value || null // ⏰ Scheduling
         };
 
+        // 🛍️ وضع "اشترِ لي": أضف نوع الطلب والأصناف والميزانية والمحل
+        if (window._errandMode) {
+            const itemsRaw = (document.getElementById('errand-items')?.value || '').trim();
+            const items = itemsRaw.split('\n').map(s => s.trim()).filter(Boolean);
+            if (items.length === 0) {
+                Swal.fire({ icon: 'info', text: 'اكتب تفاصيل طلبك (صنف واحد على الأقل)', confirmButtonColor: '#4f46e5' });
+                btn.disabled = false; btn.innerHTML = originalHTML;
+                return;
+            }
+            data.orderType = 'errand';
+            data.items = items;
+            const budget = parseFloat(document.getElementById('errand-budget')?.value);
+            if (Number.isFinite(budget) && budget > 0) data.budget = budget;
+            if (window._errandCtx) {
+                if (window._errandCtx.shopId) data.shopId = window._errandCtx.shopId;
+                data.shopName = window._errandCtx.shopName || 'محل';
+            }
+            data.parcelImage = null; // لا صورة طرد لطلب شراء
+        }
+
         // 🧭 توصيل متعدد النقاط — أرسل كل المحطات مرتّبة (استلامات ثم تسليمات)
         if (window.isMultiStopActive && window.isMultiStopActive()) {
             data.isMultiStop = true;
@@ -1445,6 +1465,50 @@ if (localStorage.getItem('token')) loadSavedAddresses();
             Swal.fire({ position: 'top-end', icon: 'info', title: 'تم تعبئة بيانات الطلب السابق ✏️', toast: true, timer: 2200, showConfirmButton: false });
         }, 600);
     } catch (e) { /* تجاهل */ }
+})();
+
+// ═══════════════════════════════════════════════════════════
+// 🛍️ وضع "اشترِ لي" (errand) — يُفعّل عند القدوم من قسم التسوّق (?mode=errand)
+// يعيد استخدام نموذج الطلب الكامل: المحل = الاستلام، عنواني = التسليم.
+// ═══════════════════════════════════════════════════════════
+window._errandMode = false;
+window._errandCtx = null;
+(function initErrandMode() {
+    try {
+        const isErrand = new URLSearchParams(location.search).get('mode') === 'errand';
+        if (!isErrand) return;
+        let ctx = null;
+        try { ctx = JSON.parse(sessionStorage.getItem('errandContext') || 'null'); } catch (_) {}
+        if (!ctx) return;
+        window._errandMode = true;
+        window._errandCtx = ctx;
+
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.classList.toggle('d-none', !on); };
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+        const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+        show('errand-fields', true);
+        txt('errand-shop-name', ctx.shopName || 'المحل المطلوب');
+        txt('details-card-title', 'تفاصيل طلب الشراء');
+        txt('pickup-section-label', 'المحل (موقع الشراء)');
+        // صورة الطرد غير مناسبة لطلب شراء — أخفِها
+        const pl = document.getElementById('parcel-upload-label'); if (pl) pl.classList.add('d-none');
+
+        // المحل كنقطة استلام: الاسم والهاتف افتراضيان (المحل غير مسجّل)
+        set('pickup-name', ctx.shopName || 'المحل');
+        set('pickup-phone', '-');
+        if (ctx.shopName) set('pickup-addr', ctx.shopName);
+
+        // محل منسّق بإحداثيات: عبّئ موقع الاستلام مباشرةً
+        if (ctx.lat && ctx.lng) {
+            set('pickup-lat', ctx.lat);
+            set('pickup-lng', ctx.lng);
+        }
+        // محل مخصّص (بلا إحداثيات): العميل يحدّد موقع المحل على الخريطة عبر "من وين"
+
+        // نظّف السياق حتى لا يُعاد تفعيله عند إعادة التحميل بلا قصد
+        try { sessionStorage.removeItem('errandContext'); } catch (_) {}
+    } catch (e) { console.warn('errand mode init failed', e); }
 })();
 
 // ═══════════════════════════════════════════════════════════

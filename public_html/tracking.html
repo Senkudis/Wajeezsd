@@ -648,11 +648,69 @@
                 }).join('')}`;
         }
 
+        // 🛍️ errand: نافذة موافقة العميل على سعر البضاعة (مرة واحدة لكل سعر)
+        let _errandPromptedFor = null;
+        async function promptErrandQuote(order) {
+            const key = `${order._id}:${order.errand.goodsQuote}`;
+            if (_errandPromptedFor === key) return; // لا تُكرّر لنفس السعر
+            _errandPromptedFor = key;
+
+            const amount = order.errand.goodsQuote;
+            const result = await Swal.fire({
+                title: '🛍️ سعر طلبك جاهز',
+                html: `<div style="font-size:14px;color:#475569;">سعر البضاعة من <b>${(order.shopName || 'المحل')}</b>:</div>
+                       <div style="font-size:30px;font-weight:900;color:#4f46e5;margin:8px 0;">${amount} ج.س</div>
+                       <div style="font-size:12.5px;color:#94a3b8;">أجرة التوصيل (${order.price} ج.س) تُضاف عند الاستلام.</div>`,
+                showCancelButton: true,
+                confirmButtonText: '✅ وافق وابدأ الشراء',
+                cancelButtonText: '❌ رفض',
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#dc3545',
+                allowOutsideClick: false
+            });
+
+            const accept = result.isConfirmed;
+            if (!accept && !result.dismiss) return; // أُغلقت بلا اختيار
+            // لو ضغط "رفض" (cancel) نؤكّد لأنه يُلغي الطلب
+            if (!accept) {
+                const conf = await Swal.fire({
+                    title: 'رفض السعر؟', text: 'سيُلغى الطلب.', icon: 'warning',
+                    showCancelButton: true, confirmButtonText: 'نعم، ارفض', cancelButtonText: 'تراجع',
+                    confirmButtonColor: '#dc3545'
+                });
+                if (!conf.isConfirmed) { _errandPromptedFor = null; return; } // أعد الفرصة
+            }
+
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${order._id}/errand/respond`, {
+                    method: 'PUT',
+                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accept })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    Swal.fire({ icon: accept ? 'success' : 'info', title: accept ? 'تم التأكيد ✅' : 'تم الإلغاء', text: data.message || '', timer: 2200, showConfirmButton: false });
+                    fetchOrder();
+                } else {
+                    _errandPromptedFor = null;
+                    Swal.fire('خطأ', data.message || 'تعذّر إرسال ردّك', 'error');
+                }
+            } catch (e) {
+                _errandPromptedFor = null;
+                Swal.fire('خطأ', 'تعذّر الاتصال، حاول مجدداً', 'error');
+            }
+        }
+
         function updateUI(order) {
             // Update status steps
             updateStatusSteps(order.status);
             // ⏱️ أوقات المراحل (الخط الزمني)
             renderTimeline(order);
+
+            // 🛍️ errand: سعر البضاعة بانتظار تأكيد العميل → اعرض نافذة الموافقة
+            if (order.orderType === 'errand' && order.errand && order.errand.quoteStatus === 'quoted') {
+                promptErrandQuote(order);
+            }
 
             // ⏱️ ETA من السيرفر — يملأ الفجوة قبل ظهور موقع الكابتن الحيّ.
             // بمجرد وصول موقع الكابتن، updateETA (أدق) يستبدل هذه القيمة.
@@ -802,6 +860,14 @@
             socket.on('order_status_updated', (data) => {
                 if (data && String(data.orderId) === String(orderId)) {
                     fetchOrder(); // Re-fetch to update UI
+                }
+            });
+
+            // 🛍️ errand: وصل سعر البضاعة من الكابتن → أعد الجلب ليظهر نافذة التأكيد
+            socket.on('errand_quote', (data) => {
+                if (data && String(data.orderId) === String(orderId)) {
+                    _errandPromptedFor = null; // اسمح بإظهار النافذة للسعر الجديد
+                    fetchOrder();
                 }
             });
 
