@@ -80,6 +80,9 @@ describe('canRespondQuote (العميل)', () => {
         expect(canRespondQuote(mk({ errand: { quoteStatus: 'none' } })).ok).toBe(false);
         expect(canRespondQuote(mk({ errand: { quoteStatus: 'confirmed' } })).ok).toBe(false);
     });
+    it('🔒 يمنع الرد على طلب أُلغي وسعره ما زال quoted (إلغاء إداري)', () => {
+        expect(canRespondQuote(mk({ status: 'cancelled', errand: { quoteStatus: 'quoted' } })).ok).toBe(false);
+    });
 });
 
 describe('canMarkPurchased (شرط الشراء)', () => {

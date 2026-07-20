@@ -305,8 +305,14 @@
                 } // ← FIX: closing brace for if (order.parcelImage)
 
                 const isShop = order.orderType === 'shop';
-                const headerClass = isShop ? 'bg-success bg-opacity-10 border-bottom border-success border-opacity-25' : 'bg-transparent border-bottom-0';
-                const badgeHtml = isShop ? `<span class="badge bg-success shadow-sm px-3 rounded-pill"><i class="bi bi-shop me-1"></i> طلب محل: ${order.shopName || ''}</span>` : `<span class="badge bg-light text-secondary border">#${order._id.slice(-4)}</span>`;
+                const isErrand = order.orderType === 'errand';
+                const headerClass = isShop ? 'bg-success bg-opacity-10 border-bottom border-success border-opacity-25'
+                    : isErrand ? 'border-bottom' : 'bg-transparent border-bottom-0';
+                const badgeHtml = isShop
+                    ? `<span class="badge bg-success shadow-sm px-3 rounded-pill"><i class="bi bi-shop me-1"></i> طلب محل: ${order.shopName || ''}</span>`
+                    : isErrand
+                        ? `<span class="badge shadow-sm px-3 rounded-pill" style="background:#7c3aed;"><i class="bi bi-bag-heart-fill me-1"></i> اشترِ لي: ${order.shopName || ''}</span>`
+                        : `<span class="badge bg-light text-secondary border">#${order._id.slice(-4)}</span>`;
 
                 // 🛡️ Pre-paid disclaimer badge (shop orders only)
                 const prepaidBadgeHtml = isShop ? `
@@ -318,12 +324,29 @@
                         </div>
                     </div>` : '';
 
+                // 🛍️ errand disclaimer: الكابتن يشتري بماله ثم يسترد + الأجرة نقداً
+                const errandBadgeHtml = isErrand ? `
+                    <div class="alert border-0 py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size:0.82rem; background:rgba(124,58,237,0.1);">
+                        <i class="bi bi-info-circle-fill fs-5" style="color:#7c3aed;"></i>
+                        <div>
+                            <strong class="d-block" style="color:#6d28d9;">خدمة شراء — أدخِل سعر البضاعة وانتظر موافقة العميل قبل الشراء</strong>
+                            <span class="text-muted">تسترد ثمن البضاعة + أجرة التوصيل (${order.price} ج.س) نقداً عند التسليم</span>
+                        </div>
+                    </div>` : '';
+
                 // 🧾 Shop Order Details box (description of items the client agreed on)
                 const shopDetails = order.shopOrderDetails || (order.items ? order.items.join('، ') : '');
                 const detailsItemsHtml = isShop && shopDetails ? `
                     <div class="bg-success bg-opacity-10 p-3 rounded-3 mb-3 border border-success border-opacity-25">
                         <h6 class="fw-bold text-success mb-2"><i class="bi bi-receipt me-1"></i> تفاصيل الطلبية:</h6>
                         <p class="mb-0 text-dark small" style="white-space:pre-line;">${shopDetails}</p>
+                    </div>` : '';
+
+                // 🛍️ errand: قائمة المطلوب شراؤه + الميزانية
+                const errandItemsHtml = isErrand && Array.isArray(order.items) && order.items.length ? `
+                    <div class="p-3 rounded-3 mb-3" style="background:rgba(124,58,237,0.08);border:1px solid #ddd6fe;">
+                        <h6 class="fw-bold mb-2" style="color:#6d28d9;"><i class="bi bi-bag-check-fill me-1"></i> المطلوب شراؤه${order.errand && order.errand.budget ? ` — ميزانية تقديرية: ${order.errand.budget} ج.س` : ''}:</h6>
+                        <ul class="mb-0 ps-3 text-dark small">${order.items.map(it => `<li>${(it || '').toString().replace(/[<>]/g, '')}</li>`).join('')}</ul>
                     </div>` : '';
 
                 // 📷 زر عرض إيصال الدفع (طلبات المحل فقط) — يُخزَّن في الخريطة
@@ -453,7 +476,11 @@
                                 
                                 ${prepaidBadgeHtml}
 
+                                ${errandBadgeHtml}
+
                                 ${detailsItemsHtml}
+
+                                ${errandItemsHtml}
 
                                 ${receiptBtnHtml}
 

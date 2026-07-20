@@ -48,6 +48,8 @@ function canSubmitQuote(order) {
 /** هل يمكن للعميل الرد (موافقة/رفض) على السعر الآن؟ */
 function canRespondQuote(order) {
     if (!order || order.orderType !== 'errand') return { ok: false, message: 'ليس طلب خدمة شراء' };
+    // يجب أن يكون الطلب جارياً (مقبولاً) — يمنع الرد على طلب أُلغي إدارياً وسعره ما زال 'quoted'
+    if (order.status !== 'accepted') return { ok: false, message: 'الطلب لم يعد متاحاً للرد' };
     if (!order.errand || order.errand.quoteStatus !== 'quoted') {
         return { ok: false, message: 'لا يوجد سعر بانتظار تأكيدك' };
     }
