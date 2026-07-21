@@ -7,6 +7,7 @@ const Rating = require('../models/Rating');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 const { logAdminAction } = require('../utils/adminLogger');
+const { normalizePhone } = require('../utils/phoneNormalizer');
 const logger = require('../utils/logger');
 
 // 🔤 Arabic-aware search regex.
@@ -305,15 +306,26 @@ router.post('/', protect, async (req, res) => {
 
         // ─── حالة 1: إنشاء حساب تاجر جديد ───────────────────────
         if (ownerName && ownerPhone && ownerPassword && !ownerId) {
-            // تحقق من عدم تكرار الهاتف
-            const existingUser = await User.findOne({ phone: ownerPhone });
+            // 🔑 تطبيع الهاتف إلزامي: /login يبحث دائماً بـ normalizePhone.
+            // كان يُخزَّن خاماً هنا (بخلاف إنشاء الكابتن/الأدمن) فلا يجده الدخول أبداً
+            // — التاجر يُنشأ بنجاح ثم يعجز عن تسجيل الدخول ببياناته الصحيحة.
+            const merchantPhone = normalizePhone(ownerPhone);
+            if (!merchantPhone) {
+                return res.status(400).json({ message: 'رقم هاتف التاجر غير صالح' });
+            }
+            if (!ownerPassword || String(ownerPassword).length < 6) {
+                return res.status(400).json({ message: 'كلمة مرور التاجر يجب أن تكون 6 أحرف على الأقل' });
+            }
+
+            // تحقق من عدم تكرار الهاتف (بالصيغة المُطبَّعة — وإلا لا يُكتشف التكرار)
+            const existingUser = await User.findOne({ phone: merchantPhone });
             if (existingUser) {
-                return res.status(400).json({ message: `رقم الهاتف ${ownerPhone} مسجّل مسبقاً لمستخدم آخر` });
+                return res.status(400).json({ message: `رقم الهاتف ${merchantPhone} مسجّل مسبقاً لمستخدم آخر` });
             }
 
             const newMerchant = new User({
                 name: ownerName,
-                phone: ownerPhone,
+                phone: merchantPhone,
                 email: ownerEmail || undefined,
                 password: ownerPassword,
                 role: 'merchant',
@@ -335,7 +347,7 @@ router.post('/', protect, async (req, res) => {
                     userId: resolvedOwnerId,
                     businessName: name,
                     ownerName,
-                    phone: ownerPhone,
+                    phone: merchantPhone,
                     category: categoryDoc ? categoryDoc.name : '',
                     address: address || '',
                     bankAccount: ownerBankAccount,

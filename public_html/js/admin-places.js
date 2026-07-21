@@ -61,13 +61,19 @@ function autoExtractCoords(url) {
         }
     }
 
+    // 🔗 رابط مختصر (maps.app.goo.gl) لا يحوي إحداثيات — لا نُخفي الخريطة!
+    // كان إخفاؤها يترك الأدمن عالقاً بلا وسيلة لتحديد الموقع. الآن نُبقيها ونوجّهه لها.
     if (url.includes('goo.gl') || url.includes('maps.app')) {
         statusEl.style.display = 'block';
-        statusEl.style.background = '#fefce8';
-        statusEl.style.border = '1px solid #fde68a';
-        statusEl.style.color = '#854d0e';
-        statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> رابط مختصر — سيتم حفظ الرابط مباشرة، ولكن <b>لن تظهر الخريطة</b> ولا حساب المسافة. للحصول على رابط كامل <b>افتح الرابط في متصفح، ثم انسخ الرابط الكامل</b> من شريط العنوان.`;
-        document.getElementById('adminPlaceMapWrapper').style.display = 'none';
+        statusEl.style.background = '#eff6ff';
+        statusEl.style.border = '1px solid #bfdbfe';
+        statusEl.style.color = '#1e40af';
+        statusEl.innerHTML = `<i class="fas fa-map-marker-alt"></i> رابط مختصر لا يحوي إحداثيات — <b>حرّك الدبوس على الخريطة أدناه</b> لتحديد الموقع (هذا كافٍ تماماً).`;
+        const wrap = document.getElementById('adminPlaceMapWrapper');
+        if (wrap) wrap.style.display = '';   // أبقِها ظاهرة ليضع الدبوس
+        if (typeof initAdminPlaceMap === 'function' && !document.getElementById('placeLat').value) {
+            initAdminPlaceMap(); // تفتح على مركز المدينة الافتراضي
+        }
     } else {
         statusEl.style.display = 'none';
     }
@@ -107,6 +113,14 @@ function adminReverseFillNominatim(lat, lng, apply) {
 // 🗺️ Admin Place Map — خريطة قمر صناعي كالتطبيق
 // =====================================
 async function initAdminPlaceMap(lat, lng) {
+    // 🗺️ بلا إحداثيات صالحة؟ افتح على مركز المدينة المختارة بدل center غير صالح
+    // (كان استدعاؤها بلا وسائط يكسر الخريطة بصمت).
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        const city = document.getElementById('placeCity')?.value || 'Khartoum';
+        lat = city === 'PortSudan' ? 19.6151 : 15.6445;
+        lng = city === 'PortSudan' ? 37.2164 : 32.4777;
+    }
+
     // Singleton: Destroy any existing map
     if (typeof adminPlaceMapInstance !== 'undefined' && adminPlaceMapInstance !== null) {
         try { await adminPlaceMapInstance.destroy(); } catch(e) {}
@@ -1064,6 +1078,9 @@ function openAddPlaceModal() {
     populateCategorySelect(); // refresh categories in select
     setOwnerMode('new'); // افتراضياً: تاجر جديد
     document.getElementById('addPlaceModal').classList.add('show');
+    // 🗺️ افتح الخريطة فوراً على مركز المدينة — الدبوس هو مصدر الموقع.
+    // كانت مخفية حتى يلصق الأدمن رابطاً، فلا يجد أين يحدد الموقع أصلاً.
+    setTimeout(() => { try { initAdminPlaceMap(); } catch (e) { console.warn('map init', e); } }, 250);
 }
 function closeAddPlaceModal() {
     document.getElementById('addPlaceModal').classList.remove('show');
@@ -1110,10 +1127,8 @@ async function createPlace(e) {
         Swal.fire('تنبيه', 'يرجى ملء الحقول الإلزامية (*): الاسم، التصنيف، العنوان', 'warning');
         return;
     }
-    if (!map_url) {
-        Swal.fire('تنبيه', 'يرجى إدخال رابط خرائط جوجل للمحل', 'warning');
-        return;
-    }
+    // ℹ️ رابط خرائط جوجل لم يعد إلزامياً — الدبوس على الخريطة هو مصدر الموقع.
+    // (كان إلزامياً فيضطر الأدمن للصق رابط رغم تحديده الموقع على الخريطة.)
 
     // التحقق من بيانات التاجر إذا اختار "تاجر جديد"
     if (ownerMode === 'new') {
@@ -1153,7 +1168,7 @@ async function createPlace(e) {
     // 🗺️ الموقع إلزامي عند الإنشاء — نرفض بدل الافتراضي الصامت (وسط الخرطوم)
     // الإحداثيات تُستخرج تلقائياً من رابط خرائط جوجل أو بتحريك الدبوس على الخريطة
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        Swal.fire('تنبيه', 'حدد موقع المتجر: الصق رابط خرائط جوجل كاملاً (تُستخرج الإحداثيات تلقائياً) أو حرّك الدبوس على الخريطة', 'warning');
+        Swal.fire('حدد موقع المتجر', 'حرّك الدبوس على الخريطة لتحديد موقع المتجر (أو الصق رابط خرائط جوجل كاملاً يحوي إحداثيات).', 'warning');
         setSubmitLoading(btn, false);
         return;
     }

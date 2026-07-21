@@ -332,6 +332,12 @@
                         placeholder="الخرطوم، تقاطع شارع المشتل..." required></textarea>
                 </div>
 
+                <!-- ⚙️ خيارات إضافية (اختيارية) — مطويّة لتبسيط النموذج -->
+                <details class="mt-3 p-2 border rounded-3" style="background:#fafafa;">
+                    <summary class="fw-bold text-secondary" style="cursor:pointer;">
+                        <i class="fas fa-sliders-h"></i> خيارات إضافية (اختيارية) — منيو وملاحظات
+                    </summary>
+
                 <div class="form-group mt-3">
                     <label class="form-label">ملاحظات داخلية (للإدارة فقط)</label>
                     <textarea id="placeNotes" class="form-control" rows="2"
@@ -385,18 +391,16 @@
                     </div>
                     <input type="hidden" id="placeMenu">
                 </div>
+                </details>
 
                 <div class="form-group p-3 border rounded-3 bg-white shadow-sm border-start border-4 border-info">
-                    <label class="form-label"><i class="fas fa-map-marker-alt text-info"></i> رابط الترسيم (Google
-                        Maps)*</label>
-                    <p class="small text-muted mb-2">انسخابط المشاركة من خرائط جوجل والصقه ليتم استخراج الإحداثيات
-                        آلياً.</p>
-                    <input type="url" id="placeMapUrl" class="form-control" dir="ltr"
-                        placeholder="https://maps.app.goo.gl/..." oninput="autoExtractCoords(this.value)">
-                    <div id="coordsStatus" class="mt-2 text-center fw-bold" style="display:none; font-size:13px;"></div>
+                    <label class="form-label"><i class="fas fa-map-pin text-danger"></i> موقع المتجر*</label>
+                    <p class="small text-muted mb-2">
+                        <b>حرّك الدبوس على الخريطة</b> لتحديد الموقع — هذا كل المطلوب.
+                    </p>
 
-                    <!-- 🗺️ خريطة التحقق من الموقع -->
-                    <div id="adminPlaceMapWrapper" class="mt-3" style="display:none;">
+                    <!-- 🗺️ خريطة تحديد الموقع — ظاهرة دائماً (مصدر الموقع الأساسي) -->
+                    <div id="adminPlaceMapWrapper" class="mt-1">
                         <label class="form-label fw-bold text-dark mb-1">
                             <i class="fas fa-map-pin text-danger me-1"></i>
                             تحقق من الموقع على الخريطة — اسحب لضبط الدقة
@@ -414,6 +418,20 @@
 
                     <input type="hidden" id="placeLat">
                     <input type="hidden" id="placeLng">
+
+                    <!-- اختياري: لصق رابط خرائط كامل يملأ الإحداثيات تلقائياً -->
+                    <details class="mt-3">
+                        <summary class="small text-muted" style="cursor:pointer;">
+                            أو الصق رابط خرائط جوجل (اختياري)
+                        </summary>
+                        <input type="url" id="placeMapUrl" class="form-control form-control-sm mt-2" dir="ltr"
+                            placeholder="https://www.google.com/maps/@15.5,32.5,17z"
+                            oninput="autoExtractCoords(this.value)">
+                        <div id="coordsStatus" class="mt-2 text-center fw-bold" style="display:none; font-size:13px;"></div>
+                        <div class="small text-muted mt-1">
+                            الروابط المختصرة (maps.app.goo.gl) لا تحوي إحداثيات — استخدم الخريطة أعلاه.
+                        </div>
+                    </details>
                 </div>
 
                 <div class="row form-group mt-3 text-center">
@@ -780,7 +798,7 @@
     <script>loadGoogleMaps({ libraries: 'places' });</script>
 
 
-    <script src="js/admin-places.js?v=df0bb63c"></script>
+    <script src="js/admin-places.js?v=e7c667a1"></script>
     <script src="js/geo.js?v=3f3df042"></script>
     <script type="module" src="js/app-core.js?v=9e5b3229"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
