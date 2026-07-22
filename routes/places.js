@@ -303,13 +303,13 @@ router.post('/', protect, async (req, res) => {
         }
 
         let resolvedOwnerId = ownerId || null;
+        let createdMerchantInfo = null; // ✅ بيانات حساب التاجر المُنشأ لإعادتها للأدمن
 
         // ─── حالة 1: إنشاء حساب تاجر جديد ───────────────────────
         if (ownerName && ownerPhone && ownerPassword && !ownerId) {
             // 🔑 تطبيع الهاتف إلزامي: /login يبحث دائماً بـ normalizePhone.
-            // كان يُخزَّن خاماً هنا (بخلاف إنشاء الكابتن/الأدمن) فلا يجده الدخول أبداً
-            // — التاجر يُنشأ بنجاح ثم يعجز عن تسجيل الدخول ببياناته الصحيحة.
             const merchantPhone = normalizePhone(ownerPhone);
+            const merchantEmail = ownerEmail ? String(ownerEmail).toLowerCase().trim() : undefined;
             if (!merchantPhone) {
                 return res.status(400).json({ message: 'رقم هاتف التاجر غير صالح' });
             }
@@ -317,23 +317,33 @@ router.post('/', protect, async (req, res) => {
                 return res.status(400).json({ message: 'كلمة مرور التاجر يجب أن تكون 6 أحرف على الأقل' });
             }
 
-            // تحقق من عدم تكرار الهاتف (بالصيغة المُطبَّعة — وإلا لا يُكتشف التكرار)
-            const existingUser = await User.findOne({ phone: merchantPhone });
-            if (existingUser) {
+            // تحقق من عدم تكرار الهاتف (بالصيغة المُطبَّعة)
+            const existingByPhone = await User.findOne({ phone: merchantPhone });
+            if (existingByPhone) {
                 return res.status(400).json({ message: `رقم الهاتف ${merchantPhone} مسجّل مسبقاً لمستخدم آخر` });
+            }
+
+            // ✅ تحقق من تكرار البريد الإلكتروني — كان مفقوداً فيُنتج خطأ قاعدة بيانات غامضاً (E11000)
+            if (merchantEmail) {
+                const existingByEmail = await User.findOne({ email: merchantEmail });
+                if (existingByEmail) {
+                    return res.status(400).json({ message: `البريد الإلكتروني ${merchantEmail} مسجّل مسبقاً لمستخدم آخر` });
+                }
             }
 
             const newMerchant = new User({
                 name: ownerName,
                 phone: merchantPhone,
-                email: ownerEmail || undefined,
+                email: merchantEmail,
                 password: ownerPassword,
                 role: 'merchant',
+                city: req.body.city || 'Khartoum', // ✅ حقل المدينة مطلوب في Schema
                 approvalStatus: 'approved',
                 isVerified: true
             });
             await newMerchant.save();
             resolvedOwnerId = newMerchant._id;
+            createdMerchantInfo = { name: ownerName, phone: merchantPhone, email: merchantEmail || null };
 
             // حفظ رقم الحساب البنكي في MerchantRequest إن أُرسل
             if (ownerBankAccount) {
@@ -387,7 +397,10 @@ router.post('/', protect, async (req, res) => {
             await ensureShareCode(place);
         } catch (scErr) { logger.error('shareCode generation failed:', scErr.message); }
 
-        res.status(201).json(place.toJSON());
+        // ✅ إعادة المتجر + بيانات حساب التاجر المُنشأ
+        const response = place.toJSON();
+        if (createdMerchantInfo) response.merchantAccount = createdMerchantInfo;
+        res.status(201).json(response);
     } catch (err) {
         logger.error('Create Place Error:', err);
         res.status(500).json({ message: err.message || 'Server Error' });

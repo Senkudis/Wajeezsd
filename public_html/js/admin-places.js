@@ -1115,8 +1115,10 @@ async function createPlace(e) {
     const open = document.getElementById('placeOpen').value;
     const close = document.getElementById('placeClose').value;
 
-    // 👤 بيانات التاجر
-    const ownerMode = document.getElementById('ownerModeNew')?.classList.contains('btn-success') ? 'new' : 'none';
+    // 👤 بيانات التاجر — نكتشف الوضع من مرئية الحقول وليس من class الزر
+    // (class الزر قد يتأخر تحديثه بسبب المتصفح، بينما style.display دائماً موثوق)
+    const _ownerNewFields = document.getElementById('ownerNewFields');
+    const ownerMode = (_ownerNewFields && _ownerNewFields.style.display !== 'none') ? 'new' : 'none';
     const ownerName = document.getElementById('ownerName')?.value.trim() || '';
     const ownerPhone = document.getElementById('ownerPhone')?.value.trim() || '';
     const ownerEmail = document.getElementById('ownerEmail')?.value.trim() || '';
@@ -1196,21 +1198,45 @@ async function createPlace(e) {
             method: 'POST', headers: headers(),
             body: JSON.stringify(payload)
         });
+        const data = await res.json();
         if (res.ok) {
-            const successMsg = (ownerMode === 'new' && ownerName)
-                ? `تمت إضافة المتجر وإنشاء حساب التاجر "${ownerName}" بنجاح!`
-                : 'تمت إضافة المحل بنجاح!';
-            Swal.fire({ icon: 'success', title: successMsg, timer: 2500, showConfirmButton: false });
             closeAddPlaceModal();
             loadAdminPlaces();
             setSubmitLoading(btn, false);
+
+            // ✅ رسالة نجاح مع بيانات دخول التاجر
+            if (data.merchantAccount) {
+                const m = data.merchantAccount;
+                const idDisplay = m.email
+                    ? `الإيميل: <b dir="ltr">${m.email}</b> أو الهاتف: <b dir="ltr">${m.phone}</b>`
+                    : `الهاتف: <b dir="ltr">${m.phone}</b>`;
+                Swal.fire({
+                    icon: 'success',
+                    title: '✅ تم إنشاء المتجر وحساب التاجر',
+                    html: `
+                        <div style="text-align:right; line-height:2; font-size:14px;">
+                            <b>اسم التاجر:</b> ${m.name}<br>
+                            ${idDisplay}<br>
+                            <hr style="margin:8px 0">
+                            <div style="background:#fef3c7; border-radius:8px; padding:10px; font-size:13px;">
+                                <b>⚠️ مهم:</b> التاجر يسجّل دخوله من<br>
+                                <a href="/client-login.html" target="_blank" style="color:#b45309; font-weight:bold;">🔗 صفحة دخول العملاء</a><br>
+                                <small>(بالهاتف + كلمة المرور — ليس لوحة الأدمن)</small>
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#065f46'
+                });
+            } else {
+                Swal.fire({ icon: 'success', title: 'تمت إضافة المحل بنجاح!', timer: 2000, showConfirmButton: false });
+            }
         } else {
-            const err = await res.json();
-            Swal.fire('خطأ', err.message, 'error');
+            Swal.fire('خطأ', data.message || 'فشل إنشاء المتجر', 'error');
             setSubmitLoading(btn, false);
         }
     } catch (e) {
-        Swal.fire('خطأ', 'فشل الاتصال', 'error');
+        Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error');
         setSubmitLoading(btn, false);
     }
 }
