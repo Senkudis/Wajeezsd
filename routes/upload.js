@@ -57,9 +57,16 @@ dirs.forEach(dir => {
     }
 });
 
+const setUploadType = (type) => (req, res, next) => {
+    req.uploadType = type;
+    if (!req.params) req.params = {};
+    req.params.type = type;
+    next();
+};
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const type = req.params.type || 'profiles';
+        const type = req.uploadType || req.params?.type || 'profiles';
         cb(null, path.join(uploadDir, type));
     },
     filename: (req, file, cb) => {
@@ -115,7 +122,7 @@ const upload = multer({
 // ==========================================
 // 📷 1. رفع صورة البروفايل (Profile Photo)
 // ==========================================
-router.post('/profile-photo', protect, (req, res) => {
+router.post('/profile-photo', protect, setUploadType('profiles'), (req, res) => {
     req.params.type = 'profiles';
     upload.single('photo')(req, res, async (err) => {
         if (err) {
@@ -145,7 +152,7 @@ router.post('/profile-photo', protect, (req, res) => {
 // ==========================================
 // 📄 2. رفع وثائق الكابتن (Captain Documents)
 // ==========================================
-router.post('/captain-docs', protect, (req, res) => {
+router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => {
     req.params.type = 'documents';
     const uploadFields = upload.fields([
         { name: 'driverLicense', maxCount: 1 },
@@ -190,7 +197,7 @@ router.post('/captain-docs', protect, (req, res) => {
 // ==========================================
 // 📦 3. رفع صورة الشحنة (Parcel Image)
 // ==========================================
-router.post('/parcel-image', protect, (req, res) => {
+router.post('/parcel-image', protect, setUploadType('parcels'), (req, res) => {
     req.params.type = 'parcels';
     upload.single('parcelImage')(req, res, async (err) => {
         if (err) {
@@ -215,7 +222,7 @@ router.post('/parcel-image', protect, (req, res) => {
 // ==========================================
 // 🏪 4. رفع صورة غلاف المحل (Place Image) - Admin Only
 // ==========================================
-router.post('/place-image', protect, requireRole('admin'), (req, res) => {
+router.post('/place-image', protect, requireRole('admin'), setUploadType('places'), (req, res) => {
     req.params.type = 'places';
     upload.single('placeImage')(req, res, async (err) => {
         if (err) {
@@ -235,7 +242,7 @@ router.post('/place-image', protect, requireRole('admin'), (req, res) => {
 // ==========================================
 // 📸 5. رفع صورة إثبات الاستلام (Proof of Pickup) — Captain Only
 // ==========================================
-router.post('/proof-image', protect, requireRole('captain'), (req, res) => {
+router.post('/proof-image', protect, requireRole('captain'), setUploadType('proofs'), (req, res) => {
     req.params.type = 'proofs';
     upload.single('proofImage')(req, res, async (err) => {
         if (err) {
@@ -259,7 +266,7 @@ router.post('/proof-image', protect, requireRole('captain'), (req, res) => {
 // ==========================================
 // 🏪 6. رفع صور التاجر (Merchant Registration Proofs)
 // ==========================================
-router.post('/merchant-proof', protect, (req, res) => {
+router.post('/merchant-proof', protect, setUploadType('proofs'), (req, res) => {
     req.params.type = 'proofs';
     upload.single('image')(req, res, async (err) => {
         if (err) {
@@ -283,7 +290,7 @@ router.post('/merchant-proof', protect, (req, res) => {
 // ==========================================
 // 🍔 7. رفع صورة المنتج (Product Image)
 // ==========================================
-router.post('/product-image', protect, (req, res) => {
+router.post('/product-image', protect, setUploadType('products'), (req, res) => {
     req.params.type = 'products';
     upload.single('image')(req, res, async (err) => {
         if (err) {
@@ -316,7 +323,7 @@ router.post('/product-image', protect, (req, res) => {
 //    POST /api/upload/shop-image  (merchant)
 //    place-image أعلاه للأدمن فقط؛ هذا يسمح للتاجر برفع صورة متجره الخاص.
 // ==========================================
-router.post('/shop-image', protect, requireRole('merchant'), (req, res) => {
+router.post('/shop-image', protect, requireRole('merchant'), setUploadType('places'), (req, res) => {
     req.params.type = 'places';
     upload.single('image')(req, res, async (err) => {
         if (err) {

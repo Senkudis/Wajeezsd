@@ -726,7 +726,7 @@ router.get('/my-orders', protect, async (req, res) => {
                 deliveredAt: so.deliveredAt || null,
                 cancelledAt: so.cancelledAt || null,
                 captain: so.captain || (relatedDelivery ? relatedDelivery.captain : null),
-                isRated: false,
+                isRated: so.isRated || false,
                 proofOfPickupImage: so.proofOfPickupImage,
                 paymentStatus: so.paymentStatus,
                 hasReceipt: !!so.paymentReceiptImage,
@@ -1791,8 +1791,12 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                 orderId: order._id,
                 status: 'delivered'
             });
+            // ✅ FIX: For shop orders, send shopOrderId — the /rate endpoint looks up
+            // ShopOrder by client. The delivery Order (orderType:'shop') has no client field,
+            // so sending its _id causes a 404. The ShopOrder _id is what the client card uses.
+            const rateOrderId = order.shopOrderId || order._id;
             io.to(order.client.toString()).emit('delivery_attempted', {
-                orderId: order._id,
+                orderId: rateOrderId,
                 placeId: order.place || null
             });
             // 📢 Notify admin panel — admin_room sees all cities

@@ -1243,7 +1243,14 @@ window.createOrder = async function() {
             if (Number.isFinite(budget) && budget > 0) data.budget = budget;
             if (window._errandCtx) {
                 if (window._errandCtx.shopId) data.shopId = window._errandCtx.shopId;
-                data.shopName = window._errandCtx.shopName || 'محل';
+                // اسم مكتوب يدوياً (مسار "مكان آخر") يسبق اسم البحث
+                const typedName = (document.getElementById('errand-shop-input')?.value || '').trim();
+                data.shopName = typedName || window._errandCtx.shopName || '';
+                if (!data.shopName) {
+                    Swal.fire({ icon: 'info', text: 'اكتب اسم المحل الذي يشتري منه الكابتن', confirmButtonColor: '#4f46e5' });
+                    btn.disabled = false; btn.innerHTML = originalHTML;
+                    return;
+                }
             }
             data.parcelImage = null; // لا صورة طرد لطلب شراء
         }
@@ -1488,23 +1495,29 @@ window._errandCtx = null;
         const txt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 
         show('errand-fields', true);
-        txt('errand-shop-name', ctx.shopName || 'المحل المطلوب');
+        txt('errand-shop-name', ctx.shopName || 'حدّد المحل بنفسك');
         txt('details-card-title', 'تفاصيل طلب الشراء');
         txt('pickup-section-label', 'المحل (موقع الشراء)');
         // صورة الطرد غير مناسبة لطلب شراء — أخفِها
         const pl = document.getElementById('parcel-upload-label'); if (pl) pl.classList.add('d-none');
 
+        // ⚠️ "مكان آخر": لا اسم من البحث، والكابتن يحتاج اسماً ليعرف أين يشتري.
+        // نُظهر حقل الاسم بدل إرسال "محل" مبهم.
+        if (!ctx.shopName) show('errand-shop-name-wrap', true);
+
         // المحل كنقطة استلام: الاسم والهاتف افتراضيان (المحل غير مسجّل)
         set('pickup-name', ctx.shopName || 'المحل');
         set('pickup-phone', '-');
-        if (ctx.shopName) set('pickup-addr', ctx.shopName);
+        // العنوان النصّي من نتيجة البحث أنفع للكابتن من اسم المحل وحده
+        if (ctx.address || ctx.shopName) set('pickup-addr', ctx.address || ctx.shopName);
 
-        // محل منسّق بإحداثيات: عبّئ موقع الاستلام مباشرةً
-        if (ctx.lat && ctx.lng) {
+        // مكان بإحداثيات (متجرنا أو نتيجة بحث خارجية): عبّئ موقع الاستلام مباشرةً
+        if (Number.isFinite(ctx.lat) && Number.isFinite(ctx.lng)) {
             set('pickup-lat', ctx.lat);
             set('pickup-lng', ctx.lng);
         }
-        // محل مخصّص (بلا إحداثيات): العميل يحدّد موقع المحل على الخريطة عبر "من وين"
+        // بلا إحداثيات: العميل يحدّد موقع المحل على الخريطة عبر "من وين"
+        // التسليم يبقى يدوياً في الحالتين — لا نفترض أن العميل في بيته الآن.
 
         // نظّف السياق حتى لا يُعاد تفعيله عند إعادة التحميل بلا قصد
         try { sessionStorage.removeItem('errandContext'); } catch (_) {}

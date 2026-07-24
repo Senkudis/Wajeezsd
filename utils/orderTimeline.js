@@ -36,16 +36,34 @@ function buildTimeline(order) {
         return { current: 'cancelled', cancelled: true, steps };
     }
 
-    const steps = STAGES.map(s => ({
-        key: s.key,
-        label: s.label,
-        at: order[s.field] || null,
-        done: !!order[s.field]
-    }));
+    const statusMap = {
+        'pending': 0,
+        'scheduled': 0,
+        'chat_initiated': 0, // for shop orders
+        'accepted': 1,
+        'picked_up': 2,
+        'delivered': 3
+    };
+    
+    // Some mapped shop orders might use 'realShopStatus' or just 'status'
+    const currentStatusIndex = statusMap[order.status] !== undefined ? statusMap[order.status] : -1;
+
+    const steps = STAGES.map((s, index) => {
+        // Step is done if it has a timestamp OR if the current order status has logically passed this step
+        const isDone = !!order[s.field] || currentStatusIndex >= index;
+        return {
+            key: s.key,
+            label: s.label,
+            at: order[s.field] || null,
+            done: isDone
+        };
+    });
 
     // المرحلة الحالية = آخر مرحلة مُنجَزة
     let current = 'pending';
-    for (const s of steps) if (s.done) current = s.key;
+    for (const s of steps) {
+        if (s.done) current = s.key;
+    }
 
     return { current, cancelled: false, steps };
 }

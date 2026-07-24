@@ -185,6 +185,93 @@ router.get('/search', async (req, res) => {
 });
 
 // ============================================================
+// 🛒 بحث "اشترِ لي" — الأماكن المفتوحة (لا تقتصر على متاجرنا المسجّلة)
+// ⚠️ يجب تعريفهما قبل /:id حتى لا يلتقطهما مسار المعرّف.
+// ============================================================
+
+// @route   GET /api/places/errand-categories
+// @desc    التصنيفات الثابتة المعروضة في منتقي "اشترِ لي"
+router.get('/errand-categories', (req, res) => {
+    const { ERRAND_CATEGORIES } = require('../utils/placesSearch');
+    // types أنواع جوجل الداخلية — لا شأن للواجهة بها
+    res.json(ERRAND_CATEGORIES.map(({ key, label, icon }) => ({ key, label, icon })));
+});
+
+// @route   GET /api/places/errand-search?q=&category=&city=&lat=&lng=
+// @desc    بحث مفتوح عن محل بالاسم أو بالتصنيف، مع دمج متاجرنا المسجّلة أولاً
+// @access  محمي — البحث الخارجي مدفوع، فلا يُفتح للزوّار
+const _errandSearchHits = new Map();  // userId → [timestamps] — سقف بسيط لكل مستخدم
+function errandSearchThrottled(userId) {
+    const now = Date.now();
+    const hits = (_errandSearchHits.get(userId) || []).filter(t => now - t < 60000);
+    hits.push(now);
+    _errandSearchHits.set(userId, hits);
+    if (_errandSearchHits.size > 2000) _errandSearchHits.clear(); // تنظيف بدائي يكفي هنا
+    return hits.length > 30;   // 30 بحثاً في الدقيقة: سخيّ للإنسان، ضيّق على السكربت
+}
+
+router.get('/errand-search', protect, async (req, res) => {
+    try {
+        if (errandSearchThrottled(String(req.user.id))) {
+            return res.status(429).json({ message: 'بحث كثير في وقت قصير — انتظر قليلاً' });
+        }
+
+        const { searchText, searchByCategory } = require('../utils/placesSearch');
+        const q = String(req.query.q || '').trim();
+        const categoryKey = String(req.query.category || '').trim();
+        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+        const lat = parseFloat(req.query.lat);
+        const lng = parseFloat(req.query.lng);
+
+        if (!q && !categoryKey) return res.json({ ours: [], external: [] });
+
+        // 1) متاجرنا المسجّلة أولاً: أدقّ بيانات وأقرب علاقة بالعميل.
+        //    البحث بالاسم فقط — التصنيف عندنا (PlaceCategory) لا يقابل تصنيفات جوجل.
+        let ours = [];
+        if (q) {
+            const rx = arabicFlexibleRegex(q);
+            ours = await Place.find({ isActive: true, city, $or: [{ name: rx }, { address: rx }] })
+                .select('name address location image_url errandEnabled')
+                .limit(8)
+                .lean();
+            ours = ours.map(p => ({
+                placeId: String(p._id),
+                name: p.name,
+                address: p.address || '',
+                lat: p.location ? p.location.lat : null,
+                lng: p.location ? p.location.lng : null,
+                image_url: p.image_url || '',
+                curated: p.errandEnabled === true,
+                source: 'wajeez'
+            })).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+        }
+
+        // 2) بقية العالم من جوجل
+        let external = [];
+        try {
+            external = categoryKey
+                ? await searchByCategory({ categoryKey, city, lat, lng })
+                : await searchText({ query: q, city, lat, lng });
+        } catch (e) {
+            // فشل البحث الخارجي لا يُسقط نتائجنا — نُبلّغ الواجهة لتشرح للعميل
+            logger.warn({ err: e.message }, 'errand external search failed');
+            return res.json({ ours, external: [], externalError: e.message === 'PLACES_KEY_MISSING'
+                ? 'بحث الأماكن غير مفعّل حالياً'
+                : 'تعذّر البحث الخارجي — جرّب لاحقاً' });
+        }
+
+        // لا نكرّر متجراً عندنا كنتيجة خارجية (تطابق الاسم يكفي عملياً)
+        const ourNames = new Set(ours.map(p => p.name.trim().toLowerCase()));
+        external = external.filter(p => !ourNames.has(p.name.trim().toLowerCase()));
+
+        res.json({ ours, external });
+    } catch (err) {
+        logger.error({ err: err.message }, 'errand search error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// ============================================================
 // @route   GET /api/places/resolve/:code
 // @desc    Public: حلّ كود المشاركة القصير إلى معرّف المتجر
 //          يستخدمه معالج الـ deep link في تطبيق أندرويد.

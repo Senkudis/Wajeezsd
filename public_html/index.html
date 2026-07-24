@@ -656,6 +656,12 @@
                             <i class="bi bi-bag-heart-fill" style="font-size:20px;"></i>
                             <span id="errand-shop-name">المحل</span>
                         </div>
+                        <!-- يظهر فقط عند اختيار "مكان آخر": بلا اسم لا يعرف الكابتن أين يشتري -->
+                        <div id="errand-shop-name-wrap" class="d-none mb-3">
+                            <label class="text-muted small fw-bold d-block mb-1">اسم المحل</label>
+                            <input type="text" id="errand-shop-input" class="form-control" maxlength="120"
+                                placeholder="مثلاً: بقالة الأمين — شارع الستين">
+                        </div>
                         <label class="text-muted small fw-bold d-block mb-1">ماذا تريد أن يشتري لك الكابتن؟</label>
                         <textarea id="errand-items" class="form-control mb-3" rows="3" maxlength="800"
                             placeholder="اكتب الأصناف، كل صنف في سطر:&#10;- شاورما دجاج ×2&#10;- عصير مانجو كبير"></textarea>
@@ -1109,7 +1115,7 @@
     <script type="module" src="js/app-core.js?v=1e55b558"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
 
-    <script src="js/home.js?v=e8223cdb"></script>
+    <script src="js/home.js?v=3a13f75a"></script>
     <script src="js/order-feature.js?v=29ffccac"></script>
     <script src="js/smart-search.js?v=b37af4cc"></script>
 
