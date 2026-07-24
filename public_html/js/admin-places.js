@@ -322,6 +322,11 @@ async function loadAdminPlaces() {
     }
 }
 
+window.handlePlaceImageError = function(img) {
+    img.onerror = null;
+    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2304553A' stroke-width='2'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E";
+};
+
 function renderAdminPlacesTable(places) {
     const tbody = document.querySelector('#placesTable tbody');
     if (places.length === 0) {
@@ -341,10 +346,12 @@ function renderAdminPlacesTable(places) {
         return base + withSlash;
     };
 
+    const defaultStoreSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2304553A' stroke-width='2'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E";
+
     tbody.innerHTML = places.map(p => `
         <tr>
             <td>
-                ${p.image_url ? `<img src="${getFullImageUrl(p.image_url)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-left:8px;vertical-align:middle;">` : ''}
+                <img src="${p.image_url ? getFullImageUrl(p.image_url) : defaultStoreSvg}" onerror="handlePlaceImageError(this)" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-left:8px;vertical-align:middle;background:#f3f4f6;padding:2px;">
                 <strong>${p.name}</strong>
                 <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
                     <i class="bi bi-geo-alt-fill"></i> ${p.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}
@@ -460,6 +467,7 @@ async function openEditPlaceModal(id) {
         document.getElementById('editPlacePhone').value = p.phone || '';
         document.getElementById('editPlaceWhatsapp').value = p.whatsapp || '';
         document.getElementById('editPlaceAddress').value = p.address || '';
+        if(document.getElementById('editPlaceDescription')) document.getElementById('editPlaceDescription').value = p.description || '';
         document.getElementById('editPlaceNotes').value = p.notes || '';
         document.getElementById('editPlaceCity').value = p.city || 'Khartoum'; // 🌍 City field
         document.getElementById('editPlaceOpen').value = p.workingHours?.open || '08:00';
@@ -611,61 +619,68 @@ async function submitEditPlace(e) {
     if (!editingPlaceId) return;
     const btn = e.submitter || e.target.querySelector('button[type="submit"]');
 
+    const name = document.getElementById('editPlaceName').value.trim();
+    const category = document.getElementById('editPlaceCategorySelect').value;
+    const phone = document.getElementById('editPlacePhone').value.trim();
+    const whatsapp = document.getElementById('editPlaceWhatsapp').value.trim();
+    const address = document.getElementById('editPlaceAddress').value.trim();
+    const description = document.getElementById('editPlaceDescription')?.value.trim() || '';
+    const notes = document.getElementById('editPlaceNotes').value.trim();
+    const city = document.getElementById('editPlaceCity').value;
+    const errandEnabled = !!document.getElementById('editPlaceErrand')?.checked;
+    const open = document.getElementById('editPlaceOpen').value;
+    const close = document.getElementById('editPlaceClose').value;
     const lat = parseFloat(document.getElementById('editPlaceLat').value);
     const lng = parseFloat(document.getElementById('editPlaceLng').value);
 
-    const payload = {
-        name: document.getElementById('editPlaceName').value.trim(),
-        category: document.getElementById('editPlaceCategorySelect').value,
-        phone: document.getElementById('editPlacePhone').value.trim(),
-        whatsapp: document.getElementById('editPlaceWhatsapp').value.trim(),
-        address: document.getElementById('editPlaceAddress').value.trim(),
-        notes: document.getElementById('editPlaceNotes').value.trim(),
-        city: document.getElementById('editPlaceCity').value, // 🌍 City field
-        errandEnabled: !!document.getElementById('editPlaceErrand')?.checked, // 🛒 مكان "اشترِ لي"
-        workingHours: {
-            open: document.getElementById('editPlaceOpen').value,
-            close: document.getElementById('editPlaceClose').value,
-            days: [0, 1, 2, 3, 4, 5, 6]
-        }
-    };
-
-    // 🗺️ أرسل الموقع فقط إن كان صالحاً — وإلا يبقى المحفوظ في القاعدة كما هو.
-    // (كان الفارغ يُستبدل بصمت بوسط الخرطوم فيطمس مواقع صحيحة → دبابيس عشوائية)
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        payload.location = { lat, lng };
+    if (!name || !category || !address) {
+        Swal.fire('تنبيه', 'يرجى ملء الحقول الإلزامية (*): الاسم، التصنيف، العنوان', 'warning');
+        return;
     }
 
     setSubmitLoading(btn, true);
 
-    // 🖼️ رفع/حفظ صورة (لوغو) المتجر
-    let imageUrl = document.getElementById('editPlaceImage').value || '';
+    // 🖼️ 1. Upload new place image if selected (identical to createPlace flow)
+    let image_url = document.getElementById('editPlaceImage').value || '';
     try {
-        const uploadedImg = await uploadPlaceImageIfNeeded('editPlaceImage', 'editPlaceImageFile');
-        if (uploadedImg) imageUrl = uploadedImg;
-    } catch (e) {
-        Swal.fire('خطأ', e.message, 'error');
+        const uploadedUrl = await uploadPlaceImageIfNeeded('editPlaceImage', 'editPlaceImageFile');
+        if (uploadedUrl) image_url = uploadedUrl;
+    } catch (uploadErr) {
+        Swal.fire('خطأ', uploadErr.message, 'error');
         setSubmitLoading(btn, false);
         return;
     }
-    payload.image_url = imageUrl;
 
-    let menuUrl = document.getElementById('editPlaceMenu').value;
+    // 📜 2. Upload new menu image if selected (identical to createPlace flow)
+    let menu_url = document.getElementById('editPlaceMenu').value || '';
     try {
-        const uploadedMenu = await uploadMenuImageIfNeeded('edit');
-        if (uploadedMenu) menuUrl = uploadedMenu;
-    } catch (e) {
-        Swal.fire('خطأ', e.message, 'error');
+        const uploadedMenuUrl = await uploadMenuImageIfNeeded('edit');
+        if (uploadedMenuUrl) menu_url = uploadedMenuUrl;
+    } catch (uploadMenuErr) {
+        Swal.fire('خطأ', uploadMenuErr.message, 'error');
         setSubmitLoading(btn, false);
         return;
     }
-    payload.menu = menuUrl;
+
+    const payload = {
+        name, category, image_url, phone, whatsapp, address,
+        notes, description, menu: menu_url,
+        city, errandEnabled,
+        workingHours: { open, close, days: [0, 1, 2, 3, 4, 5, 6] }
+    };
+
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        payload.location = { lat, lng };
+    }
+
     try {
         const res = await fetch(`${API_URL}/api/places/${editingPlaceId}`, {
-            method: 'PUT', headers: headers(), body: JSON.stringify(payload)
+            method: 'PUT',
+            headers: headers(),
+            body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error((await res.json()).message || 'فشل الحفظ');
-        Swal.fire({ icon: 'success', title: 'تم التحديث!', timer: 1500, showConfirmButton: false });
+        if (!res.ok) throw new Error((await res.json()).message || 'فشل تعديل بيانات المنشأة');
+        Swal.fire({ icon: 'success', title: 'تم التحديث بنجاح!', timer: 1500, showConfirmButton: false });
         closeEditPlaceModal();
         loadAdminPlaces();
         setSubmitLoading(btn, false);
@@ -778,6 +793,7 @@ async function createCategory(e) {
 // =====================================
 function previewPlaceImage(input) {
     if (!input.files || !input.files[0]) return;
+    document.getElementById('placeImage').value = ''; // Clear URL if file selected
     const reader = new FileReader();
     reader.onload = (e) => {
         document.getElementById('placeImagePreviewImg').src = e.target.result;
@@ -828,38 +844,41 @@ function previewPlaceImageUrl(url) {
 }
 
 async function uploadPlaceImageIfNeeded(inputId = 'placeImage', fileInputId = 'placeImageFile') {
-    // If external URL already set — skip upload, use it directly
-    const existingUrl = document.getElementById(inputId).value;
-    if (existingUrl && existingUrl.startsWith('http')) return existingUrl;
-    // If it's a relative server path, keep it
-    if (existingUrl && existingUrl.startsWith('/uploads/')) return existingUrl;
-
     const fileInput = document.getElementById(fileInputId);
-    if (!fileInput || !fileInput.files || !fileInput.files[0]) return null;
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        const formData = new FormData();
+        formData.append('placeImage', fileInput.files[0]);
 
-    const formData = new FormData();
-    formData.append('placeImage', fileInput.files[0]);
+        const res = await fetch(`${API_URL}/api/upload/place-image`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${adminToken()}` },
+            body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'فشل رفع الصورة');
+        
+        // Update preview with full URL
+        const _imgBase = window.API_URL || 'https://wajeezsd.com';
+        const _isLocalImg = _imgBase.includes('localhost') || _imgBase.includes('127.0.0.1');
+        const fullUrl = (!_isLocalImg && data.url.startsWith('/uploads')) ? _imgBase + '/api' + data.url : _imgBase + data.url;
+        const previewImg = inputId === 'editPlaceImage' ? document.getElementById('editPlaceImagePreviewImg') : document.getElementById('placeImagePreviewImg');
+        const previewDiv = inputId === 'editPlaceImage' ? document.getElementById('editPlaceImagePreview') : document.getElementById('placeImagePreview');
+        if (previewImg) previewImg.src = fullUrl;
+        if (previewDiv) previewDiv.style.display = 'block';
+        document.getElementById(inputId).value = data.url;
+        return data.url;
+    }
 
-    const res = await fetch(`${API_URL}/api/upload/place-image`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${adminToken()}` },
-        body: formData
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'فشل رفع الصورة');
-    
-    // Update preview with full URL
-    const _imgBase = window.API_URL || 'https://wajeezsd.com';
-    const _isLocalImg = _imgBase.includes('localhost') || _imgBase.includes('127.0.0.1');
-    const fullUrl = (!_isLocalImg && data.url.startsWith('/uploads')) ? _imgBase + '/api' + data.url : _imgBase + data.url;
-    document.getElementById('placeImagePreviewImg').src = fullUrl;
-    document.getElementById('placeImagePreview').style.display = 'block';
-    return data.url;
+    const existingUrl = document.getElementById(inputId).value;
+    if (existingUrl) return existingUrl;
+
+    return null;
 }
 
 // Menu uploading logic
 function previewMenuImage(input) {
     if (!input.files || !input.files[0]) return;
+    document.getElementById('placeMenu').value = ''; // Clear URL if file selected
     const reader = new FileReader();
     reader.onload = (e) => {
         document.getElementById('menuImagePreviewImg').src = e.target.result;
@@ -967,6 +986,7 @@ function previewEditPlaceImageUrl(url) {
 // Edit place image uploading logic
 function previewEditPlaceImage(input) {
     if (!input.files || !input.files[0]) return;
+    document.getElementById('editPlaceImage').value = ''; // Clear URL if file selected
     const reader = new FileReader();
     reader.onload = (e) => {
         document.getElementById('editPlaceImagePreviewImg').src = e.target.result;
@@ -1014,34 +1034,36 @@ async function uploadMenuImageIfNeeded(mode = 'add') {
     const previewImgId = mode === 'edit' ? 'editMenuImagePreviewImg' : 'menuImagePreviewImg';
     const previewDivId = mode === 'edit' ? 'editMenuImagePreview' : 'menuImagePreview';
 
-    const existingUrl = document.getElementById(valInputId).value;
-    if (existingUrl && (existingUrl.startsWith('http') || existingUrl.startsWith('/uploads/'))) return existingUrl;
-
     const fileInput = document.getElementById(fileInputId);
-    if (!fileInput || !fileInput.files || !fileInput.files[0]) return null;
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        const formData = new FormData();
+        formData.append('placeImage', fileInput.files[0]);
 
-    const formData = new FormData();
-    formData.append('placeImage', fileInput.files[0]);
+        const res = await fetch(`${API_URL}/api/upload/place-image`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${adminToken()}` },
+            body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'فشل رفع صورة المنيو');
+        
+        // Update preview
+        const _menuBase = window.API_URL || 'https://wajeezsd.com';
+        const _isLocalMenu = _menuBase.includes('localhost') || _menuBase.includes('127.0.0.1');
+        const fullUrl = (!_isLocalMenu && data.url.startsWith('/uploads')) ? _menuBase + '/api' + data.url : _menuBase + data.url;
+        const pImg = document.getElementById(previewImgId);
+        const pDiv = document.getElementById(previewDivId);
+        if (pImg) pImg.src = fullUrl;
+        if (pDiv) pDiv.style.display = 'block';
+        document.getElementById(valInputId).value = data.url;
+        
+        return data.url;
+    }
 
-    const res = await fetch(`${API_URL}/api/upload/place-image`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${adminToken()}` },
-        body: formData
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'فشل رفع صورة المنيو');
-    
-    // Update preview
-    const _menuBase = window.API_URL || 'https://wajeezsd.com';
-    const _isLocalMenu = _menuBase.includes('localhost') || _menuBase.includes('127.0.0.1');
-    const fullUrl = (!_isLocalMenu && data.url.startsWith('/uploads')) ? _menuBase + '/api' + data.url : _menuBase + data.url;
-    const pImg = document.getElementById(previewImgId);
-    const pDiv = document.getElementById(previewDivId);
-    if (pImg) pImg.src = fullUrl;
-    if (pDiv) pDiv.style.display = 'block';
-    document.getElementById(valInputId).value = data.url;
-    
-    return data.url;
+    const existingUrl = document.getElementById(valInputId).value;
+    if (existingUrl) return existingUrl;
+
+    return null;
 }
 
 // =====================================
@@ -1107,6 +1129,7 @@ async function createPlace(e) {
     const phone = document.getElementById('placePhone').value.trim();
     const whatsapp = document.getElementById('placeWhatsapp').value.trim();
     const address = document.getElementById('placeAddress').value.trim();
+    const description = document.getElementById('placeDescription')?.value.trim() || '';
     const notes = document.getElementById('placeNotes').value.trim();
     const map_url = document.getElementById('placeMapUrl').value.trim();
     const city = document.getElementById('placeCity').value; // 🌍 City field
@@ -1178,7 +1201,7 @@ async function createPlace(e) {
 
     const payload = {
         name, category, image_url, phone, whatsapp, address, map_url,
-        notes, menu: menu_url,
+        notes, description, menu: menu_url,
         city, // 🌍 Add city to payload
         location,
         workingHours: { open, close, days: [0, 1, 2, 3, 4, 5, 6] }
@@ -1318,18 +1341,20 @@ function previewProductImg(input) {
 }
 
 async function uploadProductImgIfNeeded() {
-    const existing = document.getElementById('productImg').value;
-    if (existing && (existing.startsWith('http') || existing.startsWith('/uploads'))) return existing;
     const fileInput = document.getElementById('productImgFile');
-    if (!fileInput.files || !fileInput.files[0]) return existing || '';
-    const fd = new FormData();
-    fd.append('image', fileInput.files[0]);
-    const res = await fetch(`${API_URL}/api/upload/product-image`, {
-        method: 'POST', headers: { 'Authorization': `Bearer ${adminToken()}` }, body: fd
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'فشل رفع الصورة');
-    return data.url;
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        const fd = new FormData();
+        fd.append('image', fileInput.files[0]);
+        const res = await fetch(`${API_URL}/api/upload/product-image`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${adminToken()}` }, body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'فشل رفع الصورة');
+        document.getElementById('productImg').value = data.url;
+        return data.url;
+    }
+    const existing = document.getElementById('productImg').value;
+    return existing || '';
 }
 
 async function saveProduct() {

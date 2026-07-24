@@ -356,6 +356,12 @@ async function refreshUnreadBadge() {
         const res = await fetch(`${baseUrl}/api/notifications/unread-count`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (res.status === 401) {
+            // التوكن منتهي الصلاحية، نقوم بحذفه بصمت لتجنب تكرار الخطأ
+            if (window.Auth && window.Auth.logout) window.Auth.logout();
+            else { localStorage.removeItem('token'); localStorage.removeItem('adminToken'); }
+            return;
+        }
         if (!res.ok) return;
         const data = await res.json();
         renderUnreadBadge(data.unreadCount || 0);

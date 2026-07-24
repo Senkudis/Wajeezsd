@@ -14,7 +14,7 @@ const ImpactStyle = { Light: 'LIGHT', Medium: 'MEDIUM', Heavy: 'HEAVY' };
 // (capacitor.config.json بلا server.url ⇒ التطبيق يحمّل أصول public_html المحزومة)،
 // فيمثّل إصدار النسخة المثبَّتة على الجهاز. يجب أن يساوي دائماً versionName في
 // android/app/build.gradle و version في package.json — تحقّق بـ: npm run version:check
-window.APP_VERSION = '1.0.8';
+window.APP_VERSION = '1.0.9';
 
 // دالة عرض الـ Toasts الداخلية (تُستخدم فقط إذا لم تُحمَّل notification-toast.js بعد)
 // ✅ إصلاح BUG-2: لا تُعيَّن على window.showToast لتجنّب تعارض التوقيعات

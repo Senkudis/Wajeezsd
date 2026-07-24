@@ -19,9 +19,9 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css?v=3.4">
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=b6fff3fa">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=c9324219">
+    <link rel="stylesheet" href="css/dark-mode.css?v=7df0a5e8">
     <link rel="stylesheet" href="css/splash.css?v=83fac690">
 
     <script src="js/config.js?v=b84e6b6a"></script>
@@ -190,31 +190,32 @@
         .errand-promo {
             width: 100%; border: none; text-align: right;
             display: flex; align-items: center; gap: 12px;
-            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
-            color: #fff; border-radius: 18px; padding: 14px 16px;
-            margin-bottom: 18px; box-shadow: 0 6px 20px rgba(79,70,229,0.35);
+            background: var(--primary-color, #04553A);
+            color: #fff; border-radius: 14px; padding: 14px 16px;
+            margin-bottom: 18px; box-shadow: 0 4px 12px rgba(4,85,58,0.25);
             cursor: pointer; transition: transform .15s;
         }
         .errand-promo:active { transform: scale(0.98); }
         .errand-promo-icon {
-            width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
-            background: rgba(255,255,255,0.18); display: flex; align-items: center;
-            justify-content: center; font-size: 24px;
+            width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+            background: rgba(255,255,255,0.15); display: flex; align-items: center;
+            justify-content: center; font-size: 22px;
         }
         .errand-promo-text { flex: 1; min-width: 0; }
-        .errand-promo-title { font-size: 15px; font-weight: 800; }
-        .errand-promo-sub { font-size: 11.5px; opacity: 0.85; margin-top: 2px; line-height: 1.4; }
+        .errand-promo-title { font-size: 15px; font-weight: 800; line-height: 1.3; }
+        .errand-promo-sub { font-size: 12px; opacity: 0.9; margin-top: 4px; line-height: 1.4; white-space: normal; word-break: break-word; }
         .errand-promo-arrow { font-size: 20px; opacity: 0.8; flex-shrink: 0; }
 
         /* Bottom-sheet منتقي المحل */
         .errand-sheet-backdrop {
             position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-            z-index: 3000; display: none; align-items: flex-end;
+            z-index: 10000; display: none; align-items: flex-end;
         }
         .errand-sheet-backdrop.show { display: flex; }
         .errand-sheet {
-            background: #fff; width: 100%; max-height: 82vh; overflow-y: auto;
-            border-radius: 22px 22px 0 0; padding: 8px 16px calc(20px + var(--sab, env(safe-area-inset-bottom,0px)));
+            background: #fff; width: 100%;
+            min-height: 55vh; max-height: 85vh; overflow-y: auto;
+            border-radius: 22px 22px 0 0; padding: 8px 16px 24px;
             animation: sheetUp .25s ease;
         }
         @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -717,7 +718,7 @@
             <button type="button" id="errandPromo" class="errand-promo" onclick="openErrandPicker()">
                 <div class="errand-promo-icon"><i class="bi bi-bag-heart-fill"></i></div>
                 <div class="errand-promo-text">
-                    <div class="errand-promo-title">ما لقيت محلك؟ اطلب أي شيء 🛵</div>
+                    <div class="errand-promo-title">ما لقيت محلك؟ اطلب أي شيء</div>
                     <div class="errand-promo-sub">حدّد المحل واكتب طلبك — الكابتن يشتريه لك ويوصّله</div>
                 </div>
                 <i class="bi bi-chevron-left errand-promo-arrow"></i>
@@ -767,10 +768,23 @@
     <div class="errand-sheet-backdrop" id="errandSheet" onclick="if(event.target===this)closeErrandPicker()">
         <div class="errand-sheet">
             <div class="errand-sheet-handle"></div>
-            <h5><i class="bi bi-bag-heart-fill"></i> اطلب من أي محل</h5>
-            <p class="sheet-sub">اختر محلاً معروفاً، أو حدّد مكاناً آخر على الخريطة. ثم اكتب طلبك.</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <h5 style="margin:0;"><i class="bi bi-bag-heart-fill"></i> اطلب من أي محل</h5>
+                <button onclick="closeErrandPicker()" style="background:none;border:none;font-size:20px;color:#94a3b8;padding:0;line-height:1;">&#x2715;</button>
+            </div>
+            <p class="sheet-sub">اختر محلاً معروفاً، أو حدّد مكاناً آخر على الخريطة.</p>
+            <!-- Search inside sheet -->
+            <div style="position:relative;margin-bottom:12px;">
+                <i class="bi bi-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px;"></i>
+                <input id="errandSearch" type="text" placeholder="ابحث عن محل..." oninput="filterErrandPlaces(this.value)"
+                    style="width:100%;padding:9px 36px 9px 12px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:13px;outline:none;font-family:inherit;direction:rtl;">
+            </div>
             <div id="errandPlacesList">
-                <div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+                <!-- loading state -->
+                <div id="errandLoadingState" class="text-center py-5">
+                    <div class="spinner-border text-primary" style="width:2rem;height:2rem;"></div>
+                    <div class="text-muted mt-2" style="font-size:13px;">جاري تحميل المحلات...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -968,17 +982,17 @@
         </a>
     </nav>
 
-    <script src="js/maps-loader.js?v=7ea5a58a"></script>
-    <script>loadGoogleMaps({ libraries: 'geometry,places' });</script>
+    <script src="js/maps-loader.js?v=be1f609f"></script>
+    <script>loadGoogleMaps({ libraries: 'geometry,places', need: ['routes'] });</script>
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
     <script src="vendor/image-compression/browser-image-compression.js"></script>
     <script src="js/console-cleaner.js?v=10115678"></script>
-    <script src="js/theme-manager.js?v=01cb92bf"></script>
+    <script src="js/theme-manager.js?v=385c2e17"></script>
     <script src="js/city-service.js?v=34b5af79"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=9e5b3229"></script>
+    <script type="module" src="js/app-core.js?v=1e55b558"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
     <script src="js/order-feature.js?v=b6739da4"></script>
@@ -1024,43 +1038,92 @@
         // ══ 🛍️ خدمة "اشترِ لي" — منتقي المحل ثم الانتقال لنموذج الطلب في وضع errand ══
         const esc_ = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+        // تخزين محلات الـ errand للفلترة المحلية
+        let _errandAllPlaces = [];
+        let _errandCustomCard = '';
+
+        window.filterErrandPlaces = function(query) {
+            const list = document.getElementById('errandPlacesList');
+            const q = (query || '').trim().toLowerCase();
+            if (!q) {
+                renderErrandList(_errandAllPlaces);
+                return;
+            }
+            const filtered = _errandAllPlaces.filter(p =>
+                (p.name || '').toLowerCase().includes(q) ||
+                (p.address || '').toLowerCase().includes(q)
+            );
+            renderErrandList(filtered);
+        };
+
+        function renderErrandList(places) {
+            const list = document.getElementById('errandPlacesList');
+            if (!places.length) {
+                list.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-shop" style="font-size:2.5rem;color:#cbd5e1;"></i>
+                        <div class="text-muted mt-2" style="font-size:13px;">لا توجد محلات مطابقة</div>
+                    </div>
+                    ${_errandCustomCard}`;
+                return;
+            }
+            const html = places.map(p => {
+                const lat = (p.location && p.location.lat) || '';
+                const lng = (p.location && p.location.lng) || '';
+                const imgSrc = p.image_url ? (typeof window.getFullImageUrl === 'function' ? window.getFullImageUrl(p.image_url) : p.image_url) : '';
+                const iconHtml = imgSrc
+                    ? `<img src="${imgSrc}" style="width:42px;height:42px;border-radius:11px;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt="">
+                       <div style="display:none;width:42px;height:42px;border-radius:11px;background:#f5f3ff;color:#7c3aed;align-items:center;justify-content:center;font-size:20px;"><i class="bi bi-shop"></i></div>`
+                    : `<i class="bi bi-shop"></i>`;
+                return `
+                <div class="errand-place" onclick="startErrand('${p._id}', '${esc_(p.name).replace(/'/g, "&#39;")}', '${lat}', '${lng}')">
+                    <div class="errand-place-ic" style="${imgSrc ? 'background:transparent;padding:0;overflow:hidden;' : ''}">${iconHtml}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div class="errand-place-name">${esc_(p.name)}</div>
+                        <div class="errand-place-meta">${esc_(p.address || 'محل معروف')}</div>
+                    </div>
+                    <i class="bi bi-chevron-left text-muted"></i>
+                </div>`;
+            }).join('');
+            list.innerHTML = html + _errandCustomCard;
+        }
+
         window.openErrandPicker = async function () {
             if (!localStorage.getItem('token')) { window.location.href = 'client-login.html'; return; }
             const sheet = document.getElementById('errandSheet');
             const list = document.getElementById('errandPlacesList');
+            const searchInput = document.getElementById('errandSearch');
             sheet.classList.add('show');
-            list.innerHTML = '<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm text-primary"></span></div>';
+            if (searchInput) searchInput.value = '';
+            list.innerHTML = `<div id="errandLoadingState" class="text-center py-5">
+                <div class="spinner-border text-primary" style="width:2rem;height:2rem;"></div>
+                <div class="text-muted mt-2" style="font-size:13px;">جاري تحميل المحلات...</div>
+            </div>`;
 
-            // خيار "مكان آخر" دائماً متاح (يحدّده العميل على الخريطة في النموذج)
-            const customCard = `
-                <div class="errand-place custom" onclick="startErrand(null, '')">
-                    <div class="errand-place-ic"><i class="bi bi-geo-alt"></i></div>
+            // خيار "مكان آخر" دائماً متاح
+            _errandCustomCard = `
+                <div class="errand-place custom" onclick="startErrand(null, '')" style="border-color:#e0e7ff;background:linear-gradient(135deg,#f5f3ff,#ede9fe);">
+                    <div class="errand-place-ic" style="background:#e0e7ff;color:#4f46e5;"><i class="bi bi-geo-alt-fill"></i></div>
                     <div style="flex:1;min-width:0;">
-                        <div class="errand-place-name">مكان آخر</div>
+                        <div class="errand-place-name" style="color:#4f46e5;">مكان آخر</div>
                         <div class="errand-place-meta">حدّد الموقع على الخريطة بنفسك</div>
                     </div>
-                    <i class="bi bi-chevron-left text-muted"></i>
+                    <i class="bi bi-chevron-left" style="color:#4f46e5;"></i>
                 </div>`;
 
             try {
                 const city = (typeof CityService !== 'undefined') ? CityService.getCity() : 'Khartoum';
                 const res = await fetch(`${API_URL}/api/places?errand=1&city=${encodeURIComponent(city)}`);
-                const places = res.ok ? await res.json() : [];
-                const curated = (places || []).map(p => {
-                    const lat = (p.location && p.location.lat) || '';
-                    const lng = (p.location && p.location.lng) || '';
-                    return `
-                    <div class="errand-place" onclick="startErrand('${p._id}', '${esc_(p.name).replace(/'/g, "&#39;")}', '${lat}', '${lng}')">
-                        <div class="errand-place-ic"><i class="bi bi-shop"></i></div>
-                        <div style="flex:1;min-width:0;">
-                            <div class="errand-place-name">${esc_(p.name)}</div>
-                            <div class="errand-place-meta">${esc_(p.address || 'محل معروف')}</div>
-                        </div>
-                        <i class="bi bi-chevron-left text-muted"></i>
-                    </div>`; }).join('');
-                list.innerHTML = curated + customCard;
+                _errandAllPlaces = res.ok ? (await res.json() || []) : [];
+                renderErrandList(_errandAllPlaces);
             } catch (e) {
-                list.innerHTML = customCard; // الشبكة فشلت — يبقى خيار "مكان آخر"
+                _errandAllPlaces = [];
+                list.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-wifi-off" style="font-size:2rem;color:#f87171;"></i>
+                        <div class="text-muted mt-2" style="font-size:13px;">تعذّر تحميل المحلات</div>
+                    </div>
+                    ${_errandCustomCard}`;
             }
         };
 

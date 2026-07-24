@@ -20,9 +20,13 @@ body.dark-mode {
 }
 
 /* --- Body & Background --- */
+html:has(body.dark-mode) {
+    background-color: var(--bg-color) !important;
+}
 body.dark-mode {
     background-color: var(--bg-color) !important;
     color: var(--text-dark) !important;
+    min-height: 100vh;
 }
 
 body.dark-mode .bg-light {
@@ -600,7 +604,7 @@ body.dark-mode [class*="col-"] {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     cursor: pointer;
     transition: all 0.3s ease;
-    z-index: 9999;
+    z-index: 1000;
     display: flex !important;
     align-items: center;
     justify-content: center;
@@ -1398,6 +1402,11 @@ body.dark-mode .notif-icon.alert {
 /* --- merchant-orders.html --- */
 body.dark-mode .page-header {
     background: var(--card-bg) !important;
+}
+body.dark-mode .filter-tab {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
 }
 body.dark-mode .filter-tab .cnt {
     background: #374151 !important;

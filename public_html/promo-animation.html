@@ -17,7 +17,7 @@
         html, body {
             margin: 0; padding: 0;
             background: #02050a;
-            width: 100vw; height: 100vh; height: 100dvh;
+            width: 100%; height: 100%; height: 100dvh;
             overflow: hidden;
             font-family: 'Almarai', 'Cairo', sans-serif;
         }
@@ -35,12 +35,12 @@
         }
         
         .ambient-blob {
-            position: absolute; border-radius: 50%; filter: blur(80px);
-            opacity: 0.6; pointer-events: none; will-change: transform;
+            position: absolute; border-radius: 50%;
+            opacity: 0.6; pointer-events: none; will-change: transform; transform: translateZ(0);
         }
-        .blob1 { width: 600px; height: 600px; background: #077a54; top: 10%; left: 20%; animation: float 14s ease-in-out infinite alternate; }
-        .blob2 { width: 500px; height: 500px; background: #0c4a3b; bottom: 10%; right: 10%; animation: float 18s ease-in-out infinite alternate-reverse; }
-        .blob3 { width: 700px; height: 700px; background: rgba(245, 166, 35, 0.15); top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .blob1 { width: 600px; height: 600px; background: radial-gradient(circle, #077a54 0%, rgba(7,122,84,0) 70%); top: 10%; left: 20%; animation: float 14s ease-in-out infinite alternate; }
+        .blob2 { width: 500px; height: 500px; background: radial-gradient(circle, #0c4a3b 0%, rgba(12,74,59,0) 70%); bottom: 10%; right: 10%; animation: float 18s ease-in-out infinite alternate-reverse; }
+        .blob3 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(245, 166, 35, 0.25) 0%, rgba(245, 166, 35, 0) 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); }
 
         @keyframes float {
             0% { transform: translate(0, 0) scale(1); }
@@ -49,8 +49,10 @@
 
         #stage {
             position: relative; z-index: 10;
-            overflow: hidden; flex: none; transform-origin: center center;
-            /* Glassmorphism stage background */
+            /* clip-path بدلاً من overflow:hidden — يحافظ على التحويلات ثلاثية الأبعاد في Safari/WebKit */
+            clip-path: inset(0);
+            -webkit-clip-path: inset(0);
+            flex: none; transform-origin: center center;
             background: rgba(255, 255, 255, 0.01);
             box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
         }
@@ -94,11 +96,11 @@
         .headline .w { display: inline-block; white-space: pre; will-change: transform; transform: translateY(120%); }
 
         /* ════════════ 3D الهاتف ════════════ */
-        .phone-slot { position: absolute; z-index: 10; transform-style: preserve-3d; perspective: 3000px; }
+        .phone-slot { position: absolute; z-index: 10; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; perspective: 3000px; -webkit-perspective: 3000px; }
         #stage.v .phone-slot { left: 50%; top: 540px; transform: translateX(-50%) scale(1.38); transform-origin: top center; }
         #stage.h .phone-slot { left: 350px; top: 50%; transform: translateY(-50%) scale(1.02); transform-origin: center; }
 
-        .device-container { transform-style: preserve-3d; will-change: transform; opacity: 0; }
+        .device-container { transform-style: preserve-3d; -webkit-transform-style: preserve-3d; will-change: transform; opacity: 0; }
         
         .device-frame {
             width: 375px; height: 812px; background: #f0f2f5; border-radius: 46px;
@@ -140,9 +142,11 @@
         /* ════════════ مؤشر اللمس والموجة الصادمة ════════════ */
         #cursor {
             width: 38px; height: 38px; background: rgba(255,255,255,0.4); border: 2px solid rgba(255,255,255,0.9);
-            border-radius: 50%; position: absolute; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            pointer-events: none; opacity: 0; backdrop-filter: blur(2px);
+            border-radius: 50%; position: absolute; top: 0; left: 0; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            pointer-events: none; opacity: 0; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
         }
+        .swal2-container { position: absolute !important; inset: 0 !important; z-index: 99999 !important; }
+        .swal2-popup { font-size: 0.85rem !important; max-width: 90% !important; padding: 1em !important; }
         #cursor::after { content: ''; position: absolute; inset: 11px; background: white; border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
         .shockwave {
             position: absolute; border: 4px solid rgba(255,255,255,0.9); border-radius: 50%;
@@ -274,14 +278,14 @@
         .end-sub { color: #7ee2b8; font-weight: 700; text-align: center; margin-top: -14px; font-size: 30px; letter-spacing: 1px; }
 
         /* ════════════ طبقة التحكم ════════════ */
-        #controls { position: absolute; inset: 0; background: rgba(2,5,10,0.96); backdrop-filter: blur(15px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; z-index: 2000; color: white; text-align: center; }
-        #controls h1 { font-size: 30px; font-weight: 800; margin: 0; background: linear-gradient(90deg, #fff, #a1b8cd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        #controls .hint { color: #7d93a8; font-size: 15px; max-width: 500px; line-height: 1.9; margin: 0; }
-        .mode-switch { display: flex; gap: 12px; }
-        .mode-btn { background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px 28px; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s; }
+        #controls { position: fixed; inset: 0; background: rgba(2,5,10,0.96); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 2000; color: white; text-align: center; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 24px 16px; box-sizing: border-box; }
+        #controls h1 { font-size: 26px; font-weight: 800; margin: 0; background: linear-gradient(90deg, #fff, #a1b8cd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #controls .hint { color: #7d93a8; font-size: 14px; max-width: 500px; line-height: 1.8; margin: 0; }
+        .mode-switch { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .mode-btn { background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 22px; font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; }
         .mode-btn.active { background: #04553A; border-color: #077a54; color: white; box-shadow: 0 10px 25px rgba(4,85,58,0.4); }
         #btnSound { background: transparent; color: #F5A623; border: 1px solid rgba(245,166,35,0.5); border-radius: 14px; padding: 10px 24px; font-weight: 700; font-size: 14px; cursor: pointer; }
-        #btnPlay { background: linear-gradient(135deg, #077a54, #04553A); color: white; border: none; width: 100px; height: 100px; border-radius: 50%; font-size: 42px; cursor: pointer; box-shadow: 0 20px 50px rgba(7,122,84,0.5); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; margin-top: 10px; }
+        #btnPlay { background: linear-gradient(135deg, #077a54, #04553A); color: white; border: none; width: 84px; height: 84px; border-radius: 50%; font-size: 36px; cursor: pointer; box-shadow: 0 20px 50px rgba(7,122,84,0.5); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; margin-top: 6px; flex: none; }
         #btnPlay:hover { transform: scale(1.08); }
         
         #countdown { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1500; color: white; font-size: 240px; font-weight: 800; text-shadow: 0 20px 50px rgba(0,0,0,0.8); pointer-events: none; }
@@ -505,13 +509,20 @@
     const rippleContainer = document.getElementById('rippleContainer');
     const deviceFrame = document.getElementById('deviceFrame');
 
+    // كشف الأجهزة المحمولة لتبسيط الرسوم المتحركة
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 800);
+
     function fitStage() {
         const sw = stage.classList.contains('v') ? 1080 : 1920;
         const sh = stage.classList.contains('v') ? 1920 : 1080;
-        const w = window.innerWidth, h = window.innerHeight;
+        const w = window.innerWidth || document.documentElement.clientWidth;
+        const h = window.innerHeight || document.documentElement.clientHeight;
         stage.style.transform = `scale(${Math.min(w / sw, h / sh)})`;
     }
-    window.addEventListener('resize', fitStage); fitStage();
+    window.addEventListener('resize', fitStage);
+    window.addEventListener('orientationchange', () => setTimeout(fitStage, 300));
+    if (window.visualViewport) { window.visualViewport.addEventListener('resize', fitStage); }
+    fitStage();
 
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -580,13 +591,36 @@
         };
     })();
 
-    function frameScale() { return deviceFrame.getBoundingClientRect().width / deviceFrame.offsetWidth; }
+    function getTargetCenterInDevice(targetId) {
+        const target = document.getElementById(targetId);
+        if (!target) return { x: 187, y: 406 };
+        let top = 0, left = 0;
+        let current = target;
+        while (current && current !== deviceFrame) {
+            top += current.offsetTop || 0;
+            left += current.offsetLeft || 0;
+            current = current.offsetParent;
+        }
+        return {
+            x: left + (target.offsetWidth || 0) / 2,
+            y: top + (target.offsetHeight || 0) / 2
+        };
+    }
+
     const moveCursor = (targetId, duration = 1, offsetX = 0, offsetY = 0) => {
         const tl = gsap.timeline();
         tl.to(cursor, {
             duration, ease: 'power3.inOut',
-            x: () => { const t = document.getElementById(targetId).getBoundingClientRect(); const f = deviceFrame.getBoundingClientRect(); return (t.left - f.left + t.width / 2) / frameScale() + offsetX; },
-            y: () => { const t = document.getElementById(targetId).getBoundingClientRect(); const f = deviceFrame.getBoundingClientRect(); return (t.top - f.top + t.height / 2) / frameScale() + offsetY; }
+            x: () => {
+                if (targetId === 'deviceFrame') return 187.5 + offsetX;
+                const center = getTargetCenterInDevice(targetId);
+                return center.x - 19 + offsetX;
+            },
+            y: () => {
+                if (targetId === 'deviceFrame') return 406 + offsetY;
+                const center = getTargetCenterInDevice(targetId);
+                return center.y - 19 + offsetY;
+            }
         });
         return tl;
     };
@@ -595,15 +629,14 @@
         const tl = gsap.timeline();
         tl.call(() => {
             sfx.tap();
-            const x = gsap.getProperty(cursor, 'x'), y = gsap.getProperty(cursor, 'y');
+            const x = gsap.getProperty(cursor, 'x') + 19, y = gsap.getProperty(cursor, 'y') + 19;
             
             if (isShockwave) {
                 sfx.shock();
                 const shock = document.createElement('div'); shock.className = 'shockwave';
                 shock.style.left = `${x}px`; shock.style.top = `${y}px`; rippleContainer.appendChild(shock);
                 gsap.fromTo(shock, {scale: 0, opacity: 1, borderWidth: 8}, {scale: 12, opacity: 0, borderWidth: 0, duration: 0.8, ease: 'expo.out', onComplete: () => shock.remove()});
-                // Background blur flash
-                gsap.fromTo('#stage', {filter: 'brightness(1.5) blur(4px)'}, {filter: 'brightness(1) blur(0px)', duration: 0.6});
+                gsap.fromTo('#stage', {filter: 'brightness(1.4)'}, {filter: 'brightness(1)', duration: 0.6});
             } else {
                 const ripple = document.createElement('div'); ripple.className = 'ripple'; ripple.style.position = 'absolute'; ripple.style.width = '40px'; ripple.style.height = '40px'; ripple.style.border = '3px solid white'; ripple.style.borderRadius = '50%';
                 ripple.style.left = `${x - 20}px`; ripple.style.top = `${y - 20}px`; rippleContainer.appendChild(ripple);
@@ -611,7 +644,7 @@
             }
         });
         tl.to(cursor, { scale: 0.6, duration: 0.1 }).to(cursor, { scale: 1, duration: 0.15 });
-        if (targetId) { tl.to('#'+targetId, { scale: 0.94, duration: 0.1 }, '-=0.2').to('#'+targetId, { scale: 1, duration: 0.15, ease: 'back.out(2)' }); }
+        if (targetId && targetId !== 'deviceFrame') { tl.to('#'+targetId, { scale: 0.94, duration: 0.1 }, '-=0.2').to('#'+targetId, { scale: 1, duration: 0.15, ease: 'back.out(2)' }); }
         return tl;
     };
 
@@ -648,23 +681,30 @@
         
         // ── Scene 1: Cinematic Intro & 3D Spiral Entrance ──
         tl.set('#introCard', { visibility: 'visible', opacity: 1 })
-          .fromTo('#introCard img', { opacity: 0, scale: 0, rotationY: 90 }, { opacity: 1, scale: 1, rotationY: 0, duration: 1.2, ease: 'elastic.out(1, 0.6)' })
+          .fromTo('#introCard img', { opacity: 0, scale: 0, rotationY: isMobile ? 0 : 90 }, { opacity: 1, scale: 1, rotationY: 0, duration: 1.2, ease: 'elastic.out(1, 0.6)' })
           .fromTo('#introCard .glass-badge', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'expo.out' }, '-=0.8')
-          .fromTo('#introCard .t1', { opacity: 0, y: 40, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, ease: 'expo.out' }, '-=0.6')
+          .fromTo('#introCard .t1', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1, ease: 'expo.out' }, '-=0.6')
           .fromTo('#introCard .t2', { opacity: 0 }, { opacity: 1, duration: 1 }, '-=0.5');
           
-        tl.to('#introCard', { opacity: 0, scale: 1.5, filter: 'blur(20px)', duration: 0.8, ease: 'power4.in' }, '+=1.5')
+        tl.to('#introCard', { opacity: 0, scale: 1.5, duration: 0.8, ease: 'power4.in' }, '+=1.5')
           .set('#introCard', { visibility: 'hidden' });
 
         tl.call(() => sfx.ambient())
           .set('#phoneSlot', { opacity: 1 })
-          .call(() => sfx.cameraMove())
-          // 3D Spiral Entrance
-          .fromTo('.device-container', 
-              { z: -2500, rotationY: -180, rotationX: 45, rotationZ: -20, opacity: 0 }, 
-              { z: 0, rotationY: 10, rotationX: 5, rotationZ: 0, opacity: 1, duration: 2.2, ease: 'expo.out', force3D: true })
-          .to('.device-container', { rotationY: 0, rotationX: 0, duration: 1.5, ease: 'power2.inOut' }, '-=1')
-          .set(cursor, { x: 190, y: 690 });
+          .call(() => sfx.cameraMove());
+
+        // دخول الهاتف: ثلاثي الأبعاد على سطح المكتب، ثنائي على الموبايل
+        if (isMobile) {
+            tl.fromTo('.device-container',
+                { opacity: 0, scale: 0.5, y: 80 },
+                { opacity: 1, scale: 1, y: 0, duration: 1.5, ease: 'expo.out' });
+        } else {
+            tl.fromTo('.device-container',
+                { z: -2500, rotationY: -180, rotationX: 45, rotationZ: -20, opacity: 0 },
+                { z: 0, rotationY: 10, rotationX: 5, rotationZ: 0, opacity: 1, duration: 2.2, ease: 'expo.out', force3D: true })
+              .to('.device-container', { rotationY: 0, rotationX: 0, duration: 1.5, ease: 'power2.inOut' }, '-=1');
+        }
+        tl.set(cursor, { x: 190, y: 690 });
 
         // ── Scene 2: Interactive Shockwave ──
         tl.add(showText('#mt1'), '-=0.5');
@@ -684,9 +724,13 @@
         // ── Scene 3: WhatsApp Elastic Bubbles ──
         tl.add(hideText('#mt1'));
         tl.call(() => { sfx.cameraMove(); flashScreen('rgba(255,255,255,0.1)', 0.3); });
-        tl.to('.device-container', { z: 150, rotationY: -5, duration: 0.8, ease: 'power2.inOut' }, '<');
+        if (!isMobile) {
+            tl.to('.device-container', { z: 150, rotationY: -5, duration: 0.8, ease: 'power2.inOut' }, '<');
+        }
         tl.add(switchScreen('scene0', 'scene1'), '<');
-        tl.to('.device-container', { z: 0, rotationY: 0, duration: 0.8, ease: 'power2.inOut' });
+        if (!isMobile) {
+            tl.to('.device-container', { z: 0, rotationY: 0, duration: 0.8, ease: 'power2.inOut' });
+        }
         
         tl.add(showText('#mt2'), '-=0.5');
         // Elastic Bubbles
@@ -732,10 +776,12 @@
 
         tl.call(() => {
             sfx.success();
-            confetti({ particleCount: 300, spread: 100, origin: { y: 0.6 }, colors: ['#04553A', '#F5A623', '#22c55e'] });
+            confetti({ particleCount: isMobile ? 120 : 300, spread: 100, origin: { y: 0.6 }, colors: ['#04553A', '#F5A623', '#22c55e'] });
             Swal.fire({
                 icon: 'success', title: 'الآن تم الطلب!', html: `الرجاء متابعة الطلب مع المندوب<br><small class="text-muted">رقم الطلب: #1234</small>`,
-                confirmButtonText: 'متابعة الطلب', confirmButtonColor: '#04553A', target: '#deviceFrame', customClass: { popup: 'rounded-4' }, animation: false
+                confirmButtonText: 'متابعة الطلب', confirmButtonColor: '#04553A',
+                target: isMobile ? document.body : '#deviceFrame',
+                customClass: { popup: 'rounded-4' }, animation: false
             });
             gsap.fromTo('.swal2-popup', { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.8, ease: 'elastic.out(1, 0.5)' });
         });
@@ -757,9 +803,13 @@
         tl.to(cursor, { opacity: 0, duration: 0.3 }, '<');
         
         // Phone recedes into background
-        tl.call(() => sfx.cameraMove())
-          .to('.device-container', { z: -3000, rotationY: 180, opacity: 0, duration: 1.5, ease: 'expo.inOut' }, '<')
-          .to('.watermark', { opacity: 0, duration: 0.4 }, '<');
+        tl.call(() => sfx.cameraMove());
+        if (isMobile) {
+            tl.to('.device-container', { opacity: 0, scale: 0.3, duration: 1.2, ease: 'expo.inOut' }, '<');
+        } else {
+            tl.to('.device-container', { z: -3000, rotationY: 180, opacity: 0, duration: 1.5, ease: 'expo.inOut' }, '<');
+        }
+        tl.to('.watermark', { opacity: 0, duration: 0.4 }, '<');
           
         tl.set('#endCard', { visibility: 'visible' })
           .call(() => { sfx.success(); flashScreen('rgba(255,255,255,0.2)', 0.4); })
@@ -783,10 +833,15 @@
         return tl;
     }
 
+    // تفعيل الصوت عند أول تفاعل على الموبايل
+    ['touchstart', 'touchend', 'click'].forEach(ev =>
+        document.addEventListener(ev, () => sfx.unlock(), { once: true })
+    );
+
     const btnPlay = document.getElementById('btnPlay');
     btnPlay.addEventListener('click', async () => {
         btnPlay.disabled = true; document.body.classList.add('playing'); sfx.unlock();
-        gsap.to('#controls', { opacity: 0, duration: 0.4, onComplete: () => document.getElementById('controls').style.display = 'none' });
+        gsap.to('#controls', { opacity: 0, duration: 0.4, onComplete: () => { const c = document.getElementById('controls'); c.style.display = 'none'; c.style.pointerEvents = 'none'; } });
 
         const cd = document.getElementById('countdown');
         const cdTl = gsap.timeline();

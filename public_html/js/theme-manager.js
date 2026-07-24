@@ -104,7 +104,7 @@ const ThemeManager = {
         if (document.body.classList.contains('dark-mode')) {
             button.innerHTML = '<i class="bi bi-sun-fill"></i>';
         } else {
-            button.innerHTML = '<i class="bi bi-moon-stars-fill"></i>';
+            button.innerHTML = '<i class="bi bi-moon-fill"></i>';
         }
     },
 

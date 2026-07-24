@@ -116,11 +116,11 @@ body.map-active {
    ========================================= */
 
 /* رفع z-index الـ modal فوق الـ nav (9999) */
-.modal {
+.modal, .offcanvas {
     z-index: 10000 !important;
 }
 
-.modal-backdrop {
+.modal-backdrop, .offcanvas-backdrop {
     z-index: 9999 !important;
 }
 

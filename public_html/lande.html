@@ -2000,7 +2000,7 @@
                     </button>
                     <!-- Theme Toggle -->
                     <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme">
-                        <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+                        <i class="bi bi-moon-fill" id="themeIcon"></i>
                         <span id="themeLabel" data-i18n="theme_dark">فاتح</span>
                     </button>
                     <a href="https://play.google.com/store/apps/details?id=com.wajeezsd.app" class="btn-nav-dl" data-i18n="nav_download">
@@ -2022,7 +2022,7 @@
                     style="display:flex;gap:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);margin-top:4px">
                     <button class="toggle-btn" style="flex:1" onclick="toggleLang()"><i class="bi bi-translate"></i>
                         <span id="langLabelMob">EN</span></button>
-                    <button class="toggle-btn" style="flex:1" onclick="toggleTheme()"><i class="bi bi-moon-stars-fill"
+                    <button class="toggle-btn" style="flex:1" onclick="toggleTheme()"><i class="bi bi-moon-fill"
                             id="themeIconMob"></i> <span id="themeLabelMob" data-i18n="theme_dark">فاتح</span></button>
                 </div>
                 <a href="https://play.google.com/store/apps/details?id=com.wajeezsd.app" onclick="closeMobileMenu()" style="color: var(--green-light); font-weight:800;"
@@ -2778,7 +2778,7 @@
                 const isDark = currentTheme === 'dark';
                 // show what clicking will switch TO
                 const label = isDark ? t.theme_dark : t.theme_light;
-                const icon = isDark ? 'bi-sun-fill' : 'bi-moon-stars-fill';
+                const icon = isDark ? 'bi-sun-fill' : 'bi-moon-fill';
                 ['themeLabel', 'themeLabelMob'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.textContent = label;

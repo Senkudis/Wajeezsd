@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>وجيز — العرض التسويقي الشامل لمزايا التطبيق</title>
+
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            background: #02050a;
+            width: 100%; height: 100%; height: 100dvh;
+            overflow: hidden;
+            font-family: 'Almarai', 'Cairo', sans-serif;
+            color: #ffffff;
+        }
+
+        /* ════════════ الخلفية والمحيط السينمائي ════════════ */
+        #stageWrapper { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+        
+        #mesh-bg {
+            position: absolute; inset: -20%; width: 140%; height: 140%;
+            background: radial-gradient(circle at 50% 50%, #04553A 0%, #020c08 60%, #010403 100%);
+            background-size: 100% 100%;
+            z-index: 1; transform-origin: center; will-change: transform;
+        }
+        
+        .ambient-blob {
+            position: absolute; border-radius: 50%;
+            opacity: 0.55; pointer-events: none; will-change: transform; transform: translateZ(0);
+        }
+        .blob1 { width: 600px; height: 600px; background: radial-gradient(circle, #077a54 0%, rgba(7,122,84,0) 70%); top: 10%; left: 15%; animation: float 14s ease-in-out infinite alternate; }
+        .blob2 { width: 550px; height: 550px; background: radial-gradient(circle, #0c4a3b 0%, rgba(12,74,59,0) 70%); bottom: 10%; right: 10%; animation: float 18s ease-in-out infinite alternate-reverse; }
+        .blob3 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(245, 166, 35, 0.22) 0%, rgba(245, 166, 35, 0) 70%); top: 40%; left: 50%; transform: translate(-50%, -50%); }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(80px, 40px) scale(1.08); }
+        }
+
+        #stage {
+            position: relative; z-index: 10;
+            clip-path: inset(0); -webkit-clip-path: inset(0);
+            flex: none; transform-origin: center center;
+            background: rgba(255, 255, 255, 0.01);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
+        }
+        #stage.v { width: 1080px; height: 1920px; }
+        #stage.h { width: 1920px; height: 1080px; }
+
+        .grid-lines {
+            position: absolute; inset: 0; z-index: 2;
+            background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 120px 120px; pointer-events: none;
+        }
+        .vignette {
+            position: absolute; inset: 0; z-index: 40;
+            background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(1,3,5,0.8) 100%);
+            pointer-events: none;
+        }
+        body.playing { cursor: none; }
+
+        /* ════════════ شريط تنقل الأطراف الثلاثة (Persona Switcher) ════════════ */
+        .persona-tabs-bar {
+            position: absolute; top: 35px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; gap: 14px; background: rgba(15, 23, 42, 0.7);
+            padding: 8px 12px; border-radius: 40px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        }
+        .persona-btn {
+            background: transparent; color: #a1b8cd; border: none; border-radius: 30px;
+            padding: 10px 26px; font-weight: 800; font-size: 17px; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 8px;
+        }
+        .persona-btn.active {
+            background: linear-gradient(135deg, #04553A, #077a54); color: #ffffff;
+            box-shadow: 0 8px 20px rgba(4,85,58,0.5); transform: scale(1.04);
+        }
+        .persona-btn.active.merchant-tab { background: linear-gradient(135deg, #b45309, #f59e0b); }
+        .persona-btn.active.captain-tab { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+
+        /* ════════════ النصوص الإعلانية (Masked Headlines) ════════════ */
+        .text-band { position: absolute; display: flex; align-items: center; justify-content: center; z-index: 50; }
+        #stage.v .text-band { top: 130px; right: 60px; left: 60px; height: 360px; }
+        #stage.h .text-band { top: 0; bottom: 0; right: 70px; width: 700px; }
+
+        .mtext { position: absolute; width: 100%; text-align: center; opacity: 0; visibility: hidden; }
+        .mtext.active { opacity: 1; visibility: visible; }
+        .mtext .accent {
+            width: 70px; height: 6px; border-radius: 3px;
+            background: linear-gradient(90deg, #0e9f6e, #F5A623);
+            margin: 0 auto 24px; box-shadow: 0 0 15px rgba(14, 159, 110, 0.6);
+        }
+        .mtext .headline { color: #ffffff; font-weight: 800; line-height: 1.5; letter-spacing: -0.5px; text-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+        .mtext .headline .hl { color: #F5A623; text-shadow: 0 0 25px rgba(245, 166, 35, 0.4); }
+        .mtext .subline { color: #a1b8cd; font-weight: 600; line-height: 1.8; margin-top: 16px; font-size: 30px; }
+        
+        #stage.v .headline { font-size: 54px; }
+        #stage.h .headline { font-size: 48px; }
+
+        .mask-wrap { display: inline-flex; overflow: hidden; vertical-align: top; padding-bottom: 10px; margin-bottom: -10px; }
+        .headline .w { display: inline-block; white-space: pre; will-change: transform; transform: translateY(120%); }
+
+        /* ════════════ 3D إطار الهاتف ════════════ */
+        .phone-slot { position: absolute; z-index: 10; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; perspective: 3000px; -webkit-perspective: 3000px; }
+        #stage.v .phone-slot { left: 50%; top: 540px; transform: translateX(-50%) scale(1.36); transform-origin: top center; }
+        #stage.h .phone-slot { left: 340px; top: 50%; transform: translateY(-50%) scale(1.02); transform-origin: center; }
+
+        .device-container { transform-style: preserve-3d; -webkit-transform-style: preserve-3d; will-change: transform; opacity: 0; }
+        
+        .device-frame {
+            width: 375px; height: 812px; background: #0f172a; border-radius: 46px;
+            border: 4px solid #1e293b; position: relative; overflow: hidden; transform-style: preserve-3d;
+            box-shadow: 0 0 0 10px #090d16, 0 40px 100px rgba(0,0,0,0.9);
+        }
+        .device-frame::before {
+            content: ''; position: absolute; inset: -14px; border-radius: 56px;
+            background: linear-gradient(145deg, #2a2d38 0%, #050608 100%);
+            transform: translateZ(-15px); z-index: -1;
+            box-shadow: inset 0 0 2px rgba(255,255,255,0.1), 0 30px 80px rgba(0,0,0,0.8);
+        }
+
+        /* Specular Glass Highlight */
+        .screen-glare {
+            position: absolute; inset: 0; z-index: 999; pointer-events: none;
+            background: linear-gradient(115deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 30%, transparent 50%);
+            mix-blend-mode: overlay;
+        }
+
+        /* ════════════ مؤشر اللمس والموجة الصادمة ════════════ */
+        #cursor {
+            width: 38px; height: 38px; background: rgba(255,255,255,0.4); border: 2px solid rgba(255,255,255,0.9);
+            border-radius: 50%; position: absolute; top: 0; left: 0; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            pointer-events: none; opacity: 0; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+        }
+        #cursor::after { content: ''; position: absolute; inset: 11px; background: white; border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
+        .shockwave {
+            position: absolute; border: 4px solid rgba(255,255,255,0.9); border-radius: 50%;
+            pointer-events: none; z-index: 9998; transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px rgba(255,255,255,0.5), inset 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        /* ════════════ شاشات التطبيق الأصلية ════════════ */
+        .screen { position: absolute; inset: 0; display: none; flex-direction: column; font-family: 'Cairo', sans-serif; background: #f8fafc; color: #0f172a; }
+        .screen.active { display: flex; }
+        .status-bar { height: 42px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; font-size: 13px; font-weight: 700; position: absolute; top: 0; width: 100%; z-index: 100; color: #fff; }
+        .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 118px; height: 26px; background: #0b0b0f; border-radius: 20px; box-shadow: inset 0 -2px 5px rgba(255,255,255,0.1); }
+
+        /* 📱 شاشة العميل: تصفح وشراء + وصل-لي + تتبع */
+        .client-header { background: linear-gradient(135deg, #04553A, #077a54); color: white; padding: 50px 16px 16px; }
+        .search-bar { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 8px 14px; color: white; font-size: 13px; display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .cat-chip { background: white; border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 700; color: #04553A; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        .wassili-box { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 16px; padding: 14px; margin: 12px 14px; box-shadow: 0 8px 20px rgba(245,158,11,0.3); }
+        .pin-node { width: 10px; height: 10px; border-radius: 50%; background: #fff; display: inline-block; margin-left: 6px; }
+
+        /* 🏪 شاشة التاجر: لوحة التحكم + POS + المبيعات */
+        .merchant-header-bar { background: linear-gradient(135deg, #1e1b4b, #311b92); color: white; padding: 50px 16px 16px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px 14px; }
+        .m-stat { background: white; border-radius: 12px; padding: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .m-stat .v { font-weight: 900; font-size: 16px; color: #311b92; }
+        .m-stat .l { font-size: 10px; color: #64748b; margin-top: 2px; }
+
+        .pos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 10px 14px; }
+        .pos-item { background: white; border-radius: 12px; padding: 10px; border: 1px solid #e2e8f0; text-align: center; }
+
+        /* 🛵 شاشة الكابتن: رادار الطلبات + الأرباح */
+        .captain-header-bar { background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 50px 16px 16px; }
+        .radar-card { background: white; border-radius: 16px; padding: 14px; margin: 10px 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border-right: 4px solid #0284c7; }
+        .wallet-banner { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; border-radius: 16px; padding: 14px; margin: 12px 14px; }
+
+        /* ════════════ شبكة المزايا التفاعلية في الأسفل (Feature Cards Grid) ════════════ */
+        .features-grid-bar {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; gap: 20px; max-width: 1020px; width: 90%; justify-content: center;
+        }
+        .feat-card {
+            flex: 1; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 18px; color: white;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); transition: transform 0.3s, border-color 0.3s;
+        }
+        .feat-card:hover { transform: translateY(-4px); border-color: rgba(245, 166, 35, 0.4); }
+        .feat-card i { font-size: 26px; color: #F5A623; margin-bottom: 8px; display: inline-block; }
+        .feat-card .title { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+        .feat-card .desc { font-size: 12.5px; color: #94a3b8; line-height: 1.6; }
+
+        /* ════════════ طبقة التحكم الرئيسية ════════════ */
+        #controls {
+            position: fixed; inset: 0; background: rgba(2,5,10,0.96); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+            z-index: 2000; color: white; text-align: center; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 24px 16px; box-sizing: border-box;
+        }
+        #controls h1 { font-size: 28px; font-weight: 900; margin: 0; background: linear-gradient(90deg, #fff, #a1b8cd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #controls .hint { color: #7d93a8; font-size: 14px; max-width: 540px; line-height: 1.8; margin: 0; }
+        .mode-switch { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .mode-btn { background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 22px; font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; }
+        .mode-btn.active { background: #04553A; border-color: #077a54; color: white; box-shadow: 0 10px 25px rgba(4,85,58,0.4); }
+        #btnSound { background: transparent; color: #F5A623; border: 1px solid rgba(245,166,35,0.5); border-radius: 14px; padding: 10px 24px; font-weight: 700; font-size: 14px; cursor: pointer; }
+        #btnPlay { background: linear-gradient(135deg, #077a54, #04553A); color: white; border: none; width: 88px; height: 88px; border-radius: 50%; font-size: 38px; cursor: pointer; box-shadow: 0 20px 50px rgba(7,122,84,0.5); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; margin-top: 6px; flex: none; }
+        #btnPlay:hover { transform: scale(1.08); }
+        
+        #countdown { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1500; color: white; font-size: 220px; font-weight: 900; text-shadow: 0 20px 50px rgba(0,0,0,0.8); pointer-events: none; }
+        #btnReplay { background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 14px; padding: 12px 30px; font-weight: 800; cursor: pointer; position: fixed; bottom: 20px; left: 20px; z-index: 3000; opacity: 0; pointer-events: none; }
+        .swal2-container { position: absolute !important; inset: 0 !important; z-index: 99999 !important; }
+        .swal2-popup { font-size: 0.85rem !important; max-width: 90% !important; padding: 1em !important; }
+    </style>
+</head>
+<body>
+
+<div id="stageWrapper">
+    <div id="stage" class="v">
+        <!-- Mesh Background -->
+        <div id="mesh-bg"></div>
+        <div class="ambient-blob blob1"></div>
+        <div class="ambient-blob blob2"></div>
+        <div class="ambient-blob blob3"></div>
+        <div class="grid-lines"></div>
+        <div class="vignette"></div>
+        
+        <div id="flashLayer" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:300;"></div>
+
+        <!-- 🏷️ شريط اختيار الطرف (Persona Switcher Bar) -->
+        <div class="persona-tabs-bar" id="personaNav">
+            <button class="persona-btn active" data-persona="client" id="tabClient"><i class="bi bi-person-fill"></i> عالم العميل</button>
+            <button class="persona-btn merchant-tab" data-persona="merchant" id="tabMerchant"><i class="bi bi-shop"></i> عالم التاجر (ERP)</button>
+            <button class="persona-btn captain-tab" data-persona="captain" id="tabCaptain"><i class="bi bi-bicycle"></i> عالم الكابتن</button>
+        </div>
+
+        <!-- 📢 النص الإعلاني السينمائي فوق الهاتف -->
+        <div class="text-band">
+            <!-- نصوص العميل -->
+            <div class="mtext active" id="text-client-1">
+                <div class="accent"></div>
+                <div class="headline">تسوق محلي <span class="hl">سريع وذكي</span></div>
+                <div class="subline">تصفح أقرب المتاجر، اختر المنتجات، وفاوض السعر بسلاسة متناهية</div>
+            </div>
+            <div class="mtext" id="text-client-2">
+                <div class="accent"></div>
+                <div class="headline">خدمة <span class="hl">وصل-لي</span> (طرد من أ إلى ب)</div>
+                <div class="subline">أرسل أو استلم طرودك وأغراضك بين أي موقعين على الخريطة بنقرة زر</div>
+            </div>
+            <div class="mtext" id="text-client-3">
+                <div class="accent"></div>
+                <div class="headline">تتبع حي <span class="hl">ودردشة فورية</span></div>
+                <div class="subline">شاهد مسار الكابتن على الخريطة مباشرة مع تواصل كتابي وصوتي لحظي</div>
+            </div>
+
+            <!-- نصوص التاجر -->
+            <div class="mtext" id="text-merchant-1">
+                <div class="accent"></div>
+                <div class="headline">تنبيهات صوتية حية <span class="hl">ولوحة تحكم التاجر</span></div>
+                <div class="subline">جرس تنبيه فوري للطلبات الجديدة وبانر ذكي لمنع نفاد المخزون</div>
+            </div>
+            <div class="mtext" id="text-merchant-2">
+                <div class="accent"></div>
+                <div class="headline">نقطة بيع كاشير <span class="hl">(Walk-in POS)</span></div>
+                <div class="subline">بيع مباشر للزبائن داخل المحل مع خصم مخزوني فوري وتوريد شحنات</div>
+            </div>
+            <div class="mtext" id="text-merchant-3">
+                <div class="accent"></div>
+                <div class="headline">تقارير مالية <span class="hl">ودفتر أستاذ (ERP)</span></div>
+                <div class="subline">حساب صافي الأرباح، تكلفة البضاعة المباعة، والمصروفات بدقة عالية</div>
+            </div>
+
+            <!-- نصوص الكابتن -->
+            <div class="mtext" id="text-captain-1">
+                <div class="accent"></div>
+                <div class="headline">رادار الطلبات القريبة <span class="hl">وعروض التوصيل</span></div>
+                <div class="subline">تنبيهات فورية بالطلبات المتاحة حولك مع إمكانية تقديم عرضك المالي</div>
+            </div>
+            <div class="mtext" id="text-captain-2">
+                <div class="accent"></div>
+                <div class="headline">محفظة الكابتن <span class="hl">وسداد المديونية</span></div>
+                <div class="subline">متابعة الأرباح اليومية مع رفع إشعار تحويل (بنكك) لإلغاء الحظر فوراً</div>
+            </div>
+        </div>
+
+        <!-- 📱 إطار الهاتف المحاكي -->
+        <div class="phone-slot" id="phoneSlot">
+            <div class="device-container" id="deviceContainer">
+                <div class="device-frame" id="deviceFrame">
+                    <div class="screen-glare" id="glareOverlay"></div>
+                    <div class="status-bar" id="statusBar">
+                        <span>9:41</span><div class="notch"></div><span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                    </div>
+
+                    <!-- ─── شاشة 1: تصفح العميل ─── -->
+                    <div id="scene-client-1" class="screen active">
+                        <div class="client-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><div style="font-size:11px;opacity:0.8;">التوصيل إلى</div><div class="fw-bold" style="font-size:13.5px;"><i class="bi bi-geo-alt-fill text-warning"></i> العمارات — الخرطوم</div></div>
+                                <i class="bi bi-person-circle fs-5"></i>
+                            </div>
+                            <div class="search-bar"><i class="bi bi-search"></i><span>ابحث عن متجر، منتج، أو وجبة...</span></div>
+                        </div>
+                        <div class="d-flex gap-2 p-2 overflow-hidden" style="background:#fff;">
+                            <div class="cat-chip"><i class="bi bi-bag-fill"></i> السوبرماركت</div>
+                            <div class="cat-chip" style="background:#f1f5f9;color:#64748b;"><i class="bi bi-cup-hot"></i> الكافيهات</div>
+                            <div class="cat-chip" style="background:#f1f5f9;color:#64748b;"><i class="bi bi-capsule"></i> الصيدليات</div>
+                        </div>
+                        <div class="p-2">
+                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-2" id="clientShopCard">
+                                <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" style="height:120px;object-fit:cover;" alt="">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="fw-bold mb-0">بوتيك لمسة</h6>
+                                        <span class="badge bg-success" style="font-size:10px;">4.9 <i class="bi bi-star-fill"></i></span>
+                                    </div>
+                                    <small class="text-muted" style="font-size:11px;">ملابس وأزياء — توصيل 25 دقيقة</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ─── شاشة 2: خدمة وصل-لي ─── -->
+                    <div id="scene-client-2" class="screen">
+                        <div class="client-header" style="background:linear-gradient(135deg, #d97706, #b45309);">
+                            <div class="fw-bold fs-6"><i class="bi bi-truck me-1"></i> خدمة وصل-لي (طرد خاص)</div>
+                            <div style="font-size:12px;opacity:0.9;">أرسل أي طرد من موقعك إلى أي مكان</div>
+                        </div>
+                        <div class="wassili-box" id="wassiliBox">
+                            <div class="mb-2"><span class="pin-node" style="background:#22c55e;"></span> <strong>من:</strong> منزل العميل (العمارات)</div>
+                            <div><span class="pin-node" style="background:#ef4444;"></span> <strong>إلى:</strong> المكتب (الرياض - شارع مشتل)</div>
+                            <div class="mt-3 pt-2 border-top border-white border-opacity-25 d-flex justify-content-between align-items-center">
+                                <span style="font-size:12px;">سعر التوصيل التقديري:</span>
+                                <span class="fw-bold fs-6">3,500 ج.س</span>
+                            </div>
+                        </div>
+                        <div class="p-3"><button class="btn btn-warning w-100 fw-bold rounded-3 text-dark py-2" id="btnRequestWassili">إرسال طلب التوصيل <i class="bi bi-send-fill ms-1"></i></button></div>
+                    </div>
+
+                    <!-- ─── شاشة 3: التتبع الحي مع الكابتن ─── -->
+                    <div id="scene-client-3" class="screen" style="background:#e2e8f0;position:relative;">
+                        <div class="p-3 bg-dark text-white d-flex align-items-center justify-content-between" style="padding-top:48px !important;">
+                            <div><div class="fw-bold" style="font-size:13px;">تتبع الكابتن مباشرة</div><small class="text-success" style="font-size:11px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-left:4px;"></span>في الطريق إليك</small></div>
+                            <i class="bi bi-chat-dots-fill text-warning fs-4" id="btnOpenChat"></i>
+                        </div>
+                        <!-- محاكاة الخريطة -->
+                        <div style="flex:1;background:url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80') center/cover;position:relative;">
+                            <div style="position:absolute;top:40%;left:45%;background:#04553A;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px rgba(4,85,58,0.8);"><i class="bi bi-bicycle"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- ─── شاشة 4: لوحة التاجر ─── -->
+                    <div id="scene-merchant-1" class="screen">
+                        <div class="merchant-header-bar">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><div style="font-size:11px;opacity:0.8;">لوحة التاجر</div><div class="fw-bold" style="font-size:14px;">بوتيك لمسة</div></div>
+                                <span class="badge bg-success"><i class="bi bi-shop"></i> مفتوح</span>
+                            </div>
+                        </div>
+                        <div class="stat-grid">
+                            <div class="m-stat"><div class="v">12</div><div class="l">جديد</div></div>
+                            <div class="m-stat"><div class="v">5</div><div class="l">تجهيز</div></div>
+                            <div class="m-stat"><div class="v">48</div><div class="l">جاهز</div></div>
+                            <div class="m-stat" style="background:#fef3c7;"><div class="v" style="color:#b45309;">240K</div><div class="l">مبيعات</div></div>
+                        </div>
+                        <div class="mx-3 alert alert-danger py-2 px-3 d-flex align-items-center gap-2 rounded-3" id="merchantStockAlert">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                            <div style="font-size:11.5px;font-weight:700;">تنبيه: قميص أبيض باقي منه قطعتان فقط!</div>
+                        </div>
+                    </div>
+
+                    <!-- ─── شاشة 5: نقطة بيع التاجر POS ─── -->
+                    <div id="scene-merchant-2" class="screen">
+                        <div class="p-3 bg-dark text-white d-flex justify-content-between align-items-center" style="padding-top:48px !important;">
+                            <div class="fw-bold" style="font-size:13px;"><i class="bi bi-upc-scan text-warning me-1"></i> كاشير نقطة البيع (POS)</div>
+                            <span class="badge bg-primary">بيع مباشر</span>
+                        </div>
+                        <div class="pos-grid">
+                            <div class="pos-item"><div class="fw-bold" style="font-size:12px;">جاكيت جينز</div><div class="text-success fw-bold" style="font-size:12px;">25,000 ج.س</div><button class="btn btn-sm btn-primary w-100 mt-1 py-0" style="font-size:10px;">إضافة</button></div>
+                            <div class="pos-item"><div class="fw-bold" style="font-size:12px;">تيشيرت أبيض</div><div class="text-success fw-bold" style="font-size:12px;">12,000 ج.س</div><button class="btn btn-sm btn-primary w-100 mt-1 py-0" style="font-size:10px;">إضافة</button></div>
+                        </div>
+                        <div class="p-3 mt-auto bg-white border-top">
+                            <div class="d-flex justify-content-between fw-bold mb-2" style="font-size:13px;"><span>الإجمالي المباشر:</span><span class="text-success">37,000 ج.س</span></div>
+                            <button class="btn btn-success w-100 fw-bold btn-sm py-2" id="btnPosCheckout"><i class="bi bi-check-lg"></i> إتمام البيع النقدي</button>
+                        </div>
+                    </div>
+
+                    <!-- ─── شاشة 6: تقارير التاجر ERP ─── -->
+                    <div id="scene-merchant-3" class="screen">
+                        <div class="p-3 text-white d-flex justify-content-between align-items-center" style="padding-top:48px !important;background:#1e1b4b;">
+                            <div class="fw-bold" style="font-size:13px;"><i class="bi bi-pie-chart-fill text-warning me-1"></i> تقارير الأرباح والـ ERP</div>
+                        </div>
+                        <div class="p-3">
+                            <div class="card border-0 shadow-sm rounded-3 p-3 mb-2">
+                                <div class="text-muted" style="font-size:11px;">إجمالي الإيرادات (الشهر)</div>
+                                <div class="fw-bold text-primary fs-5">1,450,000 ج.س</div>
+                            </div>
+                            <div class="card border-0 shadow-sm rounded-3 p-3 mb-2">
+                                <div class="text-muted" style="font-size:11px;">صافي الأرباح بعد التكلفة والمصروفات</div>
+                                <div class="fw-bold text-success fs-5">420,000 ج.س</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ─── شاشة 7: رادار طلبات الكابتن ─── -->
+                    <div id="scene-captain-1" class="screen">
+                        <div class="captain-header-bar">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><div style="font-size:11px;opacity:0.8;">لوحة الكابتن</div><div class="fw-bold" style="font-size:14px;">أحمد محمد</div></div>
+                                <span class="badge bg-warning text-dark"><i class="bi bi-geo-alt"></i> متواجد</span>
+                            </div>
+                        </div>
+                        <div class="radar-card" id="captainRadarCard">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-primary" style="font-size:10px;">طلب توصيل قريب (1.2 كم)</span>
+                                <span class="fw-bold text-success" style="font-size:13px;">+3,000 ج.س</span>
+                            </div>
+                            <div class="fw-bold" style="font-size:13px;">من: بوتيك لمسة (العمارات)</div>
+                            <div class="text-muted" style="font-size:11px;">إلى: الرياض - شارع الخرطوم</div>
+                            <button class="btn btn-sm btn-dark w-100 fw-bold mt-2" id="btnAcceptCaptain">قبول الطلب فوراً</button>
+                        </div>
+                    </div>
+
+                    <!-- ─── شاشة 8: محفظة الكابتن والمديونية ─── -->
+                    <div id="scene-captain-2" class="screen">
+                        <div class="captain-header-bar" style="background:linear-gradient(135deg, #0f172a, #1e293b);">
+                            <div class="fw-bold fs-6"><i class="bi bi-wallet2 text-warning me-1"></i> محفظة الكابتن والأرصدة</div>
+                        </div>
+                        <div class="wallet-banner">
+                            <div style="font-size:11px;opacity:0.7;">أرباحك المحققة هذا الأسبوع</div>
+                            <div class="fw-bold text-warning fs-4">85,500 ج.س</div>
+                        </div>
+                        <div class="mx-3 card border-0 shadow-sm p-3 rounded-3" id="bankPaymentBox">
+                            <div class="fw-bold mb-1" style="font-size:12.5px;"><i class="bi bi-bank text-primary"></i> سداد عمولة المنصة (بنكك)</div>
+                            <div class="text-muted" style="font-size:11px;">ارفع صورة إشعار التحويل للتفعيل المباشر</div>
+                            <button class="btn btn-sm btn-outline-primary fw-bold mt-2" id="btnUploadReceipt"><i class="bi bi-cloud-upload"></i> رفع إشعار بنكك</button>
+                        </div>
+                    </div>
+
+                    <div id="cursor"></div>
+                    <div id="rippleContainer" style="position:absolute; inset:0; pointer-events:none; z-index:9998;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🃏 شبكة بطاقات المزايا الديناميكية في الأسفل 🃏 -->
+        <div class="features-grid-bar" id="featGrid">
+            <!-- الكروت تتغير ديناميكياً بحسب الطرف المختار -->
+        </div>
+
+        <div id="countdown"></div>
+    </div>
+</div>
+
+<!-- 🎛️ طبقة التحكم الرئيسية عند الدخول 🎛️ -->
+<div id="controls">
+    <h1>منصة وجيز المتكاملة <span class="badge bg-success fs-6">عرض المزايا الشامل</span></h1>
+    <p class="hint">تطبيق واحد يجمع العميل، التاجر، والكابتن في بيئة عمل ذكية وسلسة. اضغط زر التشغيل للبدء بالعرض السينمائي التفاعلي.</p>
+    <div class="mode-switch">
+        <button class="mode-btn active" data-mode="v">عرض رأسي (واتساب وريلز)</button>
+        <button class="mode-btn" data-mode="h">عرض أفقي (يوتيوب)</button>
+    </div>
+    <button id="btnSound" class="sound-on"><i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل</button>
+    <button id="btnPlay" title="تشغيل العرض"><i class="bi bi-play-fill"></i></button>
+</div>
+<button id="btnReplay">إعادة العرض</button>
+
+<script>
+    const stage = document.getElementById('stage');
+    const cursor = document.getElementById('cursor');
+    const rippleContainer = document.getElementById('rippleContainer');
+    const deviceFrame = document.getElementById('deviceFrame');
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 800);
+
+    function fitStage() {
+        const sw = stage.classList.contains('v') ? 1080 : 1920;
+        const sh = stage.classList.contains('v') ? 1920 : 1080;
+        const w = window.innerWidth || document.documentElement.clientWidth;
+        const h = window.innerHeight || document.documentElement.clientHeight;
+        stage.style.transform = `scale(${Math.min(w / sw, h / sh)})`;
+    }
+    window.addEventListener('resize', fitStage);
+    window.addEventListener('orientationchange', () => setTimeout(fitStage, 300));
+    if (window.visualViewport) { window.visualViewport.addEventListener('resize', fitStage); }
+    fitStage();
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            stage.classList.remove('v', 'h'); stage.classList.add(btn.dataset.mode);
+            fitStage();
+        });
+    });
+
+    // بيانات بطاقات المزايا لكل طرف
+    const personaFeatures = {
+        client: [
+            { icon: 'bi-search', title: 'تصفح وشراء ذكي', desc: 'استكشاف المتاجر والأقسام القريبة واختيار المنتجات بسلاسة.' },
+            { icon: 'bi-truck', title: 'خدمة وصل-لي', desc: 'إرسال واستلام الطرود والأغراض بين أي نقطتين على الخريطة.' },
+            { icon: 'bi-chat-dots-fill', title: 'تتبع وحوار حي', desc: 'متابعة حركة الكابتن بـ GPS والتواصل الكتابي والصوتي المباشر.' }
+        ],
+        merchant: [
+            { icon: 'bi-bell-fill', title: 'تنبيهات صوتية فورية', desc: 'جرس تنبيه عند وصول كل طلب جديد مع إشعار نقص المخزون.' },
+            { icon: 'bi-upc-scan', title: 'كاشير ومخزون POS', desc: 'بيع مباشر داخل المحل وخصم فوري من المخزون مع توريد شحنات.' },
+            { icon: 'bi-pie-chart-fill', title: 'تقارير مالية و ERP', desc: 'دفتر أستاذ، حساب صافي الأرباح، وتكلفة البضاعة المباعة تلقائياً.' }
+        ],
+        captain: [
+            { icon: 'bi-handbag-fill', title: 'رادار الطلبات القريبة', desc: 'استقبال طلبات التوصيل المتاحة حولك وتقديم عروض أسعار حية.' },
+            { icon: 'bi-wallet2', title: 'محفظة وأرباح حية', desc: 'حساب الأرباح الفورية، اقتطاع العمولة، ومعرفة الحد الائتماني.' },
+            { icon: 'bi-bank', title: 'سداد بنكي مباشر', desc: 'رفع إشعار تحويل (بنكك) لإلغاء الحظر وتأكيد الأرصدة فوراً.' }
+        ]
+    };
+
+    function renderFeatureCards(persona) {
+        const grid = document.getElementById('featGrid');
+        const feats = personaFeatures[persona] || personaFeatures.client;
+        grid.innerHTML = feats.map(f => `
+            <div class="feat-card">
+                <i class="bi ${f.icon}"></i>
+                <div class="title">${f.title}</div>
+                <div class="desc">${f.desc}</div>
+            </div>
+        `).join('');
+    }
+    renderFeatureCards('client');
+
+    // التنقل التفاعلي بين أطراف المنصة
+    document.querySelectorAll('.persona-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.persona-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const persona = btn.dataset.persona;
+            renderFeatureCards(persona);
+            switchPersonaScreen(persona);
+        });
+    });
+
+    function switchPersonaScreen(persona) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.mtext').forEach(m => m.classList.remove('active'));
+
+        if (persona === 'client') {
+            document.getElementById('scene-client-1').classList.add('active');
+            document.getElementById('text-client-1').classList.add('active');
+        } else if (persona === 'merchant') {
+            document.getElementById('scene-merchant-1').classList.add('active');
+            document.getElementById('text-merchant-1').classList.add('active');
+        } else if (persona === 'captain') {
+            document.getElementById('scene-captain-1').classList.add('active');
+            document.getElementById('text-captain-1').classList.add('active');
+        }
+    }
+
+    // محرك الصوت المتقدم
+    const sfx = (() => {
+        let ctx = null, master = null, enabled = true;
+        function ensure() {
+            if (!ctx) {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+                master = ctx.createGain(); master.gain.value = 0.6; master.connect(ctx.destination);
+            }
+            if (ctx.state === 'suspended') ctx.resume(); return ctx;
+        }
+        function tone({ type = 'sine', from = 440, to = null, dur = 0.15, vol = 0.4, delay = 0 }) {
+            if (!enabled) return; const c = ensure(), t = c.currentTime + delay;
+            const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(from, t);
+            if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+            const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+        }
+        function sweep({ dur = 0.4, from = 300, to = 1800, vol = 0.25, q = 1, delay = 0 }) {
+            if (!enabled) return; const c = ensure(), t = c.currentTime + delay;
+            const len = Math.ceil(c.sampleRate * dur); const buf = c.createBuffer(1, len, c.sampleRate); const data = buf.getChannelData(0);
+            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+            const src = c.createBufferSource(); src.buffer = buf;
+            const f = c.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q; f.frequency.setValueAtTime(from, t); f.frequency.exponentialRampToValueAtTime(to, t + dur);
+            const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.2); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t + dur + 0.05);
+        }
+        return {
+            unlock() { ensure(); }, setEnabled(v) { enabled = v; },
+            tick()      { tone({ from: 1200, dur: 0.05, vol: 0.1 }); },
+            go()        { tone({ from: 1600, dur: 0.3, vol: 0.2 }); sweep({ dur: 0.8, from: 200, to: 2000, vol: 0.1 }); },
+            tap()       { tone({ type: 'triangle', from: 800, to: 400, dur: 0.06, vol: 0.2 }); },
+            shock()     { sweep({ dur: 0.6, from: 100, to: 1200, vol: 0.3, q: 0.5 }); tone({ from: 60, to: 20, dur: 0.5, vol: 0.5 }); },
+            pop()       { tone({ from: 300, to: 800, dur: 0.15, vol: 0.2, type: 'sine' }); },
+            swoosh()    { sweep({ dur: 0.5, from: 200, to: 2500, vol: 0.15, q: 0.8 }); },
+            success()   { [659.25, 880, 1046.5].forEach((f, i) => tone({ from: f, dur: 0.4, vol: 0.2, delay: i * 0.1 })); }
+        };
+    })();
+
+    function getTargetCenterInDevice(targetId) {
+        const target = document.getElementById(targetId);
+        if (!target) return { x: 187, y: 406 };
+        let top = 0, left = 0, current = target;
+        while (current && current !== deviceFrame) {
+            top += current.offsetTop || 0; left += current.offsetLeft || 0;
+            current = current.offsetParent;
+        }
+        return { x: left + (target.offsetWidth || 0) / 2, y: top + (target.offsetHeight || 0) / 2 };
+    }
+
+    const moveCursor = (targetId, duration = 1, offsetX = 0, offsetY = 0) => {
+        const tl = gsap.timeline();
+        tl.to(cursor, {
+            duration, ease: 'power3.inOut',
+            x: () => getTargetCenterInDevice(targetId).x - 19 + offsetX,
+            y: () => getTargetCenterInDevice(targetId).y - 19 + offsetY
+        });
+        return tl;
+    };
+
+    const clickCursor = (targetId, isShockwave = false) => {
+        const tl = gsap.timeline();
+        tl.call(() => {
+            sfx.tap();
+            const x = gsap.getProperty(cursor, 'x') + 19, y = gsap.getProperty(cursor, 'y') + 19;
+            if (isShockwave) {
+                sfx.shock();
+                const shock = document.createElement('div'); shock.className = 'shockwave';
+                shock.style.left = `${x}px`; shock.style.top = `${y}px`; rippleContainer.appendChild(shock);
+                gsap.fromTo(shock, {scale: 0, opacity: 1, borderWidth: 8}, {scale: 12, opacity: 0, borderWidth: 0, duration: 0.8, ease: 'expo.out', onComplete: () => shock.remove()});
+                gsap.fromTo('#stage', {filter: 'brightness(1.4)'}, {filter: 'brightness(1)', duration: 0.6});
+            }
+        });
+        tl.to(cursor, { scale: 0.6, duration: 0.1 }).to(cursor, { scale: 1, duration: 0.15 });
+        if (targetId) { tl.to('#'+targetId, { scale: 0.94, duration: 0.1 }, '-=0.2').to('#'+targetId, { scale: 1, duration: 0.15, ease: 'back.out(2)' }); }
+        return tl;
+    };
+
+    const switchScreen = (outId, inId, textInId) => {
+        const tl = gsap.timeline();
+        tl.call(() => sfx.swoosh())
+          .to(`#${outId}`, { opacity: 0, duration: 0.3 })
+          .set(`#${outId}`, { display: 'none' })
+          .set(`#${inId}`, { display: 'flex', opacity: 0 })
+          .to(`#${inId}`, { opacity: 1, duration: 0.4 }, '<0.1');
+        if (textInId) {
+            document.querySelectorAll('.mtext').forEach(m => m.classList.remove('active'));
+            document.getElementById(textInId).classList.add('active');
+        }
+        return tl;
+    };
+
+    // العرض التلقائي المتتابع الشامل
+    function playAllFeaturesPromo() {
+        const tl = gsap.timeline();
+        tl.set('#phoneSlot', { opacity: 1 });
+
+        if (isMobile) {
+            tl.fromTo('.device-container', { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 1.2, ease: 'expo.out' });
+        } else {
+            tl.fromTo('.device-container', { z: -2000, rotationY: -180, opacity: 0 }, { z: 0, rotationY: 0, opacity: 1, duration: 1.8, ease: 'expo.out' });
+        }
+        tl.set(cursor, { opacity: 1, x: 180, y: 650 });
+
+        // 1️⃣ مشاهد العميل
+        document.getElementById('tabClient').click();
+        tl.add(moveCursor('clientShopCard', 1.2), '+=0.5').add(clickCursor('clientShopCard'));
+        
+        tl.add(switchScreen('scene-client-1', 'scene-client-2', 'text-client-2'), '+=1');
+        tl.add(moveCursor('btnRequestWassili', 1), '+=0.6').add(clickCursor('btnRequestWassili', true));
+
+        tl.add(switchScreen('scene-client-2', 'scene-client-3', 'text-client-3'), '+=1');
+
+        // 2️⃣ مشاهد التاجر
+        tl.call(() => document.getElementById('tabMerchant').click(), null, '+=1.5');
+        tl.add(switchScreen('scene-client-3', 'scene-merchant-1', 'text-merchant-1'), '<');
+        
+        tl.add(switchScreen('scene-merchant-1', 'scene-merchant-2', 'text-merchant-2'), '+=1.5');
+        tl.add(moveCursor('btnPosCheckout', 1), '+=0.6').add(clickCursor('btnPosCheckout', true));
+
+        tl.add(switchScreen('scene-merchant-2', 'scene-merchant-3', 'text-merchant-3'), '+=1.5');
+
+        // 3️⃣ مشاهد الكابتن
+        tl.call(() => document.getElementById('tabCaptain').click(), null, '+=1.5');
+        tl.add(switchScreen('scene-merchant-3', 'scene-captain-1', 'text-captain-1'), '<');
+        tl.add(moveCursor('btnAcceptCaptain', 1), '+=0.6').add(clickCursor('btnAcceptCaptain'));
+
+        tl.add(switchScreen('scene-captain-1', 'scene-captain-2', 'text-captain-2'), '+=1.5');
+        tl.add(moveCursor('btnUploadReceipt', 1), '+=0.6').add(clickCursor('btnUploadReceipt', true));
+
+        // الختام بالاحتفال
+        tl.call(() => {
+            sfx.success();
+            confetti({ particleCount: isMobile ? 120 : 300, spread: 100, origin: { y: 0.6 }, colors: ['#04553A', '#F5A623', '#22c55e'] });
+            Swal.fire({
+                icon: 'success', title: 'منصة وجيز المتكاملة', html: `تجربة استثنائية تجمع العميل، التاجر، والكابتن!`,
+                confirmButtonText: 'ممتاز جداً', confirmButtonColor: '#04553A', target: isMobile ? document.body : '#deviceFrame'
+            });
+        }, null, '+=1.5');
+
+        tl.to('#btnReplay', { opacity: 1, pointerEvents: 'auto', duration: 0.5 }, '+=1');
+        return tl;
+    }
+
+    ['touchstart', 'touchend', 'click'].forEach(ev => document.addEventListener(ev, () => sfx.unlock(), { once: true }));
+
+    const btnPlay = document.getElementById('btnPlay');
+    btnPlay.addEventListener('click', () => {
+        btnPlay.disabled = true; document.body.classList.add('playing'); sfx.unlock();
+        gsap.to('#controls', { opacity: 0, duration: 0.4, onComplete: () => { const c = document.getElementById('controls'); c.style.display = 'none'; } });
+
+        const cd = document.getElementById('countdown');
+        const cdTl = gsap.timeline();
+        ['3', '2', '1'].forEach(n => {
+            cdTl.call(() => { cd.textContent = n; sfx.tick(); })
+                .fromTo(cd, { opacity: 0, scale: 2 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'expo.out' })
+                .to(cd, { opacity: 0, scale: 0.8, duration: 0.3, ease: 'power2.in' }, '+=0.3');
+        });
+        cdTl.call(() => { cd.textContent = ''; sfx.go(); playAllFeaturesPromo(); });
+    });
+
+    const btnSound = document.getElementById('btnSound');
+    btnSound.addEventListener('click', () => {
+        const on = btnSound.classList.toggle('sound-on');
+        sfx.setEnabled(on);
+        btnSound.innerHTML = on ? '<i class="bi bi-volume-up"></i> المؤثرات الصوتية: تعمل' : '<i class="bi bi-volume-mute"></i> المؤثرات الصوتية: متوقفة';
+    });
+    document.getElementById('btnReplay').addEventListener('click', () => location.reload());
+</script>
+</body>
+</html>

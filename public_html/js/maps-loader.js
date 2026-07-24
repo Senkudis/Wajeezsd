@@ -50,14 +50,50 @@
         return keyPromise;
     }
 
+    // ⚠️ مع loading=async يعرّف السكربت google.maps.importLibrary فقط عند onload،
+    // ولا تتوفّر المُنشئات (Map / DirectionsService …) إلا بعد استيراد مكتبتها فعلاً.
+    // لذلك لا نحلّ الوعد عند onload مباشرة، بل بعد ضمان جاهزية المكتبات المطلوبة.
+    //
+    // ملاحظة: أسماء importLibrary ليست نفس قيم معامل libraries في الرابط —
+    // «routes» (خدمة الاتجاهات) غير مقبول في الرابط ويجب استيراده برمجياً،
+    // لذلك يُطلب عبر opts.need وليس opts.libraries.
+    var URL_LIBS = ['places', 'geometry', 'marker', 'drawing', 'visualization', 'journeySharing'];
+
+    function ensureLibraries(names) {
+        if (!(window.google && window.google.maps)) {
+            return Promise.reject(new Error('Google Maps not loaded'));
+        }
+        // تحميل قديم متزامن (بلا importLibrary): كل شيء متاح أصلاً
+        if (typeof google.maps.importLibrary !== 'function') return Promise.resolve(google.maps);
+
+        var wanted = {};
+        ['core', 'maps'].concat(names || []).forEach(function (n) {
+            n = String(n || '').trim();
+            if (n) wanted[n] = true;
+        });
+
+        return Promise.all(Object.keys(wanted).map(function (n) {
+            return google.maps.importLibrary(n);
+        })).then(function () { return google.maps; });
+    }
+
+    // كل المكتبات التي تحتاجها هذه الصفحة: من الرابط (libraries) + الإضافية (need)
+    function neededLibs(opts) {
+        var list = String(opts.libraries || '').split(',').map(function (x) { return x.trim(); });
+        return list.concat(opts.need || []).concat(['marker']).filter(Boolean);
+    }
+
     // يحقن سكربت Google Maps الكلاسيكي بالمفتاح المركزي، مع الحفاظ على callback المُسمّى للصفحة
     function loadGoogleMaps(opts) {
         opts = opts || {};
 
-        // إذا كان محمّلاً بالفعل، نفّذ callback فوراً وارجع
+        // محمّل بالفعل: يبقى علينا ضمان أن المكتبة المطلوبة استُوردت فعلاً
+        // (صفحة حمّلت geometry فقط ثم احتاجت routes لاحقاً)
         if (window.google && window.google.maps) {
-            if (opts.callback && typeof window[opts.callback] === 'function') window[opts.callback]();
-            return Promise.resolve(window.google.maps);
+            return ensureLibraries(neededLibs(opts)).then(function (maps) {
+                if (opts.callback && typeof window[opts.callback] === 'function') window[opts.callback]();
+                return maps;
+            });
         }
 
         return getMapsApiKey().then(function (key) {
@@ -66,13 +102,10 @@
 
                 var params = new URLSearchParams();
                 params.set('key', key);
-                var libraries = opts.libraries || '';
-                if (libraries && libraries.indexOf('marker') === -1) {
-                    libraries += ',marker';
-                } else if (!libraries) {
-                    libraries = 'marker';
-                }
-                params.set('libraries', libraries);
+                // معامل libraries لا يقبل إلا الأسماء المعروفة — نُسقِط ما عداها (routes مثلاً)
+                var urlLibs = neededLibs(opts).filter(function (n) { return URL_LIBS.indexOf(n) !== -1; });
+                if (urlLibs.indexOf('marker') === -1) urlLibs.push('marker');
+                params.set('libraries', urlLibs.join(','));
                 if (opts.callback)  params.set('callback', opts.callback);
                 params.set('loading', 'async');
                 if (opts.extra) {
@@ -84,10 +117,10 @@
                 s.async = true;
                 s.defer = true;
                 s.onerror = function () { reject(new Error('Google Maps script failed to load')); };
-                // بدون callback مُسمّى: نحلّ الوعد عند التحميل
-                if (!opts.callback) {
-                    s.onload = function () { resolve(window.google && window.google.maps); };
-                }
+                s.onload = function () {
+                    // callback المُسمّى يستدعيه جوجل بنفسه بعد الجاهزية؛ نحن نحلّ الوعد فقط
+                    ensureLibraries(neededLibs(opts)).then(resolve, reject);
+                };
                 document.head.appendChild(s);
             });
         });
@@ -138,6 +171,7 @@
 
     window.getMapsApiKey = getMapsApiKey;
     window.loadGoogleMaps = loadGoogleMaps;
+    window.ensureMapsLibraries = ensureLibraries;
     window.createModernMarker = createModernMarker;
 })();
 
