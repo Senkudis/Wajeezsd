@@ -258,12 +258,22 @@ router.get('/errand-search', protect, async (req, res) => {
             })).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
         }
 
-        // 2) بقية العالم من جوجل
+        // 2) بقية العالم من جوجل — محصورة في منطقة توصيل المدينة.
+        //    محلٌّ خارجها لا نوصّل منه أصلاً، فعرضه وعدٌ كاذب للعميل.
+        let zone = null;
+        try {
+            const Settings = require('../models/Settings');
+            const s = await Settings.getSettings(city);
+            if (Array.isArray(s.deliveryZone) && s.deliveryZone.length >= 3) {
+                zone = s.deliveryZone.map(p => ({ lat: p.lat, lng: p.lng }));
+            }
+        } catch (_) { /* بلا منطقة: يبقى حصر صندوق المدينة */ }
+
         let external = [];
         try {
             external = categoryKey
-                ? await searchByCategory({ categoryKey, city, lat, lng })
-                : await searchText({ query: q, city, lat, lng });
+                ? await searchByCategory({ categoryKey, city, lat, lng, zone })
+                : await searchText({ query: q, city, lat, lng, zone });
         } catch (e) {
             // فشل البحث الخارجي لا يُسقط نتائجنا — نُبلّغ الواجهة لتشرح للعميل
             logger.warn({ err: e.message }, 'errand external search failed');

@@ -11,12 +11,44 @@
  */
 
 const logger = require('./logger');
+const { CITY_BOUNDS, isInsidePolygon } = require('./geofence');
 
-// مراكز المدن المدعومة — يتمركز حولها البحث حتى لا تأتي نتائج من خارج السودان
+// مراكز المدن المدعومة — يتمركز حولها البحث
 const CITY_CENTERS = {
     Khartoum:  { lat: 15.5007, lng: 32.5599, radius: 40000 },
     PortSudan: { lat: 19.6158, lng: 37.2164, radius: 30000 }
 };
+
+// ⚠️ locationBias ترجيحٌ لا حصر: بحث "الحرمين" كان يُرجع المسجد النبوي والحرام من
+// السعودية لأن جوجل يتوسّع خارج النطاق حين تقلّ النتائج القريبة. الحصر الحقيقي
+// يحتاج locationRestriction، وهي في Text Search مستطيل فقط (لا دائرة).
+function cityRectangle(city) {
+    const b = CITY_BOUNDS[city] || CITY_BOUNDS.Khartoum;
+    return {
+        low:  { latitude: b.minLat, longitude: b.minLng },
+        high: { latitude: b.maxLat, longitude: b.maxLng }
+    };
+}
+
+/**
+ * حصر النتائج داخل منطقة التوصيل الفعلية للمدينة.
+ * يُطبَّق بعد الكاش لا قبله: تعديل المنطقة من لوحة الأدمن يسري فوراً بلا انتظار
+ * انتهاء صلاحية الكاش، ولأن النتائج الخام صالحة لأي منطقة.
+ * @param {Array} places نتائج مطبَّعة
+ * @param {string} city
+ * @param {Array<{lat:number,lng:number}>} [zone] مضلّع التوصيل من إعدادات المدينة
+ */
+function clampToCity(places, city, zone) {
+    const b = CITY_BOUNDS[city] || CITY_BOUNDS.Khartoum;
+    const hasZone = Array.isArray(zone) && zone.length >= 3;
+
+    return places.filter(p => {
+        // صندوق المدينة أولاً: حارس صلب ضد نتائج خارج البلد مهما كانت المنطقة
+        if (p.lat < b.minLat || p.lat > b.maxLat || p.lng < b.minLng || p.lng > b.maxLng) return false;
+        // ثم منطقة التوصيل المرسومة إن وُجدت — لا فائدة من محلٍّ لا نوصّل منه
+        return hasZone ? isInsidePolygon(p.lat, p.lng, zone) : true;
+    });
+}
 
 // 🏷️ التصنيفات المعروضة للعميل ← أنواع أماكن جوجل.
 // قائمة ثابتة مقصودة: أنواع جوجل محدودة ومعرّفة مسبقاً، وربطها من لوحة الأدمن
@@ -171,53 +203,58 @@ async function callGoogle(endpoint, body) {
  * بحث نصّي حر عن محل بالاسم (زي خرايط جوجل).
  * @returns {Promise<Array>} قائمة أماكن مطبَّعة
  */
-async function searchText({ query, city, lat, lng }) {
+async function searchText({ query, city, lat, lng, zone }) {
     const q = normalizeQuery(query);
     if (q.length < 2) return [];
 
     const c = centerFor(city, lat, lng);
-    // إحداثيات مقرَّبة في المفتاح: عميلان في نفس الحي يتشاركان نتيجة واحدة
-    const key = `t:${q}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
-    const cached = cacheGet(key);
-    if (cached) return cached;
+    // إحداثيات مقرَّبة في المفتاح: عميلان في نفس الحي يتشاركان نتيجة واحدة.
+    // المدينة جزء من المفتاح لأن الحصر صار مرتبطاً بها.
+    const key = `t:${city}:${q}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
+    let data = cacheGet(key);
 
-    const data = await callGoogle('searchText', {
-        textQuery: q,
-        languageCode: 'ar',
-        regionCode: 'SD',
-        maxResultCount: 15,
-        locationBias: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: c.radius } }
-    });
+    if (!data) {
+        data = await callGoogle('searchText', {
+            textQuery: q,
+            languageCode: 'ar',
+            regionCode: 'SD',
+            maxResultCount: 15,
+            // الحصر يمنع تسرّب نتائج من خارج المدينة، والترجيح يقرّب الأنسب داخلها
+            locationRestriction: { rectangle: cityRectangle(city) },
+            locationBias: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: c.radius } }
+        });
+        cacheSet(key, data);
+    }
 
-    cacheSet(key, data);
-    return data;
+    return clampToCity(data, city, zone);
 }
 
 /**
  * بحث بالتصنيف حول العميل — مرتّب بالأقرب.
  * @returns {Promise<Array>} قائمة أماكن مطبَّعة
  */
-async function searchByCategory({ categoryKey, city, lat, lng }) {
+async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
     const cat = CATEGORY_BY_KEY[categoryKey];
     if (!cat) return [];
 
     const c = centerFor(city, lat, lng);
-    const key = `c:${categoryKey}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
-    const cached = cacheGet(key);
-    if (cached) return cached;
+    const key = `c:${city}:${categoryKey}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
+    let data = cacheGet(key);
 
-    const data = await callGoogle('searchNearby', {
-        includedTypes: cat.types,
-        languageCode: 'ar',
-        regionCode: 'SD',
-        maxResultCount: 20,
-        rankPreference: 'DISTANCE',
-        // نصف قطر أصغر للتصنيفات: «أقرب بقالة» لا «كل بقالات الخرطوم»
-        locationRestriction: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: Math.min(c.radius, 12000) } }
-    });
+    if (!data) {
+        data = await callGoogle('searchNearby', {
+            includedTypes: cat.types,
+            languageCode: 'ar',
+            regionCode: 'SD',
+            maxResultCount: 20,
+            rankPreference: 'DISTANCE',
+            // نصف قطر أصغر للتصنيفات: «أقرب بقالة» لا «كل بقالات الخرطوم»
+            locationRestriction: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: Math.min(c.radius, 12000) } }
+        });
+        cacheSet(key, data);
+    }
 
-    cacheSet(key, data);
-    return data;
+    return clampToCity(data, city, zone);
 }
 
 module.exports = { searchText, searchByCategory, diagnose, ERRAND_CATEGORIES, CITY_CENTERS };

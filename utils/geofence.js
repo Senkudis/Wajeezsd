@@ -127,4 +127,28 @@ function haversineKm(a, b) {
     return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
-module.exports = { isInsideSudan, validateOrderLocations, validateStopsLocations, cityFromCoords, haversineKm, CITY_BOUNDS };
+/**
+ * 🔷 هل تقع النقطة داخل مضلّع؟ (ray casting)
+ * يُستعمل لحصر النتائج داخل منطقة التوصيل المرسومة في إعدادات المدينة.
+ * @param {number} lat
+ * @param {number} lng
+ * @param {Array<{lat:number,lng:number}>} polygon رؤوس المضلّع بالترتيب
+ * @returns {boolean} false إذا كان المضلّع ناقصاً (أقل من 3 رؤوس)
+ */
+function isInsidePolygon(lat, lng, polygon) {
+    if (!Array.isArray(polygon) || polygon.length < 3) return false;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].lng, yi = polygon[i].lat;
+        const xj = polygon[j].lng, yj = polygon[j].lat;
+        // يتقاطع الشعاع الأفقي المار بالنقطة مع هذه الضلع؟
+        const intersects = ((yi > lat) !== (yj > lat)) &&
+            (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+        if (intersects) inside = !inside;
+    }
+    return inside;
+}
+
+module.exports = { isInsideSudan, validateOrderLocations, validateStopsLocations, cityFromCoords, haversineKm, isInsidePolygon, CITY_BOUNDS };
