@@ -259,6 +259,25 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                 budget: Number(req.body.budget) > 0 ? Number(req.body.budget) : null,
                 quoteStatus: 'none'
             };
+
+            // 🧠 تعلَّم المكان: مكانٌ اختاره عميل فعلاً يستحق الحفظ، فالبحث التالي عنه
+            // يأتي من قاعدتنا بلا نداء مدفوع لجوجل. لا يعطّل الطلب إن فشل.
+            if (!curatedId) {
+                try {
+                    const ExternalPlace = require('../models/ExternalPlace');
+                    await ExternalPlace.recordUsage({
+                        googlePlaceId: req.body.externalPlaceId || null,
+                        name: orderData.shopName,
+                        address: pickup && pickup.address,
+                        lat: pickup && Number(pickup.lat),
+                        lng: pickup && Number(pickup.lng),
+                        category: req.body.shopCategory || '',
+                        city: req.userCity
+                    });
+                } catch (e) {
+                    logger.warn({ err: e.message }, 'external place learn failed');
+                }
+            }
         }
 
         const order = await Order.create(orderData);

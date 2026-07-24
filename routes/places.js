@@ -197,6 +197,43 @@ router.get('/errand-categories', (req, res) => {
     res.json(ERRAND_CATEGORIES.map(({ key, label, icon }) => ({ key, label, icon })));
 });
 
+// @route   GET /api/places/errand-featured?city=
+// @desc    شاشة المنتقي الأولى قبل أن يكتب العميل: محلات مميّزة يختارها الأدمن
+//          (errandEnabled) + الأكثر طلباً فعلاً. بلا أي نداء مدفوع لجوجل.
+// @access  عام — بيانات من قاعدتنا فقط
+router.get('/errand-featured', async (req, res) => {
+    try {
+        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+
+        const [curated, popular] = await Promise.all([
+            // ⚠️ errandEnabled فقد دوره القديم (كان السبيل الوحيد لإضافة محل) حين صار
+            // البحث مفتوحاً. أُعيد توظيفه: ترشيح الأدمن لمحلات تتصدّر الشاشة الأولى.
+            Place.find({ isActive: true, errandEnabled: true, city })
+                .select('name address location image_url').limit(6).lean(),
+            require('../models/ExternalPlace')
+                .find({ city, usageCount: { $gte: 2 } })
+                .sort({ usageCount: -1 }).limit(8).lean()
+        ]);
+
+        res.json({
+            curated: curated
+                .map(p => ({
+                    placeId: String(p._id), name: p.name, address: p.address || '',
+                    lat: p.location ? p.location.lat : null, lng: p.location ? p.location.lng : null,
+                    image_url: p.image_url || '', source: 'wajeez'
+                }))
+                .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng)),
+            popular: popular.map(d => ({
+                externalId: d.googlePlaceId || '', name: d.name, address: d.address || '',
+                lat: d.lat, lng: d.lng, category: d.category || '', source: 'google'
+            }))
+        });
+    } catch (err) {
+        logger.error({ err: err.message }, 'errand featured error');
+        res.json({ curated: [], popular: [] });   // الشاشة الأولى لا تستحق رسالة خطأ
+    }
+});
+
 // @route   GET /api/places/errand-diagnose
 // @desc    🩺 أدمن فقط: أيّ مفتاح مستعمل وما رسالة جوجل الحقيقية — بلا كشف المفتاح
 router.get('/errand-diagnose', protect, async (req, res) => {
@@ -228,7 +265,7 @@ router.get('/errand-search', protect, async (req, res) => {
             return res.status(429).json({ message: 'بحث كثير في وقت قصير — انتظر قليلاً' });
         }
 
-        const { searchText, searchByCategory } = require('../utils/placesSearch');
+        const { searchText, searchByCategory, clampToCity } = require('../utils/placesSearch');
         const q = String(req.query.q || '').trim();
         const categoryKey = String(req.query.category || '').trim();
         const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
@@ -269,24 +306,54 @@ router.get('/errand-search', protect, async (req, res) => {
             }
         } catch (_) { /* بلا منطقة: يبقى حصر صندوق المدينة */ }
 
-        let external = [];
-        try {
-            external = categoryKey
-                ? await searchByCategory({ categoryKey, city, lat, lng, zone })
-                : await searchText({ query: q, city, lat, lng, zone });
-        } catch (e) {
-            // فشل البحث الخارجي لا يُسقط نتائجنا — نُبلّغ الواجهة لتشرح للعميل
-            logger.warn({ err: e.message }, 'errand external search failed');
-            return res.json({ ours, external: [], externalError: e.message === 'PLACES_KEY_MISSING'
-                ? 'بحث الأماكن غير مفعّل حالياً'
-                : 'تعذّر البحث الخارجي — جرّب لاحقاً' });
+        // 2.أ) أماكن تعلّمناها من طلبات سابقة — مجانية وأدقّ (اختارها عملاء فعلاً).
+        //      تُبحث قبل جوجل، وإن كفت أوقفنا النداء المدفوع أصلاً.
+        const ExternalPlace = require('../models/ExternalPlace');
+        let learned = [];
+        if (q) {
+            const rx = arabicFlexibleRegex(q);
+            const docs = await ExternalPlace.find({ city, $or: [{ name: rx }, { address: rx }] })
+                .sort({ usageCount: -1 })
+                .limit(10)
+                .lean();
+            learned = docs.map(d => ({
+                externalId: d.googlePlaceId || '',
+                name: d.name, address: d.address,
+                lat: d.lat, lng: d.lng, category: d.category,
+                openNow: null, source: 'google'   // للواجهة: مكان عام لا متجر مسجّل
+            }));
+        }
+        learned = clampToCity(learned, city, zone);
+
+        // نداء جوجل مدفوع: لا نطلبه إن كفانا ما تعلّمناه. البحث بالتصنيف يستدعيه
+        // دائماً لأنه يعتمد على القرب لا على الاسم، وقاعدتنا لا ترتّب بالمسافة.
+        const LOCAL_ENOUGH = 5;
+        const skipGoogle = !categoryKey && learned.length >= LOCAL_ENOUGH;
+
+        let external = learned;
+        let externalError = null;
+        if (!skipGoogle) {
+            try {
+                const fresh = categoryKey
+                    ? await searchByCategory({ categoryKey, city, lat, lng, zone })
+                    : await searchText({ query: q, city, lat, lng, zone });
+                // المتعلَّم أولاً ثم بقية جوجل، بلا تكرار
+                const seen = new Set(learned.map(p => p.externalId || p.name.trim().toLowerCase()));
+                external = learned.concat(fresh.filter(p => !seen.has(p.externalId || p.name.trim().toLowerCase())));
+            } catch (e) {
+                // فشل البحث الخارجي لا يُسقط ما عندنا — نُبلّغ الواجهة لتشرح للعميل
+                logger.warn({ err: e.message }, 'errand external search failed');
+                externalError = e.message === 'PLACES_KEY_MISSING'
+                    ? 'بحث الأماكن غير مفعّل حالياً'
+                    : 'تعذّر البحث الخارجي — جرّب لاحقاً';
+            }
         }
 
         // لا نكرّر متجراً عندنا كنتيجة خارجية (تطابق الاسم يكفي عملياً)
         const ourNames = new Set(ours.map(p => p.name.trim().toLowerCase()));
         external = external.filter(p => !ourNames.has(p.name.trim().toLowerCase()));
 
-        res.json({ ours, external });
+        res.json(externalError ? { ours, external, externalError } : { ours, external });
     } catch (err) {
         logger.error({ err: err.message }, 'errand search error');
         res.status(500).json({ message: 'Server Error' });

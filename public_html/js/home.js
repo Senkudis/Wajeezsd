@@ -1247,6 +1247,8 @@ window.createOrder = async function() {
             }
             data.orderType = 'errand';
             data.items = items;
+            // حقل الوصف مخفيّ هنا، فنملؤه بالأصناف — أي شاشة تعرض details تبقى مفهومة
+            data.details = items.join(' • ').slice(0, 500);
             const budget = parseFloat(document.getElementById('errand-budget')?.value);
             if (Number.isFinite(budget) && budget > 0) data.budget = budget;
             if (window._errandCtx) {
@@ -1259,6 +1261,9 @@ window.createOrder = async function() {
                     btn.disabled = false; btn.innerHTML = originalHTML;
                     return;
                 }
+                // هوية المكان الخارجي — السيرفر يحفظه ليصير بحثه لاحقاً مجانياً
+                if (window._errandCtx.externalId) data.externalPlaceId = window._errandCtx.externalId;
+                if (window._errandCtx.category)   data.shopCategory   = window._errandCtx.category;
             }
             data.parcelImage = null; // لا صورة طرد لطلب شراء
         }
@@ -1527,6 +1532,8 @@ window._errandCtx = null;
         hide('pickup-contact-row');   // اسم/هاتف المرسل — المحل ليس مُرسِلاً
         hide('multi-stop-actions');
         hide('multi-stop-hint');
+        // "وصف الأغراض" كلامُ توصيلٍ لا شراء، وفوقه مباشرةً خانة الأصناف — تكرار يشتّت
+        hide('details');
 
         // مكان بإحداثيات (متجرنا أو نتيجة بحث خارجية): الموقع محسوم، فلا داعي لعرض
         // أدوات اختياره أصلاً — نستبدلها بسطر يطمئن العميل أين سيشتري الكابتن.

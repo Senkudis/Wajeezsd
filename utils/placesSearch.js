@@ -5,7 +5,7 @@
  * العملاء (بحث «كشة» يُدفع ثمنه مرة واحدة لكل المدينة)، وسقفاً للاستهلاك، ويُبقي
  * مفتاح السيرفر مقيّداً بالـ IP بدل مفتاح المتصفح المكشوف.
  *
- * المفتاح: GOOGLE_PLACES_API_KEY إن وُجد، وإلا GOOGLE_MAPS_API_KEY.
+ * المفتاح: GOOGLE_PLACES_API_KEY وحده.
  * ⚠️ مفتاح المتصفح المقيَّد بـ HTTP referrers يُرفض من السيرفر — يلزم مفتاح
  * منفصل مقيّد بالـ IP ومفعّل عليه "Places API (New)".
  */
@@ -109,24 +109,57 @@ async function diagnose() {
     }
 }
 
-// ── كاش في الذاكرة: نفس البحث لا يُشترى مرتين خلال 12 ساعة ──
-// المحلات لا تنتقل، فمدة طويلة آمنة. سقف للحجم حتى لا تتضخّم الذاكرة.
+// ── كاش على طبقتين: نفس البحث لا يُشترى مرتين خلال 12 ساعة ──
+// المحلات لا تنتقل، فمدة طويلة آمنة.
+// L1 في الذاكرة: يوفّر رحلة للقاعدة في الطلبات المتتالية.
+// L2 في مونجو: يعيش عبر إعادة التشغيل والنشر، ومشترك بين نسخ التطبيق — بدونه كان
+// كل نشر يعني إعادة شراء كل النتائج من جوجل من الصفر.
 const TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_ENTRIES = 500;
-const cache = new Map();   // key → { at, data }
+const memCache = new Map();   // key → { at, data }
 
-function cacheGet(key) {
-    const hit = cache.get(key);
+function memGet(key) {
+    const hit = memCache.get(key);
     if (!hit) return null;
-    if (Date.now() - hit.at > TTL_MS) { cache.delete(key); return null; }
+    if (Date.now() - hit.at > TTL_MS) { memCache.delete(key); return null; }
     // LRU خفيف: إعادة الإدخال تجعله الأحدث
-    cache.delete(key); cache.set(key, hit);
+    memCache.delete(key); memCache.set(key, hit);
     return hit.data;
 }
 
-function cacheSet(key, data) {
-    if (cache.size >= MAX_ENTRIES) cache.delete(cache.keys().next().value);
-    cache.set(key, { at: Date.now(), data });
+function memSet(key, data) {
+    if (memCache.size >= MAX_ENTRIES) memCache.delete(memCache.keys().next().value);
+    memCache.set(key, { at: Date.now(), data });
+}
+
+async function cacheGet(key) {
+    const local = memGet(key);
+    if (local) return local;
+    try {
+        const PlaceSearchCache = require('../models/PlaceSearchCache');
+        const doc = await PlaceSearchCache.findOne({ key, expiresAt: { $gt: new Date() } }).lean();
+        if (!doc) return null;
+        memSet(key, doc.results);
+        return doc.results;
+    } catch (e) {
+        // فشل القاعدة لا يمنع البحث — أسوأ ما يحدث نداء إضافي لجوجل
+        logger.warn({ err: e.message }, 'place search cache read failed');
+        return null;
+    }
+}
+
+async function cacheSet(key, data) {
+    memSet(key, data);
+    try {
+        const PlaceSearchCache = require('../models/PlaceSearchCache');
+        await PlaceSearchCache.updateOne(
+            { key },
+            { $set: { results: data, expiresAt: new Date(Date.now() + TTL_MS) } },
+            { upsert: true }
+        );
+    } catch (e) {
+        logger.warn({ err: e.message }, 'place search cache write failed');
+    }
 }
 
 /** تطبيع نص البحث لمفتاح الكاش: المسافات والحالة والتشكيل لا تصنع بحثاً جديداً */
@@ -211,7 +244,7 @@ async function searchText({ query, city, lat, lng, zone }) {
     // إحداثيات مقرَّبة في المفتاح: عميلان في نفس الحي يتشاركان نتيجة واحدة.
     // المدينة جزء من المفتاح لأن الحصر صار مرتبطاً بها.
     const key = `t:${city}:${q}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
-    let data = cacheGet(key);
+    let data = await cacheGet(key);
 
     if (!data) {
         data = await callGoogle('searchText', {
@@ -223,7 +256,7 @@ async function searchText({ query, city, lat, lng, zone }) {
             locationRestriction: { rectangle: cityRectangle(city) },
             locationBias: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: c.radius } }
         });
-        cacheSet(key, data);
+        await cacheSet(key, data);
     }
 
     return clampToCity(data, city, zone);
@@ -239,7 +272,7 @@ async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
 
     const c = centerFor(city, lat, lng);
     const key = `c:${city}:${categoryKey}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
-    let data = cacheGet(key);
+    let data = await cacheGet(key);
 
     if (!data) {
         data = await callGoogle('searchNearby', {
@@ -251,10 +284,10 @@ async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
             // نصف قطر أصغر للتصنيفات: «أقرب بقالة» لا «كل بقالات الخرطوم»
             locationRestriction: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: Math.min(c.radius, 12000) } }
         });
-        cacheSet(key, data);
+        await cacheSet(key, data);
     }
 
     return clampToCity(data, city, zone);
 }
 
-module.exports = { searchText, searchByCategory, diagnose, ERRAND_CATEGORIES, CITY_CENTERS };
+module.exports = { searchText, searchByCategory, diagnose, clampToCity, ERRAND_CATEGORIES, CITY_CENTERS };

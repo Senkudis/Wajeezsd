@@ -77,6 +77,8 @@ const ShopOrderSchema = new mongoose.Schema({
     pickedUpAt:          { type: Date, default: null }, // كابتن استلم من المتجر
     deliveredAt:         { type: Date, default: null }, // وصل للعميل
     cancelledAt:         { type: Date, default: null }, // أُلغي
+    isRated:             { type: Boolean, default: false }, // تم التقييم
+    rating:              { score: { type: Number, min: 1, max: 5 }, comment: { type: String, default: '' } }, // تفاصيل التقييم
 
 }, { timestamps: true });
 

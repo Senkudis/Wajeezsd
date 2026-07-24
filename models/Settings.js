@@ -93,11 +93,11 @@ const settingsSchema = new mongoose.Schema({
     // 📱 App Update System
     appVersion: {
         type: String,
-        default: '1.0.4'  // أحدث إصدار للتطبيق
+        default: '1.0.9'  // أحدث إصدار للتطبيق
     },
     minVersion: {
         type: String,
-        default: '1.0.4'  // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
+        default: '1.0.9'  // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
     },
     playStoreLink: {
         type: String,

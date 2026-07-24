@@ -1108,7 +1108,9 @@
                 p.name || '',
                 p.lat == null ? '' : p.lat,
                 p.lng == null ? '' : p.lng,
-                p.address || ''
+                p.address || '',
+                p.externalId || '',   // معرّف جوجل — يمنع تكرار المكان عند التعلّم
+                p.category || ''
             ].map(v => `'${String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`).join(',');
             return `
             <div class="errand-place" onclick="startErrand(${args})">
@@ -1143,6 +1145,40 @@
             errandListEl().innerHTML = html + _errandCustomCard;
         }
 
+        // الشاشة الأولى قبل الكتابة: كانت فارغة إلا من سطر إرشادي. الآن تعرض ترشيح
+        // الأدمن والأكثر طلباً — من قاعدتنا بلا أي نداء مدفوع.
+        let _errandFeatured = null;
+        function renderErrandIdle() {
+            const hint = `<div class="errand-hint"><i class="bi bi-search"></i>
+                <div>اكتب اسم المحل أو اختر تصنيفاً من فوق</div></div>`;
+            const f = _errandFeatured;
+            if (!f || (!f.curated.length && !f.popular.length)) {
+                errandListEl().innerHTML = hint + _errandCustomCard;
+                return;
+            }
+            let html = '';
+            if (f.curated.length) {
+                html += `<div class="errand-group"><i class="bi bi-star-fill" style="color:#f59e0b;"></i> محلات مميّزة</div>`;
+                html += f.curated.map(errandCard).join('');
+            }
+            if (f.popular.length) {
+                html += `<div class="errand-group"><i class="bi bi-fire" style="color:#ef4444;"></i> الأكثر طلباً</div>`;
+                html += f.popular.map(errandCard).join('');
+            }
+            errandListEl().innerHTML = html + _errandCustomCard;
+        }
+
+        async function loadErrandFeatured() {
+            if (_errandFeatured) { renderErrandIdle(); return; }
+            try {
+                const city = (typeof CityService !== 'undefined') ? CityService.getCity() : 'Khartoum';
+                const res = await fetch(`${API_URL}/api/places/errand-featured?city=${encodeURIComponent(city)}`);
+                _errandFeatured = res.ok ? await res.json() : null;
+            } catch (_) { _errandFeatured = null; }
+            // لا نرسم إن كان العميل قد بدأ بحثاً أثناء الجلب
+            if (!_errandActiveCat && !(document.getElementById('errandSearch')?.value || '').trim()) renderErrandIdle();
+        }
+
         async function runErrandSearch({ q = '', category = '' } = {}) {
             const seq = ++_errandSeq;
             errandSkeleton(category ? 'جاري البحث عن الأقرب…' : 'جاري البحث…');
@@ -1173,8 +1209,7 @@
                 // العودة للحالة الأولى (أو نتائج التصنيف المختار إن وُجد)
                 _errandSeq++;
                 if (_errandActiveCat) { runErrandSearch({ category: _errandActiveCat }); }
-                else errandListEl().innerHTML = `<div class="errand-hint"><i class="bi bi-search"></i>
-                    <div>اكتب اسم المحل أو اختر تصنيفاً من فوق</div></div>` + _errandCustomCard;
+                else renderErrandIdle();
                 return;
             }
             // الكتابة بحث حر ⇒ لا تصنيف نشطاً
@@ -1194,8 +1229,7 @@
 
             if (!_errandActiveCat) {
                 _errandSeq++;
-                errandListEl().innerHTML = `<div class="errand-hint"><i class="bi bi-search"></i>
-                    <div>اكتب اسم المحل أو اختر تصنيفاً من فوق</div></div>` + _errandCustomCard;
+                renderErrandIdle();
                 return;
             }
             runErrandSearch({ category: _errandActiveCat });
@@ -1228,7 +1262,7 @@
 
             // خيار "مكان آخر" دائماً متاح — شبكة الأمان حين يفشل البحث أو لا يجد المحل
             _errandCustomCard = `
-                <div class="errand-place custom" onclick="startErrand('', '', '', '', '')" style="border-color:#e0e7ff;background:linear-gradient(135deg,#f5f3ff,#ede9fe);">
+                <div class="errand-place custom" onclick="startErrand('', '', '', '', '', '', '')" style="border-color:#e0e7ff;background:linear-gradient(135deg,#f5f3ff,#ede9fe);">
                     <div class="errand-place-ic" style="background:#e0e7ff;color:#4f46e5;"><i class="bi bi-geo-alt-fill"></i></div>
                     <div style="flex:1;min-width:0;">
                         <div class="errand-place-name" style="color:#4f46e5;">مكان آخر</div>
@@ -1237,9 +1271,8 @@
                     <i class="bi bi-chevron-left" style="color:#4f46e5;"></i>
                 </div>`;
 
-            errandListEl().innerHTML = `<div class="errand-hint"><i class="bi bi-search"></i>
-                <div>اكتب اسم المحل أو اختر تصنيفاً من فوق</div></div>` + _errandCustomCard;
-
+            renderErrandIdle();
+            loadErrandFeatured();
             loadErrandCategories();
             // الموقع يُطلب بهدوء في الخلفية ليُحسّن ترتيب النتائج، ولا ننتظره
             if (!window.userLocation && typeof getUserLocation === 'function') getUserLocation().catch(() => {});
@@ -1251,14 +1284,16 @@
 
         // يمرّر سياق المحل لنموذج الطلب (index.html) في وضع errand
         // shopId يكون فارغاً للأماكن الخارجية — الباك-إند يقبلها بالاسم + الدبوس
-        window.startErrand = function (shopId, shopName, lat, lng, address) {
+        window.startErrand = function (shopId, shopName, lat, lng, address, externalId, category) {
             const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
             const ctx = {
                 shopId: shopId || null,
                 shopName: shopName || '',
                 lat: num(lat),
                 lng: num(lng),
-                address: address || ''
+                address: address || '',
+                externalId: externalId || '',
+                category: category || ''
             };
             try { sessionStorage.setItem('errandContext', JSON.stringify(ctx)); } catch (_) {}
             window.location.href = 'index.html?mode=errand';
