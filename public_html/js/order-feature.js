@@ -462,7 +462,9 @@ window.loadFeaturedShops = async function () {
             });
         }
         places = sortShopsOpenFirst(places); // المفتوحة أولاً ثم الأقرب (يعمل بلا GPS أيضاً)
-        window._allPlacesCache = places; // للبحث العام
+        window._allPlacesCache = places;  // للبحث العام
+        window._featuredPlaces = places;  // ⚠️ مصدر ثابت لفتح البطاقة: _allPlacesCache
+                                          // يُستبدل عند دخول أي تصنيف، فيضيع مرجع هذه البطاقات
 
         if (!places.length) { section.innerHTML = ''; return; }
         section.innerHTML = HEAD + `<div class="featured-grid" id="featured-grid"></div>`;
@@ -622,9 +624,23 @@ window.clearReceiptImage = function() {
 // ==========================================
 // 🔍 Place Details Modal
 // ==========================================
+// ⚠️ placesData يُملأ فقط عند تصفّح تصنيف (loadPlaces) ويُصفَّر مع كل دخول لتصنيف.
+// أما بطاقات «المحلات القريبة» ونتائج البحث فتأتي من مصادر أخرى، فكان الضغط على
+// «تسوق» فيها لا يفعل شيئاً (find تُرجع undefined فنخرج بصمت). البحث الآن في كل
+// المصادر المعروضة فعلاً على الشاشة.
+window.findPlaceById = function (placeId) {
+    const sources = [placesData, window._featuredPlaces, window._allPlacesCache];
+    for (const src of sources) {
+        if (!Array.isArray(src)) continue;
+        const hit = src.find(p => p && p._id === placeId);
+        if (hit) return hit;
+    }
+    return null;
+};
+
 window.openPlaceDetails = function(placeId) {
-    const place = placesData.find(p => p._id === placeId);
-    if (!place) return;
+    const place = window.findPlaceById(placeId);
+    if (!place) { console.warn('openPlaceDetails: place not found in any loaded source', placeId); return; }
 
     document.getElementById('placeModalName').innerText = place.name;
     document.getElementById('placeModalDistance').innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> يبعد ${place.distanceKm != null ? Number(place.distanceKm).toFixed(1) : '--'} كم خريطة جوية`;
@@ -800,7 +816,7 @@ window.openShopOrderConfirmModal = async function() {
         (document.getElementById('shopOrderDetails')?.value?.trim() || '');
     const receiptFile = window.pendingShopInlineData?.receiptFile ||
         document.getElementById('receiptImageInput')?.files?.[0] || null;
-    const place = placesData.find(p => p._id === placeId);
+    const place = window.findPlaceById(placeId);
 
     // 2. Validate Details (must be more than 2 words)
     // Skip if called from shop-detail page with inline data already validated
