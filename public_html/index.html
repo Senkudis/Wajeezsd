@@ -569,7 +569,7 @@
                                 <div id="savedAddressChips" class="d-flex gap-2 flex-wrap"></div>
                             </div>
 
-                            <div class="mb-4 position-relative">
+                            <div class="mb-4 position-relative" id="pickup-block">
                                 <label class="text-muted small fw-bold d-block mb-2" id="pickup-section-label">من وين؟ (موقع الاستلام)</label>
                                 <button type="button" class="btn map-select-btn map-select-btn-pickup w-100 mb-2"
                                     onclick="event.preventDefault(); event.stopPropagation(); openMapModal('pickup')">
@@ -582,7 +582,7 @@
                                         style="cursor: pointer;" onclick="openMapModal('pickup')">
                                     <span class="input-icon text-success"><i class="bi bi-geo-alt-fill"></i></span>
                                 </div>
-                                <div class="row g-2 mt-1">
+                                <div class="row g-2 mt-1" id="pickup-contact-row">
                                     <div class="col-7">
                                         <input type="text" id="pickup-name"
                                             class="form-control form-control-sm bg-white"
@@ -629,7 +629,7 @@
 
                             <!-- 🧭 نقاط إضافية — توصيل متعدد النقاط (رحلة واحدة بعدة محطات) -->
                             <div id="extraStopsList" class="mt-2"></div>
-                            <div class="d-flex gap-2 mt-3">
+                            <div class="d-flex gap-2 mt-3" id="multi-stop-actions">
                                 <button type="button" class="btn btn-outline-success btn-sm flex-grow-1 fw-bold" onclick="addStop('dropoff')">
                                     <i class="bi bi-plus-lg me-1"></i>أضف وجهة تسليم
                                 </button>
@@ -637,7 +637,7 @@
                                     <i class="bi bi-plus-lg me-1"></i>أضف نقطة استلام
                                 </button>
                             </div>
-                            <div class="text-muted mt-1" style="font-size:11.5px;">
+                            <div class="text-muted mt-1" id="multi-stop-hint" style="font-size:11.5px;">
                                 <i class="bi bi-info-circle"></i> يمر الكابتن على كل نقاط الاستلام أولاً ثم يوصّل للوجهات بالترتيب
                             </div>
                         </div>
@@ -656,6 +656,16 @@
                             <i class="bi bi-bag-heart-fill" style="font-size:20px;"></i>
                             <span id="errand-shop-name">المحل</span>
                         </div>
+                        <!-- موقع الشراء يُحسم من البحث: يُعرض للاطمئنان فقط، بلا حقول تشتّت العميل -->
+                        <div id="errand-pickup-summary" class="d-none mb-3"
+                            style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;">
+                            <i class="bi bi-geo-alt-fill text-success" style="font-size:15px;margin-top:2px;"></i>
+                            <div style="min-width:0;">
+                                <div class="text-muted" style="font-size:11px;font-weight:700;">موقع الشراء (تحدّد تلقائياً)</div>
+                                <div id="errand-pickup-addr-text" style="font-size:13px;font-weight:700;line-height:1.4;"></div>
+                            </div>
+                        </div>
+
                         <!-- يظهر فقط عند اختيار "مكان آخر": بلا اسم لا يعرف الكابتن أين يشتري -->
                         <div id="errand-shop-name-wrap" class="d-none mb-3">
                             <label class="text-muted small fw-bold d-block mb-1">اسم المحل</label>
@@ -1115,7 +1125,7 @@
     <script type="module" src="js/app-core.js?v=1e55b558"></script>
     <script type="module" src="js/native-notifications.js?v=76150d71"></script>
 
-    <script src="js/home.js?v=3a13f75a"></script>
+    <script src="js/home.js?v=da6b7ffe"></script>
     <script src="js/order-feature.js?v=29ffccac"></script>
     <script src="js/smart-search.js?v=b37af4cc"></script>
 

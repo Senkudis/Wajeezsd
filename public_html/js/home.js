@@ -1151,9 +1151,13 @@ function validateOrder() {
         return false;
     };
 
-    if (!pLat) return warn('يرجى تحديد موقع الاستلام من الخريطة');
+    // 🛍️ "اشترِ لي": الطرف الآخر محلٌّ لا مُرسِل — العميل لا يعرف رقم هاتف المحل،
+    // وطلبه منه كان يوقف الطلب برسالة "رقم هاتف المرسل غير صحيح" بلا مخرج.
+    const isErrand = !!window._errandMode;
+
+    if (!pLat) return warn(isErrand ? 'يرجى تحديد موقع المحل من الخريطة' : 'يرجى تحديد موقع الاستلام من الخريطة');
     if (!dLat) return warn('يرجى تحديد وجهة التسليم من الخريطة');
-    if (!pPhone || pPhone.length < 10) return warn('رقم هاتف المرسل غير صحيح');
+    if (!isErrand && (!pPhone || pPhone.length < 10)) return warn('رقم هاتف المرسل غير صحيح');
     if (!dPhone || dPhone.length < 10) return warn('رقم هاتف المستلم غير صحيح');
     if (!price || price <= 0) return warn('يرجى تحديد سعر العرض');
 
@@ -1165,9 +1169,13 @@ function validateOrder() {
         if (!lat) return warn('يرجى تحديد موقع كل النقاط الإضافية من الخريطة (أو احذف النقطة الفارغة)');
     }
 
-    // التفاصيل إجبارية — لازم العميل يوضح للكابتن
-    const details = (document.getElementById('details')?.value || '').trim();
-    if (!details) return warn('يرجى كتابة تفاصيل الطلب عشان الكابتن يفهم المطلوب');
+    // التفاصيل إجبارية — لازم العميل يوضح للكابتن.
+    // إلا في "اشترِ لي": قائمة الأصناف هي التفاصيل، وتُتحقَّق في createOrder — فطلب
+    // وصفٍ إضافيٍّ فوقها تكرارٌ يعطّل الطلب بلا فائدة.
+    if (!isErrand) {
+        const details = (document.getElementById('details')?.value || '').trim();
+        if (!details) return warn('يرجى كتابة تفاصيل الطلب عشان الكابتن يفهم المطلوب');
+    }
 
     return true;
 }
@@ -1505,18 +1513,34 @@ window._errandCtx = null;
         // نُظهر حقل الاسم بدل إرسال "محل" مبهم.
         if (!ctx.shopName) show('errand-shop-name-wrap', true);
 
-        // المحل كنقطة استلام: الاسم والهاتف افتراضيان (المحل غير مسجّل)
+        // المحل كنقطة استلام: الاسم والهاتف افتراضيان (المحل غير مسجّل).
+        // '-' لا '' لأن pickup.contactPhone مطلوب في النموذج، والعميل لا يعرف رقم المحل.
         set('pickup-name', ctx.shopName || 'المحل');
         set('pickup-phone', '-');
         // العنوان النصّي من نتيجة البحث أنفع للكابتن من اسم المحل وحده
-        if (ctx.address || ctx.shopName) set('pickup-addr', ctx.address || ctx.shopName);
+        const pickupText = ctx.address || ctx.shopName || '';
+        if (pickupText) set('pickup-addr', pickupText);
 
-        // مكان بإحداثيات (متجرنا أو نتيجة بحث خارجية): عبّئ موقع الاستلام مباشرةً
+        // 🧹 تبسيط الشاشة: طلب الشراء رحلة من محلٍّ معروف إلى العميل — لا مُرسِل
+        // ولا محطات متعددة. إبقاء أدواتها يشتّت العميل ويطلب منه بيانات لا يملكها.
+        const hide = (id) => { const el = document.getElementById(id); if (el) el.classList.add('d-none'); };
+        hide('pickup-contact-row');   // اسم/هاتف المرسل — المحل ليس مُرسِلاً
+        hide('multi-stop-actions');
+        hide('multi-stop-hint');
+
+        // مكان بإحداثيات (متجرنا أو نتيجة بحث خارجية): الموقع محسوم، فلا داعي لعرض
+        // أدوات اختياره أصلاً — نستبدلها بسطر يطمئن العميل أين سيشتري الكابتن.
         if (Number.isFinite(ctx.lat) && Number.isFinite(ctx.lng)) {
             set('pickup-lat', ctx.lat);
             set('pickup-lng', ctx.lng);
+            hide('pickup-block');
+            show('errand-pickup-summary', true);
+            txt('errand-pickup-addr-text', pickupText || 'المحل المختار');
+        } else {
+            // "مكان آخر": لا إحداثيات — يبقى منتقي الخريطة ظاهراً، لكن بعنوان يوضّح
+            // أن المطلوب موقع المحل لا موقع مُرسِل.
+            txt('pickup-section-label', 'أين يقع المحل؟ (حدّده على الخريطة)');
         }
-        // بلا إحداثيات: العميل يحدّد موقع المحل على الخريطة عبر "من وين"
         // التسليم يبقى يدوياً في الحالتين — لا نفترض أن العميل في بيته الآن.
 
         // نظّف السياق حتى لا يُعاد تفعيله عند إعادة التحميل بلا قصد
