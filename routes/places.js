@@ -197,6 +197,18 @@ router.get('/errand-categories', (req, res) => {
     res.json(ERRAND_CATEGORIES.map(({ key, label, icon }) => ({ key, label, icon })));
 });
 
+// @route   GET /api/places/errand-diagnose
+// @desc    🩺 أدمن فقط: أيّ مفتاح مستعمل وما رسالة جوجل الحقيقية — بلا كشف المفتاح
+router.get('/errand-diagnose', protect, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+    try {
+        const { diagnose } = require('../utils/placesSearch');
+        res.json(await diagnose());
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // @route   GET /api/places/errand-search?q=&category=&city=&lat=&lng=
 // @desc    بحث مفتوح عن محل بالاسم أو بالتصنيف، مع دمج متاجرنا المسجّلة أولاً
 // @access  محمي — البحث الخارجي مدفوع، فلا يُفتح للزوّار

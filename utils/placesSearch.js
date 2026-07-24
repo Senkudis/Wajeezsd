@@ -40,6 +40,40 @@ function apiKey() {
     return process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
 }
 
+/**
+ * 🩺 تشخيص: أيّ مفتاح يُستعمل فعلاً، وماذا يقول جوجل بالضبط.
+ * سببه: رسالة العميل عامة عمداً، ورسالة جوجل الحقيقية تبقى في سجلّ السيرفر وحده —
+ * فيصير تشخيص الإعداد مستحيلاً بلا SSH. هذا يُخرجها للأدمن بلا كشف المفتاح.
+ */
+async function diagnose() {
+    const dedicated = process.env.GOOGLE_PLACES_API_KEY || '';
+    const shared = process.env.GOOGLE_MAPS_API_KEY || '';
+    const used = dedicated || shared;
+
+    const info = {
+        keySource: dedicated ? 'GOOGLE_PLACES_API_KEY' : (shared ? 'GOOGLE_MAPS_API_KEY (احتياطي)' : 'لا يوجد مفتاح'),
+        keyLength: used.length,
+        keyTail: used ? '…' + used.slice(-6) : '',
+        // ⚠️ الأشيع: المفتاح أُضيف للـ .env بلا إعادة تشغيل، فتبقى العملية على القديم
+        usingBrowserKeyFallback: !dedicated && !!shared
+    };
+
+    if (!used) return { ...info, ok: false, googleError: 'PLACES_KEY_MISSING' };
+
+    try {
+        const results = await callGoogle('searchText', {
+            textQuery: 'بقالة',
+            languageCode: 'ar',
+            regionCode: 'SD',
+            maxResultCount: 3,
+            locationBias: { circle: { center: { latitude: CITY_CENTERS.Khartoum.lat, longitude: CITY_CENTERS.Khartoum.lng }, radius: 20000 } }
+        });
+        return { ...info, ok: true, resultCount: results.length, sample: results.slice(0, 2).map(r => r.name) };
+    } catch (e) {
+        return { ...info, ok: false, googleError: e.message };
+    }
+}
+
 // ── كاش في الذاكرة: نفس البحث لا يُشترى مرتين خلال 12 ساعة ──
 // المحلات لا تنتقل، فمدة طويلة آمنة. سقف للحجم حتى لا تتضخّم الذاكرة.
 const TTL_MS = 12 * 60 * 60 * 1000;
@@ -183,4 +217,4 @@ async function searchByCategory({ categoryKey, city, lat, lng }) {
     return data;
 }
 
-module.exports = { searchText, searchByCategory, ERRAND_CATEGORIES, CITY_CENTERS };
+module.exports = { searchText, searchByCategory, diagnose, ERRAND_CATEGORIES, CITY_CENTERS };
