@@ -36,8 +36,11 @@ const ERRAND_CATEGORIES = [
 
 const CATEGORY_BY_KEY = Object.fromEntries(ERRAND_CATEGORIES.map(c => [c.key, c]));
 
+// ⚠️ لا رجوع لـ GOOGLE_MAPS_API_KEY: مفتاح المتصفح مقيَّد بـ HTTP referrers فيرفضه
+// جوجل من السيرفر دائماً. الرجوع إليه كان يحوّل حالة «لا مفتاح» الواضحة إلى خطأ
+// 403 غامض، فيبدو الإعداد صحيحاً والبحث فاشلاً بلا سبب ظاهر.
 function apiKey() {
-    return process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
+    return process.env.GOOGLE_PLACES_API_KEY || '';
 }
 
 /**
@@ -46,16 +49,16 @@ function apiKey() {
  * فيصير تشخيص الإعداد مستحيلاً بلا SSH. هذا يُخرجها للأدمن بلا كشف المفتاح.
  */
 async function diagnose() {
-    const dedicated = process.env.GOOGLE_PLACES_API_KEY || '';
-    const shared = process.env.GOOGLE_MAPS_API_KEY || '';
-    const used = dedicated || shared;
+    const used = process.env.GOOGLE_PLACES_API_KEY || '';
 
     const info = {
-        keySource: dedicated ? 'GOOGLE_PLACES_API_KEY' : (shared ? 'GOOGLE_MAPS_API_KEY (احتياطي)' : 'لا يوجد مفتاح'),
+        keyFound: !!used,
         keyLength: used.length,
         keyTail: used ? '…' + used.slice(-6) : '',
-        // ⚠️ الأشيع: المفتاح أُضيف للـ .env بلا إعادة تشغيل، فتبقى العملية على القديم
-        usingBrowserKeyFallback: !dedicated && !!shared
+        // الأشيع: أُضيف المفتاح للـ .env بلا إعادة تشغيل، فتبقى العملية على البيئة القديمة
+        mapsKeyFound: !!process.env.GOOGLE_MAPS_API_KEY,
+        // أسماء كل متغيّرات البيئة المشابهة — يكشف خطأ الكتابة في الاسم فوراً
+        similarEnvNames: Object.keys(process.env).filter(k => /GOOGLE|PLACES|MAPS/i.test(k))
     };
 
     if (!used) return { ...info, ok: false, googleError: 'PLACES_KEY_MISSING' };
