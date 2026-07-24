@@ -167,12 +167,10 @@ logger.info('Server is starting...');
 // 🖼️ Serve uploaded images with cross-origin headers
 app.use(['/uploads', '/api/uploads'], (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    // 🛡️ محتوى يرفعه المستخدمون: امنع تخمين النوع ومنع تصييره كصفحة.
-    // public_html/uploads/.htaccess يفعل المثل حين يخدم LiteSpeed الملف مباشرةً،
-    // لكنه يُتجاهل تماماً حين يخدمه express.static — فالطبقتان مطلوبتان.
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
-    // Dynamic origin checking — only allow approved origins
+    // ⚡ Cache images for 7 days in browser — uploads are content-addressed (timestamp in filename)
+    res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
     const requestOrigin = req.headers.origin;
     if (requestOrigin && approvedOrigins.includes(requestOrigin)) {
         res.setHeader('Access-Control-Allow-Origin', requestOrigin);
@@ -182,11 +180,39 @@ app.use(['/uploads', '/api/uploads'], (req, res, next) => {
 // 1. البحث في المجلد الجديد أولاً
 express.static(path.join(__dirname, 'public_html', 'uploads')),
 // 2. البحث في المجلد القديم للتوافق مع الصور المرفوعة سابقاً
-express.static(path.join(__dirname, 'uploads'))
+express.static(path.join(__dirname, 'uploads')),
+// 3. 🛡️ Fallback: إذا لم تُوجد الصورة في المجلد الفرعي المطلوب، ابحث في المجلدات الأخرى
+(req, res, next) => {
+    const fileName = path.basename(req.path || '');
+    if (!fileName || !/\.(jpe?g|png|webp|gif|svg)$/i.test(fileName)) {
+        return next();
+    }
+    const subDirs = ['profiles', 'places', 'proofs', 'products', 'parcels', 'documents'];
+    for (const dir of subDirs) {
+        const altPath = path.join(__dirname, 'public_html', 'uploads', dir, fileName);
+        if (fs.existsSync(altPath)) {
+            return res.sendFile(altPath);
+        }
+        const altPathOld = path.join(__dirname, 'uploads', dir, fileName);
+        if (fs.existsSync(altPathOld)) {
+            return res.sendFile(altPathOld);
+        }
+    }
+    return res.status(404).type('text/plain').send('Image Not Found');
+}
 );
 
-// جعل مجلد public متاحاً
-app.use(express.static(path.join(__dirname, 'public_html')));
+// جعل مجلد public متاحاً — مع كاش محدود للملفات الثابتة (لا تتغير إلا بتغيير الكود)
+app.use(express.static(path.join(__dirname, 'public_html'), {
+    // Versioned assets (?v=xxxx): cache 30 days
+    setHeaders(res, filePath) {
+        if (/\.(js|css|woff2?|ttf|eot)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400');
+        } else if (/\.(png|jpe?g|webp|gif|svg|ico)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+        }
+    }
+}));
 
 // 2. Database Connection — single source via config/db.js
 connectDB();
