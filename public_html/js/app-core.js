@@ -14,7 +14,7 @@ const ImpactStyle = { Light: 'LIGHT', Medium: 'MEDIUM', Heavy: 'HEAVY' };
 // (capacitor.config.json بلا server.url ⇒ التطبيق يحمّل أصول public_html المحزومة)،
 // فيمثّل إصدار النسخة المثبَّتة على الجهاز. يجب أن يساوي دائماً versionName في
 // android/app/build.gradle و version في package.json — تحقّق بـ: npm run version:check
-window.APP_VERSION = '1.1.0';
+window.APP_VERSION = '1.1.1';
 
 // 🏷️ يملأ كل [data-app-version] في الصفحة من الرقم أعلاه.
 // كانت أرقام الإصدار مكتوبة يدوياً داخل HTML فانحرفت بصمت (1.4.1 و2.0.0 بينما
