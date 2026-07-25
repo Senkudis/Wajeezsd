@@ -225,7 +225,8 @@ router.get('/errand-featured', async (req, res) => {
                 .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng)),
             popular: popular.map(d => ({
                 externalId: d.googlePlaceId || '', name: d.name, address: d.address || '',
-                lat: d.lat, lng: d.lng, category: d.category || '', source: 'google'
+                lat: d.lat, lng: d.lng, category: d.category || '',
+                categoryKey: d.categoryKey || '', source: 'google'
             }))
         });
     } catch (err) {
@@ -339,7 +340,7 @@ router.get('/errand-search', protect, async (req, res) => {
         if (q) {
             const rx = arabicFlexibleRegex(q);
             ours = await Place.find({ isActive: true, city, $or: [{ name: rx }, { address: rx }] })
-                .select('name address location image_url errandEnabled')
+                .select('name address location image_url errandEnabled category').populate('category', 'name')
                 .limit(8)
                 .lean();
             ours = ours.map(p => ({
@@ -349,6 +350,9 @@ router.get('/errand-search', protect, async (req, res) => {
                 lat: p.location ? p.location.lat : null,
                 lng: p.location ? p.location.lng : null,
                 image_url: p.image_url || '',
+                // قسم المتجر عندنا نصٌّ للعرض — لا يقابل مفاتيح تصنيفات جوجل،
+                // فيبقى categoryKey فارغاً ويظهر النص كما هو على البطاقة.
+                category: (p.category && p.category.name) || '',
                 curated: p.errandEnabled === true,
                 source: 'wajeez'
             })).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
@@ -378,8 +382,9 @@ router.get('/errand-search', protect, async (req, res) => {
             learned = docs.map(d => ({
                 externalId: d.googlePlaceId || '',
                 name: d.name, address: d.address,
-                lat: d.lat, lng: d.lng, category: d.category,
-                openNow: null, source: 'google'   // للواجهة: مكان عام لا متجر مسجّل
+                lat: d.lat, lng: d.lng,
+                category: d.category, categoryKey: d.categoryKey || '',
+                source: 'google'   // للواجهة: مكان عام لا متجر مسجّل
             }));
         }
         learned = clampToCity(learned, city, zone);

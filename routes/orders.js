@@ -272,6 +272,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                         lat: pickup && Number(pickup.lat),
                         lng: pickup && Number(pickup.lng),
                         category: req.body.shopCategory || '',
+                        categoryKey: req.body.shopCategoryKey || '',
                         city: req.userCity
                     });
                 } catch (e) {

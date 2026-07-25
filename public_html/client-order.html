@@ -266,6 +266,43 @@
             font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 99px;
             background: #dcfce7; color: #15803d; margin-right: 6px; vertical-align: middle;
         }
+
+        /* 🏷️ شارات البطاقة: التصنيف والمسافة — بها يميّز العميل محلاً عن آخر بنفس الاسم */
+        .errand-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+        .errand-chip {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+        }
+        .errand-chip i { font-size: 10px; }
+        .errand-chip-cat  { background: #eef2ff; color: #4338ca; }
+        .errand-chip-dist { background: #f1f5f9; color: #475569; }
+        body.dark-mode .errand-chip-cat  { background: #312e81; color: #c7d2fe; }
+        body.dark-mode .errand-chip-dist { background: #1e293b; color: #cbd5e1; }
+
+        /* زر معاينة الموقع — الحسم الأخير قبل الاختيار */
+        .errand-map-btn {
+            flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px;
+            border: 1px solid #e2e8f0; background: #fff; color: #4f46e5;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+            cursor: pointer; transition: all .15s;
+        }
+        .errand-map-btn:active { transform: scale(0.92); background: #eef2ff; }
+        body.dark-mode .errand-map-btn { background: #0f172a; border-color: #334155; color: #a5b4fc; }
+
+        /* مرشّحات نتائج البحث الحر — تظهر فقط حين تختلط التصنيفات */
+        .errand-result-filters {
+            display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px;
+            scrollbar-width: none;
+        }
+        .errand-result-filters::-webkit-scrollbar { display: none; }
+        .errand-rf {
+            flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 11px; border-radius: 99px; border: 1.5px solid #e2e8f0;
+            background: #fff; color: #475569; font-size: 11.5px; font-weight: 700;
+            font-family: inherit; cursor: pointer; white-space: nowrap;
+        }
+        .errand-rf.active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+        body.dark-mode .errand-rf { background: #0f172a; border-color: #334155; color: #cbd5e1; }
         .place-card {
             background: white;
             border-radius: 18px;
@@ -1093,16 +1130,45 @@
             </div>`;
         }
 
+        // أيقونة ولون لكل تصنيف — تُملأ من /errand-categories فتبقى مطابقة للسيرفر
+        let _errandCatMeta = {};
+
+        // 📏 المسافة أقوى ما يميّز محلاً عن آخر يحمل نفس الاسم — والأقرب هو المقصود غالباً
+        function haversineKm(a, b) {
+            const R = 6371, toRad = (d) => d * Math.PI / 180;
+            const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+            const h = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+        }
+
+        function withDistance(list) {
+            const loc = window.userLocation;
+            if (!loc || !Number.isFinite(loc.lat)) return list;
+            return list.map(p => (Number.isFinite(p.lat) && Number.isFinite(p.lng))
+                ? { ...p, distanceKm: haversineKm(loc, p) } : p);
+        }
+
+        const fmtKm = (km) => km == null ? '' : (km < 1 ? `${Math.round(km * 1000)} م` : `${km.toFixed(1)} كم`);
+
         // بطاقة واحدة — المصدر يحدّد الأيقونة والشارة فقط، والنقر واحد في الحالتين
         function errandCard(p) {
             const isOurs = p.source === 'wajeez';
+            const cat = _errandCatMeta[p.categoryKey] || null;
             const imgSrc = p.image_url ? (typeof window.getFullImageUrl === 'function' ? window.getFullImageUrl(p.image_url) : p.image_url) : '';
+            const fallbackIcon = isOurs ? 'bi-shop' : (cat ? cat.icon : 'bi-geo-alt-fill');
             const iconHtml = imgSrc
                 ? `<img src="${imgSrc}" style="width:42px;height:42px;border-radius:11px;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt="">
                    <div style="display:none;width:42px;height:42px;border-radius:11px;background:#f5f3ff;color:#7c3aed;align-items:center;justify-content:center;font-size:20px;"><i class="bi bi-shop"></i></div>`
-                : `<i class="bi ${isOurs ? 'bi-shop' : 'bi-geo-alt-fill'}"></i>`;
-            const badge = isOurs ? `<span class="errand-place-badge">متجر مسجّل</span>` : '';
-            const meta = [p.category, p.address].filter(Boolean).join(' · ') || 'محل';
+                : `<i class="bi ${fallbackIcon}"></i>`;
+
+            const badges = [];
+            if (isOurs) badges.push(`<span class="errand-place-badge">متجر مسجّل</span>`);
+            // شارة التصنيف: نصّ جوجل حين لا يقابل أحد تصنيفاتنا
+            const catLabel = cat ? cat.label : (p.category || '');
+            if (catLabel) badges.push(`<span class="errand-chip errand-chip-cat"><i class="bi ${cat ? cat.icon : 'bi-tag'}"></i>${esc_(catLabel)}</span>`);
+            if (p.distanceKm != null) badges.push(`<span class="errand-chip errand-chip-dist"><i class="bi bi-signpost-2"></i>${esc_(fmtKm(p.distanceKm))}</span>`);
+
             const args = [
                 isOurs ? (p.placeId || '') : '',
                 p.name || '',
@@ -1110,24 +1176,74 @@
                 p.lng == null ? '' : p.lng,
                 p.address || '',
                 p.externalId || '',   // معرّف جوجل — يمنع تكرار المكان عند التعلّم
-                p.category || ''
+                p.category || '',
+                p.categoryKey || ''
             ].map(v => `'${String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`).join(',');
+
+            // 🗺️ معاينة على الخريطة قبل الاختيار — الحسم الأخير حين تتشابه الأسماء.
+            // stopPropagation حتى لا تُحسب ضغطةً على البطاقة نفسها.
+            const mapBtn = (Number.isFinite(p.lat) && Number.isFinite(p.lng))
+                ? `<button type="button" class="errand-map-btn" title="عرض على الخريطة"
+                     onclick="event.stopPropagation();window.open('https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}','_blank')">
+                     <i class="bi bi-map"></i>
+                   </button>`
+                : '';
+
             return `
             <div class="errand-place" onclick="startErrand(${args})">
                 <div class="errand-place-ic" style="${imgSrc ? 'background:transparent;padding:0;overflow:hidden;' : ''}">${iconHtml}</div>
                 <div style="flex:1;min-width:0;">
-                    <div class="errand-place-name">${esc_(p.name)}${badge}</div>
-                    <div class="errand-place-meta">${esc_(meta)}</div>
+                    <div class="errand-place-name">${esc_(p.name)}${isOurs ? badges[0] : ''}</div>
+                    ${p.address ? `<div class="errand-place-meta">${esc_(p.address)}</div>` : ''}
+                    <div class="errand-chips">${badges.slice(isOurs ? 1 : 0).join('')}</div>
                 </div>
+                ${mapBtn}
                 <i class="bi bi-chevron-left text-muted"></i>
             </div>`;
         }
 
-        function renderErrandResults(data) {
-            const ours = data.ours || [];
-            const external = data.external || [];
-            let html = '';
+        // آخر نتائج معروضة — يُعاد ترشيحها محلياً بلا نداء جديد (كل نداء مدفوع)
+        let _errandLastResults = null;
+        let _errandResultFilter = '';
 
+        window.filterErrandResults = function (key) {
+            _errandResultFilter = (_errandResultFilter === key) ? '' : key;
+            if (_errandLastResults) renderErrandResults(_errandLastResults, true);
+        };
+
+        function renderErrandResults(data, isRefilter = false) {
+            if (!isRefilter) { _errandLastResults = data; _errandResultFilter = ''; }
+
+            // الأقرب أولاً: حين تتشابه الأسماء، المقصود هو الأقرب غالباً
+            const byDistance = (a, b) => (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9);
+            let ours = withDistance(data.ours || []).sort(byDistance);
+            let external = withDistance(data.external || []).sort(byDistance);
+
+            // 🏷️ مرشّحات مبنية من النتائج نفسها: بحثٌ حر يخلط مطاعم ببقالات بصيدليات،
+            // وبلا فرز يقرأ العميل قائمةً واحدة طويلة لا يميّز فيها شيئاً.
+            const counts = {};
+            [...ours, ...external].forEach(p => { if (p.categoryKey) counts[p.categoryKey] = (counts[p.categoryKey] || 0) + 1; });
+            const keys = Object.keys(counts);
+            let filtersHtml = '';
+            if (keys.length > 1) {
+                filtersHtml = `<div class="errand-result-filters">
+                    <button type="button" class="errand-rf ${_errandResultFilter ? '' : 'active'}" onclick="filterErrandResults('')">
+                        الكل (${ours.length + external.length})
+                    </button>` +
+                    keys.map(k => {
+                        const m = _errandCatMeta[k];
+                        return `<button type="button" class="errand-rf ${_errandResultFilter === k ? 'active' : ''}" onclick="filterErrandResults('${esc_(k)}')">
+                            <i class="bi ${m ? m.icon : 'bi-tag'}"></i>${esc_(m ? m.label : k)} (${counts[k]})
+                        </button>`;
+                    }).join('') + `</div>`;
+            }
+
+            if (_errandResultFilter) {
+                ours = ours.filter(p => p.categoryKey === _errandResultFilter);
+                external = external.filter(p => p.categoryKey === _errandResultFilter);
+            }
+
+            let html = '';
             if (ours.length) {
                 html += `<div class="errand-group"><i class="bi bi-patch-check-fill" style="color:#22c55e;"></i> متاجر وجيز</div>`;
                 html += ours.map(errandCard).join('');
@@ -1139,10 +1255,10 @@
             if (!html) {
                 const why = data.externalError
                     ? esc_(data.externalError)
-                    : 'ما لقينا المحل — اكتب اسمه وحدّد موقعه بنفسك';
+                    : (_errandResultFilter ? 'لا نتائج في هذا التصنيف' : 'ما لقينا المحل — اكتب اسمه وحدّد موقعه بنفسك');
                 html = `<div class="errand-hint"><i class="bi bi-shop"></i><div>${why}</div></div>`;
             }
-            errandListEl().innerHTML = html + _errandCustomCard;
+            errandListEl().innerHTML = filtersHtml + html + _errandCustomCard;
         }
 
         // الشاشة الأولى قبل الكتابة: كانت فارغة إلا من سطر إرشادي. الآن تعرض ترشيح
@@ -1243,6 +1359,8 @@
             try {
                 const res = await fetch(`${API_URL}/api/places/errand-categories`);
                 const cats = res.ok ? await res.json() : [];
+                // نفس الجدول يخدم شريط التصنيفات وشارات البطاقات ومرشّحات النتائج
+                cats.forEach(c => { _errandCatMeta[c.key] = { label: c.label, icon: c.icon || 'bi-shop' }; });
                 wrap.innerHTML = cats.map(c =>
                     `<button type="button" class="errand-cat" onclick="pickErrandCategory('${esc_(c.key)}', this)">
                         <i class="bi ${esc_(c.icon || 'bi-shop')}"></i>${esc_(c.label)}
@@ -1262,7 +1380,7 @@
 
             // خيار "مكان آخر" دائماً متاح — شبكة الأمان حين يفشل البحث أو لا يجد المحل
             _errandCustomCard = `
-                <div class="errand-place custom" onclick="startErrand('', '', '', '', '', '', '')" style="border-color:#e0e7ff;background:linear-gradient(135deg,#f5f3ff,#ede9fe);">
+                <div class="errand-place custom" onclick="startErrand('', '', '', '', '', '', '', '')" style="border-color:#e0e7ff;background:linear-gradient(135deg,#f5f3ff,#ede9fe);">
                     <div class="errand-place-ic" style="background:#e0e7ff;color:#4f46e5;"><i class="bi bi-geo-alt-fill"></i></div>
                     <div style="flex:1;min-width:0;">
                         <div class="errand-place-name" style="color:#4f46e5;">مكان آخر</div>
@@ -1284,7 +1402,7 @@
 
         // يمرّر سياق المحل لنموذج الطلب (index.html) في وضع errand
         // shopId يكون فارغاً للأماكن الخارجية — الباك-إند يقبلها بالاسم + الدبوس
-        window.startErrand = function (shopId, shopName, lat, lng, address, externalId, category) {
+        window.startErrand = function (shopId, shopName, lat, lng, address, externalId, category, categoryKey) {
             const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
             const ctx = {
                 shopId: shopId || null,
@@ -1293,7 +1411,8 @@
                 lng: num(lng),
                 address: address || '',
                 externalId: externalId || '',
-                category: category || ''
+                category: category || '',
+                categoryKey: categoryKey || ''
             };
             try { sessionStorage.setItem('errandContext', JSON.stringify(ctx)); } catch (_) {}
             window.location.href = 'index.html?mode=errand';

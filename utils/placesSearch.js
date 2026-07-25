@@ -225,6 +225,21 @@ function centerFor(city, lat, lng) {
     return { lat, lng, radius: 15000 };
 }
 
+// نوع جوجل الآلي ← تصنيفنا. يُبنى من نفس جدول التصنيفات فلا يفترقان أبداً.
+const TYPE_TO_CATEGORY = {};
+for (const c of ERRAND_CATEGORIES) for (const t of c.types) TYPE_TO_CATEGORY[t] = c.key;
+
+/**
+ * تصنيفنا لمكان من جوجل: من نوعه الأساسي، وإلا فأول نوع نعرفه من قائمة أنواعه.
+ * لماذا يهمّ: بلا تصنيف تظهر كل النتائج ككتلة واحدة لا يميّز فيها العميل المطعم
+ * من البقالة، والأسماء المتشابهة كثيرة — فيختار الخطأ ويمشي الكابتن لمكان آخر.
+ */
+function categoryKeyOf(p) {
+    if (p.primaryType && TYPE_TO_CATEGORY[p.primaryType]) return TYPE_TO_CATEGORY[p.primaryType];
+    for (const t of (p.types || [])) if (TYPE_TO_CATEGORY[t]) return TYPE_TO_CATEGORY[t];
+    return '';
+}
+
 /** يحوّل مكان جوجل إلى الشكل الذي تفهمه الواجهة */
 function mapPlace(p) {
     return {
@@ -233,8 +248,9 @@ function mapPlace(p) {
         address: p.formattedAddress || '',
         lat: p.location ? p.location.latitude : null,
         lng: p.location ? p.location.longitude : null,
+        // النص للعرض، والمفتاح للفرز والأيقونة
         category: (p.primaryTypeDisplayName && p.primaryTypeDisplayName.text) || '',
-        openNow: p.currentOpeningHours ? !!p.currentOpeningHours.openNow : null,
+        categoryKey: categoryKeyOf(p),
         source: 'google'
     };
 }
@@ -244,9 +260,13 @@ const FIELD_MASK = [
     'places.displayName',
     'places.formattedAddress',
     'places.location',
-    'places.primaryTypeDisplayName',
-    'places.businessStatus',
-    'places.currentOpeningHours.openNow'
+    'places.primaryTypeDisplayName',   // نص للعرض («مطعم»)
+    'places.primaryType',              // نوع آلي — عليه يقوم الفرز والأيقونة
+    'places.types',                    // احتياط حين يغيب النوع الأساسي
+    'places.businessStatus'
+    // ⚠️ لا currentOpeningHours: النتائج تُخزَّن 12 ساعة، فشارة "مفتوح الآن" المخزَّنة
+    // تكذب أكثر مما تصدق. وهي فوق ذلك تنقل كل بحث إلى فئة تسعير أعلى عند جوجل.
+    // بديلها الصادق: المسافة والعنوان والتصنيف — وكلها في فئة أرخص.
 ].join(',');
 
 async function callGoogle(endpoint, body) {

@@ -1262,8 +1262,9 @@ window.createOrder = async function() {
                     return;
                 }
                 // هوية المكان الخارجي — السيرفر يحفظه ليصير بحثه لاحقاً مجانياً
-                if (window._errandCtx.externalId) data.externalPlaceId = window._errandCtx.externalId;
-                if (window._errandCtx.category)   data.shopCategory   = window._errandCtx.category;
+                if (window._errandCtx.externalId)  data.externalPlaceId = window._errandCtx.externalId;
+                if (window._errandCtx.category)    data.shopCategory    = window._errandCtx.category;
+                if (window._errandCtx.categoryKey) data.shopCategoryKey = window._errandCtx.categoryKey;
             }
             data.parcelImage = null; // لا صورة طرد لطلب شراء
         }
