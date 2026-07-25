@@ -6,7 +6,7 @@
  * "الحرمين")، أو يُخفي محلات مشروعة فتبدو الخدمة معطّلة.
  */
 const { isInsidePolygon } = require('../utils/geofence');
-const { clampToCity, centerFor, CITY_CENTERS } = require('../utils/placesSearch');
+const { clampToCity, centerFor, textSearchBody, nearbySearchBody, CITY_CENTERS } = require('../utils/placesSearch');
 
 // منطقة التوصيل الافتراضية في الإعدادات — مربع حول وسط الخرطوم
 const ZONE = [
@@ -113,6 +113,42 @@ describe('centerFor — مركز البحث', () => {
             const c = centerFor(city, coords[0], coords[1]);
             const kept = clampToCity([{ name: 'x', lat: c.lat, lng: c.lng }], city, null);
             expect(kept).toHaveLength(1);
+        }
+    });
+});
+
+describe('أجسام طلبات جوجل', () => {
+    // 🔒 هذا الاختبار موجود لعطلٍ حقيقي: أُضيف locationRestriction ونُسي حذف
+    // locationBias، وجوجل يرفض اجتماعهما بـ INVALID_ARGUMENT — ففشل كل بحث نصّي
+    // بينما بدا المفتاح والإعداد سليمين تماماً.
+    it('🔒 البحث النصّي لا يجمع الترجيح والحصر أبداً', () => {
+        for (const city of ['Khartoum', 'PortSudan', 'Cairo']) {
+            const body = textSearchBody('بقالة', city);
+            expect(body.locationRestriction).toBeDefined();
+            expect(body.locationBias).toBeUndefined();
+        }
+    });
+
+    it('البحث النصّي محصور بمستطيل المدينة', () => {
+        const r = textSearchBody('بقالة', 'PortSudan').locationRestriction.rectangle;
+        expect(r.low.latitude).toBeLessThan(r.high.latitude);
+        expect(r.low.longitude).toBeLessThan(r.high.longitude);
+        // المستطيل يحوي مركز المدينة فعلاً
+        expect(CITY_CENTERS.PortSudan.lat).toBeGreaterThanOrEqual(r.low.latitude);
+        expect(CITY_CENTERS.PortSudan.lat).toBeLessThanOrEqual(r.high.latitude);
+    });
+
+    it('🔒 البحث بالتصنيف لا يجمعهما كذلك، ونصف قطره لا يتجاوز الحد', () => {
+        const cat = { types: ['restaurant'] };
+        const body = nearbySearchBody(cat, { lat: 15.6, lng: 32.5, radius: 40000 });
+        expect(body.locationBias).toBeUndefined();
+        expect(body.locationRestriction.circle.radius).toBeLessThanOrEqual(12000);
+    });
+
+    it('كل الأجسام تطلب العربية والسودان', () => {
+        for (const body of [textSearchBody('x', 'Khartoum'), nearbySearchBody({ types: ['store'] }, CITY_CENTERS.Khartoum)]) {
+            expect(body.languageCode).toBe('ar');
+            expect(body.regionCode).toBe('SD');
         }
     });
 });

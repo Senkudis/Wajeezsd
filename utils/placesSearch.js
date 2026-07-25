@@ -31,6 +31,47 @@ function cityRectangle(city) {
 }
 
 /**
+ * جسم طلب البحث النصّي.
+ *
+ * ⚠️ locationBias و locationRestriction متنافيان في Places API — إرسالهما معاً
+ * يُرجع INVALID_ARGUMENT، فيفشل كل بحث نصّي بينما يبدو المفتاح والإعداد سليمين
+ * (التشخيص يمرّ لأنه يرسل واحداً فقط). حدث هذا فعلاً: أُضيف الحصر ونُسي حذف
+ * الترجيح. نرسل الحصر وحده — وهو المطلوب: نتائج داخل المدينة لا مجرّد قريبة منها.
+ *
+ * مفصولة عن النداء لتُختبر: هذا الخطأ لا يظهر إلا بنداء حقيقي مدفوع.
+ */
+function textSearchBody(query, city) {
+    return {
+        textQuery: query,
+        languageCode: 'ar',
+        regionCode: 'SD',
+        maxResultCount: 15,
+        locationRestriction: { rectangle: cityRectangle(city) }
+    };
+}
+
+/**
+ * جسم طلب البحث بالتصنيف — الأقرب أولاً حول مركز البحث.
+ * searchNearby لا تقبل locationBias أصلاً، فالحصر هنا هو الوسيلة الوحيدة.
+ */
+function nearbySearchBody(cat, center) {
+    return {
+        includedTypes: cat.types,
+        languageCode: 'ar',
+        regionCode: 'SD',
+        maxResultCount: 20,
+        rankPreference: 'DISTANCE',
+        // نصف قطر أصغر للتصنيفات: «أقرب بقالة» لا «كل بقالات الخرطوم»
+        locationRestriction: {
+            circle: {
+                center: { latitude: center.lat, longitude: center.lng },
+                radius: Math.min(center.radius, 12000)
+            }
+        }
+    };
+}
+
+/**
  * حصر النتائج داخل منطقة التوصيل الفعلية للمدينة.
  * يُطبَّق بعد الكاش لا قبله: تعديل المنطقة من لوحة الأدمن يسري فوراً بلا انتظار
  * انتهاء صلاحية الكاش، ولأن النتائج الخام صالحة لأي منطقة.
@@ -96,13 +137,10 @@ async function diagnose() {
     if (!used) return { ...info, ok: false, googleError: 'PLACES_KEY_MISSING' };
 
     try {
-        const results = await callGoogle('searchText', {
-            textQuery: 'بقالة',
-            languageCode: 'ar',
-            regionCode: 'SD',
-            maxResultCount: 3,
-            locationBias: { circle: { center: { latitude: CITY_CENTERS.Khartoum.lat, longitude: CITY_CENTERS.Khartoum.lng }, radius: 20000 } }
-        });
+        // ⚠️ نفس جسم الطلب الحقيقي بالضبط. كان التشخيص يبني جسماً مبسّطاً خاصاً به،
+        // فمرّ بنجاح بينما كان كل بحث حقيقي يفشل — أعطى طمأنينة كاذبة وأضاع وقتاً
+        // في مطاردة المفتاح والـ IP. تشخيصٌ لا يختبر المسار الحقيقي لا قيمة له.
+        const results = await callGoogle('searchText', textSearchBody('بقالة', 'Khartoum'));
         return { ...info, ok: true, resultCount: results.length, sample: results.slice(0, 2).map(r => r.name) };
     } catch (e) {
         return { ...info, ok: false, googleError: e.message };
@@ -249,23 +287,15 @@ async function searchText({ query, city, lat, lng, zone }) {
     const q = normalizeQuery(query);
     if (q.length < 2) return { results: [], cached: true };
 
-    const c = centerFor(city, lat, lng);
-    // إحداثيات مقرَّبة في المفتاح: عميلان في نفس الحي يتشاركان نتيجة واحدة.
-    // المدينة جزء من المفتاح لأن الحصر صار مرتبطاً بها.
-    const key = `t:${city}:${q}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
+    // الطلب صار يعتمد على المدينة وحدها (الحصر بمستطيلها، بلا ترجيح بموقع العميل)،
+    // فالمفتاح كذلك: كل عملاء المدينة يتشاركون نتيجة واحدة بدل نتيجة لكل حي —
+    // إصابات كاش أكثر ونداءات مدفوعة أقل.
+    const key = `t:${city}:${q}`;
     let data = await cacheGet(key);
     const cached = !!data;
 
     if (!data) {
-        data = await callGoogle('searchText', {
-            textQuery: q,
-            languageCode: 'ar',
-            regionCode: 'SD',
-            maxResultCount: 15,
-            // الحصر يمنع تسرّب نتائج من خارج المدينة، والترجيح يقرّب الأنسب داخلها
-            locationRestriction: { rectangle: cityRectangle(city) },
-            locationBias: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: c.radius } }
-        });
+        data = await callGoogle('searchText', textSearchBody(q, city));
         await cacheSet(key, data);
     }
 
@@ -286,19 +316,11 @@ async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
     const cached = !!data;
 
     if (!data) {
-        data = await callGoogle('searchNearby', {
-            includedTypes: cat.types,
-            languageCode: 'ar',
-            regionCode: 'SD',
-            maxResultCount: 20,
-            rankPreference: 'DISTANCE',
-            // نصف قطر أصغر للتصنيفات: «أقرب بقالة» لا «كل بقالات الخرطوم»
-            locationRestriction: { circle: { center: { latitude: c.lat, longitude: c.lng }, radius: Math.min(c.radius, 12000) } }
-        });
+        data = await callGoogle('searchNearby', nearbySearchBody(cat, c));
         await cacheSet(key, data);
     }
 
     return { results: clampToCity(data, city, zone), cached };
 }
 
-module.exports = { searchText, searchByCategory, diagnose, clampToCity, centerFor, normalizeQuery, ERRAND_CATEGORIES, CITY_CENTERS };
+module.exports = { searchText, searchByCategory, diagnose, clampToCity, centerFor, normalizeQuery, textSearchBody, nearbySearchBody, ERRAND_CATEGORIES, CITY_CENTERS };
