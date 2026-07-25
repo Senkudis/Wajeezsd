@@ -273,12 +273,18 @@ async function loadErrandCategories() {
     } catch (_) { wrap.innerHTML = ''; }
 }
 
-window.openErrandPicker = async function () {
+/**
+ * @param {string} [seedQuery] نصّ بحث يُملأ ويُنفَّذ فوراً.
+ *        يأتي من شاشة "لا توجد نتائج" في البحث العام: العميل كتب اسم المحل مرة،
+ *        فإعادةُ كتابته هنا احتكاكٌ بلا سبب — وأكثر ما يُفقد العملاء عند طريق مسدود.
+ */
+window.openErrandPicker = async function (seedQuery) {
     if (!localStorage.getItem('token')) { window.location.href = 'client-login.html'; return; }
     const sheet = document.getElementById('errandSheet');
     const searchInput = document.getElementById('errandSearch');
+    const seed = String(seedQuery || '').trim();
     sheet.classList.add('show');
-    if (searchInput) searchInput.value = '';
+    if (searchInput) searchInput.value = seed;
     _errandActiveCat = '';
     _errandSeq++;
 
@@ -293,9 +299,16 @@ window.openErrandPicker = async function () {
             <i class="bi bi-chevron-left" style="color:#4f46e5;"></i>
         </div>`;
 
-    renderErrandIdle();
-    loadErrandFeatured();
-    loadErrandCategories();
+    // التصنيفات أولاً: شارات النتائج وأيقوناتها تقرأ جدولها
+    await loadErrandCategories();
+
+    if (seed.length >= 2) {
+        runErrandSearch({ q: seed });      // بحث مباشر بلا انتظار الكتابة
+    } else {
+        renderErrandIdle();
+        loadErrandFeatured();
+    }
+
     // الموقع يُطلب بهدوء في الخلفية ليُحسّن ترتيب النتائج، ولا ننتظره
     if (!window.userLocation && typeof getUserLocation === 'function') getUserLocation().catch(() => {});
 };
@@ -321,3 +334,17 @@ window.startErrand = function (shopId, shopName, lat, lng, address, externalId, 
     try { sessionStorage.setItem('errandContext', JSON.stringify(ctx)); } catch (_) {}
     window.location.href = 'index.html?mode=errand';
 };
+
+// 🔗 القدوم من شاشة "لا توجد نتائج" في البحث العام (index.html):
+// يُفتح المنتقي تلقائياً بنصّ البحث نفسه. يُنظَّف المفتاح فوراً حتى لا يُعاد
+// فتحه عند أي تحديث لاحق للصفحة بلا قصد.
+(function initErrandFromSearch() {
+    try {
+        if (new URLSearchParams(location.search).get('errand') !== '1') return;
+        const seed = sessionStorage.getItem('errandSeedQuery') || '';
+        sessionStorage.removeItem('errandSeedQuery');
+        const start = () => window.openErrandPicker(seed);
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+        else start();
+    } catch (_) { /* تجاهل */ }
+})();

@@ -375,6 +375,18 @@
 .ss-empty h6 { font-size: 15px; font-weight: 800; color: #475569; margin-bottom: 4px; }
 .ss-empty p { font-size: 13px; }
 
+/* 🛍️ مخرج من شاشة "لا نتائج" إلى خدمة "اشترِ لي" — طريق مسدود يفقد العميل */
+.ss-errand-btn {
+    margin-top: 14px;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 11px 22px; border: none; border-radius: 99px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 800;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.32);
+    cursor: pointer; transition: transform .15s, box-shadow .15s;
+}
+.ss-errand-btn:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(79, 70, 229, 0.28); }
+
 /* هيكل التحميل (Skeleton) */
 .ss-skel {
     display: flex;

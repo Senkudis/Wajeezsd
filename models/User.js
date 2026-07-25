@@ -65,6 +65,12 @@ const UserSchema = new mongoose.Schema(
         ratingCount: { type: Number, default: 0 },
         averageRating: { type: Number, default: 5.0 }, // Default starts high or neutral
 
+        // 🏁 عدد الرحلات المكتملة — يُعرض للعميل مع التقييم.
+        // عدّاد مخزَّن لا عدٌّ عند الطلب: العدّ في كل فتح شاشة تتبّع استعلامٌ ثقيل
+        // على مجموعة الطلبات كلها لكل مستخدم. يزيد ذرّياً عند كل تسليم.
+        // ⚠️ الكباتن السابقون يبدؤون من صفر — انظر scripts/backfill-captain-trips.js
+        completedTrips: { type: Number, default: 0 },
+
         // 💰 Earnings (Legacy — positive accumulation)
         wallet: { type: Number, default: 0 },
 

@@ -681,7 +681,7 @@ router.get('/my-orders', protect, async (req, res) => {
         // Fetch normal Orders (excluding the cloned shop deliveries so we don't duplicate)
         const orders = await Order.find({ client: req.user.id, orderType: { $ne: 'shop' }, ...dateFilter })
             .select('-parcelImage')
-            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto')
+            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
             .sort({ createdAt: -1 })
             .limit(MAX_FETCH)
             .lean();
@@ -703,7 +703,7 @@ router.get('/my-orders', protect, async (req, res) => {
         const shopOrders = await ShopOrder.find({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
             .select('-paymentReceiptImage')
             .populate('place', 'name address bankAccountName bankAccountNumber bankName')
-            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto')
+            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
             .sort({ createdAt: -1 })
             .limit(MAX_FETCH)
             .lean();
@@ -1663,6 +1663,11 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
 
         const order = updatedOrder; // for subsequent logic
 
+        // 🏁 عدّاد رحلات الكابتن — داخل الكتلة الذرّية أعلاه ضماناً لعدم التكرار:
+        // التحديث الذرّي لا ينجح إلا مرة واحدة لكل طلب، فلا يُحتسب تسليمان لطلب واحد.
+        User.updateOne({ _id: req.user.id }, { $inc: { completedTrips: 1 } })
+            .catch(e => logger.warn({ err: e.message }, 'completedTrips increment failed'));
+
         // 🧭 علّم كل النقاط المتبقية كمُنجَزة عند التسليم النهائي
         if (order.isMultiStop && Array.isArray(order.stops)) {
             let changed = false;
@@ -2102,7 +2107,7 @@ router.get('/:id', protect, async (req, res) => {
         const order = await Order.findById(req.params.id)
             .populate('client', 'name phone')
             // ⭐ averageRating/ratingCount: لإظهار تقييم الكابتن للعميل
-            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount')
+            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
             .lean();
 
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });

@@ -1065,7 +1065,7 @@
     <script src="js/map-markers.js?v=f66d1f1b"></script>
     <script src="js/order-feature.js?v=29ffccac"></script>
     <!-- 🛍️ منتقي "اشترِ لي" — بعد order-feature.js لاعتماده على getUserLocation/getFullImageUrl -->
-    <script src="js/errand-picker.js?v=d84db5a1"></script>
+    <script src="js/errand-picker.js?v=dbe4ee81"></script>
     <script src="js/home-banners.js?v=5f77eb1f"></script>
 
     <script>
@@ -1230,9 +1230,16 @@
             badge.textContent = `${total} نتيجة`;
 
             if (total === 0) {
+                // 🛍️ مخرج بدل طريق مسدود: المحل غير مسجّل عندنا لا يعني أنه غير متاح —
+                // خدمة "اشترِ لي" تشتري منه. ننقل نصّ البحث معها فلا يُعيد العميل الكتابة.
                 listEl.innerHTML = `<div class="search-results-wrap"><div class="empty-state"><div class="empty-icon">🔍</div>
                     <h6>لا توجد نتائج لـ "${escapeHtml(q)}"</h6>
-                    <p>جرّب اسم منتج أو متجر أو قسم آخر</p></div></div>`;
+                    <p>المحل مش مسجّل عندنا؟ الكابتن يقدر يشتري ليك منه</p>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold mt-2"
+                        style="background:linear-gradient(135deg,#7c3aed,#4f46e5);border:none;"
+                        onclick="openErrandPicker('${escapeHtml(q).replace(/'/g, "&#39;")}')">
+                        <i class="bi bi-bag-heart-fill me-1"></i> اطلبه من أي محل
+                    </button></div></div>`;
                 return;
             }
 

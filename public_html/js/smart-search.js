@@ -196,9 +196,14 @@
         var total = cats.length + places.length + products.length;
 
         if (total === 0) {
+            // 🛍️ مخرج بدل طريق مسدود: المحل غير مسجّل عندنا لا يعني أنه غير متاح.
+            // ننقل نصّ البحث لمنتقي "اشترِ لي" فلا يُعيد العميل كتابته.
             resultsEl.innerHTML = '<div class="ss-empty"><div class="ss-empty-ic">🔍</div>' +
                 '<h6>لا توجد نتائج لـ "' + esc(lastQuery) + '"</h6>' +
-                '<p>جرّب اسم منتج أو متجر أو قسم آخر</p></div>';
+                '<p>المحل مش مسجّل عندنا؟ الكابتن يقدر يشتري ليك منه</p>' +
+                '<button type="button" class="ss-errand-btn" onclick="goToErrandWith(\'' +
+                    esc(lastQuery).replace(/'/g, '&#39;') + '\')">' +
+                '<i class="bi bi-bag-heart-fill"></i> اطلبه من أي محل</button></div>';
             return;
         }
 
@@ -301,6 +306,16 @@
     } else {
         initTrigger();
     }
+
+    /**
+     * ينتقل لمنتقي "اشترِ لي" حاملاً نصّ البحث.
+     * المنتقي يعيش في صفحة التسوّق، فنمرّر النصّ عبر sessionStorage: العميل كتب
+     * اسم المحل مرة، وإعادةُ كتابته احتكاكٌ يفقد العملاء عند طريق مسدود.
+     */
+    window.goToErrandWith = function (query) {
+        try { sessionStorage.setItem('errandSeedQuery', String(query || '')); } catch (_) {}
+        window.location.href = 'client-order.html?errand=1';
+    };
 
     window.SmartSearch = { open: open, close: close };
 })();
