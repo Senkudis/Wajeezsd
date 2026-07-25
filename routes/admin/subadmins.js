@@ -2,6 +2,9 @@
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
 const router = express.Router();
+const validateObjectId = require('../middleware/validateObjectId');
+// 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
+router.param('id', validateObjectId);
 const mongoose = require('mongoose');
 const User = require('../../models/User');
 const Order = require('../../models/Order');
@@ -208,13 +211,12 @@ router.delete('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
 
 // @route   GET /api/admin/errors
 // @desc    آخر أخطاء الإنتاج (مخزن في الذاكرة) — مراقبة سريعة للمسؤول الرئيسي
-router.get('/errors', protect, superAdminOnly, (req, res) => {
+router.get('/errors', protect, superAdminOnly, async (req, res) => {
     try {
         const errorTracker = require('../../utils/errorTracker');
-        res.json({
-            count: errorTracker.count(),
-            errors: errorTracker.list(req.query.limit)
-        });
+        // الدائم أولاً — أخطاء ما قبل آخر إعادة تشغيل هي الأهمّ غالباً
+        const { source, errors } = await errorTracker.listPersisted(req.query.limit);
+        res.json({ source, count: errors.length, memoryCount: errorTracker.count(), errors });
     } catch (e) {
         res.status(500).json({ message: 'Server Error' });
     }

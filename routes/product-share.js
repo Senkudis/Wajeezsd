@@ -8,6 +8,9 @@
  */
 const express = require('express');
 const router = express.Router();
+const validateObjectId = require('../middleware/validateObjectId');
+// 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
+router.param('id', validateObjectId);
 const fs = require('fs');
 const path = require('path');
 const Product = require('../models/Product');

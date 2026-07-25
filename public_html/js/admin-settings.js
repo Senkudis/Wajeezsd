@@ -322,3 +322,91 @@ if (compressBtn) {
     document.getElementById('citySelector')?.addEventListener('change', load);
     load();
 })();
+
+// ============================================================
+// 🐞 أخطاء الإنتاج
+//
+// لماذا: errorTracker كان يسجّل الأخطاء ويعرضها على /api/admin/errors، لكن بلا أي
+// شاشة تقرؤها — فلم يكن أحد يراها إلا بـ curl يدوي. أخطاء تُسجَّل ولا تُقرأ كأنها
+// غير مسجَّلة.
+// ============================================================
+(function initErrorLog() {
+    const body = document.getElementById('errorsBody');
+    if (!body) return;
+
+    const esc = (s) => String(s == null ? '' : s)
+        .replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const ago = (iso) => {
+        if (!iso) return '';
+        const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+        if (mins < 1) return 'الآن';
+        if (mins < 60) return `قبل ${mins} د`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `قبل ${hrs} س`;
+        return `قبل ${Math.floor(hrs / 24)} يوم`;
+    };
+
+    const statusColor = (c) => c >= 500 ? '#dc3545' : (c >= 400 ? '#fd7e14' : '#6c757d');
+
+    function render(d) {
+        const errors = d.errors || [];
+        if (!errors.length) {
+            body.innerHTML = `<div class="alert alert-success py-2 px-3 mb-0 small">
+                <i class="bi bi-check-circle-fill"></i> لا توجد أخطاء مسجّلة.</div>`;
+            return;
+        }
+
+        // التخزين الدائم يعني أن أخطاء ما قبل إعادة التشغيل باقية — نوضّح المصدر
+        const note = d.source === 'memory'
+            ? `<div class="alert alert-warning py-2 px-3 small mb-2">
+                 <i class="bi bi-exclamation-triangle"></i> تعذّرت قراءة السجلّ الدائم — المعروض من ذاكرة العملية فقط.</div>`
+            : '';
+
+        body.innerHTML = note + `
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size:12px;">
+                    <thead><tr>
+                        <th style="width:52px;">الحالة</th><th>الخطأ</th>
+                        <th style="width:58px;">التكرار</th><th style="width:78px;">آخر مرة</th>
+                    </tr></thead>
+                    <tbody>${errors.map((e, i) => `
+                        <tr>
+                            <td><span class="badge" style="background:${statusColor(e.statusCode)};">${esc(e.statusCode)}</span></td>
+                            <td>
+                                <div class="fw-bold" style="word-break:break-word;">${esc(e.message)}</div>
+                                <div class="text-muted" style="font-size:10.5px;">
+                                    ${esc(e.method || '')} ${esc(e.path || '')}
+                                </div>
+                                ${e.stack ? `<a href="#" class="text-decoration-none" style="font-size:10.5px;"
+                                    onclick="event.preventDefault();document.getElementById('errStack${i}').classList.toggle('d-none');">عرض الأثر</a>
+                                    <pre id="errStack${i}" class="d-none bg-light p-2 mt-1 mb-0 rounded"
+                                         style="font-size:10px;white-space:pre-wrap;max-height:180px;overflow:auto;">${esc(e.stack)}</pre>` : ''}
+                            </td>
+                            <td>${esc(e.count || 1)}</td>
+                            <td class="text-muted">${esc(ago(e.at))}</td>
+                        </tr>`).join('')}</tbody>
+                </table>
+            </div>`;
+    }
+
+    async function load() {
+        body.innerHTML = 'جاري التحميل…';
+        try {
+            const res = await fetch(`${API_URL}/api/admin/errors?limit=30`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.status === 403) {
+                body.innerHTML = `<span class="text-muted">متاح للمسؤول الرئيسي فقط.</span>`;
+                return;
+            }
+            if (!res.ok) throw new Error('تعذّر تحميل الأخطاء');
+            render(await res.json());
+        } catch (err) {
+            body.innerHTML = `<span class="text-danger">${err.message || 'تعذّر الاتصال بالسيرفر'}</span>`;
+        }
+    }
+
+    document.getElementById('reloadErrorsBtn')?.addEventListener('click', load);
+    load();
+})();

@@ -305,6 +305,26 @@ const healthHandler = (req, res) => {
 app.get('/api/health', healthHandler);
 app.get('/health', healthHandler);
 
+// 🧾 بصمة الملفات المنشورة — يقارنها scripts/verify-deploy.js بنسختك المحلية
+// فيقول أيّ ملف بالضبط لم يُنشر. النشر اليدوي الجزئي أخطر أعطال هذا المشروع.
+// عام عمداً: لا يكشف محتوى ولا مساراً سرياً (بنية Express معروفة)، وأداةُ تحقّقٍ
+// تحتاج رمز دخول أداةٌ لا تُستعمل — وقيمتها كلها في أن تُستعمل قبل كل نشر.
+app.get('/api/version', (req, res) => {
+    try {
+        const { manifest } = require('./utils/deployManifest');
+        const m = manifest();
+        res.json({
+            appVersion: require('./package.json').version,
+            digest: m.digest,
+            count: m.count,
+            files: m.files,
+            startedAt: new Date(Date.now() - process.uptime() * 1000).toISOString()
+        });
+    } catch (e) {
+        res.status(500).json({ message: 'manifest unavailable' });
+    }
+});
+
 // Mount the API router (globalLimiter applies to all /api routes)
 app.use('/api', globalLimiter, apiRoutes);
 

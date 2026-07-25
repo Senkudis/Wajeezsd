@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const validateObjectId = require('../middleware/validateObjectId');
+// 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
+router.param('id', validateObjectId);
 const mongoose = require('mongoose');
 const { protect, merchantOnly, adminOnly, requirePermission } = require('../middleware/authMiddleware');
 const Place = require('../models/Place');
