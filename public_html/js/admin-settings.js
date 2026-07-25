@@ -276,7 +276,7 @@ if (compressBtn) {
                 ${tile('من الكاش', t.cacheHits || 0, '')}
                 ${tile('من قاعدتنا وحدها', t.localOnly || 0, 'بلا نداء لجوجل')}
                 ${tile('بحث بلا نتائج', t.emptyResults || 0, '', '#fd7e14')}
-                ${tile('أخطاء', t.errors || 0, '', (t.errors ? '#dc3545' : '#6c757d'))}
+                ${tile('أخطاء', t.errorCount || 0, '', (t.errorCount ? '#dc3545' : '#6c757d'))}
             </div>
 
             ${failed.length ? `<div class="alert alert-warning py-2 px-3 small mb-3">

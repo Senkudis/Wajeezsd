@@ -2,7 +2,7 @@
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
 const router = express.Router();
-const validateObjectId = require('../middleware/validateObjectId');
+const validateObjectId = require('../../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const mongoose = require('mongoose');

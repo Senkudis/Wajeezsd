@@ -21,7 +21,7 @@ function buildIncrement({ resultCount, googleCalled, localOnly = false, failed =
     else if (googleCalled)  inc.googleCalls = 1;
     else                    inc.cacheHits = 1;
     if (resultCount === 0)  inc.emptyResults = 1;
-    if (failed)             inc.errors = 1;
+    if (failed)             inc.errorCount = 1;   // «errors» محجوز في Mongoose
     return inc;
 }
 

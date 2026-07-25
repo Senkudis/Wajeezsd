@@ -18,7 +18,9 @@ const PlaceSearchStatSchema = new mongoose.Schema({
     cacheHits:    { type: Number, default: 0 },  // خُدم من الكاش
     localOnly:    { type: Number, default: 0 },  // كفت قاعدتنا فلم نُنادِ جوجل أصلاً
     emptyResults: { type: Number, default: 0 },  // بحث لم يجد شيئاً
-    errors:       { type: Number, default: 0 }
+    // ⚠️ ليس «errors»: اسمٌ محجوز في Mongoose (خاصية أخطاء التحقّق في كل وثيقة)،
+    // استعماله يطبع تحذيراً عند الإقلاع وقد يكسر التحقّق صامتاً.
+    errorCount:   { type: Number, default: 0 }
 }, { timestamps: true });
 
 PlaceSearchStatSchema.index({ day: 1, city: 1 }, { unique: true });

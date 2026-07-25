@@ -276,7 +276,7 @@ router.get('/errand-stats', protect, async (req, res) => {
                 cacheHits: sum('cacheHits'),
                 localOnly: sum('localOnly'),
                 emptyResults: sum('emptyResults'),
-                errors: sum('errors'),
+                errorCount: sum('errorCount'),
                 // النسبة التي وفّرناها فعلاً — المؤشّر الوحيد الذي يهمّ
                 savedPercent: searches ? Math.round((1 - googleCalls / searches) * 100) : 0
             },

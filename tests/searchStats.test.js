@@ -52,12 +52,12 @@ describe('buildIncrement — البحث الفاشل', () => {
 
     it('فشل البحث الخارجي يُعدّ خطأً، ويبقى محسوباً ضمن عمليات البحث', () => {
         const inc = buildIncrement({ resultCount: 0, googleCalled: false, failed: true });
-        expect(inc.errors).toBe(1);
+        expect(inc.errorCount).toBe(1);
         expect(inc.searches).toBe(1);
         expect(inc.emptyResults).toBe(1);
     });
 
     it('البحث الناجح لا يُسجَّل خطأً', () => {
-        expect(buildIncrement({ resultCount: 3, googleCalled: true }).errors).toBeUndefined();
+        expect(buildIncrement({ resultCount: 3, googleCalled: true }).errorCount).toBeUndefined();
     });
 });
