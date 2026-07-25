@@ -15,6 +15,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -44,6 +45,13 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // 📐 edge-to-edge صراحةً، قبل super.onCreate.
+        // أندرويد 15 يفعّلها تلقائياً لتطبيقات targetSdk 35+، لكن الأجهزة الأقدم —
+        // وهي أغلب مستخدمينا — لا تفعّلها إلا بطلب صريح. النتيجة كانت سلوكين مختلفين
+        // لنفس النسخة: الشريط شفاف على 15 ومصمت على ما دونه (بلاغ Play: قد لا تكون
+        // مفعّلة لدى جميع المستخدمين). هذه توحّدهما على كل الإصدارات.
+        EdgeToEdge.enable(this);
+
         // BridgeActivity.onCreate() builds the Bridge and immediately calls
         // this.onNewIntent(getIntent()) internally, so the launch intent's extras are
         // already captured by the time this line returns.

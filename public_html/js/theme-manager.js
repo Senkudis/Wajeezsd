@@ -14,15 +14,12 @@ const ThemeManager = {
             const { StatusBar } = Capacitor.Plugins;
             if (!StatusBar) return;
 
-            if (isDark) {
-                // وضع ليلي: نص أبيض على خلفية داكنة
-                StatusBar.setStyle({ style: 'DARK' });
-                StatusBar.setBackgroundColor({ color: '#1a1a2e' });
-            } else {
-                // وضع نهاري: نص داكن على خلفية خضراء (لون Header التطبيق)
-                StatusBar.setStyle({ style: 'LIGHT' });
-                StatusBar.setBackgroundColor({ color: '#04553A' });
-            }
+            // ⚠️ لا setBackgroundColor: تستدعي Window.setStatusBarColor المتوقّفة نهائياً،
+            // وأندرويد 15 يتجاهلها أصلاً (بلاغ Play: android.view.Window.setStatusBarColor).
+            // التطبيق edge-to-edge: محتوى الصفحة نفسه يمتدّ خلف الشريط ويرسم لونه —
+            // الترويسة الخضراء تحت --sat هي ما يراه المستخدم، لا لون الشريط.
+            // يبقى setStyle لأنه يضبط لون الأيقونات عبر WindowInsetsController ولم يتوقّف.
+            StatusBar.setStyle({ style: isDark ? 'DARK' : 'LIGHT' });
         } catch (e) {
             // البيئة ليست Capacitor Native (مثل المتصفح) — تجاهل
         }
