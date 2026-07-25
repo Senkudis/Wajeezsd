@@ -30,6 +30,27 @@ function currentVersions() {
     };
 }
 
+/**
+ * 🔎 أرقام إصدار مكتوبة يدوياً داخل HTML.
+ * لماذا: هذا الفاحص كان يقرأ ثلاثة ملفات فقط، وHTML يعرض للمستخدم رقماً آخر تماماً
+ * (1.4.1 في الرئيسية و2.0.0 في ملف الكابتن بينما التطبيق 1.0.9) — انحراف صامت لأن
+ * لا شيء كان يقرأه. البديل الصحيح: <span data-app-version> يملؤه app-core.js.
+ */
+function hardcodedInHtml() {
+    const dir = path.join(ROOT, 'public_html');
+    const hits = [];
+    let files = [];
+    try { files = fs.readdirSync(dir).filter(f => f.endsWith('.html')); } catch (_) { return hits; }
+
+    for (const f of files) {
+        const src = read(path.join(dir, f));
+        const re = /(الإصدار|إصدار التطبيق)\s*[:：]?\s*(\d+\.\d+\.\d+)/g;
+        let m;
+        while ((m = re.exec(src))) hits.push({ file: `public_html/${f}`, version: m[2] });
+    }
+    return hits;
+}
+
 const setTo = process.argv.includes('--set')
     ? process.argv[process.argv.indexOf('--set') + 1]
     : null;
@@ -61,4 +82,15 @@ if (!same) {
     console.error('\n❌ أرقام الإصدار غير متزامنة. صحّحها بـ: node scripts/check-version.js --set x.y.z');
     process.exit(1);
 }
+
+// رقمٌ مكتوب يدوياً في HTML لا يتحرّك مع --set، فينحرف بصمت ويراه المستخدم
+const hard = hardcodedInHtml();
+if (hard.length) {
+    console.error('\n❌ أرقام إصدار مكتوبة يدوياً في HTML (لن تتحدّث مع --set):');
+    for (const h of hard) console.error(`   ${h.file}  →  ${h.version}`);
+    console.error('   استبدلها بـ: <span data-app-version></span>');
+    process.exit(1);
+}
+
 console.log(`\n✓ الإصدار متزامن: ${values[0]}`);
+console.log('✓ لا أرقام إصدار مكتوبة يدوياً في HTML');

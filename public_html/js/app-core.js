@@ -14,7 +14,17 @@ const ImpactStyle = { Light: 'LIGHT', Medium: 'MEDIUM', Heavy: 'HEAVY' };
 // (capacitor.config.json بلا server.url ⇒ التطبيق يحمّل أصول public_html المحزومة)،
 // فيمثّل إصدار النسخة المثبَّتة على الجهاز. يجب أن يساوي دائماً versionName في
 // android/app/build.gradle و version في package.json — تحقّق بـ: npm run version:check
-window.APP_VERSION = '1.0.9';
+window.APP_VERSION = '1.1.0';
+
+// 🏷️ يملأ كل [data-app-version] في الصفحة من الرقم أعلاه.
+// كانت أرقام الإصدار مكتوبة يدوياً داخل HTML فانحرفت بصمت (1.4.1 و2.0.0 بينما
+// التطبيق 1.0.9) — فاحص الإصدار لا يقرأ HTML، فلم ينبّه أحدٌ لسنوات.
+(function fillVersionLabels() {
+    const paint = () => document.querySelectorAll('[data-app-version]')
+        .forEach(el => { el.textContent = window.APP_VERSION; });
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint);
+    else paint();
+})();
 
 // دالة عرض الـ Toasts الداخلية (تُستخدم فقط إذا لم تُحمَّل notification-toast.js بعد)
 // ✅ إصلاح BUG-2: لا تُعيَّن على window.showToast لتجنّب تعارض التوقيعات
