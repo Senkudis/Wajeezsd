@@ -77,10 +77,16 @@
         })).then(function () { return google.maps; });
     }
 
-    // كل المكتبات التي تحتاجها هذه الصفحة: من الرابط (libraries) + الإضافية (need)
+    // كل المكتبات التي تحتاجها هذه الصفحة: من الرابط (libraries) + الإضافية (need).
+    // بلا تكرار — صفحة تكتب 'geometry,marker' كانت تُنتج marker مرتين في الرابط.
     function neededLibs(opts) {
         var list = String(opts.libraries || '').split(',').map(function (x) { return x.trim(); });
-        return list.concat(opts.need || []).concat(['marker']).filter(Boolean);
+        var seen = {}, out = [];
+        list.concat(opts.need || []).concat(['marker']).forEach(function (n) {
+            n = String(n || '').trim();
+            if (n && !seen[n]) { seen[n] = true; out.push(n); }
+        });
+        return out;
     }
 
     // يحقن سكربت Google Maps الكلاسيكي بالمفتاح المركزي، مع الحفاظ على callback المُسمّى للصفحة
@@ -103,10 +109,20 @@
                 var params = new URLSearchParams();
                 params.set('key', key);
                 // معامل libraries لا يقبل إلا الأسماء المعروفة — نُسقِط ما عداها (routes مثلاً)
-                var urlLibs = neededLibs(opts).filter(function (n) { return URL_LIBS.indexOf(n) !== -1; });
+                var all = neededLibs(opts);
+                var urlLibs = all.filter(function (n) { return URL_LIBS.indexOf(n) !== -1; });
                 if (urlLibs.indexOf('marker') === -1) urlLibs.push('marker');
                 params.set('libraries', urlLibs.join(','));
-                if (opts.callback)  params.set('callback', opts.callback);
+
+                // ⚠️ سباق: جوجل يستدعي callback المُسمّى بمجرد جاهزية مكتبات الرابط، بينما
+                // مكتبات opts.need (مثل routes) تُستورد بوعدٍ مستقلٍّ متوازٍ. فكانت صفحة
+                // التتبّع تنفّذ new DirectionsService() قبل اكتمال استيراد routes.
+                // الحل: حين تُطلب مكتبة خارج الرابط، لا نُمرّر callback لجوجل بل نستدعيه
+                // بأنفسنا بعد ضمان جاهزية كل المكتبات.
+                var extraLibs = all.filter(function (n) { return URL_LIBS.indexOf(n) === -1; });
+                var googleWillCall = !!opts.callback && extraLibs.length === 0;
+                if (googleWillCall) params.set('callback', opts.callback);
+
                 params.set('loading', 'async');
                 if (opts.extra) {
                     Object.keys(opts.extra).forEach(function (k) { params.set(k, opts.extra[k]); });
@@ -118,8 +134,13 @@
                 s.defer = true;
                 s.onerror = function () { reject(new Error('Google Maps script failed to load')); };
                 s.onload = function () {
-                    // callback المُسمّى يستدعيه جوجل بنفسه بعد الجاهزية؛ نحن نحلّ الوعد فقط
-                    ensureLibraries(neededLibs(opts)).then(resolve, reject);
+                    ensureLibraries(all).then(function (maps) {
+                        // استدعاء ذاتي فقط حين لم نُسنده لجوجل (طُلبت مكتبة خارج الرابط)
+                        if (opts.callback && !googleWillCall && typeof window[opts.callback] === 'function') {
+                            window[opts.callback]();
+                        }
+                        resolve(maps);
+                    }, reject);
                 };
                 document.head.appendChild(s);
             });
