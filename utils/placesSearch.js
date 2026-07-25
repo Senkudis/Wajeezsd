@@ -234,17 +234,19 @@ async function callGoogle(endpoint, body) {
 
 /**
  * بحث نصّي حر عن محل بالاسم (زي خرايط جوجل).
- * @returns {Promise<Array>} قائمة أماكن مطبَّعة
+ * @returns {Promise<{results: Array, cached: boolean}>}
+ *          cached=true يعني أن هذا البحث لم يكلّف نداءً مدفوعاً — تقرأه العدّادات.
  */
 async function searchText({ query, city, lat, lng, zone }) {
     const q = normalizeQuery(query);
-    if (q.length < 2) return [];
+    if (q.length < 2) return { results: [], cached: true };
 
     const c = centerFor(city, lat, lng);
     // إحداثيات مقرَّبة في المفتاح: عميلان في نفس الحي يتشاركان نتيجة واحدة.
     // المدينة جزء من المفتاح لأن الحصر صار مرتبطاً بها.
     const key = `t:${city}:${q}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
     let data = await cacheGet(key);
+    const cached = !!data;
 
     if (!data) {
         data = await callGoogle('searchText', {
@@ -259,20 +261,21 @@ async function searchText({ query, city, lat, lng, zone }) {
         await cacheSet(key, data);
     }
 
-    return clampToCity(data, city, zone);
+    return { results: clampToCity(data, city, zone), cached };
 }
 
 /**
  * بحث بالتصنيف حول العميل — مرتّب بالأقرب.
- * @returns {Promise<Array>} قائمة أماكن مطبَّعة
+ * @returns {Promise<{results: Array, cached: boolean}>}
  */
 async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
     const cat = CATEGORY_BY_KEY[categoryKey];
-    if (!cat) return [];
+    if (!cat) return { results: [], cached: true };
 
     const c = centerFor(city, lat, lng);
     const key = `c:${city}:${categoryKey}:${c.lat.toFixed(2)},${c.lng.toFixed(2)}`;
     let data = await cacheGet(key);
+    const cached = !!data;
 
     if (!data) {
         data = await callGoogle('searchNearby', {
@@ -287,7 +290,7 @@ async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
         await cacheSet(key, data);
     }
 
-    return clampToCity(data, city, zone);
+    return { results: clampToCity(data, city, zone), cached };
 }
 
-module.exports = { searchText, searchByCategory, diagnose, clampToCity, ERRAND_CATEGORIES, CITY_CENTERS };
+module.exports = { searchText, searchByCategory, diagnose, clampToCity, normalizeQuery, ERRAND_CATEGORIES, CITY_CENTERS };

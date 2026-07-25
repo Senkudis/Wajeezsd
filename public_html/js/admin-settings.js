@@ -210,3 +210,115 @@ if (compressBtn) {
         }
     });
 }
+
+// ============================================================
+// 📊 تكلفة بحث "اشترِ لي"
+//
+// لماذا: بنينا كاشاً دائماً وقاعدة أماكن تتعلّم من الطلبات لخفض فاتورة جوجل، بلا
+// وسيلة للتأكد أنها تعمل. بدون هذه اللوحة يبقى الدليل الوحيد فاتورةَ جوجل آخر
+// الشهر — أي أن أي خلل يُكتشف بعد الدفع لا قبله.
+// ============================================================
+(function initSearchStats() {
+    const body = document.getElementById('searchStatsBody');
+    if (!body) return;
+
+    const esc = (s) => String(s == null ? '' : s)
+        .replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const fmtDate = (iso) => {
+        if (!iso) return '';
+        try { return new Date(iso).toLocaleDateString('ar-SD', { day: '2-digit', month: '2-digit' }); }
+        catch { return ''; }
+    };
+
+    const tile = (label, value, hint, color) => `
+        <div class="col-6 col-md-3 mb-2">
+            <div class="p-2 rounded bg-light h-100">
+                <div class="text-muted" style="font-size:11px;">${esc(label)}</div>
+                <div class="fw-bold" style="font-size:19px;color:${color || '#0d6efd'};">${esc(value)}</div>
+                ${hint ? `<div class="text-muted" style="font-size:10.5px;">${esc(hint)}</div>` : ''}
+            </div>
+        </div>`;
+
+    const queryTable = (title, rows, countKey, countLabel, emptyMsg) => {
+        if (!rows || !rows.length) return `<div class="text-muted mb-3" style="font-size:12px;">${esc(title)}: ${esc(emptyMsg)}</div>`;
+        return `
+        <div class="mb-3">
+            <div class="fw-bold mb-1" style="font-size:12.5px;">${esc(title)}</div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0" style="font-size:12px;">
+                    <thead><tr>
+                        <th>الكلمة</th><th>${esc(countLabel)}</th><th>آخر مرة</th>
+                    </tr></thead>
+                    <tbody>${rows.map(r => `<tr>
+                        <td>${esc(r.query)}</td>
+                        <td>${esc(r[countKey])}</td>
+                        <td class="text-muted">${esc(fmtDate(r.lastAt))}</td>
+                    </tr>`).join('')}</tbody>
+                </table>
+            </div>
+        </div>`;
+    };
+
+    function render(d) {
+        const t = d.totals || {};
+        // البحث الفاشل: أثمن رقم هنا — محلات يطلبها العملاء ولا نجدها
+        const failed = d.failedQueries || [];
+
+        body.innerHTML = `
+            <div class="row g-2 mb-3">
+                ${tile('عمليات البحث', t.searches || 0, `آخر ${d.days} يوماً`)}
+                ${tile('نداءات جوجل (مدفوعة)', t.googleCalls || 0, 'ما كلّفنا مالاً', '#dc3545')}
+                ${tile('النسبة الموفَّرة', (t.savedPercent || 0) + '%', 'كاش + قاعدتنا', '#198754')}
+                ${tile('أماكن تعلّمناها', d.learnedCount || 0, 'تُخدم مجاناً', '#6f42c1')}
+            </div>
+            <div class="row g-2 mb-3">
+                ${tile('من الكاش', t.cacheHits || 0, '')}
+                ${tile('من قاعدتنا وحدها', t.localOnly || 0, 'بلا نداء لجوجل')}
+                ${tile('بحث بلا نتائج', t.emptyResults || 0, '', '#fd7e14')}
+                ${tile('أخطاء', t.errors || 0, '', (t.errors ? '#dc3545' : '#6c757d'))}
+            </div>
+
+            ${failed.length ? `<div class="alert alert-warning py-2 px-3 small mb-3">
+                <i class="bi bi-lightbulb-fill"></i>
+                <b>فرصة:</b> الكلمات أدناه بحث عنها عملاء ولم يجدوا شيئاً — هذه قائمة متاجر جاهزة لفريق التسجيل،
+                أو دليل على أن منطقة التوصيل أضيق من الطلب الحقيقي.
+            </div>` : ''}
+
+            ${queryTable('بحث لم يجد شيئاً', failed, 'emptyCount', 'مرات الفشل', 'لا يوجد — كل عمليات البحث وجدت نتائج')}
+            ${queryTable('الأكثر بحثاً', d.topQueries, 'searches', 'مرات البحث', 'لا توجد بيانات بعد')}
+
+            ${(d.topPlaces && d.topPlaces.length) ? `
+            <div>
+                <div class="fw-bold mb-1" style="font-size:12.5px;">الأكثر طلباً من الأماكن المتعلَّمة</div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0" style="font-size:12px;">
+                        <thead><tr><th>المحل</th><th>عدد الطلبات</th></tr></thead>
+                        <tbody>${d.topPlaces.map(p => `<tr>
+                            <td>${esc(p.name)}<div class="text-muted" style="font-size:10.5px;">${esc(p.address || '')}</div></td>
+                            <td>${esc(p.usageCount)}</td>
+                        </tr>`).join('')}</tbody>
+                    </table>
+                </div>
+            </div>` : ''}`;
+    }
+
+    async function load() {
+        body.innerHTML = 'جاري التحميل…';
+        try {
+            const city = document.getElementById('citySelector')?.value || 'Khartoum';
+            const res = await fetch(`${API_URL}/api/places/errand-stats?city=${encodeURIComponent(city)}&days=30`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('تعذّر تحميل الإحصاءات');
+            render(await res.json());
+        } catch (err) {
+            body.innerHTML = `<span class="text-danger">${err.message || 'تعذّر الاتصال بالسيرفر'}</span>`;
+        }
+    }
+
+    document.getElementById('reloadSearchStatsBtn')?.addEventListener('click', load);
+    // الإحصاءات تخصّ المدينة المختارة — تتبع نفس المُبدّل كبقية الصفحة
+    document.getElementById('citySelector')?.addEventListener('change', load);
+    load();
+})();

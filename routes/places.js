@@ -234,6 +234,60 @@ router.get('/errand-featured', async (req, res) => {
     }
 });
 
+// @route   GET /api/places/errand-stats?city=&days=30
+// @desc    📊 أدمن فقط: هل تعمل طبقات خفض التكلفة؟ وما الذي يبحث عنه العملاء ولا يجدونه؟
+router.get('/errand-stats', protect, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+    try {
+        const PlaceSearchStat = require('../models/PlaceSearchStat');
+        const PlaceSearchQuery = require('../models/PlaceSearchQuery');
+        const ExternalPlace = require('../models/ExternalPlace');
+
+        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+        const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 90);
+        const since = new Date(Date.now() + 3 * 60 * 60 * 1000 - days * 86400000)
+            .toISOString().slice(0, 10);
+
+        const [daily, topQueries, failedQueries, learnedCount, topPlaces] = await Promise.all([
+            PlaceSearchStat.find({ city, day: { $gte: since } }).sort({ day: 1 }).lean(),
+            PlaceSearchQuery.find({ city }).sort({ searches: -1 }).limit(10)
+                .select('query searches emptyCount lastResultCount lastAt').lean(),
+            // الأثمن: ما يطلبه العملاء ولا نجده — قائمة تسجيل متاجر جاهزة
+            PlaceSearchQuery.find({ city, emptyCount: { $gt: 0 } }).sort({ emptyCount: -1 }).limit(15)
+                .select('query searches emptyCount lastAt').lean(),
+            ExternalPlace.countDocuments({ city }),
+            ExternalPlace.find({ city }).sort({ usageCount: -1 }).limit(10)
+                .select('name usageCount address').lean()
+        ]);
+
+        const sum = (k) => daily.reduce((a, d) => a + (d[k] || 0), 0);
+        const searches = sum('searches');
+        const googleCalls = sum('googleCalls');
+
+        res.json({
+            city, days,
+            totals: {
+                searches,
+                googleCalls,
+                cacheHits: sum('cacheHits'),
+                localOnly: sum('localOnly'),
+                emptyResults: sum('emptyResults'),
+                errors: sum('errors'),
+                // النسبة التي وفّرناها فعلاً — المؤشّر الوحيد الذي يهمّ
+                savedPercent: searches ? Math.round((1 - googleCalls / searches) * 100) : 0
+            },
+            daily: daily.map(d => ({
+                day: d.day, searches: d.searches, googleCalls: d.googleCalls,
+                cacheHits: d.cacheHits, localOnly: d.localOnly, emptyResults: d.emptyResults
+            })),
+            topQueries, failedQueries, learnedCount, topPlaces
+        });
+    } catch (err) {
+        logger.error({ err: err.message }, 'errand stats error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // @route   GET /api/places/errand-diagnose
 // @desc    🩺 أدمن فقط: أيّ مفتاح مستعمل وما رسالة جوجل الحقيقية — بلا كشف المفتاح
 router.get('/errand-diagnose', protect, async (req, res) => {
@@ -249,23 +303,28 @@ router.get('/errand-diagnose', protect, async (req, res) => {
 // @route   GET /api/places/errand-search?q=&category=&city=&lat=&lng=
 // @desc    بحث مفتوح عن محل بالاسم أو بالتصنيف، مع دمج متاجرنا المسجّلة أولاً
 // @access  محمي — البحث الخارجي مدفوع، فلا يُفتح للزوّار
-const _errandSearchHits = new Map();  // userId → [timestamps] — سقف بسيط لكل مستخدم
-function errandSearchThrottled(userId) {
-    const now = Date.now();
-    const hits = (_errandSearchHits.get(userId) || []).filter(t => now - t < 60000);
-    hits.push(now);
-    _errandSearchHits.set(userId, hits);
-    if (_errandSearchHits.size > 2000) _errandSearchHits.clear(); // تنظيف بدائي يكفي هنا
-    return hits.length > 30;   // 30 بحثاً في الدقيقة: سخيّ للإنسان، ضيّق على السكربت
+// ⚠️ كان السقف في ذاكرة العملية: يضيع مع كل إعادة تشغيل (فيُصفَّر للجميع)، ولا
+// يُشارَك بين نسخ التطبيق — فمن يوزّع طلبه على نسختين يحصل على ضعف السقف. وهذا
+// بالضبط ما يحميه السقف: استنزاف نداءات جوجل المدفوعة. الآن عدّاد مشترك في مونجو.
+const ERRAND_SEARCH_LIMIT = 30;        // في الدقيقة — سخيّ للإنسان، ضيّق على السكربت
+const ERRAND_SEARCH_WINDOW_MS = 60000;
+
+async function errandSearchThrottled(userId) {
+    const RateCounter = require('../models/RateCounter');
+    const window = Math.floor(Date.now() / ERRAND_SEARCH_WINDOW_MS);
+    const { allowed } = await RateCounter.hit(
+        `errand-search:${userId}:${window}`, ERRAND_SEARCH_LIMIT, ERRAND_SEARCH_WINDOW_MS
+    );
+    return !allowed;
 }
 
 router.get('/errand-search', protect, async (req, res) => {
     try {
-        if (errandSearchThrottled(String(req.user.id))) {
+        if (await errandSearchThrottled(String(req.user.id))) {
             return res.status(429).json({ message: 'بحث كثير في وقت قصير — انتظر قليلاً' });
         }
 
-        const { searchText, searchByCategory, clampToCity } = require('../utils/placesSearch');
+        const { searchText, searchByCategory, clampToCity, normalizeQuery } = require('../utils/placesSearch');
         const q = String(req.query.q || '').trim();
         const categoryKey = String(req.query.category || '').trim();
         const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
@@ -332,14 +391,16 @@ router.get('/errand-search', protect, async (req, res) => {
 
         let external = learned;
         let externalError = null;
+        let googleCalled = false;
         if (!skipGoogle) {
             try {
                 const fresh = categoryKey
                     ? await searchByCategory({ categoryKey, city, lat, lng, zone })
                     : await searchText({ query: q, city, lat, lng, zone });
+                googleCalled = !fresh.cached;
                 // المتعلَّم أولاً ثم بقية جوجل، بلا تكرار
                 const seen = new Set(learned.map(p => p.externalId || p.name.trim().toLowerCase()));
-                external = learned.concat(fresh.filter(p => !seen.has(p.externalId || p.name.trim().toLowerCase())));
+                external = learned.concat(fresh.results.filter(p => !seen.has(p.externalId || p.name.trim().toLowerCase())));
             } catch (e) {
                 // فشل البحث الخارجي لا يُسقط ما عندنا — نُبلّغ الواجهة لتشرح للعميل
                 logger.warn({ err: e.message }, 'errand external search failed');
@@ -352,6 +413,17 @@ router.get('/errand-search', protect, async (req, res) => {
         // لا نكرّر متجراً عندنا كنتيجة خارجية (تطابق الاسم يكفي عملياً)
         const ourNames = new Set(ours.map(p => p.name.trim().toLowerCase()));
         external = external.filter(p => !ourNames.has(p.name.trim().toLowerCase()));
+
+        // 📈 ما يراه العميل فعلاً هو ما نقيسه: نتيجة فارغة هنا تعني بحثاً فاشلاً
+        // مهما أرجع جوجل قبل الحصر الجغرافي.
+        require('../utils/searchStats').record({
+            city,
+            query: categoryKey ? '' : normalizeQuery(q),
+            resultCount: ours.length + external.length,
+            googleCalled,
+            localOnly: skipGoogle,
+            failed: !!externalError
+        });
 
         res.json(externalError ? { ours, external, externalError } : { ours, external });
     } catch (err) {
