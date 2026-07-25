@@ -6,7 +6,7 @@
  * "الحرمين")، أو يُخفي محلات مشروعة فتبدو الخدمة معطّلة.
  */
 const { isInsidePolygon } = require('../utils/geofence');
-const { clampToCity } = require('../utils/placesSearch');
+const { clampToCity, centerFor, CITY_CENTERS } = require('../utils/placesSearch');
 
 // منطقة التوصيل الافتراضية في الإعدادات — مربع حول وسط الخرطوم
 const ZONE = [
@@ -85,5 +85,34 @@ describe('clampToCity', () => {
 
     it('مدينة غير معروفة تعود لصندوق الخرطوم بدل السماح بكل شيء', () => {
         expect(clampToCity([place('المسجد النبوي', 24.4672, 39.6112)], 'Cairo', null)).toHaveLength(0);
+    });
+});
+
+describe('centerFor — مركز البحث', () => {
+    it('يتّبع موقع العميل حين يكون داخل مدينته', () => {
+        const c = centerFor('Khartoum', 15.60, 32.53);
+        expect(c.lat).toBe(15.60);
+        expect(c.lng).toBe(32.53);
+    });
+
+    it('يعود لمركز المدينة بلا إحداثيات', () => {
+        expect(centerFor('Khartoum')).toEqual(CITY_CENTERS.Khartoum);
+        expect(centerFor('PortSudan', NaN, NaN)).toEqual(CITY_CENTERS.PortSudan);
+    });
+
+    it('🔒 يهمل موقع GPS خارج المدينة المختارة', () => {
+        // حدث فعلاً: مدينة الحساب "الخرطوم" وGPS يقول بورتسودان. اتّباعه يعني
+        // بحثاً حول بورتسودان ثم حجب كل نتيجة بصندوق الخرطوم ⇒ نتائج فارغة دائماً.
+        expect(centerFor('Khartoum', 19.615234, 37.220093)).toEqual(CITY_CENTERS.Khartoum);
+        expect(centerFor('PortSudan', 15.60, 32.53)).toEqual(CITY_CENTERS.PortSudan);
+    });
+
+    it('🔒 مركز البحث يبقى دائماً داخل نطاق يقبله الحصر الجغرافي', () => {
+        // ضمانة ضد الوضع الذي يبحث فيه النظام حيث لا يستطيع عرض شيء
+        for (const [city, coords] of [['Khartoum', [19.6, 37.2]], ['PortSudan', [15.6, 32.5]], ['Khartoum', [15.6, 32.5]]]) {
+            const c = centerFor(city, coords[0], coords[1]);
+            const kept = clampToCity([{ name: 'x', lat: c.lat, lng: c.lng }], city, null);
+            expect(kept).toHaveLength(1);
+        }
     });
 });

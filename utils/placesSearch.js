@@ -172,11 +172,19 @@ function normalizeQuery(q) {
 }
 
 function centerFor(city, lat, lng) {
-    // موقع العميل الفعلي أدقّ من مركز المدينة عند توفّره
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        return { lat, lng, radius: 15000 };
-    }
-    return CITY_CENTERS[city] || CITY_CENTERS.Khartoum;
+    const fallback = CITY_CENTERS[city] || CITY_CENTERS.Khartoum;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return fallback;
+
+    // ⚠️ موقع GPS خارج المدينة المختارة يُهمَل، ولا يُتّبع.
+    // يحدث فعلاً: عميل مدينته "الخرطوم" وGPS يقول بورتسودان (سفر، أو مدينة لم
+    // يحدّثها في حسابه). اتّباعه كان يعني البحث حول بورتسودان ثم حجب كل نتيجة
+    // بصندوق الخرطوم في clampToCity ⇒ نتائج فارغة دائماً بلا سبب ظاهر للعميل.
+    const b = CITY_BOUNDS[city] || CITY_BOUNDS.Khartoum;
+    const inside = lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng;
+    if (!inside) return fallback;
+
+    // داخل المدينة: موقعه الفعلي أدقّ من مركزها
+    return { lat, lng, radius: 15000 };
 }
 
 /** يحوّل مكان جوجل إلى الشكل الذي تفهمه الواجهة */
@@ -293,4 +301,4 @@ async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
     return { results: clampToCity(data, city, zone), cached };
 }
 
-module.exports = { searchText, searchByCategory, diagnose, clampToCity, normalizeQuery, ERRAND_CATEGORIES, CITY_CENTERS };
+module.exports = { searchText, searchByCategory, diagnose, clampToCity, centerFor, normalizeQuery, ERRAND_CATEGORIES, CITY_CENTERS };
