@@ -465,6 +465,46 @@ const startScheduler = (app) => {
             logger.error({ err }, 'Scheduler error in chat image cleanup');
         }
     });
+
+    // ====================================================
+    // 🧹 كنس الصور اليتيمة في uploads/chat (كل ساعة عند الدقيقة 40)
+    //
+    // لماذا مهمة ثانية: الصورة تُرفع قبل إنشاء الرسالة (لتفادي إرسال base64 في
+    // السوكيت). فإن فشل الإرسال بعد الرفع — انقطاع شبكة، إغلاق التطبيق، طلب
+    // انتهى فرُفض الإرسال — يبقى الملف على القرص ولا رسالة تشير إليه، والمهمة
+    // أعلاه تبحث عبر الرسائل فقط فلا تراه أبداً. النتيجة: تسريب مساحة دائم.
+    //
+    // نحذف بعمر الملف نفسه (mtime) لا بمراجع قاعدة البيانات، فيغطي الحالتين.
+    // ====================================================
+    cron.schedule('40 * * * *', async () => {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const { CHAT_IMAGE_TTL_MS } = require('./utils/chatImage');
+            const { safeUnlink } = require('./utils/imageUpload');
+
+            const dir = path.join(__dirname, 'public_html', 'uploads', 'chat');
+            if (!fs.existsSync(dir)) return;
+
+            const cutoff = Date.now() - CHAT_IMAGE_TTL_MS;
+            const names = await fs.promises.readdir(dir);
+            let swept = 0;
+
+            for (const name of names) {
+                const full = path.join(dir, name);
+                try {
+                    const st = await fs.promises.stat(full);
+                    if (!st.isFile() || st.mtimeMs >= cutoff) continue;
+                    await safeUnlink(full);
+                    swept++;
+                } catch (_) { /* ملف اختفى بين readdir وstat — لا يهم */ }
+            }
+
+            if (swept > 0) logger.info({ swept }, 'Swept old chat image files from disk');
+        } catch (err) {
+            logger.error({ err }, 'Scheduler error in chat image sweep');
+        }
+    });
 };
 
 /**

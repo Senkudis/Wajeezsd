@@ -12,6 +12,9 @@ router.param('orderId', validateObjectId);
 
 const Message = require('../../models/Message');
 const Order = require('../../models/Order');
+// populate('client'/'captain') يحتاج تسجيل مخطط User — لا نتّكل على أن ملفاً
+// آخر سجّله قبلنا (نفس ما تفعله بقية وحدات routes/admin)
+require('../../models/User');
 const { protect, requirePermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { CHAT_IMAGE_TTL_HOURS } = require('../../utils/chatImage');
@@ -26,14 +29,23 @@ router.get('/chats', protect, requirePermission('view_chats'), async (req, res) 
 
         // نجمع من الرسائل لا من الطلبات: الطلبات التي لا محادثة فيها لا تعنينا،
         // والترتيب المطلوب هو "آخر نشاط محادثة" لا تاريخ إنشاء الطلب.
+        //
+        // ⚠️ الحدّ بالكمّ لا بالتاريخ: النسخة الأولى قصّت على آخر 30 يوماً، وأحدث
+        // رسالة في قاعدة الإنتاج عمرها 38 يوماً — فكانت الصفحة تقول "لا محادثات"
+        // مع وجود 480 رسالة، فيبدو أن الميزة معطّلة. الفرز التنازلي ثم حدّ الكمّ
+        // يكبّس الحساب دائماً ويُظهر أحدث المحادثات مهما كان عمرها.
+        const SCAN_LIMIT = 4000;
+
         const grouped = await Message.aggregate([
-            { $sort: { createdAt: 1 } },
+            { $sort: { createdAt: -1 } },   // مدعوم بفهرس createdAt في models/Message.js
+            { $limit: SCAN_LIMIT },
             {
                 $group: {
                     _id: '$order',
-                    lastAt: { $last: '$createdAt' },
-                    lastText: { $last: '$text' },
-                    lastImage: { $last: '$imageUrl' },
+                    // الفرز تنازلي ⇒ $first هو الأحدث
+                    lastAt: { $first: '$createdAt' },
+                    lastText: { $first: '$text' },
+                    lastImage: { $first: '$imageUrl' },
                     count: { $sum: 1 },
                     // صور حيّة فقط — المحذوفة بعد 48 ساعة لا تُعدّ
                     images: { $sum: { $cond: [{ $ifNull: ['$imageUrl', false] }, 1, 0] } }

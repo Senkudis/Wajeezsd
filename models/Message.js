@@ -59,5 +59,8 @@ MessageSchema.pre('validate', function (next) {
 MessageSchema.index({ order: 1, createdAt: -1 });
 // 🧹 مهمة حذف الصور تبحث عن الرسائل التي لها صورة حيّة أقدم من 48 ساعة
 MessageSchema.index({ imageUrl: 1, createdAt: 1 });
+// 👁️ عارض محادثات الإدارة يجمع رسائل نافذة زمنية (آخر 30 يوماً افتراضياً).
+// الفهرسان أعلاه يبدآن بحقل آخر فلا يخدمان نطاقاً على التاريخ وحده.
+MessageSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Message', MessageSchema);

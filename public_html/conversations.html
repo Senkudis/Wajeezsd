@@ -160,6 +160,10 @@
         let activeUsers = {};
         let allConversations = [];
 
+        // تهريب إلزامي: الاسم ونص آخر رسالة يكتبهما الطرف الآخر ويُحقنان في innerHTML
+        const esc = window.escapeHtml || ((s) => String(s ?? '').replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+
         // ===== Socket =====
         function initSocket() {
             const serverUrl = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
@@ -218,11 +222,13 @@
                     </div>
                     <div style="flex:1;min-width:0;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-                            <div class="conv-name">${conv.user.name}</div>
+                            <div class="conv-name">${esc(conv.user.name)}</div>
                             <div class="conv-time">${timeStr}</div>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <div class="conv-last-msg">${conv.lastSender === user.id ? '<i class="bi bi-check2-all" style="color:#04553A"></i> ' : ''}${conv.lastMessage || '...'}</div>
+                            <!-- ⚠️ الاسم ونص آخر رسالة يكتبهما مستخدم آخر: بلا تهريب
+                                 تُنفَّذ رسالة تحوي <img onerror=...> في جهاز من يفتح القائمة -->
+                            <div class="conv-last-msg">${conv.lastSender === user.id ? '<i class="bi bi-check2-all" style="color:#04553A"></i> ' : ''}${esc(conv.lastMessage) || '...'}</div>
                             ${conv.unreadCount > 0 ? `<div class="unread-badge">${conv.unreadCount}</div>` : ''}
                         </div>
                     </div>

@@ -45,6 +45,10 @@ router.get('/conversations', protect, async (req, res) => {
                         ]
                     },
                     lastMessage:    { $first: '$text' },
+                    // 🖼️ رسالة الصورة قد تكون بلا نص، فبدون هذا تظهر المعاينة
+                    // فارغة تماماً في قائمة المحادثات (العميل والتاجر معاً)
+                    lastImage:      { $first: '$imageUrl' },
+                    lastImageExpired: { $first: '$imageExpiredAt' },
                     lastMessageAt:  { $first: '$createdAt' },
                     lastSender:     { $first: '$sender' },
                     lastOrderId:    { $first: '$order' },
@@ -91,7 +95,10 @@ router.get('/conversations', protect, async (req, res) => {
                         role:  otherUser.role,
                         phone: otherUser.phone
                     },
-                    lastMessage:   conv.lastMessage,
+                    lastMessage:   previewOf(
+                        conv.lastMessage,
+                        conv.lastImage || conv.lastImageExpired
+                    ),
                     lastSender:    conv.lastSender,
                     lastMessageAt: conv.lastMessageAt,
                     unreadCount:   conv.unreadCount,
