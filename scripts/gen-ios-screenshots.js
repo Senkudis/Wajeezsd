@@ -29,6 +29,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const puppeteer = require('puppeteer-core');
 
@@ -77,8 +78,14 @@ async function login() {
     return { token: data.token, user: data.user };
 }
 
-/** معرّف متجر حقيقي لصفحة تفاصيل المتجر — الاسم والصور تأتي من الإنتاج */
+/**
+ * معرّف متجر حقيقي لصفحة تفاصيل المتجر — الاسم والصور تأتي من الإنتاج.
+ *
+ * ⚠️ صفحة المتجر تعرض **رقم هاتف صاحبه**، واللقطة تُنشر للعالم في App Store.
+ * فاختر متجراً تملكه أو تملك إذنه: SHOT_PLACE_ID=<معرّف المتجر>
+ */
 async function firstPlaceId() {
+    if (process.env.SHOT_PLACE_ID) return process.env.SHOT_PLACE_ID;
     try {
         const res = await fetch(`${API}/api/places`);
         const list = await res.json();
@@ -95,12 +102,15 @@ async function firstPlaceId() {
     const session = await login();
     const placeId = await firstPlaceId();
 
+    // ملاحظة: index.html هو شاشة "طلب جديد"، وclient-order.html هو تصفّح المتاجر
+    // (لا نموذج الطلب كما يوحي الاسم). واسم الوسيط في shop-detail هو placeId لا id،
+    // وأي قيمة أخرى تُعيد التوجيه إلى client-order.html فتخرج لقطة مكرّرة.
     const SHOTS = [
         { file: '01-الرئيسية', url: 'index.html', auth: false, wait: 4500 },
-        { file: '02-إنشاء-طلب', url: 'client-order.html', auth: true, wait: 5000 },
-        { file: '03-المتاجر', url: placeId ? `shop-detail.html?id=${placeId}` : null, auth: false, wait: 4000 },
+        { file: '02-تسوق-المتاجر', url: 'client-order.html', auth: true, wait: 5000 },
+        { file: '03-صفحة-متجر', url: placeId ? `shop-detail.html?placeId=${placeId}` : null, auth: true, wait: 5000 },
         { file: '04-طلباتي', url: 'client-my-orders.html', auth: true, wait: 4000 },
-        { file: '05-العناوين-المحفوظة', url: 'index.html#saved', auth: true, wait: 4000 }
+        { file: '05-طلبات-المتاجر', url: 'client-shop-orders.html', auth: true, wait: 4000 }
     ];
 
     // خدمة الواجهة محلياً — نفس ملفات public_html التي تُحزَم في التطبيق
@@ -143,6 +153,7 @@ async function firstPlaceId() {
         }, session, API);
 
         let taken = 0;
+        const seen = new Map();   // md5 اللقطة → اسم أول ملف بها
         for (const shot of SHOTS) {
             if (!shot.url) {
                 console.log(`  ⏭️  ${shot.file} — تعذّر جلب معرّف متجر (تخطّي)`);
@@ -166,8 +177,20 @@ async function firstPlaceId() {
             const buf = fs.readFileSync(out);
             const [w, h] = [buf.readUInt32BE(16), buf.readUInt32BE(20)];
             const ok = w === 1290 && h === 2796;
-            console.log(`  ${ok ? '✅' : '❌'} ${shot.file}.png — ${w}×${h}`);
-            if (ok) taken++;
+
+            // كشف التكرار: صفحة أعادت التوجيه (وسيط خاطئ أو حراسة دخول) تنتج
+            // لقطة مطابقة لسابقتها بالبايت — أسوأ من غيابها لأنها تُرفع بلا انتباه
+            const digest = crypto.createHash('md5').update(buf).digest('hex');
+            const twin = seen.get(digest);
+            seen.set(digest, shot.file);
+
+            const finalUrl = page.url();
+            const redirected = !finalUrl.endsWith(shot.url);
+
+            console.log(`  ${ok ? '✅' : '❌'} ${shot.file}.png — ${w}×${h}`
+                + (twin ? `  ⚠️ مطابقة لـ ${twin}` : '')
+                + (redirected ? `  ↪ أُعيد التوجيه إلى ${finalUrl.replace(BASE + '/', '')}` : ''));
+            if (ok && !twin) taken++;
         }
 
         console.log(`\n📸 ${taken} لقطة بالمقاس الصحيح في resources/ios/screenshots/`);

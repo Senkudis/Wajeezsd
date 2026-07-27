@@ -102,6 +102,17 @@ describe('أيقونة App Store', () => {
         expect(colorType).toBe(2);
     });
 
+    it('كل لقطة موجودة بمقاس iPhone 6.9 بوصة بالضبط', () => {
+        // لقطة بمقاس مختلف يرفضها App Store Connect عند الرفع ويُعاد النموذج كله
+        const dir = path.join(ROOT, 'resources', 'ios', 'screenshots');
+        if (!fs.existsSync(dir)) return;
+        const shots = fs.readdirSync(dir).filter((f) => f.endsWith('.png'));
+        for (const f of shots) {
+            const { width, height } = pngHeader(path.join('resources/ios/screenshots', f));
+            expect([f, width, height]).toEqual([f, 1290, 2796]);
+        }
+    });
+
     it('شاشة البداية 2732×2732 بلا شفافية', () => {
         for (const f of ['resources/ios/splash.png', 'resources/ios/splash-dark.png']) {
             const { width, height, colorType } = pngHeader(f);
