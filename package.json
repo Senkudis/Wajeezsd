@@ -13,7 +13,8 @@
     "version:check": "node scripts/check-version.js",
     "version:set": "node scripts/check-version.js --set",
     "verify:deploy": "node scripts/verify-deploy.js",
-    "assets:ios": "node scripts/gen-ios-assets.js"
+    "assets:ios": "node scripts/gen-ios-assets.js",
+    "shots:ios": "node scripts/gen-ios-screenshots.js"
   },
   "keywords": [],
   "author": "",
@@ -63,6 +64,7 @@
     "@capacitor/toast": "^8.0.0",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "fast-check": "^3.22.0",
+    "puppeteer-core": "^25.3.0",
     "supertest": "^7.2.2",
     "vitest": "^3.2.3"
   }

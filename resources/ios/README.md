@@ -45,8 +45,11 @@ npx cap open ios
   `GoogleService-Info.plist` → ضعه في `ios/App/App/` وأضفه للهدف.
 - Firebase → Project settings → Cloud Messaging → ارفع **مفتاح APNs (.p8)**
   من حساب Apple (Keys → Apple Push Notifications service). بدونه لا إشعارات على iOS.
-- Google Cloud Console → أنشئ OAuth Client ID نوع **iOS** لنفس Bundle ID، ثم في Xcode
-  أضف URL Type بقيمة `REVERSED_CLIENT_ID` من `GoogleService-Info.plist`.
+- **Google Sign-In: غير مطلوب حالياً.** الزر معلَّق (مخفي) في `client-login.html`
+  و`client-register.html`، فلا شيء في الواجهة يستدعيه. إن أُعيد تفعيله لاحقاً فيجب
+  أولاً إنشاء OAuth Client ID نوع **iOS** لنفس Bundle ID، وإضافة URL Type بقيمة
+  `REVERSED_CLIENT_ID` من `GoogleService-Info.plist`، وذكره في سياسة الخصوصية.
+  إظهار الزر بلا هذا الإعداد = فشل عند اللمس = رفض تحت البند 2.1.
 
 ## 4. متغيّر بيئة على السيرفر
 
@@ -88,9 +91,8 @@ curl -i https://wajeezsd.com/.well-known/apple-app-site-association
 
 - **الموقع في الخلفية** أكثر بند تُرفض عليه تطبيقات التوصيل. أرفق فيديو قصير يوضّح
   المهمة النشطة إن طُلب توضيح.
-- **البند 4.8**: التطبيق يوفّر Google Sign-In مع تسجيل بالهاتف/كلمة المرور. إن طلب
-  المراجع بديلاً، الحل المعتمد هو إضافة **Sign in with Apple**
-  (`@capacitor-community/apple-sign-in` + التحقق من identity token في السيرفر).
-  لم يُضف الآن لأنه يحتاج Services ID ومفتاح توقيع من حساب المطوّر.
+- **البند 4.8 (Login Services)**: لا خطر حالياً — التطبيق لا يوفّر أي تسجيل دخول
+  بطرف ثالث (زر جوجل مخفي)، والتسجيل بالهاتف وكلمة المرور فقط. البند لا ينطبق أصلاً،
+  فلا حاجة لـ Sign in with Apple. **يصبح مطلوباً فور تفعيل زر جوجل.**
 - **ATS**: كل نداءات API تذهب إلى `https://wajeezsd.com` — سليم. لا تُضف
   `NSAllowsArbitraryLoads` مهما اقترحت أدوات أخرى؛ استثناء HTTP يستدعي أسئلة مراجعة.
