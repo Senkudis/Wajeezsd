@@ -12,6 +12,7 @@ const { protect } = require('../middleware/authMiddleware'); // Auto-im= ported
 const { sendWhatsAppOTP } = require('../services/whatsappService');
 const { sendSmsOTP } = require('../services/smsService');
 const { normalizePhone } = require('../utils/phoneNormalizer'); // ✅ Fixed to use destructuring
+const { NEGOTIATION_TTL_MINUTES } = require('../utils/negotiation');
 const axios = require('axios'); // ✅ Import Axios for proxy requests
 const rateLimit = require('express-rate-limit'); // 🛡️ Rate Limiting
 const { OAuth2Client } = require('google-auth-library'); // ✅ Google Auth
@@ -390,7 +391,10 @@ router.get('/app-config', async (req, res) => {
             appVersion:   settings.appVersion  || '1.0.1',
             minVersion:   settings.minVersion  || settings.appVersion || '1.0.1',
             playStoreLink: settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app',
-            forceUpdate:  settings.forceUpdate || false
+            forceUpdate:  settings.forceUpdate || false,
+            // 💬 مدة صلاحية عرض المفاوضة — تُقرأ في واجهة الكابتن بدل رقم مكتوب
+            // في HTML كان يبقى 5 بعد تغيير السيرفر، فيرى الكابتن مدة غير صحيحة
+            negotiationTtlMinutes: NEGOTIATION_TTL_MINUTES
         });
     } catch (err) {
         logger.error('App config error:', err);

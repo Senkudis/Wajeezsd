@@ -203,6 +203,72 @@ function renderTimelineCard(o) {
         </div>`;
 }
 
+// 💬 بطاقة عروض المفاوضة — الإدارة كانت لا ترى العروض إطلاقاً، فلا تعرف لماذا
+// بقي طلب "قيد الانتظار" طويلاً: أهو مهمَل أم أن العميل يماطل في عروض وصلته؟
+function renderNegotiationsCard(o) {
+    const list = Array.isArray(o.negotiations) ? o.negotiations : [];
+    if (!list.length) return '';
+
+    const label = {
+        pending: ['قيد انتظار العميل', '#b45309', '#fef3c7'],
+        accepted: ['مقبول', '#166534', '#dcfce7'],
+        rejected: ['مرفوض', '#991b1b', '#fee2e2'],
+        expired: ['انتهت مدته', '#475569', '#e2e8f0'],
+        withdrawn: ['سحبه الكابتن', '#475569', '#e2e8f0']
+    };
+    const now = Date.now();
+    // الأحدث أولاً، والعروض المفتوحة قبل المنتهية
+    const sorted = [...list].sort((a, b) => {
+        const openA = a.status === 'pending' && (!a.expiresAt || new Date(a.expiresAt) > now);
+        const openB = b.status === 'pending' && (!b.expiresAt || new Date(b.expiresAt) > now);
+        return (openB ? 1 : 0) - (openA ? 1 : 0);
+    });
+    const openCount = sorted.filter(n =>
+        n.status === 'pending' && (!n.expiresAt || new Date(n.expiresAt) > now)).length;
+
+    const rows = sorted.map(n => {
+        // العرض المنتهي زمنياً يظل pending حتى يمرّ عليه المجدول، فنعرض حقيقته
+        const stale = n.status === 'pending' && n.expiresAt && new Date(n.expiresAt) <= now;
+        const [txt, fg, bg] = label[stale ? 'expired' : n.status] || label.pending;
+        const diff = (Number(n.proposedPrice) || 0) - (Number(n.originalPrice) || 0);
+        const diffTxt = diff === 0 ? '' :
+            `<span style="font-size:11.5px;font-weight:800;color:${diff > 0 ? '#dc2626' : '#16a34a'};">
+                ${diff > 0 ? '+' : ''}${diff} ج.س</span>`;
+        const when = n.expiresAt
+            ? new Date(n.expiresAt).toLocaleTimeString('ar-SD', { hour: '2-digit', minute: '2-digit' })
+            : '—';
+        return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed #e2e8f0;">
+            <div style="min-width:0;flex:1;">
+                <div style="font-size:13.5px;font-weight:700;color:#1e293b;">
+                    ${window.escapeHtml ? window.escapeHtml(n.captainName || 'كابتن') : (n.captainName || 'كابتن')}
+                </div>
+                <div style="font-size:11px;color:#94a3b8;font-weight:700;">
+                    ${n.captainRating ? '⭐ ' + Number(n.captainRating).toFixed(1) : 'كابتن جديد'}
+                    · تنتهي ${when}
+                </div>
+            </div>
+            <div style="text-align:center;min-width:96px;">
+                <div style="font-size:15px;font-weight:800;color:#0f172a;">${n.proposedPrice} ج.س</div>
+                <div style="font-size:10.5px;color:#94a3b8;">الأصلي ${n.originalPrice ?? o.price} ${diffTxt}</div>
+            </div>
+            <span style="font-size:10.5px;font-weight:800;border-radius:99px;padding:3px 10px;
+                background:${bg};color:${fg};white-space:nowrap;">${txt}</span>
+        </div>`;
+    }).join('');
+
+    return `
+        <div class="od-card" style="margin-bottom:16px;">
+            <div class="od-card-title">
+                <i class="fas fa-comments-dollar" style="color:#d97706;"></i> عروض المفاوضة
+                <span style="font-size:12px;font-weight:800;color:#b45309;background:#fef3c7;border-radius:99px;padding:3px 10px;margin-right:8px;">
+                    ${openCount} مفتوح من ${list.length}
+                </span>
+            </div>
+            ${rows}
+        </div>`;
+}
+
 function renderOrder(o) {
     const container = document.getElementById('mainContainer');
     const createdDate = new Date(o.createdAt).toLocaleString('ar-SA');
@@ -277,6 +343,9 @@ function renderOrder(o) {
                 </span>
             </div>`).join('')}
         </div>` : ''}
+
+        <!-- 💬 عروض المفاوضة -->
+        ${renderNegotiationsCard(o)}
 
         <!-- ⏱️ Status timeline -->
         ${renderTimelineCard(o)}

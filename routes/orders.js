@@ -18,6 +18,7 @@ const { sendWhatsAppIfSubscribed, OrderMessages } = require('../utils/whatsappNo
 const rateLimit = require('express-rate-limit');
 const { saveBase64Image } = require('../utils/imageUpload');
 const { validateOrderLocations } = require('../utils/geofence');
+const { NEGOTIATION_TTL_MS } = require('../utils/negotiation');
 const logger = require('../utils/logger');
 
 // ⚡ Settings cache — per-city Map, refresh every 60 seconds to avoid repeated DB queries
@@ -909,7 +910,7 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
             return res.status(400).json({ message: 'لديك عرض نشط بالفعل على هذا الطلب. يمكنك سحبه أولاً.' });
         }
 
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        const expiresAt = new Date(Date.now() + NEGOTIATION_TTL_MS);
 
         // ✅ Push new offer to the negotiations array — مع لقطة بيانات الكابتن لعرض احترافي
         order.negotiations.push({
@@ -931,7 +932,7 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
         try {
             const { sendOfferExpiryReminder } = require('../scheduler');
             if (req.user.fcmToken) {
-                sendOfferExpiryReminder(req.user.fcmToken, order._id, 5 * 60 * 1000);
+                sendOfferExpiryReminder(req.user.fcmToken, order._id, NEGOTIATION_TTL_MS);
             }
         } catch (reminderErr) {
             logger.warn({ err: reminderErr }, 'Failed to schedule offer expiry reminder');
@@ -946,6 +947,17 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
                 captainId: req.user._id,
                 originalPrice: order.price,
                 proposedPrice,
+                expiresAt
+            });
+
+            // 📢 الإدارة كانت عمياء تماماً عن المفاوضات: ترى الطلب "قيد الانتظار"
+            // بلا أي أثر لعروض الكباتن عليه، فلا تعرف إن كان مهملاً أم تحت تفاوض نشط.
+            io.to('admin_room').emit('negotiation_update', {
+                orderId: order._id,
+                city: order.city,
+                captainName: req.user.name,
+                proposedPrice,
+                originalPrice: order.price,
                 expiresAt
             });
         }
@@ -1086,6 +1098,14 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                     status: 'accepted',
                     captainId
                 });
+                // قبول عرض يُسند الطلب لكابتن دون أن يمرّ بمسار /accept، فلولا هذا
+                // البثّ تبقى لوحة الإدارة تعرض الطلب "قيد الانتظار" حتى تحديث الصفحة
+                io.to('admin_room').emit('admin_order_update', {
+                    orderId: order._id,
+                    status: 'accepted',
+                    captainName: (order.negotiations[offerIndex] || {}).captainName,
+                    city: order.city
+                });
             }
 
             // ✅ FIX #4: استخدام updatedOrder.negotiations بدلاً من order.negotiations القديم
@@ -1130,6 +1150,11 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                 io.to(captainId.toString()).emit('negotiation_resolved', {
                     orderId: order._id,
                     result: 'rejected'
+                });
+                io.to('admin_room').emit('negotiation_update', {
+                    orderId: order._id,
+                    city: order.city,
+                    rejected: true
                 });
             }
 
@@ -1179,6 +1204,12 @@ router.put('/:id/negotiate-withdraw', protect, captainOnly, async (req, res) => 
             io.to(order.client.toString()).emit('negotiation_withdrawn', {
                 orderId: order._id,
                 captainId: req.user._id
+            });
+            // عدّاد العروض في لوحة الإدارة يجب أن ينقص فوراً كما يزيد
+            io.to('admin_room').emit('negotiation_update', {
+                orderId: order._id,
+                city: order.city,
+                withdrawn: true
             });
         }
 

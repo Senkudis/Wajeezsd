@@ -125,6 +125,12 @@ socket.on('admin_order_update', (data) => {
     if (currentPage === 'orders') loadAllOrders();
 });
 
+// 💬 عرض تفاوض جديد أو مسحوب أو مرفوض — نحدّث الشارات فوراً بلا انتظار تحديث الصفحة
+socket.on('negotiation_update', () => {
+    if (currentPage === 'overview') loadLiveOrders();
+    if (currentPage === 'orders') loadAllOrders();
+});
+
 // Captain location updates for map —  Real-time marker movement
 socket.on('captain_location_update', (data) => {
     const id = data.captainId || data.userId;
@@ -545,6 +551,23 @@ async function loadOnlineCaptainsCount() {
     } catch(e) {}
 }
 
+/**
+ * 💬 شارة عروض المفاوضة المفتوحة على الطلب.
+ *
+ * لماذا: الإدارة لم تكن ترى المفاوضات إطلاقاً، فطلبٌ عليه ثلاثة عروض وينتظر ردّ
+ * العميل يبدو في اللوحة مطابقاً تماماً لطلبٍ لم يلتفت إليه أحد. الشارة تُظهر
+ * عدد العروض وأرخصها، والملخّص يأتي جاهزاً من السيرفر (utils/negotiation.js).
+ */
+function offersBadge(o) {
+    const s = o.negotiationSummary;
+    if (!s || !s.count) return '';
+    const price = s.lowestPrice != null ? ` · من ${s.lowestPrice} ج.س` : '';
+    return `<span style="font-size:10px;font-weight:800;color:#b45309;background:#fef3c7;`
+        + `border-radius:99px;padding:2px 8px;margin-right:6px;white-space:nowrap;">`
+        + `<i class="fas fa-comments-dollar" style="margin-left:3px;"></i>`
+        + `${s.count} عرض تفاوض${price}</span>`;
+}
+
 async function loadLiveOrders() {
     try {
         const res = await fetch(`${BASE}/api/admin/orders/live`, { headers: headers() });
@@ -571,7 +594,7 @@ async function loadLiveOrders() {
                 <div class="gv-order-info">
                     <h5>${window.escapeHtml(o.client?.name || 'عميل')} ${o.captain ? '← ' + window.escapeHtml(o.captain.name) : ''}</h5>
                     <p>${window.escapeHtml(o.pickup?.address || '?')} → ${window.escapeHtml(o.dropoff?.address || '?')}</p>
-                    ${cityLabel(o.city)}
+                    ${cityLabel(o.city)} ${offersBadge(o)}
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
                     <span class="gv-badge ${o.status}">${statusLabel(o.status)}</span>
@@ -625,7 +648,7 @@ function renderAllOrders(orders) {
             <td>${window.escapeHtml(o.pickup?.address || '—')}</td>
             <td>${window.escapeHtml(o.dropoff?.address || '—')}</td>
             <td>${o.price || 0} SDG</td>
-            <td><span class="gv-badge ${o.status}">${window.statusLabel ? window.statusLabel(o.status) : o.status}</span></td>
+            <td><span class="gv-badge ${o.status}">${window.statusLabel ? window.statusLabel(o.status) : o.status}</span>${offersBadge(o)}</td>
             <td>${new Date(o.createdAt).toLocaleDateString('ar-SA')}</td>
             <td onclick="event.stopPropagation();">
                 <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="viewOrder('${o._id}')" title="عرض">

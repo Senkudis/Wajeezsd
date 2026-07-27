@@ -570,7 +570,26 @@
         // ========================================
         let activeNegotiationOrderId = null; // Track active negotiation
 
+        // ⏱️ مدة صلاحية العرض تأتي من السيرفر (utils/negotiation.js عبر /api/auth/app-config).
+        // الرقم كان مكتوباً هنا يدوياً في نصّين، فبقي "5 دقائق" بعد رفع المدة على
+        // السيرفر — الكابتن يقرأ مدة لا تطابق ما يُنفّذ فعلاً.
+        let negotiationTtlMin = null;
+        async function getNegotiationTtl() {
+            if (negotiationTtlMin) return negotiationTtlMin;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/app-config`);
+                const cfg = await res.json();
+                if (Number.isFinite(cfg.negotiationTtlMinutes)) {
+                    negotiationTtlMin = cfg.negotiationTtlMinutes;
+                }
+            } catch (_) { /* بلا إنترنت: نكتب المدة بصيغة محيّدة أدناه */ }
+            return negotiationTtlMin;
+        }
+        // نصّ المدة: بلا قيمة من السيرفر لا نخترع رقماً قد يكون خاطئاً
+        const ttlText = (ttl) => (ttl ? `${ttl} دقائق` : 'مدة محدودة');
+
         async function negotiateOrder(id, originalPrice) {
+            const ttl = await getNegotiationTtl();
             const { value: proposedPrice, isConfirmed } = await Swal.fire({
                 title: '💬 اقتراح سعر',
                 html: `
@@ -581,7 +600,7 @@
                                placeholder="0" min="1" step="100" value="${originalPrice}">
                         <span class="input-group-text fw-bold">ج.س</span>
                     </div>
-                    <small class="text-muted mt-2 d-block">سيتم إشعار العميل بعرضك وينتظر موافقته (5 دقائق)</small>
+                    <small class="text-muted mt-2 d-block">سيتم إشعار العميل بعرضك وينتظر موافقته (${ttlText(ttl)})</small>
                 `,
                 confirmButtonText: '📤 إرسال العرض',
                 cancelButtonText: 'إلغاء',
@@ -614,7 +633,7 @@
                         title: '✅ تم إرسال العرض!',
                         html: `
                             <p>عرضك <strong class="text-success">${proposedPrice} ج.س</strong> أُرسل للعميل.</p>
-                            <p class="text-muted small">ستتلقى إشعاراً عند رده. لديك 5 دقائق.</p>
+                            <p class="text-muted small">ستتلقى إشعاراً عند رده. لديك ${ttlText(ttl)}.</p>
                             <button class="btn btn-outline-danger btn-sm mt-2 rounded-pill" onclick="withdrawNegotiation('${id}'); Swal.close();">
                                 <i class="bi bi-x-circle me-1"></i> سحب العرض
                             </button>

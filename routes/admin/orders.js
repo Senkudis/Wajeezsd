@@ -22,6 +22,17 @@ const rateLimit = require('express-rate-limit');
 const logger = require('../../utils/logger');
 
 const SessionRequest = require('../../models/SessionRequest');
+const { summarizeNegotiations } = require('../../utils/negotiation');
+
+/**
+ * يستبدل مصفوفة negotiations الضخمة بملخّص للعرض في اللوحة.
+ * الحمولة الكاملة (لقطة بيانات كل كابتن) لا لزوم لها في جدولٍ من 200 صف،
+ * وصفحة تفاصيل الطلب تجلب المستند كاملاً على أي حال.
+ */
+function withNegotiationSummary(order) {
+    const { negotiations, ...rest } = order;
+    return { ...rest, negotiationSummary: summarizeNegotiations(negotiations) };
+}
 
 router.get('/orders/live', protect, requirePermission('view_orders'), async (req, res) => {
     try {
@@ -29,13 +40,16 @@ router.get('/orders/live', protect, requirePermission('view_orders'), async (req
         const cityFilter = getAdminCityFilter(req);
         const liveStatuses = ['pending', 'scheduled', 'accepted', 'picked_up'];
         const orders = await Order.find({ status: { $in: liveStatuses }, ...cityFilter })
-            .select('status price pickup dropoff createdAt client captain type city')
+            .select('status price pickup dropoff createdAt client captain type city negotiations')
             .populate('client', 'name phone')
             .populate('captain', 'name phone')
             .sort({ createdAt: -1 })
             .limit(50)
             .lean();
-        res.json(orders);
+
+        // 💬 ملخّص عروض المفاوضة لكل طلب — الإدارة كانت لا ترى المفاوضات إطلاقاً،
+        // فطلبٌ عليه ثلاثة عروض يبدو مهملاً تماماً كطلبٍ لم يلتفت إليه أحد.
+        res.json(orders.map(withNegotiationSummary));
     } catch (error) {
         logger.error("Live Orders Error:", error);
         res.status(500).json({ message: 'Server error' });
@@ -220,14 +234,14 @@ router.get('/orders', protect, requirePermission('view_orders'), async (req, res
         // 🌍 sub_admin يرى طلبات مدينته فقط
         const cityFilter = getAdminCityFilter(req);
         const orders = await Order.find(cityFilter)
-            .select('status price pickup dropoff createdAt client captain type totalAmount city')
+            .select('status price pickup dropoff createdAt client captain type totalAmount city negotiations')
             .populate('client', 'name phone')
             .populate('captain', 'name phone')
             .sort({ createdAt: -1 })
             .limit(200)
             .lean();
 
-        res.json(orders);
+        res.json(orders.map(withNegotiationSummary));
     } catch (error) {
         logger.error("Orders Error:", error);
         res.status(500).json({ message: 'Server error' });
