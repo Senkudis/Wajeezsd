@@ -12,7 +12,8 @@
     "build": "echo \"✅ No build required for raw HTML/JS project\"",
     "version:check": "node scripts/check-version.js",
     "version:set": "node scripts/check-version.js --set",
-    "verify:deploy": "node scripts/verify-deploy.js"
+    "verify:deploy": "node scripts/verify-deploy.js",
+    "assets:ios": "node scripts/gen-ios-assets.js"
   },
   "keywords": [],
   "author": "",
@@ -54,6 +55,7 @@
     "@capacitor/core": "^8.0.2",
     "@capacitor/geolocation": "^8.0.0",
     "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "^8.0.2",
     "@capacitor/network": "^8.0.0",
     "@capacitor/preferences": "^8.0.0",
     "@capacitor/push-notifications": "^8.0.0",

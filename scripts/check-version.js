@@ -18,16 +18,24 @@ const PKG      = path.join(ROOT, 'package.json');
 const GRADLE   = path.join(ROOT, 'android/app/build.gradle');
 const APP_CORE = path.join(ROOT, 'public_html/js/app-core.js');
 
+// 🍎 مشروع iOS (يُنشأ بـ cap add ios على macOS) — رابع موضع لرقم الإصدار.
+// غيابه طبيعي على ويندوز فنتخطّاه، لكن وجوده بقيمة مختلفة انحراف صامت آخر.
+const PBXPROJ = path.join(ROOT, 'ios/App/App.xcodeproj/project.pbxproj');
+
 const read = (f) => fs.readFileSync(f, 'utf8');
 
 function currentVersions() {
     const gradle = read(GRADLE);
     const core   = read(APP_CORE);
-    return {
+    const out = {
         'package.json':              JSON.parse(read(PKG)).version,
         'build.gradle (versionName)': (gradle.match(/versionName\s+"([^"]+)"/) || [])[1],
         'app-core.js (APP_VERSION)':  (core.match(/window\.APP_VERSION\s*=\s*'([^']+)'/) || [])[1]
     };
+    if (fs.existsSync(PBXPROJ)) {
+        out['iOS (MARKETING_VERSION)'] = (read(PBXPROJ).match(/MARKETING_VERSION = ([^;]+);/) || [])[1];
+    }
+    return out;
 }
 
 /**
@@ -64,6 +72,11 @@ if (setTo) {
     fs.writeFileSync(GRADLE, read(GRADLE).replace(/(versionName\s+)"[^"]+"/, `$1"${setTo}"`));
     fs.writeFileSync(APP_CORE, read(APP_CORE).replace(/(window\.APP_VERSION\s*=\s*)'[^']+'/, `$1'${setTo}'`));
     console.log(`✓ تم ضبط الإصدار على ${setTo} في الملفات الثلاثة.`);
+    if (fs.existsSync(PBXPROJ)) {
+        fs.writeFileSync(PBXPROJ, read(PBXPROJ).replace(/MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${setTo};`));
+        console.log('✓ وضُبط MARKETING_VERSION في مشروع iOS أيضاً.');
+        console.log('⚠️ CURRENT_PROJECT_VERSION (build number) يجب رفعه يدوياً — App Store يرفض إعادة رفع نفس الرقم.');
+    }
     const code = (read(GRADLE).match(/versionCode\s+(\d+)/) || [])[1];
     console.log(`⚠️ versionCode الحالي = ${code} — ارفعه يدوياً في build.gradle قبل بناء APK جديد.`);
     console.log('⚠️ ولا تنسَ ضبط «أحدث إصدار» في لوحة الأدمن، وإلا لن يُبلَّغ المستخدمون بالتحديث.');

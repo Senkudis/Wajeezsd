@@ -70,7 +70,11 @@ const approvedOrigins = [
     'http://127.0.0.1:3000',         // ✅ التطوير المحلي (بديل localhost)
     'capacitor://localhost',
     'https://wajeezsd.secure.local',
-    'http://wajeezsd.secure.local'
+    'http://wajeezsd.secure.local',
+    // 🍎 iOS: مخطط WebView الافتراضي capacitor:// مدموجاً بـ server.hostname
+    // في capacitor.config.json ⇒ هذا هو الأصل الذي يرسله الآيفون. غيابه = فشل
+    // كل طلب API على iOS بخطأ CORS دون أي رسالة مفهومة في التطبيق.
+    'capacitor://wajeezsd.secure.local'
 ];
 
 // إعدادات Socket.io (مع معالجة أخطاء الاتصال والانقطاع للموبايل)
@@ -257,6 +261,31 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
     res.type('application/json');
     // dotfiles:'allow' ضروري هنا أيضاً — sendFile يرفض مسارات النقطة افتراضياً مثل static
     res.sendFile(path.join(__dirname, 'public_html', '.well-known', 'assetlinks.json'), { dotfiles: 'allow' });
+});
+
+// 🍎 iOS Universal Links — نظير assetlinks.json لأندرويد.
+// يُولَّد من APPLE_TEAM_ID لأن معرّف الفريق يأتي من حساب المطوّر ولا يجب تثبيته في الكود؛
+// وضع معرّف خاطئ في ملف ثابت يُعطّل الروابط بصمت. غيابه ⇒ 404 صريح لا ملف مغلوط.
+// شرط Apple: JSON بلا امتداد، بترويسة application/json، وبلا أي إعادة توجيه.
+app.get('/.well-known/apple-app-site-association', (req, res) => {
+    const teamId = process.env.APPLE_TEAM_ID;
+    if (!teamId) {
+        logger.warn('[iOS] APPLE_TEAM_ID غير مضبوط — Universal Links معطّلة');
+        return res.status(404).json({ message: 'not configured' });
+    }
+    res.type('application/json');
+    res.json({
+        applinks: {
+            details: [{
+                appIDs: [`${teamId}.com.wajeezsd.app`],
+                // نفس مسارات intent-filter في AndroidManifest: روابط المتاجر والمنتجات
+                components: [
+                    { '/': '/s/*', comment: 'روابط المتاجر القصيرة' },
+                    { '/': '/p/*', comment: 'روابط المنتجات القصيرة' }
+                ]
+            }]
+        }
+    });
 });
 
 // ✅ FIX #18: حُذف تعريف /api/auth/app-config المكرر من هنا

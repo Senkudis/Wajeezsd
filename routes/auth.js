@@ -1111,4 +1111,106 @@ router.delete('/addresses/:addrId', protect, async (req, res) => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// 🗑️ حذف الحساب بطلب المستخدم — شرط إلزامي في App Store (5.1.1(v))
+// ═══════════════════════════════════════════════════════════
+// المسار يجب أن يكون متاحاً داخل التطبيق نفسه بلا مراسلة الدعم.
+//
+// لا نحذف مستند المستخدم فعلياً لأن الطلبات والسجل المالي تشير إليه؛ الحذف
+// الصارم يفسد تقارير الأرباح والمديونيات التاريخية. بدلاً منه نُجهّل (anonymize)
+// كل البيانات الشخصية ونقفل الحساب نهائياً — وهذا ما تطلبه Apple فعلياً:
+// ألّا يبقى للمستخدم حساب ولا بيانات شخصية.
+//
+// @route  DELETE /api/auth/me
+// @body   { confirmPhone } — رقم هاتف الحساب كتأكيد (يعمل لمستخدمي Google أيضاً
+//         الذين لا يعرفون كلمة مرورهم، ويمنع الحذف بلمسة خاطئة)
+// @access Private
+router.delete('/me', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'المستخدم غير موجود' });
+
+        // 1️⃣ حسابات الإدارة لا تُحذف من التطبيق
+        if (user.role === 'admin') {
+            return res.status(403).json({ message: 'حسابات الإدارة لا تُحذف من التطبيق.' });
+        }
+
+        // 2️⃣ تأكيد الهوية برقم الهاتف
+        const confirmPhone = normalizePhone(String(req.body?.confirmPhone || ''));
+        if (!confirmPhone || confirmPhone !== user.phone) {
+            return res.status(400).json({ message: 'رقم الهاتف غير مطابق لحساب هذا المستخدم.' });
+        }
+
+        const Order = require('../models/Order');
+        const ShopOrder = require('../models/ShopOrder');
+        const ACTIVE_ORDER = ['pending', 'scheduled', 'accepted', 'picked_up'];
+        const ACTIVE_SHOP_ORDER = [
+            'shop_pending', 'shop_preparing', 'ready_for_pickup',
+            'captain_assigned', 'picked_up'
+        ];
+
+        // 3️⃣ ممنوع الحذف أثناء طلب جارٍ (يترك طرفاً آخر معلّقاً)
+        const activeOrders = await Order.countDocuments({
+            status: { $in: ACTIVE_ORDER },
+            $or: [{ client: user._id }, { captain: user._id }]
+        });
+        const activeShopOrders = await ShopOrder.countDocuments({
+            status: { $in: ACTIVE_SHOP_ORDER },
+            $or: [{ client: user._id }, { captain: user._id }]
+        });
+        if (activeOrders + activeShopOrders > 0) {
+            return res.status(409).json({
+                code: 'ACTIVE_ORDERS',
+                message: 'لديك طلب جارٍ. أكمله أو ألغِه ثم أعد المحاولة.'
+            });
+        }
+
+        // 4️⃣ ممنوع الحذف مع مديونية مفتوحة (الكابتن يجمع نقداً لحساب الشركة)
+        if (user.role === 'captain' && (user.wallet_balance || 0) < 0) {
+            return res.status(409).json({
+                code: 'OUTSTANDING_BALANCE',
+                message: 'عليك مديونية غير مسددة. سوِّ حسابك مع الإدارة قبل الحذف.'
+            });
+        }
+
+        // 5️⃣ التاجر: تُقفل متاجره حتى لا تبقى معروضة بلا صاحب
+        if (user.role === 'merchant') {
+            const Place = require('../models/Place');
+            await Place.updateMany({ ownerId: user._id }, { $set: { isActive: false } });
+        }
+
+        // 6️⃣ التجهيل — الهاتف فريد في المخطط فنستبدله بقيمة فريدة مشتقّة من المعرّف
+        const stamp = Date.now().toString(36);
+        await User.updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    name: 'مستخدم محذوف',
+                    phone: `deleted_${user._id}_${stamp}`,
+                    password: await bcrypt.hash(`deleted_${user._id}_${stamp}`, 10),
+                    isActive: false,
+                    isVerified: false,
+                    isAvailableForWork: false,
+                    isWhatsappSubscribed: false,
+                    savedAddresses: [],
+                    documents: {},
+                    deletedAt: new Date()
+                },
+                $unset: {
+                    email: '', fcmToken: '', currentLocation: '',
+                    resetCode: '', resetCodeExpires: '',
+                    verificationCode: '', verificationCodeExpires: '',
+                    otpCode: '', otpExpires: '', trustedDevices: ''
+                }
+            }
+        );
+
+        logger.info({ userId: String(user._id), role: user.role }, '🗑️ Account deleted by user');
+        res.json({ message: 'تم حذف حسابك وبياناتك الشخصية نهائياً.' });
+    } catch (err) {
+        logger.error('Delete account error:', err.message);
+        res.status(500).json({ message: 'حدث خطأ أثناء حذف الحساب' });
+    }
+});
+
 module.exports = router;

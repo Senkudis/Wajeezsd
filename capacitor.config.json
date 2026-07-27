@@ -6,7 +6,12 @@
   "server": {
     "hostname": "wajeezsd.secure.local",
     "androidScheme": "https",
+    "iosScheme": "capacitor",
     "cleartext": true
+  },
+  "ios": {
+    "contentInset": "always",
+    "limitsNavigationsToAppBoundDomains": false
   },
   "plugins": {
     "PushNotifications": {

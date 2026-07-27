@@ -33,6 +33,12 @@ const UserSchema = new mongoose.Schema(
 
         isActive: { type: Boolean, default: true }, // ← Admin-controlled: false = account suspended
 
+        // 🗑️ حذف الحساب بطلب المستخدم (شرط App Store 5.1.1(v) وGoogle Play)
+        // لا نحذف السجل فعلياً: الطلبات تشير إليه وسجلّ المحاسبة يجب أن يبقى سليماً.
+        // بدلاً من ذلك نُخفي كل البيانات الشخصية (اسم/هاتف/بريد/صور/عناوين) ونضع
+        // isActive=false فيُمنع الدخول من /login ومن protect معاً.
+        deletedAt: { type: Date, default: null },
+
         // ← Captain-controlled: whether they are available to receive orders (does NOT affect login)
         isAvailableForWork: { type: Boolean, default: false },
 

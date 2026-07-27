@@ -1005,6 +1005,11 @@
                     class="list-group-item list-group-item-action py-3 text-danger d-none">
                     <i class="bi bi-box-arrow-right me-3"></i> تسجيل الخروج
                 </a>
+                <!-- حذف الحساب داخل التطبيق — شرط App Store 5.1.1(v) -->
+                <a href="#" onclick="event.preventDefault(); openDeleteAccount();" id="menu-delete-account-btn"
+                    class="list-group-item list-group-item-action py-3 text-danger d-none">
+                    <i class="bi bi-person-x me-3"></i> حذف الحساب
+                </a>
             </div>
 
             <!-- بوابات الكابتن والأدمن -->
@@ -1039,6 +1044,7 @@
                 document.getElementById('menu-username').innerText = uName;
                 document.getElementById('menu-login-btn').classList.add('d-none');
                 document.getElementById('menu-logout-btn').classList.remove('d-none');
+                document.getElementById('menu-delete-account-btn').classList.remove('d-none');
                 // Also update greeting if element exists
                 const greetingEl = document.getElementById('greeting');
                 if (greetingEl) greetingEl.innerHTML = `مرحباً ${uName} `;
@@ -1092,6 +1098,7 @@
     <script src="vendor/socket.io/socket.io.min.js"></script>
 
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="js/delete-account.js?v=d132d4b9"></script>
 
     <script src="notification-toast.js"></script>
 

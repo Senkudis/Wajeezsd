@@ -112,6 +112,7 @@
 
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="js/delete-account.js?v=d132d4b9"></script>
 <script>
     const token = window.Auth?.getToken() || localStorage.getItem('token');
     if (!token) window.location.href = 'client-login.html';
@@ -200,8 +201,14 @@
                 ${pUser.email ? infoRow('bi-envelope-fill', 'البريد الإلكتروني', pUser.email) : ''}
             </div>
 
-            <button class="logout-btn mt-2 mb-4" onclick="logout()">
+            <button class="logout-btn mt-2" onclick="logout()">
                 <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+            </button>
+
+            <!-- حذف الحساب داخل التطبيق — شرط App Store 5.1.1(v) -->
+            <button class="btn btn-link w-100 text-danger text-decoration-none py-3 mb-4"
+                onclick="openDeleteAccount()">
+                <i class="bi bi-person-x me-1"></i> حذف الحساب نهائياً
             </button>
         `;
     }
