@@ -24,6 +24,34 @@
     <!-- SweetAlert2 -->
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <style>
+        /* 🎨 هوية وجيز بدل ألوان واتساب المستعارة (#075e54/#128c7e) — الشاشة كانت
+           تبدو تطبيقاً آخر داخل التطبيق. كل لون هنا متغيّر واحد يُقلَب في الوضع
+           الليلي أدناه، فلا تتناثر قيم مكرّرة في عشرين قاعدة. */
+        :root {
+            --wj-green: #04553A;
+            --wj-green-2: #0A6E47;
+            --wj-gold: #BF8B1F;
+            --chat-bg: #eef2f0;
+            --bubble-me: #d9efe4;
+            --bubble-them: #ffffff;
+            --bubble-text: #12211c;
+            --bubble-meta: #7c8a85;
+            --input-bg: #f4f6f5;
+            --input-field: #ffffff;
+            --divider: rgba(4, 85, 58, 0.08);
+        }
+
+        body.dark-mode {
+            --chat-bg: #0f1613;
+            --bubble-me: #14452f;
+            --bubble-them: #1c2622;
+            --bubble-text: #e8f0ec;
+            --bubble-meta: #8fa39b;
+            --input-bg: #151d1a;
+            --input-field: #1c2622;
+            --divider: rgba(255, 255, 255, 0.07);
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -37,12 +65,12 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            background: #e5ddd5;
+            background: var(--chat-bg);
         }
 
         /* ===== Header ===== */
         .chat-header {
-            background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+            background: linear-gradient(135deg, var(--wj-green) 0%, var(--wj-green-2) 100%);
             color: white;
             padding: 12px 16px;
             display: flex;
@@ -93,12 +121,12 @@
             position: absolute;
             bottom: 0;
             left: 0;
-            border: 2px solid #075e54;
+            border: 2px solid var(--wj-green);
             transition: background 0.3s;
         }
 
         .chat-header .status-dot.online {
-            background: #25d366;
+            background: #34d399;
         }
 
         .chat-header .info {
@@ -124,8 +152,10 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            background-color: #e5ddd5;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cg fill='%23c5b9a8' fill-opacity='0.12'%3E%3Cpath d='M20 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm80 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm80 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm80 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z'/%3E%3C/g%3E%3C/svg%3E");
+            background-color: var(--chat-bg);
+            /* نقش خفيف بلون العلامة بدل النقش البيج المستعار من واتساب */
+            background-image: radial-gradient(var(--divider) 1px, transparent 1px);
+            background-size: 22px 22px;
             -webkit-overflow-scrolling: touch;
         }
 
@@ -146,37 +176,126 @@
         .msg-bubble {
             max-width: 85%;
             padding: 8px 12px;
-            border-radius: 12px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            border-radius: 16px;
             position: relative;
-            font-size: 14px;
-            line-height: 1.5;
+            font-size: 14.5px;
+            line-height: 1.6;
             word-wrap: break-word;
-            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+            /* ظل واحد ناعم بدل ظلّين متعارضين كانا يُنتجان حداً رمادياً باهتاً */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+            animation: bubble-in 0.18s ease-out;
+        }
+
+        @keyframes bubble-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .msg-wrapper.sent .msg-bubble {
-            background: #dcf8c6;
-            color: #111;
-            border-top-right-radius: 0;
+            background: var(--bubble-me);
+            color: var(--bubble-text);
+            border-top-right-radius: 4px;
         }
 
         .msg-wrapper.received .msg-bubble {
-            background: #fff;
-            color: #111;
-            border-top-left-radius: 0;
+            background: var(--bubble-them);
+            color: var(--bubble-text);
+            border-top-left-radius: 4px;
         }
 
         .msg-bubble .sender-name {
             font-size: 12px;
             font-weight: 700;
-            color: #075e54;
+            color: var(--wj-green);
             margin-bottom: 2px;
             display: block;
         }
 
         .msg-wrapper.received .msg-bubble .sender-name {
-            color: #e91e63;
+            color: var(--wj-gold);
+        }
+
+        .msg-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* ===== 🖼️ صور الرسائل ===== */
+        .msg-image {
+            display: block;
+            max-width: 220px;
+            max-height: 260px;
+            width: auto;
+            /* ⚠️ حجم أدنى إلزامي: بلا أبعاد تكون الصورة صفرية المساحة قبل تحميلها،
+               فلا يعتبرها المتصفح داخل نطاق الرؤية ولا يُحمِّل loading="lazy" أبداً —
+               فتبقى الصورة فارغة إلى الأبد. وهو أيضاً يمنع اهتزاز التمرير عند التحميل. */
+            min-width: 150px;
+            min-height: 110px;
+            border-radius: 12px;
+            margin-top: 4px;
+            cursor: zoom-in;
+            background: var(--divider);
+            object-fit: cover;
+        }
+
+        .msg-bubble.has-image {
+            padding: 6px 6px 4px;
+        }
+
+        .msg-bubble.has-image .msg-text {
+            padding: 2px 6px 0;
+            display: block;
+        }
+
+        .msg-bubble.has-image .msg-meta {
+            padding: 0 6px;
+        }
+
+        /* صورة انتهت صلاحيتها (48 ساعة) — نوضّح السبب بدل مربّع مكسور */
+        .msg-image-expired {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12.5px;
+            color: var(--bubble-meta);
+            background: var(--divider);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-top: 4px;
+        }
+
+        /* عارض الصورة بالحجم الكامل */
+        .img-lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 16px;
+        }
+
+        .img-lightbox.open { display: flex; }
+
+        .img-lightbox img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 10px;
+        }
+
+        .img-lightbox .close-x {
+            position: absolute;
+            top: calc(14px + var(--sat, 0px));
+            left: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
         }
 
         .msg-meta {
@@ -186,11 +305,11 @@
             gap: 4px;
             margin-top: 2px;
             font-size: 11px;
-            color: #999;
+            color: var(--bubble-meta);
         }
 
         .msg-wrapper.sent .msg-meta {
-            color: #7a9e6e;
+            color: var(--bubble-meta);
         }
 
         /* ===== Message Status Icons (WhatsApp-style) ===== */
@@ -217,7 +336,7 @@
 
         /* read — double tick, blue */
         .msg-status[data-status="read"] {
-            color: #4fc3f7;
+            color: #0ea5e9;
         }
 
         /* failed — error icon, red */
@@ -302,7 +421,8 @@
 
         /* ===== Input Area ===== */
         .input-area {
-            background: #f0f0f0;
+            background: var(--input-bg);
+            border-top: 1px solid var(--divider);
             padding: 8px 10px;
             display: flex;
             align-items: center;
@@ -310,16 +430,81 @@
             flex-shrink: 0;
         }
 
-        .input-area input {
+        .input-area input[type="text"] {
             flex: 1;
             border: none;
-            background: #fff;
+            background: var(--input-field);
+            color: var(--bubble-text);
             border-radius: 24px;
-            padding: 10px 18px;
+            padding: 11px 18px;
             font-size: 15px;
             font-family: 'Cairo', sans-serif;
             outline: none;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 📎 زر إرفاق صورة — صور فقط، والملفات العامة غير مدعومة بقرار المنتج */
+        .input-area .attach-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            background: var(--input-field);
+            color: var(--wj-green);
+            font-size: 19px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: transform 0.1s;
+        }
+
+        body.dark-mode .input-area .attach-btn { color: #34d399; }
+
+        .input-area .attach-btn:active { transform: scale(0.9); }
+        .input-area .attach-btn:disabled { opacity: 0.45; cursor: default; }
+
+        /* شريط معاينة الصورة قبل الإرسال */
+        .img-preview-bar {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: var(--input-bg);
+            border-top: 1px solid var(--divider);
+            padding: 8px 12px;
+            flex-shrink: 0;
+        }
+
+        .img-preview-bar.show { display: flex; }
+
+        .img-preview-bar img {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .img-preview-bar .meta {
+            flex: 1;
+            min-width: 0;
+            font-size: 12px;
+            color: var(--bubble-meta);
+        }
+
+        .img-preview-bar .meta b {
+            display: block;
+            font-size: 13px;
+            color: var(--bubble-text);
+        }
+
+        .img-preview-bar .cancel {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 20px;
+            cursor: pointer;
         }
 
         .input-area .send-btn {
@@ -327,7 +512,7 @@
             height: 44px;
             border-radius: 50%;
             border: none;
-            background: #128c7e;
+            background: var(--wj-green);
             color: white;
             font-size: 18px;
             display: flex;
@@ -340,7 +525,7 @@
 
         .input-area .send-btn:active {
             transform: scale(0.9);
-            background: #075e54;
+            background: var(--wj-green-2);
         }
 
         .input-area .send-btn:disabled {
@@ -418,7 +603,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=7df0a5e8">
+    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
     <style>
         /* زر تبديل الثيم العائم يغطي الرسائل في شاشة الشات — الوضع يُضبط من الصفحات الأخرى */
         .theme-toggle { display: none !important; }
@@ -468,12 +653,40 @@
         </div>
     </div>
 
+    <!-- 🖼️ معاينة الصورة قبل الإرسال -->
+    <div class="img-preview-bar" id="imgPreviewBar">
+        <img id="imgPreviewThumb" alt="">
+        <div class="meta">
+            <b id="imgPreviewName">صورة</b>
+            <span id="imgPreviewHint">تُحذف الصور تلقائياً بعد 48 ساعة</span>
+        </div>
+        <button class="cancel" onclick="clearPendingImage()" aria-label="إلغاء الصورة">
+            <i class="bi bi-x-circle-fill"></i>
+        </button>
+    </div>
+
     <!-- Input Area -->
     <div class="input-area">
+        <!-- accept=image/* يُظهر الكاميرا والمعرض معاً على الهاتف. الملفات العامة
+             غير مدعومة عن قصد: سطح هجوم ومساحة تخزين بلا فائدة في محادثة توصيل. -->
+        <input type="file" id="imageInput" accept="image/*" style="display:none"
+            onchange="onImagePicked(this)">
+        <button id="attachBtn" class="attach-btn" onclick="document.getElementById('imageInput').click()"
+            aria-label="إرفاق صورة" disabled>
+            <i class="bi bi-image"></i>
+        </button>
         <input type="text" id="messageInput" placeholder="جاري تهيئة المحادثة..." autocomplete="off" disabled>
         <button id="sendBtn" class="send-btn" onclick="sendMessage()" disabled>
             <i class="bi bi-send-fill" style="transform: rotate(180deg);"></i>
         </button>
+    </div>
+
+    <!-- عارض الصورة بالحجم الكامل -->
+    <div class="img-lightbox" id="imgLightbox" onclick="closeLightbox()">
+        <button class="close-x" onclick="closeLightbox()" aria-label="إغلاق">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <img id="lightboxImg" src="" alt="صورة">
     </div>
 
     <script src="vendor/socket.io/socket.io.min.js"></script>
@@ -561,7 +774,7 @@
                 const container = document.getElementById('chatContainer');
                 const alreadySentTexts = new Set();
                 if (container) {
-                    container.querySelectorAll('.msg-wrapper.sent .msg-bubble span:not([class])').forEach(span => {
+                    container.querySelectorAll('.msg-wrapper.sent .msg-bubble .msg-text').forEach(span => {
                         const t = span.textContent.trim();
                         if (t) alreadySentTexts.add(t);
                     });
@@ -653,7 +866,7 @@
                     const container = document.getElementById('chatContainer');
                     const alreadySentTexts = new Set();
                     if (container && msgData && msgData.text) {
-                        container.querySelectorAll('.msg-wrapper.sent .msg-bubble span:not([class])').forEach(span => {
+                        container.querySelectorAll('.msg-wrapper.sent .msg-bubble .msg-text').forEach(span => {
                             const t = span.textContent.trim();
                             if (t) alreadySentTexts.add(t);
                         });
@@ -859,13 +1072,31 @@
             }
 
             const nameHtml = senderName && !isMe
-                ? `<span class="sender-name">${senderName}</span>`
+                ? `<span class="sender-name">${escapeHtml(senderName)}</span>`
                 : '';
 
+            // 🖼️ الصورة: إما حيّة، أو حُذفت بعد 48 ساعة (imageExpiredAt)، أو لا شيء
+            let mediaHtml = '';
+            if (msg.imageUrl) {
+                const full = fullUrl(msg.imageUrl);
+                mediaHtml = `<img class="msg-image" src="${escapeHtml(full)}" alt="صورة"
+                    onclick="openLightbox(this.src)" loading="lazy">`;
+            } else if (msg.imageExpiredAt) {
+                mediaHtml = `<div class="msg-image-expired">
+                        <i class="bi bi-clock-history"></i> حُذفت الصورة بعد 48 ساعة
+                    </div>`;
+            }
+
+            const hasImage = Boolean(mediaHtml);
+            const text = (msg.text || '').trim();
+
+            // ⚠️ كان النص يُحقن في innerHTML كما هو: رسالة تحوي <img onerror=...>
+            // تُنفَّذ فعلاً في جهاز الطرف الآخر (XSS مخزَّن). التهريب إلزامي هنا.
             wrapper.innerHTML = `
-                <div class="msg-bubble">
+                <div class="msg-bubble${hasImage ? ' has-image' : ''}">
                     ${nameHtml}
-                    <span>${msg.text}</span>
+                    ${mediaHtml}
+                    ${text ? `<span class="msg-text">${escapeHtml(text)}</span>` : ''}
                     <div class="msg-meta">
                         <span>${time}</span>
                         ${statusHtml}
@@ -1080,6 +1311,9 @@
                         msgInput.disabled = false;
                         msgInput.placeholder = 'اكتب رسالتك هنا...';
                         sBtn.disabled = false;
+                        // زر إرفاق الصورة يُفتح مع بقية الإدخال لا قبله
+                        const aBtn = document.getElementById('attachBtn');
+                        if (aBtn) aBtn.disabled = false;
                     }
                 }
             } catch (err) {
@@ -1103,6 +1337,8 @@
                     msgInput.disabled = false;
                     msgInput.placeholder = 'اكتب رسالتك هنا...';
                     sBtn.disabled = false;
+                    const aBtn2 = document.getElementById('attachBtn');
+                    if (aBtn2) aBtn2.disabled = false;
                 }
             }
         }
@@ -1191,6 +1427,7 @@
                         receiver: msgData.receiver,
                         order: msgData.order,
                         text: msgData.text,
+                        imageUrl: msgData.imageUrl,
                         tempId: msgData.tempId
                     })
                 });
@@ -1231,12 +1468,108 @@
             }
         }
 
+        // ══════════════════════════════════════════════════════════
+        // 🖼️ إرفاق الصور
+        // صور فقط بقرار المنتج. الصورة تُرفع أولاً إلى /api/upload/chat-image
+        // ثم تُرسل الرسالة بمسارها — لا نمرّر base64 في السوكيت لأن صورة واحدة
+        // تتجاوز حد الرسالة وتُسقط الاتصال.
+        // ══════════════════════════════════════════════════════════
+        const MAX_IMAGE_BYTES = 5 * 1024 * 1024;   // نفس حد multer في routes/upload.js
+        let pendingImageFile = null;
+
+        const escapeHtml = window.escapeHtml || function (s) {
+            return String(s ?? '').replace(/[&<>"']/g, c =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        };
+
+        const fullUrl = (u) => (window.getFullImageUrl ? window.getFullImageUrl(u) : u);
+
+        function onImagePicked(inputEl) {
+            const file = inputEl.files && inputEl.files[0];
+            inputEl.value = ''; // يسمح باختيار نفس الملف مرة أخرى بعد الإلغاء
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                Swal.fire('صور فقط', 'يمكنك إرسال الصور فقط في المحادثة.', 'warning');
+                return;
+            }
+            if (file.size > MAX_IMAGE_BYTES) {
+                Swal.fire('الصورة كبيرة', 'الحد الأقصى 5 ميجابايت.', 'warning');
+                return;
+            }
+
+            pendingImageFile = file;
+            const bar = document.getElementById('imgPreviewBar');
+            document.getElementById('imgPreviewThumb').src = URL.createObjectURL(file);
+            document.getElementById('imgPreviewName').textContent =
+                `${Math.round(file.size / 1024)} كيلوبايت`;
+            bar.classList.add('show');
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('messageInput').focus();
+        }
+
+        function clearPendingImage() {
+            pendingImageFile = null;
+            const thumb = document.getElementById('imgPreviewThumb');
+            if (thumb.src.startsWith('blob:')) URL.revokeObjectURL(thumb.src);
+            thumb.src = '';
+            document.getElementById('imgPreviewBar').classList.remove('show');
+        }
+
+        /** يرفع الصورة ويُرجع مسارها، أو null عند الفشل */
+        async function uploadPendingImage() {
+            const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
+            const authHeader = (window.Auth && window.Auth.getAuthHeader)
+                ? window.Auth.getAuthHeader()
+                : { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+
+            const form = new FormData();
+            form.append('image', pendingImageFile);
+            // ⚠️ بلا Content-Type يدوي — المتصفح يضيف boundary وحده، وتحديده يفسد الرفع
+            const res = await fetch(`${apiBase}/api/upload/chat-image`, {
+                method: 'POST', headers: authHeader, body: form
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.url) {
+                Swal.fire('تعذّر رفع الصورة', data.message || 'حاول مجدداً.', 'error');
+                return null;
+            }
+            return data.url;
+        }
+
+        function openLightbox(src) {
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('imgLightbox').classList.add('open');
+        }
+
+        function closeLightbox() {
+            document.getElementById('imgLightbox').classList.remove('open');
+            document.getElementById('lightboxImg').src = '';
+        }
+
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             if (!input) return;
 
             const text = input.value.trim();
-            if (!text) return;
+            // رسالة الصورة قد تكون بلا نص، لكن الفراغ التام لا يُرسل
+            if (!text && !pendingImageFile) return;
+
+            // 📤 الصورة تُرفع قبل بناء الرسالة — فشل الرفع يوقف الإرسال كله
+            let imageUrl = null;
+            if (pendingImageFile) {
+                const attachBtn = document.getElementById('attachBtn');
+                const sendBtn = document.getElementById('sendBtn');
+                attachBtn.disabled = true;
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                imageUrl = await uploadPendingImage();
+                sendBtn.innerHTML = '<i class="bi bi-send-fill" style="transform: rotate(180deg);"></i>';
+                attachBtn.disabled = false;
+                sendBtn.disabled = false;
+                if (!imageUrl) return;
+                clearPendingImage();
+            }
 
             if (!receiverId) {
                 const banner = document.getElementById('connectionBanner');
@@ -1254,6 +1587,7 @@
                 receiver: receiverId,
                 order: orderId,
                 text: text,
+                imageUrl: imageUrl || undefined,
                 senderName: userName
             };
 
@@ -1263,6 +1597,7 @@
                 tempId: tempId,
                 sender: { _id: userId, name: userName },
                 text: text,
+                imageUrl: imageUrl || null,
                 createdAt: new Date().toISOString(),
                 isRead: false,
                 order: orderId

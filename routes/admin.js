@@ -13,5 +13,6 @@ router.use(require('./admin/settings'));
 router.use(require('./admin/notifications'));
 router.use(require('./admin/subadmins'));
 router.use(require('./admin/ratings'));
+router.use(require('./admin/chats'));
 
 module.exports = router;

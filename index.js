@@ -20,6 +20,14 @@ const Message      = require('./models/Message');
 const User         = require('./models/User');
 const Order        = require('./models/Order');
 const Notification = require('./models/Notification');
+const { sanitizeChatImageUrl } = require('./utils/chatImage');
+
+// معاينة نص الإشعار: رسالة الصورة قد تأتي بلا نص، و`text.substring` كانت ترمي عليها
+const chatPreview = (text, imageUrl) => {
+    const t = (text || '').trim();
+    if (t) return t.substring(0, 200);
+    return imageUrl ? '📷 صورة' : '';
+};
 
 dotenv.config();
 
@@ -555,10 +563,17 @@ io.on('connection', (socket) => {
             const receiver = String(data.receiver || data.receiverId || '').trim();
             const order = String(data.order || data.orderId || '').trim();
 
+            // 🖼️ صورة مرفقة (اختيارية) — لا نثق برابط يرسله العميل، انظر utils/chatImage.js
+            const imageUrl = sanitizeChatImageUrl(data.imageUrl);
+            if (data.imageUrl && !imageUrl) {
+                return sendAck({ status: 'error', error: 'رابط الصورة غير صالح' });
+            }
+
             // ✅ FIX #6: Validate required fields FIRST before identity checks
             // Prevents misleading "Unauthorized" errors when fields are simply missing
-            if (!receiver || !order || !data.text) {
-                logger.error({ receiver: !!receiver, order: !!order, text: !!data.text }, 'Missing fields in send_message');
+            // رسالة الصورة قد تكون بلا نص، فالشرط: نصّ أو صورة
+            if (!receiver || !order || (!data.text && !imageUrl)) {
+                logger.error({ receiver: !!receiver, order: !!order, text: !!data.text, image: !!imageUrl }, 'Missing fields in send_message');
                 return sendAck({ status: 'error', error: 'Missing required fields' });
             }
 
@@ -617,7 +632,7 @@ io.on('connection', (socket) => {
             // 💾 حفظ الرسالة في MongoDB
             const message = await Message.create({
                 sender, receiver, order: orderDocId,
-                text: data.text, tempId: data.tempId, isRead: false
+                text: data.text || '', imageUrl, tempId: data.tempId, isRead: false
             });
             logger.info({ messageId: message._id, orderId: order, sender }, 'Message saved');
 
@@ -631,7 +646,7 @@ io.on('connection', (socket) => {
                 {
                     $set: {
                         title: `💬 رسالة من ${data.senderName || 'مستخدم'}`,
-                        message: data.text.substring(0, 200),
+                        message: chatPreview(data.text, imageUrl),
                         createdAt: new Date()
                     }
                 },
@@ -642,7 +657,8 @@ io.on('connection', (socket) => {
                 _id: message._id,
                 tempId: data.tempId,
                 sender: { _id: sender, name: data.senderName },
-                text: data.text,
+                text: data.text || '',
+                imageUrl,
                 createdAt: message.createdAt,
                 isRead: false,
                 order: order
@@ -674,7 +690,7 @@ io.on('connection', (socket) => {
                         await sendChatPush(
                             receiverUser.fcmToken,
                             `💬 رسالة من ${data.senderName || 'مستخدم'}`,
-                            data.text.substring(0, 200),
+                            chatPreview(data.text, imageUrl),
                             {
                                 type: 'chat_message',
                                 orderId: order.toString(),

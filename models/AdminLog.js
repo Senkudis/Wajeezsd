@@ -32,6 +32,8 @@ const adminLogSchema = new mongoose.Schema({
             'update_zone',
             // الأدمن المساعد
             'create_sub_admin', 'update_sub_admin', 'delete_sub_admin',
+            // 💬 المحادثات — قراءة محتوى خاص يجب أن تكون قابلة للتدقيق دائماً
+            'view_chat',
             // عام
             'other'
         ],

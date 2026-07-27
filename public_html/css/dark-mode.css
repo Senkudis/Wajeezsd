@@ -1123,51 +1123,66 @@ body.dark-mode .pay-note span {
    and all merchant pages.
    ======================================== */
 
-/* --- chat.html (WhatsApp-style) --- */
+/* --- chat.html ---
+   ⚠️ هذه القواعد كانت بألوان واتساب الليلية حرفياً (#005c4b/#1f2c34/#2a3942)
+   فبقيت الدردشة تبدو تطبيقاً آخر في الوضع الليلي بعد توحيد الوضع النهاري على
+   هوية وجيز. القيم الآن مشتقّة من متغيّرات chat.html نفسها (--bubble-me،
+   --bubble-them، --input-bg…) فلا يبقى مصدران للحقيقة، مع بديل ثابت لو
+   حُمِّل هذا الملف في صفحة لا تُعرّفها. */
 body.dark-mode .chat-container {
-    background-color: #0b141a !important;
-    background-image: none !important;
+    background-color: var(--chat-bg, #0f1613) !important;
 }
 body.dark-mode .msg-wrapper.sent .msg-bubble {
-    background: #005c4b !important;
-    color: #e9edef !important;
+    background: var(--bubble-me, #14452f) !important;
+    color: var(--bubble-text, #e8f0ec) !important;
 }
 body.dark-mode .msg-wrapper.received .msg-bubble {
-    background: #1f2c34 !important;
-    color: #e9edef !important;
+    background: var(--bubble-them, #1c2622) !important;
+    color: var(--bubble-text, #e8f0ec) !important;
 }
 body.dark-mode .msg-bubble .sender-name {
     color: #34d399 !important;
 }
 body.dark-mode .msg-wrapper.received .msg-bubble .sender-name {
-    color: #f472b6 !important;
+    /* ذهبي العلامة — يقرأ جيداً على الفقاعة الداكنة */
+    color: #d9a833 !important;
 }
-body.dark-mode .msg-meta {
-    color: #8696a0 !important;
-}
+body.dark-mode .msg-meta,
 body.dark-mode .msg-wrapper.sent .msg-meta {
-    color: #86b3a5 !important;
+    color: var(--bubble-meta, #8fa39b) !important;
 }
 body.dark-mode .date-separator span {
-    background: #182229 !important;
-    color: #8696a0 !important;
+    background: var(--bubble-them, #1c2622) !important;
+    color: var(--bubble-meta, #8fa39b) !important;
 }
 body.dark-mode .typing-indicator .bubble {
-    background: #1f2c34 !important;
-    color: #8696a0 !important;
+    background: var(--bubble-them, #1c2622) !important;
+    color: var(--bubble-meta, #8fa39b) !important;
 }
 body.dark-mode .input-area {
-    background: #1f2c34 !important;
+    background: var(--input-bg, #151d1a) !important;
 }
-body.dark-mode .input-area input {
-    background: #2a3942 !important;
-    color: #e9edef !important;
+body.dark-mode .input-area input[type="text"] {
+    background: var(--input-field, #1c2622) !important;
+    color: var(--bubble-text, #e8f0ec) !important;
+}
+body.dark-mode .input-area .attach-btn {
+    background: var(--input-field, #1c2622) !important;
 }
 body.dark-mode .input-area .send-btn:disabled {
     background: #3b4a54 !important;
 }
 body.dark-mode .empty-chat {
-    color: #8696a0 !important;
+    color: var(--bubble-meta, #8fa39b) !important;
+}
+/* 🖼️ صورة انتهت صلاحيتها + شريط المعاينة في الوضع الليلي */
+body.dark-mode .msg-image-expired,
+body.dark-mode .img-preview-bar {
+    background: var(--input-bg, #151d1a) !important;
+    color: var(--bubble-meta, #8fa39b) !important;
+}
+body.dark-mode .img-preview-bar .meta b {
+    color: var(--bubble-text, #e8f0ec) !important;
 }
 
 /* --- conversations.html --- */

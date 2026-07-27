@@ -417,6 +417,54 @@ const startScheduler = (app) => {
             logger.error({ err }, 'Scheduler error in negotiation expiry cleanup');
         }
     });
+
+    // ====================================================
+    // 🧹 حذف صور الدردشة بعد 48 ساعة (كل ساعة عند الدقيقة 15)
+    //
+    // لماذا: صور المحادثات تتراكم بلا سقف على قرص الاستضافة، ومعظمها لقطة عنوان
+    // أو إشعار دفع لا قيمة لها بعد تسليم الطلب. وحذفها تقليلٌ حقيقي لما نحتفظ به
+    // من بيانات المستخدمين (وهو ما تصرّح به سياسة الخصوصية).
+    //
+    // نحذف الملف من القرص ونمسح imageUrl، ونضع imageExpiredAt فتعرض الواجهة
+    // "انتهت صلاحية الصورة" بدل صورة مكسورة — والرسالة نفسها تبقى فلا ينقطع
+    // سياق المحادثة عند المراجعة أو حسم شكوى.
+    // ====================================================
+    cron.schedule('15 * * * *', async () => {
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) return;
+        try {
+            const Message = require('./models/Message');
+            const { CHAT_IMAGE_TTL_MS, CHAT_IMAGE_TTL_HOURS } = require('./utils/chatImage');
+            const { safeUnlink } = require('./utils/imageUpload');
+            const path = require('path');
+
+            const cutoff = new Date(Date.now() - CHAT_IMAGE_TTL_MS);
+            const stale = await Message.find({
+                imageUrl: { $ne: null },
+                createdAt: { $lt: cutoff }
+            }).select('_id imageUrl').limit(500).lean();
+
+            if (stale.length === 0) return;
+
+            const UPLOADS = path.join(__dirname, 'public_html');
+            let removed = 0;
+            for (const msg of stale) {
+                // imageUrl مثل /uploads/chat/xxx.jpg — تحقّق أخير من المجلد قبل أي حذف
+                if (!/^\/uploads\/chat\//.test(msg.imageUrl)) continue;
+                await safeUnlink(path.join(UPLOADS, msg.imageUrl));
+                removed++;
+            }
+
+            await Message.updateMany(
+                { _id: { $in: stale.map(m => m._id) } },
+                { $set: { imageUrl: null, imageExpiredAt: new Date() } }
+            );
+
+            logger.info({ removed, ttlHours: CHAT_IMAGE_TTL_HOURS }, 'Expired chat images deleted');
+        } catch (err) {
+            logger.error({ err }, 'Scheduler error in chat image cleanup');
+        }
+    });
 };
 
 /**

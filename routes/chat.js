@@ -5,7 +5,15 @@ const Notification = require('../models/Notification');
 const Order = require('../models/Order'); // Added for debug endpoint
 const { protect } = require('../middleware/authMiddleware');
 const { sendNotification } = require('../utils/notificationHelper');
+const { sanitizeChatImageUrl } = require('../utils/chatImage');
 const logger = require('../utils/logger');
+
+// نصّ الإشعار لرسالة بلا نص (صورة صامتة) — `text.substring` كانت ترمي على undefined
+const previewOf = (text, imageUrl) => {
+    const t = (text || '').trim();
+    if (t) return t.substring(0, 200);
+    return imageUrl ? '📷 صورة' : '';
+};
 
 // @route   GET /api/chat/conversations
 // @desc    Get user conversations list (works for all roles including merchants)
@@ -108,7 +116,13 @@ router.post('/', protect, async (req, res) => {
         const sender = req.user.id;
         const senderName = req.user.name; // assuming req.user has name from authMiddleware populate
 
-        if (!receiver || !order || !text) {
+        // 🖼️ صورة مرفقة (اختيارية) — تُقبل فقط من مجلد الدردشة، انظر utils/chatImage.js
+        const imageUrl = sanitizeChatImageUrl(req.body.imageUrl);
+        if (req.body.imageUrl && !imageUrl) {
+            return res.status(400).json({ message: 'رابط الصورة غير صالح' });
+        }
+
+        if (!receiver || !order || (!text && !imageUrl)) {
             return res.status(400).json({ message: 'البيانات ناقصة' });
         }
 
@@ -170,7 +184,8 @@ router.post('/', protect, async (req, res) => {
             sender,
             receiver,
             order,
-            text,
+            text: text || '',
+            imageUrl,
             tempId,
             isRead: false
         });
@@ -192,7 +207,7 @@ router.post('/', protect, async (req, res) => {
                 {
                     $set: {
                         title: `💬 رسالة من ${senderName || 'مستخدم'}`,
-                        message: text.substring(0, 200),
+                        message: previewOf(text, imageUrl),
                         createdAt: new Date()
                     }
                 },
@@ -205,7 +220,8 @@ router.post('/', protect, async (req, res) => {
                     _id: message._id,
                     tempId: tempId, // Pass tempId so UI knows this is the message it sent optimistically
                     sender: { _id: sender, name: senderName },
-                    text: text,
+                    text: text || '',
+                    imageUrl,
                     createdAt: message.createdAt,
                     isRead: false,
                     order: order
@@ -228,7 +244,7 @@ router.post('/', protect, async (req, res) => {
                     await sendChatPush(
                         receiverUser.fcmToken,
                         `💬 رسالة من ${senderName || 'مستخدم'}`,
-                        text.substring(0, 200),
+                        previewOf(text, imageUrl),
                         {
                             type: 'chat_message',
                             orderId: order.toString(),

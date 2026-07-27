@@ -132,6 +132,10 @@ const UserSchema = new mongoose.Schema(
                 'view_stats',         // إحصائيات مبسطة بدون أرباح وعملاء
                 'view_map',
                 'view_complaints',
+                // 💬 قراءة محادثات العميل والكابتن — صلاحية مستقلة عن الطلبات عن قصد:
+                // محتوى المحادثات خاص (أرقام، عناوين، صور)، فلا يصحّ أن يأتي ضمناً
+                // مع صلاحية مشاهدة الطلبات. كل وصول يُسجَّل في AdminLog.
+                'view_chats',
                 'view_categories', 'manage_categories',
                 // 🆕 صلاحيات إضافية
                 'view_users', 'manage_users',       // العملاء/المستخدمون

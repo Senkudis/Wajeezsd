@@ -51,7 +51,8 @@ async function compressImageFile(filePath, maxSize = 1000, quality = 85) {
 const uploadDir = path.join(__dirname, '..', 'public_html', 'uploads');
 
 // Ensure upload directories exist
-const dirs = ['profiles', 'documents', 'parcels', 'places', 'proofs', 'products'];
+// chat: صور الدردشة — مجلد منفصل لأن مهمة الحذف بعد 48 ساعة تعمل عليه وحده
+const dirs = ['profiles', 'documents', 'parcels', 'places', 'proofs', 'products', 'chat'];
 
 dirs.forEach(dir => {
     const fullPath = path.join(uploadDir, dir);
@@ -218,6 +219,39 @@ router.post('/parcel-image', protect, setUploadType('parcels'), (req, res) => {
             success: true,
             message: 'تم رفع صورة الشحنة',
             url: fileUrl
+        });
+    });
+});
+
+// ==========================================
+// 💬 3.5 رفع صورة داخل الدردشة (Chat Image)
+// ==========================================
+// صور فقط — لا ملفات عامة. rejectNonImages يفحص magic bytes بعد الكتابة فلا
+// تنفع ترويسة mimetype مزوّرة، والصورة تُضغط لأن شبكات السودان بطيئة والصورة
+// ستُحذف بعد 48 ساعة على أي حال فلا معنى لتخزين 5 ميجا.
+router.post('/chat-image', protect, setUploadType('chat'), (req, res) => {
+    req.params.type = 'chat';
+    upload.single('image')(req, res, async (err) => {
+        if (err) {
+            return res.status(400).json({ message: err.message || 'خطأ في رفع الصورة' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ message: 'لم يتم اختيار صورة' });
+        }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
+
+        try {
+            await compressImageFile(req.file.path, 1200, 80);
+        } catch (compressErr) {
+            // الضغط تحسين لا شرط — الصورة الأصلية مكتوبة وصالحة
+            logger.warn({ err: compressErr }, 'Chat image compression failed');
+        }
+
+        res.json({
+            success: true,
+            message: 'تم رفع الصورة',
+            url: `/uploads/chat/${req.file.filename}`
         });
     });
 });

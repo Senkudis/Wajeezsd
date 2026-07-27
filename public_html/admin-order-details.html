@@ -347,6 +347,21 @@ function renderOrder(o) {
         <!-- 💬 عروض المفاوضة -->
         ${renderNegotiationsCard(o)}
 
+        <!-- 💬 محادثة العميل والكابتن — تُحمَّل بطلب صريح لا تلقائياً -->
+        <div class="od-card" style="margin-bottom:16px;">
+            <div class="od-card-title">
+                <i class="fas fa-comments" style="color:#0ea5e9;"></i> محادثة العميل والكابتن
+            </div>
+            <div id="chatViewer">
+                <p style="color:#64748b;font-size:12.5px;margin:0 0 10px;">
+                    محتوى المحادثة خاص، ويُسجَّل كل اطّلاع عليه في سجل التدقيق باسمك.
+                </p>
+                <button class="od-btn od-btn-primary" onclick="loadChat('${o._id}')">
+                    <i class="fas fa-eye"></i> عرض المحادثة
+                </button>
+            </div>
+        </div>
+
         <!-- ⏱️ Status timeline -->
         ${renderTimelineCard(o)}
 
@@ -552,6 +567,75 @@ async function deleteOrder(id) {
         await fetch(`${BASE}/api/admin/orders/${id}`, { method: 'DELETE', headers });
         Swal.fire('تم', 'تم حذف الطلب', 'success').then(() => history.back());
     } catch(e) { Swal.fire('خطأ', 'فشل', 'error'); }
+}
+
+// ========================================
+// 💬 عارض المحادثة (قراءة فقط)
+// لا يُحمَّل تلقائياً مع الصفحة: قراءة رسائل خاصة يجب أن تكون فعلاً مقصوداً من
+// الأدمن لا أثراً جانبياً لفتح طلب — والسيرفر يسجّل كل طلب في سجل التدقيق.
+// ========================================
+async function loadChat(id) {
+    const box = document.getElementById('chatViewer');
+    box.innerHTML = '<div style="text-align:center;padding:18px;"><i class="fas fa-spinner fa-spin"></i></div>';
+    try {
+        const res = await fetch(`${BASE}/api/admin/chats/${id}`, { headers });
+        if (res.status === 403) {
+            box.innerHTML = '<p style="color:#b45309;font-size:13px;margin:0;">لا تملك صلاحية قراءة المحادثات (view_chats).</p>';
+            return;
+        }
+        if (!res.ok) throw new Error('failed');
+        const data = await res.json();
+        const msgs = data.messages || [];
+        if (!msgs.length) {
+            box.innerHTML = '<p style="color:#94a3b8;font-size:13px;margin:0;">لا رسائل في هذا الطلب.</p>';
+            return;
+        }
+
+        const clientId = data.order?.client?._id ? String(data.order.client._id) : '';
+        const rows = msgs.map(m => {
+            const senderId = m.sender && m.sender._id ? String(m.sender._id) : '';
+            const isClient = senderId === clientId;
+            const who = m.sender?.name || (isClient ? 'العميل' : 'الكابتن');
+            const time = new Date(m.createdAt).toLocaleString('ar-SD', {
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+            });
+            // الصورة بعد 48 ساعة: الملف محذوف وimageExpiredAt مضبوط — نوضّح ذلك
+            // بدل عرض صورة مكسورة تبدو كخلل في اللوحة
+            const media = m.imageUrl
+                ? `<div style="margin-top:6px;"><img src="${getFullImageUrl(m.imageUrl)}"
+                       onclick="window.open(this.src)" alt="صورة"
+                       style="max-width:170px;border-radius:10px;cursor:pointer;display:block;"
+                       onerror="this.replaceWith(document.createTextNode('تعذّر تحميل الصورة'))"></div>`
+                : (m.imageExpiredAt
+                    ? `<div style="margin-top:6px;font-size:11.5px;color:#94a3b8;">
+                         <i class="fas fa-image"></i> حُذفت الصورة بعد ${data.imageTtlHours || 48} ساعة</div>`
+                    : '');
+            const text = (m.text || '').trim();
+            return `
+            <div style="display:flex;justify-content:${isClient ? 'flex-start' : 'flex-end'};margin-bottom:8px;">
+                <div style="max-width:78%;background:${isClient ? '#f1f5f9' : '#e0f2fe'};
+                            border-radius:12px;padding:8px 11px;">
+                    <div style="font-size:11px;font-weight:800;color:${isClient ? '#475569' : '#0369a1'};">
+                        ${window.escapeHtml ? window.escapeHtml(who) : who}
+                        <span style="color:#94a3b8;font-weight:600;"> · ${time}</span>
+                    </div>
+                    ${text ? `<div style="font-size:13.5px;color:#1e293b;white-space:pre-wrap;word-break:break-word;">${window.escapeHtml ? window.escapeHtml(text) : text}</div>` : ''}
+                    ${media}
+                </div>
+            </div>`;
+        }).join('');
+
+        box.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:#64748b;">
+                <span>${msgs.length} رسالة</span>
+                <span>العميل يميناً · الكابتن يساراً</span>
+            </div>
+            <div style="max-height:420px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
+                ${rows}
+            </div>`;
+    } catch (e) {
+        box.innerHTML = '<p style="color:#ef4444;font-size:13px;margin:0;">فشل تحميل المحادثة.</p>';
+    }
 }
 
 // Start
