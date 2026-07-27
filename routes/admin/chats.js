@@ -153,4 +153,86 @@ router.get('/chats/:orderId', protect, requirePermission('view_chats'), async (r
     }
 });
 
+// @route   DELETE /api/admin/chats/:orderId
+// @desc    حذف محادثة طلب بالكامل من قاعدة البيانات + صورها من القرص
+// @access  manage_chats
+//
+// ⚠️ لا رجعة فيه. لذلك:
+//   • صلاحية manage_chats منفصلة عن view_chats — من يراقب ليس بالضرورة من يمحو.
+//   • تُحذف ملفات الصور أيضاً، وإلا بقيت على القرص بلا أي مرجع يدلّ عليها
+//     (مهمة الكنس في scheduler.js تلتقطها بعد 48 ساعة، لكن الحذف الفوري أنظف).
+//   • تُحذف إشعارات chat_message المرتبطة، وإلا بقيت للمستخدم شارة رسائل غير
+//     مقروءة تفتح على محادثة فارغة.
+//   • يُسجَّل في AdminLog بعدد الرسائل — هو الأثر الوحيد الباقي بعد المحو.
+router.delete('/chats/:orderId', protect, requirePermission('manage_chats'), async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const order = await Order.findById(orderId).select('city client').populate('client', 'name').lean();
+        // الطلب قد يكون محذوفاً وبقيت رسائله — نسمح بالتنظيف، لكن عزل المدينة
+        // يُطبَّق متى ما كان الطلب موجوداً
+        if (order && req.user.adminRole === 'sub_admin' && order.city !== req.user.city) {
+            return res.status(403).json({ message: 'غير مصرح — هذا الطلب خارج مدينتك' });
+        }
+
+        const orderFilter = {
+            $or: [{ order: orderId }, { order: new mongoose.Types.ObjectId(orderId) }]
+        };
+
+        const messages = await Message.find(orderFilter).select('_id imageUrl').lean();
+        if (messages.length === 0) {
+            return res.status(404).json({ message: 'لا رسائل في هذا الطلب' });
+        }
+
+        // 1) ملفات الصور من القرص — بفحص المجلد قبل أي unlink
+        const fs = require('fs');
+        const path = require('path');
+        const { safeUnlink } = require('../../utils/imageUpload');
+        const WEB_ROOT = path.join(__dirname, '..', '..', 'public_html');
+        let filesRemoved = 0;
+        for (const m of messages) {
+            if (!m.imageUrl || !/^\/uploads\/chat\//.test(m.imageUrl)) continue;
+            const full = path.join(WEB_ROOT, m.imageUrl);
+            if (fs.existsSync(full)) {
+                await safeUnlink(full);
+                filesRemoved++;
+            }
+        }
+
+        // 2) الرسائل
+        const del = await Message.deleteMany(orderFilter);
+
+        // 3) إشعارات المحادثة المعلّقة لهذا الطلب
+        const Notification = require('../../models/Notification');
+        const notifFilter = {
+            type: 'chat_message',
+            $or: [{ relatedId: orderId }, { relatedId: new mongoose.Types.ObjectId(orderId) }]
+        };
+        const notifDel = await Notification.deleteMany(notifFilter);
+
+        await logAdminAction(
+            req, 'delete_chat',
+            `حذف محادثة الطلب #${String(orderId).slice(-6).toUpperCase()} — ${del.deletedCount} رسالة و${filesRemoved} صورة`,
+            orderId,
+            order?.client?.name || '',
+            { messages: del.deletedCount, images: filesRemoved, notifications: notifDel.deletedCount }
+        );
+
+        logger.warn({
+            adminId: String(req.user._id), orderId,
+            messages: del.deletedCount, images: filesRemoved
+        }, 'Admin deleted chat conversation');
+
+        res.json({
+            message: `تم حذف ${del.deletedCount} رسالة`,
+            deleted: del.deletedCount,
+            images: filesRemoved,
+            notifications: notifDel.deletedCount
+        });
+    } catch (err) {
+        logger.error({ err }, 'Admin chat delete error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

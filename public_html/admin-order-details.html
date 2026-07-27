@@ -625,16 +625,57 @@ async function loadChat(id) {
             </div>`;
         }).join('');
 
+        const images = msgs.filter(m => m.imageUrl).length;
         box.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:#64748b;">
-                <span>${msgs.length} رسالة</span>
+                <span>${msgs.length} رسالة${images ? ` · ${images} صورة` : ''}</span>
                 <span>العميل يميناً · الكابتن يساراً</span>
             </div>
             <div style="max-height:420px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
                 ${rows}
+            </div>
+            <div style="margin-top:10px;">
+                <button class="od-btn od-btn-danger" onclick="deleteChat('${id}', ${msgs.length}, ${images})">
+                    <i class="fas fa-trash"></i> حذف المحادثة من قاعدة البيانات
+                </button>
             </div>`;
     } catch (e) {
         box.innerHTML = '<p style="color:#ef4444;font-size:13px;margin:0;">فشل تحميل المحادثة.</p>';
+    }
+}
+
+// 🗑️ حذف المحادثة — لا رجعة فيه، فالتأكيد يذكر العدد ويطلب كتابة «حذف»
+async function deleteChat(id, count, images) {
+    const r = await Swal.fire({
+        icon: 'warning',
+        title: 'حذف المحادثة نهائياً؟',
+        html: `سيُمحى <b>${count}</b> رسالة${images ? ` و<b>${images}</b> صورة` : ''} `
+            + `من قاعدة البيانات، ولا يمكن استرجاعها.<br>`
+            + `<span style="color:#64748b;font-size:.85rem;">`
+            + `تُحذف عند الطرفين، ويُسجَّل الحذف باسمك في سجل التدقيق.</span>`,
+        input: 'text',
+        inputPlaceholder: 'اكتب: حذف',
+        showCancelButton: true,
+        confirmButtonText: 'حذف نهائي',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#b91c1c',
+        inputValidator: (v) => (String(v || '').trim() !== 'حذف' ? 'اكتب كلمة «حذف» للتأكيد' : null)
+    });
+    if (!r.isConfirmed) return;
+
+    try {
+        const res = await fetch(`${BASE}/api/admin/chats/${id}`, { method: 'DELETE', headers });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 403) {
+            Swal.fire('غير مصرح', 'تحتاج صلاحية حذف المحادثات (manage_chats).', 'warning');
+            return;
+        }
+        if (!res.ok) throw new Error(data.message || 'failed');
+        Swal.fire('تم الحذف', data.message || 'حُذفت المحادثة', 'success');
+        document.getElementById('chatViewer').innerHTML =
+            '<p style="color:#94a3b8;font-size:13px;margin:0;">حُذفت المحادثة.</p>';
+    } catch (e) {
+        Swal.fire('فشل الحذف', e.message || 'حاول مجدداً', 'error');
     }
 }
 

@@ -40,6 +40,9 @@
         .modal h2 { font-size: 1.05rem; margin-bottom: 12px; }
         .btn { padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-weight: 700; font-size: .9rem; cursor: pointer; }
         .btn-close { background: #f1f5f9; color: #475569; }
+        .btn-danger { background: #fee2e2; color: #b91c1c; }
+        .btn-danger:hover { background: #fecaca; }
+        .btn:disabled { opacity: .55; cursor: default; }
     </style>
 </head>
 
@@ -64,12 +67,18 @@
         <div class="modal">
             <h2 id="threadTitle">المحادثة</h2>
             <div class="thread" id="thread"></div>
-            <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+            <div style="margin-top:12px;display:flex;justify-content:space-between;gap:10px;">
+                <!-- 🗑️ الحذف لا رجعة فيه — التأكيد يذكر ما سيُمحى بالعدد -->
+                <button class="btn btn-danger" id="deleteChatBtn" onclick="deleteChat()">
+                    <i class="fas fa-trash"></i> حذف المحادثة
+                </button>
                 <button class="btn btn-close" onclick="closeThread()">إغلاق</button>
             </div>
         </div>
     </div>
 
+    <!-- SweetAlert2 مطلوب لنافذة تأكيد الحذف (كانت الدالة ترمي على Swal غير معرّفة) -->
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script>
         const token = localStorage.getItem('adminToken');
         if (!token) window.location.href = 'admin-login.html';
@@ -79,6 +88,11 @@
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
             ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const imgUrl = (u) => (window.getFullImageUrl ? window.getFullImageUrl(u) : u);
+
+        // المحادثة المفتوحة حالياً — يعتمد عليها زر الحذف
+        let openOrderId = null;
+        let openMessagesCount = 0;
+        let openImagesCount = 0;
 
         const STATUS = {
             pending: 'قيد الانتظار', scheduled: 'مجدول', accepted: 'مقبول',
@@ -134,10 +148,15 @@
             const thread = document.getElementById('thread');
             thread.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
             modal.classList.add('active');
+            openOrderId = orderId;
+            openMessagesCount = 0;
+            openImagesCount = 0;
             try {
                 const res = await fetch(`${BASE}/api/admin/chats/${orderId}`, { headers: hdr() });
                 if (!res.ok) throw new Error('failed');
                 const data = await res.json();
+                openMessagesCount = (data.messages || []).length;
+                openImagesCount = (data.messages || []).filter(m => m.imageUrl).length;
                 document.getElementById('ttlHours').textContent = data.imageTtlHours || 48;
                 document.getElementById('threadTitle').textContent =
                     `طلب #${String(orderId).slice(-6).toUpperCase()} — `
@@ -175,6 +194,57 @@
 
         function closeThread() {
             document.getElementById('threadModal').classList.remove('active');
+            openOrderId = null;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // 🗑️ حذف المحادثة من قاعدة البيانات
+        // عملية لا رجعة فيها: تُمحى الرسائل وصورها من القرص وإشعاراتها. لذلك
+        // التأكيد يذكر العدد الفعلي، ويُطلب تأكيد ثانٍ بكتابة كلمة "حذف".
+        // ═══════════════════════════════════════════════════════
+        async function deleteChat() {
+            if (!openOrderId) return;
+            const count = openMessagesCount;
+
+            const first = await Swal.fire({
+                icon: 'warning',
+                title: 'حذف المحادثة نهائياً؟',
+                html: `سيُمحى <b>${count}</b> رسالة${openImagesCount ? ` و<b>${openImagesCount}</b> صورة` : ''} `
+                    + `من قاعدة البيانات، ولا يمكن استرجاعها.<br>`
+                    + `<span style="color:#64748b;font-size:.85rem;">`
+                    + `تُحذف المحادثة عند الطرفين، ويُسجَّل الحذف باسمك في سجل التدقيق.</span>`,
+                input: 'text',
+                inputPlaceholder: 'اكتب: حذف',
+                showCancelButton: true,
+                confirmButtonText: 'حذف نهائي',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#b91c1c',
+                inputValidator: (v) => (String(v || '').trim() !== 'حذف' ? 'اكتب كلمة «حذف» للتأكيد' : null)
+            });
+            if (!first.isConfirmed) return;
+
+            const btn = document.getElementById('deleteChatBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحذف';
+            try {
+                const res = await fetch(`${BASE}/api/admin/chats/${openOrderId}`, {
+                    method: 'DELETE', headers: hdr()
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.status === 403) {
+                    Swal.fire('غير مصرح', 'تحتاج صلاحية حذف المحادثات (manage_chats).', 'warning');
+                    return;
+                }
+                if (!res.ok) throw new Error(data.message || 'failed');
+                closeThread();
+                await loadList();
+                Swal.fire('تم الحذف', data.message || 'حُذفت المحادثة', 'success');
+            } catch (e) {
+                Swal.fire('فشل الحذف', e.message || 'حاول مجدداً', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash"></i> حذف المحادثة';
+            }
         }
 
         loadList();
