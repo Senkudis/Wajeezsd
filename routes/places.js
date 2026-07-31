@@ -4,6 +4,8 @@ const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const Place = require('../models/Place');
+// 🔒 استبعاد البيانات البنكية ورصيد المحفظة من كل مسار عام (انظر models/Place.js)
+const { PLACE_PUBLIC_EXCLUDE, stripPlacePrivateFields } = require('../models/Place');
 const PlaceCategory = require('../models/PlaceCategory');
 const Product = require('../models/Product');
 const Rating = require('../models/Rating');
@@ -69,7 +71,11 @@ router.get('/', async (req, res) => {
             query.city = city || 'Khartoum';
         }
 
-        const places = await Place.find(query).populate('category', 'name icon');
+        // 🔒 بلا select كانت تُرجع رقم الحساب البنكي واسم صاحبه ورصيد المحفظة
+        // لأي زائر بلا تسجيل دخول
+        const places = await Place.find(query)
+            .select(PLACE_PUBLIC_EXCLUDE)
+            .populate('category', 'name icon');
 
         // زيادة عداد المشاهدات (fire & forget)
         if (places.length > 0) {
@@ -131,6 +137,7 @@ router.get('/search', async (req, res) => {
         const placeOr = [{ name: rx }];
         if (matchedCatIds.length) placeOr.push({ category: { $in: matchedCatIds } });
         const placeDocs = await Place.find({ isActive: true, city: cityFilter, $or: placeOr })
+            .select(PLACE_PUBLIC_EXCLUDE)   // 🔒 نفس التسريب كان في البحث أيضاً
             .populate('category', 'name icon')
             .limit(20);
 
@@ -153,7 +160,7 @@ router.get('/search', async (req, res) => {
 
         // متاجر للعرض (مع الـ virtuals مثل is_open) + المسافة
         let places = placeDocs.map(p => {
-            const obj = p.toJSON();
+            const obj = stripPlacePrivateFields(p.toJSON());
             if (p.ownerId) obj.ownerId = p.ownerId;
             if (hasLoc) obj.distanceKm = distKm(obj.location);
             return obj;
@@ -481,9 +488,12 @@ router.get('/resolve-product/:id', async (req, res) => {
 // ============================================================
 router.get('/:id', async (req, res) => {
     try {
-        const place = await Place.findById(req.params.id).populate('category', 'name icon');
+        const place = await Place.findById(req.params.id)
+            .select(PLACE_PUBLIC_EXCLUDE)   // 🔒 صفحة المتجر عامة — لا بيانات بنكية
+            .populate('category', 'name icon');
         if (!place) return res.status(404).json({ message: 'المحل غير موجود' });
-        res.json(place.toJSON());
+        // stripPlacePrivateFields شبكة أمان: لو أُزيل select يوماً لا يعود التسريب
+        res.json(stripPlacePrivateFields(place.toJSON()));
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
     }

