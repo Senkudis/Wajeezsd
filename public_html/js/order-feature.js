@@ -404,18 +404,33 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
         try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), places })); } catch (_) {}
         if (seq !== _placesViewSeq) return; // المستخدم فتح قسماً آخر أثناء الجلب
 
-        // امنح GPS مهلة قصيرة (1.2 ثانية) إن لم يكن جاهزاً — ثم اعرض فوراً بدونه
+        // امنح GPS مهلة أطول (3 ثوانٍ) — كثير من الهواتف تحتاج ثانيتين أو أكثر لأول fix
         const loc = await Promise.race([
             locPromise,
-            new Promise(r => setTimeout(() => r(window.userLocation || null), 1200))
+            new Promise(r => setTimeout(() => r(window.userLocation || null), 3000))
         ]);
         if (seq !== _placesViewSeq) return;
         finalize(places.slice(), loc);
 
-        // وصل GPS متأخراً؟ أعد الترتيب بالأقرب بهدوء دون شاشة تحميل
+        // وصل GPS متأخراً؟ حدّث المسافات في مكانها بدون إعادة بناء القائمة
         if (!loc) {
             locPromise.then(late => {
-                if (late && seq === _placesViewSeq) finalize(places.slice(), late);
+                if (late && seq === _placesViewSeq) {
+                    // تحديث المسافات بصمت في الـ DOM مباشرة
+                    const updated = places.slice().map(p => ({
+                        ...p,
+                        distanceKm: calculateHaversineDistance(late.lat, late.lng, p.location?.lat ?? 0, p.location?.lng ?? 0)
+                    }));
+                    updated.sort((a, b) => {
+                        if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
+                        return (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9);
+                    });
+                    // تحديث أرقام المسافة في الـ DOM مباشرة بدون re-render
+                    updated.forEach(p => {
+                        const el = document.querySelector(`[data-place-id="${p._id}"] .place-dist`);
+                        if (el && p.distanceKm != null) el.textContent = `${Number(p.distanceKm).toFixed(1)} كم`;
+                    });
+                }
             });
         }
     } catch (err) {
@@ -500,14 +515,31 @@ window.loadFeaturedShops = async function () {
         try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), places })); } catch (_) {}
         if (seq !== _featuredSeq) return; // تغيّرت المدينة/الحالة أثناء الجلب
 
+        // امنح GPS مهلة أطول (3 ثوانٍ)
         const loc = await Promise.race([
             locPromise,
-            new Promise(r => setTimeout(() => r(window.userLocation || null), 1200))
+            new Promise(r => setTimeout(() => r(window.userLocation || null), 3000))
         ]);
+
         if (seq !== _featuredSeq) return;
         finalize(places.slice(), loc);
 
-        if (!loc) locPromise.then(late => { if (late && seq === _featuredSeq) finalize(places.slice(), late); });
+        if (!loc) locPromise.then(late => {
+            if (late && seq === _featuredSeq) {
+                const updated = places.slice().map(p => ({
+                    ...p,
+                    distanceKm: calculateHaversineDistance(late.lat, late.lng, p.location?.lat ?? 0, p.location?.lng ?? 0)
+                }));
+                updated.sort((a, b) => {
+                    if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
+                    return (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9);
+                });
+                updated.forEach(p => {
+                    const el = document.querySelector(`[data-place-id="${p._id}"] .place-dist`);
+                    if (el && p.distanceKm != null) el.textContent = `${Number(p.distanceKm).toFixed(1)} كم`;
+                });
+            }
+        });
     } catch (err) {
         if (seq !== _featuredSeq || hadCache) return; // الكاش أفضل من رسالة خطأ
         section.innerHTML = ''; // فشل صامت — التصنيفات فوقها تبقى صالحة للتصفّح
@@ -532,7 +564,9 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
     const html = places.map((p, idx) => {
         const isOpen = p.is_open;
         const imgSrc = getFullImageUrl(p.image_url) || defaultImage;
-        const dist = p.distanceKm != null ? `${Number(p.distanceKm).toFixed(1)} كم` : '-- كم';
+        const dist = p.distanceKm != null
+            ? `${Number(p.distanceKm).toFixed(1)} كم`
+            : `<span class="dist-loading">⏳</span>`;
         const views = formatCompactCount(p.viewsCount || 0);
 
         // 🏷️ شارة القسم — تظهر فقط عند طلبها ومتى توفّر القسم مأهولاً (name/icon)
@@ -553,7 +587,7 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
             : '';
 
         return `
-        <div class="place-card fade-in-up" onclick="openPlaceDetails('${p._id}')"
+        <div class="place-card fade-in-up" data-place-id="${p._id}" onclick="openPlaceDetails('${p._id}')"
             style="animation-delay:${Math.min(idx * 0.07, 0.4)}s; opacity:0;">
             <div class="place-card-cover">
                 <img src="${imgSrc}" alt="${escapeHtml(p.name)}"
@@ -572,7 +606,7 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
                     <span class="meta-dot">·</span>
                     <span class="meta-item views"><i class="bi bi-eye-fill"></i> ${views}</span>
                     <span class="meta-dot">·</span>
-                    <span class="meta-item dist"><i class="bi bi-geo-alt-fill"></i> ${dist}</span>
+                    <span class="meta-item place-dist"><i class="bi bi-geo-alt-fill"></i> ${dist}</span>
                 </div>
                 <button class="place-card-cta">
                     <i class="bi bi-bag-plus-fill"></i>
@@ -897,7 +931,8 @@ window.openShopOrderConfirmModal = async function() {
             orderType: 'shop',
             shopId: place._id,
             shopName: place.name,
-            shopPhone: place.phone,
+            // ملاحظة: لا نُرسل رقم المتجر — لم يعد يصل للعميل أصلاً، والسيرفر
+            // يشتقّه من مستند المتجر إلى shopPhone و pickup.contactPhone.
             items: orderDetails.split('\n').filter(i => i.trim() !== ''),
             shopOrderDetails: orderDetails,     // تفاصيل الطلبية
             receiptImage: receiptUrl,        // صورة الإشعار (مرفوعة)
@@ -905,7 +940,7 @@ window.openShopOrderConfirmModal = async function() {
             pickup: {
                 address: place.name + ' - ' + (place.category?.name || 'محل'),
                 contactName: place.name,
-                contactPhone: place.phone || '0000000000',
+                // contactPhone يُضبط في السيرفر من مستند المتجر (انظر أعلاه)
                 lat: place.location.lat,
                 lng: place.location.lng
             },

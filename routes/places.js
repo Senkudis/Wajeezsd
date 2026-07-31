@@ -5,7 +5,7 @@ const validateObjectId = require('../middleware/validateObjectId');
 router.param('id', validateObjectId);
 const Place = require('../models/Place');
 // 🔒 استبعاد البيانات البنكية ورصيد المحفظة من كل مسار عام (انظر models/Place.js)
-const { PLACE_PUBLIC_EXCLUDE, stripPlacePrivateFields } = require('../models/Place');
+const { PLACE_CLIENT_EXCLUDE, stripPlaceClientFields } = require('../models/Place');
 const PlaceCategory = require('../models/PlaceCategory');
 const Product = require('../models/Product');
 const Rating = require('../models/Rating');
@@ -74,7 +74,7 @@ router.get('/', async (req, res) => {
         // 🔒 بلا select كانت تُرجع رقم الحساب البنكي واسم صاحبه ورصيد المحفظة
         // لأي زائر بلا تسجيل دخول
         const places = await Place.find(query)
-            .select(PLACE_PUBLIC_EXCLUDE)
+            .select(PLACE_CLIENT_EXCLUDE)
             .populate('category', 'name icon');
 
         // زيادة عداد المشاهدات (fire & forget)
@@ -87,7 +87,7 @@ router.get('/', async (req, res) => {
 
         // Return with virtuals + ownerId so client can show "Browse Products" button for merchant stores
         res.json(places.map(p => {
-            const obj = p.toJSON();
+            const obj = stripPlaceClientFields(p.toJSON());
             // Explicitly include ownerId so the client knows if this place has a merchant
             if (p.ownerId) obj.ownerId = p.ownerId;
             return obj;
@@ -137,7 +137,7 @@ router.get('/search', async (req, res) => {
         const placeOr = [{ name: rx }];
         if (matchedCatIds.length) placeOr.push({ category: { $in: matchedCatIds } });
         const placeDocs = await Place.find({ isActive: true, city: cityFilter, $or: placeOr })
-            .select(PLACE_PUBLIC_EXCLUDE)   // 🔒 نفس التسريب كان في البحث أيضاً
+            .select(PLACE_CLIENT_EXCLUDE)   // 🔒 نفس التسريب كان في البحث أيضاً
             .populate('category', 'name icon')
             .limit(20);
 
@@ -160,7 +160,7 @@ router.get('/search', async (req, res) => {
 
         // متاجر للعرض (مع الـ virtuals مثل is_open) + المسافة
         let places = placeDocs.map(p => {
-            const obj = stripPlacePrivateFields(p.toJSON());
+            const obj = stripPlaceClientFields(p.toJSON());
             if (p.ownerId) obj.ownerId = p.ownerId;
             if (hasLoc) obj.distanceKm = distKm(obj.location);
             return obj;
@@ -489,11 +489,11 @@ router.get('/resolve-product/:id', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const place = await Place.findById(req.params.id)
-            .select(PLACE_PUBLIC_EXCLUDE)   // 🔒 صفحة المتجر عامة — لا بيانات بنكية
+            .select(PLACE_CLIENT_EXCLUDE)   // 🔒 صفحة المتجر عامة — لا بيانات بنكية
             .populate('category', 'name icon');
         if (!place) return res.status(404).json({ message: 'المحل غير موجود' });
         // stripPlacePrivateFields شبكة أمان: لو أُزيل select يوماً لا يعود التسريب
-        res.json(stripPlacePrivateFields(place.toJSON()));
+        res.json(stripPlaceClientFields(place.toJSON()));
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
     }

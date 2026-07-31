@@ -34,6 +34,17 @@ async function getCachedSettings(city = 'Khartoum') {
     return data;
 }
 
+// BUG-H7 FIX: دالة لمسح الكاش عند تحديث الإعدادات من لوحة الإدارة
+// تُصدَّر لتُستخدَم في مسارات الإعدادات (routes/admin.js)
+function invalidateSettingsCache(city) {
+    if (city) {
+        _settingsCache.delete(city);
+    } else {
+        _settingsCache.clear(); // مسح كل المدن إذا لم تُحدَّد مدينة
+    }
+}
+module.exports.invalidateSettingsCache = invalidateSettingsCache;
+
 // Rate Limiter للطلبات الجديدة
 const createOrderLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // ✅ 5 minutes
@@ -230,6 +241,18 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             // 🔒 الاسم والهاتف من قاعدة البيانات لا من العميل (منع تخزين قيم مزوّرة)
             orderData.shopName = place.name || shopName || '';
             orderData.shopPhone = place.phone || shopPhone || '';
+
+            // 📞 هاتف نقطة الاستلام يُشتق هنا من مستند المتجر، ولم يعد يأتي من
+            // العميل. سببان:
+            //   1) رقم المتجر صار محجوباً عن العميل (لا يتواصل خارج التطبيق)،
+            //      فلو بقي الاعتماد على ما يرسله لوصل الكابتن '0000000000'.
+            //   2) كان بإمكان العميل إرسال أي رقم فيُخزَّن كهاتف المتجر.
+            // الكابتن يبقى يرى الرقم — هو يحتاجه للاستلام فعلاً.
+            orderData.pickup = {
+                ...(orderData.pickup || {}),
+                contactName: place.name || (orderData.pickup && orderData.pickup.contactName) || '',
+                contactPhone: place.phone || ''
+            };
             orderData.items = items;
             // حفظ تفاصيل الطلبية كنص (للعرض في كارت الكابتن)
             if (req.body.shopOrderDetails) {
@@ -451,7 +474,25 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             ? `تم جدولة طلبك بنجاح! سيُنشر للكباتن في ${new Date(scheduledAt).toLocaleString('ar-SA')}`
             : 'تم إنشاء الطلب بنجاح';
 
-        res.status(201).json({ message: msg, order });
+        // BUG-C4 FIX: إرسال الحقول الضرورية للعميل فقط — لا تسريب appFee/netRevenue/city/parcelImage
+        res.status(201).json({
+            message: msg,
+            order: {
+                _id: order._id,
+                orderType: order.orderType,
+                status: order.status,
+                price: order.price,
+                discountAmount: order.discountAmount || 0,
+                pickup: order.pickup,
+                dropoff: order.dropoff,
+                stops: order.stops,
+                isMultiStop: order.isMultiStop,
+                scheduledAt: order.scheduledAt,
+                promoCode: order.promoCode,
+                paymentMethod: order.paymentMethod,
+                createdAt: order.createdAt
+            }
+        });
     } catch (error) {
         logger.error({ err: error }, 'Create Order Failed');
         res.status(500).json({ message: 'حدث خطأ في الخادم' });
@@ -482,26 +523,28 @@ router.put('/:id/cancel', protect, async (req, res) => {
             shopOrder.cancelledAt = new Date();   // ⏱️ للخط الزمني
             await shopOrder.save();
 
-            // ✅ FIX #2 + #14: استعادة المخزون عند إلغاء العميل لـ ShopOrder
-            // (merchant/reject يفعل هذا بالفعل، لكن كان مفقوداً هنا)
+            // BUG-C2 FIX: استعادة المخزون بشكل ذري — حذف الاستعلام المنفصل findById
             if (shopOrder.items && shopOrder.items.length > 0) {
                 const Product = require('../models/Product');
                 const { recordStockMovement } = require('../utils/erpHelpers');
                 for (const item of shopOrder.items) {
                     if (item.productId) {
-                        const prod = await Product.findById(item.productId).select('stock');
-                        if (prod && prod.stock !== null && prod.stock !== undefined) {
-                            const restored = await Product.findByIdAndUpdate(item.productId, {
-                                $inc: { stock: item.quantity },
-                                $set: { isAvailable: true }
-                            }, { new: true }).select('stock name');
-                            // 💼 ERP: توثيق حركة الإرجاع
+                        const restored = await Product.findOneAndUpdate(
+                            { _id: item.productId, stock: { $ne: null } },
+                            { $inc: { stock: item.quantity } },
+                            { new: true }
+                        ).select('stock name');
+
+                        if (restored) {
+                            if (restored.stock > 0) {
+                                await Product.updateOne({ _id: item.productId }, { $set: { isAvailable: true } });
+                            }
                             recordStockMovement({
                                 placeId: shopOrder.place, productId: item.productId,
-                                productName: item.name || (restored && restored.name) || '',
+                                productName: item.name || restored.name || '',
                                 type: 'return', quantity: item.quantity,
-                                balanceAfter: restored ? restored.stock : null,
-                                reason: 'إرجاع للمخزون — إلغاء العميل',
+                                balanceAfter: restored.stock,
+                                reason: 'ارجاع للمخزون - الغاء العميل',
                                 refModel: 'ShopOrder', refId: shopOrder._id,
                                 createdBy: req.user._id
                             });
@@ -552,12 +595,17 @@ router.put('/:id/cancel', protect, async (req, res) => {
         const { reason } = req.body || {};
 
         // ✅ الإلغاء مسموح فقط في حالتي pending و scheduled
+        // BUG-M2 FIX: تعقيم سبب الإلغاء لمنع XSS في الإشعارات — نُزيل وسوم HTML
+        const sanitizedReason = reason
+            ? String(reason).trim().replace(/<[^>]*>/g, '').substring(0, 200)
+            : 'إلغاء من قبل العميل';
+
         const cancelledOrder = await Order.findOneAndUpdate(
             { _id: req.params.id, status: { $in: ['pending', 'scheduled'] }, client: req.user.id },
             { $set: {
                 status: 'cancelled',
                 cancelledBy: 'client',
-                cancelReason: (reason && reason.trim()) || 'إلغاء من قبل العميل',
+                cancelReason: sanitizedReason,
                 cancelledAt: new Date()
             } },
             { new: true }
@@ -673,52 +721,77 @@ router.get('/my-orders', protect, async (req, res) => {
 
         // ✅ FIX #4: Apply a date cap to avoid fetching ALL orders into memory.
         // Default: last 6 months. Client can pass ?since=YYYY-MM-DD for older history.
-        const MAX_FETCH = 200; // hard cap per collection
-        const sinceParam = req.query.since ? new Date(req.query.since) : null;
+        // BUG-M5 FIX: التحقق من صحة التاريخ قبل استخدامه — ?since=INVALID_DATE كان يُعيد نتائج فارغة
+        const _sinceRaw = req.query.since ? new Date(req.query.since) : null;
+        const sinceParam = (_sinceRaw && !isNaN(_sinceRaw.getTime())) ? _sinceRaw : null;
         const defaultSince = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // 6 months
         const since = sinceParam || defaultSince;
         const dateFilter = { createdAt: { $gte: since } };
-        
-        // Fetch normal Orders (excluding the cloned shop deliveries so we don't duplicate)
-        const orders = await Order.find({ client: req.user.id, orderType: { $ne: 'shop' }, ...dateFilter })
-            .select('-parcelImage')
-            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
-            .sort({ createdAt: -1 })
-            .limit(MAX_FETCH)
-            .lean();
+        // BUG-H1 FIX: الجلب الصحيح بـ DB-level skip/limit يبدأ من السطر 806
+        const ShopOrder = require('../models/ShopOrder');
+        // BUG-H1 FIX: حساب skip صحيح لكل collection بدلاً من تحميل 200 ثم التقطيع
+        // نستخدم countDocuments لمعرفة التوزيع الحقيقي بين النوعين،
+        // ثم نُحسب نقطة البداية (skip) لكل collection بناءً على الصفحة المطلوبة.
+        const [realOrderCount, realShopOrderCount] = await Promise.all([
+            Order.countDocuments({ client: req.user.id, orderType: { $ne: 'shop' }, ...dateFilter }),
+            ShopOrder.countDocuments({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
+        ]);
+        const total = realOrderCount + realShopOrderCount;
+        const skip = (page - 1) * limit;
 
-        // 📸 وضع علامة hasImage على الطلبات التي تحوي صورة طرد (دون تحميل الـ Base64 الثقيل)
-        //    حتى تعرض الواجهة زر "عرض صورة الطرد" وتجلبها عند الطلب فقط.
-        const orderIds = orders.map(o => o._id);
-        if (orderIds.length) {
+        // تحديد كمية الجلب من كل collection بشكل ذكي: نجلب slice مناسباً فقط
+        // بدلاً من MAX_FETCH=200 الثابت الذي يفشل مع أكثر من 200 طلب
+        const orderSkip      = Math.min(skip, realOrderCount);
+        const orderLimit     = Math.max(0, Math.min(limit, realOrderCount - orderSkip));
+        const shopSkip       = Math.max(0, skip - realOrderCount);
+        const shopLimitBound = Math.max(0, limit - orderLimit);
+
+        // إذا كانت الصفحة المطلوبة تمتد عبر النوعين — نجلب بعضاً من كل واحد
+        // (الدمج في الذاكرة ضروري هنا لكنه محدود بـ limit فقط لا 200)
+        const ordersPage = orderLimit > 0
+            ? await Order.find({ client: req.user.id, orderType: { $ne: 'shop' }, ...dateFilter })
+                .select('-parcelImage')
+                .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
+                .sort({ createdAt: -1 })
+                .skip(orderSkip)
+                .limit(orderLimit)
+                .lean()
+            : [];
+
+        const shopOrdersPage = shopLimitBound > 0
+            ? await ShopOrder.find({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
+                .select('-paymentReceiptImage')
+                .populate('place', 'name address bankAccountName bankAccountNumber bankName')
+                .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
+                .sort({ createdAt: -1 })
+                .skip(shopSkip)
+                .limit(shopLimitBound)
+                .lean()
+            : [];
+
+        // لا نزال بحاجة لـ hasImage marks لـ ordersPage
+        const pageOrderIds = ordersPage.map(o => o._id);
+        if (pageOrderIds.length) {
             const withImg = await Order.find({
-                _id: { $in: orderIds },
+                _id: { $in: pageOrderIds },
                 parcelImage: { $type: 'string', $ne: '' }
             }).select('_id').lean();
             const imgSet = new Set(withImg.map(d => String(d._id)));
-            orders.forEach(o => { o.hasImage = imgSet.has(String(o._id)); });
+            ordersPage.forEach(o => { o.hasImage = imgSet.has(String(o._id)); });
         }
 
-        // Fetch ShopOrders — BUG #30 FIX: exclude paymentReceiptImage to avoid leaking large base64 data
-        const ShopOrder = require('../models/ShopOrder');
-        const shopOrders = await ShopOrder.find({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
-            .select('-paymentReceiptImage')
-            .populate('place', 'name address bankAccountName bankAccountNumber bankName')
-            .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
-            .sort({ createdAt: -1 })
-            .limit(MAX_FETCH)
-            .lean();
-
-        // Fetch corresponding delivery Orders for these ShopOrders to get negotiations
-        const shopOrderIds = shopOrders.map(so => so._id);
-        const deliveryOrders = await Order.find({ shopOrderId: { $in: shopOrderIds }, orderType: 'shop' })
-            .select('negotiations shopOrderId captain')
-            .lean();
+        // جلب negotiations للـ shopOrders في هذه الصفحة
+        const pageShopIds = shopOrdersPage.map(so => so._id);
+        const pageDeliveryOrders = pageShopIds.length
+            ? await Order.find({ shopOrderId: { $in: pageShopIds }, orderType: 'shop' })
+                .select('negotiations shopOrderId captain')
+                .lean()
+            : [];
 
         // Map ShopOrders to match Order format
-        const mappedShopOrders = shopOrders.map(so => {
-            const relatedDelivery = deliveryOrders.find(doObj => doObj.shopOrderId && doObj.shopOrderId.toString() === so._id.toString());
-            
+        const mappedShopOrders = shopOrdersPage.map(so => {
+            const relatedDelivery = pageDeliveryOrders.find(doObj => doObj.shopOrderId && doObj.shopOrderId.toString() === so._id.toString());
+
             let mappedStatus = 'pending';
             if (so.status === 'chat_initiated') mappedStatus = 'chat_initiated';
             else if (so.status === 'shop_pending') mappedStatus = 'pending';
@@ -742,9 +815,6 @@ router.get('/my-orders', protect, async (req, res) => {
                 status: mappedStatus,
                 realShopStatus: so.status,
                 createdAt: so.createdAt,
-                // ⏱️ طوابع الانتقالات للخط الزمني. acceptedAt = لحظة قبول التاجر
-                // (أول حالة تُقابل 'accepted' في mappedStatus) ليتّسق الخط مع الحالة المعروضة؛
-                // وإلا قبول الكابتن احتياطاً.
                 acceptedAt: so.merchantConfirmedAt || so.captainAssignedAt || null,
                 pickedUpAt: so.pickedUpAt || null,
                 deliveredAt: so.deliveredAt || null,
@@ -765,22 +835,15 @@ router.get('/my-orders', protect, async (req, res) => {
             };
         });
 
-        // Merge, sort, and paginate (in-memory only across capped result sets)
-        const allOrders = [...orders, ...mappedShopOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        const skip = (page - 1) * limit;
-        const paginatedOrders = allOrders.slice(skip, skip + limit);
+        // دمج وترتيب داخل الصفحة فقط (لا نحمّل أكثر من limit مستند)
+        const paginatedOrders = [...ordersPage, ...mappedShopOrders]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         // 📊 إثراء كل طلب بالخط الزمني و ETA (بعد الترقيم لتوفير الحساب) — مصدر مشترك
         const { enrichOrder } = require('../utils/orderEnrich');
         paginatedOrders.forEach(enrichOrder);
 
-        // ✅ BUG-014 FIX: استخدام عدادات DB الحقيقية للـ pagination بدلاً من طول المصفوفة المقطوعة
-        // allOrders.length تعكس فقط ما تم جلبه (MAX_FETCH=200) وليس الإجمالي الحقيقي في DB
-        const [realOrderCount, realShopOrderCount] = await Promise.all([
-            Order.countDocuments({ client: req.user.id, orderType: { $ne: 'shop' }, ...dateFilter }),
-            ShopOrder.countDocuments({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
-        ]);
-        const total = realOrderCount + realShopOrderCount;
+        // total, realOrderCount, realShopOrderCount محسوبة مسبقاً في BUG-H1 FIX أعلاه
 
         logger.debug({ durationMs: Date.now() - startTime, total }, 'fetchMyOrders completed');
 
@@ -1030,6 +1093,15 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
         const io = req.app.get('io');
 
         if (action === 'accept') {
+            // BUG-C6 FIX: التحقق من حالة الكابتن قبل إسناد الطلب — قد يُوقَف بعد تقديم عرضه
+            const User = require('../models/User');
+            const captainDoc = await User.findById(captainId).select('is_blocked').lean();
+            if (captainDoc && captainDoc.is_blocked) {
+                return res.status(400).json({
+                    message: 'لا يمكن قبول عرض هذا الكابتن — حسابه موقوف حالياً. اختر كابتناً آخر.'
+                });
+            }
+
             // Accept: update price, assign captain, change status
             order.price = offer.proposedPrice;
             order.captain = captainId;
@@ -1111,8 +1183,9 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
             // ✅ FIX #4: استخدام updatedOrder.negotiations بدلاً من order.negotiations القديم
             // order.negotiations كانت تشير للكائن قبل findOneAndUpdate
             // وكانت فهرسة offerIndex تستخدم الترتيب القديم بدلاً من تحديد الكابتن الفائز بدقة
+            // BUG-H3 FIX: فلترة الكباتن ذوي العروض النشطة فقط — لا نُرسل لمن رُفض أو انسحب
             const rejectedCaptains = updatedOrder.negotiations.filter(
-                (n) => String(n.captainId) !== String(captainId) && n.captainId
+                (n) => String(n.captainId) !== String(captainId) && n.captainId && n.status === 'pending'
             );
             for (const n of rejectedCaptains) {
                 if (io) {
@@ -1186,6 +1259,11 @@ router.put('/:id/negotiate-withdraw', protect, captainOnly, async (req, res) => 
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
 
+        // BUG-H5 FIX: لا يمكن سحب عرض على طلب مُغلَق أو مكتمل
+        if (order.status !== 'pending') {
+            return res.status(400).json({ message: 'لا يمكن سحب عرض — الطلب لم يعد في حالة انتظار' });
+        }
+
         const captainId = req.user._id.toString();
         const offerIndex = order.negotiations.findIndex(
             n => n.captainId && n.captainId.toString() === captainId && n.status === 'pending'
@@ -1237,8 +1315,9 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
 
     try {
         // 🛡️ CRITICAL FIX: Atomic update to prevent Race Condition
+        // BUG-H2 FIX: أضيف city لمنع الكابتن من قبول طلب من مدينة أخرى
         const updatedOrder = await Order.findOneAndUpdate(
-            { _id: req.params.id, status: 'pending' },
+            { _id: req.params.id, status: 'pending', city: req.user.city },
             {
                 $set: {
                     status: 'accepted',
@@ -1247,14 +1326,15 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
                     negotiation: { isActive: false, status: 'none' }
                 }
             },
-            { new: false } // return old document so we can check negotiations
+            { new: true } // BUG-C5 FIX: غيير من false لـ true — يُعيد المستند بعد التحديث مباشرة دون استعلام إضافي
         );
 
         if (!updatedOrder) {
             return res.status(400).json({ message: 'الطلب غير متاح أو تم قبوله من كابتن آخر' });
         }
 
-        const order = await Order.findById(req.params.id); // Fetch the fresh updated document
+        // BUG-C5 FIX: حذف الاستعلام المكرّر — updatedOrder يحتوي على النسخة الحديثة بعد new:true
+        const order = updatedOrder;
 
         // 🚀 Clear negotiation state AND notify rejected captains
         const io = req.app.get('io');
@@ -1398,6 +1478,14 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
             return res.status(400).json({ message: 'يجب رفع صورة إثبات الاستلام قبل التأكيد' });
         }
 
+        // BUG-C3 FIX: تحويل proofImage من Base64 لملف (URL) بدل تخزينه خاماً
+        // كان ~500KB base64 يُضخّم كل مستند طلب ويُبطّئ استعلامات القوائم
+        const { saveBase64ToUploads } = require('../utils/imageUpload');
+        const proofImageUrl = saveBase64ToUploads(proofImage, 'proofs');
+        if (!proofImageUrl) {
+            return res.status(400).json({ message: 'صورة الإثبات غير صالحة — يرجى إعادة الرفع' });
+        }
+
         // 🛒 errand: لا شراء (pickup) قبل أن يؤكّد العميل سعر البضاعة — يحمي الطرفين
         const errandPre = await Order.findOne({ _id: req.params.id, captain: req.user.id })
             .select('orderType errand status');
@@ -1414,7 +1502,7 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
                 $set: {
                     status: 'picked_up',
                     pickedUpAt: new Date(),   // ⏱️ للخط الزمني
-                    proofOfPickupImage: proofImage
+                    proofOfPickupImage: proofImageUrl  // BUG-C3 FIX: URL للملف بدل Base64
                 }
             },
             { new: true }
@@ -1428,7 +1516,7 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
 
         // 🛒 errand: صورة الاستلام هي إيصال/بضاعة الشراء — احفظها في errand.receiptImage
         if (order.orderType === 'errand' && order.errand) {
-            order.errand.receiptImage = proofImage;
+            order.errand.receiptImage = proofImageUrl; // BUG-C3 FIX: URL بدل Base64
             await order.save();
         }
 

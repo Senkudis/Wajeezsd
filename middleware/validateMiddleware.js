@@ -1,7 +1,12 @@
 const validateOrder = (req, res, next) => {
     const { pickup, dropoff, details, price, distanceType } = req.body;
 
-    if (!pickup || !pickup.address || !pickup.contactName || !pickup.contactPhone) {
+    // 🏪 طلب من متجر: جهة الاستلام هي المتجر، واسمه ورقمه يُشتقّان في السيرفر من
+    // مستند المتجر (routes/orders.js) لا من العميل — لأن رقم المتجر محجوب عنه
+    // أصلاً. فمطالبته بإرسالهما تعني رفض كل طلبات المتاجر بـ 400.
+    const isShopOrder = req.body.orderType === 'shop';
+
+    if (!pickup || !pickup.address || (!isShopOrder && (!pickup.contactName || !pickup.contactPhone))) {
         return res.status(400).json({ message: 'بيانات الاستلام غير مكتملة' });
     }
 

@@ -106,8 +106,24 @@ const PLACE_PRIVATE_FIELDS = [
     'shopWalletBalance'
 ];
 
+/**
+ * 📞 حقول اتصال المتجر — تُحجب عن العميل بقرار عمل صريح:
+ * لا نريد أن يتواصل العميل مع المتجر خارج التطبيق (يفقد وجيز الطلب والعمولة،
+ * ويفقد الطرفان سجل الطلب وضمانه).
+ *
+ * لا تُخلَط مع PLACE_PRIVATE_FIELDS: البيانات البنكية سرّية عن الجميع إلا
+ * المالك والإدارة، أما الهاتف فيحتاجه **الكابتن** فعلاً للاستلام — ولذلك
+ * يُشتق في السيرفر إلى pickup.contactPhone عند إنشاء الطلب (routes/orders.js)
+ * ويبقى ظاهراً للكابتن والإدارة والتاجر لمتجره.
+ */
+const PLACE_CONTACT_FIELDS = ['phone', 'whatsapp'];
+
 // صيغة الاستبعاد لـ mongoose: '-field1 -field2'
 const PLACE_PUBLIC_EXCLUDE = PLACE_PRIVATE_FIELDS.map(f => `-${f}`).join(' ');
+
+// ما يُرجَع لواجهة العميل: بلا بيانات بنكية وبلا أرقام اتصال المتجر
+const PLACE_CLIENT_EXCLUDE = [...PLACE_PRIVATE_FIELDS, ...PLACE_CONTACT_FIELDS]
+    .map(f => `-${f}`).join(' ');
 
 /** شبكة أمان لمسارات تبني الكائن يدوياً (toJSON/lean) بلا select */
 function stripPlacePrivateFields(obj) {
@@ -116,9 +132,19 @@ function stripPlacePrivateFields(obj) {
     return obj;
 }
 
+/** ما يُرسَل للعميل: بلا بيانات بنكية وبلا أرقام اتصال */
+function stripPlaceClientFields(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    for (const f of [...PLACE_PRIVATE_FIELDS, ...PLACE_CONTACT_FIELDS]) delete obj[f];
+    return obj;
+}
+
 const Place = mongoose.model('Place', PlaceSchema);
 
 module.exports = Place;
 module.exports.PLACE_PRIVATE_FIELDS = PLACE_PRIVATE_FIELDS;
+module.exports.PLACE_CONTACT_FIELDS = PLACE_CONTACT_FIELDS;
 module.exports.PLACE_PUBLIC_EXCLUDE = PLACE_PUBLIC_EXCLUDE;
+module.exports.PLACE_CLIENT_EXCLUDE = PLACE_CLIENT_EXCLUDE;
 module.exports.stripPlacePrivateFields = stripPlacePrivateFields;
+module.exports.stripPlaceClientFields = stripPlaceClientFields;

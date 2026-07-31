@@ -62,14 +62,14 @@ describe('المسارات العامة تستبعد البيانات البنك
 
     // نلتقط كل استعلام Place.find/findById في الملف ونتأكد أن العام منها مُقيَّد
     it('قائمة المتاجر وصفحة المتجر والبحث تستدعي الاستبعاد', () => {
-        expect(src).toContain('PLACE_PUBLIC_EXCLUDE');
-        // ثلاثة مواضع عامة: القائمة، البحث، صفحة المتجر
-        const uses = src.split('PLACE_PUBLIC_EXCLUDE').length - 1;
+        // الاستبعاد صار PLACE_CLIENT_EXCLUDE (بنكي + أرقام اتصال) بعد حجب رقم المتجر
+        expect(src).toContain('PLACE_CLIENT_EXCLUDE');
+        const uses = src.split('PLACE_CLIENT_EXCLUDE').length - 1;
         expect(uses).toBeGreaterThanOrEqual(4); // 1 استيراد + 3 استخدامات
     });
 
-    it('صفحة المتجر تمرّ بشبكة الأمان stripPlacePrivateFields', () => {
-        expect(src).toContain('stripPlacePrivateFields(place.toJSON())');
+    it('صفحة المتجر تمرّ بشبكة أمان تحذف الحقول المحجوبة', () => {
+        expect(src).toContain('stripPlaceClientFields(place.toJSON())');
     });
 
     it('لا يوجد Place.find بلا select في المسارات العامة', () => {
@@ -78,8 +78,63 @@ describe('المسارات العامة تستبعد البيانات البنك
         // المسموح: أن يكون كل استعلام تالٍ لـ populate مسبوقاً بـ select
         for (const m of bare) {
             const around = src.slice(Math.max(0, m.index - 200), m.index + 200);
-            expect(around).toContain('PLACE_PUBLIC_EXCLUDE');
+            expect(around).toContain('PLACE_CLIENT_EXCLUDE');
         }
+    });
+});
+
+describe('حجب رقم المتجر عن العميل', () => {
+    const {
+        PLACE_CONTACT_FIELDS,
+        PLACE_CLIENT_EXCLUDE,
+        stripPlaceClientFields
+    } = require('../models/Place');
+
+    it('الهاتف والواتساب في قائمة الحجب عن العميل', () => {
+        expect(PLACE_CONTACT_FIELDS).toEqual(['phone', 'whatsapp']);
+        for (const f of PLACE_CONTACT_FIELDS) expect(PLACE_CLIENT_EXCLUDE).toContain(`-${f}`);
+    });
+
+    it('حجب العميل يشمل البيانات البنكية أيضاً — لا يستبدلها', () => {
+        for (const f of PLACE_PRIVATE_FIELDS) expect(PLACE_CLIENT_EXCLUDE).toContain(`-${f}`);
+    });
+
+    it('stripPlaceClientFields يحذف الأرقام ويُبقي ما يحتاجه العرض', () => {
+        const out = stripPlaceClientFields({
+            name: 'مغسلة', address: 'أم درمان', image_url: '/x.jpg', is_open: true,
+            phone: '0961234567', whatsapp: '0961234567',
+            bankAccountNumber: '999', shopWalletBalance: 500
+        });
+        expect(out.phone).toBeUndefined();
+        expect(out.whatsapp).toBeUndefined();
+        expect(out.bankAccountNumber).toBeUndefined();
+        expect(out.name).toBe('مغسلة');
+        expect(out.is_open).toBe(true);
+    });
+
+    it('المسارات العامة تستعمل حجب العميل لا الحجب البنكي وحده', () => {
+        const src = read('routes/places.js');
+        expect(src).toContain('PLACE_CLIENT_EXCLUDE');
+        expect(src).not.toContain('PLACE_PUBLIC_EXCLUDE');
+    });
+
+    it('السيرفر يشتقّ هاتف المتجر للكابتن ولا يقبله من العميل', () => {
+        // لو عاد الاعتماد على ما يرسله العميل، لوصل الكابتن رقماً فارغاً
+        const src = read('routes/orders.js');
+        expect(src).toContain('contactPhone: place.phone');
+        expect(src).toContain('orderData.shopPhone = place.phone');
+    });
+
+    it('التحقق لا يطالب العميل بهاتف الاستلام في طلب المتجر', () => {
+        // وإلا رُفضت كل طلبات المتاجر بـ 400 بعد حجب الرقم
+        const src = read('middleware/validateMiddleware.js');
+        expect(src).toContain("orderType === 'shop'");
+        expect(src).toContain('isShopOrder');
+    });
+
+    it('صفحة المتجر لا تعرض رابط اتصال بالمتجر', () => {
+        const html = read('public_html/shop-detail.html');
+        expect(html).not.toContain('tel:${shopData.phone}');
     });
 });
 

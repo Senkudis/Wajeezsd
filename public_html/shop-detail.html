@@ -501,10 +501,14 @@
             document.getElementById('shopName').textContent = shopData.name;
             document.getElementById('shopAddress').textContent = shopData.address || '';
 
-            // Contact links
-            const contacts = [];
-            if (shopData.phone) contacts.push(`<a href="tel:${shopData.phone}" class="text-white-50 text-decoration-none small"><i class="bi bi-telephone-fill me-1"></i>${shopData.phone}</a>`);
-            document.getElementById('shopContact').innerHTML = contacts.join('');
+            // 📞 رقم المتجر محجوب عن العميل بقرار عمل: الطلب والتواصل داخل التطبيق
+            // فقط، فلا يخرج الطلب من وجيز ويبقى للطرفين سجلٌّ وضمان. السيرفر لم
+            // يعد يُرسل phone/whatsapp في مسارات المتاجر العامة (models/Place.js)،
+            // فحتى لو أُعيد هذا العنصر لن يجد رقماً. الكابتن وحده يرى الرقم عند
+            // استلام الطلب.
+            document.getElementById('shopContact').innerHTML =
+                '<span class="text-white-50 small"><i class="bi bi-shield-check me-1"></i>'
+                + 'التواصل والطلب داخل التطبيق</span>';
 
             // Open/closed — respect isOpenOverride (merchant manual toggle)
             const isActuallyOpen = shopData.isOpenOverride !== false && shopData.is_open !== false;
