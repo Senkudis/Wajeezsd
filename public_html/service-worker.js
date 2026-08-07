@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-ab59990f';
+const CACHE_NAME = 'wajeez-static-b32b0dfb';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -282,9 +282,13 @@ self.addEventListener('notificationclick', (event) => {
         const orderId = data.orderId || data.order;
         targetUrl = orderId ? `/chat.html?orderId=${orderId}&receiverId=${data.senderId || ''}` : '/conversations.html';
     }
-    // 📦 Client → my orders
-    else if (data.type === 'order_accepted' || data.type === 'order_update' || data.type === 'order_delivered') {
+    // 📦 Client → tracking page
+    else if (data.type === 'order_update' || data.type === 'errand_quote') {
         targetUrl = recordId ? `/tracking.html?orderId=${recordId}` : '/client-my-orders.html';
+    }
+    // 📦 Client → my orders
+    else if (data.type === 'order_accepted' || data.type === 'order_delivered' || data.type === 'order_cancelled' || data.type === 'order_expired') {
+        targetUrl = '/client-my-orders.html';
     }
 
     event.waitUntil(
