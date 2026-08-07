@@ -43,7 +43,7 @@ router.put('/captains/:id/adjust-debt', protect, requirePermission('manage_finan
         if (mode !== 'add' && previousBalance >= 0) {
             return res.status(400).json({ message: 'هذا الكابتن ليس لديه مديونية' });
         }
-
+        
         if ((mode === 'partial' || mode === 'add') && (!amount || amount <= 0)) {
             return res.status(400).json({ message: 'يرجى إدخال مبلغ صحيح أكبر من صفر' });
         }
@@ -51,44 +51,44 @@ router.put('/captains/:id/adjust-debt', protect, requirePermission('manage_finan
             return res.status(400).json({ message: 'المبلغ المدخل مبالغ فيه (الحد الأقصى مليون)' });
         }
 
-        let updateQuery = {};
+        let pipelineUpdate = [];
         let adjustedAmount = 0;
-        let expectedNewBalance = 0; // Just for logging
 
         if (mode === 'zero') {
-            updateQuery = { $set: { wallet_balance: 0 } };
+            pipelineUpdate.push({ $set: { wallet_balance: 0 } });
             adjustedAmount = Math.abs(previousBalance);
         } else if (mode === 'partial') {
-            // BUG #9 FIX: Use aggregation pipeline update to atomically cap at 0 in one operation.
-            // The old { $inc, $min } was two separate ops and could overshoot in a race condition.
-            updateQuery = [{ $set: { wallet_balance: { $min: [0, { $add: ['$wallet_balance', amount] }] } } }];
+            pipelineUpdate.push({ $set: { wallet_balance: { $min: [0, { $add: ['$wallet_balance', amount] }] } } });
             adjustedAmount = amount;
         } else { // add
-            updateQuery = { $inc: { wallet_balance: -amount } };
+            pipelineUpdate.push({ $set: { wallet_balance: { $subtract: ['$wallet_balance', amount] } } });
             adjustedAmount = amount;
         }
 
-        // BUG #9 FIX: Aggregation pipeline update is now used for partial mode (atomic cap at 0)
-        let updatedCaptain = await User.findByIdAndUpdate(req.params.id, updateQuery, { new: true });
+        pipelineUpdate.push({
+            $set: {
+                is_blocked: {
+                    $cond: {
+                        if: { $gt: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] },
+                        then: false,
+                        else: {
+                            $cond: {
+                                if: { $lte: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] },
+                                then: true,
+                                else: "$is_blocked"
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
-        // Auto-block/unblock logic (لا تؤثر على الرصيد — آمن من race condition)
-        let changed = false;
-        const creditLimit = updatedCaptain.credit_limit ?? -5000;
-        // Auto-unblock if balance recovered above credit limit
-        if (updatedCaptain.is_blocked && updatedCaptain.wallet_balance > creditLimit) {
-            updatedCaptain.is_blocked = false;
-            changed = true;
+        let updatedCaptain = await User.findByIdAndUpdate(req.params.id, pipelineUpdate, { new: true });
+        // قد يُحذف الكابتن بين findById أعلاه والتحديث هنا — بلا هذا الفحص نحصل
+        // على TypeError و500 مبهم بدل رسالة مفهومة للأدمن
+        if (!updatedCaptain) {
+            return res.status(404).json({ message: 'الكابتن غير موجود — قد يكون حُذف أثناء العملية' });
         }
-        // Auto-block if new debt crosses the credit limit
-        if (!updatedCaptain.is_blocked && updatedCaptain.wallet_balance <= creditLimit) {
-            updatedCaptain.is_blocked = true;
-            changed = true;
-        }
-
-        if (changed) {
-            await updatedCaptain.save();
-        }
-        
         const newBalance = updatedCaptain.wallet_balance;
 
         // 📒 سجّل التعديل في DebtAdjustment للتقارير المالية
@@ -248,10 +248,11 @@ router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_fin
             type:        'commission',
             date:        o.updatedAt,
             city:        o.city || 'Khartoum',
-            amount:      o.appFee || 0,
-            orderPrice:  o.price  || 0,
+            // ✅ BUG FIX: ?? بدل || لأن appFee = 0 قيمة صالحة
+            amount:      o.appFee ?? 0,
+            orderPrice:  o.price  ?? 0,
             captain:     o.captain ? { name: o.captain.name, phone: o.captain.phone } : { name: '—' },
-            note:        `عمولة طلب بقيمة ${o.price || 0} ج.س`,
+            note:        `عمولة طلب بقيمة ${o.price ?? 0} ج.س`,
         }));
 
         // ── 2. Debt adjustments ──
@@ -341,8 +342,6 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         const debt = Math.abs(prevBalance < 0 ? prevBalance : 0); // المديونية = القيمة المطلقة للرصيد السالب
 
         // 📥 Allow admin to override the deducted amount (optional)
-        // If body.deductAmount is provided, use it instead of payReq.amount
-        // This lets admin pay only part of the debt or correct mistakes
         const requestedAmount = req.body.deductAmount !== undefined
             ? Number(req.body.deductAmount)
             : Number(payReq.amount);
@@ -355,9 +354,6 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         const exceedsDebt = requestedAmount > debt;
         const overpayment = exceedsDebt ? (requestedAmount - debt) : 0;
 
-        // If admin didn't confirm overpayment, reject and inform.
-        // ⚠️ يجب أن يسبق المطالبة الذرية أدناه — يرجع قبل أي تغيير حالة، فيمكن للأدمن
-        // إعادة المحاولة مع confirmOverpayment والطلب ما زال pending.
         if (exceedsDebt && !req.body.confirmOverpayment) {
             return res.status(400).json({
                 message: 'overpayment_warning',
@@ -369,8 +365,6 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         }
 
         // 🛡️ CRITICAL: مطالبة ذرية بالطلب قبل تعديل الرصيد — تمنع الموافقة المزدوجة
-        // (نقرتان/أدمنان) من إضافة الرصيد مرتين لدفعة واحدة (تصفير مديونية مضاعف).
-        // كان الفحص السابق status==='pending' غير ذري مع تعديل الرصيد.
         const claimed = await PaymentRequest.findOneAndUpdate(
             { _id: req.params.id, status: 'pending' },
             { $set: { status: 'approved', reviewedBy: req.user._id, reviewedAt: new Date(),
@@ -381,35 +375,53 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
             return res.status(400).json({ message: 'هذا الطلب تمت مراجعته بالفعل' });
         }
 
-        // ✅ Atomic update using $inc (يُنفَّذ مرة واحدة فقط — الفائز بالمطالبة أعلاه)
-        captain = await User.findByIdAndUpdate(
+        // ✅ Atomic update using Aggregation Pipeline
+        // يضمن عدم ضياع أي عمولات تحدث في نفس اللحظة (Race Condition Fix)
+        const updatedCaptainBefore = await User.findByIdAndUpdate(
             payReq.captainId,
-            { $inc: { wallet_balance: requestedAmount } },
-            { new: true }
+            [
+                {
+                    $set: {
+                        wallet_balance: { $min: [0, { $add: ["$wallet_balance", requestedAmount] }] }
+                    }
+                },
+                {
+                    $set: {
+                        is_blocked: {
+                            $cond: {
+                                if: { $gte: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] },
+                                then: false,
+                                else: "$is_blocked"
+                            }
+                        }
+                    }
+                }
+            ],
+            { new: false } // Return BEFORE update to calculate actual deduction
         );
 
-        let changed = false;
-        // ✅ CREDIT CEILING FIX: balance must never exceed 0 (no positive balance allowed)
-        if (captain.wallet_balance > 0) {
-            captain.wallet_balance = 0; // safety cap at 0
-            changed = true;
+        // الكابتن قد يكون حُذف بعد إنشاء طلب الدفع. الطلب صار "approved" ذرياً
+        // أعلاه ولم يُطبَّق أي تغيير رصيد، فنعيده إلى pending كي يستطيع الأدمن
+        // إعادة المحاولة بدل أن يبقى معلّماً كمعتمَد بلا أثر.
+        if (!updatedCaptainBefore) {
+            await PaymentRequest.findByIdAndUpdate(req.params.id, {
+                $set: { status: 'pending' },
+                $unset: { reviewedBy: '', reviewedAt: '' }
+            }).catch(e => logger.error({ err: e }, 'Failed to revert payment request claim'));
+            return res.status(404).json({ message: 'الكابتن غير موجود — لم يُطبَّق أي تعديل على الرصيد' });
         }
 
-        // رفع الحجب فقط إذا الرصيد ضمن الحد الائتماني
-        const creditLimit = captain.credit_limit ?? -5000;
-        if (captain.wallet_balance >= creditLimit && captain.is_blocked) {
-            captain.is_blocked = false;
-            changed = true;
-        }
-        
-        if (changed) {
-            await captain.save();
-        }
-        
-        const newBalance = captain.wallet_balance;
-        const actualDeduction = requestedAmount; // We added this, though it may have been capped
+        // حساب الخصم الفعلي بدقة (لتفادي إشعار الكابتن بمبلغ أكبر من مديونيته)
+        const oldBalance = updatedCaptainBefore.wallet_balance || 0;
+        const newBalance = Math.min(0, oldBalance + requestedAmount);
+        const actualDeduction = newBalance - oldBalance;
 
-        // الطلب حُدِّث ذرياً أعلاه (claimed) — لا حاجة لحفظ ثانٍ.
+        // Update the captain object for the remaining logic
+        captain = await User.findById(payReq.captainId);
+        if (!captain) {
+            return res.status(404).json({ message: 'الكابتن غير موجود' });
+        }
+
 
         // 📡 Real-Time Unblock: notify captain immediately via socket
         const ioInst = req.app.get('io');
