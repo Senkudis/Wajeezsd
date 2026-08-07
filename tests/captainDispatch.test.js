@@ -51,6 +51,44 @@ describe('planDispatch', () => {
         expect(n.sort()).toEqual(['far', 'mid', 'near']);
     });
 
+    // ── حجم الموجة الأولى الافتراضي (بلا nearCount صريح) ──
+    it('افتراضياً: الموجة الأولى بنصف القطر لا بعدد ثابت — البعيدون في الثانية', () => {
+        // 40 كابتناً: 30 داخل ~1كم و10 على مسافات كبيرة
+        const close = Array.from({ length: 30 }, (_, i) => ({
+            fcmToken: 'c' + i,
+            currentLocation: { lat: 15.5007 + i * 0.0002, lng: 32.5599 }
+        }));
+        const distant = Array.from({ length: 10 }, (_, i) => ({
+            fcmToken: 'd' + i,
+            currentLocation: { lat: 15.5007 + 0.3 + i * 0.05, lng: 32.5599 }
+        }));
+        const { near: n, rest } = planDispatch([...distant, ...close], PICKUP);
+        expect(n).toHaveLength(25);              // maxNear يمنع البثّ الشامل
+        expect(rest).toHaveLength(15);           // البقية شبكة أمان بعد 18ث
+        expect(n.every(t => t.startsWith('c'))).toBe(true);
+    });
+
+    it('افتراضياً: منطقة متفرقة — minNear يضمن ألا تكون الموجة الأولى ضئيلة', () => {
+        // كابتن واحد قريب و11 بعيدين ⇒ لولا minNear لكانت الموجة الأولى بواحد فقط
+        const only = { fcmToken: 'close', currentLocation: { lat: 15.5010, lng: 32.5601 } };
+        const distant = Array.from({ length: 11 }, (_, i) => ({
+            fcmToken: 'd' + i,
+            currentLocation: { lat: 15.5007 + 0.3 + i * 0.05, lng: 32.5599 }
+        }));
+        const { near: n, rest } = planDispatch([...distant, only], PICKUP);
+        expect(n).toHaveLength(8);
+        expect(n[0]).toBe('close');
+        expect(rest).toHaveLength(4);
+    });
+
+    it('nearCount الصريح يتجاوز حساب نصف القطر', () => {
+        const many = Array.from({ length: 30 }, (_, i) => ({
+            fcmToken: 't' + i,
+            currentLocation: { lat: 15.5007 + i * 0.0002, lng: 32.5599 }
+        }));
+        expect(planDispatch(many, PICKUP, { nearCount: 3 }).near).toHaveLength(3);
+    });
+
     it('يتجاهل المدخلات بلا توكن ويتحمّل قائمة فارغة', () => {
         expect(planDispatch([{ currentLocation: PICKUP }], PICKUP)).toEqual({ near: [], rest: [] });
         expect(planDispatch([], PICKUP)).toEqual({ near: [], rest: [] });

@@ -9,13 +9,22 @@ const { haversineKm } = require('./geofence');
 
 /**
  * يقسّم الكباتن إلى موجتين حسب القرب من نقطة الاستلام.
+ *
+ * حجم الموجة الأولى يُحسب بنصف القطر لا بعدد ثابت: عدد ثابت كبير (كان 50)
+ * يضع كل الأسطول في الموجة الأولى فيتعطّل نظام الموجتين عملياً، وعدد ثابت صغير
+ * يهمل كباتن قريبين فعلاً حين يكون الحيّ مزدحماً. minNear يضمن ألا تفرغ الموجة
+ * الأولى في منطقة متفرقة، وmaxNear يمنع تحوّلها إلى بثّ شامل.
+ *
  * @param {Array<{fcmToken:string, currentLocation?:{lat:number,lng:number}}>} captains
  * @param {{lat:number,lng:number}} pickup إحداثيات الاستلام
- * @param {object} [opts] { nearCount = 8 }
+ * @param {object} [opts] { nearRadiusKm = 5, minNear = 8, maxNear = 25, nearCount }
+ *                        nearCount يتجاوز الحساب كلّه (عدد ثابت صريح)
  * @returns {{ near: string[], rest: string[] }} توكنات كل موجة
  */
 function planDispatch(captains, pickup, opts = {}) {
-    const nearCount = opts.nearCount || 8;
+    const nearRadiusKm = opts.nearRadiusKm ?? 5;
+    const minNear      = opts.minNear ?? 8;
+    const maxNear      = opts.maxNear ?? 25;
 
     const withDist = (captains || [])
         .filter(c => c && c.fcmToken)
@@ -40,8 +49,19 @@ function planDispatch(captains, pickup, opts = {}) {
     }
 
     const tokens = unique.map(x => x.token);
-    if (tokens.length <= nearCount) return { near: tokens, rest: [] };
-    return { near: tokens.slice(0, nearCount), rest: tokens.slice(nearCount) };
+
+    // عدد صريح ⇒ يُستخدم كما هو. وإلا: من هم داخل نصف القطر، ضمن حدّي min/max.
+    // الكباتن بلا موقع مسافتهم Infinity فلا يدخلون الموجة الأولى إلا عبر minNear.
+    let cut;
+    if (opts.nearCount != null) {
+        cut = opts.nearCount;
+    } else {
+        const withinRadius = unique.filter(x => x.dist <= nearRadiusKm).length;
+        cut = Math.min(maxNear, Math.max(minNear, withinRadius));
+    }
+
+    if (tokens.length <= cut) return { near: tokens, rest: [] };
+    return { near: tokens.slice(0, cut), rest: tokens.slice(cut) };
 }
 
 module.exports = { planDispatch };
