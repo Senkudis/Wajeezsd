@@ -1,0 +1,1327 @@
+/*
+ * ════════════════════════════════════════════════════════════════
+ *  captain-ui.css — نظام تصميم واجهة الكابتن
+ * ════════════════════════════════════════════════════════════════
+ *
+ *  لماذا نظام منفصل عن merchant-ui.css؟
+ *  التاجر يعمل داخل محل، على شاشة ثابتة، بيدين، ووقته متاح.
+ *  الكابتن يعمل تحت الشمس، بيد واحدة، على دراجة، وينظر نظرة خاطفة.
+ *  هذا يفرض قرارات مختلفة جذرياً:
+ *
+ *   1. هدف لمس 56px للإجراءات الأساسية (لا 44) — إصبع متحرّك لا فأرة
+ *   2. أرقام ضخمة (40px+) للمقياس الأهم — تُقرأ بنظرة واحدة
+ *   3. تباين عالٍ: لا رماديات باهتة للنص المهم — الشمس تمحوها
+ *   4. حالة الاتصال أول عنصر بصري — الكابتن يسأل "هل أستقبل طلبات؟" قبل أي شيء
+ *   5. وضع ليلي حقيقي — القيادة ليلاً نصف وقت العمل
+ *
+ *  الاصطلاح: كل الأصناف تبدأ بـ cap- لتفادي 548 قاعدة !important
+ *  في dark-mode.css التي تستهدف أصنافاً عامة مثل .card و.text-muted.
+ *  يجب تحميل هذا الملف بعد dark-mode.css.
+ * ════════════════════════════════════════════════════════════════
+ */
+
+/* ── 1. الرموز (Design Tokens) ─────────────────────────────── */
+:root {
+    /* الهوية */
+    --cap-green: #0A8754;
+    /* أخضر الإجراءات */
+    --cap-green-deep: #04553A;
+    /* أخضر الهوية */
+    --cap-green-bright: #10b981;
+    /* لمسات ومؤشرات */
+    --cap-green-soft: #e7f5ef;
+
+    /* الحالة */
+    --cap-amber: #f59e0b;
+    --cap-amber-soft: #fef3c7;
+    --cap-red: #dc2626;
+    --cap-red-soft: #fee2e2;
+    --cap-blue: #2563eb;
+    --cap-blue-soft: #dbeafe;
+
+    /* النص — تباين مرتفع عمداً لقراءة الشمس */
+    --cap-ink: #0f172a;
+    /* عناوين وأرقام */
+    --cap-ink-2: #334155;
+    /* نص أساسي */
+    --cap-ink-3: #64748b;
+    /* نص ثانوي — أدنى حد مقبول */
+
+    /* الأسطح */
+    --cap-bg: #f1f5f9;
+    --cap-surface: #ffffff;
+    --cap-surface-2: #f8fafc;
+    --cap-line: #e2e8f0;
+
+    /* الأنصاف والظلال */
+    --cap-r-sm: 12px;
+    --cap-r-md: 16px;
+    --cap-r-lg: 22px;
+    --cap-r-xl: 28px;
+    --cap-shadow: 0 2px 10px rgba(15, 23, 42, .06);
+    --cap-shadow-md: 0 6px 20px rgba(15, 23, 42, .09);
+    --cap-shadow-lg: 0 12px 34px rgba(15, 23, 42, .14);
+
+    /* هدف اللمس أثناء الحركة */
+    --cap-tap: 56px;
+    --cap-tap-sm: 48px;
+
+    /* نص فوق الأسطح الملوّنة الخفيفة — يفتَح في الوضع الليلي */
+    --cap-on-green: #047857;
+    --cap-on-amber: #b45309;
+    --cap-on-red: #dc2626;
+    --cap-on-blue: #1d4ed8;
+}
+
+/* 🌙 الوضع الليلي — ليس عكساً للألوان بل لوحة مصمّمة للقيادة ليلاً:
+   خلفية زرقاء داكنة لا سوداء (أقل إجهاداً)، ونص أبيض مائل للرمادي. */
+body.dark-mode {
+    --cap-green-soft: rgba(16, 185, 129, .14);
+    --cap-amber-soft: rgba(245, 158, 11, .16);
+    --cap-red-soft: rgba(220, 38, 38, .16);
+    --cap-blue-soft: rgba(37, 99, 235, .18);
+
+    --cap-ink: #f1f5f9;
+    --cap-ink-2: #cbd5e1;
+    --cap-ink-3: #94a3b8;
+
+    --cap-bg: #0b1220;
+    --cap-surface: #16202e;
+    --cap-surface-2: #1c2838;
+    --cap-line: #2b3a4d;
+
+    --cap-shadow: 0 2px 10px rgba(0, 0, 0, .4);
+    --cap-shadow-md: 0 6px 20px rgba(0, 0, 0, .5);
+    --cap-shadow-lg: 0 12px 34px rgba(0, 0, 0, .6);
+
+    /* الأخضر/الكهرماني الداكنان يختفيان فوق الأسطح الليلية — نفتحهما */
+    --cap-on-green: #34d399;
+    --cap-on-amber: #fbbf24;
+    --cap-on-red: #fca5a5;
+    --cap-on-blue: #93c5fd;
+}
+
+/* ── 2. الأساس ─────────────────────────────────────────────── */
+body.cap-body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--cap-bg) !important;
+    color: var(--cap-ink) !important;
+    /* خلوص لشريط التنقل السفلي + المنطقة الآمنة (يحقنها MainActivity) */
+    padding-bottom: calc(84px + var(--sab, 0px)) !important;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cap-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 0 14px;
+}
+
+.cap-section {
+    margin-top: 18px;
+}
+
+.cap-section-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--cap-ink-3);
+    letter-spacing: .3px;
+    margin: 0 4px 10px;
+}
+
+/* ── 3. الترويسة ───────────────────────────────────────────── */
+.cap-topbar {
+    background: linear-gradient(150deg, var(--cap-green-deep) 0%, #076647 55%, var(--cap-green) 100%);
+    padding: 14px 16px 22px;
+    /* المنطقة الآمنة العلوية — safe-area.js يضيفها أيضاً لكن نبدأ بقاعدة صحيحة */
+    padding-top: calc(14px + var(--sat, 0px));
+    border-radius: 0 0 26px 26px;
+    position: relative;
+    overflow: hidden;
+}
+
+.cap-topbar::after {
+    content: '';
+    position: absolute;
+    top: -70px;
+    inset-inline-start: -50px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .05);
+    pointer-events: none;
+}
+
+.cap-topbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.cap-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.cap-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, .18);
+    border: 2px solid rgba(255, 255, 255, .55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+}
+
+.cap-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cap-hello {
+    min-width: 0;
+}
+
+.cap-hello-name {
+    font-size: 17px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cap-hello-sub {
+    font-size: 12px;
+    color: rgba(255, 255, 255, .72);
+    margin: 0;
+}
+
+/* ── 4. مفتاح الاتصال — أبرز عنصر في الصفحة ───────────────── */
+/* الكابتن يسأل "هل أستقبل طلبات الآن؟" قبل أي سؤال آخر، فالإجابة
+   يجب أن تكون مقروءة من مسافة ذراع بلا تدقيق: لون + نقطة نابضة + نص. */
+.cap-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--cap-tap-sm);
+    padding: 0 18px;
+    border: none;
+    border-radius: 999px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform .12s, box-shadow .2s, background .2s;
+}
+
+.cap-status:active {
+    transform: scale(.96);
+}
+
+.cap-status .cap-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cap-status.is-online {
+    background: #fff;
+    color: #047857;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+}
+
+.cap-status.is-online .cap-dot {
+    background: var(--cap-green-bright);
+    animation: cap-live 1.8s ease-in-out infinite;
+}
+
+.cap-status.is-offline {
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, .4);
+}
+
+.cap-status.is-offline .cap-dot {
+    background: rgba(255, 255, 255, .55);
+}
+
+.cap-status:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+@keyframes cap-live {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, .7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+    }
+}
+
+/* ── 5. المقياس البطل — أرباح الفترة ──────────────────────── */
+/* رقم واحد ضخم بدل ثلاثة أرقام متساوية: الكابتن يريد معرفة كم كسب اليوم،
+   وبقية المؤشرات سياق لا غاية. */
+.cap-hero {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 20px 0 4px;
+}
+
+.cap-hero-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, .75);
+    margin-bottom: 2px;
+}
+
+.cap-hero-value {
+    font-size: 46px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+}
+
+.cap-hero-unit {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, .7);
+    margin-top: 4px;
+}
+
+/* ── 6. مبدّل الفترة ───────────────────────────────────────── */
+.cap-seg {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, .14);
+    border-radius: 14px;
+    padding: 4px;
+    position: relative;
+    z-index: 1;
+    margin-top: 14px;
+}
+
+.cap-seg-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    height: 38px;
+    border-radius: 11px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: rgba(255, 255, 255, .75);
+    cursor: pointer;
+    transition: background .18s, color .18s;
+}
+
+.cap-seg-btn.active {
+    background: #fff;
+    color: var(--cap-green-deep);
+}
+
+/* ── 7. بطاقة عامة ─────────────────────────────────────────── */
+.cap-card {
+    background: var(--cap-surface);
+    border: 1px solid var(--cap-line);
+    border-radius: var(--cap-r-lg);
+    box-shadow: var(--cap-shadow);
+    padding: 16px;
+}
+
+.cap-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.cap-card-title {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: var(--cap-ink);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.cap-card-title i {
+    color: var(--cap-green);
+}
+
+/* ── 8. مؤشرات ثانوية (شبكة ثلاثية) ───────────────────────── */
+.cap-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.cap-metric {
+    background: var(--cap-surface);
+    border: 1px solid var(--cap-line);
+    border-radius: var(--cap-r-md);
+    box-shadow: var(--cap-shadow);
+    padding: 14px 8px;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+}
+
+.cap-metric i {
+    font-size: 19px;
+    color: var(--cap-ink-3);
+}
+
+.cap-metric-val {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--cap-ink);
+    line-height: 1.25;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+}
+
+.cap-metric-lbl {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--cap-ink-3);
+}
+
+.cap-metric.tone-amber i {
+    color: var(--cap-amber);
+}
+
+.cap-metric.tone-green i {
+    color: var(--cap-green);
+}
+
+.cap-metric.tone-red .cap-metric-val {
+    color: var(--cap-red);
+}
+
+/* ── 9. الرسم البياني (أصناف ec-* يولّدها JS — لا تُعاد تسميتها) ── */
+.cap-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6px;
+    height: 126px;
+}
+
+.cap-chart .ec-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+}
+
+.cap-chart .ec-bar-wrap {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.cap-chart .ec-bar {
+    width: 100%;
+    min-height: 3px;
+    border-radius: 7px 7px 3px 3px;
+    background: linear-gradient(180deg, var(--cap-green-bright), var(--cap-green));
+    transition: height .45s cubic-bezier(.22, .68, 0, 1);
+}
+
+.cap-chart .ec-bar.today {
+    background: linear-gradient(180deg, #fbbf24, var(--cap-amber));
+}
+
+.cap-chart .ec-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cap-ink-3);
+    white-space: nowrap;
+}
+
+.cap-chart .ec-label.today {
+    color: var(--cap-amber);
+}
+
+/* ── 10. بطاقة المحفظة ─────────────────────────────────────── */
+.cap-wallet {
+    background: linear-gradient(140deg, #12283f 0%, #16324e 55%, #0f3f63 100%);
+    border-radius: var(--cap-r-lg);
+    padding: 18px 20px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--cap-shadow-md);
+}
+
+.cap-wallet::before {
+    content: '';
+    position: absolute;
+    inset-block-start: -40px;
+    inset-inline-end: -30px;
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .04);
+    pointer-events: none;
+}
+
+.cap-wallet-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.cap-wallet-lbl {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, .6);
+    margin-bottom: 3px;
+}
+
+.cap-wallet-bal {
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: -.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.cap-wallet-limit {
+    font-size: 16px;
+    font-weight: 800;
+    color: #fca5a5;
+    font-variant-numeric: tabular-nums;
+}
+
+.cap-meter {
+    height: 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .13);
+    overflow: hidden;
+}
+
+.cap-meter-fill {
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e, #f59e0b 62%, #ef4444);
+    transition: width .8s cubic-bezier(.22, .68, 0, 1);
+}
+
+.cap-wallet-note {
+    font-size: 11px;
+    color: rgba(255, 255, 255, .45);
+    line-height: 1.6;
+}
+
+.cap-skeleton {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 84px;
+}
+
+.cap-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, .25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: cap-spin .8s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes cap-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── 11. الأزرار ───────────────────────────────────────────── */
+.cap-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: var(--cap-tap);
+    padding: 0 20px;
+    border: none;
+    border-radius: 999px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 15.5px;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform .12s, opacity .2s, background .2s;
+}
+
+.cap-btn:active {
+    transform: scale(.975);
+}
+
+.cap-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.cap-btn-primary {
+    background: linear-gradient(135deg, var(--cap-green), var(--cap-green-deep));
+    color: #fff;
+    box-shadow: 0 5px 18px rgba(10, 135, 84, .32);
+}
+
+.cap-btn-ghost {
+    background: transparent;
+    color: var(--cap-ink-3);
+    border: 1.5px solid var(--cap-line);
+}
+
+.cap-btn-light {
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, .32);
+}
+
+.cap-btn-sm {
+    min-height: var(--cap-tap-sm);
+    font-size: 14px;
+}
+
+/* ── 12. صفوف الإجراءات ────────────────────────────────────── */
+/* صف بارتفاع 72px بدل بطاقة قائمة: مساحة إصبع سخية، وشارة عدّ
+   على اليسار تخبر الكابتن بوجود عمل بانتظاره قبل أن يفتح الصفحة. */
+.cap-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cap-action {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 72px;
+    padding: 12px 16px;
+    background: var(--cap-surface);
+    border: 1px solid var(--cap-line);
+    border-radius: var(--cap-r-md);
+    box-shadow: var(--cap-shadow);
+    text-decoration: none;
+    transition: transform .12s, box-shadow .2s;
+}
+
+.cap-action:active {
+    transform: scale(.985);
+    box-shadow: var(--cap-shadow-md);
+}
+
+.cap-action-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    flex-shrink: 0;
+}
+
+.cap-action-icon.tone-green {
+    background: var(--cap-green-soft);
+    color: var(--cap-on-green);
+}
+
+.cap-action-icon.tone-amber {
+    background: var(--cap-amber-soft);
+    color: var(--cap-on-amber);
+}
+
+.cap-action-icon.tone-blue {
+    background: var(--cap-blue-soft);
+    color: var(--cap-on-blue);
+}
+
+.cap-action-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.cap-action-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--cap-ink);
+    margin: 0 0 2px;
+}
+
+.cap-action-sub {
+    font-size: 12px;
+    color: var(--cap-ink-3);
+    margin: 0;
+}
+
+.cap-action-arrow {
+    color: var(--cap-ink-3);
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.cap-count {
+    min-width: 26px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--cap-red);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 900;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cap-count.show {
+    display: inline-flex;
+}
+
+/* ── 13. الشارات ───────────────────────────────────────────── */
+.cap-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.7;
+}
+
+.cap-pill.green {
+    background: var(--cap-green-soft);
+    color: #047857;
+}
+
+.cap-pill.amber {
+    background: var(--cap-amber-soft);
+    color: #b45309;
+}
+
+.cap-pill.red {
+    background: var(--cap-red-soft);
+    color: var(--cap-red);
+}
+
+.cap-pill.grey {
+    background: rgba(100, 116, 139, .14);
+    color: var(--cap-ink-3);
+}
+
+/* ── 14. شريط التنقل السفلي ────────────────────────────────── */
+/* مع نصوص: الأيقونات وحدها تُجبر الكابتن على التخمين، وهو مشغول. */
+.captain-nav {
+    position: fixed;
+    bottom: 0;
+    inset-inline: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    background: var(--cap-surface);
+    border-top: 1px solid var(--cap-line);
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, .08);
+    padding-bottom: var(--sab, 0px);
+}
+
+.captain-nav a {
+    flex: 1;
+    min-height: 62px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-decoration: none;
+    color: var(--cap-ink-3);
+    font-size: 10.5px;
+    font-weight: 700;
+    position: relative;
+    transition: color .18s;
+}
+
+.captain-nav a i {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.captain-nav a.active {
+    color: var(--cap-green);
+}
+
+.captain-nav a.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 30px;
+    height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: var(--cap-green);
+}
+
+.captain-nav .cap-nav-badge {
+    position: absolute;
+    top: 8px;
+    inset-inline-end: 22%;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--cap-red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.captain-nav .cap-nav-badge.show {
+    display: inline-flex;
+}
+
+/* ── 15. زر النجدة ─────────────────────────────────────────── */
+/* فوق شريط التنقل، على اليسار كي لا يزاحم إبهام اليد اليمنى
+   أزرار التنقل — النجدة تُضغط عمداً لا بالخطأ. */
+.cap-sos {
+    position: fixed;
+    bottom: calc(78px + var(--sab, 0px));
+    inset-inline-start: 16px;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: #fff;
+    border: 3px solid var(--cap-surface);
+    font-size: 12px;
+    font-weight: 900;
+    font-family: 'Cairo', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    box-shadow: 0 6px 22px rgba(239, 68, 68, .45);
+    cursor: pointer;
+    z-index: 1001;
+    transition: transform .12s, background .2s;
+}
+
+.cap-sos i {
+    font-size: 19px;
+    line-height: 1;
+}
+
+.cap-sos:active {
+    transform: scale(.93);
+}
+
+.cap-sos:disabled {
+    opacity: .7;
+}
+
+.cap-sos.is-sent {
+    background: linear-gradient(135deg, #22c55e, #15803d);
+    box-shadow: 0 6px 22px rgba(34, 197, 94, .45);
+}
+
+/* ── 16. شريط التحذير ──────────────────────────────────────── */
+.cap-banner {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+    color: #fff;
+    text-align: center;
+    padding: 12px 18px;
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.55;
+    box-shadow: 0 3px 12px rgba(245, 158, 11, .35);
+}
+
+.cap-banner.show {
+    display: block;
+}
+
+/* ── 17. طبقة الإيقاف ──────────────────────────────────────── */
+.cap-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: linear-gradient(165deg, #200404 0%, #6b1111 100%);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+    color: #fff;
+}
+
+.cap-overlay.show {
+    display: flex;
+}
+
+.cap-overlay-icon {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .08);
+    border: 2px solid rgba(255, 120, 120, .35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    color: #ff8080;
+    margin-bottom: 22px;
+    animation: cap-throb 1.8s ease-in-out infinite;
+}
+
+@keyframes cap-throb {
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 60, 60, .35);
+    }
+
+    60% {
+        transform: scale(1.06);
+        box-shadow: 0 0 0 18px rgba(255, 60, 60, 0);
+    }
+}
+
+.cap-overlay h2 {
+    font-size: 24px;
+    font-weight: 900;
+    margin-bottom: 12px;
+}
+
+.cap-overlay p {
+    font-size: 14.5px;
+    color: #ffc4c4;
+    line-height: 1.85;
+    max-width: 340px;
+    margin-bottom: 24px;
+}
+
+.cap-overlay-bal {
+    background: rgba(255, 255, 255, .09);
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: var(--cap-r-md);
+    padding: 14px 32px;
+    margin-bottom: 26px;
+}
+
+.cap-overlay-bal-lbl {
+    font-size: 12px;
+    color: #ffbbbb;
+    margin-bottom: 3px;
+}
+
+.cap-overlay-bal-val {
+    font-size: 30px;
+    font-weight: 900;
+    color: #ff7b7b;
+    font-variant-numeric: tabular-nums;
+}
+
+.cap-overlay-actions {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cap-overlay .cap-btn-primary {
+    background: #fff;
+    color: #b91c1c;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, .3);
+}
+
+.cap-overlay .cap-btn-ghost {
+    color: rgba(255, 255, 255, .75);
+    border-color: rgba(255, 255, 255, .3);
+}
+
+/* ── 18. الورقة السفلية (نموذج السداد) ─────────────────────── */
+.cap-sheet-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(15, 23, 42, .62);
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.cap-sheet-backdrop.show {
+    display: flex;
+}
+
+.cap-sheet {
+    background: var(--cap-surface);
+    color: var(--cap-ink);
+    border-radius: var(--cap-r-xl) var(--cap-r-xl) 0 0;
+    padding: 22px 20px calc(28px + var(--sab, 0px));
+    width: 100%;
+    max-width: 520px;
+    max-height: 92vh;
+    overflow-y: auto;
+    animation: cap-rise .34s cubic-bezier(.22, .68, 0, 1.15);
+}
+
+@keyframes cap-rise {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.cap-sheet-grip {
+    width: 42px;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--cap-line);
+    margin: 0 auto 18px;
+}
+
+.cap-sheet-title {
+    font-size: 19px;
+    font-weight: 900;
+    text-align: center;
+    color: var(--cap-ink);
+    margin-bottom: 4px;
+}
+
+.cap-sheet-sub {
+    font-size: 12.5px;
+    color: var(--cap-ink-3);
+    text-align: center;
+    margin-bottom: 18px;
+    line-height: 1.7;
+}
+
+/* بيانات البنك */
+.cap-bank {
+    background: var(--cap-blue-soft);
+    border: 1.5px solid rgba(37, 99, 235, .22);
+    border-radius: var(--cap-r-md);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+}
+
+.cap-bank-head {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--cap-blue);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cap-bank-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.cap-bank-k {
+    font-size: 12px;
+    color: var(--cap-ink-3);
+    white-space: nowrap;
+    min-width: 74px;
+}
+
+.cap-bank-v {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--cap-ink);
+}
+
+.cap-bank-num {
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    font-family: monospace;
+    color: var(--cap-ink);
+}
+
+.cap-copy {
+    background: var(--cap-blue);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Cairo', sans-serif;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* الحقول */
+.cap-field {
+    margin-bottom: 15px;
+}
+
+.cap-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cap-ink-2);
+    margin-bottom: 6px;
+}
+
+.cap-input {
+    width: 100%;
+    min-height: var(--cap-tap-sm);
+    padding: 12px 15px;
+    border: 2px solid var(--cap-line);
+    border-radius: var(--cap-r-sm);
+    background: var(--cap-surface-2);
+    color: var(--cap-ink);
+    /* 16px إلزامي: أصغر منه يجعل iOS يكبّر الصفحة تلقائياً عند التركيز */
+    font-size: 16px;
+    font-family: 'Cairo', sans-serif;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color .2s;
+}
+
+.cap-input:focus {
+    border-color: var(--cap-green);
+}
+
+.cap-drop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: var(--cap-tap);
+    border: 2px dashed var(--cap-line);
+    border-radius: var(--cap-r-sm);
+    color: var(--cap-ink-3);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+}
+
+.cap-drop:active {
+    border-color: var(--cap-green);
+    color: var(--cap-green);
+}
+
+.cap-error {
+    display: none;
+    background: var(--cap-red-soft);
+    border: 1px solid rgba(220, 38, 38, .28);
+    border-radius: var(--cap-r-sm);
+    padding: 11px 14px;
+    color: var(--cap-red);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+.cap-error.show {
+    display: block;
+}
+
+/* ── 19. تحصين ضدّ dark-mode.css ───────────────────────────── */
+/*
+ * dark-mode.css يلوّن كل p / span / label / div / a بمحدِّدية (0,1,1):
+ *     body.dark-mode p, body.dark-mode span, body.dark-mode div, ... { color: var(--text-dark) }
+ * وهي تغلب محدِّدية أصنافنا المفردة (0,1,0)، فينهار تدرّج النص كلّه إلى
+ * أبيض واحد ويضيع الفرق بين العنوان والوصف وبين التبويب النشط والخامل.
+ *
+ * الحل: إعادة التأكيد بمحدِّدية (0,2,0) عبر بادئة .cap-body — والرموز هي
+ * التي تبدّل بين الفاتح والداكن، فلا تتكرّر الألوان هنا مرتين.
+ */
+.cap-body .cap-section-title,
+.cap-body .cap-metric-lbl,
+.cap-body .cap-metric-lbl span,
+.cap-body .cap-action-sub,
+.cap-body .cap-action-arrow,
+.cap-body .cap-bank-k,
+.cap-body .cap-sheet-sub,
+.cap-body .cap-drop {
+    color: var(--cap-ink-3);
+}
+
+.cap-body .cap-metric-val,
+.cap-body .cap-action-title,
+.cap-body .cap-card-title,
+.cap-body .cap-sheet-title,
+.cap-body .cap-bank-v,
+.cap-body .cap-bank-num {
+    color: var(--cap-ink);
+}
+
+.cap-body .cap-label {
+    color: var(--cap-ink-2);
+}
+
+.cap-body .cap-card-title i {
+    color: var(--cap-on-green);
+}
+
+/* التنقّل السفلي — التمييز بين النشط والخامل هو كامل فائدة الشريط.
+   !important ضروري هنا وحده: قاعدة dark-mode.css للروابط
+   `body.dark-mode a:not(.btn):not(.nav-item-link):not(.contact-btn)`
+   محدِّديتها (0,4,2) — أعلى من أي تسلسل أصناف معقول، ولوّنت النشط
+   والخامل باللون نفسه فاختفى مؤشّر الصفحة الحالية. */
+.cap-body .captain-nav a {
+    color: var(--cap-ink-3) !important;
+}
+
+.cap-body .captain-nav a.active {
+    color: var(--cap-on-green) !important;
+}
+
+/* الشارات الملوّنة */
+.cap-body .cap-pill.green {
+    color: var(--cap-on-green);
+}
+
+.cap-body .cap-pill.amber {
+    color: var(--cap-on-amber);
+}
+
+.cap-body .cap-pill.red {
+    color: var(--cap-on-red);
+}
+
+.cap-body .cap-pill.grey {
+    color: var(--cap-ink-3);
+}
+
+.cap-body .cap-metric.tone-red .cap-metric-val {
+    color: var(--cap-on-red);
+}
+
+/* الأسطح الملوّنة: النص أبيض دائماً ولا يتبع الرموز */
+.cap-body .cap-hello-name,
+.cap-body .cap-hero-value,
+.cap-body .cap-wallet-bal,
+.cap-body .cap-count {
+    color: #fff;
+}
+
+.cap-body .cap-hello-sub,
+.cap-body .cap-hero-label {
+    color: rgba(255, 255, 255, .72);
+}
+
+.cap-body .cap-hero-unit,
+.cap-body .cap-wallet-lbl {
+    color: rgba(255, 255, 255, .62);
+}
+
+.cap-body .cap-wallet-note {
+    color: rgba(255, 255, 255, .45);
+}
+
+.cap-body .cap-wallet-limit {
+    color: #fca5a5;
+}
+
+.cap-body .cap-overlay p {
+    color: #ffc4c4;
+}
+
+.cap-body .cap-overlay-bal-lbl {
+    color: #ffbbbb;
+}
+
+.cap-body .cap-overlay-bal-val {
+    color: #ff7b7b;
+}
+
+/* ── 20. تقليل الحركة ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+
+    .cap-status .cap-dot,
+    .cap-overlay-icon,
+    .cap-spinner {
+        animation: none !important;
+    }
+
+    .cap-chart .ec-bar,
+    .cap-meter-fill,
+    .cap-sheet {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* ── 21. شاشات صغيرة جداً ──────────────────────────────────── */
+@media (max-width: 360px) {
+    .cap-hero-value {
+        font-size: 38px;
+    }
+
+    .cap-metric-val {
+        font-size: 19px;
+    }
+
+    .cap-status {
+        padding: 0 13px;
+        font-size: 13px;
+    }
+}

@@ -67,9 +67,26 @@ router.get('/stats', protect, captainOnly, async (req, res) => {
             { earnings: 0, count: 0 }
         );
 
+        // 🔢 عدّادا شارات اللوحة: كم طلباً متاحاً وكم مهمة جارية.
+        // يُحسبان هنا لا بطلبين إضافيين من الواجهة — countDocuments يستفيد من
+        // الفهرسين القائمين (city+status) و(city+captain+status) فالتكلفة ضئيلة.
+        // الكابتن المحجوب لا يرى الطلبات المتاحة أصلاً (GET /api/orders يردّ 403)
+        // فنُصفّر العدّاد بدل إظهار شارة تقود إلى صفحة محجوبة.
+        const [availableCount, activeMissions] = await Promise.all([
+            req.user.is_blocked
+                ? 0
+                : Order.countDocuments({ status: 'pending', city: req.user.city }),
+            Order.countDocuments({
+                captain: req.user._id,
+                status: { $in: ['accepted', 'picked_up'] }
+            })
+        ]);
+
         res.json({
             completedCount,
             earnings,
+            availableCount,
+            activeMissions,
             today: { earnings: today.earnings, count: today.count },
             week:  { earnings: week.earnings,  count: week.count },
             daily7, // [{ date:'YYYY-MM-DD', earnings, count }] أقدم→أحدث للرسم البياني
@@ -358,9 +375,9 @@ router.get('/trips', protect, captainOnly, async (req, res) => {
         const tripsWithProfit = orders.map(order => {
             const orderObj = order.toObject();
             // ✅ FIX #5: استخدام appFee و netRevenue المحفوظتين وقت إنشاء الطلب
-            // عدم إعادة الحساب بنسبة جديدة قد تختلف عن النسبة المطبقة وقت التوصيلة
-            const storedFee = orderObj.appFee || (orderObj.price * commissionRate);
-            const storedNet = orderObj.netRevenue || (orderObj.price - storedFee);
+            // ✅ BUG FIX: ?? بدل || لأن appFee/netRevenue = 0 قيم صالحة (لا يجب إعادة الحساب)
+            const storedFee = orderObj.appFee ?? (orderObj.price * commissionRate);
+            const storedNet = orderObj.netRevenue ?? (orderObj.price - storedFee);
             return {
                 ...orderObj,
                 commission: Math.round(storedFee),
@@ -639,7 +656,9 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
                 _id:    d._id,
                 type:   'commission_deducted',
                 label:  '🏍️ توصيلة مكتملة',
-                amount: d.appFee || 0,
+                // ✅ BUG FIX: استخدام ?? بدل || لأن appFee = 0 قيمة صالحة (عمولة صفر)
+                // || كان يتعامل مع 0 كـ falsy ويعرض 0 حتى لو كانت القيمة مقصودة
+                amount: d.appFee ?? 0,
                 note:   d.pickup?.address || '',
                 date:   d.createdAt
             }))

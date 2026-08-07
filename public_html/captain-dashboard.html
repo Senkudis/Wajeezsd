@@ -7,6 +7,13 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>لوحة الكابتن | وجيز</title>
 
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://maps.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://maps.googleapis.com">
+
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#04553A">
@@ -23,477 +30,301 @@
     <link rel="stylesheet" href="style.css?v=3.4">
 
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <!-- نظام تصميم الكابتن — بعد dark-mode.css عمداً كي تفوز قواعده الليلية -->
+    <link rel="stylesheet" href="css/captain-ui.css?v=bfe4aff0">
     <script src="js/config.js?v=b84e6b6a"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="vendor/image-compression/browser-image-compression.js"></script>
     <!-- ✅ Socket.io يجب تحميله مبكراً قبل DOMContentLoaded -->
     <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
-<body class="bg-light">
+<body class="cap-body">
 
-    <!-- ============================================================
-         ⛔ BLOCKED OVERLAY — يظهر فقط عندما is_blocked = true
-         z-index: 99999 — يغطي كل شيء
-    ============================================================ -->
-    <div id="blockedOverlay" style="
-        display: none;
-        position: fixed; inset: 0;
-        background: linear-gradient(160deg, #1a0000 0%, #6b0000 100%);
-        z-index: 99999;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 30px;
-        text-align: center;
-        color: white;
-    ">
-        <div style="font-size: 80px; margin-bottom: 20px; animation: pulse-red 1.5s infinite;">&#128274;</div>
-        <h2 style="font-size: 26px; font-weight: 900; margin-bottom: 15px; font-family: 'Cairo';">&#9940; تم إيقاف حسابك
-        </h2>
-        <p
-            style="font-size: 15px; color: #ffbbbb; line-height: 1.8; max-width: 340px; margin-bottom: 30px; font-family: 'Cairo';">
-            تم إيقاف حسابك لتجاوز الحد الائتماني المسموح به.<br>
-            الرجاء سداد المديونية عبر تطبيق بنكك لتفعيل الحساب.
-        </p>
-        <div id="blockedBalance"
-            style="background: rgba(255,255,255,0.1); border-radius: 15px; padding: 15px 30px; margin-bottom: 30px; font-family: 'Cairo';">
-            <div style="font-size: 13px; color: #ffbbbb; margin-bottom: 4px;">الرصيد الحالي</div>
-            <div id="blockedBalanceVal" style="font-size: 30px; font-weight: 900; color: #ff6b6b;">0 ج.س</div>
-        </div>
-        <button id="paymentConfirmBtn" onclick="openPaymentModal()" style="
-            background: white; color: #c0392b;
-            border: none; border-radius: 50px;
-            padding: 14px 40px; font-size: 16px;
-            font-weight: 700; font-family: 'Cairo';
-            cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-            margin-bottom: 12px; width: 100%; max-width: 300px;
-        ">&#9989; تأكيد السداد</button>
-        <button onclick="refreshBlockStatus()" style="
-            background: transparent; color: rgba(255,255,255,0.6);
-            border: 1px solid rgba(255,255,255,0.3); border-radius: 50px;
-            padding: 10px 30px; font-size: 14px;
-            font-family: 'Cairo'; cursor: pointer;
-            width: 100%; max-width: 300px;
-        ">&#128260; تحديث الحالة</button>
-    </div>
     <style>
-        @keyframes pulse-red {
-
-            0%,
-            100% {
-                transform: scale(1);
-                filter: drop-shadow(0 0 0px #ff0000);
-            }
-
-            50% {
-                transform: scale(1.08);
-                filter: drop-shadow(0 0 20px #ff0000);
-            }
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes slideUp {
-
-            from {
-                transform: translateY(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .pay-input {
-            width: 100%;
-            padding: 13px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 15px;
-            font-family: 'Cairo', sans-serif;
-            outline: none;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-            direction: rtl;
-        }
-
-        .pay-input:focus {
-            border-color: #04553A;
-        }
-
-        .pay-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 6px;
-            font-family: 'Cairo';
+        /* --primary تستخدمه نوافذ SweetAlert في هذه الصفحة (confirmButtonColor) */
+        :root {
+            --primary: #0A8754;
+            --accent: #f59e0b;
         }
     </style>
 
     <!-- ============================================================
-         💳 PAYMENT PROOF MODAL
+         طبقة الإيقاف — تظهر فقط عندما is_blocked = true
     ============================================================ -->
-    <div id="paymentModal" style="
-        display: none;
-        position: fixed; inset: 0;
-        background: rgba(0,0,0,0.6);
-        z-index: 999999;
-        align-items: flex-end;
-        justify-content: center;
-    ">
-        <div style="
-            background: white;
-            border-radius: 28px 28px 0 0;
-            padding: 28px 24px 40px;
-            width: 100%; max-width: 480px;
-            animation: slideUp 0.35s cubic-bezier(.22,.68,0,1.2);
-            font-family: 'Cairo', sans-serif;
-        ">
-            <!-- Handle bar -->
-            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px;"></div>
+    <div id="blockedOverlay" class="cap-overlay">
+        <div class="cap-overlay-icon"><i class="bi bi-lock-fill"></i></div>
+        <h2>تم إيقاف حسابك</h2>
+        <p>
+            تجاوزت الحد الائتماني المسموح به.<br>
+            سدّد المديونية عبر تطبيق بنكك لإعادة تفعيل الحساب.
+        </p>
+        <div class="cap-overlay-bal">
+            <div class="cap-overlay-bal-lbl">الرصيد الحالي</div>
+            <div id="blockedBalanceVal" class="cap-overlay-bal-val">0 ج.س</div>
+        </div>
+        <div class="cap-overlay-actions">
+            <button id="paymentConfirmBtn" class="cap-btn cap-btn-primary" onclick="openPaymentModal()">
+                <i class="bi bi-check2-circle"></i> تأكيد السداد
+            </button>
+            <button class="cap-btn cap-btn-ghost cap-btn-sm" onclick="refreshBlockStatus()">
+                <i class="bi bi-arrow-clockwise"></i> تحديث الحالة
+            </button>
+        </div>
+    </div>
 
-            <h3 style="font-size:20px;font-weight:900;text-align:center;color:#1a1a2e;margin-bottom:6px;">&#128179;
-                إشعار سداد المديونية</h3>
-            <p style="font-size:13px;color:#888;text-align:center;margin-bottom:16px;">
-                حوّل المبلغ لحساب التطبيق أدناه ثم أدخل تفاصيل الإشعار
-            </p>
+    <!-- ============================================================
+         ورقة سداد المديونية
+    ============================================================ -->
+    <div id="paymentModal" class="cap-sheet-backdrop">
+        <div class="cap-sheet">
+            <div class="cap-sheet-grip"></div>
 
-            <!-- ✅ Bank Details Info Box -->
-            <div style="
-                background:linear-gradient(135deg,#e8f4fd,#d6eaf8);
-                border:1.5px solid #aed6f1;border-radius:16px;
-                padding:16px 18px;margin-bottom:20px;direction:rtl;
-            ">
-                <div
-                    style="font-size:12px;font-weight:800;color:#2e86c1;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-                    &#127981; بيانات الحساب البنكي للتحويل
+            <h3 class="cap-sheet-title">إشعار سداد المديونية</h3>
+            <p class="cap-sheet-sub">حوّل المبلغ لحساب التطبيق أدناه ثم أدخل تفاصيل الإشعار</p>
+
+            <div class="cap-bank">
+                <div class="cap-bank-head">
+                    <i class="bi bi-bank2"></i> بيانات الحساب البنكي للتحويل
                 </div>
-                <table style="width:100%;border-collapse:collapse;font-family:'Cairo';">
-                    <tr>
-                        <td style="font-size:12px;color:#5d6d7e;padding:4px 0;white-space:nowrap;">اسم البنك:</td>
-                        <td id="captainBankName" style="font-size:13px;font-weight:700;color:#1a252f;padding:4px 8px;">
-                            بنك الخرطوم</td>
-                    </tr>
-                    <tr>
-                        <td style="font-size:12px;color:#5d6d7e;padding:4px 0;white-space:nowrap;">اسم الحساب:</td>
-                        <td id="captainBankAccountName"
-                            style="font-size:13px;font-weight:700;color:#1a252f;padding:4px 8px;">إدارة تطبيق وجيز
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="font-size:12px;color:#5d6d7e;padding:6px 0 0;white-space:nowrap;">رقم الحساب:</td>
-                        <td style="padding:6px 8px 0;">
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span id="bankAccNum"
-                                    style="font-size:16px;font-weight:900;color:#154360;letter-spacing:2px;font-family:monospace;">7702038</span>
-                                <button onclick="copyAccountNumber()" id="copyAccBtn" style="
-                                    background:#2e86c1;color:white;border:none;border-radius:8px;
-                                    padding:4px 12px;font-size:12px;cursor:pointer;font-family:'Cairo';
-                                    display:inline-flex;align-items:center;gap:4px;
-                                    transition:background 0.2s;
-                                ">&#128203; نسخ</button>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+                <div class="cap-bank-row">
+                    <span class="cap-bank-k">اسم البنك</span>
+                    <span id="captainBankName" class="cap-bank-v">بنك الخرطوم</span>
+                </div>
+                <div class="cap-bank-row">
+                    <span class="cap-bank-k">اسم الحساب</span>
+                    <span id="captainBankAccountName" class="cap-bank-v">إدارة تطبيق وجيز</span>
+                </div>
+                <div class="cap-bank-row" style="margin-bottom:0;">
+                    <span class="cap-bank-k">رقم الحساب</span>
+                    <span id="bankAccNum" class="cap-bank-num">7702038</span>
+                    <button onclick="copyAccountNumber()" id="copyAccBtn" class="cap-copy">
+                        <i class="bi bi-clipboard"></i> نسخ
+                    </button>
+                </div>
             </div>
 
-            <!-- Amount -->
-
-            <div style="margin-bottom:16px;">
-                <label class="pay-label">المبلغ المحوّل (ج.س) *</label>
-                <input id="payAmount" type="number" min="1" placeholder="مثال: 2000" class="pay-input">
+            <div class="cap-field">
+                <label class="cap-label" for="payAmount">المبلغ المحوّل (ج.س) *</label>
+                <input id="payAmount" type="number" inputmode="numeric" min="1" placeholder="مثال: 2000"
+                    class="cap-input">
             </div>
 
-            <!-- Transaction ID -->
-            <div style="margin-bottom:16px;">
-                <label class="pay-label">رقم العملية *</label>
-                <input id="payTransactionId" type="text" placeholder="مثال: XXXX" class="pay-input">
+            <div class="cap-field">
+                <label class="cap-label" for="payTransactionId">رقم العملية *</label>
+                <input id="payTransactionId" type="text" placeholder="مثال: XXXX" class="cap-input">
             </div>
 
-            <!-- Receipt Image -->
-            <div style="margin-bottom:24px;">
-                <label class="pay-label">صورة الإشعار</label>
+            <div class="cap-field">
+                <label class="cap-label">صورة الإشعار</label>
                 <div id="receiptPreviewWrap" style="display:none;margin-bottom:10px;text-align:center;">
-                    <img id="receiptPreview" src="" style="max-height:120px;border-radius:10px;border:1px solid #eee;">
+                    <img id="receiptPreview" src="" alt="معاينة الإشعار"
+                        style="max-height:130px;border-radius:12px;border:1px solid var(--cap-line);">
                 </div>
-                <label for="payReceipt" style="
-                    display:flex;align-items:center;justify-content:center;gap:8px;
-                    border:2px dashed #ccc;border-radius:12px;padding:14px;
-                    cursor:pointer;color:#888;font-size:14px;
-                    transition: border-color 0.2s;
-                " onmouseover="this.style.borderColor='#04553A'" onmouseout="this.style.borderColor='#ccc'">
-                    &#128247; اضغط لاختيار صورة الإشعار
+                <label for="payReceipt" class="cap-drop">
+                    <i class="bi bi-camera-fill"></i> اضغط لاختيار صورة الإشعار
                 </label>
                 <input id="payReceipt" type="file" accept="image/*" style="display:none"
                     onchange="previewReceipt(this)">
             </div>
 
-            <!-- Error msg -->
-            <div id="payError" style="display:none;background:#fff0f0;border:1px solid #ffcdd2;border-radius:10px;
-                padding:10px 14px;color:#c0392b;font-size:13px;margin-bottom:16px;text-align:center;"></div>
+            <div id="payError" class="cap-error"></div>
 
-            <!-- Buttons -->
-            <button id="paySubmitBtn" onclick="submitPayment()" style="
-                width:100%;padding:15px;background:linear-gradient(135deg,#04553A,#0A6E47);
-                color:white;border:none;border-radius:50px;font-size:16px;
-                font-weight:700;font-family:'Cairo';cursor:pointer;
-                box-shadow:0 5px 20px rgba(10,135,84,0.35);
-                margin-bottom:12px;transition:opacity 0.2s;
-            ">&#128228; إرسال إشعار السداد</button>
-
-            <button onclick="closePaymentModal()" style="
-                width:100%;padding:13px;background:transparent;
-                color:#888;border:1px solid #e0e0e0;border-radius:50px;
-                font-size:14px;font-family:'Cairo';cursor:pointer;
-            ">إلغاء</button>
+            <button id="paySubmitBtn" onclick="submitPayment()" class="cap-btn cap-btn-primary"
+                style="margin-bottom:10px;">
+                <i class="bi bi-send-fill"></i> إرسال إشعار السداد
+            </button>
+            <button onclick="closePaymentModal()" class="cap-btn cap-btn-ghost cap-btn-sm">إلغاء</button>
         </div>
     </div>
 
-    <!-- ⚠️ WARNING BANNER — يظهر عند الاقتراب من الحد (80% مديونية) -->
-    <div id="warningBanner" style="
-        display: none;
-        position: sticky; top: 0; z-index: 9999;
-        background: linear-gradient(90deg, #f39c12, #e67e22);
-        color: white; text-align: center;
-        padding: 12px 20px;
-        font-family: 'Cairo'; font-size: 14px;
-        font-weight: 600; line-height: 1.5;
-        box-shadow: 0 3px 10px rgba(243,156,18,0.4);
-    ">
-        &#9888;&#65039; تنبيه: اقتربت من الحد الأقصى للمديونية. يرجى تصفية الحساب.
+    <!-- تنبيه الاقتراب من الحد (80% مديونية) -->
+    <div id="warningBanner" class="cap-banner">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        اقتربت من الحد الأقصى للمديونية — يرجى تصفية الحساب
     </div>
 
-
-    <div class="app-header">
-        <div class="container pt-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="d-flex align-items-center gap-3">
+    <!-- ============================================================
+         الترويسة: الهوية + مفتاح الاتصال + أرباح الفترة
+    ============================================================ -->
+    <header class="cap-topbar">
+        <div class="cap-wrap" style="padding:0;">
+            <div class="cap-topbar-row">
+                <div class="cap-identity">
                     <div id="captainAvatar" class="cap-avatar"><i class="bi bi-person-fill"></i></div>
-                    <div>
-                        <h2 id="captainName" class="h6 fw-bold mb-0 text-white">مرحباً بك 👋</h2>
-                        <p class="small text-white-50 mb-0">لوحة التحكم الرئيسية</p>
+                    <div class="cap-hello">
+                        <h1 id="captainName" class="cap-hello-name">مرحباً بك</h1>
+                        <p class="cap-hello-sub">لوحة الكابتن</p>
                     </div>
                 </div>
-                <button id="availabilityToggle"
-                    class="btn btn-light rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-2"
-                    onclick="checkOnboarding(true)">
-                    <i class="bi bi-wifi-off"></i> <span>غير متصل</span>
+                <button id="availabilityToggle" class="cap-status is-offline" onclick="checkOnboarding(true)">
+                    <span class="cap-dot"></span><span>غير متصل</span>
                 </button>
             </div>
-        </div>
-    </div>
 
-    <!-- 📊 Period Tabs + 7-day chart styles -->
-    <style>
-        .period-tabs { display:flex; gap:6px; background:rgba(0,0,0,0.05); border-radius:14px; padding:5px; }
-        .period-tab { flex:1; border:none; background:transparent; padding:8px 4px; border-radius:10px;
-            font-family:'Cairo',sans-serif; font-weight:700; font-size:13px; color:#6b7280; cursor:pointer; transition:all .2s; }
-        .period-tab.active { background:#fff; color:#04553A; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
-        .earnings-chart { display:flex; align-items:flex-end; justify-content:space-between; gap:6px; height:120px; }
-        .ec-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; }
-        .ec-bar-wrap { flex:1; width:100%; display:flex; align-items:flex-end; }
-        .ec-bar { width:100%; border-radius:8px 8px 4px 4px; background:linear-gradient(180deg,#34d399,#04553A);
-            transition:height .4s ease; min-height:2px; }
-        .ec-bar.today { background:linear-gradient(180deg,#fbbf24,#f59e0b); }
-        .ec-label { font-size:11px; color:#9ca3af; font-weight:700; white-space:nowrap; }
-        .ec-label.today { color:#f59e0b; }
-        .cap-avatar { width:44px; height:44px; border-radius:50%; overflow:hidden; flex-shrink:0;
-            background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.6);
-            display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; }
-        .cap-avatar img { width:100%; height:100%; object-fit:cover; }
-    </style>
-    <div class="container mt-3">
-        <div class="period-tabs" id="periodTabs">
-            <button class="period-tab active" data-period="today" onclick="setStatsPeriod('today')">اليوم</button>
-            <button class="period-tab" data-period="week" onclick="setStatsPeriod('week')">الأسبوع</button>
-            <button class="period-tab" data-period="all" onclick="setStatsPeriod('all')">الكل</button>
-        </div>
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="container stats-grid mt-3">
-        <div class="card glass-card border-0 text-center p-3">
-            <i class="bi bi-wallet2 fs-2 text-primary mb-2"></i>
-            <h3 id="totalEarnings" class="h5 fw-bold text-dark mb-1">0</h3>
-            <p class="small text-muted mb-0">الأرباح (ج.س)</p>
-        </div>
-        <div class="card glass-card border-0 text-center p-3">
-            <i class="bi bi-box-seam fs-2 text-primary mb-2"></i>
-            <h3 id="completedOrders" class="h5 fw-bold text-dark mb-1">0</h3>
-            <p class="small text-muted mb-0">الطلبات</p>
-        </div>
-        <div class="card glass-card border-0 text-center p-3">
-            <i class="bi bi-star-fill fs-2 text-warning mb-2"></i>
-            <h3 id="rating-val" class="h5 fw-bold text-dark mb-1">5.0</h3>
-            <div id="rating-badge" class="mt-1"></div>
-            <p class="small text-muted mb-0">التقييم</p>
-        </div>
-    </div>
-
-    <!-- 📊 7-DAY EARNINGS CHART -->
-    <div class="container mt-3">
-        <div class="card glass-card border-0 p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up-arrow text-success"></i> أرباح آخر ٧ أيام</h6>
-                <span class="small fw-bold text-success" id="weekTotalLabel">0 ج.س</span>
-            </div>
-            <div id="earningsChart" class="earnings-chart"></div>
-        </div>
-    </div>
-
-    <!-- 💳 WALLET CARD -->
-    <div class="container mt-3">
-        <div id="walletCard" style="
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            border-radius: 20px; padding: 20px 22px;
-            color: white; position: relative; overflow: hidden;
-            box-shadow: 0 8px 30px rgba(15,52,96,0.4);
-        ">
-            <!-- Decorative circles -->
-            <div style="position:absolute; top:-20px; left:-20px; width:120px; height:120px;
-                border-radius:50%; background:rgba(255,255,255,0.04);"></div>
-            <div style="position:absolute; bottom:-30px; right:10px; width:160px; height:160px;
-                border-radius:50%; background:rgba(255,255,255,0.03);"></div>
-
-            <!-- Loading skeleton -->
-            <div id="walletSkeleton" style="display:flex; align-items:center; gap:10px; min-height:80px;">
-                <div style="width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-top-color:white;
-                    border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
-                <span style="font-size:13px;color:rgba(255,255,255,0.5);">جاري تحميل بيانات المحفظة...</span>
+            <!-- المقياس البطل: رقم واحد ضخم يُقرأ بنظرة خاطفة -->
+            <div class="cap-hero">
+                <div class="cap-hero-label">أرباح <span id="heroPeriodLabel">اليوم</span></div>
+                <div id="totalEarnings" class="cap-hero-value">0</div>
+                <div class="cap-hero-unit">جنيه سوداني</div>
             </div>
 
-            <!-- Wallet content (hidden until loaded) -->
-            <div id="walletContent" style="display:none;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
-                    <div>
-                        <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:4px;">&#128179; رصيد
-                            المحفظة</div>
-                        <div id="walletBalance" style="font-size:28px; font-weight:900; letter-spacing:1px;">0 ج.س</div>
+            <div class="cap-seg" id="periodTabs">
+                <button class="cap-seg-btn period-tab active" data-period="today"
+                    onclick="setStatsPeriod('today')">اليوم</button>
+                <button class="cap-seg-btn period-tab" data-period="week"
+                    onclick="setStatsPeriod('week')">الأسبوع</button>
+                <button class="cap-seg-btn period-tab" data-period="all"
+                    onclick="setStatsPeriod('all')">الكل</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="cap-wrap">
+
+        <!-- مؤشرات ثانوية -->
+        <div class="cap-metrics cap-section">
+            <div class="cap-metric tone-green">
+                <i class="bi bi-box-seam-fill"></i>
+                <div id="completedOrders" class="cap-metric-val">0</div>
+                <div class="cap-metric-lbl">الرحلات</div>
+            </div>
+            <div class="cap-metric tone-amber">
+                <i class="bi bi-star-fill"></i>
+                <div id="rating-val" class="cap-metric-val">-</div>
+                <div class="cap-metric-lbl"><span id="rating-badge">التقييم</span></div>
+            </div>
+            <a href="captain-wallet.html" class="cap-metric">
+                <i class="bi bi-wallet2"></i>
+                <div id="metricWallet" class="cap-metric-val">—</div>
+                <div class="cap-metric-lbl">المحفظة</div>
+            </a>
+        </div>
+
+        <!-- الإجراءات الأساسية -->
+        <div class="cap-section">
+            <div class="cap-actions">
+                <a href="captain-orders.html" class="cap-action">
+                    <div class="cap-action-icon tone-green"><i class="bi bi-bicycle"></i></div>
+                    <div class="cap-action-body">
+                        <p class="cap-action-title">الطلبات المتاحة</p>
+                        <p class="cap-action-sub">تصفّح واقبل الطلبات الجديدة</p>
                     </div>
-                    <div style="text-align:left;">
-                        <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:4px;">الحد الائتماني
+                    <span id="availableCount" class="cap-count">0</span>
+                    <i class="bi bi-chevron-left cap-action-arrow"></i>
+                </a>
+
+                <a href="captain-missions.html" class="cap-action">
+                    <div class="cap-action-icon tone-amber"><i class="bi bi-list-check"></i></div>
+                    <div class="cap-action-body">
+                        <p class="cap-action-title">مهامي الحالية</p>
+                        <p class="cap-action-sub">متابعة الطلبات النشطة</p>
+                    </div>
+                    <span id="missionsCount" class="cap-count">0</span>
+                    <i class="bi bi-chevron-left cap-action-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- الرسم البياني -->
+        <div class="cap-section">
+            <div class="cap-card">
+                <div class="cap-card-head">
+                    <h2 class="cap-card-title"><i class="bi bi-graph-up-arrow"></i> أرباح آخر ٧ أيام</h2>
+                    <span id="weekTotalLabel" class="cap-pill green">0 ج.س</span>
+                </div>
+                <div id="earningsChart" class="cap-chart"></div>
+            </div>
+        </div>
+
+        <!-- المحفظة -->
+        <div class="cap-section">
+            <div id="walletCard" class="cap-wallet">
+                <div id="walletSkeleton" class="cap-skeleton">
+                    <div class="cap-spinner"></div>
+                    <span style="font-size:13px;color:rgba(255,255,255,.55);">جاري تحميل بيانات المحفظة...</span>
+                </div>
+
+                <div id="walletContent" style="display:none;">
+                    <div class="cap-wallet-row">
+                        <div>
+                            <div class="cap-wallet-lbl">رصيد المحفظة</div>
+                            <div id="walletBalance" class="cap-wallet-bal">0 ج.س</div>
                         </div>
-                        <div id="walletLimit" style="font-size:16px; font-weight:700; color:#e74c3c;">-5000 ج.س</div>
+                        <div style="text-align:left;">
+                            <div class="cap-wallet-lbl">الحد الائتماني</div>
+                            <div id="walletLimit" class="cap-wallet-limit">-5000 ج.س</div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Progress bar -->
-                <div style="margin-bottom:12px;">
-                    <div
-                        style="display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.5); margin-bottom:5px;">
-                        <span>نسبة المديونية</span>
-                        <span id="walletUsagePct">0%</span>
+                    <div style="margin-bottom:12px;position:relative;">
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.55);margin-bottom:6px;">
+                            <span>نسبة المديونية</span>
+                            <span id="walletUsagePct">0%</span>
+                        </div>
+                        <div class="cap-meter">
+                            <div id="walletProgressBar" class="cap-meter-fill"></div>
+                        </div>
                     </div>
-                    <div style="background:rgba(255,255,255,0.1); border-radius:50px; height:8px;">
-                        <div id="walletProgressBar" style="
-                            height:8px; border-radius:50px; width:0%;
-                            background: linear-gradient(90deg, #27ae60, #f39c12, #e74c3c);
-                            transition: width 0.8s ease;
-                        "></div>
+
+                    <div class="cap-wallet-note" style="margin-bottom:14px;">
+                        تُخصم عمولة التطبيق تلقائياً بعد كل توصيل
                     </div>
-                </div>
 
-                <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-bottom:14px;">
-                    &#128276; يتم خصم عمولة التطبيق تلقائياً بعد كل توصيل
+                    <button id="walletPayBtn" onclick="openPaymentModal()" class="cap-btn cap-btn-light cap-btn-sm"
+                        style="display:none;">
+                        <i class="bi bi-send-fill"></i> إرسال إشعار سداد
+                    </button>
                 </div>
+            </div>
+        </div>
 
-                <!-- ✅ Payment button — conditionally shown ONLY when blocked or at limit -->
-                <button id="walletPayBtn" onclick="openPaymentModal()" style="
-                    display:none; width:100%; padding:11px 16px;
-                    background:rgba(255,255,255,0.15); backdrop-filter:blur(4px);
-                    color:white; border:1px solid rgba(255,255,255,0.3);
-                    border-radius:50px; font-size:14px; font-weight:700;
-                    font-family:'Cairo'; cursor:pointer;
-                    transition: background 0.2s;
-                ">
-                    &#9989; إرسال إشعار سداد
-                </button>
+        <!-- روابط ثانوية -->
+        <div class="cap-section" style="margin-bottom:8px;">
+            <div class="cap-section-title">المزيد</div>
+            <div class="cap-actions">
+                <a href="captain-history.html" class="cap-action">
+                    <div class="cap-action-icon tone-blue"><i class="bi bi-clock-history"></i></div>
+                    <div class="cap-action-body">
+                        <p class="cap-action-title">سجل الرحلات</p>
+                        <p class="cap-action-sub">رحلاتك المكتملة وأرباحها</p>
+                    </div>
+                    <i class="bi bi-chevron-left cap-action-arrow"></i>
+                </a>
+                <a href="captain-profile.html" class="cap-action">
+                    <div class="cap-action-icon tone-blue"><i class="bi bi-person-gear"></i></div>
+                    <div class="cap-action-body">
+                        <p class="cap-action-title">الملف الشخصي</p>
+                        <p class="cap-action-sub">إعدادات الحساب وتسجيل الخروج</p>
+                    </div>
+                    <i class="bi bi-chevron-left cap-action-arrow"></i>
+                </a>
             </div>
         </div>
     </div>
 
-
-    <div class="container mt-4 mb-5 pb-5">
-        <h5 class="fw-bold mb-3 text-secondary px-2">القائمة الرئيسية</h5>
-
-        <div class="d-grid gap-3">
-            <a href="captain-orders.html" class="card glass-card card-hover border-0 text-decoration-none bg-white">
-                <div class="card-body d-flex justify-content-between align-items-center p-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
-                            <i class="bi bi-bicycle fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold text-dark mb-1">الطلبات المتاحة</h6>
-                            <p class="small text-muted mb-0">تصفح وقبول الطلبات الجديدة</p>
-                        </div>
-                    </div>
-                    <i class="bi bi-chevron-left text-muted"></i>
-                </div>
-            </a>
-
-            <a href="captain-missions.html" class="card glass-card card-hover border-0 text-decoration-none bg-white">
-                <div class="card-body d-flex justify-content-between align-items-center p-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning">
-                            <i class="bi bi-list-check fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold text-dark mb-1">مهامي الحالية</h6>
-                            <p class="small text-muted mb-0">متابعة الطلبات النشطة</p>
-                        </div>
-                    </div>
-                    <i class="bi bi-chevron-left text-muted"></i>
-                </div>
-            </a>
-
-            <a href="captain-profile.html" class="card glass-card card-hover border-0 text-decoration-none bg-white">
-                <div class="card-body d-flex justify-content-between align-items-center p-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
-                            <i class="bi bi-person-gear fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold text-dark mb-1">الملف الشخصي</h6>
-                            <p class="small text-muted mb-0">إعدادات الحساب وتسجيل الخروج</p>
-                        </div>
-                    </div>
-                    <i class="bi bi-chevron-left text-muted"></i>
-                </div>
-            </a>
-        </div>
-    </div>
-
-
-    <nav class="mobile-nav-glass">
-        <a href="captain-dashboard.html" class="nav-item-link active">
-            <i class="bi bi-house-door-fill"></i>
+    <nav class="captain-nav">
+        <a href="captain-dashboard.html" class="active">
+            <i class="bi bi-house-door-fill"></i><span>الرئيسية</span>
         </a>
-        <a href="captain-orders.html" class="nav-item-link">
-            <i class="bi bi-bicycle"></i>
+        <a href="captain-orders.html">
+            <i class="bi bi-bicycle"></i><span>الطلبات</span>
         </a>
-        <a href="captain-missions.html" class="nav-item-link">
-            <i class="bi bi-card-checklist"></i>
+        <a href="captain-missions.html">
+            <i class="bi bi-card-checklist"></i><span>مهامي</span>
         </a>
-        <a href="captain-notifications.html" class="nav-item-link">
-            <i class="bi bi-bell-fill"></i>
+        <a href="captain-notifications.html">
+            <i class="bi bi-bell-fill"></i><span>الإشعارات</span>
         </a>
-        <a href="captain-profile.html" class="nav-item-link">
-            <i class="bi bi-person-circle"></i>
+        <a href="captain-profile.html">
+            <i class="bi bi-person-circle"></i><span>حسابي</span>
         </a>
     </nav>
 
@@ -513,7 +344,7 @@
         let userId = localStorage.getItem('userId');
         let gpsInterval = null;
         let isWorking = false;
-        let watchId = null; // 📡 BUG #14: Store fallback GPS watchId for clearWatch
+ let watchId = null; // BUG #14: Store fallback GPS watchId for clearWatch
 
         // --- 2. ONBOARDING & PERMISSIONS ---
         async function checkOnboarding(force = false) {
@@ -542,13 +373,13 @@
             sessionStorage.setItem('workStatusAsked', 'true');
 
             Swal.fire({
-                title: 'هل تريد العمل الآن؟ 🚗',
+ title: 'هل تريد العمل الآن؟',
                 text: 'سيتم تفعيل استقبال الطلبات',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'نعم، أنا جاهز ✅',
-                cancelButtonText: 'لا، لاحقاً ❌',
-                confirmButtonColor: '#04553A',
+ confirmButtonText: 'نعم، أنا جاهز',
+ cancelButtonText: 'لا، لاحقاً',
+                confirmButtonColor: 'var(--primary)',
                 cancelButtonColor: '#7f8c8d',
                 allowOutsideClick: false
             }).then((result) => {
@@ -591,15 +422,11 @@
 
         function updateUI(active) {
             const badge = document.getElementById('availabilityToggle');
-            if (badge) {
-                if (active) {
-                    badge.className = 'btn btn-success text-white rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-2';
-                    badge.innerHTML = '<i class="bi bi-wifi"></i> <span>متصل</span>';
-                } else {
-                    badge.className = 'btn btn-secondary text-white rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-2';
-                    badge.innerHTML = '<i class="bi bi-wifi-off"></i> <span>غير متصل</span>';
-                }
-            }
+            if (!badge) return;
+            // النقطة النابضة هي الإشارة التي تُقرأ من مسافة — النص تأكيد لا أكثر
+            badge.className = 'cap-status ' + (active ? 'is-online' : 'is-offline');
+            badge.innerHTML = '<span class="cap-dot"></span><span>'
+                + (active ? 'متصل وجاهز' : 'غير متصل') + '</span>';
         }
 
         // --- 4. GPS TRACKING VIA CAPTAIN SERVICE ---
@@ -658,10 +485,19 @@
             return Number(n || 0).toLocaleString('en') + ' ج.س';
         }
 
+        // الرقم البطل يُعرض بلا وحدة — الوحدة سطر مستقل تحته في الترويسة
+        function fmtNum(n) {
+            return Number(n || 0).toLocaleString('en');
+        }
+
+        const PERIOD_LABEL = { today: 'اليوم', week: 'هذا الأسبوع', all: 'الإجمالي' };
+
         function setStatsPeriod(p) {
             statsPeriod = p;
             document.querySelectorAll('.period-tab').forEach(b =>
                 b.classList.toggle('active', b.dataset.period === p));
+            const lbl = document.getElementById('heroPeriodLabel');
+            if (lbl) lbl.innerText = PERIOD_LABEL[p] || '';
             renderStatsCards();
         }
 
@@ -674,13 +510,29 @@
 
             const eEl = document.getElementById('totalEarnings');
             const cEl = document.getElementById('completedOrders');
-            if (eEl) eEl.innerText = fmtMoney(earn);
+            if (eEl) eEl.innerText = fmtNum(earn);
             if (cEl) cEl.innerText = cnt;
         }
 
         function weekdayShortAr(dateStr) {
             const d = new Date(dateStr + 'T12:00:00');
             return ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'][d.getDay()];
+        }
+
+        // 🔢 شارات العمل المنتظر على صفّي الإجراءات — الكابتن يعرف إن كان
+        // هناك عمل بانتظاره قبل أن يفتح الصفحة. الشارة تُخفى عند الصفر.
+        function renderWorkCounts() {
+            const pairs = [
+                ['availableCount', statsData?.availableCount],
+                ['missionsCount', statsData?.activeMissions]
+            ];
+            pairs.forEach(([id, n]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const val = Number(n) || 0;
+                el.textContent = val > 99 ? '99+' : val;
+                el.classList.toggle('show', val > 0);
+            });
         }
 
         // 🖼️ صورة الكابتن في ترويسة الداشبورد
@@ -729,6 +581,7 @@
                 renderStatsCards();
                 renderEarningsChart();
                 renderCaptainAvatar();
+                renderWorkCounts();
 
                 // ✅ Update Availability Toggle State — restore from DB on every login
                 if (typeof data.isActive !== 'undefined') {
@@ -746,27 +599,18 @@
                 const ratingCount = data.ratingCount || 0;
                 const badge = document.getElementById('rating-badge');
 
+                // التسمية تحت الرقم تحمل الحكم — لا شارة منفصلة تزاحم البطاقة
+                const valEl = document.getElementById('rating-val');
                 if (ratingCount === 0) {
-                    if (document.getElementById('rating-val')) document.getElementById('rating-val').innerText = '-';
-                    if (badge) {
-                        badge.className = 'badge bg-secondary';
-                        badge.innerText = 'لم يتم التقييم';
-                    }
+                    if (valEl) valEl.innerText = '-';
+                    if (badge) badge.innerText = 'بلا تقييم';
                 } else {
                     const rating = parseFloat(data.rating || 0).toFixed(1);
-                    if (document.getElementById('rating-val')) document.getElementById('rating-val').innerText = rating;
-
+                    if (valEl) valEl.innerText = rating;
                     if (badge) {
-                        if (rating >= 4.5) {
-                            badge.className = 'badge bg-success';
-                            badge.innerText = 'ممتاز 🌟';
-                        } else if (rating >= 3) {
-                            badge.className = 'badge bg-warning text-dark';
-                            badge.innerText = 'جيد';
-                        } else {
-                            badge.className = 'badge bg-danger';
-                            badge.innerText = 'يحتاج تحسين';
-                        }
+                        badge.innerText = rating >= 4.5 ? 'تقييم ممتاز'
+                            : rating >= 3 ? 'تقييم جيد'
+                                : 'يحتاج تحسين';
                     }
                 }
             } catch (error) {
@@ -852,19 +696,19 @@
 
             // Validation
             if (!amount || isNaN(amount) || Number(amount) <= 0) {
-                errEl.textContent = '⚠️ الرجاء إدخال مبلغ صحيح';
+ errEl.textContent = 'الرجاء إدخال مبلغ صحيح';
                 errEl.style.display = 'block';
                 return;
             }
             if (!transactionId) {
-                errEl.textContent = '⚠️ الرجاء إدخال رقم إشعار التحويل';
+ errEl.textContent = 'الرجاء إدخال رقم إشعار التحويل';
                 errEl.style.display = 'block';
                 return;
             }
 
             errEl.style.display = 'none';
             submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ جارٍ الإرسال...';
+            submitBtn.textContent = 'جارٍ الإرسال...';
             submitBtn.style.opacity = '0.7';
 
             try {
@@ -889,7 +733,7 @@
                     // تغيير نص زر "تأكيد السداد" ليمنع الإرسال المكرر
                     const confirmBtn = document.getElementById('paymentConfirmBtn');
                     if (confirmBtn) {
-                        confirmBtn.textContent = '⏳ قيد المراجعة...';
+                        confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> قيد المراجعة...';
                         confirmBtn.style.background = '#f39c12';
                         confirmBtn.style.color = 'white';
                         confirmBtn.disabled = true;
@@ -900,29 +744,29 @@
                     if (window.Swal) {
                         Swal.fire({
                             icon: 'success',
-                            title: '✅ تم الإرسال بنجاح!',
+ title: 'تم الإرسال بنجاح!',
                             text: data.message || 'تم إرسال إشعار السداد للإدارة. سيتم مراجعة الدفعة وفتح حسابك قريباً.',
-                            confirmButtonColor: '#04553A',
+                            confirmButtonColor: 'var(--primary)',
                             confirmButtonText: 'حسناً',
                             fontFamily: 'Cairo'
                         });
                     } else {
-                        alert('✅ ' + (data.message || 'تم إرسال الإشعار بنجاح!'));
+ alert(data.message || 'تم إرسال الإشعار بنجاح!');
                     }
                 } else {
-                    errEl.textContent = data.message || '❌ حدث خطأ، حاول مرة أخرى';
+ errEl.textContent = data.message || 'حدث خطأ، حاول مرة أخرى';
                     errEl.style.display = 'block';
                     submitBtn.disabled = false;
-                    submitBtn.textContent = '📨 إرسال إشعار السداد';
+ submitBtn.textContent = 'إرسال إشعار السداد';
                     submitBtn.style.opacity = '1';
                 }
 
             } catch (err) {
                 console.error('Payment submit error:', err);
-                errEl.textContent = '❌ تعذّر الاتصال بالخادم. تحقق من الإنترنت.';
+ errEl.textContent = 'تعذّر الاتصال بالخادم. تحقق من الإنترنت.';
                 errEl.style.display = 'block';
                 submitBtn.disabled = false;
-                submitBtn.textContent = '📨 إرسال إشعار السداد';
+ submitBtn.textContent = 'إرسال إشعار السداد';
                 submitBtn.style.opacity = '1';
             }
         }
@@ -955,7 +799,14 @@
 
                 if (balEl) {
                     balEl.textContent = `${balance.toFixed(0)} ج.س`;
-                    balEl.style.color = balance < 0 ? '#ff6b6b' : '#6ee7b7';
+                    balEl.style.color = balance < 0 ? '#fca5a5' : '#6ee7b7';
+                }
+
+                // مؤشر المحفظة المختصر في شبكة المؤشرات أعلى الصفحة
+                const mWallet = document.getElementById('metricWallet');
+                if (mWallet) {
+                    mWallet.textContent = Number(balance.toFixed(0)).toLocaleString('en');
+                    mWallet.parentElement.classList.toggle('tone-red', balance < 0);
                 }
                 if (limEl) limEl.textContent = `${limit.toFixed(0)} ج.س`;
                 // 📊 Debt Percentage: balance 0 = 0% debt, balance = creditLimit = 100% debt
@@ -970,7 +821,8 @@
                 // Payment button: show if blocked OR debt >= 80%
                 const walletPayBtn = document.getElementById('walletPayBtn');
                 if (walletPayBtn) {
-                    walletPayBtn.style.display = (data.is_blocked || debtPercentage >= 80) ? 'block' : 'none';
+                    // flex لا block — .cap-btn يستخدم inline-flex لتوسيط الأيقونة والنص
+                    walletPayBtn.style.display = (data.is_blocked || debtPercentage >= 80) ? 'flex' : 'none';
                 }
 
                 // 🏦 Update cached bank details + inject into DOM
@@ -1031,15 +883,15 @@
                 if (!confirmBtn || !req) return;
 
                 if (req.status === 'pending') {
-                    confirmBtn.textContent = '⏳ قيد المراجعة...';
-                    confirmBtn.style.background = '#f39c12';
-                    confirmBtn.style.color = 'white';
+                    confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> قيد المراجعة...';
+                    confirmBtn.style.background = '#f59e0b';
+                    confirmBtn.style.color = '#fff';
                     confirmBtn.disabled = true;
                     confirmBtn.onclick = null;
                 } else if (req.status === 'rejected') {
-                    confirmBtn.textContent = '❌ مرفوض — أعد الإرسال';
-                    confirmBtn.style.background = 'white';
-                    confirmBtn.style.color = '#c0392b';
+                    confirmBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> مرفوض — أعد الإرسال';
+                    confirmBtn.style.background = '';
+                    confirmBtn.style.color = '';
                     confirmBtn.disabled = false;
                     confirmBtn.onclick = openPaymentModal;
                 }
@@ -1059,11 +911,11 @@
                 navigator.clipboard.writeText(accNum).then(() => {
                     const btn = document.getElementById('copyAccBtn');
                     if (btn) {
-                        btn.textContent = '✅ تم النسخ!';
-                        btn.style.background = '#27ae60';
+                        btn.innerHTML = '<i class="bi bi-check2"></i> تم النسخ';
+                        btn.style.background = '#16a34a';
                         setTimeout(() => {
-                            btn.innerHTML = '&#128203; نسخ';
-                            btn.style.background = '#2e86c1';
+                            btn.innerHTML = '<i class="bi bi-clipboard"></i> نسخ';
+                            btn.style.background = '';
                         }, 2000);
                     }
                 });
@@ -1133,9 +985,9 @@
                     if (window.Swal) {
                         Swal.fire({
                             icon: 'success',
-                            title: '✅ تمت الموافقة على السداد',
+ title: 'تمت الموافقة على السداد',
                             text: data.message || 'تم رفع الإيقاف عن حسابك. يمكنك الآن تلقي الطلبات.',
-                            confirmButtonColor: '#04553A',
+                            confirmButtonColor: 'var(--primary)',
                             confirmButtonText: 'حسناً',
                             fontFamily: 'Cairo'
                         });
@@ -1158,7 +1010,7 @@
             // Set Captain Name
             const name = localStorage.getItem('captainName');
             if (name) {
-                document.getElementById('captainName').innerText = `مرحباً بك، ${name.split(' ')[0]} 👋`;
+                document.getElementById('captainName').innerText = `مرحباً، ${name.split(' ')[0]}`;
             }
         });
     </script>
@@ -1170,19 +1022,19 @@
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>
 
-    <!-- 🚨 SOS Emergency Button -->
-    <button id="sos-btn"
-        style="position:fixed;bottom:80px;left:20px;width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;border:3px solid white;font-size:28px;box-shadow:0 5px 25px rgba(231,76,60,0.5);cursor:pointer;z-index:1000;"
-        onclick="triggerSOS()">🚨</button>
+    <!-- زر النجدة -->
+    <button id="sos-btn" class="cap-sos" onclick="triggerSOS()" aria-label="طلب نجدة">
+        <i class="bi bi-exclamation-octagon-fill"></i><span>نجدة</span>
+    </button>
     <script>
-        const SOS_GRADIENT = 'linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)';
+        const SOS_IDLE = '<i class="bi bi-exclamation-octagon-fill"></i><span>نجدة</span>';
 
         function resetSosBtn() {
             const btn = document.getElementById('sos-btn');
             if (!btn) return;
             btn.disabled = false;
-            btn.innerHTML = '🚨';
-            btn.style.background = SOS_GRADIENT;
+            btn.classList.remove('is-sent');
+            btn.innerHTML = SOS_IDLE;
         }
 
         async function triggerSOS() {
@@ -1191,7 +1043,7 @@
             if (window.Swal) {
                 confirmed = (await Swal.fire({
                     icon: 'warning',
-                    title: '🚨 طلب نجدة؟',
+ title: 'طلب نجدة؟',
                     text: 'سيتم إبلاغ الإدارة فوراً بموقعك الحالي.',
                     showCancelButton: true,
                     confirmButtonText: 'نعم، أرسل النجدة',
@@ -1199,18 +1051,18 @@
                     confirmButtonColor: '#e74c3c'
                 })).isConfirmed;
             } else {
-                confirmed = confirm('⚠️ هل أنت في حالة طوارئ؟');
+ confirmed = confirm('هل أنت في حالة طوارئ؟');
             }
             if (!confirmed) return;
 
             const btn = document.getElementById('sos-btn');
             btn.disabled = true;
-            btn.innerHTML = '⏳';
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i><span>جارٍ</span>';
 
             if (!navigator.geolocation) {
                 resetSosBtn();
                 if (window.Swal) Swal.fire('خطأ', 'جهازك لا يدعم تحديد الموقع', 'error');
-                else alert('❌ الجهاز لا يدعم تحديد الموقع');
+ else alert('الجهاز لا يدعم تحديد الموقع');
                 return;
             }
 
@@ -1224,37 +1076,37 @@
                     const out = await res.json().catch(() => ({}));
 
                     if (res.ok) {
-                        btn.style.background = '#27ae60';
-                        btn.innerHTML = '✅';
+                        btn.classList.add('is-sent');
+                        btn.innerHTML = '<i class="bi bi-check2-circle"></i><span>تم</span>';
                         if (window.Swal) Swal.fire({
-                            icon: 'success', title: '✅ تم إرسال النجدة',
+ icon: 'success', title: 'تم إرسال النجدة',
                             text: 'الإدارة تم إبلاغها بموقعك. ابقَ في مكان آمن.',
-                            confirmButtonColor: '#04553A'
+                            confirmButtonColor: 'var(--primary)'
                         });
                         setTimeout(resetSosBtn, 4000);
                     } else {
                         resetSosBtn();
                         const msg = out.message || 'تعذّر إرسال النجدة، حاول مجدداً';
                         if (window.Swal) Swal.fire('تعذّر الإرسال', msg, 'error');
-                        else alert('❌ ' + msg);
+ else alert(msg);
                     }
                 } catch (e) {
                     resetSosBtn();
                     if (window.Swal) Swal.fire('خطأ', 'تعذّر الاتصال بالخادم', 'error');
-                    else alert('❌ خطأ في الإرسال');
+ else alert('خطأ في الإرسال');
                 }
             }, () => {
                 resetSosBtn();
                 if (window.Swal) Swal.fire('تعذّر تحديد الموقع', 'فعّل GPS وحاول مرة أخرى', 'error');
-                else alert('❌ خطأ GPS');
+ else alert('خطأ GPS');
             }, { enableHighAccuracy: true, timeout: 15000 });
         }
     </script>
     <!-- App Core & Captain Service -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
-    <script type="module" src="js/captain-service.js?v=2432883e"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script type="module" src="js/captain-service.js?v=adcd1a16"></script>
 </body>
 
 </html>
