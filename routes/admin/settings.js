@@ -310,7 +310,7 @@ router.put('/delivery-zone', protect, superAdminOnly, async (req, res) => {
             io.to(`room_${zoneCity}`).emit('delivery_zone_updated', { deliveryZone, city: zoneCity });
         }
 
-        res.json({ message: '✅ تم حفظ منطقة التوصيل بنجاح', deliveryZone });
+        res.json({ message: 'تم حفظ منطقة التوصيل بنجاح', deliveryZone });
     } catch (error) {
         logger.error("Delivery Zone PUT Error:", error);
         res.status(500).json({ message: 'Server Error' });
@@ -372,7 +372,7 @@ router.get('/migrate-cities-legacy-data', protect, superAdminOnly, async (req, r
         logger.info({ summary }, '[Migration] Multi-city migration complete');
 
         res.json({
-            message: '✅ تمت عملية ترحيل البيانات بنجاح. جميع السجلات القديمة الآن في مدينة "الخرطوم".',
+            message: 'تمت عملية ترحيل البيانات بنجاح. جميع السجلات القديمة الآن في مدينة "الخرطوم".',
             note: '⚠️ يرجى حذف هذا الـ endpoint من الكود بعد التحقق من النتائج.',
             summary
         });

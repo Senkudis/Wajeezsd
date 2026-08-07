@@ -358,7 +358,7 @@ router.put('/orders/:id/accept', protect, merchantOnly, async (req, res) => {
             : order.itemsTotal;
         await sendNotification(req.app, {
             userId: order.client,
-            title: '💸 المتجر بانتظار الدفع!',
+            title: 'المتجر بانتظار الدفع!',
             message: `وافق ${place.name} على طلبك! يرجى تحويل مبلغ البضاعة (${goodsToMerchant} ج.س) للمتجر وإرفاق الإشعار. سعر التوصيل يُدفع كاش للكابتن عند الاستلام.`,
             type: 'shop_order_update',
             relatedId: order._id
@@ -453,7 +453,7 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
         // Notify client
         await sendNotification(req.app, {
             userId: order.client,
-            title: '✅ طلبك جاهز!',
+            title: 'طلبك جاهز!',
             message: `طلبك من ${place.name} جاهز وتم إرسال طلب للكباتن للتوصيل.`,
             type: 'shop_order_update',
             relatedId: order._id
@@ -579,7 +579,7 @@ router.put('/orders/:id/reject', protect, merchantOnly, async (req, res) => {
 
         await sendNotification(req.app, {
             userId: order.client,
-            title: '❌ طلبك تم رفضه',
+            title: 'طلبك تم رفضه',
             message: `للأسف رفض ${place.name} طلبك. السبب: ${reason || 'غير محدد'}`,
             type: 'shop_order_update',
             relatedId: order._id
@@ -1027,7 +1027,7 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
         if (place.ownerId) {
             await sendNotification(req.app, {
                 userId: place.ownerId,
-                title: '🛒 طلب جديد وصلك!',
+                title: 'طلب جديد وصلك!',
                 message: `طلب جديد من ${req.user.name} بقيمة ${itemsTotal} ج.س`,
                 type: 'new_shop_order',
                 relatedId: order._id
@@ -1109,7 +1109,7 @@ router.put('/client/orders/:id/payment-receipt', protect, async (req, res) => {
         if (place?.ownerId) {
             await sendNotification(req.app, {
                 userId: place.ownerId,
-                title: '🧾 إشعار دفع جديد',
+                title: 'إشعار دفع جديد',
                 message: `قام العميل بإرفاق إشعار الدفع للطلب رقم ${order._id.toString().slice(-6)}. يرجى مراجعته وتأكيده للبدء في التجهيز.`,
                 type: 'payment_receipt',
                 relatedId: order._id
@@ -1139,7 +1139,7 @@ router.put('/orders/:id/confirm-payment', protect, merchantOnly, async (req, res
         await order.save();
         await sendNotification(req.app, {
             userId: order.client,
-            title: '✅ تأكيد الدفع',
+            title: 'تأكيد الدفع',
             message: 'تم تأكيد دفعك من قبل المتجر. سيتم تجهيز طلبك الآن.',
             type: 'payment_confirmed',
             relatedId: order._id
@@ -1182,7 +1182,7 @@ router.post('/orders/:id/remind-payment', protect, merchantOnly, async (req, res
         }
         await sendNotification(req.app, {
             userId: order.client,
-            title: '⏰ تذكير بالدفع',
+            title: 'تذكير بالدفع',
             message: `الرجاء إكمال الدفع لطلبك من متجر ${place.name} حتى نتمكن من تجهيز طلبك.`,
             type: 'payment_reminder',
             relatedId: order._id

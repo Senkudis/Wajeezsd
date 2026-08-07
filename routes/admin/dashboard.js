@@ -76,7 +76,7 @@ router.get('/dashboard', protect, requirePermission('view_revenue'), async (req,
                 revenue:  await Order.aggregate([
                     { $match: { status: 'delivered', city: c } },
                     { $group: { _id: null, total: { $sum: '$appFee' } } }
-                ]).then(r => r[0]?.total || 0)
+                ]).then(r => r[0]?.total ?? 0)
             })))
         ]);
 

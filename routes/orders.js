@@ -584,7 +584,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
                     }
                     await sendNotification(req.app, {
                         userId: place.ownerId,
-                        title: '⚠️ تم إلغاء الطلب',
+                        title: 'تم إلغاء الطلب',
                         message: `العميل قام بإلغاء الطلب رقم ${shopOrder._id.toString().slice(-6)}`,
                         type: 'order_update',
                         relatedId: shopOrder._id
@@ -655,7 +655,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
                         }
                         await sendNotification(req.app, {
                             userId: capId,
-                            title: '⚠️ تم إلغاء الطلب',
+                            title: 'تم إلغاء الطلب',
                             message: 'قام العميل بإلغاء الطلب الذي قدمت عليه عرضاً.',
                             type: 'order_update',
                             relatedId: order._id
@@ -680,7 +680,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
             }
             await sendNotification(req.app, {
                 userId: order.captain,
-                title: '⚠️ تم إلغاء الطلب',
+                title: 'تم إلغاء الطلب',
                 message: `العميل ألغى الطلب رقم ${order._id.toString().slice(-6)}${order.cancelReason ? ` — السبب: ${order.cancelReason}` : ''}`,
                 type: 'order_update',
                 relatedId: order._id
@@ -748,7 +748,7 @@ router.put('/shop/:id/upload-receipt', protect, async (req, res) => {
         if (place && place.ownerId) {
             await sendNotification(req.app, {
                 userId: place.ownerId,
-                title: '🧾 إشعار دفع جديد',
+                title: 'إشعار دفع جديد',
                 message: `قام العميل بإرفاق إشعار الدفع للطلب رقم ${order._id.toString().slice(-6)}. يرجى مراجعته وتأكيده للبدء في التجهيز.`,
                 type: 'shop_order_update',
                 relatedId: order._id
@@ -1080,7 +1080,7 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
         // 🔔 Notification
         await sendNotification(req.app, {
             userId: order.client._id,
-            title: '💬 عرض سعر جديد',
+            title: 'عرض سعر جديد',
             message: `الكابتن ${req.user.name} يقترح سعر ${proposedPrice} ج.س بدلاً من ${order.price} ج.س`,
             type: 'order_update',
             relatedId: order._id
@@ -1248,7 +1248,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                 }
                 await sendNotification(req.app, {
                     userId: n.captainId,
-                    title: '❌ قُبل عرض كابتن آخر',
+                    title: 'قُبل عرض كابتن آخر',
                     message: 'تم قبول عرض كابتن آخر من قبل العميل.',
                     type: 'order_update',
                     relatedId: updatedOrder._id
@@ -1257,7 +1257,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
 
             await sendNotification(req.app, {
                 userId: captainId,
-                title: '✅ تم قبول عرضك!',
+                title: 'تم قبول عرضك!',
                 message: `العميل وافق على السعر ${order.price} ج.س — انطلق الآن!`,
                 type: 'order_accepted',
                 relatedId: order._id
@@ -1285,7 +1285,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
 
             await sendNotification(req.app, {
                 userId: captainId,
-                title: '❌ تم رفض عرضك',
+                title: 'تم رفض عرضك',
                 message: 'العميل رفض السعر المقترح. الطلب لا يزال متاحاً.',
                 type: 'order_update',
                 relatedId: order._id
@@ -1430,7 +1430,7 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
             }
             await sendNotification(req.app, {
                 userId: rCapId,
-                title: '❌ قُبل عرض كابتن آخر',
+                title: 'قُبل عرض كابتن آخر',
                 message: 'قام كابتن آخر بقبول الطلب مباشرة.',
                 type: 'order_update',
                 relatedId: order._id
@@ -1439,7 +1439,7 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
 
         await sendNotification(req.app, {
             userId: order.client,
-            title: '🎉 تم قبول طلبك!',
+            title: 'تم قبول طلبك!',
             message: `الكابتن ${req.user.name || 'متاح'} وافق على الطلب وهو في الطريق إليك.`,
             type: 'order_accepted',
             relatedId: order._id
@@ -1502,7 +1502,7 @@ router.put('/:id/release', protect, captainOnly, async (req, res) => {
         // إشعار العميل: نبحث عن كابتن آخر
         await sendNotification(req.app, {
             userId: released.client,
-            title: '🔄 جارٍ البحث عن كابتن آخر',
+            title: 'جارٍ البحث عن كابتن آخر',
             message: `اعتذر الكابتن عن إكمال طلبك${reason && reason.trim() ? ` (${reason.trim()})` : ''}. نبحث لك عن كابتن جديد الآن.`,
             type: 'order_update',
             relatedId: released._id
@@ -1592,7 +1592,7 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
 
         await sendNotification(req.app, {
             userId: order.client,
-            title: '📦 الكابتن استلم الطلب',
+            title: 'الكابتن استلم الطلب',
             message: `الكابتن ${req.user.name} قام باستلام طلبك الآن وهو في طريق للتوصيل.`,
             type: 'order_update',
             relatedId: order._id
@@ -1664,7 +1664,7 @@ router.put('/:id/stops/:stopRef/done', protect, captainOnly, async (req, res) =>
         const label = stop.type === 'pickup' ? 'استلم من نقطة' : 'سلّم في نقطة';
         await sendNotification(req.app, {
             userId: order.client,
-            title: '🧭 تقدّم في التوصيل',
+            title: 'تقدّم في التوصيل',
             message: `الكابتن ${req.user.name} ${label}: ${stop.address}`,
             type: 'order_update',
             relatedId: order._id
@@ -1953,7 +1953,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                             const { sendNotification } = require('../utils/notificationHelper');
                             await sendNotification(req.app, {
                                 userId: captain._id,
-                                title: '⛔ تم إيقاف حسابك',
+                                title: 'تم إيقاف حسابك',
                                 message: 'تجاوزت الحد الائتماني. يرجى سداد المديونية لإعادة تفعيل الحساب.',
                                 type: 'wallet_update',
                                 relatedId: order._id
@@ -1981,7 +1981,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                 const { sendNotification } = require('../utils/notificationHelper');
                 await sendNotification(req.app, {
                     userId: order.client,
-                    title: '✅ تم التوصيل بنجاح',
+                    title: 'تم التوصيل بنجاح',
                     message: `تم توصيل طلبك بنجاح. شكراً لاستخدامك وجيز! لا تنسى تقييم الكابتن.`,
                     type: 'order_completed',
                     relatedId: order._id
@@ -2094,7 +2094,7 @@ router.post('/:id/errand/quote', protect, captainOnly, async (req, res) => {
         // إشعار العميل ليؤكّد/يرفض السعر
         await sendNotification(req.app, {
             userId: order.client,
-            title: '🛍️ سعر طلبك جاهز',
+            title: 'سعر طلبك جاهز',
             message: `سعر البضاعة من ${order.shopName || 'المحل'}: ${amountChk.amount} ج.س. أكّد لبدء الشراء.`,
             type: 'errand_quote',
             relatedId: order._id
@@ -2135,7 +2135,7 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
             if (order.captain) {
                 await sendNotification(req.app, {
                     userId: order.captain,
-                    title: '✅ وافق العميل على السعر',
+                    title: 'وافق العميل على السعر',
                     message: `وافق العميل على ${order.errand.goodsQuote} ج.س. يمكنك الشراء الآن.`,
                     type: 'order_update',
                     relatedId: order._id
@@ -2164,7 +2164,7 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
         if (order.captain) {
             await sendNotification(req.app, {
                 userId: order.captain,
-                title: '❌ رفض العميل السعر',
+                title: 'رفض العميل السعر',
                 message: tripFee > 0
                     ? `رفض العميل سعر البضاعة وأُلغي الطلب. ستُحتسب لك رسوم انتقال ${tripFee} ج.س.`
                     : 'رفض العميل سعر البضاعة وأُلغي الطلب.',
@@ -2196,7 +2196,7 @@ router.post('/:id/complain', protect, async (req, res) => {
 
         // ✅ Send unified notification to all admins about the complaint
         notifyAdmins(req.app, {
-            title: '⚠️ شكوى جديدة',
+            title: 'شكوى جديدة',
             message: `شكوى جديدة من العميل ${req.user.name || 'أحد العملاء'} على الطلب #${order._id.toString().slice(-6)}`,
             type: 'system',
             relatedId: order._id
@@ -2277,7 +2277,7 @@ router.post('/:id/rate', protect, ratingLimiter, async (req, res) => {
         await sendNotification(req.app, {
             userId: captainId,
             title: rating >= 4 ? '⭐ تقييم ممتاز!' : rating >= 3 ? '⭐ تقييم جيد' : '⚠️ تقييم منخفض',
-            message: `حصلت على تقييم ${rating}/5 ⭐ من العميل ${req.user.name || 'أحد العملاء'}`,
+            message: `حصلت على تقييم ${rating}/5 من العميل ${req.user.name || 'أحد العملاء'}`,
             type: 'system',
             relatedId: order._id
         });

@@ -432,7 +432,7 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
 
         await sendNotification(req.app, {
             userId: captain._id,
-            title: '✅ تم قبول سداد المديونية',
+            title: 'تم قبول سداد المديونية',
             message: notifMsg,
             type: 'payment_approved',   // 🧭 يفتح محفظة الكابتن
             relatedId: payReq._id
@@ -478,7 +478,7 @@ router.put('/payment-requests/:id/reject', protect, requirePermission('manage_fi
         const { sendNotification } = require('../../utils/notificationHelper');
         await sendNotification(req.app, {
             userId: payReq.captainId._id,
-            title: '❌ تم رفض إشعار السداد',
+            title: 'تم رفض إشعار السداد',
             message: `تم رفض دفعتك بمبلغ ${payReq.amount} ج.س. السبب: ${payReq.adminNote}. الرجاء التواصل مع الإدارة.`,
             type: 'payment_rejected',   // 🧭 يفتح محفظة الكابتن
             relatedId: payReq._id

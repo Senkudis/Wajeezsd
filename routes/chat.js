@@ -213,7 +213,7 @@ router.post('/', protect, async (req, res) => {
                 },
                 {
                     $set: {
-                        title: `💬 رسالة من ${senderName || 'مستخدم'}`,
+                        title: `رسالة من ${senderName || 'مستخدم'}`,
                         message: previewOf(text, imageUrl),
                         createdAt: new Date()
                     }

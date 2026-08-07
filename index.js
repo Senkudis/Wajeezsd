@@ -667,7 +667,7 @@ io.on('connection', (socket) => {
                 { user: receiver, type: 'chat_message', relatedId: orderObjectId, isRead: false },
                 {
                     $set: {
-                        title: `💬 رسالة من ${data.senderName || 'مستخدم'}`,
+                        title: `رسالة من ${data.senderName || 'مستخدم'}`,
                         message: chatPreview(data.text, imageUrl),
                         createdAt: new Date()
                     }

@@ -148,7 +148,7 @@ router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
                 const { sendNotification } = require('../utils/notificationHelper');
                 await sendNotification(req.app, {
                     userId: request.userId,
-                    title: '❌ تم رفض طلب انضمامك كتاجر',
+                    title: 'تم رفض طلب انضمامك كتاجر',
                     message: `سبب الرفض: ${rejectReason || 'لم يتم تحديد السبب'}. يمكنك التواصل مع الإدارة لمزيد من التفاصيل.`,
                     type: 'system',
                     relatedId: request._id
@@ -278,7 +278,7 @@ router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
                 const { sendNotification } = require('../utils/notificationHelper');
                 await sendNotification(req.app, {
                     userId: request.userId,
-                    title: '🎉 تمت الموافقة على طلبك كتاجر!',
+                    title: 'تمت الموافقة على طلبك كتاجر!',
                     message: `مبروك! تم قبول طلبك وإنشاء متجرك "${request.businessName}" في وجيز. يمكنك الآن تسجيل الدخول وإدارة متجرك.`,
                     type: 'system',
                     relatedId: newPlace._id

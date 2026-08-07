@@ -819,7 +819,7 @@ router.post('/seed-demo', protect, async (req, res) => {
         ]);
 
         res.json({
-            message: 'تم إدراج البيانات التجريبية بنجاح ✅',
+            message: 'تم إدراج البيانات التجريبية بنجاح',
             categories: categories.length,
             places: 6
         });

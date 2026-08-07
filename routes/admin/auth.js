@@ -24,12 +24,18 @@ const logger = require('../../utils/logger');
 const SessionRequest = require('../../models/SessionRequest');
 
 const adminLoginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 5 * 60 * 1000, // 5 دقائق
     max: 10,
-    message: { message: 'محاولات دخول كثيرة للوحة التحكم. يرجى الانتظار 15 دقيقة.' },
     standardHeaders: true,
     legacyHeaders: false,
-    validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false },
+    handler: (req, res, next, options) => {
+        const retryAfter = Math.ceil((res.getHeader('Retry-After') || 300));
+        res.status(429).json({
+            message: 'محاولات دخول كثيرة للوحة التحكم. يرجى الانتظار.',
+            retryAfter
+        });
+    }
 });
 
 router.post('/login', adminLoginLimiter, async (req, res) => {

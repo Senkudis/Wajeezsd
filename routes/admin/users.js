@@ -359,7 +359,7 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
         const { sendNotification } = require('../../utils/notificationHelper');
         await sendNotification(req.app, {
             userId: captain._id,
-            title: '🎉 تمت الموافقة على طلبك!',
+            title: 'تمت الموافقة على طلبك!',
             message: 'تم قبولك ككابتن في وجيز. يمكنك الآن تسجيل الدخول والبدء في استقبال الطلبات!',
             type: 'system',
             relatedId: captain._id
@@ -396,7 +396,7 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
         const { sendNotification } = require('../../utils/notificationHelper');
         await sendNotification(req.app, {
             userId: captain._id,
-            title: '❌ تم رفض طلبك',
+            title: 'تم رفض طلبك',
             message: `سبب الرفض: ${captain.rejectionReason}`,
             type: 'system',
             relatedId: captain._id

@@ -312,7 +312,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
         const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
         res.json({
-            message: 'تم تسجيل الدخول بنجاح! 🚀',
+            message: 'تم تسجيل الدخول بنجاح!',
             token,
             user: {
                 _id: user._id,

@@ -99,7 +99,7 @@ const startScheduler = (app) => {
                         const io = app ? app.get('io') : null;
                         if (io) {
                             io.to(order.client._id.toString()).emit('new_notification', {
-                                title: '❌ تم إلغاء طلبك تلقائياً',
+                                title: 'تم إلغاء طلبك تلقائياً',
                                 message: 'مرت 6 ساعات ولم يتم قبول طلبك. يمكنك إعادة المحاولة.',
                                 type: 'order_cancelled'
                             });
@@ -112,7 +112,7 @@ const startScheduler = (app) => {
                         const Notification = require('./models/Notification');
                         await Notification.create({
                             user: order.client._id,
-                            title: '❌ تم إلغاء طلبك تلقائياً',
+                            title: 'تم إلغاء طلبك تلقائياً',
                             message: 'مرت 6 ساعات ولم يتم قبول طلبك من أي كابتن. يمكنك إعادة المحاولة ورفع السعر.',
                             type: 'order_cancelled',
                             relatedId: order._id
@@ -768,8 +768,8 @@ const startScheduler = (app) => {
             for (const admin of admins) {
                 await sendNotification(app, {
                     userId: admin._id,
-                    title: '📊 التقرير اليومي',
-                    message: `📦 الطلبات: ${ordersToday.length} | ✅ مكتملة: ${delivered} | 💰 الإيرادات: ${totalRev.toFixed(0)} ج.س`,
+                    title: 'التقرير اليومي',
+                    message: `الطلبات: ${ordersToday.length} | مكتملة: ${delivered} | الإيرادات: ${totalRev.toFixed(0)} ج.س`,
                     type: 'system',
                     relatedId: null
                 });

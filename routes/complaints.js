@@ -55,7 +55,7 @@ router.post('/', protect, async (req, res) => {
         for (const admin of admins) {
             await sendNotification(req.app, {
                 userId:    admin._id,
-                title:     '🎧 تذكرة دعم جديدة',
+                title:     'تذكرة دعم جديدة',
                 message:   `${req.user.name || 'عميل'}: ${subject || description.substring(0, 50)}`,
                 type:      'system',
                 relatedId: complaint._id
@@ -165,7 +165,7 @@ router.post('/:id/reply', protect, async (req, res) => {
         if (req.user.role === 'admin') {
             await sendNotification(req.app, {
                 userId:    complaint.client,
-                title:     '💬 رد على تذكرتك',
+                title:     'رد على تذكرتك',
                 message:   `ردّ فريق الدعم: ${message.substring(0, 80)}`,
                 type:      'system',
                 relatedId: complaint._id
@@ -175,7 +175,7 @@ router.post('/:id/reply', protect, async (req, res) => {
             for (const admin of admins) {
                 await sendNotification(req.app, {
                     userId:    admin._id,
-                    title:     '💬 رد عميل على تذكرة',
+                    title:     'رد عميل على تذكرة',
                     message:   `${req.user.name}: ${message.substring(0, 80)}`,
                     type:      'system',
                     relatedId: complaint._id
@@ -241,7 +241,7 @@ router.put('/:id/resolve', protect, adminOnly, async (req, res) => {
 
         await sendNotification(req.app, {
             userId:  complaint.client,
-            title:   '✅ تم حل تذكرتك',
+            title:   'تم حل تذكرتك',
             message: 'تمت مراجعة تذكرتك وحلها من قبل فريق الدعم. شكراً لتواصلك معنا.',
             type:    'system',
             relatedId: complaint._id

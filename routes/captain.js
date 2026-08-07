@@ -516,7 +516,7 @@ router.post('/wallet/pay', protect, captainOnly, walletPayLimiter, async (req, r
             for (const admin of admins) {
                 await sendNotification(req.app, {
                     userId: admin._id,
-                    title: '💰 طلب سداد مديونية جديد',
+                    title: 'طلب سداد مديونية جديد',
                     message: `الكابتن ${req.user.name} أرسل إشعار تحويل بمبلغ ${amount} ج.س — رقم الإشعار: ${transactionId}`,
                     type: 'payment_request',   // 🧭 يفتح صفحة المالية للأدمن لا لوحة عامة
                     relatedId: paymentRequest._id

@@ -168,7 +168,7 @@ router.put('/shop-orders/:id/cancel-force', protect, requirePermission('manage_o
             if (io) io.to(shopOrder.client.toString()).emit('order_status_updated', { orderId: shopOrder._id, status: 'cancelled' });
             await sendNotification(req.app, {
                 userId: shopOrder.client,
-                title: '⚠️ تم إلغاء الطلب إدارياً',
+                title: 'تم إلغاء الطلب إدارياً',
                 message: `قامت الإدارة بإلغاء طلبك رقم ${shopOrder._id.toString().slice(-6)}.`,
                 type: 'order_update',
                 relatedId: shopOrder._id
@@ -183,7 +183,7 @@ router.put('/shop-orders/:id/cancel-force', protect, requirePermission('manage_o
                 if (io) io.to(place.ownerId.toString()).emit('merchant_order_update', { orderId: shopOrder._id, status: 'cancelled' });
                 await sendNotification(req.app, {
                     userId: place.ownerId,
-                    title: '⚠️ تم إلغاء الطلب إدارياً',
+                    title: 'تم إلغاء الطلب إدارياً',
                     message: `قامت الإدارة بإلغاء طلب المتجر رقم ${shopOrder._id.toString().slice(-6)}. تم إرجاع المخزون.`,
                     type: 'order_update',
                     relatedId: shopOrder._id
@@ -301,7 +301,7 @@ router.put('/orders/:id/cancel-force', protect, requirePermission('manage_orders
             if (io) io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
             await sendNotification(req.app, {
                 userId: order.client,
-                title: '⚠️ تم إلغاء الطلب إدارياً',
+                title: 'تم إلغاء الطلب إدارياً',
                 message: `قامت الإدارة بإلغاء طلبك رقم ${order._id.toString().slice(-6)}.`,
                 type: 'order_update',
                 relatedId: order._id
@@ -313,7 +313,7 @@ router.put('/orders/:id/cancel-force', protect, requirePermission('manage_orders
             if (io) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
             await sendNotification(req.app, {
                 userId: order.captain,
-                title: '⚠️ تم إلغاء الطلب إدارياً',
+                title: 'تم إلغاء الطلب إدارياً',
                 message: `قامت الإدارة بإلغاء الطلب الذي تم تعيينه لك.`,
                 type: 'order_update',
                 relatedId: order._id
@@ -379,7 +379,7 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
             }
             await sendNotification(req.app, {
                 userId: oldCaptainId,
-                title: '⚠️ تم نقل الطلب',
+                title: 'تم نقل الطلب',
                 message: `قامت الإدارة بنقل الطلب #${order._id.toString().slice(-6)} إلى كابتن آخر.`,
                 type: 'order_update',
                 relatedId: order._id
@@ -395,7 +395,7 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
         }
         await sendNotification(req.app, {
             userId: newCaptainId,
-            title: '🚀 تم تعيينك على طلب',
+            title: 'تم تعيينك على طلب',
             message: `قامت الإدارة بتعيينك على الطلب #${order._id.toString().slice(-6)}.`,
             type: 'order_accepted',
             relatedId: order._id
@@ -404,7 +404,7 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
         // Notify client
         if (io) {
             io.to(order.client.toString()).emit('new_notification', {
-                title: '🔄 تم تغيير الكابتن',
+                title: 'تم تغيير الكابتن',
                 message: `قامت الإدارة بتعيين الكابتن ${newCaptain.name} على طلبك.`,
                 type: 'order_update'
             });
@@ -490,20 +490,21 @@ router.put('/orders/:id', protect, requirePermission('manage_orders'), async (re
                 try {
                     const commissionAmount = order.appFee || 0;
                     if (commissionAmount > 0) {
-                        const updatedCaptain = await User.findByIdAndUpdate(
+                        const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
+                        const creditLimit = liveSettings?.defaultCreditLimit ?? -5000;
+                        const updatedCaptainBefore = await User.findByIdAndUpdate(
                             order.captain,
-                            { $inc: { wallet_balance: -commissionAmount } },
-                            { new: true }
+                            [
+                                { $set: { wallet_balance: { $subtract: ["$wallet_balance", commissionAmount] } } },
+                                { $set: { is_blocked: { $cond: { if: { $lte: ["$wallet_balance", creditLimit] }, then: true, else: "$is_blocked" } } } }
+                            ],
+                            { new: false }
                         );
+                        const updatedCaptain = await User.findById(order.captain);
                         if (updatedCaptain) {
                             logger.info({ admin: req.user._id, captainId: updatedCaptain._id, orderId: order._id, deducted: commissionAmount, newBalance: updatedCaptain.wallet_balance }, 'Admin completed order — Commission deducted');
                             
-                            const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
-
-                            const creditLimit = liveSettings?.defaultCreditLimit ?? -5000;
-                            if (updatedCaptain.wallet_balance <= creditLimit && !updatedCaptain.is_blocked) {
-                                updatedCaptain.is_blocked = true;
-                                await updatedCaptain.save();
+                            if (updatedCaptainBefore && !updatedCaptainBefore.is_blocked && updatedCaptain.is_blocked) {
                                 const ioForBlock = req.app.get('io');
                                 if (ioForBlock) {
                                     ioForBlock.to(updatedCaptain._id.toString()).emit('wallet_limit_reached', {
