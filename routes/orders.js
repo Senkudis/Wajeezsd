@@ -2248,6 +2248,8 @@ router.get('/:id', protect, async (req, res) => {
             .lean();
 
         // 🏪 Fallback: If req.params.id is a ShopOrder ID instead of a delivery Order ID
+        // يصبح true عندما لا يوجد طلب توصيل مقابل ونبني كائناً اصطناعياً من ShopOrder
+        let isSyntheticShopOrder = false;
         if (!order) {
             const ShopOrder = require('../models/ShopOrder');
             const shopOrder = await ShopOrder.findById(req.params.id)
@@ -2275,6 +2277,7 @@ router.get('/:id', protect, async (req, res) => {
                         place: shopOrder.place,
                         createdAt: shopOrder.createdAt
                     };
+                    isSyntheticShopOrder = true;
                 }
             }
         }
@@ -2286,7 +2289,12 @@ router.get('/:id', protect, async (req, res) => {
         const isClient = order.client && (String(order.client._id || order.client) === userId);
         const isCaptain = order.captain && (String(order.captain._id || order.captain) === userId);
         const isAdmin = req.user.role === 'admin';
+        // ⚠️ الاستثناء أدناه غرضه أن يعاين الكابتن طلب توصيل مطروحاً قبل قبوله.
+        // طلب المتجر الذي لم يُنشأ له طلب توصيل بعد ليس مطروحاً لأحد، وحالته
+        // الاصطناعية 'pending' بلا كابتن كانت تُفعّل الاستثناء وتكشف اسم العميل
+        // ورقم هاتفه لأي كابتن في النظام.
         const isPendingAndUserIsCaptain = (
+            !isSyntheticShopOrder &&
             order.status === 'pending' &&
             !order.captain &&
             req.user.role === 'captain' &&
