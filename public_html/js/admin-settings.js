@@ -37,6 +37,24 @@ async function loadSettings() {
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }
 
+        // ⏱️ عتبات التنبيهات الاستباقية.
+        // الافتراضيات مكرّرة هنا لأن وثائق الإعدادات المنشأة قبل هذه الميزة
+        // لا تحتوي حقل nudges، فتظهر الخانات فارغة بلا هذا السقوط الآمن.
+        const NUDGE_DEFAULTS = {
+            clientDelay1: 30, clientDelay2: 120,
+            captainPickup1: 15, captainPickup2: 40,
+            captainDeliver1: 30, captainDeliver2: 75,
+            gpsStale: 12, chatUnread: 8,
+            creditWarnPct: 80, creditResetPct: 60
+        };
+        const n = settings.nudges || {};
+        for (const [key, fallback] of Object.entries(NUDGE_DEFAULTS)) {
+            const el = document.getElementById(key);
+            if (el) el.value = Number.isFinite(n[key]) ? n[key] : fallback;
+        }
+        const enabledEl = document.getElementById('nudgesEnabled');
+        if (enabledEl) enabledEl.checked = n.enabled !== false;
+
         // Show last update info
         if (settings.updatedAt) {
             const lastUpdateDiv = document.getElementById('currentSettings');
@@ -76,6 +94,57 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         data.minVersion = document.getElementById('minVersion').value.trim();
         data.playStoreLink = document.getElementById('playStoreLink').value.trim();
         data.forceUpdate = document.getElementById('forceUpdate').checked;
+    }
+
+    // ⏱️ عتبات التنبيهات — تُرسل ككائن متداخل يتحقّق منه الخادم
+    const NUDGE_KEYS = [
+        'clientDelay1', 'clientDelay2',
+        'captainPickup1', 'captainPickup2',
+        'captainDeliver1', 'captainDeliver2',
+        'gpsStale', 'chatUnread',
+        'creditWarnPct', 'creditResetPct'
+    ];
+    if (document.getElementById('clientDelay1')) {
+        data.nudges = { enabled: document.getElementById('nudgesEnabled').checked };
+        for (const key of NUDGE_KEYS) {
+            const raw = document.getElementById(key).value;
+            const val = parseFloat(raw);
+            if (!Number.isFinite(val)) {
+                Swal.fire({
+                    icon: 'warning', title: 'تحذير',
+                    text: 'كل عتبات التنبيهات يجب أن تحتوي رقماً صالحاً',
+                    confirmButtonColor: '#667eea'
+                });
+                return;
+            }
+            data.nudges[key] = val;
+        }
+
+        // فحص محلي للترتيب قبل الإرسال — الخادم يفحصه أيضاً، لكن الرد
+        // الفوري أوضح للأدمن من رحلة ذهاب وإياب
+        const ORDERED = [
+            ['clientDelay1', 'clientDelay2', 'تنبيه العميل'],
+            ['captainPickup1', 'captainPickup2', 'تنبيه الاستلام'],
+            ['captainDeliver1', 'captainDeliver2', 'تنبيه التسليم']
+        ];
+        for (const [first, second, label] of ORDERED) {
+            if (data.nudges[second] <= data.nudges[first]) {
+                Swal.fire({
+                    icon: 'warning', title: 'ترتيب العتبات',
+                    text: `${label} الثاني يجب أن يكون أكبر من الأول`,
+                    confirmButtonColor: '#667eea'
+                });
+                return;
+            }
+        }
+        if (data.nudges.creditResetPct >= data.nudges.creditWarnPct) {
+            Swal.fire({
+                icon: 'warning', title: 'ترتيب النسب',
+                text: 'نسبة تصفير التحذير يجب أن تكون أقل من نسبة التحذير',
+                confirmButtonColor: '#667eea'
+            });
+            return;
+        }
     }
 
     // Validation

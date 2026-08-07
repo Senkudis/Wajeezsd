@@ -168,42 +168,115 @@ const startScheduler = (app) => {
     //
     // كل عتبة تُرسل مرة واحدة لكل طلب — delayNoticesSent يمنع التكرار
     // مهما مرّ المجدول (كل ٥ دقائق) على الطلب نفسه.
-    // key وafterMin هما ما يقرؤه planNudge — انظر utils/nudgePlanner.js
-    const DELAY_NOTICES = [
-        {
-            key: 30, afterMin: 30,
+    //
+    // ⚠️ المفتاح ثابت ('delay1') ولا يحمل قيمة الدقائق. لو كان المفتاح هو
+    // الرقم نفسه، لأدّى تعديل الأدمن للعتبة من ٣٠ إلى ٤٥ إلى عدم تطابق
+    // العلامة المخزّنة فيُعاد إشعار كل طلب سبق إشعاره.
+    // afterMin تُقرأ من إعدادات المدينة وقت التشغيل — انظر nudgeConfigFor.
+    const DELAY_NOTICE_TEXT = {
+        delay1: {
             title: 'ما زلنا نبحث لك عن كابتن',
             message: 'طلبك ما زال معروضاً على الكباتن القريبين. سنخبرك فور قبوله.'
         },
-        {
-            key: 120, afterMin: 120,
+        delay2: {
             title: 'طلبك يستغرق وقتاً أطول من المعتاد',
             message: 'لم يقبل أي كابتن طلبك حتى الآن. يمكنك رفع سعر التوصيل لجذب الكباتن، أو إلغاء الطلب دون أي رسوم.'
         }
-    ];
+    };
+
+    // 🔁 علامات النسخة السابقة (قيم رقمية، ومفاتيح تحمل الدقائق). تُترجَم
+    // عند القراءة كي لا يتلقّى طلبٌ قيد التنفيذ وقت النشر إشعاراً مكرّراً.
+    const LEGACY_NUDGE_KEYS = {
+        30: 'delay1', 120: 'delay2',
+        pickup_15: 'pickup_1', pickup_40: 'pickup_2',
+        deliver_30: 'deliver_1', deliver_75: 'deliver_2'
+    };
+    const normalizeSentKeys = (arr) =>
+        (arr || []).map(k => LEGACY_NUDGE_KEYS[k] ?? LEGACY_NUDGE_KEYS[String(k)] ?? k);
+
+    /** عتبات مدينة واحدة، بصيغة planNudge */
+    const nudgeConfigFor = (n) => ({
+        clientDelay: [
+            { key: 'delay1', afterMin: n.clientDelay1, ...DELAY_NOTICE_TEXT.delay1 },
+            { key: 'delay2', afterMin: n.clientDelay2, ...DELAY_NOTICE_TEXT.delay2 }
+        ],
+        accepted: [
+            {
+                key: 'pickup_1', afterMin: n.captainPickup1,
+                title: 'هل وصلت لنقطة الاستلام؟',
+                message: `مرّ ${n.captainPickup1} دقيقة على قبولك الطلب. إن تأخّرت، اتصل بالعميل وأخبره — انتظارٌ بلا خبر هو أكثر ما يفقدنا العملاء.`
+            },
+            {
+                key: 'pickup_2', afterMin: n.captainPickup2,
+                title: 'الطلب ما زال بانتظار الاستلام',
+                message: `مرّ ${n.captainPickup2} دقيقة ولم تستلم الطرد بعد. إن حدث ما يمنعك، تواصل مع العميل أو مع الإدارة لإعادة إسناد الطلب.`
+            }
+        ],
+        picked_up: [
+            {
+                key: 'deliver_1', afterMin: n.captainDeliver1,
+                title: 'هل حصل شيء في الطريق؟',
+                message: `مرّ ${n.captainDeliver1} دقيقة على استلامك الطرد. لو تأخّرت لزحام أو عطل، اتصل بالعميل — رسالة قصيرة تكفي لطمأنته.`
+            },
+            {
+                key: 'deliver_2', afterMin: n.captainDeliver2,
+                title: 'التوصيل استغرق وقتاً طويلاً',
+                message: `مرّ ${n.captainDeliver2} دقيقة على استلام الطرد ولم يُسجَّل التسليم. إن كنت قد سلّمته فعلاً، اضغط "تم التسليم" في المهمة. وإن واجهتك مشكلة، تواصل مع الإدارة.`
+            }
+        ]
+    });
+
+    const NUDGE_CITIES = ['Khartoum', 'PortSudan'];
+
+    /** يحمّل عتبات كل المدن مرة واحدة لكل دورة مجدول */
+    async function loadNudgeSettings() {
+        const Settings = require('./models/Settings');
+        const map = new Map();
+        for (const city of NUDGE_CITIES) {
+            try {
+                map.set(city, await Settings.getNudgeSettings(city));
+            } catch (err) {
+                logger.warn({ err: err?.message, city }, 'Nudge settings load failed — using defaults');
+                map.set(city, { ...Settings.NUDGE_DEFAULTS });
+            }
+        }
+        // مدينة غير معروفة على وثيقة قديمة ⇒ إعدادات الخرطوم
+        return (city) => map.get(city) || map.get('Khartoum');
+    }
 
     cron.schedule('*/5 * * * *', async () => {
         const mongoose = require('mongoose');
         if (mongoose.connection.readyState !== 1) return;
         try {
             const now = Date.now();
-            const minThreshold = Math.min(...DELAY_NOTICES.map(n => n.afterMin));
+            const nudgeFor = await loadNudgeSettings();
 
-            // نجلب كل طلب تجاوز أدنى عتبة، ثم planNudge يقرّر أي رسالة تستحقّها
-            // حالته — استعلام واحد بدل استعلام لكل عتبة، والقرار في وحدة مختبَرة.
+            // أضيق عتبة عبر كل المدن — نجلب المرشّحين بها ثم يُطبَّق على كل
+            // طلب سقفُ مدينته. استعلام واحد بدل استعلام لكل مدينة ولكل عتبة.
+            const minThreshold = Math.min(
+                ...NUDGE_CITIES.map(c => nudgeFor(c).clientDelay1)
+            );
+
             const candidates = await Order.find({
                 status: 'pending',
                 captain: null,
                 createdAt: { $lte: new Date(now - minThreshold * 60 * 1000) }
             })
-                .select('_id client createdAt delayNoticesSent')
+                .select('_id client city createdAt delayNoticesSent')
                 .limit(300)
                 .lean();
 
             for (const order of candidates) {
                 if (!order.client) continue;
+                const cityNudges = nudgeFor(order.city);
+                if (!cityNudges.enabled) continue;
+
                 const ageMin = (now - new Date(order.createdAt).getTime()) / 60000;
-                const plan = planNudge(DELAY_NOTICES, ageMin, order.delayNoticesSent || []);
+                const plan = planNudge(
+                    nudgeConfigFor(cityNudges).clientDelay,
+                    ageMin,
+                    normalizeSentKeys(order.delayNoticesSent)
+                );
                 if (!plan) continue;
 
                 const notice = plan.fire;
@@ -250,35 +323,11 @@ const startScheduler = (app) => {
     //
     // كل مفتاح يُرسل مرة واحدة لكل طلب: captainNudges يمنع التكرار
     // مهما مرّ المجدول على المهمة نفسها.
-    const CAPTAIN_NUDGES = [
-        // قَبِل الطلب ولم يستلم الطرد بعد
-        {
-            key: 'pickup_15', stage: 'accepted', afterMin: 15,
-            title: 'هل وصلت لنقطة الاستلام؟',
-            message: 'مرّ ١٥ دقيقة على قبولك الطلب. إن تأخّرت، اتصل بالعميل وأخبره — انتظارٌ بلا خبر هو أكثر ما يفقدنا العملاء.'
-        },
-        {
-            key: 'pickup_40', stage: 'accepted', afterMin: 40,
-            title: 'الطلب ما زال بانتظار الاستلام',
-            message: 'مرّ ٤٠ دقيقة ولم تستلم الطرد بعد. إن حدث ما يمنعك، تواصل مع العميل أو مع الإدارة لإعادة إسناد الطلب.'
-        },
-        // استلم الطرد ولم يسلّمه بعد
-        {
-            key: 'deliver_30', stage: 'picked_up', afterMin: 30,
-            title: 'هل حصل شيء في الطريق؟',
-            message: 'مرّ ٣٠ دقيقة على استلامك الطرد. لو تأخّرت لزحام أو عطل، اتصل بالعميل — رسالة قصيرة تكفي لطمأنته.'
-        },
-        {
-            key: 'deliver_75', stage: 'picked_up', afterMin: 75,
-            title: 'التوصيل استغرق وقتاً طويلاً',
-            message: 'مرّ ٧٥ دقيقة على استلام الطرد ولم يُسجَّل التسليم. إن كنت قد سلّمته فعلاً، اضغط "تم التسليم" في المهمة. وإن واجهتك مشكلة، تواصل مع الإدارة.'
-        }
-    ];
+    // العتبات والنصوص تُبنى من إعدادات المدينة — انظر nudgeConfigFor أعلاه.
+    // المراحل المرتبطة بحالة الطلب: 'accepted' يقاس من acceptedAt،
+    // و'picked_up' من pickedUpAt.
+    const NUDGE_STAGES = ['accepted', 'picked_up'];
 
-    // كم دقيقة بلا تحديث موقع تُعدّ "تتبّعاً متوقّفاً" أثناء مهمة نشطة
-    const GPS_STALE_MIN = 12;
-    // كم دقيقة تبقى رسالة العميل بلا قراءة قبل تذكير الكابتن
-    const CHAT_NUDGE_MIN = 8;
     // 🛡️ سقف عمري لكل تنبيه. بدونه يُطلق أول تشغيل بعد النشر موجةَ تنبيهات
     // عن كل مهمة ورسالة قديمة في قاعدة البيانات دفعةً واحدة — والتنبيه عن
     // رسالة عمرها أسبوعان بلا فائدة أصلاً.
@@ -315,39 +364,57 @@ const startScheduler = (app) => {
             }
         }
 
+        const nudgeFor = await loadNudgeSettings();
+
         // ── ١. تأخّر الاستلام والتسليم ──────────────────────────
         try {
             const now = Date.now();
-            // الأطول عمراً أولاً: مهمة تجاوزت ٧٥ دقيقة تستحق رسالتها لا رسالة الـ٣٠
-            const ordered = [...CAPTAIN_NUDGES].sort((a, b) => b.afterMin - a.afterMin);
 
-            for (const nudge of ordered) {
-                const cutoff = new Date(now - nudge.afterMin * 60 * 1000);
-                // الطابع الذي نقيس منه يتبع المرحلة: القبول للاستلام، الاستلام للتسليم
-                const stampField = nudge.stage === 'accepted' ? 'acceptedAt' : 'pickedUpAt';
+            for (const stage of NUDGE_STAGES) {
+                const stampField = stage === 'accepted' ? 'acceptedAt' : 'pickedUpAt';
+
+                // أضيق عتبة عبر المدن لجلب المرشّحين، ثم يُطبَّق سقف كل مدينة
+                const minAfter = Math.min(
+                    ...NUDGE_CITIES.map(c => {
+                        const list = nudgeConfigFor(nudgeFor(c))[stage];
+                        return Math.min(...list.map(n => n.afterMin));
+                    })
+                );
 
                 const due = await Order.find({
-                    status: nudge.stage,
+                    status: stage,
                     captain: { $ne: null },
-                    [stampField]: { $ne: null, $lte: cutoff, $gte: new Date(now - NUDGE_MAX_AGE_MS) },
-                    captainNudges: { $ne: nudge.key }
+                    [stampField]: {
+                        $ne: null,
+                        $lte: new Date(now - minAfter * 60 * 1000),
+                        $gte: new Date(now - NUDGE_MAX_AGE_MS)
+                    }
                 })
-                    .select('_id captain')
-                    .limit(200)
+                    .select(`_id captain city captainNudges ${stampField}`)
+                    .limit(300)
                     .lean();
-
-                // العتبات الأدنى في المرحلة نفسها تُستهلك مع هذه العتبة
-                const consume = CAPTAIN_NUDGES
-                    .filter(n => n.stage === nudge.stage && n.afterMin < nudge.afterMin)
-                    .map(n => n.key);
 
                 for (const order of due) {
                     if (!order.captain) continue;
-                    await nudgeOnce(order, nudge.key, {
-                        title: nudge.title,
-                        message: nudge.message,
+                    const cityNudges = nudgeFor(order.city);
+                    if (!cityNudges.enabled) continue;
+
+                    const stamp = order[stampField];
+                    if (!stamp) continue;
+                    const ageMin = (now - new Date(stamp).getTime()) / 60000;
+
+                    const plan = planNudge(
+                        nudgeConfigFor(cityNudges)[stage],
+                        ageMin,
+                        normalizeSentKeys(order.captainNudges)
+                    );
+                    if (!plan) continue;
+
+                    await nudgeOnce(order, plan.fire.key, {
+                        title: plan.fire.title,
+                        message: plan.fire.message,
                         type: 'order_update'
-                    }, consume);
+                    }, plan.consume);
                 }
             }
         } catch (error) {
@@ -358,14 +425,15 @@ const startScheduler = (app) => {
         // العميل يرى مؤشّر الكابتن جامداً على الخريطة ويظنّه متوقّفاً أو
         // مهملاً. السبب الغالب إذنُ موقعٍ سُحب أو التطبيق أُغلق في الخلفية.
         try {
-            const staleBefore = new Date(Date.now() - GPS_STALE_MIN * 60 * 1000);
+            // لا ترشيح زمني في الاستعلام: نافذة التقادم تُقيَّم لكل طلب
+            // بحسب مدينته أدناه، والمهام النشطة قليلة أصلاً.
             const active = await Order.find({
                 status: { $in: ['accepted', 'picked_up'] },
                 captain: { $ne: null },
                 captainNudges: { $ne: 'gps_stale' }
             })
-                .select('_id captain')
-                .limit(200)
+                .select('_id captain city')
+                .limit(300)
                 .lean();
 
             if (active.length) {
@@ -373,14 +441,17 @@ const startScheduler = (app) => {
                 const captains = await User.find({ _id: { $in: captainIds } })
                     .select('currentLocation.updatedAt')
                     .lean();
-                const staleSet = new Set(
-                    captains
-                        .filter(c => !c.currentLocation?.updatedAt || c.currentLocation.updatedAt < staleBefore)
-                        .map(c => String(c._id))
+                const lastSeen = new Map(
+                    captains.map(c => [String(c._id), c.currentLocation?.updatedAt || null])
                 );
 
                 for (const order of active) {
-                    if (!staleSet.has(String(order.captain))) continue;
+                    const cityNudges = nudgeFor(order.city);
+                    if (!cityNudges.enabled) continue;
+
+                    const seen = lastSeen.get(String(order.captain));
+                    const cityCutoff = new Date(Date.now() - cityNudges.gpsStale * 60 * 1000);
+                    if (seen && new Date(seen) >= cityCutoff) continue;
                     await nudgeOnce(order, 'gps_stale', {
                         title: 'تتبّع موقعك متوقّف',
                         message: 'العميل يتابع رحلتك على الخريطة ولا يرى تحرّكك. افتح التطبيق وتأكّد أن إذن الموقع مفعّل.',
@@ -395,35 +466,47 @@ const startScheduler = (app) => {
         // ── ٣. رسالة عميل بلا قراءة ────────────────────────────
         try {
             const Message = require('./models/Message');
-            const cutoff = new Date(Date.now() - CHAT_NUDGE_MIN * 60 * 1000);
+            // ⚠️ أضيق نافذة للجلب لا أوسعها: النافذة الواسعة تُقصي رسالةً
+            // استحقّت التذكير في مدينةٍ نافذتها أضيق، لأن createdAt يكون
+            // أحدث من عتبة الجلب فلا تظهر في النتيجة أصلاً.
+            const minUnread = Math.min(...NUDGE_CITIES.map(c => nudgeFor(c).chatUnread));
+            const cutoff = new Date(Date.now() - minUnread * 60 * 1000);
 
             const waiting = await Message.find({
                 isRead: false,
                 nudgedAt: null,
                 createdAt: { $lte: cutoff, $gte: new Date(Date.now() - NUDGE_MAX_AGE_MS) }
             })
-                .select('_id sender receiver order')
-                .limit(200)
+                .select('_id sender receiver order createdAt')
+                .limit(300)
                 .lean();
 
             for (const msg of waiting) {
-                // المطالبة أولاً: أي فشل لاحق لا يُعيد المحاولة إلى الأبد
+                // نُذكّر الكابتن وحده: العميل ينتظر ردّاً، والكابتن هو من
+                // يملك الإجابة. الطلب المنتهي لا يستحق تذكيراً.
+                const order = await Order.findOne({
+                    _id: msg.order,
+                    status: { $in: ['pending', 'accepted', 'picked_up'] }
+                }).select('_id city').lean();
+                if (!order) continue;
+
+                const cityNudges = nudgeFor(order.city);
+                if (!cityNudges.enabled) continue;
+
+                // ⏳ الفحص قبل المطالبة: المطالبة تضبط nudgedAt نهائياً، فلو
+                // سبقت الفحص لأُهدر تذكير رسالةٍ لم تبلغ نافذة مدينتها بعد.
+                const ageMin = (Date.now() - new Date(msg.createdAt).getTime()) / 60000;
+                if (ageMin < cityNudges.chatUnread) continue;
+
+                const receiver = await User.findById(msg.receiver).select('role').lean();
+                if (!receiver || receiver.role !== 'captain') continue;
+
+                // المطالبة الذرّية أخيراً — أي فشل بعدها لا يُعيد المحاولة للأبد
                 const claimed = await Message.updateOne(
                     { _id: msg._id, nudgedAt: null },
                     { $set: { nudgedAt: new Date() } }
                 );
                 if (!claimed.modifiedCount) continue;
-
-                // نُذكّر الكابتن وحده: العميل ينتظر ردّاً، والكابتن هو من
-                // يملك الإجابة. الطلب المنتهي لا يستحق تذكيراً.
-                const receiver = await User.findById(msg.receiver).select('role').lean();
-                if (!receiver || receiver.role !== 'captain') continue;
-
-                const order = await Order.findOne({
-                    _id: msg.order,
-                    status: { $in: ['pending', 'accepted', 'picked_up'] }
-                }).select('_id').lean();
-                if (!order) continue;
 
                 try {
                     await sendNotification(app, {
@@ -451,23 +534,26 @@ const startScheduler = (app) => {
                 is_blocked: false,
                 wallet_balance: { $lt: 0 }
             })
-                .select('wallet_balance credit_limit creditWarnedAt')
+                .select('wallet_balance credit_limit creditWarnedAt city')
                 .limit(500)
                 .lean();
 
             for (const cap of captains) {
+                const cityNudges = nudgeFor(cap.city);
+                if (!cityNudges.enabled) continue;
+
                 const limit = cap.credit_limit ?? -5000;
                 if (!limit) continue;
                 const usedPct = Math.min(100, Math.max(0, (cap.wallet_balance / limit) * 100));
 
                 // تعافى الرصيد ⇒ صفّر التحذير كي يعمل في الدورة التالية
-                if (usedPct < 60) {
+                if (usedPct < cityNudges.creditResetPct) {
                     if (cap.creditWarnedAt) {
                         await User.updateOne({ _id: cap._id }, { $set: { creditWarnedAt: null } });
                     }
                     continue;
                 }
-                if (usedPct < 80 || cap.creditWarnedAt) continue;
+                if (usedPct < cityNudges.creditWarnPct || cap.creditWarnedAt) continue;
 
                 const claimed = await User.updateOne(
                     { _id: cap._id, creditWarnedAt: null },

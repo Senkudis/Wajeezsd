@@ -93,11 +93,11 @@ const settingsSchema = new mongoose.Schema({
     // 📱 App Update System
     appVersion: {
         type: String,
-        default: '1.0.9'  // أحدث إصدار للتطبيق
+        default: '1.1.2'  // أحدث إصدار للتطبيق
     },
     minVersion: {
         type: String,
-        default: '1.0.9'  // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
+        default: '1.1.2'  // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
     },
     playStoreLink: {
         type: String,
@@ -120,6 +120,39 @@ const settingsSchema = new mongoose.Schema({
             { lat: 15.450, lng: 32.650 },
             { lat: 15.450, lng: 32.400 }
         ]
+    },
+
+    // ⏱️ عتبات التنبيهات الاستباقية — بالدقائق ما لم يُذكر غير ذلك.
+    // كانت ثابتة في scheduler.js، ونقلها هنا يتيح للإدارة ضبطها لكل مدينة
+    // على حدة: مدينة صغيرة يُقبل فيها الطلب خلال دقائق تحتاج عتبات أضيق
+    // من مدينة تمتدّ فيها المسافات.
+    nudges: {
+        // مفتاح إيقاف عام — يوقف كل التنبيهات الاستباقية لهذه المدينة
+        enabled: { type: Boolean, default: true },
+
+        // العميل: الطلب معلّق ولم يقبله كابتن
+        clientDelay1: { type: Number, default: 30,  min: 1, max: 1440 },
+        clientDelay2: { type: Number, default: 120, min: 1, max: 1440 },
+
+        // الكابتن: قَبِل الطلب ولم يستلم الطرد
+        captainPickup1: { type: Number, default: 15, min: 1, max: 1440 },
+        captainPickup2: { type: Number, default: 40, min: 1, max: 1440 },
+
+        // الكابتن: استلم الطرد ولم يسلّمه
+        captainDeliver1: { type: Number, default: 30, min: 1, max: 1440 },
+        captainDeliver2: { type: Number, default: 75, min: 1, max: 1440 },
+
+        // تتبّع الموقع متوقّف أثناء مهمة نشطة
+        gpsStale: { type: Number, default: 12, min: 1, max: 240 },
+
+        // رسالة عميل بلا قراءة
+        chatUnread: { type: Number, default: 8, min: 1, max: 240 },
+
+        // تحذير الحد الائتماني — نسبة مئوية لا دقائق.
+        // warnPct: عند بلوغها يُرسل التحذير. resetPct: عند الهبوط دونها
+        // يُصفَّر التحذير كي يعمل في دورة المديونية التالية.
+        creditWarnPct:  { type: Number, default: 80, min: 50, max: 99 },
+        creditResetPct: { type: Number, default: 60, min: 0,  max: 98 }
     },
 
     // Metadata (updatedAt is auto-managed by timestamps: true)
@@ -150,6 +183,45 @@ settingsSchema.statics.getSettings = async function (city = 'Khartoum') {
     return doc;
 };
 
+// القيم الافتراضية لعتبات التنبيه — مصدر واحد يقرأ منه الخادم والواجهة.
+// ⚠️ لا يمكن الاعتماد على defaults في المخطّط وحدها: getSettings تستخدم
+// .lean() فتُعيد BSON خاماً بلا تطبيق الافتراضيات، ووثائق الإعدادات
+// المنشأة قبل هذه الميزة لا تحتوي حقل nudges أصلاً.
+const NUDGE_DEFAULTS = Object.freeze({
+    enabled: true,
+    clientDelay1: 30,
+    clientDelay2: 120,
+    captainPickup1: 15,
+    captainPickup2: 40,
+    captainDeliver1: 30,
+    captainDeliver2: 75,
+    gpsStale: 12,
+    chatUnread: 8,
+    creditWarnPct: 80,
+    creditResetPct: 60
+});
+
+/**
+ * عتبات التنبيه لمدينة، مدموجة فوق الافتراضيات.
+ * أي حقل ناقص أو غير رقمي يعود لقيمته الافتراضية — إعداد واحد تالف
+ * يجب ألا يُعطّل كل التنبيهات.
+ */
+settingsSchema.statics.getNudgeSettings = async function (city = 'Khartoum') {
+    const settings = await this.getSettings(city);
+    const stored = (settings && settings.nudges) || {};
+    const merged = { ...NUDGE_DEFAULTS };
+
+    for (const key of Object.keys(NUDGE_DEFAULTS)) {
+        const val = stored[key];
+        if (key === 'enabled') {
+            if (typeof val === 'boolean') merged.enabled = val;
+        } else if (typeof val === 'number' && Number.isFinite(val) && val > 0) {
+            merged[key] = val;
+        }
+    }
+    return merged;
+};
+
 // Helper method to get profit percentage for a specific city
 settingsSchema.statics.getProfitPercentage = async function (city = 'Khartoum') {
     const settings = await this.getSettings(city);
@@ -157,3 +229,5 @@ settingsSchema.statics.getProfitPercentage = async function (city = 'Khartoum') 
 };
 
 module.exports = mongoose.model('Settings', settingsSchema);
+// تُصدَّر ليعرضها مسار الإدارة كقيم مرجعية في نموذج الضبط
+module.exports.NUDGE_DEFAULTS = NUDGE_DEFAULTS;

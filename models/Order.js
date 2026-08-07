@@ -93,10 +93,14 @@ const OrderSchema = new mongoose.Schema(
         cancelReasonCode: { type: String, default: null },
         cancelledAt: { type: Date, default: null },
 
-        // ⏳ عتبات التأخير التي أُرسل عنها تنبيه لهذا الطلب (بالدقائق).
+        // ⏳ مفاتيح تنبيهات التأخير المُرسلة لهذا الطلب ('delay1' / 'delay2').
         // مصفوفة لا علَم واحد: كل عتبة تُرسل مرة واحدة فقط مهما تكرّر مرور
         // المجدول، ومن دون هذا السجل يتلقّى العميل التنبيه نفسه كل خمس دقائق.
-        delayNoticesSent: { type: [Number], default: [] },
+        //
+        // النوع String لا Number: العتبات صارت قابلة للضبط من لوحة الإدارة،
+        // فلو كان المفتاح هو الرقم لأدّى تعديل ٣٠ إلى ٤٥ إلى إعادة إشعار كل
+        // طلب سبق إشعاره. وثائق قديمة قد تحمل أرقاماً — scheduler.js يترجمها.
+        delayNoticesSent: { type: [String], default: [] },
 
         // 🏍️ تنبيهات الكابتن المُرسلة لهذا الطلب — مفاتيح نصّية مثل
         // 'pickup_15' و'deliver_30' و'gps_stale'. نصّية لا رقمية لأن

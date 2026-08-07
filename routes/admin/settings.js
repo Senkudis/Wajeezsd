@@ -141,6 +141,76 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             }
         }
 
+        // ⏱️ عتبات التنبيهات الاستباقية — كائن متداخل، فيُعالَج على حدة.
+        // نكتب كل مفتاح بمساره الكامل (nudges.x) لا ككائن واحد: الكتابة
+        // ككائن تمسح أي حقل لم يُرسل في هذا الطلب.
+        if (req.body.nudges && typeof req.body.nudges === 'object') {
+            const incoming = req.body.nudges;
+
+            // الحدود مُكرّرة هنا رغم وجودها في المخطّط، كي تعود للأدمن رسالة
+            // عربية تسمّي الحقل بدل رسالة mongoose الإنجليزية العامة
+            const RANGES = {
+                clientDelay1: [1, 1440], clientDelay2: [1, 1440],
+                captainPickup1: [1, 1440], captainPickup2: [1, 1440],
+                captainDeliver1: [1, 1440], captainDeliver2: [1, 1440],
+                gpsStale: [1, 240], chatUnread: [1, 240],
+                creditWarnPct: [50, 99], creditResetPct: [0, 98]
+            };
+            const LABELS = {
+                clientDelay1: 'تنبيه العميل الأول', clientDelay2: 'تنبيه العميل الثاني',
+                captainPickup1: 'تنبيه الاستلام الأول', captainPickup2: 'تنبيه الاستلام الثاني',
+                captainDeliver1: 'تنبيه التسليم الأول', captainDeliver2: 'تنبيه التسليم الثاني',
+                gpsStale: 'توقّف التتبّع', chatUnread: 'رسالة بلا رد',
+                creditWarnPct: 'نسبة تحذير المديونية', creditResetPct: 'نسبة تصفير التحذير'
+            };
+
+            // القيم النهائية = المرسَل فوق المخزَّن فوق الافتراضي، كي تُفحص
+            // العلاقات بين الحقول حتى لو أرسلت الواجهة حقلاً واحداً
+            const current = await Settings.getNudgeSettings(city);
+            const merged = { ...current };
+
+            if (incoming.enabled !== undefined) {
+                merged.enabled = !!incoming.enabled;
+                updates['nudges.enabled'] = merged.enabled;
+            }
+
+            for (const key of Object.keys(RANGES)) {
+                if (incoming[key] === undefined) continue;
+                const val = parseFloat(incoming[key]);
+                if (!Number.isFinite(val)) {
+                    return res.status(400).json({ message: `قيمة "${LABELS[key]}" غير صالحة` });
+                }
+                const [min, max] = RANGES[key];
+                if (val < min || val > max) {
+                    return res.status(400).json({
+                        message: `"${LABELS[key]}" يجب أن تكون بين ${min} و${max}`
+                    });
+                }
+                merged[key] = val;
+                updates[`nudges.${key}`] = val;
+            }
+
+            // ترتيب العتبات: التنبيه الثاني بعد الأول دائماً، وإلا لن ينطلق
+            // الأول أبداً (planNudge يختار الأعلى المستحقّة ويستهلك ما دونها)
+            const ORDERED_PAIRS = [
+                ['clientDelay1', 'clientDelay2'],
+                ['captainPickup1', 'captainPickup2'],
+                ['captainDeliver1', 'captainDeliver2']
+            ];
+            for (const [first, second] of ORDERED_PAIRS) {
+                if (merged[second] <= merged[first]) {
+                    return res.status(400).json({
+                        message: `"${LABELS[second]}" يجب أن تكون أكبر من "${LABELS[first]}"`
+                    });
+                }
+            }
+            if (merged.creditResetPct >= merged.creditWarnPct) {
+                return res.status(400).json({
+                    message: `"${LABELS.creditResetPct}" يجب أن تكون أقل من "${LABELS.creditWarnPct}"`
+                });
+            }
+        }
+
         // 🌍 CITY-AWARE: findOneAndUpdate scoped to the target city
         // upsert:true ensures a new city doc is created if it doesn't exist yet
         const settings = await Settings.findOneAndUpdate(
