@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>صوت العميل | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <style>
+        :root {
+            --primary: #048c5b;
+            --accent: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary), #0A6E47);
+            padding: 20px 24px; display: flex; align-items: center;
+            justify-content: space-between; box-shadow: 0 4px 20px rgba(10, 135, 84, .25);
+        }
+        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
+        .page-header a {
+            color: rgba(255, 255, 255, .85); text-decoration: none; font-size: .9rem;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .page-header a:hover { color: #fff; }
+
+        .main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+        .stats-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-chip {
+            background: #fff; border-radius: 12px; padding: 12px 20px; display: flex;
+            align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+            border: 1px solid #e2e8f0; flex: 1; min-width: 130px;
+        }
+        .stat-chip .num { font-size: 1.4rem; font-weight: 800; }
+        .stat-chip .lbl { font-size: .8rem; color: #64748b; }
+        .stat-chip .icon {
+            width: 36px; height: 36px; border-radius: 10px; display: flex;
+            align-items: center; justify-content: center; font-size: 1rem;
+        }
+
+        /* لوحة الأسباب — الغاية الحقيقية من الصفحة: لماذا يتسرّب العملاء */
+        .reasons {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+            padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0, 0, 0, .05);
+        }
+        .reasons h2 {
+            font-size: 1rem; font-weight: 800; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .reason-row { display: flex; align-items: center; gap: 12px; margin-bottom: 9px; }
+        .reason-lbl { font-size: .88rem; font-weight: 600; min-width: 175px; }
+        .reason-bar { flex: 1; height: 22px; background: #f1f5f9; border-radius: 6px; overflow: hidden; }
+        .reason-fill {
+            height: 100%; border-radius: 6px;
+            background: linear-gradient(90deg, #f59e0b, #dc2626); min-width: 2px;
+        }
+        .reason-num { font-size: .85rem; font-weight: 800; min-width: 62px; text-align: left; color: #475569; }
+        .empty-note { color: #94a3b8; font-size: .88rem; padding: 8px 0; }
+
+        .filter-bar {
+            background: #fff; border-radius: 14px; padding: 16px 20px; display: flex;
+            gap: 12px; flex-wrap: wrap; align-items: flex-end;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .05); border: 1px solid #e2e8f0; margin-bottom: 20px;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: .8rem; font-weight: 700; color: #64748b; }
+        .filter-group select {
+            padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            font-family: 'Tajawal', sans-serif; font-size: .9rem; background: #f8fafc;
+            color: #1e293b; outline: none;
+        }
+        .filter-group select:focus { border-color: var(--primary); background: #fff; }
+
+        .btn {
+            padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif;
+            font-size: .9rem; font-weight: 700; cursor: pointer; display: inline-flex;
+            align-items: center; gap: 7px; transition: all .2s;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #033A27; }
+        .btn-sm { padding: 6px 12px; font-size: .82rem; }
+        .btn-review { background: #dcfce7; color: #166534; }
+        .btn-undo { background: #f1f5f9; color: #475569; }
+
+        .table-wrap {
+            background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+            border: 1px solid #e2e8f0; overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 760px; }
+        th {
+            background: #f8fafc; padding: 13px 14px; text-align: right; font-size: .84rem;
+            font-weight: 800; color: #475569; border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+        }
+        td { padding: 13px 14px; border-bottom: 1px solid #f1f5f9; font-size: .88rem; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+
+        .pill {
+            display: inline-block; padding: 3px 11px; border-radius: 999px;
+            font-size: .76rem; font-weight: 800; white-space: nowrap;
+        }
+        .pill-cancel { background: #fee2e2; color: #b91c1c; }
+        .pill-first { background: #dbeafe; color: #1d4ed8; }
+        .pill-new { background: #fef3c7; color: #b45309; }
+        .pill-done { background: #dcfce7; color: #166534; }
+
+        .msg { color: #334155; line-height: 1.7; max-width: 380px; white-space: pre-wrap; word-break: break-word; }
+        .muted { color: #94a3b8; }
+        .stars { color: #f59e0b; letter-spacing: 1px; white-space: nowrap; }
+        .admin-note {
+            margin-top: 6px; font-size: .8rem; color: #64748b;
+            border-right: 3px solid #e2e8f0; padding-right: 8px;
+        }
+
+        .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+        .pagination button {
+            padding: 7px 14px; border: 1.5px solid #e2e8f0; background: #fff; border-radius: 8px;
+            cursor: pointer; font-family: 'Tajawal', sans-serif; font-weight: 700; font-size: .85rem;
+        }
+        .pagination button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        @media (max-width: 640px) {
+            .reason-lbl { min-width: 120px; font-size: .8rem; }
+            .main { padding: 16px 10px; }
+        }
+    </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+</head>
+
+<body>
+    <div class="page-header">
+        <h1><i class="fas fa-comment-dots" style="margin-left:8px;"></i> صوت العميل</h1>
+        <a href="admin.html"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+    </div>
+
+    <div class="main">
+        <div class="stats-bar">
+            <div class="stat-chip">
+                <div class="icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-ban"></i></div>
+                <div><div class="num" id="stat-cancel">—</div><div class="lbl">أسباب إلغاء</div></div>
+            </div>
+            <div class="stat-chip">
+                <div class="icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-star"></i></div>
+                <div><div class="num" id="stat-first">—</div><div class="lbl">آراء أول طلب</div></div>
+            </div>
+            <div class="stat-chip">
+                <div class="icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-envelope-open-text"></i></div>
+                <div><div class="num" id="stat-unreviewed">—</div><div class="lbl">لم تُراجَع</div></div>
+            </div>
+            <div class="stat-chip">
+                <div class="icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-simple"></i></div>
+                <div><div class="num" id="stat-avg">—</div><div class="lbl">متوسط التقييم</div></div>
+            </div>
+        </div>
+
+        <div class="reasons">
+            <h2><i class="fas fa-circle-question" style="color:var(--primary);"></i> لماذا يُلغي العملاء طلباتهم؟</h2>
+            <div id="reasonsBox"><div class="empty-note">جاري التحميل...</div></div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>النوع</label>
+                <select id="fKind" onchange="load(1)">
+                    <option value="">الكل</option>
+                    <option value="cancellation">أسباب الإلغاء</option>
+                    <option value="first_order">رأي أول طلب</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>المراجعة</label>
+                <select id="fReviewed" onchange="load(1)">
+                    <option value="">الكل</option>
+                    <option value="false">لم تُراجَع</option>
+                    <option value="true">مُراجَعة</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>الفترة</label>
+                <select id="fDays" onchange="load(1)">
+                    <option value="">كل الفترات</option>
+                    <option value="7">آخر ٧ أيام</option>
+                    <option value="30" selected>آخر ٣٠ يوماً</option>
+                    <option value="90">آخر ٩٠ يوماً</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="load(1)"><i class="fas fa-rotate"></i> تحديث</button>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>النوع</th>
+                        <th>العميل</th>
+                        <th>السبب / التقييم</th>
+                        <th>ما قاله العميل</th>
+                        <th>المدينة</th>
+                        <th>التاريخ</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">
+                            <i class="fas fa-spinner fa-spin"></i> جاري التحميل...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" id="pager"></div>
+    </div>
+
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script>
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = 'admin-login.html';
+        const BASE = window.API_URL || 'https://wajeezsd.com';
+        const hdr = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+
+        let page = 1, totalPages = 1, reasonLabels = {};
+
+        const esc = (s) => String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+        const fmtDate = (d) => {
+            if (!d) return '—';
+            const dt = new Date(d);
+            return dt.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })
+                + ' · ' + dt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        };
+
+        const cityLabel = (c) => c === 'Khartoum' ? 'الخرطوم' : c === 'PortSudan' ? 'بورتسودان' : (c || '—');
+
+        function renderReasons(byReason) {
+            const box = document.getElementById('reasonsBox');
+            if (!byReason || !byReason.length) {
+                box.innerHTML = '<div class="empty-note">لا توجد أسباب إلغاء مسجّلة في هذه الفترة.</div>';
+                return;
+            }
+            const max = Math.max(...byReason.map(r => r.count));
+            const total = byReason.reduce((s, r) => s + r.count, 0);
+            box.innerHTML = byReason.map(r => `
+                <div class="reason-row">
+                    <div class="reason-lbl">${esc(r.label)}</div>
+                    <div class="reason-bar"><div class="reason-fill" style="width:${Math.round((r.count / max) * 100)}%"></div></div>
+                    <div class="reason-num">${r.count} · ${Math.round((r.count / total) * 100)}%</div>
+                </div>`).join('');
+        }
+
+        function renderRow(f) {
+            const isCancel = f.kind === 'cancellation';
+            const who = f.user
+                ? `<div style="font-weight:700">${esc(f.user.name || '—')}</div>
+                   <div class="muted" style="font-size:.8rem">${esc(f.user.phone || '')}</div>`
+                : '<span class="muted">—</span>';
+
+            let middle;
+            if (isCancel) {
+                middle = `<span class="pill pill-cancel">${esc(reasonLabels[f.reasonCode] || 'غير محدّد')}</span>`;
+            } else if (f.rating) {
+                middle = `<span class="stars">${'★'.repeat(f.rating)}${'☆'.repeat(5 - f.rating)}</span>`;
+            } else {
+                middle = '<span class="muted">بلا تقييم</span>';
+            }
+
+            const note = f.adminNote
+                ? `<div class="admin-note"><i class="fas fa-note-sticky"></i> ${esc(f.adminNote)}</div>` : '';
+
+            const action = f.isReviewed
+                ? `<span class="pill pill-done">مُراجَعة</span>
+                   <button class="btn btn-sm btn-undo" style="margin-top:6px" onclick="review('${f._id}', false)">تراجع</button>`
+                : `<button class="btn btn-sm btn-review" onclick="review('${f._id}', true)">
+                       <i class="fas fa-check"></i> مراجعة
+                   </button>`;
+
+            return `<tr>
+                <td><span class="pill ${isCancel ? 'pill-cancel' : 'pill-first'}">${isCancel ? 'إلغاء' : 'أول طلب'}</span>
+                    ${f.isReviewed ? '' : '<div style="margin-top:5px"><span class="pill pill-new">جديد</span></div>'}</td>
+                <td>${who}</td>
+                <td>${middle}</td>
+                <td><div class="msg">${f.message ? esc(f.message) : '<span class="muted">— بلا نص —</span>'}</div>${note}</td>
+                <td>${esc(cityLabel(f.city))}</td>
+                <td class="muted" style="white-space:nowrap">${fmtDate(f.createdAt)}</td>
+                <td>${action}</td>
+            </tr>`;
+        }
+
+        async function load(p) {
+            page = p || 1;
+            const params = new URLSearchParams({ page, limit: 25 });
+            const kind = document.getElementById('fKind').value;
+            const rev = document.getElementById('fReviewed').value;
+            const days = document.getElementById('fDays').value;
+            if (kind) params.set('kind', kind);
+            if (rev) params.set('reviewed', rev);
+            if (days) params.set('days', days);
+
+            const tbody = document.getElementById('tbody');
+            try {
+                const res = await fetch(`${BASE}/api/admin/feedback?${params}`, { headers: hdr() });
+                if (res.status === 401 || res.status === 403) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#dc2626;">
+                        لا تملك صلاحية عرض هذه الصفحة</td></tr>`;
+                    return;
+                }
+                if (!res.ok) throw new Error('فشل التحميل');
+                const data = await res.json();
+
+                reasonLabels = data.reasonLabels || {};
+                totalPages = data.totalPages || 1;
+
+                const s = data.summary || {};
+                const c = s.counts || {};
+                document.getElementById('stat-cancel').textContent = (c.cancellation?.total ?? 0);
+                document.getElementById('stat-first').textContent = (c.first_order?.total ?? 0);
+                document.getElementById('stat-unreviewed').textContent =
+                    (c.cancellation?.unreviewed ?? 0) + (c.first_order?.unreviewed ?? 0);
+                document.getElementById('stat-avg').textContent =
+                    s.avgRating != null ? `${s.avgRating} / 5` : '—';
+
+                renderReasons(s.byReason);
+
+                tbody.innerHTML = data.items && data.items.length
+                    ? data.items.map(renderRow).join('')
+                    : `<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">
+                           لا توجد ملاحظات في هذه الفترة</td></tr>`;
+
+                renderPager();
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#dc2626;">
+                    ${esc(e.message || 'تعذّر التحميل')}</td></tr>`;
+            }
+        }
+
+        function renderPager() {
+            const bar = document.getElementById('pager');
+            if (totalPages <= 1) { bar.innerHTML = ''; return; }
+            let html = '';
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="${i === page ? 'active' : ''}" onclick="load(${i})">${i}</button>`;
+            }
+            bar.innerHTML = html;
+        }
+
+        window.review = async function (id, mark) {
+            let note = '';
+            if (mark) {
+                const r = await Swal.fire({
+                    title: 'تعليم كمُراجَعة',
+                    input: 'textarea',
+                    inputLabel: 'ملاحظة داخلية (اختياري)',
+                    inputPlaceholder: 'ما الإجراء الذي اتُّخذ بناءً على هذه الملاحظة؟',
+                    showCancelButton: true,
+                    confirmButtonText: 'حفظ',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#048c5b'
+                });
+                if (!r.isConfirmed) return;
+                note = r.value || '';
+            }
+            try {
+                const res = await fetch(`${BASE}/api/admin/feedback/${id}/review`, {
+                    method: 'PUT',
+                    headers: hdr(),
+                    body: JSON.stringify({ isReviewed: mark, adminNote: note })
+                });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || 'فشل الحفظ');
+                load(page);
+            } catch (e) {
+                Swal.fire('تعذّر الحفظ', e.message || '', 'error');
+            }
+        };
+
+        load(1);
+    </script>
+</body>
+
+</html>

@@ -206,7 +206,7 @@
         .o-actions .btn { font-size: 13px; }
         .o-actions:empty { display: none; margin-top: 0; }
     </style>
-    <script src="js/safe-area.js?v=e566565b"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body class="bg-light">
@@ -891,15 +891,62 @@
                 }
             };
 
+            // أسباب الإلغاء — يجب أن تطابق CANCEL_REASONS في models/Feedback.js
+            const CANCEL_REASONS = [
+                ['slow_captain', 'لم يقبل أي كابتن الطلب'],
+                ['price_high', 'سعر التوصيل مرتفع'],
+                ['changed_mind', 'غيّرت رأيي / لم أعد بحاجة'],
+                ['wrong_details', 'أخطأت في بيانات الطلب'],
+                ['found_alternative', 'وجدت وسيلة أخرى'],
+                ['other', 'سبب آخر']
+            ];
+
             window.cancelOrder = async function (id) {
+                // نسأل عن السبب قبل الإلغاء لا بعده: بعد الإلغاء يكون العميل
+                // قد أغلق الشاشة، وهذه الإجابة هي كل ما نملكه لفهم التسرّب.
+                const optionsHtml = CANCEL_REASONS.map(([code, label]) => `
+                    <label class="cr-opt">
+                        <input type="radio" name="cancelReason" value="${code}">
+                        <span>${label}</span>
+                    </label>`).join('');
+
                 const ok = await Swal.fire({
-                    title: 'إلغاء الطلب؟',
-                    text: 'هل أنت متأكد من إلغاء الطلب؟',
+                    title: 'لماذا تريد إلغاء الطلب؟',
+                    html: `
+                        <style>
+                            .cr-list { text-align: right; display: flex; flex-direction: column; gap: 6px; }
+                            .cr-opt { display: flex; align-items: center; gap: 10px; padding: 11px 13px;
+                                border: 1.5px solid #e2e8f0; border-radius: 12px; cursor: pointer;
+                                font-size: 14.5px; font-weight: 600; color: #334155; transition: .15s; }
+                            .cr-opt:has(input:checked) { border-color: #0A8754; background: #e7f5ef; color: #04553A; }
+                            .cr-opt input { width: 18px; height: 18px; accent-color: #0A8754; flex-shrink: 0; }
+                            .cr-note { width: 100%; margin-top: 10px; padding: 11px 13px; border: 1.5px solid #e2e8f0;
+                                border-radius: 12px; font-family: 'Cairo', sans-serif; font-size: 16px;
+                                resize: vertical; min-height: 62px; outline: none; box-sizing: border-box; }
+                            .cr-note:focus { border-color: #0A8754; }
+                            body.dark-mode .cr-opt { border-color: #334155; color: #cbd5e1; }
+                            body.dark-mode .cr-note { border-color: #334155; background: #1e293b; color: #f1f5f9; }
+                        </style>
+                        <div class="cr-list">${optionsHtml}</div>
+                        <textarea class="cr-note" id="crNote" maxlength="200"
+                            placeholder="أضف تفاصيل تساعدنا على التحسين (اختياري)"></textarea>`,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'نعم، ألغِ',
+                    confirmButtonText: 'تأكيد الإلغاء',
                     cancelButtonText: 'تراجع',
-                    confirmButtonColor: '#dc3545'
+                    confirmButtonColor: '#dc3545',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const picked = document.querySelector('input[name="cancelReason"]:checked');
+                        if (!picked) {
+                            Swal.showValidationMessage('اختر سبباً واحداً من فضلك');
+                            return false;
+                        }
+                        return {
+                            reasonCode: picked.value,
+                            reason: (document.getElementById('crNote')?.value || '').trim()
+                        };
+                    }
                 });
                 if (!ok.isConfirmed) return;
 
@@ -907,7 +954,7 @@
                     const res = await fetchWithRetry(`${SERVER_URL}/api/orders/${id}/cancel`, {
                         method: 'PUT',
                         headers: { ...authHeaders, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({})
+                        body: JSON.stringify(ok.value || {})
                     });
                     if (!res.ok) {
                         const err = await res.json().catch(() => ({}));
@@ -1310,10 +1357,100 @@
                 }, 3000);
             }
 
+            // ═══════════════════════════════════════════════════════════
+            // 💬 رأي العميل بعد أول توصيلة
+            // ═══════════════════════════════════════════════════════════
+            // لا نعتمد على وصول الدفعة وحدها: الإشعارات قد تكون معطّلة على
+            // الجهاز، وهذا بالضبط ما نحاول علاجه. لذلك نسأل الخادم عند فتح
+            // الصفحة إن كان هناك رأي لم يُرسل بعد.
+            async function openFeedbackForm(orderId) {
+                const stars = [5, 4, 3, 2, 1].map(n => `
+                    <label class="fb-star" title="${n}">
+                        <input type="radio" name="fbRating" value="${n}">
+                        <i class="bi bi-star-fill"></i>
+                    </label>`).join('');
+
+                const res = await Swal.fire({
+                    title: 'كيف كانت تجربتك الأولى؟',
+                    html: `
+                        <style>
+                            .fb-sub { font-size: 13.5px; color: #64748b; margin-bottom: 14px; line-height: 1.7; }
+                            /* row-reverse مع ترتيب النجوم تنازلياً: التمرير يضيء
+                               النجمة وما قبلها، وهو السلوك المتوقّع في RTL */
+                            .fb-stars { display: flex; flex-direction: row-reverse; justify-content: center;
+                                gap: 6px; margin-bottom: 14px; }
+                            .fb-star input { position: absolute; opacity: 0; width: 0; height: 0; }
+                            .fb-star i { font-size: 32px; color: #e2e8f0; cursor: pointer; transition: color .15s, transform .15s; }
+                            .fb-star:hover i, .fb-star:hover ~ .fb-star i { color: #fbbf24; transform: scale(1.12); }
+                            .fb-star:has(input:checked) i,
+                            .fb-star:has(input:checked) ~ .fb-star i { color: #f59e0b; }
+                            .fb-note { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0;
+                                border-radius: 12px; font-family: 'Cairo', sans-serif; font-size: 16px;
+                                resize: vertical; min-height: 96px; outline: none; box-sizing: border-box; }
+                            .fb-note:focus { border-color: #0A8754; }
+                            body.dark-mode .fb-note { border-color: #334155; background: #1e293b; color: #f1f5f9; }
+                            body.dark-mode .fb-star i { color: #334155; }
+                        </style>
+                        <div class="fb-sub">رأيك يصل مباشرة لإدارة وجيز — ما الذي أعجبك، وما الذي تقترح تحسينه؟</div>
+                        <div class="fb-stars">${stars}</div>
+                        <textarea class="fb-note" id="fbNote" maxlength="1000"
+                            placeholder="اكتب ملاحظاتك ومقترحاتك هنا..."></textarea>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'إرسال',
+                    cancelButtonText: 'لاحقاً',
+                    confirmButtonColor: '#0A8754',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const picked = document.querySelector('input[name="fbRating"]:checked');
+                        const note = (document.getElementById('fbNote')?.value || '').trim();
+                        if (!picked && !note) {
+                            Swal.showValidationMessage('اختر تقييماً أو اكتب رأيك');
+                            return false;
+                        }
+                        return { rating: picked ? Number(picked.value) : null, message: note };
+                    }
+                });
+
+                if (!res.isConfirmed) return;
+
+                try {
+                    const r = await fetchWithRetry(`${SERVER_URL}/api/feedback`, {
+                        method: 'POST',
+                        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderId, ...res.value })
+                    });
+                    const data = await r.json().catch(() => ({}));
+                    if (!r.ok) throw new Error(data.message || 'تعذّر الإرسال');
+                    showToast('شكراً لك', data.message || 'وصل رأيك للإدارة', 'success');
+                } catch (e) {
+                    Swal.fire('تعذّر الإرسال', e.message || 'حاول مرة أخرى لاحقاً', 'error');
+                }
+            }
+
+            async function checkPendingFeedback(forcedOrderId) {
+                try {
+                    const r = await fetchWithRetry(`${SERVER_URL}/api/feedback/pending`, { headers: authHeaders });
+                    if (!r.ok) return;
+                    const { pending } = await r.json();
+                    if (!pending) return;
+                    // مهلة قصيرة كي لا يقفز النموذج فوق الصفحة وهي ما زالت تُرسم
+                    setTimeout(() => openFeedbackForm(forcedOrderId || pending.orderId), 900);
+                } catch { /* الرأي ليس حرجاً — لا نزعج العميل برسالة خطأ */ }
+            }
+
             loadOrders().then(() => {
                 if (highlightId) {
                     setTimeout(() => highlightOrderCard(highlightId), 400);
                     window.history.replaceState({}, document.title, window.location.pathname);
+                }
+
+                // ?feedback=<orderId> يأتي من نقر إشعار "كيف كانت تجربتك الأولى؟"
+                const feedbackParam = urlParams.get('feedback');
+                if (feedbackParam) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    checkPendingFeedback(feedbackParam !== '1' ? feedbackParam : null);
+                } else {
+                    checkPendingFeedback();
                 }
                 if (rateOrderId && !ratedOrders.has(rateOrderId)) {
                     // Try to find the button we just rendered
