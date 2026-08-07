@@ -65,21 +65,12 @@ router.put('/captains/:id/adjust-debt', protect, requirePermission('manage_finan
             adjustedAmount = amount;
         }
 
+        // is_blocked دالة مباشرة في الرصيد مقابل الحد الائتماني (انظر models/User.js:86 —
+        // الحجب اليدوي للأدمن يتم عبر isActive لا هنا). الشرطان المتداخلان السابقان
+        // كانا متكاملين، فالفرع الثالث "$is_blocked" لم يكن قابلاً للوصول أصلاً.
         pipelineUpdate.push({
             $set: {
-                is_blocked: {
-                    $cond: {
-                        if: { $gt: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] },
-                        then: false,
-                        else: {
-                            $cond: {
-                                if: { $lte: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] },
-                                then: true,
-                                else: "$is_blocked"
-                            }
-                        }
-                    }
-                }
+                is_blocked: { $lte: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] }
             }
         });
 
