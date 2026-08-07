@@ -11,12 +11,19 @@
  */
 (function applySafeArea() {
     // أول هيدر معروف في الصفحة يُبطَّن من الأعلى.
-    // يشمل هيدرات لوحة الأدمن (topbar/gv-topbar) وصفحة الإشعارات (notif-header)
+    // يشمل هيدرات لوحة الأدمن، المتاجر، الإشعارات، التسويق والإحالات
     var HEADER_SELECTOR = '.merchant-header, .page-header, .app-header, .conv-header, ' +
         '.header-gradient, .chat-header, .notif-header, .topbar, .gv-topbar, ' +
-        '.od-header, .map-header, .header';
-    // أشرطة تنقّل سفلية ثابتة تُبطَّن من الأسفل
-    var BOTTOM_NAV_SELECTOR = '.merchant-nav, .bottom-nav-bar';
+        '.od-header, .map-header, .header, .navbar, #navbar, .hero-header, ' +
+        '.top-bar, .nav-bar, .main-header, .admin-header';
+    // الأشرطة السفلية الثابتة لا تُبطَّن من هنا إطلاقاً — أوراق الأنماط تتولّاها:
+    //   .merchant-nav  → merchant-ui.css
+    //   .captain-nav   → captain-ui.css
+    //   .bottom-nav-bar→ captain-analytics.html
+    // جميعها تضع padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px)).
+    // تسجيل أيٍّ منها هنا يضاعف الـ inset لأن padElement يقرأ الحشوة المحسوبة
+    // (المتضمّنة للـ inset أصلاً) كأساس ثم يضيف الـ inset فوقها، فتظهر فجوة ميتة
+    // أسفل الشريط ويتضخّم minHeight بالقدر نفسه. أي شريط سفلي جديد يعالَج في CSS.
 
     function injectVars() {
         if (!document.head || document.getElementById('wj-safe-area-vars')) return;
@@ -32,9 +39,6 @@
         document.head.appendChild(style);
     }
 
-    // القيم لا تُقرأ مباشرة من JS — نقيسها عبر عنصر مخفي.
-    // var(--sat) أولاً: على أندرويد يحقنها الكود الأصلي (MainActivity) بالقيم
-    // الحقيقية لأن env() هناك تُرجع صفراً دائماً؛ وعلى iOS تسقط للـ env().
     function measureInsets() {
         var probe = document.createElement('div');
         probe.style.cssText =
@@ -51,10 +55,6 @@
         return insets;
     }
 
-    // إضافة inset فوق الحشوة الأصلية مع الحفاظ على ارتفاع محتوى الهيدر.
-    // نُثبّت box-sizing:border-box ونرفع min-height بمقدار الـ inset، وإلا فإن
-    // الهيدرات ذات الارتفاع الثابت (مثل .topbar بـ height:64px) كان محتواها يُضغط.
-    // الأساس والارتفاع الأصلي محفوظان في dataset فلا تراكم عند تكرار الاستدعاء.
     function padElement(el, side, inset) {
         var isTop = side === 'top';
         var prop = isTop ? 'paddingTop' : 'paddingBottom';
@@ -63,7 +63,6 @@
 
         if (el.dataset[baseKey] === undefined) {
             el.dataset[baseKey] = parseFloat(getComputedStyle(el)[prop]) || 0;
-            // الارتفاع المُصيَّر قبل أي تعديل منا (offsetHeight يشمل الحشوة والحدود)
             el.dataset[heightKey] = el.offsetHeight || 0;
         }
 
@@ -71,8 +70,6 @@
         var baseH = parseFloat(el.dataset[heightKey]) || 0;
 
         el.style[prop] = (base + inset) + 'px';
-        // مع border-box: min-height يشمل الحشوة، فتُحفظ مساحة المحتوى كما هي.
-        // نتخطّى body: تجميد ارتفاعه غير مرغوب — الحشوة وحدها تكفي لخلوصه السفلي.
         if (baseH > 0 && el !== document.body) {
             el.style.boxSizing = 'border-box';
             el.style.minHeight = (baseH + inset) + 'px';
@@ -83,34 +80,37 @@
         injectVars();
         if (!document.body) return;
 
-        // mobile-overrides.css تبطّن body بالكامل — لا شيء لنفعله هنا
-        if (document.querySelector('link[href*="mobile-overrides"]')) return;
-
         var insets = measureInsets();
 
-        // 1) الهيدر العلوي
+        // 1) الهيدر العلوي (حتى مع وجود mobile-overrides.css الهيدرات الـ fixed/sticky تطلب حشوة top)
         if (insets.top > 0) {
-            var header = document.querySelector(HEADER_SELECTOR);
-            if (header) padElement(header, 'top', insets.top);
+            var headers = document.querySelectorAll(HEADER_SELECTOR);
+            var paddedHeader = false;
+            if (headers && headers.length > 0) {
+                headers.forEach(function (h) {
+                    var rect = h.getBoundingClientRect();
+                    // نُبطّن فقط الهيدرات الواقعة أعلى الشاشة
+                    if (rect.top <= 100) {
+                        padElement(h, 'top', insets.top);
+                        paddedHeader = true;
+                    }
+                });
+            }
+            // إذا لم توجد هيدرات معروفة في أعلى الصفحة، نبطّن body من الأعلى
+            if (!paddedHeader && !document.querySelector('link[href*="mobile-overrides"]')) {
+                padElement(document.body, 'top', insets.top);
+            }
         }
 
-        // 2) الأشرطة السفلية الثابتة
-        if (insets.bottom > 0) {
-            document.querySelectorAll(BOTTOM_NAV_SELECTOR).forEach(function (nav) {
-                padElement(nav, 'bottom', insets.bottom);
-            });
-        }
-
-        // 3) خلوص أسفل body
+        // 2) خلوص أسفل body — الأشرطة السفلية نفسها تُبطَّن من CSS (انظر الأعلى)
         if (document.querySelector('.merchant-nav')) {
-            // صفحات التاجر: خلوص كامل فوق الشريط السفلي (سلوك النسخة السابقة)
             if (!document.getElementById('wj-safe-area-merchant')) {
                 var s = document.createElement('style');
                 s.id = 'wj-safe-area-merchant';
                 s.textContent = 'body { padding-bottom: calc(80px + var(--sab, env(safe-area-inset-bottom, 0px))) !important; }';
                 document.head.appendChild(s);
             }
-        } else if (insets.bottom > 0) {
+        } else if (insets.bottom > 0 && !document.querySelector('link[href*="mobile-overrides"]')) {
             padElement(document.body, 'bottom', insets.bottom);
         }
     }
