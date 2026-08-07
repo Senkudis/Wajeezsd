@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=fca49c8f">
     <script src="js/config.js?v=b84e6b6a"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
         body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
@@ -18,19 +19,7 @@
             color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
             display: flex; align-items: center; justify-content: space-between;
         }
-        .merchant-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: white; border-top: 1px solid #f0f0f0;
-            display: flex; z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-        }
-        .merchant-nav a {
-            flex: 1; display: flex; flex-direction: column; align-items: center;
-            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
-            text-decoration: none; transition: color 0.2s;
-        }
-        .merchant-nav a.active, .merchant-nav a:hover { color: #10b981; }
-        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        /* Nav, header from merchant-ui.css?v=v3_1785875711038 */
 
         .profile-card {
             background: white; border-radius: 16px;
@@ -70,7 +59,7 @@
             background: white; color: #64748b; font-weight: 700; font-size: 12px;
             cursor: pointer; user-select: none; transition: all 0.15s;
         }
-        .day-chip.on { background: #10b981; border-color: #10b981; color: white; }
+        .day-chip.on { background: var(--m-amber, #f59e0b); border-color: var(--m-amber, #f59e0b); color: white; }
         .tier-badge { font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; }
         .logout-btn {
             background: #fee2e2; color: #dc2626; border: none; width: 100%;
@@ -78,21 +67,23 @@
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 <body>
 
-<div class="page-header">
-    <div class="d-flex align-items-center gap-3">
-        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
-            <i class="bi bi-arrow-right"></i>
-        </a>
-        <h5 class="fw-bold mb-0">ملف المتجر</h5>
+<div class="m-page-header">
+    <div class="d-flex align-items-center justify-content-between pb-2">
+        <div class="d-flex align-items-center gap-3">
+            <a href="merchant-dashboard.html" class="m-back-btn">
+                <i class="bi bi-arrow-right"></i>
+            </a>
+            <h5 class="m-header-title">ملف المتجر</h5>
+        </div>
+        <button id="editToggleBtn" class="m-btn m-btn-ghost m-btn-sm" onclick="enterEditMode()" style="display:none;">
+            <i class="bi bi-pencil-square"></i> تعديل
+        </button>
     </div>
-    <button id="editToggleBtn" class="btn btn-sm btn-light rounded-3 fw-bold" onclick="enterEditMode()" style="display:none;">
-        <i class="bi bi-pencil-square me-1"></i>تعديل
-    </button>
 </div>
 
 <div class="container-fluid px-3 pt-3" id="profileContainer">
@@ -103,16 +94,31 @@
 <input type="file" id="shopImageInput" accept="image/*" class="d-none" onchange="uploadShopImage(this)">
 
 <nav class="merchant-nav">
-    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
-    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
-    <a href="merchant-conversations.html"><i class="bi bi-chat-dots-fill"></i> رسائل</a>
-    <a href="merchant-notifications.html"><i class="bi bi-bell"></i> إشعارات</a>
-    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');"><i class="bi bi-box-arrow-right"></i> خروج</a>
+    <a href="merchant-dashboard.html">
+        <i class="bi bi-house-door-fill"></i>
+        <span>الرئيسية</span>
+    </a>
+    <a href="merchant-orders.html">
+        <i class="bi bi-bag-check-fill"></i>
+        <span>الطلبات</span>
+    </a>
+    <a href="merchant-conversations.html">
+        <i class="bi bi-chat-dots-fill"></i>
+        <span>رسائل</span>
+    </a>
+    <a href="merchant-notifications.html">
+        <i class="bi bi-bell-fill"></i>
+        <span>إشعارات</span>
+    </a>
+    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>خروج</span>
+    </a>
 </nav>
 
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-<script src="js/delete-account.js?v=d132d4b9"></script>
+<script src="js/delete-account.js?v=5fc26bb0"></script>
 <script>
     const token = window.Auth?.getToken() || localStorage.getItem('token');
     if (!token) window.location.href = 'client-login.html';
@@ -201,15 +207,23 @@
                 ${pUser.email ? infoRow('bi-envelope-fill', 'البريد الإلكتروني', pUser.email) : ''}
             </div>
 
+            <!-- إعادة الجولة الترحيبية — وعدت بها الخطوة الأخيرة من الجولة،
+                 ومن يحتاجها فعلاً هو التاجر الذي تخطّاها أول مرة -->
+            <button class="logout-btn mt-2" onclick="replayTour()"
+                style="background:transparent;border:1.5px solid var(--m-green,#0a8754);color:var(--m-green,#0a8754);">
+                <i class="bi bi-play-circle"></i> إعادة الجولة الترحيبية
+            </button>
+
             <button class="logout-btn mt-2" onclick="logout()">
                 <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
             </button>
 
-            <!-- حذف الحساب داخل التطبيق — شرط App Store 5.1.1(v) -->
-            <button class="btn btn-link w-100 text-danger text-decoration-none py-3 mb-4"
-                onclick="openDeleteAccount()">
-                <i class="bi bi-person-x me-1"></i> حذف الحساب نهائياً
-            </button>
+            <!-- حذف الحساب مخفي أسفل الصفحة كخيار أخير -->
+            <div class="text-center mt-5 mb-5">
+                <a href="#" class="d-inline-block text-danger text-decoration-none small" onclick="event.preventDefault(); openDeleteAccount()">
+                    <i class="bi bi-person-x me-1"></i> حذف الحساب نهائياً
+                </a>
+            </div>
         `;
     }
 
@@ -412,8 +426,17 @@
 
     loadProfile();
 </script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/tour.js?v=a0772613"></script>
+    <script>
+        // الجولة تعيش في اللوحة لا هنا: خطواتها تُشير إلى عناصرها.
+        // نمسح علامة الإتمام ثم ننقل التاجر إليها فتبدأ من جديد.
+        function replayTour() {
+            try { window.WajeezTour && window.WajeezTour.reset('merchant_v1'); } catch (e) {}
+            window.location.href = 'merchant-dashboard.html';
+        }
+    </script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
 </body>

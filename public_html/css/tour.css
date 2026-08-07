@@ -1,0 +1,243 @@
+/*
+ * ════════════════════════════════════════════════════════════════
+ *  tour.css — الجولة الترحيبية (مشتركة: تاجر / كابتن / عميل)
+ * ════════════════════════════════════════════════════════════════
+ *
+ *  لماذا جولة مثبّتة على عناصر الشاشة لا صندوق نصّ واحد؟
+ *  الترحيب النصّي يُقرأ مرّة ويُنسى، لأن القارئ لم يربط الكلام بمكانه.
+ *  تسليط الضوء على العنصر الفعلي يجعل الخطوة ذاكرة مكانية: "الزر الذي
+ *  أضاء" أسهل استرجاعاً من "البند الثالث في القائمة".
+ *
+ *  البادئة wtour- ضرورية: dark-mode.css يحمل 548 قاعدة !important
+ *  تستهدف أصناف بوتستراب العامة، وأي تصميم مبني عليها يُهزَم ليلاً.
+ * ════════════════════════════════════════════════════════════════
+ */
+
+:root {
+    --wt-surface: #ffffff;
+    --wt-ink: #0f172a;
+    --wt-ink-2: #475569;
+    --wt-ink-3: #94a3b8;
+    --wt-border: #e8ebef;
+    --wt-accent: #0a8754;
+    --wt-accent-soft: #e7f5ef;
+}
+
+body.dark-mode {
+    --wt-surface: #151d2c;
+    --wt-ink: #f1f5f9;
+    --wt-ink-2: #b6c2d4;
+    --wt-ink-3: #7c8ba1;
+    --wt-border: #253247;
+    --wt-accent: #10b981;
+    --wt-accent-soft: #10241c;
+}
+
+/* ── طبقة التعتيم مع فتحة الضوء ───────────────────────────────
+   box-shadow ضخم بدل قناع SVG: يعمل في كل المتصفحات، ويترك
+   العنصر المستهدف مضيئاً بلا أي طبقة فوقه تعترض النقر. */
+.wtour-spot {
+    position: absolute;
+    z-index: 2147483000;
+    border-radius: 14px;
+    box-shadow: 0 0 0 9999px rgba(2, 6, 23, .74);
+    pointer-events: none;
+    transition: top .28s cubic-bezier(.4, 0, .2, 1),
+                inset-inline-start .28s cubic-bezier(.4, 0, .2, 1),
+                width .28s cubic-bezier(.4, 0, .2, 1),
+                height .28s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* حلقة تعريف حول العنصر — تفصل المضيء عن المعتم بحدّ واضح */
+.wtour-spot::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 2px solid var(--wt-accent);
+    border-radius: inherit;
+    animation: wtour-pulse 1.9s ease-in-out infinite;
+}
+
+@keyframes wtour-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: .45; transform: scale(1.02); }
+}
+
+/* خطوة بلا عنصر (ترحيب/ختام): تعتيم كامل بلا فتحة */
+.wtour-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    background: rgba(2, 6, 23, .74);
+}
+
+/* ── بطاقة الشرح ──────────────────────────────────────────── */
+.wtour-card {
+    /* إحداثيات الصفحة لا النافذة: الفتحة المضيئة مطلقة أيضاً، فيتحرّك
+       الاثنان مع المحتوى عند التمرير بدل أن ينفصلا عن العنصر */
+    position: absolute;
+    z-index: 2147483002;
+    width: min(340px, calc(100vw - 28px));
+    background: var(--wt-surface);
+    border: 1px solid var(--wt-border);
+    border-radius: 18px;
+    padding: 16px 16px 14px;
+    box-shadow: 0 18px 50px rgba(2, 6, 23, .38);
+    transition: top .28s cubic-bezier(.4, 0, .2, 1),
+                inset-inline-start .28s cubic-bezier(.4, 0, .2, 1);
+}
+
+.wtour-card.is-center {
+    /* الخطوة المركزية بلا عنصر ⇒ تُثبَّت على النافذة */
+    position: fixed;
+    top: 50%;
+    inset-inline-start: 50%;
+    transform: translate(50%, -50%);
+    text-align: center;
+}
+
+/* السهم يشير للعنصر المضيء — يُخفى في الخطوات المركزية */
+.wtour-arrow {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--wt-surface);
+    border-inline-start: 1px solid var(--wt-border);
+    border-top: 1px solid var(--wt-border);
+    transform: rotate(45deg);
+}
+
+.wtour-arrow.below { top: -8px; }
+.wtour-arrow.above { bottom: -8px; transform: rotate(225deg); }
+
+/* ── محتوى البطاقة ───────────────────────────────────────── */
+.wtour-step-of {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--wt-accent);
+    letter-spacing: .3px;
+    margin-bottom: 6px;
+}
+
+.wtour-card .wtour-title {
+    font-size: 16.5px;
+    font-weight: 800;
+    color: var(--wt-ink);
+    line-height: 1.35;
+    margin: 0 0 6px;
+}
+
+.wtour-card .wtour-body {
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--wt-ink-2);
+    margin: 0;
+}
+
+/* نقطة تنبيه داخل الخطوة — للمعلومة التي يخطئ فيها التجّار عادةً */
+.wtour-card .wtour-note {
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
+    margin-top: 10px;
+    padding: 9px 11px;
+    background: var(--wt-accent-soft);
+    border-radius: 11px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--wt-ink-2);
+    font-weight: 600;
+}
+
+.wtour-card .wtour-note i {
+    color: var(--wt-accent);
+    font-size: 14px;
+    margin-top: 1px;
+    flex-shrink: 0;
+}
+
+/* ── التذييل: تقدّم + أزرار ───────────────────────────────── */
+.wtour-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.wtour-dots {
+    display: flex;
+    gap: 5px;
+    margin-inline-end: auto;
+}
+
+.wtour-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--wt-border);
+    transition: width .2s, background .2s;
+}
+
+.wtour-dot.on {
+    width: 18px;
+    border-radius: 999px;
+    background: var(--wt-accent);
+}
+
+.wtour-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 9px 18px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    /* هدف لمس مريح: الجولة تُستعمل بإصبع واحد أثناء العمل */
+    min-height: 40px;
+}
+
+.wtour-btn.primary {
+    background: var(--wt-accent);
+    color: #fff;
+}
+
+.wtour-btn.ghost {
+    background: transparent;
+    color: var(--wt-ink-3);
+    padding: 9px 10px;
+}
+
+.wtour-skip {
+    position: fixed;
+    top: calc(12px + var(--sat, 0px));
+    inset-inline-end: 14px;
+    z-index: 2147483003;
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 999px;
+    padding: 7px 15px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    min-height: 38px;
+}
+
+/* يُقلب للزاوية المقابلة حين يقع فوق العنصر المضاء */
+.wtour-skip.flip {
+    inset-inline-end: auto;
+    inset-inline-start: 14px;
+}
+
+/* يمنع تمرير الصفحة خلف الجولة */
+body.wtour-open {
+    overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wtour-spot,
+    .wtour-card { transition: none; }
+    .wtour-spot::after { animation: none; }
+}

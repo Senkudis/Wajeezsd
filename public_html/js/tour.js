@@ -1,0 +1,301 @@
+/*
+ * ════════════════════════════════════════════════════════════════
+ *  tour.js — محرّك الجولة الترحيبية (تاجر / كابتن / عميل)
+ * ════════════════════════════════════════════════════════════════
+ *  يسلّط الضوء على عنصر حقيقي في الشاشة ويشرحه بجانبه، بدل صندوق
+ *  نصّ واحد يُقرأ مرّة ويُنسى: الخطوة المرتبطة بمكانها تُستَرجع لاحقاً.
+ *
+ *  الاستعمال:
+ *      WajeezTour.start({ id: 'merchant', steps: [...] });
+ *
+ *  كل خطوة:
+ *      { el: '#sel'|null, title, body, note?, placement?: 'auto'|'center' }
+ *
+ *  خطوة بلا `el` (أو عنصرها غائب) تُعرض في المنتصف. وخطوة عنصرها
+ *  مخفيّ تُسقَط تماماً — لوحة التاجر تُخفي قسم ERP لغير الباقة
+ *  الاحترافية، فشرح ميزة لا يراها التاجر إرباك لا تعليم.
+ * ════════════════════════════════════════════════════════════════
+ */
+window.WajeezTour = (function () {
+    'use strict';
+
+    const KEY_PREFIX = 'wajeez_tour_done_';
+
+    let steps = [];
+    let idx = 0;
+    let tourId = '';
+    let nodes = null;
+    let onDone = null;
+
+    /** معرّف المستخدم — الإتمام يُسجَّل لكل حساب لا لكل جهاز */
+    function userKey() {
+        try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            return u && u._id ? String(u._id) : 'anon';
+        } catch (e) { return 'anon'; }
+    }
+
+    function storageKey(id) { return KEY_PREFIX + id + '_' + userKey(); }
+
+    function isDone(id) {
+        try { return localStorage.getItem(storageKey(id)) === '1'; } catch (e) { return false; }
+    }
+
+    function markDone(id) {
+        try { localStorage.setItem(storageKey(id), '1'); } catch (e) { /* التخزين ممتلئ أو محجوب */ }
+    }
+
+    function reset(id) {
+        try { localStorage.removeItem(storageKey(id)); } catch (e) { }
+    }
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    /** العنصر موجود وله مساحة فعلية على الشاشة */
+    function visible(el) {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return false;
+        const cs = getComputedStyle(el);
+        return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
+    }
+
+    function resolve(sel) {
+        if (!sel) return null;
+        try { return document.querySelector(sel); } catch (e) { return null; }
+    }
+
+    function build() {
+        const wrap = document.createElement('div');
+        wrap.className = 'wtour-root';
+        wrap.innerHTML =
+            '<div class="wtour-veil" hidden></div>' +
+            '<div class="wtour-spot" hidden></div>' +
+            '<button type="button" class="wtour-skip">تخطّي الجولة</button>' +
+            '<div class="wtour-card">' +
+              '<div class="wtour-arrow" hidden></div>' +
+              '<div class="wtour-step-of"></div>' +
+              '<h3 class="wtour-title"></h3>' +
+              '<p class="wtour-body"></p>' +
+              '<div class="wtour-note-slot"></div>' +
+              '<div class="wtour-foot">' +
+                '<div class="wtour-dots"></div>' +
+                '<button type="button" class="wtour-btn ghost wtour-back">السابق</button>' +
+                '<button type="button" class="wtour-btn primary wtour-next">التالي</button>' +
+              '</div>' +
+            '</div>';
+        document.body.appendChild(wrap);
+
+        return {
+            wrap,
+            veil: wrap.querySelector('.wtour-veil'),
+            spot: wrap.querySelector('.wtour-spot'),
+            skip: wrap.querySelector('.wtour-skip'),
+            card: wrap.querySelector('.wtour-card'),
+            arrow: wrap.querySelector('.wtour-arrow'),
+            stepOf: wrap.querySelector('.wtour-step-of'),
+            title: wrap.querySelector('.wtour-title'),
+            body: wrap.querySelector('.wtour-body'),
+            noteSlot: wrap.querySelector('.wtour-note-slot'),
+            dots: wrap.querySelector('.wtour-dots'),
+            back: wrap.querySelector('.wtour-back'),
+            next: wrap.querySelector('.wtour-next')
+        };
+    }
+
+    function renderDots() {
+        nodes.dots.innerHTML = steps
+            .map((_, i) => '<span class="wtour-dot' + (i === idx ? ' on' : '') + '"></span>')
+            .join('');
+    }
+
+    /** يضع البطاقة فوق العنصر أو تحته حسب المساحة المتاحة */
+    function placeCard(rect) {
+        const card = nodes.card;
+        card.classList.remove('is-center');
+        card.style.transform = '';
+
+        // القياس بعد ملء المحتوى — الارتفاع يتغيّر بطول النصّ
+        const ch = card.offsetHeight;
+        const cw = card.offsetWidth;
+        const gap = 14;
+        const vh = window.innerHeight;
+        const spaceBelow = vh - rect.bottom;
+        const below = spaceBelow > ch + gap + 16 || rect.top < ch + gap + 16;
+
+        const top = below ? rect.bottom + gap : rect.top - ch - gap;
+        nodes.arrow.hidden = false;
+        nodes.arrow.className = 'wtour-arrow ' + (below ? 'below' : 'above');
+
+        // المحاذاة الأفقية: نتمركز على العنصر ثم نقصّ داخل حدود الشاشة
+        let left = rect.left + rect.width / 2 - cw / 2;
+        left = Math.max(10, Math.min(left, window.innerWidth - cw - 10));
+
+        card.style.top = Math.max(10, top + window.scrollY) + 'px';
+        card.style.insetInlineStart = '';
+        card.style.left = left + 'px';
+
+        // السهم يتبع مركز العنصر لا مركز البطاقة
+        const arrowX = Math.max(16, Math.min(rect.left + rect.width / 2 - left, cw - 30));
+        nodes.arrow.style.left = arrowX + 'px';
+        nodes.arrow.style.insetInlineStart = '';
+    }
+
+    /**
+     * زر "تخطّي الجولة" مثبّت في زاوية علوية، وقد يقع فوق العنصر المضاء
+     * نفسه — حدث فعلاً مع مفتاح فتح/إغلاق المتجر في لوحة التاجر: الضوء
+     * مسلّط عليه والزر يغطّيه. نقلبه للزاوية المقابلة عند التقاطع.
+     */
+    function avoidSkipCollision(rect) {
+        const sk = nodes.skip;
+        sk.classList.remove('flip');
+        const s = sk.getBoundingClientRect();
+        const hit = !(s.right < rect.left - 6 || s.left > rect.right + 6 ||
+                      s.bottom < rect.top - 6 || s.top > rect.bottom + 6);
+        if (hit) sk.classList.add('flip');
+    }
+
+    function centerCard() {
+        nodes.card.classList.add('is-center');
+        nodes.card.style.top = '';
+        nodes.card.style.left = '';
+        nodes.arrow.hidden = true;
+    }
+
+    function paint() {
+        const step = steps[idx];
+        const el = resolve(step.el);
+
+        nodes.stepOf.textContent = 'الخطوة ' + (idx + 1) + ' من ' + steps.length;
+        nodes.title.textContent = step.title || '';
+        nodes.body.innerHTML = esc(step.body || '').replace(/\n/g, '<br>');
+        nodes.noteSlot.innerHTML = step.note
+            ? '<div class="wtour-note"><i class="bi bi-lightbulb-fill"></i><span>' + esc(step.note) + '</span></div>'
+            : '';
+        nodes.back.style.visibility = idx === 0 ? 'hidden' : 'visible';
+        nodes.next.textContent = idx === steps.length - 1 ? 'ابدأ العمل' : 'التالي';
+        renderDots();
+
+        const centered = !el || step.placement === 'center';
+        if (centered) {
+            nodes.veil.hidden = false;
+            nodes.spot.hidden = true;
+            centerCard();
+            return;
+        }
+
+        nodes.veil.hidden = true;
+        nodes.spot.hidden = false;
+
+        // نُحضر العنصر إلى الشاشة أولاً ثم نقيس — القياس قبل التمرير
+        // يعطي إحداثيات قديمة فتظهر الفتحة بعيدة عن العنصر
+        const r0 = el.getBoundingClientRect();
+        const needsScroll = r0.top < 80 || r0.bottom > window.innerHeight - 120;
+        if (needsScroll) {
+            // behavior:'auto' يُنهي التمرير فوراً فالقياس بعده صحيح مباشرةً
+            el.scrollIntoView({ behavior: 'auto', block: 'center' });
+        }
+
+        const apply = () => {
+            if (!nodes) return;
+            const r = el.getBoundingClientRect();
+            const pad = step.pad == null ? 6 : step.pad;
+            nodes.spot.style.top = (r.top + window.scrollY - pad) + 'px';
+            nodes.spot.style.left = (r.left - pad) + 'px';
+            nodes.spot.style.width = (r.width + pad * 2) + 'px';
+            nodes.spot.style.height = (r.height + pad * 2) + 'px';
+            nodes.spot.style.borderRadius = (step.radius || 14) + 'px';
+            placeCard(r);
+            avoidSkipCollision(r);
+        };
+
+        // ⚠️ التموضع متزامن لا داخل requestAnimationFrame وحده: rAF لا يُنفَّذ
+        // في تبويب خلفي أو حين يوقف النظام الرسوم، فتبقى الفتحة بلا أبعاد
+        // (0×0 في زاوية الشاشة) والجولة تنكسر بصمت. نضبطها فوراً ثم نصقلها
+        // في الإطار التالي إن أتيح — التمرير قد يغيّر الإحداثيات قليلاً.
+        apply();
+        requestAnimationFrame(apply);
+    }
+
+    function go(n) {
+        idx = Math.max(0, Math.min(n, steps.length - 1));
+        paint();
+    }
+
+    function finish(completed) {
+        if (nodes) {
+            nodes.wrap.remove();
+            nodes = null;
+        }
+        document.removeEventListener('keydown', onKey);
+        window.removeEventListener('resize', onResize);
+        if (completed) markDone(tourId);
+        if (typeof onDone === 'function') onDone(completed);
+    }
+
+    function onKey(e) {
+        if (e.key === 'Escape') finish(false);
+        else if (e.key === 'ArrowLeft') next();
+        else if (e.key === 'ArrowRight') go(idx - 1);
+    }
+
+    let resizeTimer = null;
+    function onResize() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(paint, 120);
+    }
+
+    function next() {
+        if (idx >= steps.length - 1) finish(true);
+        else go(idx + 1);
+    }
+
+    /**
+     * @param {object} cfg { id, steps, force?, onDone? }
+     * @returns {boolean} هل بدأت الجولة فعلاً
+     */
+    function start(cfg) {
+        if (!cfg || !Array.isArray(cfg.steps) || !cfg.steps.length) return false;
+        tourId = cfg.id || 'default';
+        if (!cfg.force && isDone(tourId)) return false;
+
+        // مرجع معلّق: أُزيل عنصر الجولة من الصفحة (تنقّل داخلي، أو إعادة
+        // رسم مسحت body) بينما بقي nodes مشيراً إليه، فيُرفض كل تشغيل لاحق
+        // ويصمت زر "إعادة الجولة" بلا سبب ظاهر. ننظّف بدل أن نرفض.
+        if (nodes && !document.body.contains(nodes.wrap)) {
+            nodes = null;
+            document.removeEventListener('keydown', onKey);
+            window.removeEventListener('resize', onResize);
+        }
+        if (nodes) {
+            if (!cfg.force) return false;   // جولة تعمل بالفعل
+            finish(false);                  // إعادة تشغيل صريحة
+        }
+
+        // إسقاط الخطوات التي لا عنصر لها ظاهر — ميزة لا يراها المستخدم
+        // (قسم ERP للباقة الأساسية مثلاً) شرحها إرباك لا تعليم.
+        steps = cfg.steps.filter(s => !s.el || visible(resolve(s.el)) || s.keepIfMissing);
+        if (!steps.length) return false;
+
+        onDone = cfg.onDone || null;
+        idx = 0;
+        nodes = build();
+
+        nodes.next.addEventListener('click', next);
+        nodes.back.addEventListener('click', () => go(idx - 1));
+        nodes.skip.addEventListener('click', () => finish(true));
+        document.addEventListener('keydown', onKey);
+        window.addEventListener('resize', onResize);
+
+        paint();
+        return true;
+    }
+
+    /** إنهاء الجولة الجارية بلا تسجيل إتمام */
+    function stop() { if (nodes) finish(false); }
+
+    return { start, stop, isDone, markDone, reset };
+})();

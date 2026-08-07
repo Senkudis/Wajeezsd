@@ -4,178 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>لوحة التاجر | وجيز</title>
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=fca49c8f">
     <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
-        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
-        body { background: #f8fafc; min-height: 100vh; padding-bottom: 80px; }
-        .merchant-header {
-            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-            color: white; padding: 20px 16px 28px;
-            position: relative; overflow: hidden;
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
         }
-        .merchant-header::before {
-            content: ''; position: absolute; top: -40px; left: -40px;
-            width: 160px; height: 160px;
-            background: rgba(245,158,11,0.15);
-            border-radius: 50%;
-        }
-        .merchant-header::after {
-            content: ''; position: absolute; bottom: -30px; right: -20px;
-            width: 120px; height: 120px;
-            background: rgba(245,158,11,0.1);
-            border-radius: 50%;
-        }
-        .stat-card {
-            background: white; border-radius: 16px; padding: 16px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            text-align: center; border: 1px solid rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
-        .stat-card:hover { transform: translateY(-2px); }
-        .stat-num { font-size: 2rem; font-weight: 900; line-height: 1; }
-        .stat-label { font-size: 12px; color: #888; font-weight: 600; margin-top: 4px; }
-        .quick-btn {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: white; border-radius: 16px; padding: 20px 8px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-            text-decoration: none; color: #1a1a2e;
-            transition: all 0.2s; border: 2px solid transparent;
-            height: 100%;
-        }
-        .quick-btn:hover { transform: translateY(-3px); }
-        .quick-btn i { font-size: 2rem; margin-bottom: 8px; }
-        .quick-btn span { font-size: 13px; font-weight: 700; text-align: center; }
-        .quick-btn-special {
-            border-color: #f59e0b;
-            color: #f59e0b;
-            box-shadow: 0 4px 15px rgba(245,158,11,0.15);
-        }
-        .quick-btn-special i { color: #f59e0b; font-size: 2.2rem; }
-        .quick-btn-special span { color: #f59e0b; font-size: 14px; }
-        .order-badge {
-            font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 700;
-        }
-        .merchant-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: white; border-top: 1px solid #f0f0f0;
-            display: flex; z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-        }
-        .merchant-nav a {
-            flex: 1; display: flex; flex-direction: column; align-items: center;
-            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
-            text-decoration: none; transition: color 0.2s;
-        }
-        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
-        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
-        .section-title {
-            font-size: 16px; font-weight: 800; color: #1a1a2e;
-            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
-        }
-        .order-row {
-            background: white; border-radius: 14px; padding: 12px 14px;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-            margin-bottom: 10px; border-right: 4px solid #f59e0b;
-            transition: transform 0.15s, box-shadow 0.15s;
-            animation: rowIn 0.35s ease both;
-        }
-        .order-row:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.10); }
+        /* ── Dashboard Skeleton & Animation Utilities ── */
+        .order-badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 700; }
+        .order-row { animation: rowIn 0.35s ease both; }
         @keyframes rowIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* 🔢 Header stat tiles */
-        .hstat {
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px; padding: 10px 4px; text-align: center;
-            transition: background 0.2s, transform 0.15s;
-        }
-        .hstat:active { transform: scale(0.95); }
-        .hstat i { font-size: 0.95rem; opacity: 0.6; display: block; margin-bottom: 4px; color: #fff; }
-        .hstat-num { font-size: 1.5rem; font-weight: 900; line-height: 1; color: #fff; }
-        .hstat-lbl { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px; }
-        .hstat-accent { background: rgba(245,158,11,0.22); border-color: rgba(245,158,11,0.38); }
-        .hstat-accent i, .hstat-accent .hstat-num { color: #fbbf24; }
-        .hstat-pulse { position: relative; }
-        .hstat-pulse::after {
-            content: ''; position: absolute; top: 8px; left: 10px;
-            width: 7px; height: 7px; border-radius: 50%; background: #fbbf24;
-            box-shadow: 0 0 0 rgba(251,191,36,0.6); animation: hpulse 1.8s infinite;
-        }
-        @keyframes hpulse {
-            0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.6); }
-            70% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
-            100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
-        }
-
-        /* 👤 Order client avatar + amount pill */
-        .ord-avatar {
-            width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 16px; color: #b45309;
-            background: linear-gradient(135deg, #fde68a, #fcd34d);
-        }
-        .ord-amount { font-size: 13px; font-weight: 800; color: #16a34a; white-space: nowrap; }
-
-        /* 💀 Skeleton loader */
-        .sk-row {
-            display: flex; align-items: center; gap: 12px;
-            background: white; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
-        }
+        .ord-amount { font-size: 13px; font-weight: 800; color: var(--m-green); white-space: nowrap; }
+        
+        /* Skeleton */
         .sk { background: linear-gradient(90deg,#eef1f5 25%,#e2e8f0 37%,#eef1f5 63%);
             background-size: 400% 100%; animation: sksh 1.3s ease infinite; border-radius: 8px; }
         @keyframes sksh { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+        .sk-row {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--m-surface); border-radius: var(--m-r-lg); padding: 12px 14px; margin-bottom: 10px;
+        }
+        .empty-state-card { text-align: center; padding: 40px 20px; }
+        .empty-state-icon { font-size: 2.5rem; color: var(--m-muted2); margin-bottom: 10px; }
+        .empty-state-title { font-weight: 800; font-size: 15px; color: var(--m-dark3); margin-bottom: 6px; }
+        .empty-state-desc { font-size: 13px; color: var(--m-muted); line-height: 1.6; }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
+    <link rel="stylesheet" href="css/tour.css?v=2bef26e9">
 </head>
 <body>
 
-<div class="merchant-header">
+<div class="m-hero-header">
     <div class="d-flex justify-content-between align-items-start position-relative" style="z-index:1">
         <div>
-            <p class="mb-0 text-white-50" style="font-size:12px;">مرحباً،</p>
-            <h2 class="fw-bold mb-0 text-white" id="merchantName" style="font-size:1.4rem;">جاري التحميل...</h2>
-            <span class="badge mt-1" style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);">
-                <i class="bi bi-shop me-1"></i><span id="shopName">متجرك</span>
+            <p class="mb-0" style="font-size:12px;color:rgba(255,255,255,0.55);">مرحباً،</p>
+            <h2 class="fw-bold mb-0 text-white" id="merchantName" style="font-size:1.35rem;letter-spacing:-0.3px;">جاري التحميل...</h2>
+            <span class="m-pill" style="background:rgba(245,158,11,0.18);color:#fbbf24;border:1px solid rgba(245,158,11,0.28);margin-top:5px;">
+                <i class="bi bi-shop"></i><span id="shopName">متجرك</span>
             </span>
         </div>
-        <div class="d-flex align-items-center gap-2" onclick="toggleShopStatus()" style="cursor:pointer; background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:20px; transition:all 0.2s;">
-            <div id="statusDot" style="width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;"></div>
-            <span id="statusText" style="font-size:12px;color:#86efac;user-select:none;">مفتوح</span>
+        <div class="m-status-toggle" id="statusToggleBtn" onclick="toggleShopStatus()">
+            <div class="m-status-dot open" id="statusDot"></div>
+            <span id="statusText" style="font-size:12px;color:#86efac;font-weight:700;">مفتوح</span>
         </div>
     </div>
     <div class="row g-2 mt-3 position-relative" style="z-index:1">
         <div class="col-3">
-            <div class="hstat" id="tile-pending">
+            <div class="m-hstat" id="tile-pending">
                 <i class="bi bi-bell-fill"></i>
-                <div class="hstat-num" id="stat-pending">-</div>
-                <div class="hstat-lbl">جديد</div>
+                <div class="m-hstat-num" id="stat-pending">-</div>
+                <div class="m-hstat-lbl">جديد</div>
             </div>
         </div>
         <div class="col-3">
-            <div class="hstat">
+            <div class="m-hstat">
                 <i class="bi bi-fire"></i>
-                <div class="hstat-num" id="stat-preparing">-</div>
-                <div class="hstat-lbl">تجهيز</div>
+                <div class="m-hstat-num" id="stat-preparing">-</div>
+                <div class="m-hstat-lbl">تجهيز</div>
             </div>
         </div>
         <div class="col-3">
-            <div class="hstat">
+            <div class="m-hstat">
                 <i class="bi bi-bag-check-fill"></i>
-                <div class="hstat-num" id="stat-ready">-</div>
-                <div class="hstat-lbl">جاهز</div>
+                <div class="m-hstat-num" id="stat-ready">-</div>
+                <div class="m-hstat-lbl">جاهز</div>
             </div>
         </div>
         <div class="col-3">
-            <div class="hstat hstat-accent">
+            <div class="m-hstat accent">
                 <i class="bi bi-graph-up-arrow"></i>
-                <div class="hstat-num" id="stat-today">-</div>
-                <div class="hstat-lbl">اليوم</div>
+                <div class="m-hstat-num" id="stat-today">-</div>
+                <div class="m-hstat-lbl">اليوم</div>
             </div>
         </div>
     </div>
@@ -183,7 +95,7 @@
 
 <div class="container-fluid px-3 pt-3">
     <!-- 🔊 بنر تفعيل التنبيه الصوتي للتاجر -->
-    <div id="shop-sound-banner" class="alert alert-warning d-none align-items-center justify-content-between mb-3 shadow-sm py-2 px-3" style="border-radius: 12px;">
+    <div id="shop-sound-banner" class="m-alert amber d-none align-items-center justify-content-between mb-3" style="display:none!important;">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-volume-up-fill fs-4 text-warning"></i>
             <span style="font-size: 13px; font-weight: 700;">فعّل الصوت لسماع تنبيهات الطلبات الجديدة فوراً</span>
@@ -193,7 +105,7 @@
 
 
     <!-- 📦 بنر تنبيه نقص المخزون -->
-    <div id="lowStockBanner" class="alert alert-danger d-none align-items-center justify-content-between mb-3 shadow-sm py-2 px-3" style="border-radius: 12px; border-right: 4px solid #dc3545;">
+    <div id="lowStockBanner" class="m-alert red d-none align-items-center justify-content-between mb-3" style="display:none!important;border-right:4px solid var(--m-red);">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-exclamation-triangle-fill fs-4 text-danger"></i>
             <div>
@@ -205,31 +117,31 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="section-title"><i class="bi bi-grid-3x3-gap-fill text-warning"></i> الإجراءات السريعة</div>
+    <div class="m-section-title"><i class="bi bi-grid-3x3-gap-fill"></i> الإجراءات السريعة</div>
     <div class="row g-2 mb-4 align-items-stretch">
         <div class="col-3">
-            <a href="merchant-profile.html" class="quick-btn">
-                <i class="bi bi-person-circle text-success"></i>
+            <a href="merchant-profile.html" class="m-quick-btn">
+                <i class="bi bi-person-circle" style="color:var(--m-green);"></i>
                 <span>الملف</span>
             </a>
         </div>
         <div class="col-3">
-            <a href="merchant-products.html" class="quick-btn">
-                <i class="bi bi-box-seam-fill text-primary"></i>
+            <a href="merchant-products.html" class="m-quick-btn">
+                <i class="bi bi-box-seam-fill" style="color:var(--m-blue);"></i>
                 <span>المنتجات</span>
             </a>
         </div>
         <div class="col-3">
-            <a href="merchant-orders.html" class="quick-btn">
-                <i class="bi bi-bag-check-fill text-warning"></i>
+            <a href="merchant-orders.html" class="m-quick-btn">
+                <i class="bi bi-bag-check-fill" style="color:var(--m-amber);"></i>
                 <span>الطلبات</span>
             </a>
         </div>
         <div class="col-3">
-            <a href="merchant-conversations.html" class="quick-btn" style="position:relative;">
-                <i class="bi bi-chat-dots-fill" style="color:#f59e0b;"></i>
+            <a href="merchant-conversations.html" class="m-quick-btn" style="position:relative;">
+                <i class="bi bi-chat-dots-fill" style="color:var(--m-amber);"></i>
                 <span>الرسائل</span>
-                <span id="dashConvBadge" style="display:none;position:absolute;top:8px;right:8px;background:#ef4444;color:white;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:10px;"></span>
+                <span id="dashConvBadge" class="nav-badge" style="display:none;"></span>
             </a>
         </div>
     </div>
@@ -238,29 +150,29 @@
          /api/merchant/profile، فيراه تاجرُ الباقة الأساسية يومض عند كل فتح للصفحة.
          الإخفاء الافتراضي يجعل الفشل آمناً أيضاً: إن تعثّر الطلب لا تظهر ميزات مدفوعة
          لمن لم يدفع. الإظهار حصراً عند تأكّد tier === 'pro' أدناه. -->
-    <div class="section-title" id="erpSectionTitle" style="display:none;"><i class="bi bi-briefcase-fill text-warning"></i> إدارة الأعمال</div>
+    <div class="m-section-title" id="erpSectionTitle" style="display:none;"><i class="bi bi-briefcase-fill"></i> إدارة الأعمال</div>
     <div class="row g-2 mb-2 align-items-stretch" id="erpGrid" style="display:none;">
         <div class="col-3 erp-pro">
-            <a href="merchant-pos.html" class="quick-btn">
-                <i class="bi bi-upc-scan" style="color:#0f3460;"></i>
+            <a href="merchant-pos.html" class="m-quick-btn">
+                <i class="bi bi-upc-scan" style="color:var(--m-dark2);"></i>
                 <span>نقطة بيع</span>
             </a>
         </div>
         <div class="col-3 erp-pro">
-            <a href="merchant-reports.html" class="quick-btn">
-                <i class="bi bi-graph-up-arrow text-success"></i>
+            <a href="merchant-reports.html" class="m-quick-btn">
+                <i class="bi bi-graph-up-arrow" style="color:var(--m-green);"></i>
                 <span>التقارير</span>
             </a>
         </div>
         <div class="col-3 erp-pro">
-            <a href="merchant-inventory.html" class="quick-btn">
-                <i class="bi bi-boxes text-primary"></i>
+            <a href="merchant-inventory.html" class="m-quick-btn">
+                <i class="bi bi-boxes" style="color:var(--m-blue);"></i>
                 <span>المخزون</span>
             </a>
         </div>
         <div class="col-3" id="financeCardCol">
-            <a href="merchant-finance.html" class="quick-btn">
-                <i class="bi bi-wallet-fill" style="color:#d97706;"></i>
+            <a href="merchant-finance.html" class="m-quick-btn">
+                <i class="bi bi-wallet-fill" style="color:var(--m-amber-dark);"></i>
                 <span>المحاسبة</span>
             </a>
         </div>
@@ -280,15 +192,15 @@
     <!-- Row 2: Order Captain + Share Store -->
     <div class="row g-2 mb-4">
         <div class="col-6">
-            <a href="index.html?from=merchant" class="quick-btn quick-btn-special d-flex flex-row gap-2 py-3" style="height:auto;">
+            <a href="index.html?from=merchant" class="m-quick-btn d-flex flex-row gap-2 py-3" style="height:auto;border:1.5px solid var(--m-amber);color:var(--m-amber-dark);">
                 <i class="bi bi-bicycle" style="font-size:1.6rem;"></i>
                 <span style="font-size:13px;">اطلب كابتن</span>
             </a>
         </div>
         <div class="col-6">
-            <a href="javascript:void(0)" onclick="openShareModal()" class="quick-btn d-flex flex-row gap-2 py-3" style="height:auto;background:linear-gradient(135deg,#04553A,#086b42);color:#fff;">
-                <i class="bi bi-share-fill" style="font-size:1.5rem;color:#fff;"></i>
-                <span style="font-size:13px;color:#fff;">شارك متجرك</span>
+            <a href="javascript:void(0)" onclick="openShareModal()" class="m-quick-btn special d-flex flex-row gap-2 py-3" style="height:auto;">
+                <i class="bi bi-share-fill" style="font-size:1.5rem;"></i>
+                <span style="font-size:13px;">شارك متجرك</span>
             </a>
         </div>
     </div>
@@ -341,31 +253,41 @@
     </div>
 
     <!-- Recent Orders -->
-    <div class="section-title"><i class="bi bi-clock-history text-warning"></i> آخر الطلبات</div>
-    <div id="recentOrders">
-        <div class="sk-row"><div class="sk" style="width:42px;height:42px;"></div><div class="flex-grow-1"><div class="sk mb-2" style="width:55%;height:13px;"></div><div class="sk" style="width:35%;height:11px;"></div></div><div class="sk" style="width:48px;height:22px;border-radius:20px;"></div></div>
-        <div class="sk-row"><div class="sk" style="width:42px;height:42px;"></div><div class="flex-grow-1"><div class="sk mb-2" style="width:45%;height:13px;"></div><div class="sk" style="width:30%;height:11px;"></div></div><div class="sk" style="width:48px;height:22px;border-radius:20px;"></div></div>
+    <div class="m-section-title">
+        <i class="bi bi-clock-history"></i> آخر الطلبات
+        <a href="merchant-orders.html" class="m-section-link">عرض الكل <i class="bi bi-chevron-left"></i></a>
+    </div>
+    <div class="m-card" style="overflow:hidden;">
+        <div id="recentOrders">
+            <div class="sk-row"><div class="sk" style="width:42px;height:42px;border-radius:50%;"></div><div class="flex-grow-1"><div class="sk mb-2" style="width:55%;height:13px;"></div><div class="sk" style="width:35%;height:11px;"></div></div><div class="sk" style="width:48px;height:22px;border-radius:20px;"></div></div>
+            <div class="sk-row"><div class="sk" style="width:42px;height:42px;border-radius:50%;"></div><div class="flex-grow-1"><div class="sk mb-2" style="width:45%;height:13px;"></div><div class="sk" style="width:30%;height:11px;"></div></div><div class="sk" style="width:48px;height:22px;border-radius:20px;"></div></div>
+        </div>
     </div>
 
 </div>
 
 <nav class="merchant-nav">
     <a href="merchant-dashboard.html" class="active">
-        <i class="bi bi-house-door-fill"></i> الرئيسية
+        <i class="bi bi-house-door-fill"></i>
+        <span>الرئيسية</span>
     </a>
     <a href="merchant-orders.html">
-        <i class="bi bi-bag-check"></i> الطلبات
+        <i class="bi bi-bag-check-fill"></i>
+        <span>الطلبات</span>
     </a>
     <a href="merchant-conversations.html" style="position:relative;">
-        <i class="bi bi-chat-dots-fill"></i> رسائل
-        <span id="navConvBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+        <i class="bi bi-chat-dots-fill"></i>
+        <span>رسائل</span>
+        <span id="navConvBadge" class="nav-badge" style="display:none;"></span>
     </a>
     <a href="merchant-notifications.html" style="position:relative;">
-        <i class="bi bi-bell"></i> إشعارات
-        <span id="navNotifBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
+        <i class="bi bi-bell-fill"></i>
+        <span>إشعارات</span>
+        <span id="navNotifBadge" class="nav-badge" style="display:none;"></span>
     </a>
     <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');">
-        <i class="bi bi-box-arrow-right"></i> خروج
+        <i class="bi bi-box-arrow-right"></i>
+        <span>خروج</span>
     </a>
 </nav>
 
@@ -397,6 +319,15 @@
         ready_for_pickup: 'bg-success text-white', captain_assigned: 'bg-info text-dark',
         picked_up: 'bg-info text-dark', delivered: 'bg-success text-white', cancelled: 'bg-danger text-white'
     };
+
+    function statusPillClass(status) {
+        const map = {
+            shop_pending: 'amber', shop_preparing: 'blue',
+            ready_for_pickup: 'green', captain_assigned: 'blue',
+            picked_up: 'blue', delivered: 'solid-green', cancelled: 'red'
+        };
+        return map[status] || 'dark';
+    }
 
     let currentIsOpenOverride = null;
 
@@ -430,6 +361,15 @@
                     const finCol = document.getElementById('financeCardCol');
                     if (finCol) finCol.className = 'col-3';
                 }
+
+                // 🎓 الجولة الترحيبية — هنا تحديداً لا عند تحميل الصفحة:
+                // قسم "إدارة الأعمال" يبقى مخفيّاً حتى تصل الباقة، والبدء
+                // قبلها إمّا يُسقط خطوات يملكها التاجر فعلاً أو يُضيء صندوقاً
+                // فارغاً. تعمل مرة واحدة لكل حساب.
+                if (typeof startMerchantTour === 'function' && !window._tourTried) {
+                    window._tourTried = true;
+                    setTimeout(() => { try { startMerchantTour(); } catch (e) {} }, 500);
+                }
             }
 
             const ordersRes = await fetch(`${API_URL}/api/merchant/orders`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -448,7 +388,7 @@
             document.getElementById('stat-ready').textContent = ordersList.filter(o => o.status === 'ready_for_pickup').length;
             document.getElementById('stat-today').textContent = ordersList.filter(o => new Date(o.createdAt).toDateString() === today).length;
             // نبضة تنبيه على بطاقة "جديد" عند وجود طلبات غير مقروءة
-            document.getElementById('tile-pending')?.classList.toggle('hstat-pulse', pendingCount > 0);
+            document.getElementById('tile-pending')?.classList.toggle('pulse-amber', pendingCount > 0);
 
             // Recent orders
             const container = document.getElementById('recentOrders');
@@ -460,19 +400,23 @@
                     <div class="empty-state-desc">ستظهر طلبات متجرك هنا فور وصولها من العملاء، تأكد من فتح المتجر لاستقبال الطلبات!</div>
                 </div>`;
             } else {
-                container.innerHTML = ordersList.slice(0, 6).map(o => {
-                    const name = escapeHtml(o.client?.name || 'عميل');
-                    const initial = (o.client?.name || 'ع').trim().charAt(0);
-                    return `
-                    <div class="order-row d-flex justify-content-between align-items-center gap-3" onclick="window.location.href='merchant-orders.html'" style="cursor:pointer">
-                        <div class="ord-avatar">${escapeHtml(initial)}</div>
-                        <div class="flex-grow-1 min-w-0">
-                            <div class="fw-bold text-truncate" style="font-size:14px;">${name} <span class="text-muted" style="font-size:12px;">#${o._id.slice(-4)}</span></div>
-                            <div class="text-muted" style="font-size:12px;">${o.items?.length || 0} منتج · <span class="ord-amount">${o.itemsTotal || 0} ج.س</span></div>
-                        </div>
-                        <span class="order-badge ${statusColors[o.status] || 'bg-secondary text-white'}">${statusLabels[o.status] || o.status}</span>
-                    </div>`;
-                }).join('');
+                const container = document.getElementById('recentOrders');
+                if (ordersList.length) {
+                    const ordList = ordersList.slice(0, 6);
+                    container.innerHTML = ordList.map(o => {
+                        const name = escapeHtml(o.client?.name || 'عميل');
+                        const initial = (o.client?.name || 'ع').trim().charAt(0);
+                        return `
+                        <div class="m-order-row" onclick="window.location.href='merchant-orders.html'">
+                            <div class="m-ord-avatar">${escapeHtml(initial)}</div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-truncate" style="font-size:14px;">${name} <span style="font-size:12px;color:var(--m-muted);">#${o._id.slice(-4)}</span></div>
+                                <div style="font-size:12px;color:var(--m-muted);">${o.items?.length || 0} منتج · <span class="ord-amount">${o.itemsTotal || 0} ج.س</span></div>
+                            </div>
+                            <span class="m-pill ${statusPillClass(o.status)}">${statusLabels[o.status] || o.status}</span>
+                        </div>`;
+                    }).join('');
+                }
             }
 
             // فحص المخزون المنخفض في الخلفية
@@ -635,7 +579,7 @@
             image.style.cssText = 'width:min(72vw,300px);height:auto;border-radius:16px;background:#fff;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.5);';
             const btn = document.createElement('button');
             btn.textContent = 'تم';
-            btn.style.cssText = 'background:#04553A;color:#fff;border:none;border-radius:12px;padding:11px 32px;font-weight:800;font-family:inherit;font-size:15px;';
+            btn.style.cssText = 'background:var(--primary);color:#fff;border:none;border-radius:12px;padding:11px 32px;font-weight:800;font-family:inherit;font-size:15px;';
             btn.addEventListener('click', () => ov.remove());
             ov.append(cap, image, btn);
             document.body.appendChild(ov);
@@ -650,13 +594,11 @@
         const dot = document.getElementById('statusDot');
         const txt = document.getElementById('statusText');
         if (isOpen) {
-            dot.style.background = '#22c55e';
-            dot.style.boxShadow = '0 0 6px #22c55e';
+            dot.className = 'm-status-dot open';
             txt.textContent = 'مفتوح';
             txt.style.color = '#86efac';
         } else {
-            dot.style.background = '#ef4444';
-            dot.style.boxShadow = '0 0 6px #ef4444';
+            dot.className = 'm-status-dot closed';
             txt.textContent = 'مغلق';
             txt.style.color = '#fca5a5';
         }
@@ -703,7 +645,7 @@
 
     // Real-time: connect socket to merchant room (with auth token)
     const socket = io(API_URL, {
-        transports: ['polling', 'websocket'],
+        transports: ['websocket', 'polling'],
         auth: { token }
     });
     socket.on('connect', () => {
@@ -840,7 +782,9 @@
         }
     });
 </script>
-<script type=" module\ src=\js/native-notifications.js\></script>
+<script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/tour.js?v=a0772613"></script>
+    <script src="js/tour-merchant.js?v=268a4da1"></script>
 </body>
 </html>
