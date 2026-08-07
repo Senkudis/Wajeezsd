@@ -558,16 +558,40 @@ function formatCompactCount(n) {
 // opts.showCategory: يعرض شارة القسم على البطاقة — مفيد في العرض المختلط
 // (المحلات القريبة/البحث) حيث لا يعرف العميل قسم كل محل. يُترك مطفأً في
 // التصفّح داخل قسم محدّد (القسم معروف أصلاً، فالشارة تكرار).
-window.renderPlacesList = function(places, container, prependHtml = '', opts = {}) {
-    const defaultImage = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80';
+/**
+ * غلاف بديل مشتقّ من القسم — يحلّ محل صورة خارجية واحدة كانت تُستعمل لكل
+ * المحلات بلا استثناء. ثلاث مشاكل كانت فيها: البطاقات تتشابه فلا يميّز
+ * العميل محلاً عن آخر، وصورة خضار على صيدلية تضلّل، والطلب الخارجي يفشل
+ * في وضع عدم الاتصال الذي يدعمه التطبيق أصلاً.
+ *
+ * اللون يُشتقّ بتجزئة ثابتة من معرّف القسم، فيبقى القسم نفسه بلونه نفسه
+ * في كل الشاشات وعبر الجلسات، ويتباين عن غيره بلا جدول ألوان يدوي.
+ */
+// درجات موزّعة يدوياً على عجلة الألوان. لماذا لا `hash % 360`؟ جُرِّب فأعطى
+// 238 و239 و240 و241 و243 لأقسام مختلفة — متتالية بصرياً لا يميّزها أحد،
+// لأن المعرّفات قصيرة ومتقاربة فتتكتّل بقايا القسمة. القائمة تضمن التباعد.
+const PH_HUES = [152, 28, 262, 200, 340, 45, 178, 300, 15, 225, 95, 320];
 
+window.placeCoverPlaceholder = function (p) {
+    const cat = (p && p.category && typeof p.category === 'object') ? p.category : null;
+    const icon = (cat && cat.icon) || 'bi-shop';
+    const key = String((cat && (cat._id || cat.name)) || (p && p.name) || '');
+    // FNV-1a: خلط أفضل بكثير من h*31 على السلاسل القصيرة
+    let h = 2166136261;
+    for (let i = 0; i < key.length; i++) {
+        h ^= key.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    return `<div class="place-card-ph" style="--ph-h:${PH_HUES[h % PH_HUES.length]}"><i class="bi ${icon}"></i></div>`;
+};
+
+window.renderPlacesList = function(places, container, prependHtml = '', opts = {}) {
     const html = places.map((p, idx) => {
         const isOpen = p.is_open;
-        const imgSrc = getFullImageUrl(p.image_url) || defaultImage;
+        const imgSrc = getFullImageUrl(p.image_url);
         const dist = p.distanceKm != null
             ? `${Number(p.distanceKm).toFixed(1)} كم`
-            : `<span class="dist-loading">⏳</span>`;
-        const views = formatCompactCount(p.viewsCount || 0);
+            : `<span class="dist-loading"></span>`;
 
         // 🏷️ شارة القسم — تظهر فقط عند طلبها ومتى توفّر القسم مأهولاً (name/icon)
         const cat = (opts.showCategory && p.category && typeof p.category === 'object') ? p.category : null;
@@ -590,8 +614,9 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
         <div class="place-card fade-in-up" data-place-id="${p._id}" onclick="openPlaceDetails('${p._id}')"
             style="animation-delay:${Math.min(idx * 0.07, 0.4)}s; opacity:0;">
             <div class="place-card-cover">
-                <img src="${imgSrc}" alt="${escapeHtml(p.name)}"
-                    onerror="this.src='${defaultImage}'">
+                ${window.placeCoverPlaceholder(p)}
+                ${imgSrc ? `<img src="${imgSrc}" alt="${escapeHtml(p.name)}" loading="lazy"
+                    onerror="this.remove()">` : ''}
                 <div class="place-card-cover-overlay"></div>
                 ${catBadge}
                 ${menuBtn}
@@ -603,8 +628,6 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
                 <div class="place-card-name">${escapeHtml(p.name)}</div>
                 <div class="place-card-meta">
                     ${ratingHtml}
-                    <span class="meta-dot">·</span>
-                    <span class="meta-item views"><i class="bi bi-eye-fill"></i> ${views}</span>
                     <span class="meta-dot">·</span>
                     <span class="meta-item place-dist"><i class="bi bi-geo-alt-fill"></i> ${dist}</span>
                 </div>
@@ -722,7 +745,13 @@ window.openPlaceDetails = function(placeId) {
         menuBtn.onclick = null;
     }
 
-    document.getElementById('placeModalImage').src = getFullImageUrl(place.image_url) || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';
+    // الغلاف البديل يُبنى من قسم المحل، والصورة الحقيقية تعلوه إن وُجدت
+    const modalPh = document.getElementById('placeModalPh');
+    if (modalPh) modalPh.outerHTML = window.placeCoverPlaceholder(place).replace('class="place-card-ph"', 'id="placeModalPh" class="place-card-ph"');
+    const modalImg = document.getElementById('placeModalImage');
+    const modalSrc = getFullImageUrl(place.image_url);
+    modalImg.style.display = modalSrc ? '' : 'none';
+    if (modalSrc) modalImg.src = modalSrc;
 
     const statusEl = document.getElementById('placeModalStatus');
     if (place.is_open) {

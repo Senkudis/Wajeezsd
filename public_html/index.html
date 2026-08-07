@@ -93,6 +93,13 @@
         };
     </script>
 
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://maps.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://maps.googleapis.com">
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#04553A">
     <meta name="mobile-web-app-capable" content="yes">
@@ -126,7 +133,10 @@
             display: block;
         }
         :root {
-            --primary-color: #04553A;
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+            --primary-color: var(--primary);
             --bg-color: #f4f6f8;
         }
 
@@ -151,12 +161,12 @@
             text-align: center !important;
             font-size: 1.25rem !important;
             font-weight: 800 !important;
-            color: #04553A !important;
+            color: var(--primary) !important;
         }
 
         /* --- 💰 أزرار رفع/تنزيل السعر (±100) --- */
         .price-stepper .btn-price-step {
-            background: #04553A;
+            background: var(--primary);
             color: #fff;
             border: none;
             width: 52px;
@@ -239,7 +249,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 50% 40%, #0a6e47 0%, #04553A 55%, #032e1f 100%);
+            background: radial-gradient(circle at 50% 40%, #0a6e47 0%, var(--primary) 55%, #032e1f 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -304,7 +314,7 @@
             width: 9px;
             height: 9px;
             border-radius: 50%;
-            background: #BF8B1F;
+            background: var(--accent);
             animation: dot-bounce 1s ease-in-out infinite;
         }
 
@@ -343,7 +353,7 @@
         .parcel-upload-btn:hover {
             border-color: var(--primary-color);
             background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            color: #2c3e50;
+            color: var(--secondary);
         }
 
         /* Captain marker pulse animation on map */
@@ -377,7 +387,7 @@
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
-            color: #04553A;
+            color: var(--primary);
             background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -407,7 +417,7 @@
 
         .map-fab-btn:hover {
             transform: scale(1.1) translateY(-1px);
-            color: #065f3a;
+            color: var(--primary-gradient);
             background: rgba(255, 255, 255, 0.98);
             box-shadow:
                 0 8px 24px rgba(0, 0, 0, 0.2),
@@ -425,7 +435,7 @@
                 0 2px 8px rgba(0, 0, 0, 0.12),
                 inset 0 1px 3px rgba(0, 0, 0, 0.08);
             background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            color: #04553A;
+            color: var(--primary);
         }
 
         .map-fab-btn i {
@@ -439,7 +449,7 @@
         /* Spinning animation for locate button when active */
         .map-fab-btn.locating i {
             animation: fab-spin 1s linear infinite;
-            color: #04553A;
+            color: var(--primary);
         }
 
         @keyframes fab-spin {
@@ -448,7 +458,7 @@
 
         /* Active/pressed state indicator */
         .map-fab-btn.active-layer {
-            background: linear-gradient(135deg, #04553A, #25d366);
+            background: linear-gradient(135deg, var(--primary), #25d366);
             color: white;
             box-shadow: 0 4px 16px rgba(10, 135, 84, 0.4), 0 0 0 2px rgba(10, 135, 84, 0.2);
         }
@@ -458,12 +468,13 @@
             background: linear-gradient(135deg, #0d9d63, #2fe07a);
         }
     </style>
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <link rel="stylesheet" href="css/smart-search.css?v=4d98136e">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/smart-search.css?v=23c91e85">
 
 
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body>
@@ -792,9 +803,9 @@
         <div id="map-loading-overlay"
             style="position:absolute;inset:0;background:rgba(255,255,255,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;gap:16px;pointer-events:none;">
             <div
-                style="width:56px;height:56px;border:4px solid #e0f2eb;border-top-color:#04553A;border-radius:50%;animation:mapSpin 0.8s linear infinite;">
+                style="width:56px;height:56px;border:4px solid #e0f2eb;border-top-color:var(--primary);border-radius:50%;animation:mapSpin 0.8s linear infinite;">
             </div>
-            <p style="font-family:'Cairo',sans-serif;font-size:15px;color:#04553A;font-weight:700;margin:0;">جارٍ تحميل
+            <p style="font-family:'Cairo',sans-serif;font-size:15px;color:var(--primary);font-weight:700;margin:0;">جارٍ تحميل
                 الخريطة...</p>
         </div>
         <style>
@@ -813,18 +824,18 @@
                  TOP BAR: Close button + Mode Label
             ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ -->
             <div
-                style="pointer-events:none;position:absolute;top:0;left:0;right:0;padding:calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px) 16px 8px;display:flex;align-items:center;gap:10px;">
+                style="pointer-events:none;position:absolute;top:0;left:0;right:0;padding-top:calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px);padding-right:16px;padding-bottom:8px;padding-left:16px;display:flex;align-items:center;gap:10px;">
                 <button type="button" onclick="window.closeMapUI()"
                     style="pointer-events:auto;touch-action:manipulation;flex-shrink:0;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,0.18);font-size:1.2rem;color:#dc3545;cursor:pointer;display:flex;align-items:center;justify-content:center;">
                     <i class="bi bi-arrow-right"></i>
                 </button>
                 <div id="map-mode-label"
-                    style="background:white;border-radius:12px;padding:8px 14px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;color:#04553A;box-shadow:0 2px 12px rgba(0,0,0,0.12);white-space:nowrap;">
+                    style="background:white;border-radius:12px;padding:8px 14px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;color:var(--primary);box-shadow:0 2px 12px rgba(0,0,0,0.12);white-space:nowrap;">
                     📍 حدد موقع الاستلام
                 </div>
                 <!-- City Switch — أقصى اليمين في الشريط العلوي -->
                 <button type="button" id="map-city-btn" onclick="window.chooseMapCity()" title="تغيير المدينة"
-                    style="pointer-events:auto;touch-action:manipulation;margin-right:auto;background:white;border:2px solid #04553A;border-radius:20px;padding:7px 14px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#04553A;box-shadow:0 2px 10px rgba(10,135,84,0.2);cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif;">
+                    style="pointer-events:auto;touch-action:manipulation;margin-right:auto;background:white;border:2px solid var(--primary);border-radius:20px;padding:7px 14px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--primary);box-shadow:0 2px 10px rgba(10,135,84,0.2);cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif;">
                     <i class="bi bi-buildings-fill"></i> <span id="map-city-label">تبديل المدينة</span>
                 </button>
             </div>
@@ -835,7 +846,7 @@
                     <input type="text" id="map-search-input" placeholder="ابحث عن مكان أو عنوان..."
                         style="width:100%;padding:14px 48px 14px 16px;border:none;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:600;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.12);outline:none;direction:rtl;"
                         autocomplete="off">
-                    <button type="button" id="map-search-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#04553A;color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
+                    <button type="button" id="map-search-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--primary);color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
                         <i class="bi bi-search"></i>
                     </button>
                 </div>
@@ -860,7 +871,7 @@
                     <defs>
                         <linearGradient id="pgNuc" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stop-color="#25d366" />
-                            <stop offset="100%" stop-color="#04553A" />
+                            <stop offset="100%" stop-color="var(--primary)" />
                         </linearGradient>
                         <filter id="psNuc">
                             <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.35" />
@@ -869,7 +880,7 @@
                     <path d="M24 0C14.06 0 6 8.06 6 18c0 12.75 18 28 18 28s18-15.25 18-28C42 8.06 33.94 0 24 0z"
                         fill="url(#pgNuc)" filter="url(#psNuc)" />
                     <circle cx="24" cy="18" r="8" fill="white" />
-                    <circle cx="24" cy="18" r="4" fill="#04553A" />
+                    <circle cx="24" cy="18" r="4" fill="var(--primary)" />
                 </svg>
             </div>
 
@@ -906,11 +917,11 @@
             <div
                 style="pointer-events:none;position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + var(--sab, env(safe-area-inset-bottom, 0px)));background:linear-gradient(transparent,rgba(255,255,255,0.98) 30%);">
                 <div id="map-address-preview"
-                    style="font-family:'Cairo',sans-serif;font-size:12.5px;font-weight:600;color:#04553A;text-align:center;margin-bottom:8px;min-height:18px;line-height:1.5;padding:0 6px;">
+                    style="font-family:'Cairo',sans-serif;font-size:12.5px;font-weight:600;color:var(--primary);text-align:center;margin-bottom:8px;min-height:18px;line-height:1.5;padding:0 6px;">
                     <span style="opacity:.55;">حرّك الخريطة لتحديد موقعك بدقة…</span>
                 </div>
                 <button id="map-confirm-btn" type="button" onclick="window.confirmLocationSelection()"
-                    style="pointer-events:auto;touch-action:manipulation;width:100%;padding:16px;background:linear-gradient(135deg,#04553A,#25d366);color:white;border:none;border-radius:16px;font-size:17px;font-weight:700;font-family:'Cairo',sans-serif;cursor:pointer;box-shadow:0 4px 20px rgba(10,135,84,0.35);transition:opacity 0.2s, background 0.2s;">
+                    style="pointer-events:auto;touch-action:manipulation;width:100%;padding:16px;background:linear-gradient(135deg,var(--primary),#25d366);color:white;border:none;border-radius:16px;font-size:17px;font-weight:700;font-family:'Cairo',sans-serif;cursor:pointer;box-shadow:0 4px 20px rgba(10,135,84,0.35);transition:opacity 0.2s, background 0.2s;">
                     تأكيد الموقع
                 </button>
             </div>
@@ -963,20 +974,25 @@
     <div class="offcanvas offcanvas-start" tabindex="-1" id="sideMenu" aria-labelledby="sideMenuLabel"
         style="width: 80%;">
         <div class="offcanvas-header text-white"
-            style="background: linear-gradient(135deg, #04553A, #065f3a); padding-top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));">
-            <div class="d-flex align-items-center gap-2">
-                <img src="logo-white.png" height="44" class="app-logo logo-onbrand"
+            style="background: linear-gradient(135deg, var(--primary), var(--primary-gradient)); padding-top: calc(16px + var(--sat, env(safe-area-inset-top, 0px))); flex-direction: column; align-items: flex-start; padding-bottom: 20px;">
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <img src="logo-white.png" height="38" class="app-logo logo-onbrand"
                     style="object-fit:contain;">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
+                    aria-label="Close"></button>
             </div>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
-                aria-label="Close"></button>
+            <div class="mt-3 d-flex align-items-center gap-2">
+                <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-person-fill" style="font-size:20px;color:#fff;"></i>
+                </div>
+                <div>
+                    <small style="opacity:0.75;font-size:11px;">الحساب</small>
+                    <h6 class="fw-bold mb-0 text-white" id="menu-username">زائر</h6>
+                </div>
+            </div>
         </div>
         <div class="offcanvas-body p-0">
             <div class="list-group list-group-flush">
-                <div class="list-group-item p-3 bg-light border-bottom">
-                    <small class="text-muted d-block">الحساب</small>
-                    <h6 class="fw-bold mb-0" id="menu-username">زائر</h6>
-                </div>
                 <a href="client-login.html" id="menu-login-btn" class="list-group-item list-group-item-action py-3">
                     <i class="bi bi-box-arrow-in-right me-3 text-primary"></i> تسجيل الدخول
                 </a>
@@ -1005,11 +1021,6 @@
                     class="list-group-item list-group-item-action py-3 text-danger d-none">
                     <i class="bi bi-box-arrow-right me-3"></i> تسجيل الخروج
                 </a>
-                <!-- حذف الحساب داخل التطبيق — شرط App Store 5.1.1(v) -->
-                <a href="#" onclick="event.preventDefault(); openDeleteAccount();" id="menu-delete-account-btn"
-                    class="list-group-item list-group-item-action py-3 text-danger d-none">
-                    <i class="bi bi-person-x me-3"></i> حذف الحساب
-                </a>
             </div>
 
             <!-- بوابات الكابتن والأدمن -->
@@ -1031,8 +1042,14 @@
             </div>
 
             <div class="p-3 mt-4 text-center">
+                <!-- حذف الحساب داخل التطبيق — مخفي بشكل افتراضي، يظهر في الأسفل -->
+                <a href="#" onclick="event.preventDefault(); openDeleteAccount();" id="menu-delete-account-btn"
+                    class="d-none text-danger text-decoration-none small mb-3 d-inline-block">
+                    <i class="bi bi-person-x me-1"></i> حذف الحساب نهائياً
+                </a>
+                
                 <!-- ⚠️ كان الرقم مكتوباً يدوياً (1.4.1 بينما التطبيق 1.0.9) — يُقرأ الآن من APP_VERSION -->
-                <p class="text-muted small">إصدار التطبيق <span data-app-version>—</span></p>
+                <p class="text-muted small mb-0">إصدار التطبيق <span data-app-version>—</span></p>
             </div>
         </div>
     </div>
@@ -1098,16 +1115,16 @@
     <script src="vendor/socket.io/socket.io.min.js"></script>
 
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-    <script src="js/delete-account.js?v=d132d4b9"></script>
+    <script src="js/delete-account.js?v=5fc26bb0"></script>
 
     <script src="notification-toast.js"></script>
 
     <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/city-service.js?v=34b5af79"></script>
+    <script src="js/city-service.js?v=40791ec5"></script>
     <script src="js/home-banners.js?v=5f77eb1f"></script>
     <script src="js/console-cleaner.js?v=10115678"></script>
     <script src="js/input-validator.js?v=03fba3b9"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/saved-locations.js?v=a8af9992"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
     <script src="js/onboarding.js?v=3e061f5f"></script>
@@ -1134,12 +1151,12 @@
     </script>
     <script type="module" src="js/native-dialogs.js?v=a27e0d63"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script src="js/share-app.js?v=19bc445f"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script src="js/share-app.js?v=fcdd5cd2"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
 
-    <script src="js/home.js?v=11d3dacd"></script>
-    <script src="js/order-feature.js?v=29ffccac"></script>
+    <script src="js/home.js?v=e1e2192e"></script>
+    <script src="js/order-feature.js?v=9f7d4809"></script>
     <script src="js/smart-search.js?v=ecbf7f45"></script>
 
     <!-- ✅ Google Maps JavaScript API (Web SDK) -->
@@ -1212,7 +1229,7 @@
                         // أيقونة مميِّزة: محل/منشأة ↔ عنوان جغرافي
                         const isEstablishment = (p.types || []).includes('establishment') || (p.types || []).includes('point_of_interest');
                         const icon = isEstablishment ? 'bi-shop' : 'bi-geo-alt-fill';
-                        const iconColor = isEstablishment ? '#b45309' : '#04553A';
+                        const iconColor = isEstablishment ? '#b45309' : 'var(--primary)';
                         return `
                         <div onclick="window._selectSearchResult('${p.place_id}')"
                             style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:11px;transition:background 0.15s;"
@@ -1288,7 +1305,7 @@
                     const finalText = placeText || (results[0].formatted_address || '').replace(/،?\s*السودان\s*$/, '').trim();
                     window._selectedSearchAddr = { text: finalText, lat, lng };
                     const pv = document.getElementById('map-address-preview');
-                    if (pv && finalText) pv.innerHTML = `<i class="bi bi-geo-alt-fill" style="color:#04553A;"></i> ${finalText}`;
+                    if (pv && finalText) pv.innerHTML = `<i class="bi bi-geo-alt-fill" style="color:var(--primary);"></i> ${finalText}`;
 
                     searchInput.value = '';
                     resultsDiv.style.display = 'none';
@@ -1430,7 +1447,7 @@
         </div>
 
         <!-- Locate Me Button -->
-        <button id="shopMapLocateBtn" onclick="window.shopMapLocateMe && window.shopMapLocateMe()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: #04553A; padding: 10px 16px;">
+        <button id="shopMapLocateBtn" onclick="window.shopMapLocateMe && window.shopMapLocateMe()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: var(--primary); padding: 10px 16px;">
             <i class="bi bi-crosshair2 fs-5"></i>
             <span style="font-size: 12px;">موقعي</span>
         </button>
@@ -1498,12 +1515,10 @@
             window.addEventListener('city-changed', updateMapCityLabel);
         });
 
-        // ✅ دالة تبديل المدينة — تفتح نافذة الاختيار فوق كل شيء
+        // ✅ دالة تبديل المدينة — تفتح نافذة الاختيار وسيرفر التزامن يعمل عبر AJAX بدون reload
         window.chooseMapCity = async function() {
             if (window.CityService) {
                 await CityService.showCityPicker();
-                // بعد الاختيار، أعد تحميل الصفحة لتطبيق المدينة الجديدة
-                window.location.reload();
             }
         };
 

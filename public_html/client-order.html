@@ -7,6 +7,13 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>تسوق | وجيز</title>
     <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://maps.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://maps.googleapis.com">
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#04553A">
     <meta name="mobile-web-app-capable" content="yes">
@@ -19,22 +26,31 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css?v=3.4">
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
     <link rel="stylesheet" href="css/splash.css?v=83fac690">
 
     <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
         body { background: #f0f4f8; padding-bottom: 90px; margin: 0; }
 
         /* ─── Hero Section ─── */
         .order-hero {
-            background: linear-gradient(160deg, #0a1628 0%, #0d3b2e 45%, #04553A 100%);
-            padding: 52px 20px 70px;
+            background: linear-gradient(160deg, #0a1628 0%, #0d3b2e 45%, var(--primary) 100%);
+            /* كانت 52px ثابتة أعلى و70px أسفل — 122px حشواً وحده، فتكلّف
+               الترويسة 38٪ من الشاشة ولا يظهر أي محل قبل التمرير. الحشو
+               العلوي صار يتبع المنطقة الآمنة (var(--sat) يحقنه MainActivity)
+               بدل رقم ثابت يزيد عمّا يلزم على الأجهزة بلا نتوء. */
+            padding: calc(22px + var(--sat, 20px)) 20px 46px;
             position: relative;
             overflow: hidden;
         }
@@ -55,7 +71,7 @@
         }
         .hero-logo img { height: 48px; width: auto; object-fit: contain; }
         .hero-greeting { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 600; }
-        .hero-title { font-size: 26px; font-weight: 900; color: #fff; line-height: 1.2; margin: 4px 0 2px; }
+        .hero-title { font-size: 21px; font-weight: 900; color: #fff; line-height: 1.25; margin: 3px 0 2px; }
         .hero-subtitle { font-size: 13px; color: rgba(255,255,255,0.55); }
 
         /* ─── Search Bar ─── */
@@ -107,6 +123,9 @@
         .cats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
+            /* صفوف متساوية: اسم من سطرين ("خضار وفواكه") كان يمطّط صفّه
+               فيختلف ارتفاع الصفين ويبدو الشبكة غير مستوية */
+            grid-auto-rows: 1fr;
             gap: 10px;
             padding-bottom: 4px;
         }
@@ -115,7 +134,9 @@
         }
         .cat-chip {
             display: flex; flex-direction: column; align-items: center;
+            justify-content: center;
             gap: 6px; padding: 14px 8px;
+            height: 100%;
             border-radius: 18px; cursor: pointer;
             border: 2px solid transparent;
             transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -127,8 +148,8 @@
         .cat-chip:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
         .cat-chip:active { transform: scale(0.96); }
         .cat-chip.active {
-            border-color: #04553A;
-            background: linear-gradient(135deg, #04553A, #0d5c3a);
+            border-color: var(--primary);
+            background: linear-gradient(135deg, var(--primary), #0d5c3a);
             box-shadow: 0 8px 24px rgba(10,135,84,0.35);
             transform: translateY(-3px) scale(1.04);
         }
@@ -181,7 +202,7 @@
             gap: 8px;
             font-size: 16px;
             font-weight: 800;
-            color: #04553A;
+            color: var(--primary);
             margin: 4px 2px 12px;
         }
         .featured-head i { font-size: 18px; }
@@ -190,7 +211,7 @@
         .errand-promo {
             width: 100%; border: none; text-align: right;
             display: flex; align-items: center; gap: 12px;
-            background: var(--primary-color, #04553A);
+            background: var(--primary-color, var(--primary));
             color: #fff; border-radius: 14px; padding: 14px 16px;
             margin-bottom: 18px; box-shadow: 0 4px 12px rgba(4,85,58,0.25);
             cursor: pointer; transition: transform .15s;
@@ -323,8 +344,31 @@
             flex-shrink: 0;
         }
         .place-card-cover img {
+            position: absolute; inset: 0;
             width: 100%; height: 100%; object-fit: cover;
             transition: transform 0.4s;
+        }
+        /* الغلاف البديل: تدرّج بلون القسم + أيقونته، يُولَّد محلياً.
+           يجلس خلف الصورة فيظهر تلقائياً متى غابت أو فشل تحميلها. */
+        .place-card-ph {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg,
+                hsl(var(--ph-h, 150) 58% 93%) 0%,
+                hsl(var(--ph-h, 150) 48% 83%) 100%);
+            color: hsl(var(--ph-h, 150) 45% 32%);
+            font-size: 38px;
+        }
+        body.dark-mode .place-card-ph {
+            background: linear-gradient(135deg,
+                hsl(var(--ph-h, 150) 28% 22%) 0%,
+                hsl(var(--ph-h, 150) 26% 16%) 100%);
+            color: hsl(var(--ph-h, 150) 40% 68%);
+        }
+        /* بديل مصغّر لصور نتائج البحث */
+        .sr-img-ph {
+            display: flex; align-items: center; justify-content: center;
+            background: #eef1f5; color: #94a3b8; font-size: 20px;
         }
         .place-card:hover .place-card-cover img { transform: scale(1.06); }
         /* تدرّج خفيف أسفل الصورة لإبراز الشارات */
@@ -353,7 +397,7 @@
             position: absolute; top: 8px; inset-inline-start: 8px;
             display: inline-flex; align-items: center; gap: 4px;
             padding: 3px 9px; font-size: 10px; font-weight: 800;
-            border-radius: 999px; color: #04553A;
+            border-radius: 999px; color: var(--primary);
             background: rgba(255,255,255,0.92); backdrop-filter: blur(4px);
             box-shadow: 0 2px 6px rgba(0,0,0,0.14);
             max-width: 65%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -365,11 +409,17 @@
             padding: 11px 11px 13px;
             flex-grow: 1;
         }
+        /* سطران بدل القصّ بنقاط: أسماء المحلات العربية طويلة، و"مطعم
+           الأصيل للمش…" لا يعرّف المحل. الارتفاع مثبّت فتبقى الشبكة منتظمة. */
         .place-card-name {
             font-size: 14px; font-weight: 800; color: #1f2937;
             margin-bottom: 7px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: calc(2 * 1.3em);
         }
         /* صف المعلومات: تقييم · مشاهدات · مسافة */
         .place-card-meta {
@@ -384,12 +434,26 @@
         .place-card-meta .meta-item.rating { color: #b45309; }
         .place-card-meta .meta-item.rating i { color: #f59e0b; }
         .place-card-meta .meta-item.views i { color: #6366f1; }
-        .place-card-meta .meta-item.dist i { color: #04553A; }
+        .place-card-meta .meta-item.place-dist i { color: var(--primary); }
         .place-card-meta .meta-item.is-new {
-            color: #04553A; background: #ecfdf5; border-radius: 999px;
+            color: var(--primary); background: #ecfdf5; border-radius: 999px;
             padding: 1px 8px; font-size: 10.5px;
         }
         .place-card-meta .meta-dot { color: #d1d5db; }
+        /* مؤشر انتظار GPS — يظهر بدل المسافة حتى يصل الموقع */
+        .dist-loading {
+            display: inline-block;
+            width: 28px; height: 8px;
+            background: linear-gradient(90deg, #e5e7eb 25%, #d1fae5 50%, #e5e7eb 75%);
+            background-size: 200% 100%;
+            border-radius: 4px;
+            animation: distPulse 1.2s infinite ease-in-out;
+            vertical-align: middle;
+        }
+        @keyframes distPulse {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
 
         .place-card-footer {
             display: flex; align-items: center; gap: 6px;
@@ -397,7 +461,7 @@
         }
         .place-card-cta {
             flex: 1;
-            background: linear-gradient(135deg, #04553A, #059669);
+            background: linear-gradient(135deg, var(--primary), #059669);
             color: white;
             border: none; border-radius: 10px;
             padding: 7px 10px; font-size: 12px; font-weight: 800;
@@ -444,7 +508,7 @@
             background: white; border: none;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            color: #04553A; font-size: 18px; cursor: pointer;
+            color: var(--primary); font-size: 18px; cursor: pointer;
             transition: all 0.2s;
             flex-shrink: 0;
         }
@@ -540,13 +604,13 @@
         }
         .step-num {
             width: 28px; height: 28px; border-radius: 50%;
-            background: linear-gradient(135deg, #04553A, #0d5c3a);
+            background: linear-gradient(135deg, var(--primary), #0d5c3a);
             color: white; font-size: 12px; font-weight: 800;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0; margin-top: 1px;
         }
         .step-text { font-size: 13px; color: #374151; line-height: 1.5; font-weight: 600; }
-        .step-text b { color: #04553A; }
+        .step-text b { color: var(--primary); }
 
         /* ─── Order Form Card ─── */
         .order-form-card {
@@ -561,7 +625,7 @@
             display: flex; flex-direction: column; align-items: center;
             justify-content: center; gap: 8px;
             padding: 20px 16px; border-radius: 16px;
-            border: 2px dashed #04553A;
+            border: 2px dashed var(--primary);
             background: rgba(10,135,84,0.04);
             cursor: pointer; min-height: 100px;
             transition: all 0.2s;
@@ -577,7 +641,7 @@
             padding: 16px;
             font-size: 16px; font-weight: 900;
             border: none; border-radius: 18px; cursor: pointer;
-            background: linear-gradient(135deg, #04553A, #0d5c3a);
+            background: linear-gradient(135deg, var(--primary), #0d5c3a);
             color: white;
             display: flex; align-items: center; justify-content: center; gap: 8px;
             box-shadow: 0 8px 24px rgba(10,135,84,0.4);
@@ -603,12 +667,12 @@
             font-family:'Cairo',sans-serif; cursor:pointer; transition:all .15s; white-space:nowrap;
         }
         .srf-chip span { background:#f1f5f9; color:#64748b; border-radius:99px; padding:0 7px; font-size:11px; margin-right:3px; }
-        .srf-chip.active { background:#04553A; border-color:#04553A; color:#fff; }
+        .srf-chip.active { background:var(--primary); border-color:var(--primary); color:#fff; }
         .srf-chip.active span { background:rgba(255,255,255,0.25); color:#fff; }
-        .search-section-title { font-size:13px; font-weight:800; color:#04553A; margin:14px 2px 8px; display:flex; align-items:center; gap:6px; }
+        .search-section-title { font-size:13px; font-weight:800; color:var(--primary); margin:14px 2px 8px; display:flex; align-items:center; gap:6px; }
         .srf-cats { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
         .srf-cat {
-            border:1.5px solid #d1fae5; background:#ecfdf5; color:#04553A;
+            border:1.5px solid #d1fae5; background:#ecfdf5; color:var(--primary);
             border-radius:12px; padding:8px 14px; font-size:13px; font-weight:700;
             font-family:'Cairo',sans-serif; cursor:pointer; transition:all .15s;
         }
@@ -626,17 +690,17 @@
         .sr-shop { font-size:12px; color:#64748b; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .sr-shop i { color:#94a3b8; font-size:11px; }
         .sr-sub { font-size:11.5px; color:#64748b; font-weight:700; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-        .sr-dist { color:#04553A; }
+        .sr-dist { color:var(--primary); }
         .sr-rate { color:#b45309; }
         .sr-rate i { color:#f59e0b; }
-        .sr-cat { color:#04553A; display:inline-flex; align-items:center; gap:3px; background:#ecfdf5; border-radius:999px; padding:1px 8px; font-size:10.5px; font-weight:800; }
+        .sr-cat { color:var(--primary); display:inline-flex; align-items:center; gap:3px; background:#ecfdf5; border-radius:999px; padding:1px 8px; font-size:10.5px; font-weight:800; }
         .sr-dot { display:inline-block; width:7px; height:7px; border-radius:50%; vertical-align:middle; }
         .sr-open { color:#059669; font-weight:800; display:inline-flex; align-items:center; gap:4px; }
         .sr-open .sr-dot { background:#22c55e; }
         .sr-closed { color:#dc2626; font-weight:800; display:inline-flex; align-items:center; gap:4px; }
         .sr-closed .sr-dot { background:#ef4444; }
         .sr-price {
-            flex-shrink:0; font-size:15px; font-weight:900; color:#04553A; text-align:center;
+            flex-shrink:0; font-size:15px; font-weight:900; color:var(--primary); text-align:center;
             background:#ecfdf5; border:1px solid #d1fae5; border-radius:12px; padding:7px 11px; line-height:1.1;
         }
         .sr-price small { display:block; font-size:9px; color:#65a30d; font-weight:700; margin-top:1px; }
@@ -689,9 +753,9 @@
         .fade-in-up:nth-child(5) { animation-delay: 0.25s; }
 
         /* --- 💰 أزرار رفع/تنزيل السعر (±100) --- */
-        .price-input { text-align: center !important; font-weight: 800 !important; color: #04553A !important; }
+        .price-input { text-align: center !important; font-weight: 800 !important; color: var(--primary) !important; }
         .price-stepper .btn-price-step {
-            background: #04553A; color: #fff; border: none; width: 52px; font-size: 1.2rem;
+            background: var(--primary); color: #fff; border: none; width: 52px; font-size: 1.2rem;
             display: flex; align-items: center; justify-content: center;
             transition: background .15s ease, transform .08s ease;
         }
@@ -699,9 +763,14 @@
         .price-stepper .btn-price-step:active { transform: scale(0.92); background: #065a38; }
         .price-stepper .btn-price-step:disabled { background: #cbd5e1; cursor: not-allowed; }
         .price-stepper .input-group-text { border-left: none; border-right: none; }
-        @keyframes priceBump { 0% { background-color: #d1fae5; } 100% { background-color: #fff; } }
+        @keyframes priceBump { 0% { background-color: #d1fae5; } 100% { background-color: transparent; } }
         .price-input.bumped { animation: priceBump .35s ease; }
+        /* زر محادثة التاجر — يتكيف مع الوضعين */
+        .chat-modal-btn { background: linear-gradient(135deg, #f3f4f6, #e5e7eb); color: #1f2937; }
+        /* خانة العملة بجانب حقل السعر */
+        .price-currency-label { background: #f8fafc; }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body>
@@ -866,9 +935,12 @@
 
                 <!-- Cover Image -->
                 <div class="position-relative" style="height:200px; overflow:hidden;">
+                    <!-- الغلاف البديل خلف الصورة: صورة مفقودة أو بطيئة تسقط إليه
+                         بدل رابط خارجي يفشل في وضع عدم الاتصال -->
+                    <div id="placeModalPh" class="place-card-ph"></div>
                     <img src="" id="placeModalImage" class="w-100 h-100"
-                        style="object-fit:cover;" alt="Cover"
-                        onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?w=800'">
+                        style="object-fit:cover;position:relative;" alt="Cover"
+                        onerror="this.style.display='none'">
                     <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 60%);"></div>
                     <!-- Close -->
                     <button type="button" data-bs-dismiss="modal"
@@ -897,7 +969,7 @@
 
                     <!-- Action Buttons — Chat + Browse Products + Map -->
                     <div style="padding:14px 18px;display:flex;gap:10px;">
-                        <button type="button" id="placeModalChatBtn" class="contact-btn" onclick="openMerchantChat()" style="background:linear-gradient(135deg, #f3f4f6, #e5e7eb);color:#1f2937;flex:1;">
+                        <button type="button" id="placeModalChatBtn" class="contact-btn chat-modal-btn" onclick="openMerchantChat()" style="flex:1;">
                             <i class="bi bi-chat-dots-fill"></i> محادثة التاجر
                         </button>
                         <a href="#" id="placeModalMap" target="_blank" class="contact-btn maps" style="flex:1;">
@@ -905,7 +977,7 @@
                         </a>
                     </div>
                     <div style="padding:0 18px 14px;display:flex;gap:10px;">
-                        <button type="button" id="btnBrowseProducts" class="contact-btn" onclick="goToShopDetail()" style="display:none;background:linear-gradient(135deg, #04553A, #065f3a);color:white;flex:1;font-size:14px;font-weight:800;">
+                        <button type="button" id="btnBrowseProducts" class="contact-btn" onclick="goToShopDetail()" style="display:none;background:linear-gradient(135deg, var(--primary), var(--primary-gradient));color:white;flex:1;font-size:14px;font-weight:800;">
                             <i class="bi bi-box-seam-fill"></i> تصفح المنتجات واطلب
                         </button>
                         <div id="placeModalMenuContainer" class="d-none" style="flex:1;">
@@ -993,7 +1065,7 @@
         </div>
 
         <!-- Locate Me Button -->
-        <button id="shopMapLocateBtn" onclick="window.shopMapLocateMe && window.shopMapLocateMe()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: #04553A; padding: 10px 16px;">
+        <button id="shopMapLocateBtn" onclick="window.shopMapLocateMe && window.shopMapLocateMe()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: var(--primary); padding: 10px 16px;">
             <i class="bi bi-crosshair2 fs-5"></i>
             <span style="font-size: 12px;">موقعي</span>
         </button>
@@ -1015,7 +1087,7 @@
                 </button>
                 <input type="number" id="shopOverlayPrice" class="form-control price-input fw-bold text-success fs-5"
                     inputmode="numeric" value="0" min="0" step="100">
-                <span class="input-group-text bg-white fw-bold text-muted">جنيه</span>
+                <span class="input-group-text price-currency-label fw-bold text-muted">جنيه</span>
                 <button type="button" id="shop-price-plus" class="btn btn-price-step" aria-label="زيادة 100" title="زيادة 100">
                     <i class="bi bi-plus-lg"></i>
                 </button>
@@ -1058,12 +1130,12 @@
     <script src="vendor/image-compression/browser-image-compression.js"></script>
     <script src="js/console-cleaner.js?v=10115678"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/city-service.js?v=34b5af79"></script>
+    <script src="js/city-service.js?v=40791ec5"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/order-feature.js?v=29ffccac"></script>
+    <script src="js/order-feature.js?v=9f7d4809"></script>
     <!-- 🛍️ منتقي "اشترِ لي" — بعد order-feature.js لاعتماده على getUserLocation/getFullImageUrl -->
     <script src="js/errand-picker.js?v=dbe4ee81"></script>
     <script src="js/home-banners.js?v=5f77eb1f"></script>
@@ -1243,7 +1315,7 @@
                 return;
             }
 
-            const defaultImg = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80';
+            // بلا رابط خارجي: الصورة المفقودة تُخفى ويظهر الغلاف البديل تحتها
             const f = _searchFilter;
             const fmtPrice = (n) => Number(n || 0).toLocaleString('en-US');
             const ratingHtml = (avg) => (avg > 0)
@@ -1273,11 +1345,11 @@
             if (products.length && (f === 'all' || f === 'products')) {
                 html += `<div class="search-section-title"><i class="bi bi-bag-heart-fill"></i> منتجات</div>`;
                 html += products.map(pr => {
-                    const img = getFullImageUrl(pr.image) || defaultImg;
+                    const img = getFullImageUrl(pr.image);
                     const dist = (pr.distanceKm != null) ? `<span class="sr-dist"><i class="bi bi-geo-alt-fill"></i> ${pr.distanceKm} كم</span>` : '';
                     return `
                     <div class="search-result-card" onclick="location.href='shop-detail.html?placeId=${pr.place._id}&product=${pr._id}'">
-                        <img src="${img}" onerror="this.src='${defaultImg}'" class="sr-img" loading="lazy">
+                        ${img ? `<img src="${img}" onerror="this.remove()" class="sr-img" loading="lazy">` : '<div class="sr-img sr-img-ph"><i class="bi bi-box-seam"></i></div>'}
                         <div class="sr-body">
                             <div class="sr-name">${escapeHtml(pr.name)}</div>
                             <div class="sr-shop"><i class="bi bi-shop"></i> ${escapeHtml(pr.place.name)}</div>
@@ -1292,7 +1364,7 @@
             if (places.length && (f === 'all' || f === 'places')) {
                 html += `<div class="search-section-title"><i class="bi bi-shop-window"></i> متاجر</div>`;
                 html += places.map(pl => {
-                    const img = getFullImageUrl(pl.image_url) || defaultImg;
+                    const img = getFullImageUrl(pl.image_url);
                     const dist = (pl.distanceKm != null) ? `<span class="sr-dist"><i class="bi bi-geo-alt-fill"></i> ${pl.distanceKm} كم</span>` : '';
                     const status = pl.is_open
                         ? `<span class="sr-open"><span class="sr-dot"></span> مفتوح</span>`
@@ -1302,7 +1374,7 @@
                     const catHtml = cat ? `<span class="sr-cat"><i class="bi ${cat.icon || 'bi-shop'}"></i> ${escapeHtml(cat.name || '')}</span>` : '';
                     return `
                     <div class="search-result-card" onclick="location.href='shop-detail.html?placeId=${pl._id}'">
-                        <img src="${img}" onerror="this.src='${defaultImg}'" class="sr-img" loading="lazy">
+                        ${img ? `<img src="${img}" onerror="this.remove()" class="sr-img" loading="lazy">` : '<div class="sr-img sr-img-ph"><i class="bi bi-shop"></i></div>'}
                         <div class="sr-body">
                             <div class="sr-name">${escapeHtml(pl.name)}</div>
                             <div class="sr-sub">${status} ${catHtml} ${ratingHtml(pl.ratingAvg)} ${dist}</div>
