@@ -21,24 +21,37 @@ const logger = require('../utils/logger');
 // ==========================================
 // 🛡️ Strict Rate Limiters (Clients & Captains)
 // ==========================================
-// Limiter for Login (5 attempts / 15 minutes per IP)
+// Limiter for Login (5 attempts / 5 minutes per IP)
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 5 * 60 * 1000, // 5 دقائق
     max: 5,
-    message: { message: 'محاولات تسجيل دخول كثيرة. يرجى الانتظار.' },
     standardHeaders: true,
     legacyHeaders: false,
-    validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false },
+    handler: (req, res, next, options) => {
+        // نحسب الثواني المتبقية من رأس النافذة (Retry-After يحسبها express-rate-limit تلقائياً)
+        const retryAfter = Math.ceil((res.getHeader('Retry-After') || 300));
+        res.status(429).json({
+            message: 'محاولات تسجيل دخول كثيرة. يرجى الانتظار.',
+            retryAfter  // الثواني المتبقية — يستخدمها الفرونت لعرض عداد تنازلي
+        });
+    }
 });
 
-// Limiter for OTP & Registration (5 attempts / 15 minutes per IP)
+// Limiter for OTP & Registration (5 attempts / 5 minutes per IP)
 const otpLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 5 * 60 * 1000, // 5 دقائق
     max: 5,
-    message: { message: 'لقد طلبت أرقام تفعيل كثيرة. يرجى الانتظار.' },
     standardHeaders: true,
     legacyHeaders: false,
-    validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false },
+    handler: (req, res, next, options) => {
+        const retryAfter = Math.ceil((res.getHeader('Retry-After') || 300));
+        res.status(429).json({
+            message: 'لقد طلبت أرقام تفعيل كثيرة. يرجى الانتظار.',
+            retryAfter
+        });
+    }
 });
 
 // ==========================================
@@ -83,12 +96,15 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
         phone = normalizePhone(phone);
         logger.info(`📞 Register: ${originalPhone} -> ${phone}`);
 
-        // التحقق من وجود المستخدم
-        let user = await User.findOne({ email });
-        if (user) return res.status(400).json({ message: 'البريد الإلكتروني مسجل مسبقاً' });
+        // BUG-H6 FIX: لا تبحث عن مستخدم بـ email=undefined — يُعيد أول مستخدم بلا بريد زوراً
+        if (email) {
+            let emailUser = await User.findOne({ email });
+            if (emailUser) return res.status(400).json({ message: 'البريد الإلكتروني مسجل مسبقاً' });
+        }
 
         // Check by phone as well
-        user = await User.findOne({ phone });
+        // ⚠️ `let` إجباري: بدونه يصبح `user` متغيّراً عامّاً مشتركاً بين كل الطلبات المتزامنة
+        let user = await User.findOne({ phone });
         if (user) return res.status(400).json({ message: 'رقم الهاتف مسجل مسبقاً' });
 
         // إنشاء كود تحقق عشوائي وصلاحية 10 دقائق
@@ -381,6 +397,47 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // ==========================================
+// 🌍 PUT /api/auth/city — تغيير مدينة الحساب
+// يُستخدم عندما يضغط العميل على "تغيير المدينة" في الواجهة
+// المدينة تُخزَّن في DB وتنعكس على كل الطلبات اللاحقة
+// ==========================================
+router.put('/city', protect, async (req, res) => {
+    try {
+        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const { city } = req.body;
+
+        if (!city || !VALID_CITIES.includes(city)) {
+            return res.status(400).json({
+                message: `مدينة غير صحيحة. القيم المقبولة: ${VALID_CITIES.join(', ')}`
+            });
+        }
+
+        // الكباتن لا يُسمح لهم بتغيير مدينتهم بعد التسجيل (عملياتهم مرتبطة بمدينة واحدة)
+        if (req.user.role === 'captain') {
+            return res.status(403).json({
+                message: 'الكباتن لا يمكنهم تغيير المدينة. تواصل مع الدعم الفني.'
+            });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { city },
+            { new: true, select: 'city' }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'المستخدم غير موجود' });
+        }
+
+        logger.info({ userId: req.user._id, oldCity: req.user.city, newCity: city }, 'User city updated');
+        res.json({ city: updatedUser.city, message: `تم تغيير مدينتك إلى ${city}` });
+    } catch (err) {
+        logger.error({ err }, 'PUT /city error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// ==========================================
 // 2.4.5️⃣ Public App Config (Version & Updates)
 // ==========================================
 router.get('/app-config', async (req, res) => {
@@ -388,8 +445,8 @@ router.get('/app-config', async (req, res) => {
         const Settings = require('../models/Settings');
         const settings = await Settings.getSettings();
         res.json({
-            appVersion:   settings.appVersion  || '1.0.1',
-            minVersion:   settings.minVersion  || settings.appVersion || '1.0.1',
+            appVersion:   settings.appVersion  || '1.1.2',
+            minVersion:   settings.minVersion  || settings.appVersion || '1.1.2',
             playStoreLink: settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app',
             forceUpdate:  settings.forceUpdate || false,
             // 💬 مدة صلاحية عرض المفاوضة — تُقرأ في واجهة الكابتن بدل رقم مكتوب
