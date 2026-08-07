@@ -112,27 +112,25 @@ function buildMessage(title, body, data = {}, opts = {}) {
     // 🔑 اسم المفتاح الذي تقرأه MainActivity من extras عند العرض التلقائي (خلفية/مقتول)
     if (url) payload.targetUrl = url;
 
-    return {
-        // يعرضه النظام بنفسه إن كانت عملية التطبيق ميتة — هذا هو جوهر الإصلاح
-        notification: { title: String(title), body: String(body) },
+    const message = {
         data: payload,
         android: {
-            priority: 'high',
-            notification: {
-                channelId: resolveChannel(type),     // نفس قناة MainActivity → نفس الجرس واللون
-                icon: 'ic_stat_wassili',
-                color: type === 'chat_message' ? '#6f42c1'
-                     : resolveChannel(type) === 'admin_alerts' ? '#dc3545' : '#0a8754',
-                defaultSound: false,
-                sound: 'wassili_bell',               // لأندرويد 7 وأقدم (8+ يأخذه من القناة)
-                // تجميع الإشعارات لكل طلب/محادثة على حدة — لا يبتلع طلبٌ جديد إشعارَ سابقه
-                tag: data.orderId ? `${type}_${data.orderId}` : undefined
-            }
+            priority: 'high'
         },
-        apns: {
-            payload: { aps: { sound: 'wassili_bell.wav', badge: 1 } },
-            fcmOptions: { imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png' }
-        },
+        // 🍎 iOS: الدفعة الصامتة والمرئية عقدان مختلفان ولا يُدمجان.
+        // content-available:1 مع alert/sound سلوكه غير محدّد عند Apple، وiOS قد
+        // يُسقط الدفعة الصامتة كلياً ما لم تحمل apns-push-type: background
+        // وapns-priority: 5. لذلك نبني aps حسب النوع لا نخلطهما.
+        apns: opts.isDataOnly
+            ? {
+                headers: { 'apns-push-type': 'background', 'apns-priority': '5' },
+                payload: { aps: { 'content-available': 1 } }
+              }
+            : {
+                headers: { 'apns-push-type': 'alert', 'apns-priority': '10' },
+                payload: { aps: { sound: 'wassili_bell.wav', badge: 1 } },
+                fcmOptions: { imageUrl: 'https://wajeezsd.com/icons/icon-192x192.png' }
+              },
         webpush: {
             notification: Object.assign({
                 title,
@@ -142,6 +140,21 @@ function buildMessage(title, body, data = {}, opts = {}) {
             fcmOptions: { link: opts.link || 'https://wajeezsd.com/' }
         }
     };
+
+    if (!opts.isDataOnly) {
+        message.notification = { title: String(title), body: String(body) };
+        message.android.notification = {
+            channelId: resolveChannel(type),
+            icon: 'ic_stat_wassili',
+            color: type === 'chat_message' ? '#6f42c1'
+                 : resolveChannel(type) === 'admin_alerts' ? '#dc3545' : '#0a8754',
+            defaultSound: false,
+            sound: 'wassili_bell',
+            tag: data.orderId ? `${type}_${data.orderId}` : undefined
+        };
+    }
+
+    return message;
 }
 
 /**
@@ -152,7 +165,7 @@ function buildMessage(title, body, data = {}, opts = {}) {
  * @param {object} data - Optional data payload (for deep linking)
  * @returns {Promise<boolean>} success
  */
-async function sendPush(fcmToken, title, body, data = {}) {
+async function sendPush(fcmToken, title, body, data = {}, opts = {}) {
     if (!initialized || !fcmToken) return false;
 
     // ⚠️ يجب أن يبقى `message` خارج بلوك try — كان معرّفاً بداخله، فكانت إعادة المحاولة
@@ -160,6 +173,7 @@ async function sendPush(fcmToken, title, body, data = {}) {
     const message = {
         token: fcmToken,
         ...buildMessage(title, body, data, {
+            ...opts,
             webpushExtra: {
                 image: 'https://wajeezsd.com/logo-transparent.png',
                 vibrate: [200, 100, 200]
@@ -204,9 +218,10 @@ async function sendPush(fcmToken, title, body, data = {}) {
  * @param {string} title
  * @param {string} body
  * @param {object} data
+ * @param {object} opts
  * @returns {Promise<{success: number, failure: number}>}
  */
-async function sendPushToMany(fcmTokens, title, body, data = {}) {
+async function sendPushToMany(fcmTokens, title, body, data = {}, opts = {}) {
     if (!initialized || !fcmTokens || fcmTokens.length === 0) {
         return { success: 0, failure: 0 };
     }
@@ -216,7 +231,7 @@ async function sendPushToMany(fcmTokens, title, body, data = {}) {
     if (validTokens.length === 0) return { success: 0, failure: 0 };
 
     // الرسالة الأساسية — تُعاد لكل دفعة (هجينة: notification + data، انظر buildMessage أعلاه)
-    const baseMessage = buildMessage(title, body, data);
+    const baseMessage = buildMessage(title, body, data, opts);
 
     // 🚨 FCM يفرض حداً صارماً قدره 500 توكن لكل استدعاء sendEachForMulticast.
     // الإرسال دفعة واحدة فوق 500 كان يُفشل البث بالكامل ("مستخدمين ما بتصلهم").
