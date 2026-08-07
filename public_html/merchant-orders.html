@@ -4,13 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>إدارة الطلبات | وجيز</title>
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=fca49c8f">
     <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <script src="js/safe-area.js?v=e566565b"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         :root {
             --amber: #f59e0b; --amber-dark: #d97706;
@@ -24,7 +29,10 @@
         /* ── الهيدر ── */
         .page-header {
             background: #fff; color: var(--ink);
-            padding: calc(var(--sat, env(safe-area-inset-top, 0px)) + 14px) 16px 0;
+            padding-top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 14px);
+            padding-right: 16px;
+            padding-bottom: 0;
+            padding-left: 16px;
             position: sticky; top: 0; z-index: 100;
             border-bottom: 1px solid var(--line);
             box-shadow: 0 2px 12px rgba(15,23,42,0.05);
@@ -165,12 +173,27 @@
             100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
         }
 
-        /* ── منطقة الإجراء التالي ── */
         .next-action { padding: 6px 16px 16px; }
         .next-hint {
             font-size: 12px; color: var(--muted); text-align: center;
             margin-bottom: 8px; font-weight: 600;
         }
+
+        /* 🌙 Dark Mode Overrides for Live Orders Hub */
+        body.dark-mode {
+            --bg: #0f172a;
+            --ink: #f8fafc;
+            --muted: #94a3b8;
+            --line: #334155;
+            --green-bg: rgba(16, 185, 129, 0.12);
+        }
+        body.dark-mode .page-header { background: #1e293b; color: #f8fafc; border-color: #334155; }
+        body.dark-mode .filter-tab { background: #1e293b; border-color: #334155; color: #94a3b8; }
+        body.dark-mode .filter-tab .cnt { background: #334155; color: #f8fafc; }
+        body.dark-mode .order-card { background: #1e293b; border-color: #334155; }
+        body.dark-mode .client-name { color: #f8fafc; }
+        body.dark-mode .addr-box { background: #0f172a; color: #cbd5e1; }
+        body.dark-mode .step-dot { background: #1e293b; border-color: #334155; color: #94a3b8; }
         .btn-primary-step {
             width: 100%; border: none; border-radius: 13px; padding: 13px;
             font-weight: 800; font-size: 14.5px; color: #fff; cursor: pointer;
@@ -207,21 +230,7 @@
         /* ── بطاقة مكتملة/ملغاة (مضغوطة) ── */
         .order-card.finished .order-head { padding-bottom: 12px; }
 
-        /* ── التنقل السفلي ── */
-        .merchant-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: #fff; border-top: 1px solid var(--line);
-            display: flex; z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(15,23,42,0.07);
-            padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px));
-        }
-        .merchant-nav a {
-            flex: 1; display: flex; flex-direction: column; align-items: center;
-            padding: 10px 0 8px; font-size: 11px; font-weight: 700; color: #94a3b8;
-            text-decoration: none;
-        }
-        .merchant-nav a.active { color: var(--amber); }
-        .merchant-nav a i { font-size: 1.35rem; margin-bottom: 2px; }
+        /* Nav is handled by merchant-ui.css?v=v3_1785875711038 */
 
         .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
         .empty-state i { font-size: 3.6rem; margin-bottom: 14px; display: block; opacity: 0.5; }
@@ -231,31 +240,30 @@
         @keyframes shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         .sk-card { background: #fff; border-radius: 18px; padding: 16px; margin-bottom: 14px; }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
 </head>
 <body>
 
-<div class="page-header">
-    <div class="d-flex align-items-center justify-content-between">
+<div class="m-page-header">
+    <div class="d-flex align-items-center justify-content-between pb-2">
         <div class="d-flex align-items-center gap-3">
-            <a href="merchant-dashboard.html" class="text-decoration-none fs-5" style="color:var(--ink);">
+            <a href="merchant-dashboard.html" class="m-back-btn">
                 <i class="bi bi-arrow-right"></i>
             </a>
             <div>
-                <h5 class="fw-bold mb-0" style="font-size:17px;">إدارة الطلبات</h5>
-                <small style="color:var(--muted);font-size:11.5px;">
+                <h5 class="m-header-title">إدارة الطلبات</h5>
+                <div class="m-header-subtitle">
                     <span class="live-dot" id="liveDot"></span>
-                    <span id="liveLabel">تحديث لحظي</span>
-                </small>
+                    <span id="liveLabel" style="margin-right:5px;">تحديث لحظي</span>
+                </div>
             </div>
         </div>
-        <button class="btn btn-sm" style="background:var(--bg);border-radius:10px;font-weight:800;font-size:12px;color:var(--muted);" onclick="loadOrders()">
+        <button class="m-btn m-btn-ghost m-btn-sm" onclick="loadOrders()">
             <i class="bi bi-arrow-clockwise"></i> تحديث
         </button>
     </div>
-
     <!-- Filter Tabs -->
-    <div class="filter-tabs" id="filterTabs"></div>
+    <div class="m-filter-tabs" id="filterTabs"></div>
 </div>
 
 <!-- Orders List -->
@@ -277,11 +285,26 @@
 </div>
 
 <nav class="merchant-nav">
-    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
-    <a href="merchant-orders.html" class="active"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
-    <a href="merchant-conversations.html"><i class="bi bi-chat-dots-fill"></i> رسائل</a>
-    <a href="merchant-notifications.html"><i class="bi bi-bell"></i> إشعارات</a>
-    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');"><i class="bi bi-box-arrow-right"></i> خروج</a>
+    <a href="merchant-dashboard.html">
+        <i class="bi bi-house-door-fill"></i>
+        <span>الرئيسية</span>
+    </a>
+    <a href="merchant-orders.html" class="active">
+        <i class="bi bi-bag-check-fill"></i>
+        <span>الطلبات</span>
+    </a>
+    <a href="merchant-conversations.html">
+        <i class="bi bi-chat-dots-fill"></i>
+        <span>رسائل</span>
+    </a>
+    <a href="merchant-notifications.html">
+        <i class="bi bi-bell-fill"></i>
+        <span>إشعارات</span>
+    </a>
+    <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>خروج</span>
+    </a>
 </nav>
 
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
@@ -341,14 +364,25 @@
         chat_initiated: 'محادثة'
     };
     const statusPillStyle = {
-        shop_pending: 'background:#fef3c7;color:#92400e;',
-        shop_preparing: 'background:#dbeafe;color:#1d4ed8;',
+        shop_pending:     'background:#fef3c7;color:#92400e;',
+        shop_preparing:   'background:#dbeafe;color:#1d4ed8;',
         ready_for_pickup: 'background:#e0e7ff;color:#4338ca;',
         captain_assigned: 'background:#cffafe;color:#0e7490;',
-        picked_up: 'background:#cffafe;color:#0e7490;',
-        delivered: 'background:#dcfce7;color:#15803d;',
-        cancelled: 'background:#fee2e2;color:#b91c1c;',
-        chat_initiated: 'background:#f1f5f9;color:#64748b;'
+        picked_up:        'background:#cffafe;color:#0e7490;',
+        delivered:        'background:#dcfce7;color:#15803d;',
+        cancelled:        'background:#fee2e2;color:#b91c1c;',
+        chat_initiated:   'background:#f1f5f9;color:#64748b;'
+    };
+    // كلاسات المراحل — يُستخدم في dark-mode.css?v=v3_1785875711038 للإلغاء
+    const statusPillClass = {
+        shop_pending:     'sp-pending',
+        shop_preparing:   'sp-preparing',
+        ready_for_pickup: 'sp-ready',
+        captain_assigned: 'sp-captain',
+        picked_up:        'sp-captain',
+        delivered:        'sp-delivered',
+        cancelled:        'sp-cancelled',
+        chat_initiated:   'sp-chat'
     };
 
     // مجموعات التبويبات — "نشط" يجمع كل ما يتطلب انتباه التاجر
@@ -525,7 +559,7 @@
                         <div class="order-meta">#${o._id.slice(-5)} · ${timeAgo(o.createdAt)} · ${(o.items || []).length} منتج · ${goodsAmount} ج.س</div>
                         ${o.status === 'cancelled' && o.cancelReason ? `<div class="order-meta" style="color:#b91c1c;">السبب: ${window.escapeHtml(o.cancelReason)}</div>` : ''}
                     </div>
-                    <span class="status-pill" style="${statusPillStyle[o.status]}">${statusLabels[o.status]}</span>
+                    <span class="status-pill ${statusPillClass[o.status] || ''}" style="${statusPillStyle[o.status]}">${statusLabels[o.status]}</span>
                 </div>
             </div>`;
         }
@@ -538,7 +572,7 @@
                     <span class="client-name">${window.escapeHtml(o.client?.name || 'عميل')}</span>
                     <div class="order-meta">#${o._id.slice(-5)} · ${timeAgo(o.createdAt)}</div>
                 </div>
-                <span class="status-pill" style="${statusPillStyle[o.status] || ''}">${statusLabels[o.status] || o.status}</span>
+                <span class="status-pill ${statusPillClass[o.status] || ''}" style="${statusPillStyle[o.status] || ''}">${statusLabels[o.status] || o.status}</span>
             </div>
 
             <div class="items-box">${itemsList}</div>
@@ -728,7 +762,7 @@
         document.getElementById('liveLabel').textContent = on ? 'تحديث لحظي' : 'تحديث كل 20 ثانية';
     }
     try {
-        socket = io(API_URL, { transports: ['polling', 'websocket'], auth: { token } });
+        socket = io(API_URL, { transports: ['websocket', 'polling'], auth: { token } });
         socket.on('connect', () => {
             const uid = user._id || user.id;
             if (uid) socket.emit('user_join', uid);
@@ -748,6 +782,12 @@
     loadOrders().then(() => {
         const highlightId = new URLSearchParams(window.location.search).get('highlight');
         if (highlightId) {
+            // التبويب الافتراضي "نشط" لا يعرض المكتمل ولا الملغي، فإشعار طلب
+            // ملغى كان يفتح الصفحة بلا أي أثر. ننتقل للتبويب الذي يحوي الطلب.
+            const target = allOrders.find(o => String(o._id) === highlightId);
+            const tab = target && TABS.find(t => t.key !== 'all' && t.match(target));
+            if (tab && tab.key !== currentFilter) filterOrders(tab.key);
+
             setTimeout(() => {
                 const card = document.getElementById(`order-${highlightId}`);
                 if (card) {
@@ -766,7 +806,7 @@
         if (document.visibilityState === 'visible') loadOrders(true);
     });
 </script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
 </body>
 </html>

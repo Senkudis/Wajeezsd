@@ -7,6 +7,11 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>طلباتي | وجيز</title>
 
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#04553A">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,20 +23,25 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
 
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
     <link rel="stylesheet" href="css/splash.css?v=83fac690">
 
     <script src="js/config.js?v=b84e6b6a"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/vehicle-types.js?v=eedaff8e"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         /* ───── 🔍 لوحة البحث عن كابتن (حالة الانتظار) ───── */
         .searching-panel {
-            background: linear-gradient(135deg, #064e3b, #04553A);
+            background: linear-gradient(135deg, #064e3b, var(--primary));
             border-radius: 16px; padding: 15px 14px; color: #fff;
             text-align: center; position: relative; overflow: hidden;
         }
@@ -60,7 +70,7 @@
         }
         .radar .radar-core {
             width: 38px; height: 38px; border-radius: 50%;
-            background: rgba(255,255,255,0.95); color: #04553A;
+            background: rgba(255,255,255,0.95); color: var(--primary);
             display: flex; align-items: center; justify-content: center;
             font-size: 17px; z-index: 2; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
         }
@@ -90,11 +100,11 @@
 
         /* ───── 💬 بطاقات عروض الكباتن ───── */
         .offers-header {
-            font-weight: 800; font-size: 14px; color: #04553A;
+            font-weight: 800; font-size: 14px; color: var(--primary);
             display: flex; align-items: center; gap: 6px; margin: 4px 2px 10px;
         }
         .offers-header .badge-count {
-            background: #04553A; color: #fff; border-radius: 99px;
+            background: var(--primary); color: #fff; border-radius: 99px;
             font-size: 11px; padding: 2px 9px; font-weight: 800;
         }
         .offer-card {
@@ -106,7 +116,7 @@
         .offer-top { display: flex; align-items: center; gap: 10px; }
         .offer-avatar {
             width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
-            background: linear-gradient(135deg, #04553A, #25d366); color: #fff;
+            background: linear-gradient(135deg, var(--primary), #25d366); color: #fff;
             display: flex; align-items: center; justify-content: center;
             font-weight: 800; font-size: 18px; background-size: cover; background-position: center;
         }
@@ -115,7 +125,7 @@
         .offer-meta .star { color: #f59e0b; }
         .offer-price-box { text-align: center; flex-shrink: 0; }
         .offer-price-box .lbl { font-size: 10px; color: #9ca3af; font-weight: 700; }
-        .offer-price-box .val { font-size: 18px; font-weight: 800; color: #04553A; line-height: 1; }
+        .offer-price-box .val { font-size: 18px; font-weight: 800; color: var(--primary); line-height: 1; }
         .offer-countdown {
             font-size: 11px; font-weight: 700; color: #b45309;
             background: #fffbeb; border-radius: 99px; padding: 2px 9px;
@@ -146,7 +156,7 @@
         /* ⏱️ ETA + الخط الزمني المصغّر داخل بطاقة الطلب */
         .o-eta {
             display: flex; align-items: center; gap: 6px; margin-top: 8px;
-            background: linear-gradient(135deg,#04553A,#0a7a54); color: #fff;
+            background: linear-gradient(135deg,var(--primary),#0a7a54); color: #fff;
             border-radius: 10px; padding: 7px 11px; font-size: 12.5px; font-weight: 800;
         }
         .o-timeline { display: flex; margin-top: 10px; }
@@ -162,15 +172,15 @@
             z-index: 1;
         }
         .o-tl-step.done .o-tl-dot { background: #22c55e; border-color: #22c55e; color: #fff; }
-        .o-tl-step.active .o-tl-dot { background: #04553A; border-color: #04553A; color: #fff; }
+        .o-tl-step.active .o-tl-dot { background: var(--primary); border-color: var(--primary); color: #fff; }
         .o-tl-step.cancelled .o-tl-dot { background: #ef4444; border-color: #ef4444; color: #fff; }
         .o-tl-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; margin-top: 3px; text-align: center; }
-        .o-tl-step.done .o-tl-lbl, .o-tl-step.active .o-tl-lbl { color: #04553A; }
+        .o-tl-step.done .o-tl-lbl, .o-tl-step.active .o-tl-lbl { color: var(--primary); }
         .o-tl-time { font-size: 8.5px; font-weight: 700; color: #94a3b8; min-height: 10px; }
         body.dark-mode .o-tl-lbl, body.dark-mode .o-tl-time { color: #64748b; }
         .o-route-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; min-width: 0; }
         .o-route-row i { font-size: 13px; flex-shrink: 0; }
-        .o-ic-from { color: #04553A; }
+        .o-ic-from { color: var(--primary); }
         .o-ic-to { color: #ef4444; }
         .o-route-lbl { color: #94a3b8; font-weight: 700; margin-left: 3px; }
         .o-route-txt {
@@ -189,13 +199,14 @@
         body.dark-mode .o-cost { border-color: #334155; }
         .o-cost-main { display: flex; justify-content: space-between; align-items: center; }
         .o-cost-main > span:first-child { font-size: 12.5px; color: #64748b; font-weight: 700; }
-        .o-cost-total { font-size: 16px; font-weight: 800; color: #04553A; }
+        .o-cost-total { font-size: 16px; font-weight: 800; color: var(--primary); }
         body.dark-mode .o-cost-total { color: #34d399; }
         .o-cost-sub { display: flex; justify-content: space-between; font-size: 11.5px; color: #94a3b8; margin-top: 4px; }
         .o-actions { margin-top: 10px; }
         .o-actions .btn { font-size: 13px; }
         .o-actions:empty { display: none; margin-top: 0; }
     </style>
+    <script src="js/safe-area.js?v=e566565b"></script>
 </head>
 
 <body class="bg-light">
@@ -359,7 +370,7 @@
                     : `<div class="offer-avatar">${escapeHtml((n.captainName || 'ك')[0])}</div>`;
                 const rating = (typeof n.captainRating === 'number' && n.captainRating > 0)
                     ? `<span><i class="bi bi-star-fill star"></i> ${n.captainRating.toFixed(1)} <span style="color:#9ca3af;">(${n.captainRatingCount || 0})</span></span>`
-                    : `<span style="color:#04553A;"><i class="bi bi-stars"></i> كابتن جديد</span>`;
+                    : `<span style="color:var(--primary);"><i class="bi bi-stars"></i> كابتن جديد</span>`;
                 const vehicle = (n.captainVehicle && window.VehicleTypes)
                     ? `<span>${window.VehicleTypes.iconLabel(n.captainVehicle)}</span>` : '';
                 const countdown = n.expiresAt
@@ -573,7 +584,28 @@
                         const badgeClass = getStatusBadge(order.status);
 
                         let activeBtns = '';
-                        if (order.status === 'pending') {
+
+                        // 🛍️ errand: سعر البضاعة وصل وبانتظار موافقة العميل → أعلى الأولوية
+                        if (order.orderType === 'errand' && order.errand && order.errand.quoteStatus === 'quoted') {
+                            const amount = order.errand.goodsQuote;
+                            const budget = order.errand.budget;
+                            const overBudget = budget && amount > budget;
+                            activeBtns = `
+                            <div style="background:${overBudget ? '#fef2f2' : '#f0fdf4'};border:2px solid ${overBudget ? '#fca5a5' : '#86efac'};border-radius:14px;padding:12px 14px;margin-bottom:8px;">
+                                <div style="font-size:13px;color:#475569;font-weight:600;margin-bottom:4px;">🛍️ سعر البضاعة من <b>${escapeHtml(order.shopName || 'المحل')}</b></div>
+                                <div style="font-size:26px;font-weight:900;color:${overBudget ? '#b91c1c' : '#16a34a'};">${amount} ج.س</div>
+                                ${overBudget ? `<div style="font-size:11.5px;color:#b91c1c;margin-top:3px;">⚠️ أعلى من ميزانيتك (${budget} ج.س)</div>` : (budget ? `<div style="font-size:11.5px;color:#16a34a;margin-top:3px;">✓ ضمن ميزانيتك (${budget} ج.س)</div>` : '')}
+                                <div style="font-size:11px;color:#94a3b8;margin-top:3px;">أجرة التوصيل (${order.price} ج.س) تُضاف عند الاستلام</div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn flex-grow-1 rounded-pill fw-bold shadow-sm text-white" style="background:#16a34a;" onclick="respondErrandQuote('${order._id}', true)">
+                                    ✅ وافق وابدأ الشراء
+                                </button>
+                                <button class="btn btn-outline-danger flex-grow-1 rounded-pill fw-bold" onclick="respondErrandQuote('${order._id}', false)">
+                                    ❌ رفض
+                                </button>
+                            </div>`;
+                        } else if (order.status === 'pending') {
                             if (order.orderType === 'shop') {
                                 // 🐛 إصلاح: طلب المتجر في حالة shop_pending = "بانتظار موافقة المتجر"،
                                 // وليس بحثاً عن كابتن. لا نعرض رادار الكابتن هنا — البحث عن كابتن
@@ -581,7 +613,7 @@
                                 activeBtns = renderMerchantWaitingPanel();
                                 activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-2" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
                             } else {
-                                // طلب توصيل عادي → اعرض عروض الكباتن أو لوحة البحث عن كابتن
+                                // طلب توصيل عادي أو errand لم يصل سعره بعد → اعرض عروض الكباتن أو لوحة البحث
                                 const pendingNegotiations = (order.negotiations || []).filter(n => {
                                     if (n.status !== 'pending') return false;
                                     if (n.expiresAt && new Date() > new Date(n.expiresAt)) return false;
@@ -698,7 +730,7 @@
                                     <div class="o-cost-sub"><span>التوصيل (للكابتن)</span><span class="text-danger">${order.deliveryFee} ج.س</span></div>` : '';
 
                         const html = `
-                        <div class="o-card">
+                        <div class="o-card" id="order-${order._id}">
                             <div class="o-head">
                                 <span class="badge ${badgeClass} o-status">${getDisplayStatusName(order)}</span>
                                 <span class="o-id">#${order._id.slice(-6)}</span>
@@ -842,7 +874,7 @@
                                 text: 'تم تأكيد الطلب والكابتن في الطريق.',
                                 icon: 'success',
                                 confirmButtonText: 'تتبع الطلب',
-                                confirmButtonColor: '#04553A'
+                                confirmButtonColor: 'var(--primary)'
                             }).then(() =>
                                 // ✅ FIX: catch إضافي لمنع الفشل الصامت بعد قبول العرض
                                 loadOrders().catch(() => showToast('تنبيه', 'تعذّر تحديث القائمة، اسحب للتحديث', 'warning'))
@@ -890,6 +922,65 @@
 
             window.loadOrders = loadOrders;
 
+            // 🛍️ errand: موافقة العميل على سعر البضاعة أو رفضه
+            let _errandPromptedFor = null;
+            window.respondErrandQuote = async function(orderId, accept) {
+                if (!accept) {
+                    const conf = await Swal.fire({
+                        title: 'رفض السعر؟', text: 'سيُلغى الطلب ولن يتمكن الكابتن من الشراء.',
+                        icon: 'warning', showCancelButton: true,
+                        confirmButtonText: 'نعم، ارفض', cancelButtonText: 'تراجع',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    if (!conf.isConfirmed) return;
+                }
+                try {
+                    const res = await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/errand/respond`, {
+                        method: 'PUT',
+                        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ accept })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok) {
+                        _errandPromptedFor = null;
+                        Swal.fire({
+                            icon: accept ? 'success' : 'info',
+                            title: accept ? '✅ تم التأكيد' : 'تم الرفض',
+                            text: data.message || '',
+                            timer: 2200, showConfirmButton: false
+                        });
+                        loadOrders();
+                    } else {
+                        Swal.fire('خطأ', data.message || 'تعذّر إرسال ردّك', 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('خطأ', 'تعذّر الاتصال، حاول مجدداً', 'error');
+                }
+            };
+
+            // 🛍️ نافذة تلقائية عند وصول سعر errand عبر السوكت (لو كان المستخدم في الصفحة)
+            async function promptErrandQuoteDialog(data) {
+                const key = `${data.orderId}:${data.amount}`;
+                if (_errandPromptedFor === key) return;
+                _errandPromptedFor = key;
+                const result = await Swal.fire({
+                    title: '🛍️ سعر طلبك جاهز',
+                    html: `<div style="font-size:14px;color:#475569;">سعر البضاعة من <b>${escapeHtml(data.shopName || 'المحل')}</b>:</div>
+                           <div style="font-size:30px;font-weight:900;color:#4f46e5;margin:8px 0;">${data.amount} ج.س</div>`,
+                    showCancelButton: true,
+                    confirmButtonText: '✅ وافق وابدأ الشراء',
+                    cancelButtonText: '❌ رفض',
+                    confirmButtonColor: '#16a34a',
+                    cancelButtonColor: '#dc3545',
+                    allowOutsideClick: false
+                });
+                if (!result.isConfirmed && !result.isDismissed) return;
+                if (result.isDismissed && result.dismiss !== Swal.DismissReason.cancel) {
+                    _errandPromptedFor = null; return;
+                }
+                await window.respondErrandQuote(data.orderId, result.isConfirmed);
+            }
+
             // ✅ تهيئة السوكت — WebSocket أولاً لسرعة أكبر، ثم polling كاحتياط
             if (userId) {
                 const socket = io(SERVER_URL, {
@@ -934,7 +1025,7 @@
                             text: 'الكابتن في الطريق إليك الآن.',
                             icon: 'success',
                             confirmButtonText: 'تتبع الطلب',
-                            confirmButtonColor: '#04553A'
+                            confirmButtonColor: 'var(--primary)'
                         }).then(() => window.location.href = `tracking.html?orderId=${orderId}`);
                     }
                     loadOrders();
@@ -958,6 +1049,15 @@
                 });
 
                 socket.on('delivery_attempted', (data) => confirmDelivery(data.orderId, data.placeId || null));
+
+                // 🛍️ errand: الكابتن أرسل سعر البضاعة → أعد تحميل القائمة + افتح نافذة تلقائية
+                socket.on('errand_quote', (data) => {
+                    _errandPromptedFor = null; // اسمح بإظهار نافذة جديدة لكل سعر
+                    loadOrders(); // حدّث البطاقة لتظهر أزرار الموافقة/الرفض
+                    if (data && data.orderId && data.amount) {
+                        promptErrandQuoteDialog(data); // افتح النافذة فوراً إذا كان المستخدم في الصفحة
+                    }
+                });
             }
 
             function confirmDelivery(orderId, placeId) {
@@ -970,7 +1070,7 @@
                     showCancelButton: true,
                     confirmButtonText: 'نعم، استلمت ✅',
                     cancelButtonText: 'لا، لم استلم ❌',
-                    confirmButtonColor: '#04553A',
+                    confirmButtonColor: 'var(--primary)',
                     cancelButtonColor: '#d33',
                     allowOutsideClick: false
                 }).then((result) => {
@@ -1029,7 +1129,7 @@
                     title: 'تقييم الكابتن ⭐',
                     html: starHtml,
                     confirmButtonText: 'إرسال',
-                    confirmButtonColor: '#04553A',
+                    confirmButtonColor: 'var(--primary)',
                     showCancelButton: true,
                     cancelButtonText: 'تخطّي',
                     didOpen: () => {
@@ -1068,7 +1168,7 @@
                             if (placeId) {
                                 setTimeout(() => showPlaceRatingModal(orderId, placeId), 600);
                             } else {
-                                Swal.fire({ icon: 'success', title: 'شكراً لك!', text: 'تم إرسال تقييمك', confirmButtonColor: '#04553A', timer: 2000, showConfirmButton: false });
+                                Swal.fire({ icon: 'success', title: 'شكراً لك!', text: 'تم إرسال تقييمك', confirmButtonColor: 'var(--primary)', timer: 2000, showConfirmButton: false });
                             }
                             loadOrders();
                         } catch (e) { Swal.fire('خطأ', 'فشل في الإرسال', 'error'); }
@@ -1093,7 +1193,7 @@
                     title: 'قيّم المتجر 🛒',
                     html: starHtml,
                     confirmButtonText: 'إرسال',
-                    confirmButtonColor: '#04553A',
+                    confirmButtonColor: 'var(--primary)',
                     showCancelButton: true,
                     cancelButtonText: 'تخطّي',
                     didOpen: () => {
@@ -1123,7 +1223,7 @@
                             headers: authHeaders,
                             body: JSON.stringify({ score: result.value.val, comment: result.value.comment, orderId })
                         });
-                        Swal.fire({ icon: 'success', title: 'شكراً!', text: 'تم تقييم المتجر بنجاح', confirmButtonColor: '#04553A', timer: 2000, showConfirmButton: false });
+                        Swal.fire({ icon: 'success', title: 'شكراً!', text: 'تم تقييم المتجر بنجاح', confirmButtonColor: 'var(--primary)', timer: 2000, showConfirmButton: false });
                     } catch (e) { /* silent fail */ }
                 });
             }
@@ -1193,8 +1293,28 @@
             // Check for rateOrder parameter from Push Notifications
             const urlParams = new URLSearchParams(window.location.search);
             const rateOrderId = urlParams.get('rateOrder');
-            
+            const highlightId = urlParams.get('highlight');
+
+            // 🎯 إبراز الطلب القادم من الإشعار — بدونه يهبط العميل على قائمة
+            // ولا يعرف أي طلب قُصد (نفس نمط client-shop-orders و merchant-orders)
+            function highlightOrderCard(id) {
+                const card = document.getElementById(`order-${id}`);
+                if (!card) return;
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.style.transition = 'box-shadow 0.4s, transform 0.4s';
+                card.style.boxShadow = '0 0 0 4px rgba(10,135,84,0.5), 0 10px 30px rgba(10,135,84,0.3)';
+                card.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    card.style.boxShadow = '';
+                    card.style.transform = '';
+                }, 3000);
+            }
+
             loadOrders().then(() => {
+                if (highlightId) {
+                    setTimeout(() => highlightOrderCard(highlightId), 400);
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
                 if (rateOrderId && !ratedOrders.has(rateOrderId)) {
                     // Try to find the button we just rendered
                     const rateBtn = document.getElementById(`orders-list`).querySelector(`button[onclick*="confirmDelivery('${rateOrderId}'"]`);
@@ -1218,8 +1338,8 @@
     <script src="js/theme-manager.js?v=a33a528b"></script>
     <!-- Auth Helper already loaded in head -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
 </body>
 
 </html>

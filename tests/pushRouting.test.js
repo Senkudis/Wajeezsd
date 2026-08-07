@@ -40,6 +40,24 @@ describe('resolvePushUrl', () => {
         expect(resolvePushUrl('merchant', 'low_stock', 'P')).toBe('/merchant-inventory.html');
     });
 
+    // إشعارات نهاية الطلب: تفتح القائمة الصحيحة مع تحديد الطلب لا قائمة بلا سياق
+    it('العميل: إشعارات نهاية الطلب تفتح طلباتي مع highlight', () => {
+        expect(resolvePushUrl('client', 'order_delivered', 'O')).toBe('/client-my-orders.html?highlight=O');
+        expect(resolvePushUrl('client', 'order_cancelled', 'O')).toBe('/client-my-orders.html?highlight=O');
+        expect(resolvePushUrl('client', 'order_accepted', 'O')).toBe('/client-my-orders.html?highlight=O');
+        // بلا معرّف: القائمة بلا تحديد
+        expect(resolvePushUrl('client', 'order_delivered', null)).toBe('/client-my-orders.html');
+    });
+
+    it('الكابتن: إشعارات نهاية الرحلة تفتح السجل مع highlight', () => {
+        expect(resolvePushUrl('captain', 'order_delivered', 'O')).toBe('/captain-history.html?highlight=O');
+        expect(resolvePushUrl('captain', 'order_cancelled', 'O')).toBe('/captain-history.html?highlight=O');
+    });
+
+    it('التاجر: إلغاء الطلب يفتح الطلبات (تبويب ملغي) لا التقارير', () => {
+        expect(resolvePushUrl('merchant', 'order_cancelled', 'O')).toBe('/merchant-orders.html?highlight=O');
+    });
+
     it('نوع غير معروف يسقط لصفحة إشعارات الدور (لا كسر ولا وجهة خاطئة خطرة)', () => {
         expect(resolvePushUrl('client', 'some_unknown', 'X')).toBe('/notifications.html');
         expect(resolvePushUrl('captain', 'some_unknown', 'X')).toBe('/captain-notifications.html');

@@ -29,13 +29,16 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'payment_reminder':
                 case 'shop_order':
                     return `/client-shop-orders.html${r ? `?highlight=${r}` : ''}`;
-                case 'order_update':
+                case 'errand_quote':   // 🛒 سعر البضاعة بانتظار تأكيد العميل — يفتح التتبّع للتأكيد
+                case 'order_update':   // 🚚 تحديثات موقع الكابتن، وغيرها
+                    return r ? `/tracking.html?orderId=${r}` : '/client-my-orders.html';
                 case 'order_accepted':
                 case 'order_delivered':
                 case 'order_cancelled':
                 case 'order_expired':
-                case 'errand_quote':   // 🛒 سعر البضاعة بانتظار تأكيد العميل — يفتح التتبّع للتأكيد
-                    return r ? `/tracking.html?orderId=${r}` : '/client-my-orders.html';
+                    // 📋 قائمة طلباتي لا التتبّع (الطلب انتهى أو لم يبدأ)، مع highlight
+                    // ليُبرَز الطلب المقصود — بدونه يهبط العميل على قائمة بلا سياق.
+                    return `/client-my-orders.html${r ? `?highlight=${r}` : ''}`;
                 default:
                     return '/notifications.html';
             }
@@ -53,8 +56,11 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'negotiation_accepted':
                 case 'order_accepted':
                 case 'order_update':
-                case 'order_cancelled':
                     return '/captain-missions.html';
+                case 'order_cancelled':
+                case 'order_delivered':
+                case 'order_completed':
+                    return `/captain-history.html${r ? `?highlight=${r}` : ''}`;
                 case 'wallet_update':
                 case 'payment_approved':
                 case 'payment_rejected':
@@ -66,17 +72,20 @@ function resolvePushUrl(role, type, relatedId) {
         case 'merchant':
             switch (type) {
                 case 'new_shop_order':
-                case 'payment_receipt':
                 case 'shop_order_update':
                 case 'order_update':
                 case 'shop_order':
+                    return `/merchant-orders.html${r ? `?highlight=${r}` : ''}`;
                 case 'order_cancelled':
+                    // صفحة الطلبات فيها تبويب "ملغي" ويعرض سبب الإلغاء — وهو ما
+                    // يريده التاجر عند وصول الإشعار، لا تقرير مجمّع.
                     return `/merchant-orders.html${r ? `?highlight=${r}` : ''}`;
                 case 'low_stock':
                     return '/merchant-inventory.html';
                 case 'shop_ledger':
                 case 'settlement_approved':
                 case 'settlement_rejected':
+                case 'payment_receipt':
                     return '/merchant-finance.html';
                 case 'tier_change':
                     return '/merchant-dashboard.html';
