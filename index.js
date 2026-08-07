@@ -1,8 +1,12 @@
+// ⚡ Load env vars FIRST — before any require() that reads process.env
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs'); // BUG-C1 FIX: was missing, caused ReferenceError in image fallback handler
 const http = require('http');
 const socketIo = require('socket.io');
 const logger = require('./utils/logger');
@@ -28,8 +32,6 @@ const chatPreview = (text, imageUrl) => {
     if (t) return t.substring(0, 200);
     return imageUrl ? '📷 صورة' : '';
 };
-
-dotenv.config();
 
 // 🔒 JWT_SECRET strength validation — reject weak secrets at startup
 (() => {
@@ -102,7 +104,9 @@ const io = socketIo(server, {
 const corsOptions = {
     origin: function (origin, callback) {
         // ✅ FIX #1: التحقق من origin مقابل قائمة النطاقات المعتمدة
-        // الطلبات بدون origin (مثل Postman أو mobile) مسموح بها
+        // الطلبات بدون origin (WebView الأصلي، Postman، طلبات خادم-لخادم) مسموح بها.
+        // ⛔ الأصل الحرفي "null" مرفوض عمداً: ترسله أي صفحة داخل iframe بـ sandbox
+        // أو أي ملف file:// — قبوله مع credentials:true يفتح الـ API لأي موقع.
         if (!origin || approvedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -184,6 +188,8 @@ app.use(['/uploads', '/api/uploads'], (req, res, next) => {
     // ⚡ Cache images for 7 days in browser — uploads are content-addressed (timestamp in filename)
     res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
     const requestOrigin = req.headers.origin;
+    // ⛔ "null" مرفوض هنا أيضاً — الرفوعات تشمل وثائق الكباتن وإيصالات الدفع،
+    // وإرجاع ACAO:null يسمح لصفحة داخل iframe بـ sandbox بقراءة محتواها.
     if (requestOrigin && approvedOrigins.includes(requestOrigin)) {
         res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     }
@@ -365,8 +371,9 @@ app.get('/api/version', (req, res) => {
 // Mount the API router (globalLimiter applies to all /api routes)
 app.use('/api', globalLimiter, apiRoutes);
 
-// Socket.io connection handling
-const activeUsers = {};
+// BUG-M3 FIX: استيراد النماذج هنا مرة واحدة (module-level) بدل داخل كل حدث socket
+const ShopOrderSocket = require('./models/ShopOrder');
+
 // chatRooms: { userId (string) → Set<orderId (string)> }
 // Tracks which users are currently viewing which order chat.
 // Used to suppress FCM push when the receiver is already reading the messages.
@@ -390,11 +397,15 @@ async function getShopOwnerId(shopId) {
         return ownerId;
     } catch (e) { return null; }
 }
-// تنظيف دوري: المداخل كانت تبقى للأبد لكل كابتن أرسل موقعاً — نمو ذاكرة بلا حد
+// BUG-M7 FIX: تنظيف دوري لـ locationThrottle وshopOwnerCache معاً
 setInterval(() => {
     const cutoff = Date.now() - 10 * 60 * 1000;
     for (const id in locationThrottle) {
         if (locationThrottle[id] < cutoff) delete locationThrottle[id];
+    }
+    // BUG-M7: تنظيف shopOwnerCache من المداخل المنتهية
+    for (const key in shopOwnerCache) {
+        if (shopOwnerCache[key].expires < Date.now()) delete shopOwnerCache[key];
     }
 }, 10 * 60 * 1000).unref();
 
@@ -444,17 +455,28 @@ io.use(async (socket, next) => {
 });
 
 // تشغيل المهام المجدولة — فقط بعد اتصال قاعدة البيانات
-mongoose.connection.once('connected', () => {
-    startScheduler(app);
-    logger.info('Scheduler started after DB connection');
+// BUG-H4 FIX: استبدال once بـ on لإعادة التشغيل بعد إعادة الاتصال
+let _schedulerStarted = false;
+let _legacyBridgeStarted = false;
+mongoose.connection.on('connected', () => {
+    if (!_schedulerStarted) {
+        _schedulerStarted = true;
+        startScheduler(app);
+        logger.info('Scheduler started after DB connection');
+    } else {
+        logger.info('DB reconnected — Scheduler already running, skipping re-init');
+    }
 
     // 🌉 جسر مؤقت: استقبال طلبات تطبيق "وصّلي" القديم كإشعارات في الجديد.
     // يعمل فقط عند ضبط OLD_MONGO_URI — وإلا يبقى معطّلاً بلا أي أثر.
-    try {
-        const { startLegacyOrderBridge } = require('./services/legacyBridge');
-        startLegacyOrderBridge(app);
-    } catch (bridgeErr) {
-        logger.error({ err: String(bridgeErr) }, 'Legacy bridge failed to start');
+    if (!_legacyBridgeStarted) {
+        _legacyBridgeStarted = true;
+        try {
+            const { startLegacyOrderBridge } = require('./services/legacyBridge');
+            startLegacyOrderBridge(app);
+        } catch (bridgeErr) {
+            logger.error({ err: String(bridgeErr) }, 'Legacy bridge failed to start');
+        }
     }
 });
 
@@ -471,7 +493,7 @@ io.on('connection', (socket) => {
             return;
         }
         const cleanId = socket.authUserId;
-        activeUsers[cleanId] = socket.id;
+        // BUG-L4 FIX: activeUsersكان غير مستخدَّم (الإرسال دائماً عبر io.to(userId))
         socket.userId = cleanId;
         socket.join(cleanId); // Personal room for direct messages (chat, notifications)
 
@@ -578,10 +600,10 @@ io.on('connection', (socket) => {
             }
 
             // 🚫 Block suspended captains from chatting
-            const SenderUser = require('./models/User');
-            const senderDoc = await SenderUser.findById(sender).select('is_blocked').lean();
+            // BUG-M3 FIX: User مستورد مسبقاً على مستوى الوحدة
+            const senderDoc = await User.findById(sender).select('is_blocked').lean();
             if (senderDoc?.is_blocked) {
-                return sendAck({ status: 'error', error: 'حسابك موقوف بسبب تجاوز الحد الائتماني. يرجى السداد أولاً.' });
+                return sendAck({ status: 'error', error: 'حسابك موقوف بسبب تجاوزك الحد الائتماني. يرجى السداد أولاً.' });
             }
 
             // ملاحظة: فحص تطابق socket.userId مع data.sender أُزيل — لم يعد له معنى
@@ -589,14 +611,13 @@ io.on('connection', (socket) => {
 
             // 🔒 Authorization: verify both sender and receiver are parties to the order
             // First try normal Order, then fall back to ShopOrder (for merchant-client chat)
-            const Order = require('./models/Order');
+            // BUG-M3 FIX: Order مستورد مسبقاً على مستوى الوحدة
             let chatOrder = await Order.findById(order);
             let isShopOrder = false;
 
             if (!chatOrder) {
-                // Try ShopOrder
-                const ShopOrder = require('./models/ShopOrder');
-                chatOrder = await ShopOrder.findById(order).populate('place', 'ownerId');
+                // Try ShopOrder (BUG-M3: مستورد كـ ShopOrderSocket أعلاه)
+                chatOrder = await ShopOrderSocket.findById(order).populate('place', 'ownerId');
                 // ✅ FIX #7: isShopOrder يُعيَّن فقط لو chatOrder وُجد فعلاً
                 if (chatOrder) isShopOrder = true;
             }
@@ -810,7 +831,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', async () => {
         logger.debug({ socketId: socket.id }, 'User disconnected');
         if (socket.userId) {
-            delete activeUsers[socket.userId];
+            // BUG-L4 FIX: حذف activeUsers (لم يكن يُستخدم) — يكفي حذف chatRooms
             delete chatRooms[socket.userId];
 
             // 🔒 حالة توفّر الكابتن (isAvailableForWork) يتحكم فيها الكابتن وحده.
