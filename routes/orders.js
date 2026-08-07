@@ -470,9 +470,22 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             });
         }
 
+        // 💬 طمأنة فورية للعميل: الصمت بعد الضغط على "أرسل" هو أول لحظة يشكّ
+        // فيها العميل أن شيئاً لم يحدث. الإشعار يصله حتى لو أغلق التطبيق،
+        // ويظهر في سجل إشعاراته كأثر مكتوب أن الطلب استُلم فعلاً.
+        if (!isScheduled && order.client) {
+            sendNotification(req.app, {
+                userId: order.client,
+                title: 'استلمنا طلبك',
+                message: 'نبحث لك الآن عن أقرب كابتن متاح — لا تقلق، سنخبرك فور قبول الطلب.',
+                type: 'order_searching',
+                relatedId: order._id
+            }).catch(e => logger.warn({ err: e?.message, orderId: order._id }, 'Order-received notification failed'));
+        }
+
         const msg = isScheduled
             ? `تم جدولة طلبك بنجاح! سيُنشر للكباتن في ${new Date(scheduledAt).toLocaleString('ar-SA')}`
-            : 'تم إنشاء الطلب بنجاح';
+            : 'تم إنشاء الطلب بنجاح — نبحث لك عن أقرب كابتن';
 
         // BUG-C4 FIX: إرسال الحقول الضرورية للعميل فقط — لا تسريب appFee/netRevenue/city/parcelImage
         res.status(201).json({
@@ -592,13 +605,23 @@ router.put('/:id/cancel', protect, async (req, res) => {
             return res.status(400).json({ message: 'لا يمكن إلغاء الطلب بعد قبول الكابتن. تواصل مع الدعم إن كان هناك مشكلة.' });
         }
 
-        const { reason } = req.body || {};
+        const { reason, reasonCode } = req.body || {};
+
+        // 📊 رمز السبب يأتي من قائمة ثابتة — أي قيمة خارجها تُهمَل بدل أن
+        // تلوّث التجميع الإحصائي برموز مخترَعة من الواجهة.
+        const { CANCEL_REASONS } = require('../models/Feedback');
+        const safeReasonCode = reasonCode && Object.hasOwn(CANCEL_REASONS, reasonCode)
+            ? reasonCode
+            : null;
 
         // ✅ الإلغاء مسموح فقط في حالتي pending و scheduled
         // BUG-M2 FIX: تعقيم سبب الإلغاء لمنع XSS في الإشعارات — نُزيل وسوم HTML
-        const sanitizedReason = reason
+        const freeText = reason
             ? String(reason).trim().replace(/<[^>]*>/g, '').substring(0, 200)
-            : 'إلغاء من قبل العميل';
+            : '';
+        const sanitizedReason = freeText
+            || (safeReasonCode ? CANCEL_REASONS[safeReasonCode] : '')
+            || 'إلغاء من قبل العميل';
 
         const cancelledOrder = await Order.findOneAndUpdate(
             { _id: req.params.id, status: { $in: ['pending', 'scheduled'] }, client: req.user.id },
@@ -606,6 +629,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
                 status: 'cancelled',
                 cancelledBy: 'client',
                 cancelReason: sanitizedReason,
+                cancelReasonCode: safeReasonCode,
                 cancelledAt: new Date()
             } },
             { new: true }
@@ -661,6 +685,34 @@ router.put('/:id/cancel', protect, async (req, res) => {
                 type: 'order_update',
                 relatedId: order._id
             });
+        }
+
+        // 📊 سجّل سبب الإلغاء في "صوت العميل" — يُقرأ مجمّعاً في لوحة الإدارة.
+        // خارج المسار الحرِج: فشل التسجيل لا يمنع إتمام الإلغاء نفسه.
+        if (safeReasonCode || freeText) {
+            try {
+                const Feedback = require('../models/Feedback');
+                const fb = await Feedback.create({
+                    user: req.user._id,
+                    kind: 'cancellation',
+                    order: order._id,
+                    orderModel: 'Order',
+                    reasonCode: safeReasonCode,
+                    message: freeText,
+                    city: order.city || req.user.city || 'Khartoum'
+                });
+                if (io) {
+                    io.to('admin_room').emit('new_feedback', {
+                        id: fb._id, kind: 'cancellation',
+                        reasonCode: safeReasonCode, city: fb.city
+                    });
+                }
+            } catch (fbErr) {
+                // 11000 = العميل ضغط "إلغاء" مرتين — السبب مسجَّل مسبقاً
+                if (!fbErr || fbErr.code !== 11000) {
+                    logger.warn({ err: fbErr?.message, orderId: order._id }, 'Cancellation feedback not recorded');
+                }
+            }
         }
 
         res.json({ message: 'Order cancelled successfully', order });
@@ -1935,6 +1987,32 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                     relatedId: order._id
                 });
             } catch (nErr) { logger.error('Client notification error on deliver:', nErr.message); }
+
+            // 💬 أول توصيلة مكتملة لهذا العميل ⇒ اسأله عن التجربة.
+            // اللحظة مقصودة: الانطباع طازج، والعميل الذي لم يعد بعد أول طلب
+            // هو بالضبط من نريد أن نعرف لماذا لم يعد. يُرسل مرة واحدة فقط —
+            // countDocuments == 1 يعني أن هذا الطلب هو الأول (حُدِّث للتوّ).
+            try {
+                const deliveredCount = await Order.countDocuments({
+                    client: order.client, status: 'delivered'
+                });
+                if (deliveredCount === 1) {
+                    const Feedback = require('../models/Feedback');
+                    const already = await Feedback.exists({ user: order.client, kind: 'first_order' });
+                    if (!already) {
+                        const { sendNotification } = require('../utils/notificationHelper');
+                        await sendNotification(req.app, {
+                            userId: order.client,
+                            title: 'كيف كانت تجربتك الأولى؟',
+                            message: 'رأيك يهمّنا — ما الذي أعجبك وما الذي تقترح تحسينه؟ دقيقة واحدة تكفي.',
+                            type: 'feedback_request',
+                            relatedId: order._id
+                        });
+                    }
+                }
+            } catch (fbErr) {
+                logger.warn({ err: fbErr?.message, orderId: order._id }, 'First-order feedback prompt failed');
+            }
 
             try {
                 await sendWhatsAppIfSubscribed(

@@ -244,6 +244,7 @@ apiRoutes.use('/auth', require('./routes/auth'));
 apiRoutes.use('/orders', require('./routes/orders'));
 apiRoutes.use('/admin', require('./routes/admin'));
 apiRoutes.use('/complaints', complaintsRoutes);
+apiRoutes.use('/feedback', require('./routes/feedback'));
 apiRoutes.use('/chat', require('./routes/chat'));
 apiRoutes.use('/notifications', require('./routes/notifications'));
 apiRoutes.use('/captain', captainRoutes);

@@ -8,6 +8,7 @@ router.use(require('./admin/dashboard'));
 router.use(require('./admin/users'));
 router.use(require('./admin/orders'));
 router.use(require('./admin/complaints'));
+router.use(require('./admin/feedback'));
 router.use(require('./admin/finance'));
 router.use(require('./admin/settings'));
 router.use(require('./admin/notifications'));

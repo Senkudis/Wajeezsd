@@ -14,15 +14,31 @@ const NotificationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    // ⚠️ أي نوع خارج هذه القائمة يُسقِط الإشعار بالكامل: sendNotification يبدأ
+    // بـ Notification.create، فيرمي validation error يبتلعه try/catch الخارجي —
+    // فلا يُحفظ سجل، ولا يُبثّ socket، ولا تُرسل دفعة FCM. الصمت تام.
+    // أي نوع جديد يُستخدم في الكود يجب أن يُضاف هنا وفي utils/pushRouting.js.
     type: {
         type: String,
         enum: [
             'system',
             'order_accepted', 'order_completed', 'order_update',
             'chat', 'chat_message',
+            // 📦 دورة حياة الطلب
+            'order_searching', 'order_delayed', 'order_cancelled', 'order_expired',
+            'errand_quote',
+            // 💬 طلب رأي العميل بعد أول توصيلة
+            'feedback_request',
             // 🛍️ Shop order notifications
-            'shop_order_update', 'new_shop_order',
+            'shop_order_update', 'new_shop_order', 'shop_order',
             'payment_receipt', 'payment_confirmed', 'payment_reminder',
+            // 💰 المحفظة والمدفوعات والتسويات
+            'wallet_update', 'payment_request', 'payment_approved', 'payment_rejected',
+            'settlement_approved', 'settlement_rejected', 'shop_ledger',
+            // 🏪 التاجر
+            'low_stock', 'tier_change',
+            // 🚚 عروض الكابتن
+            'offer_expired', 'offer_expiry_reminder', 'negotiation_accepted',
             // 🚨 Emergency SOS
             'emergency'
         ],

@@ -158,6 +158,84 @@ const startScheduler = (app) => {
         }
     });
 
+    // ════════════════════════════════════════════════════════════
+    // ⏳ تنبيهات تأخّر الطلب — الطلب معلّق ولم يقبله كابتن بعد
+    // ════════════════════════════════════════════════════════════
+    // المشكلة التي تعالجها: بين إنشاء الطلب وإلغائه التلقائي بعد ٦ ساعات
+    // كان العميل في صمت تام. الصمت يُقرأ إهمالاً، فيغادر العميل قبل أن
+    // يصله كابتن أصلاً. هذه العتبات تُبقيه على علم وتمنحه خيار التصرّف.
+    //
+    // كل عتبة تُرسل مرة واحدة لكل طلب — delayNoticesSent يمنع التكرار
+    // مهما مرّ المجدول (كل ٥ دقائق) على الطلب نفسه.
+    const DELAY_NOTICES = [
+        {
+            minutes: 30,
+            title: 'ما زلنا نبحث لك عن كابتن',
+            message: 'طلبك ما زال معروضاً على الكباتن القريبين. سنخبرك فور قبوله.'
+        },
+        {
+            minutes: 120,
+            title: 'طلبك يستغرق وقتاً أطول من المعتاد',
+            message: 'لم يقبل أي كابتن طلبك حتى الآن. يمكنك رفع سعر التوصيل لجذب الكباتن، أو إلغاء الطلب دون أي رسوم.'
+        }
+    ];
+
+    cron.schedule('*/5 * * * *', async () => {
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) return;
+        try {
+            const now = Date.now();
+            // أكبر عتبة أولاً: طلب تجاوز الساعتين يستحق رسالة الساعتين لا الثلاثين دقيقة
+            const ordered = [...DELAY_NOTICES].sort((a, b) => b.minutes - a.minutes);
+
+            for (const notice of ordered) {
+                const cutoff = new Date(now - notice.minutes * 60 * 1000);
+                const due = await Order.find({
+                    status: 'pending',
+                    captain: null,
+                    createdAt: { $lte: cutoff },
+                    delayNoticesSent: { $ne: notice.minutes }
+                })
+                    .select('_id client delayNoticesSent')
+                    .limit(200)
+                    .lean();
+
+                for (const order of due) {
+                    // 🔒 المطالبة الذرّية أولاً: تضمن إشعاراً واحداً حتى لو
+                    // شُغّلت نسختان من الخادم في وقت واحد.
+                    const claimed = await Order.updateOne(
+                        { _id: order._id, delayNoticesSent: { $ne: notice.minutes } },
+                        { $addToSet: { delayNoticesSent: notice.minutes } }
+                    );
+                    if (!claimed.modifiedCount) continue;
+                    if (!order.client) continue;
+
+                    try {
+                        const { sendNotification } = require('./utils/notificationHelper');
+                        await sendNotification(app, {
+                            userId: order.client,
+                            title: notice.title,
+                            message: notice.message,
+                            type: 'order_delayed',
+                            relatedId: order._id
+                        });
+                        logger.info(
+                            { orderId: order._id, threshold: notice.minutes },
+                            'Delay notice sent to client'
+                        );
+                    } catch (nErr) {
+                        logger.warn(
+                            { err: nErr?.message, orderId: order._id, threshold: notice.minutes },
+                            'Delay notice failed'
+                        );
+                    }
+                }
+            }
+        } catch (error) {
+            logger.error({ err: error }, 'Scheduler error in delay notices');
+        }
+    });
+
     // ⏰ Publish Scheduled Orders (runs every minute)
     cron.schedule('* * * * *', async () => {
         const mongoose = require('mongoose');

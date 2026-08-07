@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger'); // BUG-L2 FIX: استخدام logger الموحّد بدل console.error
 
 const OrderSchema = new mongoose.Schema(
     {
@@ -87,7 +88,15 @@ const OrderSchema = new mongoose.Schema(
         // 🚫 تفاصيل الإلغاء — من ألغى ولماذا
         cancelledBy: { type: String, enum: ['client', 'captain', 'admin', 'system'], default: null },
         cancelReason: { type: String, default: null },
+        // رمز ثابت يقابل cancelReason — النص الحر لا يصلح للتجميع الإحصائي،
+        // والسؤال الذي نحتاج إجابته ("لماذا يتسرّب العملاء؟") تجميعي بطبعه.
+        cancelReasonCode: { type: String, default: null },
         cancelledAt: { type: Date, default: null },
+
+        // ⏳ عتبات التأخير التي أُرسل عنها تنبيه لهذا الطلب (بالدقائق).
+        // مصفوفة لا علَم واحد: كل عتبة تُرسل مرة واحدة فقط مهما تكرّر مرور
+        // المجدول، ومن دون هذا السجل يتلقّى العميل التنبيه نفسه كل خمس دقائق.
+        delayNoticesSent: { type: [Number], default: [] },
         location: {
             lat: { type: Number },
             lng: { type: Number }
@@ -195,6 +204,7 @@ OrderSchema.index({ city: 1 });                             // Admin city filter
 OrderSchema.index({ city: 1, status: 1 });                  // Captain sees only own-city pending orders
 OrderSchema.index({ city: 1, status: 1, createdAt: -1 });   // City-scoped sorted pending list
 OrderSchema.index({ city: 1, captain: 1, status: 1 });      // Captain's city-scoped active orders
+OrderSchema.index({ client: 1, orderType: 1, createdAt: -1 }); // 🚀 BUG-H1 FIX: my-orders pagination (client + type + date)
 
 // 🔄 Sync Order status back to ShopOrder
 OrderSchema.post('save', async function(doc) {
@@ -234,7 +244,7 @@ OrderSchema.post('save', async function(doc) {
                             });
                         }
                     } catch (ledgerErr) {
-                        console.error('Ledger sync (admin path) failed:', ledgerErr.message);
+                        logger.error({ err: ledgerErr }, 'Ledger sync (admin path) failed');
                     }
                 } else if (doc.status === 'cancelled' && shopOrder.status !== 'cancelled') {
                     shopOrder.status = 'cancelled';
@@ -274,7 +284,7 @@ OrderSchema.post('save', async function(doc) {
                 }
             }
         } catch (err) {
-            console.error('Error syncing Order to ShopOrder:', err);
+            logger.error({ err }, 'Error syncing Order to ShopOrder');
         }
     }
 });

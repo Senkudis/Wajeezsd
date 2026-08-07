@@ -3,6 +3,9 @@ const User = require('../models/User');
 const { sendPush } = require('./firebasePush');
 const logger = require('./logger');
 
+// الأنواع المقبولة في المخطّط — تُقرأ منه مباشرة فلا تتباعد النسختان
+const ALLOWED_TYPES = new Set(Notification.schema.path('type').enumValues);
+
 /**
  * دالة مساعدة لإرسال الإشعارات وحفظها
  * تدعم: حفظ في DB + Socket.IO (داخل التطبيق) + FCM Push (خارج التطبيق)
@@ -11,12 +14,24 @@ const logger = require('./logger');
  */
 const sendNotification = async (app, { userId, title, message, type, relatedId }) => {
     try {
+        // 🛡️ نوع خارج المخطّط كان يُسقِط الإشعار كلياً وبصمت: create يرمي
+        // validation error فلا سجل ولا socket ولا push. الآن نهبط إلى 'system'
+        // كي يصل الإشعار للمستخدم على أي حال، ونصرخ في السجلّات كي يُصلَح المخطّط.
+        let safeType = type || 'system';
+        if (!ALLOWED_TYPES.has(safeType)) {
+            logger.error(
+                { invalidType: safeType, userId, title },
+                'Notification type not in schema enum — delivered as "system". Add it to models/Notification.js and utils/pushRouting.js'
+            );
+            safeType = 'system';
+        }
+
         // 1. حفظ في قاعدة البيانات
         const notification = await Notification.create({
             user: userId,
             title,
             message,
-            type: type || 'system',
+            type: safeType,
             relatedId,
             isRead: false
         });

@@ -31,7 +31,12 @@ function resolvePushUrl(role, type, relatedId) {
                     return `/client-shop-orders.html${r ? `?highlight=${r}` : ''}`;
                 case 'errand_quote':   // 🛒 سعر البضاعة بانتظار تأكيد العميل — يفتح التتبّع للتأكيد
                 case 'order_update':   // 🚚 تحديثات موقع الكابتن، وغيرها
+                case 'order_searching':// 🔍 استلمنا طلبك ونبحث عن كابتن
+                case 'order_delayed':  // ⏳ تأخّر القبول — التتبّع يتيح رفع السعر أو الإلغاء
                     return r ? `/tracking.html?orderId=${r}` : '/client-my-orders.html';
+                // 💬 نموذج رأي أول طلب يُفتح فوق قائمة الطلبات
+                case 'feedback_request':
+                    return `/client-my-orders.html${r ? `?feedback=${r}` : '?feedback=1'}`;
                 case 'order_accepted':
                 case 'order_delivered':
                 case 'order_cancelled':
