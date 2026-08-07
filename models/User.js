@@ -88,6 +88,12 @@ const UserSchema = new mongoose.Schema(
         credit_limit: { type: Number, default: -5000 },
         is_blocked: { type: Boolean, default: false },
 
+        // ⚠️ وقت آخر تحذير "اقتربت من الحد الائتماني".
+        // قبل هذا كان الكابتن يُنبَّه لحظة الحجب فقط — أي بعد فوات الأوان،
+        // فيستيقظ موقوفاً بلا إنذار. يُصفَّر عند تعافي الرصيد فوق ٦٠٪ كي
+        // يعمل التحذير من جديد في دورة المديونية التالية.
+        creditWarnedAt: { type: Date, default: null },
+
         // 🔔 FCM for Native Notifications
         fcmToken: { type: String },
 

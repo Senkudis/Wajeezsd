@@ -97,6 +97,12 @@ const OrderSchema = new mongoose.Schema(
         // مصفوفة لا علَم واحد: كل عتبة تُرسل مرة واحدة فقط مهما تكرّر مرور
         // المجدول، ومن دون هذا السجل يتلقّى العميل التنبيه نفسه كل خمس دقائق.
         delayNoticesSent: { type: [Number], default: [] },
+
+        // 🏍️ تنبيهات الكابتن المُرسلة لهذا الطلب — مفاتيح نصّية مثل
+        // 'pickup_15' و'deliver_30' و'gps_stale'. نصّية لا رقمية لأن
+        // العتبات هنا تنتمي لمراحل مختلفة، والرقم وحده لا يميّز
+        // "٣٠ دقيقة بلا استلام" عن "٣٠ دقيقة بلا تسليم".
+        captainNudges: { type: [String], default: [] },
         location: {
             lat: { type: Number },
             lng: { type: Number }

@@ -3,6 +3,7 @@ const Order = require('./models/Order');
 const User  = require('./models/User');
 const nodemailer = require('nodemailer');
 const logger = require('./utils/logger');
+const { planNudge } = require('./utils/nudgePlanner');
 
 // إعداد الإيميل
 const transporter = nodemailer.createTransport({
@@ -167,14 +168,15 @@ const startScheduler = (app) => {
     //
     // كل عتبة تُرسل مرة واحدة لكل طلب — delayNoticesSent يمنع التكرار
     // مهما مرّ المجدول (كل ٥ دقائق) على الطلب نفسه.
+    // key وafterMin هما ما يقرؤه planNudge — انظر utils/nudgePlanner.js
     const DELAY_NOTICES = [
         {
-            minutes: 30,
+            key: 30, afterMin: 30,
             title: 'ما زلنا نبحث لك عن كابتن',
             message: 'طلبك ما زال معروضاً على الكباتن القريبين. سنخبرك فور قبوله.'
         },
         {
-            minutes: 120,
+            key: 120, afterMin: 120,
             title: 'طلبك يستغرق وقتاً أطول من المعتاد',
             message: 'لم يقبل أي كابتن طلبك حتى الآن. يمكنك رفع سعر التوصيل لجذب الكباتن، أو إلغاء الطلب دون أي رسوم.'
         }
@@ -185,54 +187,311 @@ const startScheduler = (app) => {
         if (mongoose.connection.readyState !== 1) return;
         try {
             const now = Date.now();
-            // أكبر عتبة أولاً: طلب تجاوز الساعتين يستحق رسالة الساعتين لا الثلاثين دقيقة
-            const ordered = [...DELAY_NOTICES].sort((a, b) => b.minutes - a.minutes);
+            const minThreshold = Math.min(...DELAY_NOTICES.map(n => n.afterMin));
 
-            for (const notice of ordered) {
-                const cutoff = new Date(now - notice.minutes * 60 * 1000);
-                const due = await Order.find({
-                    status: 'pending',
-                    captain: null,
-                    createdAt: { $lte: cutoff },
-                    delayNoticesSent: { $ne: notice.minutes }
-                })
-                    .select('_id client delayNoticesSent')
-                    .limit(200)
-                    .lean();
+            // نجلب كل طلب تجاوز أدنى عتبة، ثم planNudge يقرّر أي رسالة تستحقّها
+            // حالته — استعلام واحد بدل استعلام لكل عتبة، والقرار في وحدة مختبَرة.
+            const candidates = await Order.find({
+                status: 'pending',
+                captain: null,
+                createdAt: { $lte: new Date(now - minThreshold * 60 * 1000) }
+            })
+                .select('_id client createdAt delayNoticesSent')
+                .limit(300)
+                .lean();
 
-                for (const order of due) {
-                    // 🔒 المطالبة الذرّية أولاً: تضمن إشعاراً واحداً حتى لو
-                    // شُغّلت نسختان من الخادم في وقت واحد.
-                    const claimed = await Order.updateOne(
-                        { _id: order._id, delayNoticesSent: { $ne: notice.minutes } },
-                        { $addToSet: { delayNoticesSent: notice.minutes } }
+            for (const order of candidates) {
+                if (!order.client) continue;
+                const ageMin = (now - new Date(order.createdAt).getTime()) / 60000;
+                const plan = planNudge(DELAY_NOTICES, ageMin, order.delayNoticesSent || []);
+                if (!plan) continue;
+
+                const notice = plan.fire;
+                // 🔒 المطالبة الذرّية أولاً: تضمن إشعاراً واحداً حتى لو
+                // شُغّلت نسختان من الخادم في وقت واحد. والعتبات الأدنى
+                // تُستهلك معها فلا تنطلق بأثر رجعي في الدورة نفسها.
+                const claimed = await Order.updateOne(
+                    { _id: order._id, delayNoticesSent: { $ne: notice.key } },
+                    { $addToSet: { delayNoticesSent: { $each: [notice.key, ...plan.consume] } } }
+                );
+                if (!claimed.modifiedCount) continue;
+
+                try {
+                    const { sendNotification } = require('./utils/notificationHelper');
+                    await sendNotification(app, {
+                        userId: order.client,
+                        title: notice.title,
+                        message: notice.message,
+                        type: 'order_delayed',
+                        relatedId: order._id
+                    });
+                    logger.info(
+                        { orderId: order._id, threshold: notice.afterMin },
+                        'Delay notice sent to client'
                     );
-                    if (!claimed.modifiedCount) continue;
-                    if (!order.client) continue;
-
-                    try {
-                        const { sendNotification } = require('./utils/notificationHelper');
-                        await sendNotification(app, {
-                            userId: order.client,
-                            title: notice.title,
-                            message: notice.message,
-                            type: 'order_delayed',
-                            relatedId: order._id
-                        });
-                        logger.info(
-                            { orderId: order._id, threshold: notice.minutes },
-                            'Delay notice sent to client'
-                        );
-                    } catch (nErr) {
-                        logger.warn(
-                            { err: nErr?.message, orderId: order._id, threshold: notice.minutes },
-                            'Delay notice failed'
-                        );
-                    }
+                } catch (nErr) {
+                    logger.warn(
+                        { err: nErr?.message, orderId: order._id, threshold: notice.afterMin },
+                        'Delay notice failed'
+                    );
                 }
             }
         } catch (error) {
             logger.error({ err: error }, 'Scheduler error in delay notices');
+        }
+    });
+
+    // ════════════════════════════════════════════════════════════
+    // 🏍️ تنبيهات الكابتن — الحالات التي يصمت فيها النظام اليوم
+    // ════════════════════════════════════════════════════════════
+    // المبدأ: لا نراقب الكابتن، بل نلتقط اللحظات التي يخسر فيها العميل
+    // ثقته والكابتن لا يدري. كل تنبيه يقترح فعلاً محدّداً (اتصل، فعّل
+    // الموقع، سدّد) لا لوماً — التنبيه الذي لا يقترح فعلاً إزعاج.
+    //
+    // كل مفتاح يُرسل مرة واحدة لكل طلب: captainNudges يمنع التكرار
+    // مهما مرّ المجدول على المهمة نفسها.
+    const CAPTAIN_NUDGES = [
+        // قَبِل الطلب ولم يستلم الطرد بعد
+        {
+            key: 'pickup_15', stage: 'accepted', afterMin: 15,
+            title: 'هل وصلت لنقطة الاستلام؟',
+            message: 'مرّ ١٥ دقيقة على قبولك الطلب. إن تأخّرت، اتصل بالعميل وأخبره — انتظارٌ بلا خبر هو أكثر ما يفقدنا العملاء.'
+        },
+        {
+            key: 'pickup_40', stage: 'accepted', afterMin: 40,
+            title: 'الطلب ما زال بانتظار الاستلام',
+            message: 'مرّ ٤٠ دقيقة ولم تستلم الطرد بعد. إن حدث ما يمنعك، تواصل مع العميل أو مع الإدارة لإعادة إسناد الطلب.'
+        },
+        // استلم الطرد ولم يسلّمه بعد
+        {
+            key: 'deliver_30', stage: 'picked_up', afterMin: 30,
+            title: 'هل حصل شيء في الطريق؟',
+            message: 'مرّ ٣٠ دقيقة على استلامك الطرد. لو تأخّرت لزحام أو عطل، اتصل بالعميل — رسالة قصيرة تكفي لطمأنته.'
+        },
+        {
+            key: 'deliver_75', stage: 'picked_up', afterMin: 75,
+            title: 'التوصيل استغرق وقتاً طويلاً',
+            message: 'مرّ ٧٥ دقيقة على استلام الطرد ولم يُسجَّل التسليم. إن كنت قد سلّمته فعلاً، اضغط "تم التسليم" في المهمة. وإن واجهتك مشكلة، تواصل مع الإدارة.'
+        }
+    ];
+
+    // كم دقيقة بلا تحديث موقع تُعدّ "تتبّعاً متوقّفاً" أثناء مهمة نشطة
+    const GPS_STALE_MIN = 12;
+    // كم دقيقة تبقى رسالة العميل بلا قراءة قبل تذكير الكابتن
+    const CHAT_NUDGE_MIN = 8;
+    // 🛡️ سقف عمري لكل تنبيه. بدونه يُطلق أول تشغيل بعد النشر موجةَ تنبيهات
+    // عن كل مهمة ورسالة قديمة في قاعدة البيانات دفعةً واحدة — والتنبيه عن
+    // رسالة عمرها أسبوعان بلا فائدة أصلاً.
+    const NUDGE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+    cron.schedule('*/5 * * * *', async () => {
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) return;
+
+        const { sendNotification } = require('./utils/notificationHelper');
+
+        /**
+         * يطالب بالمفتاح ذرياً ثم يرسل — تنبيه واحد حتى مع تعدّد نسخ الخادم.
+         * consume: مفاتيح إضافية تُعلَّم مستهلَكة مع هذا المفتاح، كي لا تنطلق
+         * العتبات الأدنى في الدورة نفسها فيتلقّى الكابتن رسالتين متناقضتين.
+         */
+        async function nudgeOnce(order, key, payload, consume = []) {
+            const claimed = await Order.updateOne(
+                { _id: order._id, captainNudges: { $ne: key } },
+                { $addToSet: { captainNudges: { $each: [key, ...consume] } } }
+            );
+            if (!claimed.modifiedCount) return false;
+            try {
+                await sendNotification(app, {
+                    userId: order.captain,
+                    relatedId: order._id,
+                    ...payload
+                });
+                logger.info({ orderId: order._id, key }, 'Captain nudge sent');
+                return true;
+            } catch (err) {
+                logger.warn({ err: err?.message, orderId: order._id, key }, 'Captain nudge failed');
+                return false;
+            }
+        }
+
+        // ── ١. تأخّر الاستلام والتسليم ──────────────────────────
+        try {
+            const now = Date.now();
+            // الأطول عمراً أولاً: مهمة تجاوزت ٧٥ دقيقة تستحق رسالتها لا رسالة الـ٣٠
+            const ordered = [...CAPTAIN_NUDGES].sort((a, b) => b.afterMin - a.afterMin);
+
+            for (const nudge of ordered) {
+                const cutoff = new Date(now - nudge.afterMin * 60 * 1000);
+                // الطابع الذي نقيس منه يتبع المرحلة: القبول للاستلام، الاستلام للتسليم
+                const stampField = nudge.stage === 'accepted' ? 'acceptedAt' : 'pickedUpAt';
+
+                const due = await Order.find({
+                    status: nudge.stage,
+                    captain: { $ne: null },
+                    [stampField]: { $ne: null, $lte: cutoff, $gte: new Date(now - NUDGE_MAX_AGE_MS) },
+                    captainNudges: { $ne: nudge.key }
+                })
+                    .select('_id captain')
+                    .limit(200)
+                    .lean();
+
+                // العتبات الأدنى في المرحلة نفسها تُستهلك مع هذه العتبة
+                const consume = CAPTAIN_NUDGES
+                    .filter(n => n.stage === nudge.stage && n.afterMin < nudge.afterMin)
+                    .map(n => n.key);
+
+                for (const order of due) {
+                    if (!order.captain) continue;
+                    await nudgeOnce(order, nudge.key, {
+                        title: nudge.title,
+                        message: nudge.message,
+                        type: 'order_update'
+                    }, consume);
+                }
+            }
+        } catch (error) {
+            logger.error({ err: error }, 'Scheduler error in captain delay nudges');
+        }
+
+        // ── ٢. تتبّع متوقّف أثناء مهمة نشطة ────────────────────
+        // العميل يرى مؤشّر الكابتن جامداً على الخريطة ويظنّه متوقّفاً أو
+        // مهملاً. السبب الغالب إذنُ موقعٍ سُحب أو التطبيق أُغلق في الخلفية.
+        try {
+            const staleBefore = new Date(Date.now() - GPS_STALE_MIN * 60 * 1000);
+            const active = await Order.find({
+                status: { $in: ['accepted', 'picked_up'] },
+                captain: { $ne: null },
+                captainNudges: { $ne: 'gps_stale' }
+            })
+                .select('_id captain')
+                .limit(200)
+                .lean();
+
+            if (active.length) {
+                const captainIds = [...new Set(active.map(o => String(o.captain)))];
+                const captains = await User.find({ _id: { $in: captainIds } })
+                    .select('currentLocation.updatedAt')
+                    .lean();
+                const staleSet = new Set(
+                    captains
+                        .filter(c => !c.currentLocation?.updatedAt || c.currentLocation.updatedAt < staleBefore)
+                        .map(c => String(c._id))
+                );
+
+                for (const order of active) {
+                    if (!staleSet.has(String(order.captain))) continue;
+                    await nudgeOnce(order, 'gps_stale', {
+                        title: 'تتبّع موقعك متوقّف',
+                        message: 'العميل يتابع رحلتك على الخريطة ولا يرى تحرّكك. افتح التطبيق وتأكّد أن إذن الموقع مفعّل.',
+                        type: 'order_update'
+                    });
+                }
+            }
+        } catch (error) {
+            logger.error({ err: error }, 'Scheduler error in GPS stale nudges');
+        }
+
+        // ── ٣. رسالة عميل بلا قراءة ────────────────────────────
+        try {
+            const Message = require('./models/Message');
+            const cutoff = new Date(Date.now() - CHAT_NUDGE_MIN * 60 * 1000);
+
+            const waiting = await Message.find({
+                isRead: false,
+                nudgedAt: null,
+                createdAt: { $lte: cutoff, $gte: new Date(Date.now() - NUDGE_MAX_AGE_MS) }
+            })
+                .select('_id sender receiver order')
+                .limit(200)
+                .lean();
+
+            for (const msg of waiting) {
+                // المطالبة أولاً: أي فشل لاحق لا يُعيد المحاولة إلى الأبد
+                const claimed = await Message.updateOne(
+                    { _id: msg._id, nudgedAt: null },
+                    { $set: { nudgedAt: new Date() } }
+                );
+                if (!claimed.modifiedCount) continue;
+
+                // نُذكّر الكابتن وحده: العميل ينتظر ردّاً، والكابتن هو من
+                // يملك الإجابة. الطلب المنتهي لا يستحق تذكيراً.
+                const receiver = await User.findById(msg.receiver).select('role').lean();
+                if (!receiver || receiver.role !== 'captain') continue;
+
+                const order = await Order.findOne({
+                    _id: msg.order,
+                    status: { $in: ['pending', 'accepted', 'picked_up'] }
+                }).select('_id').lean();
+                if (!order) continue;
+
+                try {
+                    await sendNotification(app, {
+                        userId: msg.receiver,
+                        title: 'العميل بانتظار ردّك',
+                        message: 'وصلتك رسالة من العميل ولم تُقرأ بعد. ردٌّ سريع يمنع إلغاء الطلب.',
+                        type: 'chat_message',
+                        relatedId: msg.order
+                    });
+                } catch (err) {
+                    logger.warn({ err: err?.message, messageId: msg._id }, 'Chat nudge failed');
+                }
+            }
+        } catch (error) {
+            logger.error({ err: error }, 'Scheduler error in unread chat nudges');
+        }
+
+        // ── ٤. اقتراب الحد الائتماني ───────────────────────────
+        // كان الكابتن يُنبَّه لحظة الحجب فقط — أي بعد أن يتوقّف دخله.
+        // التحذير عند ٨٠٪ يمنحه فرصة السداد قبل أن يفقد يوم عمل.
+        try {
+            const captains = await User.find({
+                role: 'captain',
+                isActive: true,
+                is_blocked: false,
+                wallet_balance: { $lt: 0 }
+            })
+                .select('wallet_balance credit_limit creditWarnedAt')
+                .limit(500)
+                .lean();
+
+            for (const cap of captains) {
+                const limit = cap.credit_limit ?? -5000;
+                if (!limit) continue;
+                const usedPct = Math.min(100, Math.max(0, (cap.wallet_balance / limit) * 100));
+
+                // تعافى الرصيد ⇒ صفّر التحذير كي يعمل في الدورة التالية
+                if (usedPct < 60) {
+                    if (cap.creditWarnedAt) {
+                        await User.updateOne({ _id: cap._id }, { $set: { creditWarnedAt: null } });
+                    }
+                    continue;
+                }
+                if (usedPct < 80 || cap.creditWarnedAt) continue;
+
+                const claimed = await User.updateOne(
+                    { _id: cap._id, creditWarnedAt: null },
+                    { $set: { creditWarnedAt: new Date() } }
+                );
+                if (!claimed.modifiedCount) continue;
+
+                const remaining = Math.max(0, Math.abs(limit) - Math.abs(cap.wallet_balance));
+                try {
+                    await sendNotification(app, {
+                        userId: cap._id,
+                        title: 'اقتربت من الحد الائتماني',
+                        message: `مديونيتك بلغت ${Math.round(usedPct)}٪ من حدّك. تبقّى ${Math.round(remaining)} ج.س قبل إيقاف الحساب — سدّد الآن لتواصل العمل بلا انقطاع.`,
+                        type: 'wallet_update'
+                        // بلا relatedId: الحقل يشير إلى Order في المخطّط، ووجهة
+                        // النقر (captain-wallet.html) لا تستخدمه أصلاً
+                    });
+                    logger.info({ captainId: cap._id, usedPct: Math.round(usedPct) }, 'Credit limit warning sent');
+                } catch (err) {
+                    logger.warn({ err: err?.message, captainId: cap._id }, 'Credit warning failed');
+                }
+            }
+        } catch (error) {
+            logger.error({ err: error }, 'Scheduler error in credit limit warnings');
         }
     });
 

@@ -40,6 +40,10 @@ const MessageSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+
+        // 🔔 وقت تذكير المستقبِل بأن هذه الرسالة ما زالت بلا قراءة.
+        // يُضبط مرة واحدة لكل رسالة كي لا يتحوّل التذكير إلى إزعاج متكرّر.
+        nudgedAt: { type: Date, default: null },
     },
     { timestamps: true }
 );
