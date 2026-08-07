@@ -18,12 +18,22 @@ router.get('/', protect, async (req, res) => {
         const notifications = await Notification.find({ user: req.user.id })
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(limit);
+            .limit(limit)
+            .lean();
 
         const total = await Notification.countDocuments({ user: req.user.id });
 
+        // 🧭 وجهة النقر تُحسب هنا لا في الواجهة: utils/pushRouting.js هو
+        // المصدر الوحيد لتوجيه الإشعارات (تستخدمه دفعات FCM أصلاً). حسابها
+        // في الصفحة يعني نسختين تتباعدان مع كل نوع جديد.
+        const { resolvePushUrl } = require('../utils/pushRouting');
+        const withUrl = notifications.map(n => ({
+            ...n,
+            url: resolvePushUrl(req.user.role, n.type || 'system', n.relatedId)
+        }));
+
         res.json({
-            notifications,
+            notifications: withUrl,
             currentPage: page,
             totalPages: Math.ceil(total / limit),
             totalNotifications: total

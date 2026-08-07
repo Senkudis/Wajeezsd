@@ -202,16 +202,12 @@ const initNotificationSocket = (userId) => {
         // 2. إعداد الاتصال مع خيارات النقل الصحيحة (مهم جداً للـ cPanel)
         const socket = io(serverUrl, {
             path: '/socket.io', // المسار القياسي
-            transports: ['polling', 'websocket'], // polling أولاً لتوافق cPanel/Passenger
-            // 🔒 الهوية تُشتق من هذا التوكن في السيرفر — user_join لم يعد يقبل userId من العميل.
+            transports: ['websocket', 'polling'], // ✅ websocket أولاً لمنع انقطاع شبكة الجوال عند تبديل التابات
             auth: { token: localStorage.getItem('adminToken') || localStorage.getItem('token') },
             reconnection: true,
-            // ⚠️ كان الحد 5 محاولات: على الموبايل (تبديل شبكة/دخول الخلفية) كان السوكت
-            // يموت نهائياً بعد انقطاعات قليلة فتتوقف إشعارات داخل التطبيق بصمت لحد إعادة التحميل.
-            // نجعلها لا نهائية مع مهلة تصاعدية بحد أقصى حتى يبقى الاتصال حياً طوال الجلسة.
-            reconnectionAttempts: Infinity,  // ✅ استمر بالمحاولة — لا تستسلم
-            reconnectionDelay: 2000,         // ✅ ابدأ بثانيتين بين المحاولات
-            reconnectionDelayMax: 15000,     // ✅ حد أقصى للتأخّر التصاعدي
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 3000,         // ✅ 3 ثوان لمنع الإجهاد عند العودة للتبويب
+            reconnectionDelayMax: 15000,
             timeout: 10000
         });
 
@@ -245,6 +241,12 @@ const initNotificationSocket = (userId) => {
             }
             // 🔔 إشعار جديد وصل → ارفع شارة غير المقروء فوراً
             bumpUnreadBadge();
+
+            // 📄 صفحة الإشعارات إن كانت مفتوحة تُحدّث قائمتها فوراً.
+            // بلا هذا يرى المستخدم التوست ثم قائمةً قديمة تحته حتى يعيد التحميل.
+            window.dispatchEvent(new CustomEvent('wajeez:new-notification', {
+                detail: notification
+            }));
         });
 
         // ✅ إضافة مستمع لـ new_message لتحديث البادج في الوقت الفعلي

@@ -12,13 +12,373 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
     <link rel="stylesheet" href="css/splash.css?v=83fac690">
     <script src="js/config.js?v=b84e6b6a"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+
+    <style>
+        /*
+         * ════════════════════════════════════════════════════════════
+         *  wn- : واجهة إشعارات العميل
+         * ════════════════════════════════════════════════════════════
+         *  البادئة wn- ليست تجميلاً: dark-mode.css يحمل 548 قاعدة
+         *  !important تستهدف أصناف بوتستراب العامة (.card، .text-muted).
+         *  أي تصميم مبني عليها يُهزَم في الوضع الليلي، فنملك أصنافنا
+         *  ونعرّف الوضعين بأنفسنا.
+         *
+         *  مبدأ الشاشة: الإشعار سجلّ لا زينة. العميل يفتحها ليعرف
+         *  "ما الذي فاتني؟" فالأولوية للفرز الزمني وتمييز غير المقروء
+         *  والوصول للطلب بنقرة — لا للبطاقات المزخرفة.
+         * ════════════════════════════════════════════════════════════
+         */
+        :root {
+            --wn-bg: #f6f7f9;
+            --wn-surface: #ffffff;
+            --wn-border: #e8ebef;
+            --wn-ink: #0f172a;
+            --wn-ink-2: #475569;
+            --wn-ink-3: #94a3b8;
+            --wn-unread-tint: #f0f9f5;
+            --wn-unread-edge: #0a8754;
+            --wn-chip-bg: #eef1f5;
+            --wn-chip-ink: #475569;
+            --wn-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 1px 3px rgba(15, 23, 42, .04);
+        }
+
+        body.dark-mode {
+            --wn-bg: #0b1220;
+            --wn-surface: #151d2c;
+            --wn-border: #253247;
+            --wn-ink: #f1f5f9;
+            --wn-ink-2: #b6c2d4;
+            --wn-ink-3: #7c8ba1;
+            --wn-unread-tint: #10241c;
+            --wn-unread-edge: #10b981;
+            --wn-chip-bg: #1e293b;
+            --wn-chip-ink: #cbd5e1;
+            --wn-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+        }
+
+        body {
+            background: var(--wn-bg) !important;
+        }
+
+        .wn-wrap {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 14px 14px 96px;
+        }
+
+        /* ── شريط الفرز ─────────────────────────────────────── */
+        .wn-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .wn-chip {
+            border: 1px solid transparent;
+            background: var(--wn-chip-bg);
+            color: var(--wn-chip-ink);
+            border-radius: 999px;
+            padding: 7px 15px;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+            /* هدف لمس مريح دون تضخيم الشارة بصرياً */
+            min-height: 38px;
+        }
+
+        .wn-chip[aria-pressed="true"] {
+            background: var(--wn-unread-edge);
+            color: #fff;
+        }
+
+        .wn-chip .wn-chip-count {
+            display: inline-block;
+            min-width: 20px;
+            padding: 0 5px;
+            margin-inline-start: 5px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .25);
+            font-size: 11.5px;
+            line-height: 18px;
+        }
+
+        .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
+            background: rgba(15, 23, 42, .1);
+        }
+
+        body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
+            background: rgba(255, 255, 255, .12);
+        }
+
+        .wn-mark-all {
+            margin-inline-start: auto;
+            border: 1px solid var(--wn-border);
+            background: var(--wn-surface);
+            color: var(--wn-ink-2);
+            border-radius: 999px;
+            padding: 7px 14px;
+            font-size: 12.5px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            min-height: 38px;
+            white-space: nowrap;
+        }
+
+        .wn-mark-all:disabled {
+            opacity: .55;
+            cursor: default;
+        }
+
+        /* على الشاشات الضيّقة لا تتّسع الثلاثة في سطر، فيسقط الزر وحده
+           محاذىً لليسار ويبدو كخطأ تخطيط. نجعله سطراً كامل العرض فيقرأ مقصوداً. */
+        @media (max-width: 430px) {
+            .wn-mark-all {
+                width: 100%;
+                margin-inline-start: 0;
+                margin-top: 2px;
+            }
+        }
+
+        /* ── عنوان المجموعة الزمنية ─────────────────────────── */
+        /* ⚠️ محدّدات مركّبة عمداً في كل قاعدة لون نص أدناه.
+           dark-mode.css يحمل `body.dark-mode span/div/p { color: … }`
+           بوزن (0,1,2)، وهو يهزم أي صنف مفرد (0,1,0) فيصبح العنوان
+           والنص الثانوي بلون واحد وتضيع الهرمية. صنفان يكفيان للفوز. */
+        .wn-wrap .wn-group-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--wn-ink-3);
+            letter-spacing: .2px;
+            margin: 18px 4px 8px;
+        }
+
+        .wn-wrap .wn-group-title:first-child {
+            margin-top: 0;
+        }
+
+        /* ── بطاقة الإشعار ──────────────────────────────────── */
+        .wn-item {
+            position: relative;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            width: 100%;
+            text-align: start;
+            background: var(--wn-surface);
+            border: 1px solid var(--wn-border);
+            border-radius: 16px;
+            padding: 13px 14px;
+            margin-bottom: 8px;
+            box-shadow: var(--wn-shadow);
+            font-family: inherit;
+            transition: transform .12s ease, background .2s ease;
+            overflow: hidden;
+        }
+
+        .wn-item.is-tappable {
+            cursor: pointer;
+        }
+
+        .wn-item.is-tappable:active {
+            transform: scale(.988);
+        }
+
+        /* غير المقروء: خلفية خفيفة + حافّة ملوّنة.
+           الحافّة على الجانب المبدئي فتنقلب تلقائياً مع RTL. */
+        .wn-item.is-unread {
+            background: var(--wn-unread-tint);
+        }
+
+        .wn-item.is-unread::before {
+            content: "";
+            position: absolute;
+            inset-inline-start: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--wn-unread-edge);
+        }
+
+        .wn-icon {
+            flex-shrink: 0;
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+        }
+
+        .wn-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wn-head {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .wn-item .wn-title {
+            font-size: 14.5px;
+            font-weight: 800;
+            color: var(--wn-ink);
+            line-height: 1.35;
+            margin: 0;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wn-item .wn-time {
+            flex-shrink: 0;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--wn-ink-3);
+            white-space: nowrap;
+        }
+
+        .wn-item .wn-msg {
+            font-size: 13.2px;
+            color: var(--wn-ink-2);
+            line-height: 1.6;
+            margin: 0;
+            /* الرسائل الطويلة تُقصّ لسطرين — القائمة للمسح السريع،
+               والنقر يفتح التفاصيل الكاملة في صفحتها */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .wn-item.is-open .wn-msg {
+            -webkit-line-clamp: unset;
+            overflow: visible;
+        }
+
+        .wn-item .wn-go {
+            flex-shrink: 0;
+            align-self: center;
+            color: var(--wn-ink-3);
+            font-size: 15px;
+        }
+
+        /* ── هيكل التحميل ───────────────────────────────────── */
+        .wn-skel {
+            display: flex;
+            gap: 12px;
+            background: var(--wn-surface);
+            border: 1px solid var(--wn-border);
+            border-radius: 16px;
+            padding: 13px 14px;
+            margin-bottom: 8px;
+        }
+
+        .wn-skel span {
+            display: block;
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--wn-chip-bg) 25%, var(--wn-border) 37%, var(--wn-chip-bg) 63%);
+            background-size: 400% 100%;
+            animation: wn-shimmer 1.3s ease infinite;
+        }
+
+        @keyframes wn-shimmer {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .wn-skel span { animation: none; }
+            .wn-item.is-tappable:active { transform: none; }
+        }
+
+        /* ── الحالات الفارغة ────────────────────────────────── */
+        .wn-empty {
+            text-align: center;
+            padding: 54px 20px;
+        }
+
+        .wn-wrap .wn-empty-icon {
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            background: var(--wn-chip-bg);
+            color: var(--wn-ink-3);
+        }
+
+        .wn-wrap .wn-empty h5 {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--wn-ink);
+            margin-bottom: 6px;
+        }
+
+        .wn-wrap .wn-empty p {
+            font-size: 13.5px;
+            color: var(--wn-ink-2);
+            margin-bottom: 18px;
+        }
+
+        .wn-more {
+            display: block;
+            width: 100%;
+            border: 1px solid var(--wn-border);
+            background: var(--wn-surface);
+            color: var(--wn-ink-2);
+            border-radius: 14px;
+            padding: 12px;
+            font-size: 13.5px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+
+        .wn-toast {
+            position: fixed;
+            inset-inline: 0;
+            bottom: calc(96px + var(--sab, 0px));
+            margin: 0 auto;
+            width: max-content;
+            max-width: 88%;
+            background: var(--wn-ink);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 10px 18px;
+            border-radius: 999px;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity .2s, transform .2s;
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        .wn-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
 
 <body class="bg-light">
@@ -48,29 +408,30 @@
                     </div>
                     <div>
                         <h2 class="h5 fw-bold mb-0 text-white">الإشعارات</h2>
-                        <p class="small text-white-50 mb-0">كل جديدك هنا</p>
+                        <p class="small text-white-50 mb-0" id="headerSubtitle">كل جديدك هنا</p>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <!-- ✅ زر تحديد الكل كمقروء -->
-                    <button id="markAllReadBtn" onclick="markAllAsRead()" class="btn btn-sm btn-light rounded-pill px-3" style="font-size:12px; font-weight:700; color:#04553A; white-space:nowrap;">
-                        <i class="bi bi-check2-all me-1"></i>تحديد الكل كمقروء
-                    </button>
-                    <img src="logo-mark-white.png" alt="وجيز" style="height:44px;width:auto;object-fit:contain;">
-                </div>
+                <img src="logo-mark-white.png" alt="وجيز" style="height:44px;width:auto;object-fit:contain;">
             </div>
         </div>
     </div>
 
     <!-- Notifications List -->
-    <div class="container pt-4">
-        <div id="notificationsList" class="d-flex flex-column gap-2">
-            <div class="text-center py-5">
-                <div class="spinner-border text-success" role="status"></div>
-                <p class="mt-2 text-muted fw-bold">جاري تحميل الإشعارات...</p>
-            </div>
+    <div class="wn-wrap">
+        <div class="wn-toolbar" id="wnToolbar" hidden>
+            <button type="button" class="wn-chip" id="chipAll" aria-pressed="true" data-filter="all">الكل</button>
+            <button type="button" class="wn-chip" id="chipUnread" aria-pressed="false" data-filter="unread">
+                غير المقروء<span class="wn-chip-count" id="unreadCount">0</span>
+            </button>
+            <button type="button" class="wn-mark-all" id="markAllReadBtn">
+                <i class="bi bi-check2-all me-1"></i>تحديد الكل كمقروء
+            </button>
         </div>
+
+        <div id="notificationsList"></div>
     </div>
+
+    <div class="wn-toast" id="wnToast" role="status" aria-live="polite"></div>
 
     <!-- Bottom Navigation: Built immediately to avoid flash -->
     <div id="mobile-nav-container">
@@ -96,202 +457,362 @@
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script>
-        // ✅ Fix Bug #2: Notifications Page Authentication
-        document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('token');
+        (function () {
+            'use strict';
+
             const list = document.getElementById('notificationsList');
+            const toolbar = document.getElementById('wnToolbar');
+            const toastEl = document.getElementById('wnToast');
 
-            if (!token) {
-                // User is Guest - Show Login/Register Buttons
-                list.innerHTML = `
-                <div class="text-center py-5" id="guest-view">
-                    <div class="mb-4">
-                        <i class="bi bi-bell-slash" style="font-size: 4rem; color: #dee2e6;"></i>
-                    </div>
-                    <h5 class="fw-bold text-dark mb-2">لا توجد إشعارات</h5>
-                    <p class="text-muted mb-4">يجب عليك تسجيل الدخول لعرض إشعاراتك</p>
-                    <div class="d-flex gap-2 justify-content-center">
-                        <a href="client-login.html" class="btn btn-success rounded-pill px-4">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>تسجيل الدخول
-                        </a>
-                        <a href="client-register.html" class="btn btn-outline-success rounded-pill px-4">
-                            <i class="bi bi-person-plus me-2"></i>إنشاء حساب
-                        </a>
-                    </div>
-                </div>`;
-            } else {
-                // Logged in - Load Notifications handled below
-                loadNotifications();
+            let allItems = [];      // كل ما حُمّل حتى الآن
+            let currentPage = 1;
+            let totalPages = 1;
+            let filter = 'all';
+
+            // ── الهوية البصرية لكل نوع ─────────────────────────
+            // الخريطة السابقة غطّت ٦ أنواع فقط، فكان كل ما عداها جرساً
+            // رمادياً واحداً — إشعار إلغاء وإشعار ترحيب بالمظهر نفسه.
+            // العائلة تحمل المعنى: أخضر أُنجز، أحمر تعطّل، كهرماني ينتظرك.
+            const FAMILY = {
+                success: { fg: '#0a8754', bg: '#e7f5ef' },
+                active:  { fg: '#2563eb', bg: '#dbeafe' },
+                warn:    { fg: '#b45309', bg: '#fef3c7' },
+                danger:  { fg: '#dc2626', bg: '#fee2e2' },
+                chat:    { fg: '#7c3aed', bg: '#ede9fe' },
+                money:   { fg: '#0f766e', bg: '#ccfbf1' },
+                voice:   { fg: '#be185d', bg: '#fce7f3' },
+                shop:    { fg: '#4338ca', bg: '#e0e7ff' },
+                system:  { fg: '#475569', bg: '#e8ebef' }
+            };
+
+            const TYPES = {
+                order_completed:       ['success', 'bi-check-circle-fill'],
+                order_delivered:       ['success', 'bi-check-circle-fill'],
+                payment_confirmed:     ['success', 'bi-patch-check-fill'],
+                payment_approved:      ['success', 'bi-patch-check-fill'],
+                settlement_approved:   ['success', 'bi-patch-check-fill'],
+                negotiation_accepted:  ['success', 'bi-hand-thumbs-up-fill'],
+
+                order_accepted:        ['active', 'bi-bicycle'],
+                order_update:          ['active', 'bi-arrow-repeat'],
+                order_searching:       ['active', 'bi-broadcast'],
+
+                order_delayed:         ['warn', 'bi-hourglass-split'],
+                payment_reminder:      ['warn', 'bi-alarm-fill'],
+                offer_expiry_reminder: ['warn', 'bi-alarm-fill'],
+                low_stock:             ['warn', 'bi-box-seam'],
+
+                order_cancelled:       ['danger', 'bi-x-circle-fill'],
+                order_expired:         ['danger', 'bi-clock-history'],
+                offer_expired:         ['danger', 'bi-clock-history'],
+                payment_rejected:      ['danger', 'bi-shield-exclamation'],
+                settlement_rejected:   ['danger', 'bi-shield-exclamation'],
+                emergency:             ['danger', 'bi-exclamation-triangle-fill'],
+
+                chat:                  ['chat', 'bi-chat-dots-fill'],
+                chat_message:          ['chat', 'bi-chat-dots-fill'],
+
+                wallet_update:         ['money', 'bi-wallet2'],
+                payment_request:       ['money', 'bi-cash-coin'],
+                payment_receipt:       ['money', 'bi-receipt'],
+                shop_ledger:           ['money', 'bi-journal-text'],
+
+                feedback_request:      ['voice', 'bi-chat-heart-fill'],
+
+                new_shop_order:        ['shop', 'bi-bag-plus-fill'],
+                shop_order:            ['shop', 'bi-bag-fill'],
+                shop_order_update:     ['shop', 'bi-bag-check-fill'],
+                errand_quote:          ['shop', 'bi-tag-fill'],
+                tier_change:           ['shop', 'bi-award-fill'],
+
+                system:                ['system', 'bi-bell-fill']
+            };
+
+            function visualFor(type) {
+                const [fam, icon] = TYPES[type] || TYPES.system;
+                return { ...FAMILY[fam], icon };
             }
-        });
 
-        async function loadNotifications(page = 1, append = false) {
-            const token = window.Auth.getToken();
-            const list = document.getElementById('notificationsList');
-            const loadMoreId = 'btn-load-more';
+            // ── أدوات ───────────────────────────────────────────
+            // العنوان والرسالة يأتيان من الخادم وقد يحملان محتوى كتبه
+            // مستخدم آخر (سبب إلغاء مثلاً). الحقن الخام كان يسمح بـ XSS.
+            function esc(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            }
 
-            const oldBtn = document.getElementById(loadMoreId);
-            if (oldBtn) oldBtn.remove();
+            const DAY = 86400000;
 
-            if (!append) {
-                list.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-success" role="status"></div>
-                    <p class="mt-2 text-muted fw-bold">جاري تحميل الإشعارات...</p>
+            function startOfDay(d) {
+                const x = new Date(d);
+                x.setHours(0, 0, 0, 0);
+                return x.getTime();
+            }
+
+            /** المجموعة الزمنية — الترتيب مقصود، أول تطابق يفوز */
+            function groupOf(date) {
+                const today = startOfDay(new Date());
+                const day = startOfDay(date);
+                if (day === today) return 'اليوم';
+                if (day === today - DAY) return 'أمس';
+                if (day > today - 7 * DAY) return 'هذا الأسبوع';
+                return 'أقدم';
+            }
+
+            /**
+             * الوقت المعروض. الشاشة السابقة كانت تعرض الساعة فقط لكل
+             * إشعار، فيظهر إشعار الشهر الماضي كـ"10:30" بلا تاريخ.
+             */
+            function timeLabel(date) {
+                const diffMin = Math.round((Date.now() - date.getTime()) / 60000);
+                if (diffMin < 1) return 'الآن';
+                if (diffMin < 60) return `قبل ${diffMin} د`;
+
+                const today = startOfDay(new Date());
+                const day = startOfDay(date);
+                if (day === today) {
+                    return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                }
+                if (day > today - 7 * DAY) {
+                    return date.toLocaleDateString('ar-EG', { weekday: 'long' });
+                }
+                return date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
+            }
+
+            function toast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                clearTimeout(toast._t);
+                toast._t = setTimeout(() => toastEl.classList.remove('show'), 2200);
+            }
+
+            // ── العرض ───────────────────────────────────────────
+            function skeleton(n) {
+                let h = '';
+                for (let i = 0; i < n; i++) {
+                    h += `<div class="wn-skel">
+                        <span style="width:42px;height:42px;border-radius:13px;flex-shrink:0"></span>
+                        <div style="flex:1">
+                            <span style="width:55%;height:13px;margin-bottom:9px"></span>
+                            <span style="width:88%;height:11px;margin-bottom:6px"></span>
+                            <span style="width:64%;height:11px"></span>
+                        </div>
+                    </div>`;
+                }
+                return h;
+            }
+
+            function emptyState(icon, title, text, actions) {
+                return `<div class="wn-empty">
+                    <div class="wn-empty-icon"><i class="bi ${icon}"></i></div>
+                    <h5>${esc(title)}</h5>
+                    <p>${esc(text)}</p>
+                    ${actions || ''}
                 </div>`;
             }
 
-            try {
-                // 🟢 Fixed: Remove /api prefix
-                const baseUrl = window.API_URL || '';
-                const res = await fetchWithRetry(`${baseUrl}/api/notifications?page=${page}&limit=20`, {
-                    headers: window.Auth.getAuthHeader()
-                });
+            function itemHtml(n) {
+                const v = visualFor(n.type || 'system');
+                const date = new Date(n.createdAt);
+                // وجهة تشير لهذه الصفحة نفسها ليست وجهة — لا نوهم بالنقر
+                const url = n.url && !n.url.startsWith('/notifications.html') ? n.url : '';
+                const tappable = url ? 'is-tappable' : '';
 
-                const data = await res.json();
-                // Handle both array (legacy) and object (paginated) responses just in case
-                const notifications = Array.isArray(data) ? data : (data.notifications || []);
-                const currentPage = data.currentPage || 1;
-                const totalPages = data.totalPages || 1;
+                return `<button type="button"
+                    class="wn-item ${n.isRead ? '' : 'is-unread'} ${tappable}"
+                    data-id="${esc(n._id)}"
+                    data-url="${esc(url)}">
+                    <span class="wn-icon" style="background:${v.bg};color:${v.fg}">
+                        <i class="bi ${v.icon}"></i>
+                    </span>
+                    <span class="wn-body">
+                        <span class="wn-head">
+                            <span class="wn-title">${esc(n.title)}</span>
+                            <span class="wn-time">${esc(timeLabel(date))}</span>
+                        </span>
+                        <span class="wn-msg">${esc(n.message)}</span>
+                    </span>
+                    ${url ? '<i class="bi bi-chevron-left wn-go"></i>' : ''}
+                </button>`;
+            }
 
-                if (!append) list.innerHTML = '';
+            function render() {
+                const items = filter === 'unread' ? allItems.filter(n => !n.isRead) : allItems;
 
-                if (notifications.length === 0 && !append) {
-                    list.innerHTML = `
-                        <div class="text-center py-5">
-                            <i class="bi bi-bell-slash fs-1 text-secondary opacity-50 mb-3"></i>
-                            <p class="text-muted fw-bold">لا توجد إشعارات جديدة حالياً</p>
-                        </div>`;
+                if (!items.length) {
+                    list.innerHTML = filter === 'unread'
+                        ? emptyState('bi-check2-circle', 'لا شيء غير مقروء', 'اطّلعت على كل إشعاراتك.')
+                        : emptyState('bi-bell-slash', 'لا توجد إشعارات بعد',
+                            'سنخبرك هنا فور قبول طلبك أو وصول رسالة من الكابتن.');
                     return;
                 }
 
-                notifications.forEach(n => {
-                    // ✅ FIX: استخدم n.type أولاً (أدق) ثم n.title كـ fallback
-                    const type = n.type || 'system';
-                    let icon, iconColor, bgColor, borderColor;
-
-                    const iconMap = {
-                        'order_accepted': { icon: 'bi-bicycle', color: '#0d6efd', bg: '#e8f0fe' },
-                        'order_completed': { icon: 'bi-check-circle-fill', color: '#198754', bg: '#e8f5e9' },
-                        'order_update': { icon: 'bi-arrow-repeat', color: '#fd7e14', bg: '#fff3e0' },
-                        'chat': { icon: 'bi-chat-dots-fill', color: '#6f42c1', bg: '#f3e8ff' },
-                        'chat_message': { icon: 'bi-chat-dots-fill', color: '#6f42c1', bg: '#f3e8ff' },
-                        'system': { icon: 'bi-bell-fill', color: '#0dcaf0', bg: '#e0f7fa' },
-                    };
-
-                    // Fallback من العنوان لو النوع system
-                    let mapped = iconMap[type] || iconMap['system'];
-                    if (type === 'system') {
-                        if (n.title.includes('توصيل') || n.title.includes('اكتمل'))
-                            mapped = iconMap['order_completed'];
-                        else if (n.title.includes('قبول') || n.title.includes('كابتن'))
-                            mapped = iconMap['order_accepted'];
-                        else if (n.title.includes('رسالة') || n.title.includes('chat'))
-                            mapped = iconMap['chat'];
-                        else if (n.title.includes('إلغاء') || n.title.includes('رفض'))
-                            mapped = { icon: 'bi-x-circle-fill', color: '#dc3545', bg: '#fdecea' };
+                let html = '';
+                let lastGroup = null;
+                for (const n of items) {
+                    const g = groupOf(new Date(n.createdAt));
+                    if (g !== lastGroup) {
+                        html += `<div class="wn-group-title">${g}</div>`;
+                        lastGroup = g;
                     }
-
-                    const unreadBorder = !n.isRead ? 'border-start border-4 border-primary' : '';
-                    const unreadDot = !n.isRead ? '<span class="position-absolute top-0 end-0 p-1 bg-danger border border-white rounded-circle mt-2 me-2" style="width:10px;height:10px;"></span>' : '';
-
-                    list.insertAdjacentHTML('beforeend', `
-            <div class="card border-0 card-hover overflow-hidden position-relative mb-2 shadow-sm ${unreadBorder}" onclick="markAsRead('${n._id}', this, '${n.type}', '${n.relatedId || ''}')" style="cursor:pointer;">
-                <div class="card-body p-3 d-flex gap-3 align-items-center">
-                    <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
-                         style="width:46px;height:46px;background:${mapped.bg};border:2px solid ${mapped.color}30;">
-                        <i class="bi ${mapped.icon} fs-5" style="color:${mapped.color};"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <h6 class="fw-bold text-dark mb-0 lh-sm">${n.title}</h6>
-                            <small class="text-muted ms-2 text-nowrap" style="font-size:0.72rem;">
-                                ${new Date(n.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                            </small>
-                        </div>
-                        <p class="text-secondary small mb-0 lh-sm">${n.message}</p>
-                    </div>
-                    ${unreadDot}
-                </div>
-            </div>
-            `);
-                });
-
-                // Load More Button
-                if (currentPage < totalPages) {
-                    list.insertAdjacentHTML('beforeend', `
-                    <div id="${loadMoreId}" class="text-center py-2">
-                        <button class="btn btn-sm btn-outline-light rounded-pill px-4" onclick="loadNotifications(${currentPage + 1}, true)">
-                            عرض المزيد (+20)
-                        </button>
-                    </div>`);
+                    html += itemHtml(n);
                 }
 
-            } catch (err) {
-                console.error(err);
-                if (!append) list.innerHTML = '<p class="text-center text-danger fw-bold py-5">حدث خطأ في التحميل</p>';
+                if (currentPage < totalPages) {
+                    html += `<button type="button" class="wn-more" id="wnMore">عرض إشعارات أقدم</button>`;
+                }
+                list.innerHTML = html;
             }
-        }
 
-        async function markAsRead(id, element, type, relatedId) {
-            element.classList.remove('border-start', 'border-4', 'border-primary');
-            const dot = element.querySelector('.position-absolute');
-            if (dot) dot.remove();
-
-            const baseUrl = window.API_URL || '';
-            await fetchWithRetry(`${baseUrl}/api/notifications/${id}/read`, {
-                method: 'PUT',
-                headers: window.Auth.getAuthHeader()
-            }).catch(() => {});
-
-            // 💬 Deep-link: redirect to chat if it is a chat notification
-            if ((type === 'chat_message' || type === 'chat') && relatedId) {
-                window.location.href = `chat.html?orderId=${relatedId}`;
+            function refreshCounts() {
+                const unread = allItems.filter(n => !n.isRead).length;
+                document.getElementById('unreadCount').textContent = unread;
+                document.getElementById('markAllReadBtn').disabled = unread === 0;
+                const sub = document.getElementById('headerSubtitle');
+                sub.textContent = unread ? `لديك ${unread} إشعار غير مقروء` : 'كل جديدك هنا';
             }
-        }
 
-        // ✅ دالة تحديد الكل كمقروء
-        async function markAllAsRead() {
-            const btn = document.getElementById('markAllReadBtn');
-            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>جاري...'; }
-            try {
+            // ── التحميل ─────────────────────────────────────────
+            async function load(page = 1, append = false) {
+                if (!append) list.innerHTML = skeleton(5);
+
+                try {
+                    const baseUrl = window.API_URL || '';
+                    const res = await fetchWithRetry(
+                        `${baseUrl}/api/notifications?page=${page}&limit=20`,
+                        { headers: window.Auth.getAuthHeader() }
+                    );
+                    const data = await res.json();
+                    const batch = Array.isArray(data) ? data : (data.notifications || []);
+
+                    currentPage = data.currentPage || page;
+                    totalPages = data.totalPages || 1;
+                    allItems = append ? allItems.concat(batch) : batch;
+
+                    toolbar.hidden = false;
+                    render();
+                    refreshCounts();
+                } catch (err) {
+                    console.error(err);
+                    if (!append) {
+                        list.innerHTML = emptyState(
+                            'bi-wifi-off', 'تعذّر تحميل الإشعارات',
+                            'تحقّق من اتصالك ثم أعد المحاولة.',
+                            '<button type="button" class="wn-more" id="wnRetry">إعادة المحاولة</button>'
+                        );
+                    }
+                }
+            }
+
+            async function markRead(id) {
                 const baseUrl = window.API_URL || '';
-                await fetchWithRetry(`${baseUrl}/api/notifications/mark-all-read`, {
+                await fetchWithRetry(`${baseUrl}/api/notifications/${id}/read`, {
                     method: 'PUT',
                     headers: window.Auth.getAuthHeader()
-                });
-                // إزالة كل مؤشرات غير مقروء من الصفحة بشكل مرئي
-                document.querySelectorAll('.border-start.border-primary').forEach(el => {
-                    el.classList.remove('border-start', 'border-4', 'border-primary');
-                });
-                document.querySelectorAll('.position-absolute.bg-danger.rounded-circle').forEach(dot => dot.remove());
-                // تحديث شارة التنقّل
-                if (window.renderUnreadBadge) window.renderUnreadBadge(0);
-                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check2-all me-1"></i>تم التحديد ✔'; }
-                setTimeout(() => {
-                    if (btn) btn.innerHTML = '<i class="bi bi-check2-all me-1"></i>تحديد الكل كمقروء';
-                }, 2000);
-            } catch (err) {
-                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check2-all me-1"></i>تحديد الكل كمقروء'; }
-                console.error('خطأ في تحديد الكل كمقروء:', err);
+                }).catch(() => { });
             }
-        }
 
+            // ── التفاعل (تفويض واحد بدل onclick مضمّن) ──────────
+            list.addEventListener('click', async (e) => {
+                const more = e.target.closest('#wnMore');
+                if (more) {
+                    more.disabled = true;
+                    more.textContent = 'جارٍ التحميل…';
+                    await load(currentPage + 1, true);
+                    return;
+                }
+                if (e.target.closest('#wnRetry')) { load(1, false); return; }
 
+                const el = e.target.closest('.wn-item');
+                if (!el) return;
+
+                const id = el.dataset.id;
+                const url = el.dataset.url;
+                const item = allItems.find(n => String(n._id) === id);
+
+                if (item && !item.isRead) {
+                    item.isRead = true;
+                    el.classList.remove('is-unread');
+                    refreshCounts();
+                    markRead(id);
+                    if (window.renderUnreadBadge) {
+                        window.renderUnreadBadge(allItems.filter(n => !n.isRead).length);
+                    }
+                }
+
+                if (url) {
+                    window.location.href = url;
+                } else {
+                    // بلا وجهة: نفتح النص كاملاً بدل نقرة لا تفعل شيئاً
+                    el.classList.toggle('is-open');
+                }
+            });
+
+            document.getElementById('markAllReadBtn').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>جارٍ…';
+                try {
+                    const baseUrl = window.API_URL || '';
+                    await fetchWithRetry(`${baseUrl}/api/notifications/mark-all-read`, {
+                        method: 'PUT',
+                        headers: window.Auth.getAuthHeader()
+                    });
+                    allItems.forEach(n => { n.isRead = true; });
+                    render();
+                    refreshCounts();
+                    if (window.renderUnreadBadge) window.renderUnreadBadge(0);
+                    toast('تم تحديد الكل كمقروء');
+                } catch (err) {
+                    console.error(err);
+                    toast('تعذّر التحديث — حاول مجدداً');
+                    btn.disabled = false;
+                }
+                btn.innerHTML = original;
+            });
+
+            toolbar.addEventListener('click', (e) => {
+                const chip = e.target.closest('.wn-chip');
+                if (!chip) return;
+                filter = chip.dataset.filter;
+                toolbar.querySelectorAll('.wn-chip').forEach(c => {
+                    c.setAttribute('aria-pressed', String(c === chip));
+                });
+                render();
+            });
+
+            // ── الإقلاع ─────────────────────────────────────────
+            document.addEventListener('DOMContentLoaded', () => {
+                if (!localStorage.getItem('token')) {
+                    toolbar.hidden = true;
+                    list.innerHTML = emptyState(
+                        'bi-bell-slash', 'سجّل الدخول لعرض إشعاراتك',
+                        'ستصلك هنا تحديثات طلباتك ورسائل الكابتن.',
+                        `<div class="d-flex gap-2 justify-content-center">
+                            <a href="client-login.html" class="btn btn-success rounded-pill px-4">تسجيل الدخول</a>
+                            <a href="client-register.html" class="btn btn-outline-success rounded-pill px-4">إنشاء حساب</a>
+                        </div>`
+                    );
+                    return;
+                }
+                load(1, false);
+            });
+
+            // إشعار جديد وصل والصفحة مفتوحة — أدرجه فوراً بلا إعادة تحميل
+            window.addEventListener('wajeez:new-notification', () => load(1, false));
+        })();
 
         function logout() {
-            if (window.Auth) {
-                window.Auth.logout();
-            } else {
-                localStorage.clear();
-                window.location.href = 'client-login.html';
-            }
+            if (window.Auth) { window.Auth.logout(); }
+            else { localStorage.clear(); window.location.href = 'client-login.html'; }
         }
     </script>
     <!-- Auth Helper & App Core -->
     <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/app-core.js?v=064b92a3"></script>
-    <script src="js/native-notifications.js?v=76150d71"></script>
+    <script src="js/app-core.js?v=f1decda9"></script>
+    <script src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
 </body>
