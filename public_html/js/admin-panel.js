@@ -77,7 +77,7 @@ function showBrowserNotif(title, body, orderId) {
 }
 
 // ── Socket.io ──
-const socket = io(BASE, { transports: ['polling', 'websocket'], reconnection: true, reconnectionDelay: 2000, auth: { token } });
+const socket = io(BASE, { transports: ['websocket', 'polling'], reconnection: true, reconnectionDelay: 2000, auth: { token } });
 
 // Request notification permission as soon as the page loads
 document.addEventListener('DOMContentLoaded', requestBrowserNotifPermission);
@@ -103,10 +103,14 @@ socket.on('new_order_available', (data) => {
 
 // Shop orders
 socket.on('shop_order_available', (data) => {
+    // نفس الحدث يُستخدم لحالتين: طلب محل جديد، وطلب جُهّز وصار جاهزاً للاستلام.
+    // بلا التمييز كان الأدمن يرى "طلب محل جديد!" لطلب قديم جرى تجهيزه.
+    const isReady = data.kind === 'ready_for_pickup';
+    const heading = isReady ? 'طلب جاهز للاستلام' : 'طلب محل جديد';
     const msg = `${data.shopName || 'محل'} — ${data.price || '?'} ج.س`;
-    showToast(` طلب محل — ${data.shopName || '?'} | ${data.price || ''} ج.س`);
-    addNotification('طلب محل جديد', msg, data.orderId);
-    showBrowserNotif(' طلب محل جديد!', msg, data.orderId);   // ← browser notif
+    showToast(`${isReady ? 'جاهز للاستلام' : 'طلب محل'} — ${data.shopName || '?'} | ${data.price || ''} ج.س`);
+    addNotification(heading, msg, data.orderId);
+    showBrowserNotif(heading, msg, data.orderId);   // ← browser notif
     document.getElementById('ordersBadge').style.display = 'block';
     if (currentPage === 'overview') { loadLiveOrders(); loadDashboard(); }
     if (currentPage === 'orders') loadAllOrders();

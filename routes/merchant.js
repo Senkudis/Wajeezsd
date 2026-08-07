@@ -474,11 +474,15 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
             });
 
             
-            // Broadcast to admins
-            io.to('admin_room').emit('new_order_available', {
+            // 🔔 إشعار الأدمن بنفس حدث shop_order_available — يطلق toast + صوت في admin-panel.js
+            // kind يميّز هذه الحالة (طلب جُهّز) عن الطلب الجديد، فلا يُعرض نص خاطئ
+            io.to('admin_room').emit('shop_order_available', {
                 orderId: newDeliveryOrder._id,
-                pickup: place.name,
-                price: newDeliveryOrder.price
+                kind: 'ready_for_pickup',
+                shopName: place.name,
+                pickup: place.address,
+                price: newDeliveryOrder.price,
+                city: orderCity
             });
         }
         
@@ -1040,6 +1044,17 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             type: 'admin_order_alert',
             relatedId: order._id
         });
+        // 🔔 emit صريح لـ admin_room — يطلق toast + صوت + browser notif في admin-panel.js
+        // (new_notification وحده يُحفظ بصمت في القائمة، لا يُشغّل الصوت أو البوب-أب)
+        const ioForAdmin = req.app.get('io');
+        if (ioForAdmin) {
+            ioForAdmin.to('admin_room').emit('shop_order_available', {
+                orderId: order._id,
+                shopName: place.name || '',
+                price: itemsTotal,
+                city: place.city || ''
+            });
+        }
         emitShopOrderAdminUpdate(req.app, order, place, req.user.name);
 
         res.status(201).json({ message: 'تم إرسال الطلب للمتجر', order });
@@ -1048,6 +1063,7 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 });
+
 
 // GET /api/merchant/client/orders — client views their shop orders (with pagination)
 router.get('/client/orders', protect, async (req, res) => {
