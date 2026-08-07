@@ -34,7 +34,7 @@ const startScheduler = (app) => {
 
         try {
             const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-            // ✅ BUG-011 FIX: استثناء الطلبات ذات عروض تفاوض نشطة لمنع حذفها وإشعار الكباتن بشكل خاطئ
+            // ✅ BUG-011 FIX: استثناء الطلبات ذات عروض تفاوض نشطة لمنع إلغائها وإشعار الكباتن بشكل خاطئ
             const staleOrders = await Order.find({
                 status: 'pending',
                 createdAt: { $lt: sixHoursAgo },
@@ -42,14 +42,14 @@ const startScheduler = (app) => {
             }).populate('client', 'name email phone fcmToken');
 
             if (staleOrders.length === 0) {
-                logger.info('No stale orders to delete');
+                logger.info('No stale orders to archive');
                 return;
             }
 
-            logger.info({ count: staleOrders.length }, 'Found stale orders to delete');
+            logger.info({ count: staleOrders.length }, 'Found stale orders to archive');
 
             for (const order of staleOrders) {
-                // ✅ FIX #6: إشعار الكباتن المتفاوضين قبل حذف الطلب
+                // ✅ FIX #6: إشعار الكباتن المتفاوضين قبل إلغاء الطلب
                 if (order.negotiations && order.negotiations.length > 0) {
                     const io = app ? app.get('io') : null;
                     for (const n of order.negotiations) {
@@ -69,7 +69,7 @@ const startScheduler = (app) => {
                                     await sendPush(
                                         cap.fcmToken,
                                         '❌ انتهى الطلب قبل القبول',
-                                        'انتهت مدة الطلب الذي كنت تتفاوض عليه وتم حذفه تلقائياً.',
+                                        'انتهت مدة الطلب الذي كنت تتفاوض عليه وتم إلغاؤه تلقائياً.',
                                         { type: 'order_expired', orderId: order._id.toString(), url: '/captain-orders.html' } // 🧭 وجهة الكابتن
                                     );
                                 }
@@ -89,8 +89,8 @@ const startScheduler = (app) => {
                                 order.client.fcmToken,
                                 '❌ تم إلغاء طلبك تلقائياً',
                                 'مرت 6 ساعات ولم يتم قبول طلبك من أي كابتن. يمكنك إعادة المحاولة.',
-                                // 🧭 الطلب حُذف — التتبع سيفشل، فالوجهة الصحيحة قائمة طلبات العميل
-                                { type: 'order_cancelled', orderId: order._id.toString(), url: '/client-my-orders.html' }
+                                // 🧭 الطلب أُلغي فلا معنى لصفحة التتبّع — قائمة الطلبات مع إبراز الطلب
+                                { type: 'order_cancelled', orderId: order._id.toString(), url: `/client-my-orders.html?highlight=${order._id}` }
                             );
                         }
 
@@ -131,7 +131,7 @@ const startScheduler = (app) => {
                                 <div style="text-align:right; direction:rtl; font-family: 'Cairo', sans-serif;">
                                     <h3>مرحباً ${order.client.name || 'عميلنا العزيز'} 👋</h3>
                                     <p>نأسف لإبلاغك بأنه قد مرت 6 ساعات على طلبك ولم يتم قبوله من قبل أي كابتن.</p>
-                                    <p><b>لذلك تم إلغاء وحذف الطلب تلقائياً من النظام.</b></p>
+                                    <p><b>لذلك تم إلغاء الطلب تلقائياً.</b> يبقى الطلب محفوظاً في سجل طلباتك بحالة "ملغى" للرجوع إليه.</p>
                                     <p>يمكنك إعادة المحاولة ورفع السعر المقترح لجذب الكباتن.</p>
                                     <br>
                                     <p>شكراً لاستخدامك وجيز 🚴‍♂️</p>
@@ -143,8 +143,14 @@ const startScheduler = (app) => {
                         logger.error({ orderId: order._id, err: mailErr }, 'Failed to send cancellation email');
                     }
                 }
-                await Order.findByIdAndDelete(order._id);
-                logger.info({ orderId: order._id }, 'Deleted stale order');
+                // BUG-M4 FIX: أرشفة الطلب بدل حذفه نهائياً — لضمان التتبع وحل النزاعات
+                await Order.findByIdAndUpdate(order._id, {
+                    status: 'cancelled',
+                    cancelledBy: 'system',
+                    cancelledAt: new Date(),
+                    cancelReason: 'انتهت المهلة تلقائياً — 6 ساعات بلا قبول من أي كابتن'
+                });
+                logger.info({ orderId: order._id }, 'Archived stale order (status=cancelled)');
             }
 
         } catch (error) {
@@ -306,7 +312,7 @@ const startScheduler = (app) => {
 
             const delivered  = ordersToday.filter(o => o.status === 'delivered').length;
             const cancelled  = ordersToday.filter(o => o.status === 'cancelled').length;
-            const totalRev   = ordersToday.filter(o => o.status === 'delivered').reduce((s, o) => s + (o.appFee || 0), 0);
+            const totalRev   = ordersToday.filter(o => o.status === 'delivered').reduce((s, o) => s + (o.appFee ?? 0), 0);
 
             const adminEmails = (process.env.ADMIN_EMAILS || process.env.EMAIL_USER || '').split(',').filter(Boolean);
             if (!adminEmails.length) return;
