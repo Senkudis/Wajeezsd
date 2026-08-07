@@ -1769,21 +1769,23 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
             }
         }
 
-        // 🛡️ CRITICAL FIX: Atomic update for delivery state to prevent Double Commission
-        const updatedOrder = await Order.findOneAndUpdate(
+        // 🛡️ CRITICAL FIX: Idempotent & Atomic Delivery State Update
+        let order = await Order.findOneAndUpdate(
             { _id: req.params.id, captain: req.user.id, status: 'picked_up' },
             { $set: { status: 'delivered', deliveredAt: new Date() } },
             { new: true }
         );
 
-        if (!updatedOrder) {
+        if (!order) {
+            // 🔄 Idempotency / Retry Guard: If order is ALREADY delivered by this captain, return success instead of error!
+            const existing = await Order.findOne({ _id: req.params.id, captain: req.user.id }).lean();
+            if (existing && existing.status === 'delivered') {
+                return res.json({ message: 'Order delivered', order: existing });
+            }
             return res.status(400).json({ message: 'الطلب غير متاح للتوصيل أو تم توصيله مسبقاً.' });
         }
 
-        const order = updatedOrder; // for subsequent logic
-
-        // 🏁 عدّاد رحلات الكابتن — داخل الكتلة الذرّية أعلاه ضماناً لعدم التكرار:
-        // التحديث الذرّي لا ينجح إلا مرة واحدة لكل طلب، فلا يُحتسب تسليمان لطلب واحد.
+        // 🏁 عدّاد رحلات الكابتن — يزداد مرة واحدة فقط
         User.updateOne({ _id: req.user.id }, { $inc: { completedTrips: 1 } })
             .catch(e => logger.warn({ err: e.message }, 'completedTrips increment failed'));
 
@@ -1803,10 +1805,6 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                     deliveredAt: new Date()
                 }, { new: true }).select('itemsTotal discountAmount promoAppliesTo place');
 
-                // 💼 ERP: إغلاق البيع محاسبياً — قيد دخل في دفتر أستاذ المتجر
-                // يزيد رصيد مستحقات التاجر لدى التطبيق بقيمة البضاعة
-                // (بعد خصم كوبون المنتجات إن وُجد — التوصيل للكابتن لا للتاجر).
-                // القيد محمي من التكرار بفهرس فريد على (refId + sale_income).
                 if (shopOrder && shopOrder.place) {
                     const goodsAmount = shopOrder.promoAppliesTo === 'products'
                         ? Math.max(0, shopOrder.itemsTotal - (shopOrder.discountAmount || 0))
@@ -1822,7 +1820,6 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                             note: 'دخل بيع — توصيل طلب متجر'
                         });
                         if (ledgerResult.ok) {
-                            // إشعار التاجر بإضافة المستحقات
                             try {
                                 const Place = require('../models/Place');
                                 const placeDoc = await Place.findById(shopOrder.place).select('ownerId').lean();
@@ -1844,9 +1841,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
         }
 
         // 💳 Commission Deduction — Negative Wallet System
-        // ✅ FIX #2: Use the stored order.appFee (locked at order creation time)
-        // Do NOT recalculate from live settings — commission rate may have changed.
-        let creditLimit = -5000; // fallback
+        let creditLimit = -5000;
         try {
             const liveSettings = await getCachedSettings(order.city || 'Khartoum');
             if (liveSettings?.defaultCreditLimit) creditLimit = liveSettings.defaultCreditLimit;
@@ -1854,104 +1849,127 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
             logger.warn('Could not load settings for credit limit, using default');
         }
 
-        // Use stored appFee; fall back to recalculation only if missing (legacy orders)
-        const commissionAmount = order.appFee
-            ? parseFloat(order.appFee.toFixed(2))
-            : parseFloat(((order.price || 0) * 0.15).toFixed(2));
+        const rawCommission = (order.appFee != null)
+            ? Number(order.appFee)
+            : ((Number(order.price) || 0) * 0.15);
+        const commissionAmount = Math.max(0, parseFloat((isNaN(rawCommission) ? 0 : rawCommission).toFixed(2)));
 
-        logger.info({ orderId: order._id, storedAppFee: order.appFee, commissionAmount }, 'Using stored appFee for commission deduction');
+        logger.info({ orderId: order._id, storedAppFee: order.appFee, commissionAmount }, 'Commission deduction on deliver');
 
-        // 🛡️ CRITICAL FIX: Atomic Wallet Deduction ($inc)
-        const User = require('../models/User');
-        const captain = await User.findByIdAndUpdate(
-            order.captain,
-            { $inc: { wallet_balance: -commissionAmount } },
-            { new: true } // Returns the document AFTER the update
-        );
+        // 🛡️ Atomic Wallet Deduction ($inc)
+        if (commissionAmount > 0 && order.captain) {
+            try {
+                const User = require('../models/User');
+                // new:true يعيد صورة ما بعد الخصم مباشرة — لا حاجة لقراءة ثانية
+                const captain = await User.findByIdAndUpdate(
+                    order.captain,
+                    { $inc: { wallet_balance: -commissionAmount } },
+                    { new: true }
+                );
 
-        if (captain) {
-            // ✅ BUG-001 FIX: تعريف المتغيرات المفقودة لمنع ReferenceError في logger
-            const orderPrice = order.price;
-            const commissionRate = orderPrice > 0 ? commissionAmount / orderPrice : 0;
-            // ─── 📋 Detailed server log for verification ───
-            logger.info({
-                captain: captain.name,
-                captainId: captain._id,
-                orderId: order._id,
-                orderPrice,
-                commissionRate: (commissionRate * 100).toFixed(1) + '%',
-                commissionAmount,
-                newBalance: captain.wallet_balance,
-                creditLimit
-            }, 'Commission deducted atomically');
+                if (captain) {
+                    const orderPrice = order.price || 0;
+                    const commissionRate = orderPrice > 0 ? commissionAmount / orderPrice : 0;
+                    logger.info({
+                        captain: captain.name,
+                        captainId: captain._id,
+                        orderId: order._id,
+                        orderPrice,
+                        commissionRate: (commissionRate * 100).toFixed(1) + '%',
+                        commissionAmount,
+                        newBalance: captain.wallet_balance,
+                        creditLimit
+                    }, 'Commission deducted atomically');
 
-            // إيقاف الحساب تلقائياً إذا تجاوز الحد
-            if (captain.wallet_balance <= creditLimit && !captain.is_blocked) {
-                captain.is_blocked = true;
-                await captain.save(); // save the blocked status
-                logger.info({ captainId: captain._id, walletBalance: captain.wallet_balance, creditLimit }, 'Captain BLOCKED — exceeded credit limit');
+                    // 🛡️ الحجب بتحديث ذرّي مشروط بدل captain.save():
+                    // save() يكتب المستند كاملاً فيمحو أي عمولة أو دفعة سُجّلت بين
+                    // القراءة والحفظ. وشرط is_blocked:false يضمن أن الإشعار
+                    // والـ socket يُرسلان مرة واحدة فقط مهما تزامنت التوصيلات.
+                    let justBlocked = false;
+                    if (captain.wallet_balance <= creditLimit) {
+                        const blockRes = await User.updateOne(
+                            { _id: captain._id, is_blocked: false },
+                            { $set: { is_blocked: true } }
+                        ).catch(e => { logger.error({ err: e }, 'Captain block update failed'); return null; });
+                        justBlocked = !!(blockRes && blockRes.modifiedCount > 0);
+                    }
 
-                // 🔔 Push notification to captain
-                try {
-                    const { sendNotification } = require('../utils/notificationHelper');
-                    await sendNotification(req.app, {
-                        userId: captain._id,
-                        title: '⛔ تم إيقاف حسابك',
-                        message: 'تجاوزت الحد الائتماني. يرجى سداد المديونية لإعادة تفعيل الحساب.',
-                        type: 'wallet_update',   // 🧭 نقرة الإشعار تفتح المحفظة للسداد لا صفحة الإشعارات
-                        relatedId: order._id
-                    });
-                } catch (notifErr) {
-                    logger.error({ err: notifErr }, 'Block notification failed');
+                    if (justBlocked) {
+                        logger.info({ captainId: captain._id, walletBalance: captain.wallet_balance, creditLimit }, 'Captain BLOCKED — exceeded credit limit');
+
+                        try {
+                            const { sendNotification } = require('../utils/notificationHelper');
+                            await sendNotification(req.app, {
+                                userId: captain._id,
+                                title: '⛔ تم إيقاف حسابك',
+                                message: 'تجاوزت الحد الائتماني. يرجى سداد المديونية لإعادة تفعيل الحساب.',
+                                type: 'wallet_update',
+                                relatedId: order._id
+                            });
+                        } catch (notifErr) { logger.error({ err: notifErr }, 'Block notification failed'); }
+
+                        const ioForBlock = req.app.get('io');
+                        if (ioForBlock) {
+                            ioForBlock.to(captain._id.toString()).emit('wallet_limit_reached', {
+                                wallet_balance: captain.wallet_balance,
+                                credit_limit:   creditLimit,
+                                message: 'تجاوزت الحد الائتماني — تم إيقاف حسابك.'
+                            });
+                        }
+                    }
                 }
-
-                // 🔴 Real-Time Block: emit socket event to captain immediately
-                const ioForBlock = req.app.get('io');
-                if (ioForBlock) {
-                    ioForBlock.to(captain._id.toString()).emit('wallet_limit_reached', {
-                        wallet_balance: captain.wallet_balance,
-                        credit_limit:   creditLimit,
-                        message: 'تجاوزت الحد الائتماني — تم إيقاف حسابك.'
-                    });
-                    logger.info({ captainId: captain._id }, 'Emitted wallet_limit_reached to captain');
-                }
+            } catch (commErr) {
+                logger.error({ err: commErr, orderId: order._id }, 'Commission deduction failed on deliver');
             }
         }
 
+        // 🔔 Push notification & WhatsApp to Client (Safely guarded against null client)
+        if (order.client) {
+            try {
+                const { sendNotification } = require('../utils/notificationHelper');
+                await sendNotification(req.app, {
+                    userId: order.client,
+                    title: '✅ تم التوصيل بنجاح',
+                    message: `تم توصيل طلبك بنجاح. شكراً لاستخدامك وجيز! لا تنسى تقييم الكابتن.`,
+                    type: 'order_completed',
+                    relatedId: order._id
+                });
+            } catch (nErr) { logger.error('Client notification error on deliver:', nErr.message); }
 
-        await sendNotification(req.app, {
-            userId: order.client,
-            title: '✅ تم التوصيل بنجاح',
-            message: `تم توصيل طلبك بنجاح. شكراً لاستخدامك وجيز! لا تنسى تقييم الكابتن.`,
-            type: 'order_completed',
-            relatedId: order._id
-        });
+            try {
+                await sendWhatsAppIfSubscribed(
+                    order.client,
+                    OrderMessages.orderDelivered(order._id.toString())
+                );
+            } catch (wErr) { logger.error('Client WhatsApp error on deliver:', wErr.message); }
 
-        await sendWhatsAppIfSubscribed(
-            order.client,
-            OrderMessages.orderDelivered(order._id.toString())
-        );
-
-        const io = req.app.get('io');
-        if (io) {
-            io.to(order.client.toString()).emit('order_status_updated', {
-                orderId: order._id,
-                status: 'delivered'
-            });
-            // ✅ FIX: For shop orders, send shopOrderId — the /rate endpoint looks up
-            // ShopOrder by client. The delivery Order (orderType:'shop') has no client field,
-            // so sending its _id causes a 404. The ShopOrder _id is what the client card uses.
-            const rateOrderId = order.shopOrderId || order._id;
-            io.to(order.client.toString()).emit('delivery_attempted', {
-                orderId: rateOrderId,
-                placeId: order.place || null
-            });
-            // 📢 Notify admin panel — admin_room sees all cities
-            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'delivered', captainName: req.user.name, price: order.price, city: order.city });
+            const io = req.app.get('io');
+            if (io) {
+                const clientStr = order.client.toString();
+                io.to(clientStr).emit('order_status_updated', {
+                    orderId: order._id,
+                    status: 'delivered'
+                });
+                const rateOrderId = order.shopOrderId || order._id;
+                io.to(clientStr).emit('delivery_attempted', {
+                    orderId: rateOrderId,
+                    placeId: order.place || null
+                });
+            }
         }
 
-        // 📊 تتبع إحالات المسوقين — زيادة عداد الأوردرات المؤهِّلة للمكافأة
-        // يتم ذلك فقط عند التوصيل الناجح من متجر مُحال عبر نظام الإحالات
+        const ioAdmin = req.app.get('io');
+        if (ioAdmin) {
+            ioAdmin.to('admin_room').emit('admin_order_update', {
+                orderId: order._id,
+                status: 'delivered',
+                captainName: req.user.name,
+                price: order.price,
+                city: order.city
+            });
+        }
+
+        // 📊 Referrals tracking
         if (order.shopId) {
             try {
                 const Referral = require('../models/Referral');
@@ -1967,6 +1985,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
         res.json({ message: 'Order delivered', order });
 
     } catch (error) {
+        logger.error({ err: error, orderId: req.params.id }, 'Deliver order endpoint unexpected failure');
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -2223,38 +2242,66 @@ router.get('/:id', protect, async (req, res) => {
             return res.status(400).json({ message: 'معرف الطلب غير صحيح' });
         }
 
-        const order = await Order.findById(req.params.id)
+        let order = await Order.findById(req.params.id)
             .populate('client', 'name phone')
-            // ⭐ averageRating/ratingCount: لإظهار تقييم الكابتن للعميل
             .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
             .lean();
+
+        // 🏪 Fallback: If req.params.id is a ShopOrder ID instead of a delivery Order ID
+        if (!order) {
+            const ShopOrder = require('../models/ShopOrder');
+            const shopOrder = await ShopOrder.findById(req.params.id)
+                .populate('client', 'name phone')
+                .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
+                .lean();
+
+            if (shopOrder) {
+                // Try finding associated delivery Order
+                order = await Order.findOne({ shopOrderId: shopOrder._id })
+                    .populate('client', 'name phone')
+                    .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
+                    .lean();
+
+                if (!order) {
+                    order = {
+                        _id: shopOrder._id,
+                        status: (shopOrder.status === 'pending' || shopOrder.status === 'confirmed') ? 'pending' : shopOrder.status,
+                        client: shopOrder.client,
+                        captain: shopOrder.captain,
+                        price: shopOrder.deliveryFee || 0,
+                        pickup: shopOrder.pickupLocation,
+                        dropoff: shopOrder.deliveryLocation,
+                        shopId: shopOrder.place,
+                        place: shopOrder.place,
+                        createdAt: shopOrder.createdAt
+                    };
+                }
+            }
+        }
 
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
 
         // Access control:
-        // - The order's client can view it
-        // - The assigned captain can view it
-        // - Admin can view any
-        // - ✅ ANY captain can view PENDING orders (no captain assigned yet) to see details before accepting
         const userId = req.user.id;
-        const isClient = order.client && String(order.client._id) === userId;
-        const isCaptain = order.captain && String(order.captain._id) === userId;
+        const isClient = order.client && (String(order.client._id || order.client) === userId);
+        const isCaptain = order.captain && (String(order.captain._id || order.captain) === userId);
         const isAdmin = req.user.role === 'admin';
-        // ✅ FIX #11: الكابتن المحجوب لا يمكنه رؤية تفاصيل أي طلب لا يخصه
         const isPendingAndUserIsCaptain = (
             order.status === 'pending' &&
             !order.captain &&
             req.user.role === 'captain' &&
-            !req.user.is_blocked  // ✅ FIX: منع الكابتن المحجوب
+            !req.user.is_blocked
         );
 
         // 🏪 تاجر المتجر صاحب الطلب يمكنه تتبع توصيل طلبات متجره
         let isShopOwner = false;
-        if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain &&
-            req.user.role === 'merchant' && order.shopId) {
-            const Place = require('../models/Place');
-            const place = await Place.findById(order.shopId).select('ownerId').lean();
-            isShopOwner = !!(place && place.ownerId && String(place.ownerId) === userId);
+        if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain && req.user.role === 'merchant') {
+            const placeId = order.shopId || order.place;
+            if (placeId) {
+                const Place = require('../models/Place');
+                const place = await Place.findById(placeId).select('ownerId').lean();
+                isShopOwner = !!(place && place.ownerId && String(place.ownerId) === userId);
+            }
         }
 
         if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain && !isShopOwner) {
