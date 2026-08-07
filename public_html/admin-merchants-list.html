@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>لائحة التجار | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="vendor/jquery/jquery-3.7.0.min.js"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+
+    <link rel="stylesheet" href="css/admin-dashboard.css?v=0278f143">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+
+    <script src="js/config.js?v=b84e6b6a"></script>
+    <script src="js/admin-cache-buster.js?v=d70c699f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
+
+    <style>
+        /* ── Page-specific overrides ─────────────────────────── */
+        :root {
+            --accent: #7c3aed;
+            --accent-light: #ede9fe;
+            --accent-dark: #5b21b6;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+        }
+
+        /* ── Top KPI cards ───────────────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 18px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            border-right: 4px solid var(--accent);
+        }
+        .kpi-card.green  { border-color: var(--success); }
+        .kpi-card.amber  { border-color: var(--warning); }
+        .kpi-card.red    { border-color: var(--danger); }
+        .kpi-label { font-size: 12px; color: #64748b; font-weight: 700; }
+        .kpi-value { font-size: 26px; font-weight: 900; color: #1e293b; }
+
+        /* ── Search + filter bar ─────────────────────────────── */
+        .controls-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .search-wrap {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        .search-wrap i {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 15px;
+        }
+        .search-wrap input {
+            width: 100%;
+            padding: 10px 40px 10px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: border-color .2s;
+        }
+        .search-wrap input:focus { border-color: var(--accent); }
+
+        .filter-pill {
+            cursor: pointer;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            border-radius: 99px;
+            padding: 7px 16px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            transition: all .2s;
+        }
+        .filter-pill.active, .filter-pill:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* ── Table ───────────────────────────────────────────── */
+        .table-wrap {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            overflow: hidden;
+        }
+        .table-inner { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+        }
+        thead th {
+            padding: 14px 16px;
+            color: #fff;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 800;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .15s;
+        }
+        tbody tr:hover { background: #f8f7ff; }
+        tbody tr:last-child { border-bottom: none; }
+        td {
+            padding: 14px 16px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 13.5px;
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        /* ── Phone chip ──────────────────────────────────────── */
+        .phone-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: var(--success);
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-weight: 700;
+            font-size: 13px;
+            direction: ltr;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .phone-chip:hover { background: #dcfce7; }
+
+        /* ── Status badges ───────────────────────────────────── */
+        .badge-approved  { background: #dcfce7; color: #15803d; }
+        .badge-pending   { background: #fef3c7; color: #b45309; }
+        .badge-rejected  { background: #fee2e2; color: #b91c1c; }
+        .badge-inactive  { background: #f1f5f9; color: #64748b; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* ── Tier badge ──────────────────────────────────────── */
+        .tier-pro   { background: #fdf4ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+        .tier-basic { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+        .tier-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        /* ── Product count pill ──────────────────────────────── */
+        .prod-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        /* ── No store warning ────────────────────────────────── */
+        .no-store {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #94a3b8;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        /* ── Copy feedback ───────────────────────────────────── */
+        .copy-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 99px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            z-index: 9999;
+            transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+            pointer-events: none;
+        }
+        .copy-toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ── Empty state ─────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+        .empty-state i { font-size: 48px; margin-bottom: 14px; display: block; }
+        .empty-state p { font-family: 'Cairo', sans-serif; font-size: 15px; }
+
+        /* ── Loading ─────────────────────────────────────────── */
+        .loader-row td {
+            text-align: center;
+            padding: 50px;
+        }
+        .loader-dots {
+            display: inline-flex;
+            gap: 6px;
+        }
+        .loader-dots span {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: bounce .8s infinite alternate;
+        }
+        .loader-dots span:nth-child(2) { animation-delay: .15s; }
+        .loader-dots span:nth-child(3) { animation-delay: .3s; }
+        @keyframes bounce { to { transform: translateY(-8px); opacity: .5; } }
+
+        /* ── Export button ───────────────────────────────────── */
+        .btn-export {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 9px 18px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: opacity .2s;
+        }
+        .btn-export:hover { opacity: .88; }
+
+        @media (max-width: 600px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+    <script src="js/safe-area.js?v=e566565b"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="logo"><i class="fas fa-crown"></i></div>
+                <h2>وَجِيز</h2>
+                <p id="adminName">المدير العام</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-label">الإدارة</div>
+                <button class="nav-item" onclick="location.href='admin.html'">
+                    <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                </button>
+                <button class="nav-item active" onclick="location.href='admin-merchants-list.html'">
+                    <i class="fas fa-store"></i><span>لائحة التجار</span>
+                </button>
+
+                <div class="nav-label">روابط سريعة</div>
+                <button class="nav-item" onclick="location.href='admin-places.html'">
+                    <i class="fas fa-map-marker-alt"></i><span>المحلات والتصنيفات</span>
+                </button>
+                <button class="nav-item" onclick="location.href='admin-merchant-requests.html'">
+                    <i class="fas fa-user-check"></i><span>طلبات التجار</span>
+                </button>
+                <button class="nav-item" onclick="location.href='admin-shop-orders.html'">
+                    <i class="fas fa-shopping-basket"></i><span>طلبات المتاجر</span>
+                </button>
+                <button class="nav-item" onclick="location.href='admin-settlements.html'">
+                    <i class="fas fa-hand-holding-usd"></i><span>تسويات التجار</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title d-none d-md-block">
+                    <h1>لائحة التجار</h1>
+                    <p>أرقام التجار، متاجرهم، الفئة، وعدد المنتجات</p>
+                </div>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <button class="btn-export" onclick="exportCSV()" title="تصدير CSV">
+                        <i class="fas fa-file-csv"></i>
+                        <span class="d-none d-sm-inline">تصدير CSV</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-body">
+
+                <!-- KPI Cards -->
+                <div class="kpi-grid" id="kpiGrid">
+                    <div class="kpi-card">
+                        <span class="kpi-label">إجمالي التجار</span>
+                        <span class="kpi-value" id="kpiTotal">—</span>
+                    </div>
+                    <div class="kpi-card green">
+                        <span class="kpi-label">مفعّلون</span>
+                        <span class="kpi-value" id="kpiActive">—</span>
+                    </div>
+                    <div class="kpi-card amber">
+                        <span class="kpi-label">بلا متجر</span>
+                        <span class="kpi-value" id="kpiNoStore">—</span>
+                    </div>
+                    <div class="kpi-card red">
+                        <span class="kpi-label">إجمالي المنتجات</span>
+                        <span class="kpi-value" id="kpiProducts">—</span>
+                    </div>
+                </div>
+
+                <!-- Controls Bar -->
+                <div class="controls-bar">
+                    <div class="search-wrap">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="ابحث بالاسم أو الهاتف أو المتجر..." oninput="filterAndRender()">
+                    </div>
+                    <button class="filter-pill active" id="pill-all"      onclick="setFilter('all')">الكل</button>
+                    <button class="filter-pill"        id="pill-active"   onclick="setFilter('active')">مفعّلون</button>
+                    <button class="filter-pill"        id="pill-inactive" onclick="setFilter('inactive')">موقوفون</button>
+                    <button class="filter-pill"        id="pill-nostore"  onclick="setFilter('nostore')">بلا متجر</button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrap">
+                    <div class="table-inner">
+                        <table id="merchantTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>اسم التاجر</th>
+                                    <th>رقم الهاتف</th>
+                                    <th>اسم المتجر</th>
+                                    <th>الفئة</th>
+                                    <th>عدد المنتجات</th>
+                                    <th>الباقة</th>
+                                    <th>المدينة</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="merchantTbody">
+                                <tr class="loader-row">
+                                    <td colspan="9">
+                                        <div class="loader-dots">
+                                            <span></span><span></span><span></span>
+                                        </div>
+                                        <div style="margin-top:10px;font-family:'Cairo',sans-serif;font-size:14px;color:#94a3b8">جاري التحميل...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-family: 'Cairo', sans-serif; font-size: 13px; color: #64748b;">
+                        عدد النتائج: <strong id="resultCount">—</strong>
+                    </div>
+                </div>
+
+            </div><!-- /content-body -->
+        </main>
+    </div>
+
+    <!-- Copy toast -->
+    <div class="copy-toast" id="copyToast">✅ تم النسخ!</div>
+
+    <script src="js/admin-dashboard.js?v=472b9c73"></script>
+    <script>
+        let _allMerchants = [];
+        let _filter = 'all';
+
+        /* ── Fetch ─────────────────────────────────────── */
+        async function loadMerchants() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/merchants-list`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('فشل التحميل (' + res.status + ')');
+                const data = await res.json();
+                _allMerchants = data.merchants || [];
+                updateKPIs();
+                filterAndRender();
+            } catch (err) {
+                document.getElementById('merchantTbody').innerHTML =
+                    `<tr><td colspan="9" style="text-align:center;padding:40px;color:#dc2626;font-family:'Cairo',sans-serif">
+                        <i class="fas fa-exclamation-triangle" style="font-size:28px;display:block;margin-bottom:10px"></i>
+                        خطأ في التحميل: ${err.message}
+                    </td></tr>`;
+            }
+        }
+
+        /* ── KPI Cards ─────────────────────────────────── */
+        function updateKPIs() {
+            const total   = _allMerchants.length;
+            const active  = _allMerchants.filter(m => m.isActive && m.approvalStatus === 'approved').length;
+            const noStore = _allMerchants.filter(m => !m.store).length;
+            // totalProductCount يجمع منتجات كل متاجر التاجر لا المتجر الأول فقط
+            const prods   = _allMerchants.reduce((s, m) => s + (m.totalProductCount ?? (m.store ? m.store.productCount : 0)), 0);
+            document.getElementById('kpiTotal').textContent    = total;
+            document.getElementById('kpiActive').textContent   = active;
+            document.getElementById('kpiNoStore').textContent  = noStore;
+            document.getElementById('kpiProducts').textContent = prods.toLocaleString('en-US');
+        }
+
+        /* ── Filter Pills ──────────────────────────────── */
+        function setFilter(f) {
+            _filter = f;
+            ['all','active','inactive','nostore'].forEach(k =>
+                document.getElementById('pill-' + k).classList.toggle('active', k === f)
+            );
+            filterAndRender();
+        }
+
+        function filterAndRender() {
+            const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            let rows = _allMerchants;
+
+            // Status filter
+            if (_filter === 'active')   rows = rows.filter(m => m.isActive && m.approvalStatus === 'approved');
+            if (_filter === 'inactive') rows = rows.filter(m => !m.isActive || m.approvalStatus !== 'approved');
+            if (_filter === 'nostore')  rows = rows.filter(m => !m.store);
+
+            // Text search
+            if (q) {
+                // البحث يشمل كل متاجر التاجر لا الأساسي فقط
+                rows = rows.filter(m =>
+                    (m.name || '').toLowerCase().includes(q) ||
+                    (m.phone || '').includes(q) ||
+                    (m.stores || (m.store ? [m.store] : [])).some(s =>
+                        (s.name || '').toLowerCase().includes(q) ||
+                        (s.category || '').toLowerCase().includes(q)
+                    )
+                );
+            }
+
+            renderTable(rows);
+        }
+
+        /* ── Render ────────────────────────────────────── */
+        function renderTable(rows) {
+            const tbody = document.getElementById('merchantTbody');
+            document.getElementById('resultCount').textContent = rows.length;
+
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr><td colspan="9">
+                        <div class="empty-state">
+                            <i class="fas fa-store-slash"></i>
+                            <p>لا توجد نتائج</p>
+                        </div>
+                    </td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((m, idx) => {
+                const statusClass = !m.isActive ? 'badge-inactive'
+                    : m.approvalStatus === 'approved' ? 'badge-approved'
+                    : m.approvalStatus === 'pending'  ? 'badge-pending'
+                    : 'badge-rejected';
+                const statusLabel = !m.isActive ? 'موقوف'
+                    : m.approvalStatus === 'approved' ? 'مفعّل'
+                    : m.approvalStatus === 'pending'  ? 'قيد المراجعة'
+                    : 'مرفوض';
+
+                // التاجر قد يملك أكثر من متجر — نعرض الأساسي وشارة بعدد الباقي
+                const extraStores = Math.max(0, (m.storeCount || 0) - 1);
+                const extraHtml = extraStores
+                    ? `<div style="font-size:11px;color:#64748b;margin-top:2px" title="${esc(m.stores.slice(1).map(s => s.name).join(' • '))}">+${extraStores} متجر آخر</div>`
+                    : '';
+
+                const storeHtml = m.store
+                    ? `<div style="font-weight:800;color:#1e293b">${esc(m.store.name)}</div>${extraHtml}`
+                    : `<span class="no-store"><i class="fas fa-exclamation-circle"></i> بلا متجر</span>`;
+
+                const categoryHtml = m.store
+                    ? `<span>${esc(m.store.category)}</span>`
+                    : `<span class="text-muted">—</span>`;
+
+                const prodHtml = m.store
+                    ? `<span class="prod-count"><i class="fas fa-box"></i>${m.totalProductCount ?? m.store.productCount}</span>`
+                    : `<span class="text-muted">—</span>`;
+
+                const tierHtml = m.store
+                    ? `<span class="tier-badge ${m.store.tier === 'pro' ? 'tier-pro' : 'tier-basic'}">${m.store.tier === 'pro' ? '⭐ Pro' : 'Basic'}</span>`
+                    : '—';
+
+                const cityLabel = m.city === 'Khartoum' ? 'الخرطوم' : m.city === 'PortSudan' ? 'بورتسودان' : (m.city || '—');
+
+                return `
+                <tr>
+                    <td style="color:#94a3b8;font-size:12px;font-weight:700">${idx + 1}</td>
+                    <td>
+                        <div style="font-weight:800;color:#1e293b">${esc(m.name)}</div>
+                    </td>
+                    <td>
+                        <span class="phone-chip" onclick="copyPhone('${esc(m.phone)}')" title="انقر للنسخ">
+                            <i class="fas fa-phone-alt" style="font-size:11px"></i>${esc(m.phone)}
+                        </span>
+                    </td>
+                    <td>${storeHtml}</td>
+                    <td>${categoryHtml}</td>
+                    <td>${prodHtml}</td>
+                    <td>${tierHtml}</td>
+                    <td><span style="font-size:13px">${cityLabel}</span></td>
+                    <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        /* ── Copy Phone ────────────────────────────────── */
+        function copyPhone(phone) {
+            navigator.clipboard.writeText(phone).then(() => {
+                const t = document.getElementById('copyToast');
+                t.textContent = '✅ تم نسخ: ' + phone;
+                t.classList.add('show');
+                setTimeout(() => t.classList.remove('show'), 2200);
+            });
+        }
+
+        /* ── CSV Export ────────────────────────────────── */
+        function exportCSV() {
+            const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            let rows = _allMerchants;
+            if (_filter === 'active')   rows = rows.filter(m => m.isActive && m.approvalStatus === 'approved');
+            if (_filter === 'inactive') rows = rows.filter(m => !m.isActive || m.approvalStatus !== 'approved');
+            if (_filter === 'nostore')  rows = rows.filter(m => !m.store);
+            if (q) rows = rows.filter(m =>
+                (m.name || '').toLowerCase().includes(q) ||
+                (m.phone || '').includes(q) ||
+                (m.stores || (m.store ? [m.store] : [])).some(s => (s.name || '').toLowerCase().includes(q))
+            );
+
+            const header = ['#','اسم التاجر','رقم الهاتف','اسم المتجر','الفئة','عدد المنتجات','الباقة','المدينة','الحالة'];
+            const csvRows = [header.join(',')];
+            rows.forEach((m, i) => {
+                const status = !m.isActive ? 'موقوف' : m.approvalStatus === 'approved' ? 'مفعّل' : m.approvalStatus;
+                const city = m.city === 'Khartoum' ? 'الخرطوم' : m.city === 'PortSudan' ? 'بورتسودان' : (m.city || '');
+                csvRows.push([
+                    i + 1,
+                    `"${m.name}"`,
+                    m.phone,
+                    // كل أسماء المتاجر مفصولة بـ • لا الأساسي فقط
+                    m.store ? `"${(m.stores || [m.store]).map(s => s.name).join(' • ')}"` : '',
+                    m.store ? `"${m.store.category}"` : '',
+                    m.store ? (m.totalProductCount ?? m.store.productCount) : 0,
+                    m.store ? m.store.tier : '',
+                    city,
+                    status
+                ].join(','));
+            });
+
+            const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'merchants-list.csv'; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        /* ── XSS Escape ────────────────────────────────── */
+        function esc(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        loadMerchants();
+    </script>
+</body>
+</html>

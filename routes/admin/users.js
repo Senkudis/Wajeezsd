@@ -20,8 +20,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const logger = require('../../utils/logger');
-
 const SessionRequest = require('../../models/SessionRequest');
+const Place = require('../../models/Place');
+const Product = require('../../models/Product');
 
 router.get('/user/:id', protect, requireAnyPermission(['view_users', 'view_captains', 'manage_captains', 'manage_users']), async (req, res) => {
     try {
@@ -68,6 +69,84 @@ router.get('/captains', protect, requirePermission('view_captains'), async (req,
         const captains = await User.find({ role: 'captain', ...getAdminCityFilter(req) }).select('-password');
         res.json(captains);
     } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @route   GET /api/admin/merchants-list
+// @desc    لائحة التجار مع بياناتهم: الاسم، الهاتف، اسم المتجر، الفئة، عدد المنتجات
+// 🔐 صلاحية: view_stores
+
+router.get('/merchants-list', protect, requireAnyPermission(['view_stores', 'manage_stores']), async (req, res) => {
+    try {
+        const cityFilter = getAdminCityFilter(req);
+
+        // جلب جميع التجار (بكل حالات الاعتماد — الفلترة تتم في الواجهة)
+        const merchants = await User.find({
+            role: 'merchant',
+            ...cityFilter
+        }).select('name phone city approvalStatus isActive createdAt').lean();
+
+        if (!merchants.length) return res.json({ merchants: [] });
+
+        const merchantIds = merchants.map(m => m._id);
+
+        // جلب متاجرهم مع الفئة
+        const places = await Place.find({ ownerId: { $in: merchantIds } })
+            .select('name ownerId category city isActive shopWalletBalance tier')
+            .populate('category', 'name icon')
+            .lean();
+
+        // جلب عدد المنتجات لكل متجر
+        const placeIds = places.map(p => p._id);
+        const productCounts = await Product.aggregate([
+            { $match: { placeId: { $in: placeIds } } },
+            { $group: { _id: '$placeId', count: { $sum: 1 } } }
+        ]);
+        const countMap = {};
+        productCounts.forEach(pc => { countMap[pc._id.toString()] = pc.count; });
+
+        // ربط البيانات — ownerId ليس فريداً في Place، فالتاجر قد يملك أكثر من متجر.
+        // التجميع في مصفوفة بدل الدهس الذي كان يُسقط كل المتاجر عدا الأخير.
+        const placesByOwner = {};
+        places.forEach(p => {
+            const key = p.ownerId.toString();
+            (placesByOwner[key] || (placesByOwner[key] = [])).push(p);
+        });
+
+        const toStore = p => ({
+            id: p._id,
+            name: p.name,
+            category: p.category ? p.category.name : 'غير مصنّف',
+            categoryIcon: p.category ? p.category.icon : 'bi-shop',
+            isActive: p.isActive,
+            tier: p.tier,
+            walletBalance: p.shopWalletBalance,
+            productCount: countMap[p._id.toString()] || 0
+        });
+
+        const result = merchants.map(m => {
+            const owned = (placesByOwner[m._id.toString()] || []).map(toStore);
+            return {
+                merchantId: m._id,
+                name: m.name,
+                phone: m.phone,
+                city: m.city,
+                approvalStatus: m.approvalStatus,
+                isActive: m.isActive,
+                joinedAt: m.createdAt,
+                // store: المتجر الأساسي — يبقى للتوافق مع الواجهة الحالية
+                store: owned[0] || null,
+                stores: owned,
+                storeCount: owned.length,
+                // مجموع منتجات كل متاجر التاجر (لا الأول فقط)
+                totalProductCount: owned.reduce((s, st) => s + st.productCount, 0)
+            };
+        });
+
+        res.json({ merchants: result, total: result.length });
+    } catch (error) {
+        logger.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
