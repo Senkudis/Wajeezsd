@@ -471,6 +471,8 @@
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
     <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
+    <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/smart-search.css?v=23c91e85">
 
 
@@ -1170,6 +1172,20 @@
 
     <script src="js/maps-loader.js?v=c382a678"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
+    <script src="js/tour.js?v=be99eb1f"></script>
+    <script src="js/tour-client.js?v=931a740c"></script>
+    <script>
+        // 🎓 الجولة للعميل المسجَّل فقط: الزائر لم يُنشئ حساباً بعد،
+        // وشرح "طلباتي" و"عناويني المحفوظة" لمن لا يملكها إرباك.
+        window.addEventListener('load', () => {
+            if (!localStorage.getItem('token')) return;
+            setTimeout(() => {
+                try {
+                    if (typeof startClientTour === 'function') startClientTour();
+                } catch (e) {}
+            }, 900);
+        });
+    </script>
     <script>loadGoogleMaps({ libraries: 'places,geometry', need: ['routes'], callback: '__googleMapsReady' });</script>
 
     <!-- 🔍 Map Search Logic -->

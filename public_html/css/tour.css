@@ -35,9 +35,13 @@ body.dark-mode {
 
 /* ── طبقة التعتيم مع فتحة الضوء ───────────────────────────────
    box-shadow ضخم بدل قناع SVG: يعمل في كل المتصفحات، ويترك
-   العنصر المستهدف مضيئاً بلا أي طبقة فوقه تعترض النقر. */
+   العنصر المستهدف مضيئاً بلا أي طبقة فوقه تعترض النقر.
+
+   ⚠️ fixed لا absolute: بعض الشاشات (index.html) تُمرَّر داخل حاوية
+   لا عبر النافذة، فيبقى window.scrollY صفراً ويخرج كل شيء عن مكانه.
+   إحداثيات النافذة تعمل مع أي حاوية، ونعيد الحساب عند أي تمرير. */
 .wtour-spot {
-    position: absolute;
+    position: fixed;
     z-index: 2147483000;
     border-radius: 14px;
     box-shadow: 0 0 0 9999px rgba(2, 6, 23, .74);
@@ -73,9 +77,8 @@ body.dark-mode {
 
 /* ── بطاقة الشرح ──────────────────────────────────────────── */
 .wtour-card {
-    /* إحداثيات الصفحة لا النافذة: الفتحة المضيئة مطلقة أيضاً، فيتحرّك
-       الاثنان مع المحتوى عند التمرير بدل أن ينفصلا عن العنصر */
-    position: absolute;
+    /* fixed مثل الفتحة تماماً — انظر السبب أعلاه */
+    position: fixed;
     z-index: 2147483002;
     width: min(340px, calc(100vw - 28px));
     background: var(--wt-surface);
@@ -83,6 +86,11 @@ body.dark-mode {
     border-radius: 18px;
     padding: 16px 16px 14px;
     box-shadow: 0 18px 50px rgba(2, 6, 23, .38);
+    /* شرح طويل على شاشة قصيرة كان يدفع صفّ الأزرار خلف شريط التنقّل
+       السفلي فيعلق المستخدم بلا "التالي". السقف يُبقيها كاملة دائماً. */
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     transition: top .28s cubic-bezier(.4, 0, .2, 1),
                 inset-inline-start .28s cubic-bezier(.4, 0, .2, 1);
 }

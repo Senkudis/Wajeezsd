@@ -33,6 +33,8 @@
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
     <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
+    <link rel="stylesheet" href="css/tour.css?v=92063527">
     <!-- نظام تصميم الكابتن — بعد dark-mode.css عمداً كي تفوز قواعده الليلية -->
     <link rel="stylesheet" href="css/captain-ui.css?v=bfe4aff0">
     <script src="js/config.js?v=b84e6b6a"></script>
@@ -1005,7 +1007,15 @@
             fetchStats().then(() => {
                 checkOnboarding();
             });
-            fetchWallet();
+            fetchWallet().finally(() => {
+                // 🎓 بعد وصول بيانات المحفظة: زر "إرسال إشعار السداد" يظهر
+                // عند اقتراب المديونية من الحدّ، والبدء قبل ذلك يُسقط خطوته
+                // عمّن يحتاجها. finally لا then — فشل الجلب لا يمنع الجولة.
+                if (typeof startCaptainTour === 'function' && !window._tourTried) {
+                    window._tourTried = true;
+                    setTimeout(() => { try { startCaptainTour(); } catch (e) {} }, 600);
+                }
+            });
 
             // Set Captain Name
             const name = localStorage.getItem('captainName');
@@ -1107,6 +1117,8 @@
     <script type="module" src="js/app-core.js?v=f1decda9"></script>
     <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script type="module" src="js/captain-service.js?v=adcd1a16"></script>
+    <script src="js/tour.js?v=be99eb1f"></script>
+    <script src="js/tour-captain.js?v=89bd03b8"></script>
 </body>
 
 </html>
