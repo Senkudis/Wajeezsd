@@ -121,7 +121,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px) 14px 12px;
+    padding-top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px);
+    padding-right: 14px;
+    padding-bottom: 12px;
+    padding-left: 14px;
     background: linear-gradient(135deg, var(--ss-green), var(--ss-green-2));
     box-shadow: 0 4px 16px rgba(4, 85, 58, 0.25);
 }
@@ -387,6 +390,90 @@
 }
 .ss-errand-btn:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(79, 70, 229, 0.28); }
 
+/* ══ 🛍️ قسم "اشترِ لي" داخل نتائج البحث ═══════════════════════════════
+   لونٌ بنفسجي يميّزه عن الأخضر المؤسّسي: هذه ليست متاجرنا، والعميل يجب أن
+   يعرف الفرق قبل أن يضغط — يطلب من محلٍّ لا نضمن سعره ولا مخزونه. */
+
+/* رأس شاشة "لا نتائج" — أصغر من ss-empty لأن ما تحته صار محتوى لا فراغاً */
+.ss-noresult { text-align: center; padding: 22px 20px 6px; }
+.ss-noresult-ic {
+    width: 52px; height: 52px; margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 16px; font-size: 24px;
+    background: #f5f3ff; color: #7c3aed;
+}
+.ss-noresult h6 { font-size: 14.5px; font-weight: 800; color: #475569; margin-bottom: 3px; }
+.ss-noresult p { font-size: 12.5px; color: #94a3b8; margin: 0; }
+
+.ss-errand-wrap {
+    margin-top: 14px; padding: 12px;
+    border: 1px solid #ede9fe; border-radius: 16px;
+    background: linear-gradient(180deg, #faf9ff, #fff);
+}
+.ss-esec {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 10px;
+}
+.ss-esec-t { font-size: 13px; font-weight: 800; color: #4f46e5; display: inline-flex; align-items: center; gap: 6px; }
+.ss-esec-s { font-size: 11px; font-weight: 700; color: #a78bfa; }
+
+.ss-ecard {
+    display: flex; align-items: center; gap: 11px;
+    background: #fff; border: 1px solid #eef2f7; border-radius: 14px;
+    padding: 10px; margin-bottom: 8px; cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+}
+.ss-ecard:active { transform: scale(0.98); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.14); }
+.ss-eic {
+    width: 42px; height: 42px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 12px; background: #f5f3ff; color: #7c3aed; font-size: 18px;
+}
+.ss-ebody { flex: 1; min-width: 0; }
+.ss-ename {
+    font-size: 13.5px; font-weight: 800; color: #1e293b;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ss-eaddr {
+    font-size: 11.5px; color: #94a3b8; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ss-emeta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.ss-eb {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: 700; color: #64748b;
+    background: #f1f5f9; border-radius: 99px; padding: 2px 8px;
+}
+.ss-eb-ours { background: #dcfce7; color: #15803d; }
+
+.ss-eload {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 700; color: #7c3aed;
+    padding: 10px 2px;
+}
+.ss-espin {
+    width: 14px; height: 14px; flex-shrink: 0;
+    border: 2px solid #ddd6fe; border-top-color: #7c3aed; border-radius: 50%;
+    animation: ssSpin .7s linear infinite;
+}
+.ss-ehint {
+    font-size: 12px; color: #94a3b8; text-align: center;
+    padding: 10px 6px; line-height: 1.7;
+}
+.ss-ehint-warn { color: #b45309; }
+
+.ss-eactions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 4px; }
+.ss-eactions .ss-errand-btn { margin-top: 0; justify-content: center; }
+.ss-errand-alt {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 10px 16px; border-radius: 99px;
+    border: 1px dashed #c7d2fe; background: transparent;
+    color: #4f46e5; font-family: inherit; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; transition: background .15s;
+}
+.ss-errand-alt:active { background: #f5f3ff; }
+@keyframes ssSpin { to { transform: rotate(360deg); } }
+
 /* هيكل التحميل (Skeleton) */
 .ss-skel {
     display: flex;
@@ -447,9 +534,20 @@ body.dark-mode .ss-topbar { background: #0f172a; border-bottom: 1px solid #1e293
 body.dark-mode .ss-back { background: rgba(255, 255, 255, 0.1); }
 body.dark-mode .ss-idle-head { color: #94a3b8; }
 
+/* 🛍️ قسم "اشترِ لي" */
+body.dark-mode .ss-errand-wrap { background: #131c2f; border-color: #2b2350; }
+body.dark-mode .ss-ecard { background: #1e293b; border-color: #263449; }
+body.dark-mode .ss-ename { color: #f1f5f9; }
+body.dark-mode .ss-eic { background: #2b2350; color: #a78bfa; }
+body.dark-mode .ss-eb { background: #263449; color: #94a3b8; }
+body.dark-mode .ss-eb-ours { background: #14532d; color: #86efac; }
+body.dark-mode .ss-noresult h6 { color: #cbd5e1; }
+body.dark-mode .ss-noresult-ic { background: #2b2350; color: #a78bfa; }
+
 /* تقليل الحركة لمن يفضّل ذلك */
 @media (prefers-reduced-motion: reduce) {
     .ss-trigger::after, .ss-trigger-icon, .ss-in, .ss-empty-ic, .ss-skel-img, .ss-skel-l1, .ss-skel-l2 { animation: none; }
+    .ss-espin { animation-duration: 2s; }
     .ss-in { opacity: 1; }
     #ss-trigger-hint::after { animation: none; }
 }

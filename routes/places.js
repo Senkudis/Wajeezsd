@@ -15,26 +15,9 @@ const { logAdminAction } = require('../utils/adminLogger');
 const { normalizePhone } = require('../utils/phoneNormalizer');
 const logger = require('../utils/logger');
 
-// 🔤 Arabic-aware search regex.
-// يبني تعبيراً نمطياً يطابق كل أشكال الحرف العربي ويتجاهل التشكيل والتطويل،
-// فيجد النتائج مهما اختلف رسم الهمزة/التاء/الياء في بيانات القاعدة.
-function arabicFlexibleRegex(term) {
-    // احذف التشكيل (الحركات) والتطويل (ـ)
-    const cleaned = String(term).replace(/[ً-ْٰـ]/g, '').trim();
-    // مجموعات الحروف المتكافئة في البحث
-    const groups = ['اأإآٱ', 'ةه', 'يىئ', 'وؤ'];
-    const classOf = (ch) => {
-        for (const g of groups) if (g.includes(ch)) return '[' + g + ']';
-        // هروب رموز regex الخاصة
-        if (/[.*+?^${}()|[\]\\]/.test(ch)) return '\\' + ch;
-        return ch;
-    };
-    // اسمح بوجود تشكيل اختياري في بيانات القاعدة بين الحروف (مثل "مَطعَم")
-    const parts = [];
-    for (const ch of cleaned) parts.push(classOf(ch));
-    const out = parts.join('[ً-ْٰ]*');
-    return new RegExp(out || '.*', 'i');
-}
+// 🔤 Arabic-aware search regex ⇐ utils/arabicSearch
+// (نُقل ليتشاركه بحث المتاجر وبحث "اشترِ لي" فلا يفترق تطبيعهما)
+const { arabicFlexibleRegex } = require('../utils/arabicSearch');
 
 // ============================================================
 // @route   GET /api/places/categories
@@ -335,99 +318,20 @@ router.get('/errand-search', protect, async (req, res) => {
             return res.status(429).json({ message: 'بحث كثير في وقت قصير — انتظر قليلاً' });
         }
 
-        const { searchText, searchByCategory, clampToCity, normalizeQuery } = require('../utils/placesSearch');
+        const { normalizeQuery } = require('../utils/placesSearch');
+        const { runErrandSearch } = require('../utils/errandSearch');
         const q = String(req.query.q || '').trim();
         const categoryKey = String(req.query.category || '').trim();
         const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
-        const lat = parseFloat(req.query.lat);
-        const lng = parseFloat(req.query.lng);
 
         if (!q && !categoryKey) return res.json({ ours: [], external: [] });
 
-        // 1) متاجرنا المسجّلة أولاً: أدقّ بيانات وأقرب علاقة بالعميل.
-        //    البحث بالاسم فقط — التصنيف عندنا (PlaceCategory) لا يقابل تصنيفات جوجل.
-        let ours = [];
-        if (q) {
-            const rx = arabicFlexibleRegex(q);
-            ours = await Place.find({ isActive: true, city, $or: [{ name: rx }, { address: rx }] })
-                .select('name address location image_url errandEnabled category').populate('category', 'name')
-                .limit(8)
-                .lean();
-            ours = ours.map(p => ({
-                placeId: String(p._id),
-                name: p.name,
-                address: p.address || '',
-                lat: p.location ? p.location.lat : null,
-                lng: p.location ? p.location.lng : null,
-                image_url: p.image_url || '',
-                // قسم المتجر عندنا نصٌّ للعرض — لا يقابل مفاتيح تصنيفات جوجل،
-                // فيبقى categoryKey فارغاً ويظهر النص كما هو على البطاقة.
-                category: (p.category && p.category.name) || '',
-                curated: p.errandEnabled === true,
-                source: 'wajeez'
-            })).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-        }
-
-        // 2) بقية العالم من جوجل — محصورة في منطقة توصيل المدينة.
-        //    محلٌّ خارجها لا نوصّل منه أصلاً، فعرضه وعدٌ كاذب للعميل.
-        let zone = null;
-        try {
-            const Settings = require('../models/Settings');
-            const s = await Settings.getSettings(city);
-            if (Array.isArray(s.deliveryZone) && s.deliveryZone.length >= 3) {
-                zone = s.deliveryZone.map(p => ({ lat: p.lat, lng: p.lng }));
-            }
-        } catch (_) { /* بلا منطقة: يبقى حصر صندوق المدينة */ }
-
-        // 2.أ) أماكن تعلّمناها من طلبات سابقة — مجانية وأدقّ (اختارها عملاء فعلاً).
-        //      تُبحث قبل جوجل، وإن كفت أوقفنا النداء المدفوع أصلاً.
-        const ExternalPlace = require('../models/ExternalPlace');
-        let learned = [];
-        if (q) {
-            const rx = arabicFlexibleRegex(q);
-            const docs = await ExternalPlace.find({ city, $or: [{ name: rx }, { address: rx }] })
-                .sort({ usageCount: -1 })
-                .limit(10)
-                .lean();
-            learned = docs.map(d => ({
-                externalId: d.googlePlaceId || '',
-                name: d.name, address: d.address,
-                lat: d.lat, lng: d.lng,
-                category: d.category, categoryKey: d.categoryKey || '',
-                source: 'google'   // للواجهة: مكان عام لا متجر مسجّل
-            }));
-        }
-        learned = clampToCity(learned, city, zone);
-
-        // نداء جوجل مدفوع: لا نطلبه إن كفانا ما تعلّمناه. البحث بالتصنيف يستدعيه
-        // دائماً لأنه يعتمد على القرب لا على الاسم، وقاعدتنا لا ترتّب بالمسافة.
-        const LOCAL_ENOUGH = 5;
-        const skipGoogle = !categoryKey && learned.length >= LOCAL_ENOUGH;
-
-        let external = learned;
-        let externalError = null;
-        let googleCalled = false;
-        if (!skipGoogle) {
-            try {
-                const fresh = categoryKey
-                    ? await searchByCategory({ categoryKey, city, lat, lng, zone })
-                    : await searchText({ query: q, city, lat, lng, zone });
-                googleCalled = !fresh.cached;
-                // المتعلَّم أولاً ثم بقية جوجل، بلا تكرار
-                const seen = new Set(learned.map(p => p.externalId || p.name.trim().toLowerCase()));
-                external = learned.concat(fresh.results.filter(p => !seen.has(p.externalId || p.name.trim().toLowerCase())));
-            } catch (e) {
-                // فشل البحث الخارجي لا يُسقط ما عندنا — نُبلّغ الواجهة لتشرح للعميل
-                logger.warn({ err: e.message }, 'errand external search failed');
-                externalError = e.message === 'PLACES_KEY_MISSING'
-                    ? 'بحث الأماكن غير مفعّل حالياً'
-                    : 'تعذّر البحث الخارجي — جرّب لاحقاً';
-            }
-        }
-
-        // لا نكرّر متجراً عندنا كنتيجة خارجية (تطابق الاسم يكفي عملياً)
-        const ourNames = new Set(ours.map(p => p.name.trim().toLowerCase()));
-        external = external.filter(p => !ourNames.has(p.name.trim().toLowerCase()));
+        const { ours, external, externalError, googleCalled, localOnly } = await runErrandSearch({
+            q, categoryKey, city,
+            lat: parseFloat(req.query.lat),
+            lng: parseFloat(req.query.lng),
+            allowGoogle: true   // المسار المدفوع: خلف تسجيل الدخول وسقف المعدّل أعلاه
+        });
 
         // 📈 ما يراه العميل فعلاً هو ما نقيسه: نتيجة فارغة هنا تعني بحثاً فاشلاً
         // مهما أرجع جوجل قبل الحصر الجغرافي.
@@ -436,7 +340,7 @@ router.get('/errand-search', protect, async (req, res) => {
             query: categoryKey ? '' : normalizeQuery(q),
             resultCount: ours.length + external.length,
             googleCalled,
-            localOnly: skipGoogle,
+            localOnly,
             failed: !!externalError
         });
 
@@ -444,6 +348,55 @@ router.get('/errand-search', protect, async (req, res) => {
     } catch (err) {
         logger.error({ err: err.message }, 'errand search error');
         res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// ============================================================
+// @route   GET /api/places/errand-suggest?q=&city=&lat=&lng=
+// @desc    🔎 اقتراحات "اشترِ لي" داخل البحث العام في الرئيسية.
+//
+//   المشكلة التي يحلّها: العميل يبحث عن محلّه في الرئيسية، ولأنه غير مسجّل عندنا
+//   يرى "لا توجد نتائج" — طريق مسدود، بينما الخدمة التي تخدمه (اشترِ لي) موجودة
+//   في قسمٍ آخر لا يعرفه. هنا نجلب نتائجها إليه في مكان بحثه.
+//
+//   💸 مجاني بالكامل: قاعدتنا وحدها (أماكن تعلّمناها من طلبات فعلية). لا نداء
+//   لجوجل مهما تكرّر — لأن هذا المسار يُنادى مع كتابة العميل، ونداءٌ مدفوع لكل
+//   ضغطة زر يقتل التكلفة. النداء المدفوع يبقى خلف نيّة صريحة في /errand-search.
+//   ولهذا هو عامٌّ بلا تسجيل دخول: لا يكلّف شيئاً ولا يكشف بيانات خاصة.
+// ⚠️ يجب تعريفه قبل /:id حتى لا يلتقطه مسار المعرّف.
+// ============================================================
+router.get('/errand-suggest', async (req, res) => {
+    try {
+        const { runErrandSearch } = require('../utils/errandSearch');
+        const { normalizeQuery } = require('../utils/placesSearch');
+        const q = String(req.query.q || '').trim();
+        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+
+        // أقلّ من حرفين يطابق نصف القاعدة — ضوضاء لا اقتراح
+        if (q.length < 2) return res.json({ external: [] });
+
+        const { external } = await runErrandSearch({
+            q, city,
+            lat: parseFloat(req.query.lat),
+            lng: parseFloat(req.query.lng),
+            allowGoogle: false,
+            limit: 6
+        });
+
+        // 📈 ما يبحث عنه العملاء في الرئيسية ولا نجده = قائمة تسجيل متاجر جاهزة،
+        // وهي أثمن ما في هذه اللوحة. queryOnly: بحثٌ مجاني لا يجوز أن يدخل
+        // عدّادات التكلفة (انظر utils/searchStats).
+        require('../utils/searchStats').record({
+            city, query: normalizeQuery(q),
+            resultCount: external.length,
+            googleCalled: false, queryOnly: true
+        });
+
+        res.json({ external });
+    } catch (err) {
+        logger.error({ err: err.message }, 'errand suggest error');
+        // اقتراحٌ إضافي فوق البحث الأصلي: فشله لا يستحق رسالة خطأ للعميل
+        res.json({ external: [] });
     }
 });
 

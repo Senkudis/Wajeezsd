@@ -33,19 +33,27 @@ function buildIncrement({ resultCount, googleCalled, localOnly = false, failed =
  * @param {boolean} p.googleCalled هل كلّفنا هذا البحث نداءً مدفوعاً؟
  * @param {boolean} [p.localOnly] هل كفت قاعدتنا فلم نُنادِ جوجل أصلاً؟
  * @param {boolean} [p.failed] هل فشل البحث الخارجي؟
+ * @param {boolean} [p.queryOnly] سجّل الكلمة فقط بلا عدّادات التكلفة اليومية.
+ *        سببه: اقتراحات "اشترِ لي" داخل البحث العام (/errand-suggest) بحثٌ مجاني
+ *        يقع مع كل كتابة. عدّه في العدّادات يضخّم `searches` و`localOnly` بآلاف
+ *        العمليات التي لم تكن أصلاً مرشّحةً لنداء مدفوع، فتقفز «نسبة التوفير»
+ *        إلى ٩٩٪ وتصير مؤشّراً كاذباً مطمئناً. أما الكلمة نفسها فتُسجَّل: ما يبحث
+ *        عنه العميل ولا يجده هو قائمة تسجيل المتاجر، ومصدرها لا يغيّر قيمتها.
  */
-function record({ city, query, resultCount, googleCalled, localOnly = false, failed = false }) {
+function record({ city, query, resultCount, googleCalled, localOnly = false, failed = false, queryOnly = false }) {
     // لا await: الاستجابة لا تنتظر كتابة الإحصاء
     Promise.resolve()
         .then(async () => {
             const PlaceSearchStat = require('../models/PlaceSearchStat');
-            const inc = buildIncrement({ resultCount, googleCalled, localOnly, failed });
 
-            await PlaceSearchStat.updateOne(
-                { day: PlaceSearchStat.today(), city },
-                { $inc: inc },
-                { upsert: true }
-            );
+            if (!queryOnly) {
+                const inc = buildIncrement({ resultCount, googleCalled, localOnly, failed });
+                await PlaceSearchStat.updateOne(
+                    { day: PlaceSearchStat.today(), city },
+                    { $inc: inc },
+                    { upsert: true }
+                );
+            }
 
             // البحث بالتصنيف بلا كلمة — لا يُسجَّل في سجلّ الكلمات
             if (!query) return;

@@ -319,20 +319,13 @@ window.closeErrandPicker = function () {
 
 // يمرّر سياق المحل لنموذج الطلب (index.html) في وضع errand
 // shopId يكون فارغاً للأماكن الخارجية — الباك-إند يقبلها بالاسم + الدبوس
+// ⚠️ بناء السياق نفسه في js/errand-context.js — يتشاركه هذا المنتقي والبحث العام
 window.startErrand = function (shopId, shopName, lat, lng, address, externalId, category, categoryKey) {
-    const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
-    const ctx = {
-        shopId: shopId || null,
-        shopName: shopName || '',
-        lat: num(lat),
-        lng: num(lng),
-        address: address || '',
-        externalId: externalId || '',
-        category: category || '',
-        categoryKey: categoryKey || ''
-    };
-    try { sessionStorage.setItem('errandContext', JSON.stringify(ctx)); } catch (_) {}
-    window.location.href = 'index.html?mode=errand';
+    window.ErrandContext.startFromPlace({
+        source: shopId ? 'wajeez' : 'google',
+        placeId: shopId, name: shopName, lat: lat, lng: lng,
+        address: address, externalId: externalId, category: category, categoryKey: categoryKey
+    });
 };
 
 // 🔗 القدوم من شاشة "لا توجد نتائج" في البحث العام (index.html):

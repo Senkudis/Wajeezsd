@@ -24,6 +24,16 @@
     var filter = 'all';
     var debounceTimer = null;
 
+    // ── حالة اقتراحات "اشترِ لي" ────────────────────────────────────────────
+    // العميل يبحث عن محلّه لا عن «متجر مسجّل في وجيز». حين لا نجده مسجّلاً كان
+    // البحث ينتهي بطريق مسدود، بينما الخدمة التي تخدمه موجودة في قسمٍ آخر لا
+    // يعرفه. الآن تُجلب نتائجها إلى نفس الشاشة.
+    var errandList = [];        // أماكن غير مسجّلة معروضة الآن
+    var errandLoading = false;  // الطبقة المجانية قيد الجلب
+    var errandDeep = false;     // هل نُفّذ البحث الموسّع (المدفوع) لهذه الكلمة؟
+    var errandDeepBusy = false;
+    var errandNote = '';        // رسالة حالة (فشل/سقف معدّل)
+
     // ── أدوات مساعدة آمنة ────────────────────────────────────────────────
     function esc(s) { return (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s)); }
     function imgUrl(u) { return (window.getFullImageUrl ? window.getFullImageUrl(u) : (u || '')); }
@@ -153,29 +163,56 @@
     }
 
     // ── تنفيذ البحث ────────────────────────────────────────────────────────
+    // بحثان متوازيان لا متسلسلان: بحث متاجرنا، واقتراحات "اشترِ لي" المجانية.
+    // التسلسل كان سيضيف رحلة شبكة كاملة قبل ظهور المخرج للعميل الذي لم يجد محلّه —
+    // وهو أكثر من يحتاج سرعة. الاقتراحات مجانية على السيرفر (قاعدتنا وحدها)، فلا
+    // ضير من طلبها دائماً؛ والعرض وحده هو ما يُقرَّر لاحقاً حسب نتيجة البحث الأصلي.
     function doSearch(q) {
         q = (q || '').trim();
         if (!q) { renderIdle(); return; }
         renderLoading();
 
-        var url = apiBase() + '/api/places/search?q=' + encodeURIComponent(q) + '&city=' + encodeURIComponent(getCity());
-        var loc = window.userLocation;
-        if (loc && loc.lat) url += '&lat=' + loc.lat + '&lng=' + loc.lng;
+        lastQuery = q;
+        errandList = []; errandDeep = false; errandDeepBusy = false; errandNote = '';
+        errandLoading = q.length >= 2;
 
-        fetch(url)
+        var loc = window.userLocation;
+        var geo = (loc && loc.lat) ? ('&lat=' + loc.lat + '&lng=' + loc.lng) : '';
+        var fresh = function () { return (inputEl.value || '').trim() === q; };
+
+        fetch(apiBase() + '/api/places/search?q=' + encodeURIComponent(q) +
+              '&city=' + encodeURIComponent(getCity()) + geo)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 // تجاهل الاستجابة إن تغيّر النص (سباق طلبات)
-                if ((inputEl.value || '').trim() !== q) return;
-                lastData = data; lastQuery = q; filter = 'all';
+                if (!fresh()) return;
+                lastData = data; filter = 'all';
                 var total = (data.products || []).length + (data.places || []).length + (data.categories || []).length;
                 if (total > 0) saveRecent(q);
                 render();
             })
             .catch(function () {
-                if ((inputEl.value || '').trim() !== q) return;
+                if (!fresh()) return;
+                lastData = null;
                 resultsEl.innerHTML = '<div class="ss-empty"><div class="ss-empty-ic">⚠️</div>' +
                     '<h6>تعذّر البحث</h6><p>تحقّق من اتصالك وحاول مجدداً</p></div>';
+            });
+
+        if (!errandLoading) return;
+        fetch(apiBase() + '/api/places/errand-suggest?q=' + encodeURIComponent(q) +
+              '&city=' + encodeURIComponent(getCity()) + geo)
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!fresh()) return;
+                errandLoading = false;
+                errandList = withDistance(d.external || []);
+                // لا نرسم إن كان البحث الأصلي لم يصل بعد — رسمه ناقصاً ثم إكماله ارتجاف
+                if (lastData) render();
+            })
+            .catch(function () {
+                if (!fresh()) return;
+                errandLoading = false;
+                if (lastData) render();
             });
     }
 
@@ -197,13 +234,16 @@
 
         if (total === 0) {
             // 🛍️ مخرج بدل طريق مسدود: المحل غير مسجّل عندنا لا يعني أنه غير متاح.
-            // ننقل نصّ البحث لمنتقي "اشترِ لي" فلا يُعيد العميل كتابته.
-            resultsEl.innerHTML = '<div class="ss-empty"><div class="ss-empty-ic">🔍</div>' +
-                '<h6>لا توجد نتائج لـ "' + esc(lastQuery) + '"</h6>' +
-                '<p>المحل مش مسجّل عندنا؟ الكابتن يقدر يشتري ليك منه</p>' +
-                '<button type="button" class="ss-errand-btn" onclick="goToErrandWith(\'' +
-                    esc(lastQuery).replace(/'/g, '&#39;') + '\')">' +
-                '<i class="bi bi-bag-heart-fill"></i> اطلبه من أي محل</button></div>';
+            // شاشة "لا نتائج" صارت شاشة الخدمة البديلة نفسها، لا إعلاناً عنها:
+            // النتائج حاضرة هنا، والعميل يختار محلّه بضغطة واحدة بلا انتقال ولا
+            // إعادة كتابة — أكثر ما يُفقد العملاء هو خطوةٌ إضافية عند طريق مسدود.
+            resultsEl.innerHTML =
+                '<div class="ss-noresult">' +
+                '  <div class="ss-noresult-ic"><i class="bi bi-shop"></i></div>' +
+                '  <h6>ما لقينا "' + esc(lastQuery) + '" ضمن متاجرنا</h6>' +
+                '  <p>لكن الكابتن يقدر يشتري ليك من أي محل</p>' +
+                '</div>' + errandSection(true);
+            bindErrandCards();
             return;
         }
 
@@ -269,7 +309,164 @@
         }
 
         html += '</div>';
+
+        // 🛍️ الملحق: وُجدت منتجات أو أقسام لكن لا متجرَ باسم المحل المطلوب ⇒
+        // غالباً العميل يبحث عن محلٍّ لا عن صنف. نعرض بديل "اشترِ لي" أسفل النتائج
+        // لا فوقها: النتائج المسجّلة تبقى الأولوية، والملحق مخرجٌ لمن لم يجد بغيته.
+        // شرط places.length === 0 يمنع الضوضاء: من وجد متجره لا يحتاج بديلاً.
+        if (places.length === 0 && (filter === 'all' || filter === 'places')) {
+            html += errandSection(false);
+        }
+
         resultsEl.innerHTML = html;
+        bindErrandCards();
+    }
+
+    // ══ قسم "اشترِ لي" داخل نتائج البحث ═══════════════════════════════════
+    // العرض بالفهرس لا بتضمين بيانات المكان في onclick: أسماء المحلات السودانية
+    // تحمل علامات اقتباس وشرطات مائلة، وحقنها في سلسلة onclick كان سيكسر البطاقة
+    // (أو يفتح ثغرة) عند أول محل اسمه «كافيه "الركن"».
+    function fmtKm(km) {
+        if (km == null) return '';
+        return km < 1 ? (Math.round(km * 1000) + ' م') : (km.toFixed(1) + ' كم');
+    }
+
+    function withDistance(list) {
+        var loc = window.userLocation;
+        if (!loc || !isFinite(loc.lat)) return list;
+        var R = 6371, rad = function (d) { return d * Math.PI / 180; };
+        return list.map(function (p) {
+            if (!isFinite(p.lat) || !isFinite(p.lng)) return p;
+            var dLat = rad(p.lat - loc.lat), dLng = rad(p.lng - loc.lng);
+            var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(rad(loc.lat)) * Math.cos(rad(p.lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            p.distanceKm = R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+            return p;
+        }).sort(function (a, b) {
+            return (a.distanceKm == null ? 1e9 : a.distanceKm) - (b.distanceKm == null ? 1e9 : b.distanceKm);
+        });
+    }
+
+    function errandCardHtml(p, i) {
+        var isOurs = p.source === 'wajeez';
+        var meta = [];
+        if (isOurs) meta.push('<span class="ss-eb ss-eb-ours"><i class="bi bi-patch-check-fill"></i> متجر مسجّل</span>');
+        if (p.category) meta.push('<span class="ss-eb"><i class="bi bi-tag"></i> ' + esc(p.category) + '</span>');
+        if (p.distanceKm != null) meta.push('<span class="ss-eb"><i class="bi bi-signpost-2"></i> ' + esc(fmtKm(p.distanceKm)) + '</span>');
+
+        return '<div class="ss-ecard" data-i="' + i + '">' +
+            '<div class="ss-eic"><i class="bi ' + (isOurs ? 'bi-shop' : 'bi-geo-alt-fill') + '"></i></div>' +
+            '<div class="ss-ebody">' +
+            '  <div class="ss-ename">' + esc(p.name) + '</div>' +
+            (p.address ? '  <div class="ss-eaddr">' + esc(p.address) + '</div>' : '') +
+            (meta.length ? '  <div class="ss-emeta">' + meta.join('') + '</div>' : '') +
+            '</div>' +
+            '<i class="bi bi-chevron-left ss-arrow"></i></div>';
+    }
+
+    /**
+     * @param {boolean} primary هل هذا هو محتوى الشاشة كله (لا نتائج أصلاً)؟
+     *        يغيّر النبرة فقط: عنوانٌ شارح حين يكون البديل هو كل ما لدينا،
+     *        وعنوانٌ خافت حين يكون ملحقاً أسفل نتائج موجودة.
+     */
+    function errandSection(primary) {
+        var head = '<div class="ss-esec">' +
+            '<span class="ss-esec-t"><i class="bi bi-bag-check-fill"></i> ' +
+            (primary ? 'اطلبه من أي محل' : 'محلات تانية ممكن نجيب ليك منها') + '</span>' +
+            '<span class="ss-esec-s">الكابتن يشتري ويوصّل</span></div>';
+
+        var body = '';
+        if (errandLoading || errandDeepBusy) {
+            body += '<div class="ss-eload"><span class="ss-espin"></span> ' +
+                (errandDeepBusy ? 'بندوّر في كل محلات المدينة…' : 'بندوّر ليك…') + '</div>';
+        }
+        body += errandList.map(errandCardHtml).join('');
+
+        if (!errandLoading && !errandDeepBusy && !errandList.length && errandDeep) {
+            body += '<div class="ss-ehint">ما لقينا محل بهذا الاسم — اكتب اسمه وحدّد موقعه بنفسك</div>';
+        }
+        if (errandNote) body += '<div class="ss-ehint ss-ehint-warn">' + esc(errandNote) + '</div>';
+
+        var actions = '';
+        // 🔎 البحث الموسّع مدفوع لكل نداء: لا يُشغَّل تلقائياً مع الكتابة، بل بضغطة
+        // العميل. النيّة الصريحة هي ما يبرّر التكلفة — ومن ضغط هنا يريد المحل فعلاً.
+        if (!errandDeep && !errandDeepBusy) {
+            actions += '<button type="button" class="ss-errand-btn" id="ss-edeep">' +
+                '<i class="bi bi-globe-americas"></i> ابحث في كل محلات المدينة</button>';
+        }
+        // شبكة الأمان: تعمل حتى لو فشل كل بحث خارجي — العميل يعرف محلّه ونحن لا
+        actions += '<button type="button" class="ss-errand-alt" id="ss-ecustom">' +
+            '<i class="bi bi-pin-map"></i> المحل مش ظاهر؟ حدّد موقعه على الخريطة</button>';
+
+        return '<div class="ss-errand-wrap">' + head + body +
+               '<div class="ss-eactions">' + actions + '</div></div>';
+    }
+
+    function bindErrandCards() {
+        resultsEl.querySelectorAll('.ss-ecard').forEach(function (el) {
+            el.addEventListener('click', function () {
+                var p = errandList[parseInt(el.getAttribute('data-i'), 10)];
+                if (!p) return;
+                // متجرٌ مسجّل ظهر هنا (طابق العنوان لا الاسم): صفحته أغنى من طلب
+                // شراء أعمى — فيها منتجاته وأسعاره.
+                if (p.source === 'wajeez' && p.placeId) {
+                    window.location.href = 'shop-detail.html?placeId=' + encodeURIComponent(p.placeId);
+                    return;
+                }
+                window.ErrandContext.startFromPlace(p);
+            });
+        });
+
+        var deep = resultsEl.querySelector('#ss-edeep');
+        if (deep) deep.addEventListener('click', deepErrandSearch);
+
+        var custom = resultsEl.querySelector('#ss-ecustom');
+        // بلا إحداثيات ⇒ يفتح النموذج بحقل اسم المحل ومنتقي الخريطة (home.js)
+        if (custom) custom.addEventListener('click', function () {
+            window.ErrandContext.start(window.ErrandContext.fromPlace({ name: '' }));
+        });
+    }
+
+    /** البحث الموسّع: نفس نقطة نهاية منتقي "اشترِ لي" — محمية ومسقوفة ومدفوعة */
+    function deepErrandSearch() {
+        if (!localStorage.getItem('token')) { window.location.href = 'client-login.html'; return; }
+        var q = lastQuery;
+        errandDeepBusy = true; errandNote = '';
+        render();
+
+        var loc = window.userLocation;
+        var url = apiBase() + '/api/places/errand-search?q=' + encodeURIComponent(q) +
+                  '&city=' + encodeURIComponent(getCity()) +
+                  ((loc && loc.lat) ? ('&lat=' + loc.lat + '&lng=' + loc.lng) : '');
+
+        fetch(url, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } })
+            .then(function (r) {
+                if (r.status === 429) throw new Error('بحث كثير في وقت قصير — انتظر لحظة');
+                if (!r.ok) throw new Error('تعذّر البحث الموسّع');
+                return r.json();
+            })
+            .then(function (d) {
+                if ((inputEl.value || '').trim() !== q) return;
+                // المتعلَّم المعروض أولاً ثم الجديد، بلا تكرار
+                var seen = {};
+                var key = function (p) { return (p.externalId || String(p.name || '').trim().toLowerCase()); };
+                errandList.forEach(function (p) { seen[key(p)] = 1; });
+                var extra = (d.ours || []).concat(d.external || []).filter(function (p) {
+                    if (seen[key(p)]) return false;
+                    seen[key(p)] = 1;
+                    return true;
+                });
+                errandList = withDistance(errandList.concat(extra));
+                errandNote = d.externalError || '';
+                errandDeep = true; errandDeepBusy = false;
+                render();
+            })
+            .catch(function (e) {
+                if ((inputEl.value || '').trim() !== q) return;
+                errandDeepBusy = false;
+                errandNote = e.message || 'تعذّر البحث الموسّع';
+                render();
+            });
     }
 
     // ── تأثير الكتابة الدوّار على زر البحث في الرئيسية ─────────────────────
@@ -307,15 +504,10 @@
         initTrigger();
     }
 
-    /**
-     * ينتقل لمنتقي "اشترِ لي" حاملاً نصّ البحث.
-     * المنتقي يعيش في صفحة التسوّق، فنمرّر النصّ عبر sessionStorage: العميل كتب
-     * اسم المحل مرة، وإعادةُ كتابته احتكاكٌ يفقد العملاء عند طريق مسدود.
-     */
-    window.goToErrandWith = function (query) {
-        try { sessionStorage.setItem('errandSeedQuery', String(query || '')); } catch (_) {}
-        window.location.href = 'client-order.html?errand=1';
-    };
+    // ⚠️ goToErrandWith حُذف: كان ينقل العميل لصفحة التسوّق ليعيد البحث هناك.
+    // النتائج صارت تُعرض هنا مباشرةً، والقفزة بين صفحتين كانت هي الخطوة التي
+    // يُفقد عندها العميل. (بذرة البحث في client-order.html?errand=1 تبقى صالحة
+    // لأي رابط خارجي — انظر initErrandFromSearch في errand-picker.js)
 
     window.SmartSearch = { open: open, close: close };
 })();

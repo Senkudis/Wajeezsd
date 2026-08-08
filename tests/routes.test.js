@@ -49,10 +49,24 @@ describe('places — ترتيب المسارات', () => {
         // كلٌّ منها موجود فعلاً: يردّ بمعالجه (200 أو 401)، لا 404 حارس المعرّفات
         for (const [path, expected] of [
             ['/api/places/errand-featured', 200],
+            ['/api/places/errand-suggest', 200],
             ['/api/places/errand-stats', 401],
             ['/api/places/errand-diagnose', 401]
         ]) {
             expect((await request(app).get(path)).status).toBe(expected);
+        }
+    });
+
+    it('💸 errand-suggest عامّ (بلا رمز دخول) ويصمت على النصّ القصير', async () => {
+        // بوابتان تحرسان التكلفة، وكلتاهما هنا لا في الواجهة:
+        // 1) عامٌّ عمداً — لأنه لا يُنادي جوجل أصلاً. لو صار محمياً لصار الزائر
+        //    يرى "لا نتائج" فقط، وهو أكثر من يحتاج أن يرى الخدمة البديلة.
+        // 2) أقلّ من حرفين لا يستعلم أصلاً: البحث يقع مع كتابة العميل، وحرفٌ
+        //    واحد يطابق نصف القاعدة — استعلامٌ ثقيل بلا فائدة لأحد.
+        for (const q of ['', 'ا']) {
+            const res = await request(app).get(`/api/places/errand-suggest?q=${encodeURIComponent(q)}`);
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual({ external: [] });
         }
     });
 
