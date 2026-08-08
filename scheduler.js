@@ -712,6 +712,125 @@ const startScheduler = (app) => {
         }
     });
 
+    // ⏱️ مؤقّت عرض سعر "اشترِ لي" — كل دقيقة.
+    //
+    // العطل الذي يُغلق: quoteStatus='quoted' كان يبقى إلى الأبد. quotedAt يُسجَّل
+    // ولا يقرؤه أحد. عملياً: الكابتن واقفٌ في المحل، وهاتف العميل في جيبه، ولا
+    // شيء في النظام يحرّك الموقف — فيُلغي الكابتن يدوياً ويخسر رحلته، أو يبقى
+    // الطلب معلّقاً في القائمة أياماً.
+    //
+    // مرحلتان: تذكير مرة واحدة، ثم انتهاء صلاحية يُلغي الطلب ويُسجّل رسوم
+    // الانتقال كما في حالة الرفض تماماً — الكابتن ذهب فعلاً في الحالتين.
+    cron.schedule('* * * * *', async () => {
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) return;
+        try {
+            const { quoteTimeoutState } = require('./utils/errand');
+            const { sendNotification } = require('./utils/notificationHelper');
+            const Settings = require('./models/Settings');
+
+            const pending = await Order.find({
+                orderType: 'errand',
+                status: 'accepted',
+                'errand.quoteStatus': 'quoted',
+                'errand.quotedAt': { $ne: null }
+            }).select('_id city client captain shopName errand').limit(100);
+
+            if (!pending.length) return;
+
+            // إعدادات المدينة تُجلب مرة لكل مدينة لا لكل طلب
+            const settingsByCity = {};
+            const io = app && app.get ? app.get('io') : null;
+
+            for (const order of pending) {
+                try {
+                    const city = order.city || 'Khartoum';
+                    if (!settingsByCity[city]) settingsByCity[city] = await Settings.getSettings(city);
+                    const s = settingsByCity[city];
+
+                    const state = quoteTimeoutState({
+                        quotedAt: order.errand.quotedAt,
+                        reminderSentAt: order.errand.reminderSentAt,
+                        reminderMin: s.errandQuoteReminderMin,
+                        expiryMin: s.errandQuoteExpiryMin
+                    });
+                    if (state === 'none') continue;
+
+                    const shop = order.shopName || 'المحل';
+                    const amount = order.errand.goodsQuote;
+
+                    if (state === 'remind') {
+                        // ⚠️ التعليم أولاً وذرياً: لو تأخّر الإرسال أو فشل، دورةُ الدقيقة
+                        // التالية كانت ستُرسل تذكيراً ثانياً وثالثاً
+                        const marked = await Order.updateOne(
+                            { _id: order._id, 'errand.reminderSentAt': null, 'errand.quoteStatus': 'quoted' },
+                            { $set: { 'errand.reminderSentAt': new Date() } }
+                        );
+                        if (!marked.modifiedCount) continue;
+
+                        await sendNotification(app, {
+                            userId: order.client,
+                            title: 'الكابتن ينتظر ردّك',
+                            message: `سعر البضاعة من ${shop}: ${amount} ج.س. أكّد أو ارفض حتى يكمل الكابتن.`,
+                            type: 'errand_quote',
+                            relatedId: order._id
+                        });
+                        if (io) io.to(order.client.toString()).emit('errand_quote', {
+                            orderId: order._id, amount, shopName: shop, reminder: true
+                        });
+                        continue;
+                    }
+
+                    // انتهاء الصلاحية — نفس معاملة الرفض: الكابتن ذهب فعلاً
+                    let tripFee = Number(s.errandTripFee) > 0 ? Number(s.errandTripFee) : 0;
+                    const expired = await Order.updateOne(
+                        { _id: order._id, 'errand.quoteStatus': 'quoted' },
+                        {
+                            $set: {
+                                'errand.quoteStatus': 'expired',
+                                'errand.tripFee': tripFee,
+                                status: 'cancelled',
+                                cancelledBy: 'system',
+                                cancelReason: 'انتهت مهلة الردّ على سعر البضاعة',
+                                cancelledAt: new Date()
+                            }
+                        }
+                    );
+                    if (!expired.modifiedCount) continue;
+
+                    await sendNotification(app, {
+                        userId: order.client,
+                        title: 'أُلغي طلب الشراء',
+                        message: `لم يصلنا ردّك على سعر ${shop} (${amount} ج.س) فأُلغي الطلب. يمكنك طلبه من جديد.`,
+                        type: 'order_cancelled',
+                        relatedId: order._id
+                    });
+                    if (order.captain) {
+                        await sendNotification(app, {
+                            userId: order.captain,
+                            title: 'انتهت مهلة ردّ العميل',
+                            message: tripFee > 0
+                                ? `لم يردّ العميل على السعر وأُلغي الطلب. ستُحتسب لك رسوم انتقال ${tripFee} ج.س.`
+                                : 'لم يردّ العميل على السعر وأُلغي الطلب.',
+                            type: 'order_cancelled',
+                            relatedId: order._id
+                        });
+                        if (io) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
+                    }
+                    if (io) {
+                        io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
+                        io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'cancelled', city });
+                    }
+                    logger.info({ orderId: order._id, city }, 'errand quote expired');
+                } catch (oneErr) {
+                    logger.error({ err: oneErr.message, orderId: order._id }, 'errand quote timer failed for order');
+                }
+            }
+        } catch (error) {
+            logger.error({ err: error.message }, 'errand quote timer error');
+        }
+    });
+
     // 📊 Daily Admin Report — every day at 08:00
     cron.schedule('0 8 * * *', async () => {
         const mongoose = require('mongoose');

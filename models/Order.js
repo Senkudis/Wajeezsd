@@ -173,9 +173,15 @@ const OrderSchema = new mongoose.Schema(
         // العميل والكابتن نقداً، خارج دفتر التطبيق. حالياً الدفع نقدي (المحفظة لاحقاً).
         errand: {
             budget:        { type: Number, default: null },   // سقف تقديري اختياري من العميل
+            // ✅ موافقة مسبقة: «اشترِ بلا سؤال ما دام ضمن ميزانيتي».
+            // لماذا: الحالة الشائعة أن السعر ضمن التوقّع، فجولةُ سؤالٍ كاملة تُبقي
+            // الكابتن واقفاً في المحل وتُبقي العميل ينتظر إشعاراً قد لا يراه أصلاً.
+            autoApprove:   { type: Boolean, default: false },
             goodsQuote:    { type: Number, default: null },   // سعر البضاعة الذي أدخله الكابتن عند المحل
-            quoteStatus:   { type: String, enum: ['none', 'quoted', 'confirmed', 'declined'], default: 'none' },
+            // expired = مضت مهلة الردّ بلا جواب من العميل (انظر مؤقّت العرض في scheduler.js)
+            quoteStatus:   { type: String, enum: ['none', 'quoted', 'confirmed', 'declined', 'expired'], default: 'none' },
             quotedAt:      { type: Date, default: null },
+            reminderSentAt:{ type: Date, default: null },     // تذكير الردّ — مرة واحدة لا كل دقيقة
             respondedAt:   { type: Date, default: null },
             finalGoodsCost:{ type: Number, default: null },   // ما دُفع فعلاً (= goodsQuote عند التأكيد)
             receiptImage:  { type: String, default: null },   // صورة إيصال/بضاعة الشراء

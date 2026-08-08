@@ -36,6 +36,20 @@ const settingsSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    // ⏱️ مهلتا الردّ على سعر البضاعة في "اشترِ لي" (بالدقائق).
+    // كان العرض يُعلَّق إلى الأبد: الكابتن واقف في المحل والعميل هاتفه في جيبه،
+    // ولا شيء يقرأ quotedAt. الآن تذكيرٌ ثم انتهاء صلاحية.
+    // 0 في أيّهما = تعطيل تلك المرحلة.
+    errandQuoteReminderMin: {
+        type: Number,
+        default: 5,
+        min: 0
+    },
+    errandQuoteExpiryMin: {
+        type: Number,
+        default: 20,
+        min: 0
+    },
     costPerMinute: {
         type: Number,
         default: 2,

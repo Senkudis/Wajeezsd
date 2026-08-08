@@ -282,8 +282,12 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             orderData.shopId = curatedId;
             orderData.shopName = String(resolvedName || 'محل').slice(0, 120);
             orderData.items = chk.items.map(s => s.slice(0, 200));
+            const budget = Number(req.body.budget) > 0 ? Number(req.body.budget) : null;
             orderData.errand = {
-                budget: Number(req.body.budget) > 0 ? Number(req.body.budget) : null,
+                budget,
+                // ⚠️ الموافقة المسبقة بلا سقف بيضاء: إذنٌ مفتوح بإنفاق مال العميل.
+                // لا تُقبل إلا مقرونةً بميزانية تحدّها.
+                autoApprove: !!budget && (req.body.autoApprove === true || req.body.autoApprove === 'true'),
                 quoteStatus: 'none'
             };
 
@@ -2076,7 +2080,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
 // @route   POST /api/orders/:id/errand/quote  (الكابتن يُدخل سعر البضاعة عند المحل)
 router.post('/:id/errand/quote', protect, captainOnly, async (req, res) => {
     try {
-        const { canSubmitQuote, validateQuoteAmount } = require('../utils/errand');
+        const { canSubmitQuote, validateQuoteAmount, evaluateQuote } = require('../utils/errand');
         const amountChk = validateQuoteAmount(req.body.amount);
         if (!amountChk.valid) return res.status(400).json({ message: amountChk.message });
 
@@ -2086,25 +2090,67 @@ router.post('/:id/errand/quote', protect, captainOnly, async (req, res) => {
         const chk = canSubmitQuote(order);
         if (!chk.ok) return res.status(400).json({ message: chk.message });
 
-        order.errand.goodsQuote = amountChk.amount;
-        order.errand.quoteStatus = 'quoted';
+        const amount = amountChk.amount;
+        const shop = order.shopName || 'المحل';
+        const io = req.app.get('io');
+        const verdict = evaluateQuote({
+            budget: order.errand.budget,
+            autoApprove: order.errand.autoApprove,
+            amount
+        });
+
+        order.errand.goodsQuote = amount;
         order.errand.quotedAt = new Date();
+        order.errand.reminderSentAt = null;   // عرضٌ جديد ⇒ مهلة جديدة
+
+        // ✅ ضمن ميزانية أذِن العميل بها مسبقاً: لا جولة سؤال — يشتري الكابتن فوراً
+        if (verdict.autoConfirm) {
+            order.errand.quoteStatus = 'confirmed';
+            order.errand.finalGoodsCost = amount;
+            order.errand.respondedAt = new Date();
+            await order.save();
+
+            await sendNotification(req.app, {
+                userId: order.client,
+                title: 'تم تأكيد السعر تلقائياً',
+                message: `سعر البضاعة من ${shop}: ${amount} ج.س — ضمن ميزانيتك (${order.errand.budget} ج.س)، فبدأ الكابتن الشراء.`,
+                type: 'errand_quote',
+                relatedId: order._id
+            });
+            if (io) io.to(order.client.toString()).emit('errand_quote_confirmed', {
+                orderId: order._id, amount, shopName: shop, auto: true
+            });
+
+            return res.json({ message: 'ضمن ميزانية العميل — أُكّد تلقائياً، ابدأ الشراء', autoConfirmed: true, order });
+        }
+
+        order.errand.quoteStatus = 'quoted';
         await order.save();
 
-        // إشعار العميل ليؤكّد/يرفض السعر
+        // إشعار العميل ليؤكّد/يرفض السعر. تجاوز الميزانية يُقال صراحةً: العميل
+        // يقارن رقمين لا رقماً واحداً، وإخفاؤه يجعل الرفض مفاجأةً للكابتن.
         await sendNotification(req.app, {
             userId: order.client,
-            title: 'سعر طلبك جاهز',
-            message: `سعر البضاعة من ${order.shopName || 'المحل'}: ${amountChk.amount} ج.س. أكّد لبدء الشراء.`,
+            title: verdict.overBudget ? 'السعر أعلى من ميزانيتك' : 'سعر طلبك جاهز',
+            message: verdict.overBudget
+                ? `سعر البضاعة من ${shop}: ${amount} ج.س — أعلى بـ ${verdict.overBy} ج.س من ميزانيتك (${order.errand.budget} ج.س). أكّد أو ارفض.`
+                : `سعر البضاعة من ${shop}: ${amount} ج.س. أكّد لبدء الشراء.`,
             type: 'errand_quote',
             relatedId: order._id
         });
-        const io = req.app.get('io');
         if (io) io.to(order.client.toString()).emit('errand_quote', {
-            orderId: order._id, amount: amountChk.amount, shopName: order.shopName
+            orderId: order._id, amount, shopName: shop,
+            budget: order.errand.budget || null,
+            overBudget: verdict.overBudget, overBy: verdict.overBy
         });
 
-        res.json({ message: 'تم إرسال السعر للعميل', order });
+        res.json({
+            message: verdict.overBudget
+                ? `أُرسل السعر — تنبيه: أعلى بـ ${verdict.overBy} ج.س من ميزانية العميل`
+                : 'تم إرسال السعر للعميل',
+            overBudget: verdict.overBudget, overBy: verdict.overBy,
+            order
+        });
     } catch (error) {
         logger.error({ err: error.message }, 'errand quote error');
         res.status(500).json({ message: 'Server error' });

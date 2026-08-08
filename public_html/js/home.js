@@ -308,6 +308,10 @@ function initMap() {
             } else {
                 deliveryZonePolygon = null; // لا تقييد جغرافي لهذه المدينة
             }
+            // 🔍 يقرأه بحث الخريطة ليحصر الاقتراحات داخل ما نوصّل إليه فعلاً
+            // (index.html — zoneBounds). بلا هذا كان يقترح أحياءً في مدنٍ أخرى
+            // ثم يُصدم العميل بلافتة «خارج منطقة التوصيل» بعد أن اختار.
+            window.deliveryZonePolygon = deliveryZonePolygon;
 
             const MIN_ZOOM_LEVEL = 14;
         
@@ -670,33 +674,16 @@ window.confirmLocationSelection = function() {
 
 // ══════════════════════════════════════════════════════
 // chooseMapCity  —  Switch between cities
+// 🔑 FIX: Was using a bare Swal dropdown that only panned the map.
+//    Must use CityService.showCityPicker() so city is saved to
+//    localStorage AND synced to the server DB (via PUT /api/auth/city).
+//    This definition overrides the inline version in index.html because
+//    home.js loads later — so this must be the correct implementation.
 // ══════════════════════════════════════════════════════
 window.chooseMapCity = async function() {
-    const { value: city } = await Swal.fire({
-        title: 'اختر المدينة',
-        input: 'select',
-        inputOptions: {
-            'Khartoum': 'الخرطوم - أم درمان',
-            'PortSudan': 'البحر الأحمر - بورتسودان'
-        },
-        inputPlaceholder: 'اختر مدينة',
-        showCancelButton: true,
-        confirmButtonText: 'انتقال',
-        cancelButtonText: 'إلغاء',
-        confirmButtonColor: '#04553A'
-    });
-
-    if (city && map) {
-        if (city === 'Khartoum') {
-            map.panTo({ lat: 15.6445, lng: 32.4777 });
-            map.setZoom(12);
-            Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'الخرطوم - أم درمان', showConfirmButton: false, timer: 2000 });
-        } else if (city === 'PortSudan') {
-            map.panTo({ lat: 19.6175, lng: 37.2164 });
-            map.setZoom(13);
-            Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'البحر الأحمر - بورتسودان', showConfirmButton: false, timer: 2000 });
-        }
-    }
+    if (typeof CityService === 'undefined') return;
+    await CityService.showCityPicker();
+    // ⚡ AJAX Soft Refresh — city-changed event handles map pan & banner reload dynamically
 };
 
 // ══════════════════════════════════════════════════════
@@ -1250,7 +1237,11 @@ window.createOrder = async function() {
             // حقل الوصف مخفيّ هنا، فنملؤه بالأصناف — أي شاشة تعرض details تبقى مفهومة
             data.details = items.join(' • ').slice(0, 500);
             const budget = parseFloat(document.getElementById('errand-budget')?.value);
-            if (Number.isFinite(budget) && budget > 0) data.budget = budget;
+            if (Number.isFinite(budget) && budget > 0) {
+                data.budget = budget;
+                // الإذن المسبق تابعٌ للسقف: بلا ميزانية لا يُرسَل أصلاً (والسيرفر يرفضه كذلك)
+                data.autoApprove = !!document.getElementById('errand-auto-approve')?.checked;
+            }
             if (window._errandCtx) {
                 if (window._errandCtx.shopId) data.shopId = window._errandCtx.shopId;
                 // اسم مكتوب يدوياً (مسار "مكان آخر") يسبق اسم البحث
@@ -1488,6 +1479,21 @@ if (localStorage.getItem('token')) loadSavedAddresses();
     } catch (e) { /* تجاهل */ }
 })();
 
+/**
+ * ⚡ خيار "اشترِ مباشرة" يظهر مع الميزانية ويختفي بدونها.
+ * سببه: الإذن المسبق بلا سقف تفويضٌ مفتوح بإنفاق مال العميل — فلا يُعرض أصلاً
+ * إلا بعد أن يكتب الرقم الذي يحدّه. ومسحُ الميزانية يمسح الإذن معها.
+ */
+window.toggleErrandAutoApprove = function () {
+    const wrap = document.getElementById('errand-autoapprove-wrap');
+    const chk = document.getElementById('errand-auto-approve');
+    if (!wrap) return;
+    const budget = parseFloat(document.getElementById('errand-budget')?.value);
+    const show = Number.isFinite(budget) && budget > 0;
+    wrap.classList.toggle('d-none', !show);
+    if (!show && chk) chk.checked = false;
+};
+
 // ═══════════════════════════════════════════════════════════
 // 🛍️ وضع "اشترِ لي" (errand) — يُفعّل عند القدوم من قسم التسوّق (?mode=errand)
 // يعيد استخدام نموذج الطلب الكامل: المحل = الاستلام، عنواني = التسليم.
@@ -1557,14 +1563,18 @@ window._errandCtx = null;
 })();
 
 // ═══════════════════════════════════════════════════════════
-// 🌍 الاستماع لتغيير المدينة لتحديث مركز الخريطة فوراً
+// 🌍 الاستماع لتغيير المدينة لتحديث مركز الخريطة والبيانات عبر AJAX فوراً
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('city-changed', (e) => {
+    const newCity = e.detail ? e.detail.city : CityService.getCity();
     if (map) {
-        const newCity = e.detail.city;
         const newLat = newCity === 'PortSudan' ? 19.6151 : 15.6445;
         const newLng = newCity === 'PortSudan' ? 37.2164 : 32.4777;
         map.panTo({ lat: newLat, lng: newLng });
         map.setZoom(14);
+    }
+    // ⚡ AJAX Soft Re-fetch for Banners & Dynamic Content
+    if (window.HomeBanners && typeof window.HomeBanners.loadBanners === 'function') {
+        window.HomeBanners.loadBanners();
     }
 });

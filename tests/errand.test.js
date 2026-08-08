@@ -3,7 +3,8 @@
  * تحقّق الإدخال + آلة حالة عرض السعر/التأكيد.
  */
 const {
-    validateErrandInput, canSubmitQuote, canRespondQuote, canMarkPurchased, validateQuoteAmount
+    validateErrandInput, canSubmitQuote, canRespondQuote, canMarkPurchased, validateQuoteAmount,
+    evaluateQuote, quoteTimeoutState
 } = require('../utils/errand');
 
 const OID = '507f1f77bcf86cd799439011';
@@ -95,5 +96,85 @@ describe('canMarkPurchased (شرط الشراء)', () => {
     });
     it('لا يقيّد الطلبات غير errand', () => {
         expect(canMarkPurchased({ orderType: 'delivery' }).ok).toBe(true);
+    });
+});
+
+describe('evaluateQuote — السعر مقابل ميزانية العميل', () => {
+    it('بلا ميزانية: لا مقارنة ولا تأكيد تلقائي مهما كان الإذن', () => {
+        expect(evaluateQuote({ budget: null, autoApprove: true, amount: 5000 }))
+            .toEqual({ hasBudget: false, overBudget: false, overBy: 0, autoConfirm: false });
+        expect(evaluateQuote({ budget: 0, autoApprove: true, amount: 5000 }).autoConfirm).toBe(false);
+    });
+
+    it('ضمن الميزانية مع إذن مسبق ⇒ تأكيد تلقائي', () => {
+        const r = evaluateQuote({ budget: 5000, autoApprove: true, amount: 4800 });
+        expect(r.autoConfirm).toBe(true);
+        expect(r.overBudget).toBe(false);
+    });
+
+    it('مساوٍ للميزانية بالضبط ⇒ ضمنها (الحدّ مشمول)', () => {
+        expect(evaluateQuote({ budget: 5000, autoApprove: true, amount: 5000 }).autoConfirm).toBe(true);
+    });
+
+    it('🔒 فوق الميزانية ⇒ لا تأكيد تلقائي أبداً حتى مع الإذن', () => {
+        // الإذن كان بمبلغٍ محدّد لا بثقة مطلقة — تجاوزه إنفاقٌ لم يوافق عليه العميل
+        const r = evaluateQuote({ budget: 5000, autoApprove: true, amount: 5001 });
+        expect(r.autoConfirm).toBe(false);
+        expect(r.overBudget).toBe(true);
+        expect(r.overBy).toBe(1);
+    });
+
+    it('ضمن الميزانية بلا إذن ⇒ يُسأل العميل كالمعتاد', () => {
+        expect(evaluateQuote({ budget: 5000, autoApprove: false, amount: 4000 }).autoConfirm).toBe(false);
+    });
+
+    it('يحسب مقدار التجاوز بمنزلتين', () => {
+        expect(evaluateQuote({ budget: 1000, autoApprove: false, amount: 1234.567 }).overBy).toBe(234.57);
+    });
+
+    it('مبلغ غير صالح لا يُنتج تأكيداً', () => {
+        expect(evaluateQuote({ budget: 5000, autoApprove: true, amount: 0 }).autoConfirm).toBe(false);
+        expect(evaluateQuote({ budget: 5000, autoApprove: true, amount: NaN }).autoConfirm).toBe(false);
+    });
+});
+
+describe('quoteTimeoutState — مؤقّت الردّ على السعر', () => {
+    const T0 = new Date('2026-01-01T10:00:00Z').getTime();
+    const at = (min) => T0 + min * 60000;
+    const base = { quotedAt: new Date(T0), reminderMin: 5, expiryMin: 20 };
+
+    it('قبل مهلة التذكير: لا شيء', () => {
+        expect(quoteTimeoutState({ ...base, now: at(4.9) })).toBe('none');
+    });
+
+    it('عند مهلة التذكير وبعدها: تذكير', () => {
+        expect(quoteTimeoutState({ ...base, now: at(5) })).toBe('remind');
+        expect(quoteTimeoutState({ ...base, now: at(12) })).toBe('remind');
+    });
+
+    it('🔒 لا يتكرّر التذكير بعد إرساله', () => {
+        // بلا هذا يُرسَل تذكير كل دقيقة حتى انتهاء المهلة — إزعاجٌ يُفقد العميل
+        expect(quoteTimeoutState({ ...base, reminderSentAt: new Date(at(5)), now: at(12) })).toBe('none');
+    });
+
+    it('عند مهلة الانتهاء: انتهاء صلاحية', () => {
+        expect(quoteTimeoutState({ ...base, now: at(20) })).toBe('expire');
+        expect(quoteTimeoutState({ ...base, reminderSentAt: new Date(at(5)), now: at(25) })).toBe('expire');
+    });
+
+    it('🔒 تأخّرٌ طويل (سيرفر متوقّف) ينتهي مباشرةً ولا يبدأ بتذكير', () => {
+        // الانتهاء يسبق التذكير في الفحص، وإلا انتظر الطلب دورةً كاملة أخرى
+        expect(quoteTimeoutState({ ...base, now: at(90) })).toBe('expire');
+    });
+
+    it('صفر يعطّل المرحلة المقابلة', () => {
+        expect(quoteTimeoutState({ ...base, reminderMin: 0, now: at(10) })).toBe('none');
+        expect(quoteTimeoutState({ ...base, expiryMin: 0, now: at(90) })).toBe('remind');
+        expect(quoteTimeoutState({ ...base, reminderMin: 0, expiryMin: 0, now: at(999) })).toBe('none');
+    });
+
+    it('بلا quotedAt: لا شيء (لا يُلغى طلبٌ بحساب على قيمة غائبة)', () => {
+        expect(quoteTimeoutState({ ...base, quotedAt: null, now: at(90) })).toBe('none');
+        expect(quoteTimeoutState({ ...base, quotedAt: undefined, now: at(90) })).toBe('none');
     });
 });

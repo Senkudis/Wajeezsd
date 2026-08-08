@@ -206,12 +206,12 @@
                             <div class="alert alert-info py-2 mb-2 rounded-3 small fw-bold text-center">
                                 <i class="bi bi-hourglass-split me-1"></i> بانتظار تأكيد العميل للسعر (${order.errand.goodsQuote} ج.س)
                             </div>
-                            <button class="btn btn-outline-primary w-100 py-2 fw-bold mb-2 rounded-3" onclick="openErrandQuote('${order._id}', ${order.errand.goodsQuote || ''})">
+                            <button class="btn btn-outline-primary w-100 py-2 fw-bold mb-2 rounded-3" onclick="openErrandQuote('${order._id}', ${order.errand.goodsQuote || ''}, ${order.errand.budget || 0}, ${!!order.errand.autoApprove})">
                                 <i class="bi bi-pencil-square me-1"></i> تعديل السعر
                             </button>`;
                         } else {
                             actionBtn = `
-                            <button class="btn btn-primary w-100 py-2 fw-bold mb-2 shadow-sm rounded-3" onclick="openErrandQuote('${order._id}', '')">
+                            <button class="btn btn-primary w-100 py-2 fw-bold mb-2 shadow-sm rounded-3" onclick="openErrandQuote('${order._id}', '', ${order.errand?.budget || 0}, ${!!(order.errand && order.errand.autoApprove)})">
                                 <i class="bi bi-cash-coin me-2"></i> أدخِل سعر البضاعة
                             </button>`;
                         }
@@ -596,9 +596,21 @@
 
         // 🧭 توصيل متعدد النقاط: تأكيد إكمال نقطة وسطية
         // 🛍️ errand: الكابتن يُدخل سعر البضاعة عند المحل → يُرسل للعميل للتأكيد
-        async function openErrandQuote(id, current) {
+        // 💰 ميزانية العميل تُعرض هنا لا تُخفى: الكابتن الذي يعرف السقف قبل أن يُرسل
+        // يراجع أو يشرح، والذي لا يعرفه يُفاجأ برفضٍ بعد أن مشى ووقف في المحل.
+        async function openErrandQuote(id, current, budget, autoApprove) {
+            const b = Number(budget);
+            const hasBudget = Number.isFinite(b) && b > 0;
+            const hint = hasBudget
+                ? `<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:9px 12px;font-size:13px;color:#4f46e5;font-weight:700;line-height:1.7;">
+                       ميزانية العميل: ${b.toLocaleString('en-US')} ج.س
+                       ${autoApprove ? '<div style="font-weight:600;color:#6b7280;font-size:12px;">ضمنها ⇐ يُؤكَّد تلقائياً وتشتري فوراً بلا انتظار.</div>' : ''}
+                   </div>`
+                : '';
+
             const { value: amount } = await Swal.fire({
                 title: 'سعر البضاعة من المحل',
+                html: hint,
                 input: 'number',
                 inputValue: current || '',
                 inputPlaceholder: 'إجمالي سعر البضاعة (ج.س)',
@@ -610,6 +622,22 @@
                 inputValidator: v => (!v || Number(v) <= 0) ? 'أدخل سعراً صحيحاً أكبر من صفر' : undefined
             });
             if (!amount) return;
+
+            // تأكيد إضافي عند التجاوز — لحظةُ مراجعةٍ أرخص من رحلةٍ تنتهي برفض
+            if (hasBudget && Number(amount) > b) {
+                const over = Math.round((Number(amount) - b) * 100) / 100;
+                const ok = await Swal.fire({
+                    icon: 'warning',
+                    title: 'أعلى من ميزانية العميل',
+                    html: `السعر يتجاوز ميزانيته بـ <b>${over.toLocaleString('en-US')} ج.س</b>.<br>قد يرفض الطلب.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'أرسله رغم ذلك',
+                    cancelButtonText: 'راجع السعر',
+                    confirmButtonColor: '#d97706'
+                });
+                if (!ok.isConfirmed) return openErrandQuote(id, amount, budget, autoApprove);
+            }
+
             try {
                 const res = await fetchWithRetry(`${API_URL}/api/orders/${id}/errand/quote`, {
                     method: 'POST',
@@ -618,7 +646,9 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    Swal.fire({ icon: 'success', title: 'أُرسل السعر للعميل', text: 'سيصلك إشعار عند موافقته لتبدأ الشراء.', timer: 2200, showConfirmButton: false });
+                    Swal.fire(data.autoConfirmed
+                        ? { icon: 'success', title: 'أُكّد تلقائياً', text: 'ضمن ميزانية العميل — ابدأ الشراء الآن.', confirmButtonColor: '#4f46e5' }
+                        : { icon: 'success', title: 'أُرسل السعر للعميل', text: 'سيصلك إشعار عند موافقته لتبدأ الشراء.', timer: 2200, showConfirmButton: false });
                     fetchMissions();
                 } else {
                     Swal.fire('خطأ', data.message || 'تعذّر إرسال السعر', 'error');

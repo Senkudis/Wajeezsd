@@ -689,8 +689,23 @@
                         <textarea id="errand-items" class="form-control mb-3" rows="3" maxlength="800"
                             placeholder="اكتب الأصناف، كل صنف في سطر:&#10;- شاورما دجاج ×2&#10;- عصير مانجو كبير"></textarea>
                         <label class="text-muted small fw-bold d-block mb-1">ميزانية تقديرية للبضاعة (اختياري)</label>
-                        <input type="number" id="errand-budget" class="form-control mb-1" lang="en" dir="ltr"
-                            placeholder="مثلاً 5000" min="0" inputmode="numeric">
+                        <input type="number" id="errand-budget" class="form-control mb-2" lang="en" dir="ltr"
+                            placeholder="مثلاً 5000" min="0" inputmode="numeric"
+                            oninput="window.toggleErrandAutoApprove && window.toggleErrandAutoApprove()">
+                        <!-- ⚡ الموافقة المسبقة: تختصر جولة سؤال كاملة في الحالة الشائعة
+                             (السعر ضمن التوقّع). تظهر فقط مع ميزانية تحدّها — إذنٌ بلا
+                             سقف يعني تفويضاً مفتوحاً بإنفاق مال العميل. -->
+                        <div id="errand-autoapprove-wrap" class="d-none mb-3 p-2 rounded-3" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" id="errand-auto-approve" style="cursor:pointer;">
+                                <label class="form-check-label small fw-bold" for="errand-auto-approve" style="cursor:pointer;color:#4f46e5;">
+                                    اشترِ مباشرة إذا كان ضمن ميزانيتي
+                                </label>
+                                <div class="text-muted" style="font-size:11.5px;line-height:1.6;margin-top:2px;">
+                                    يوفّر عليك انتظار السؤال. لو تجاوز السعر ميزانيتك سنسألك قبل الشراء.
+                                </div>
+                            </div>
+                        </div>
                         <div class="small text-muted mb-3" style="line-height:1.5;">
                             <i class="bi bi-info-circle-fill text-primary"></i>
                             السعر النهائي للبضاعة يؤكّده الكابتن من المحل قبل الشراء. المبلغ أدناه = <b>أجرة التوصيل فقط</b>.
@@ -846,10 +861,16 @@
             <div style="pointer-events:auto;position:absolute;top:calc(var(--sat, env(safe-area-inset-top, 0px)) + 68px);left:16px;right:16px;z-index:100001;">
                 <div style="position:relative;display:flex;align-items:center;">
                     <input type="text" id="map-search-input" placeholder="ابحث عن مكان أو عنوان..."
-                        style="width:100%;padding:14px 48px 14px 16px;border:none;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:600;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.12);outline:none;direction:rtl;"
+                        style="width:100%;padding:14px 48px 14px 40px;border:none;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:600;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.12);outline:none;direction:rtl;"
                         autocomplete="off">
                     <button type="button" id="map-search-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--primary);color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
                         <i class="bi bi-search"></i>
+                    </button>
+                    <!-- 🧹 زر المسح: كان clearMapSearch في home.js يبحث عن هذا العنصر
+                         ولا يجده — دالةٌ حيّة بلا زر يستدعيها -->
+                    <button type="button" id="map-search-clear" aria-label="مسح"
+                        style="display:none;position:absolute;left:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#cbd5e1;font-size:18px;cursor:pointer;padding:4px;align-items:center;justify-content:center;">
+                        <i class="bi bi-x-circle-fill"></i>
                     </button>
                 </div>
                 <!-- Search Results Dropdown -->
@@ -1163,7 +1184,7 @@
     <script type="module" src="js/app-core.js?v=f1decda9"></script>
     <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
 
-    <script src="js/home.js?v=e1e2192e"></script>
+    <script src="js/home.js?v=6a29d3f0"></script>
     <script src="js/order-feature.js?v=9f7d4809"></script>
     <script src="js/errand-context.js?v=1a90c3f7"></script>
     <script src="js/smart-search.js?v=b407d19c"></script>
@@ -1212,44 +1233,143 @@
         let searchTimeout = null;
         let autocompleteService = null;
         let placesService = null;
+        let sessionToken = null;
+
+        const esc = (s) => String(s == null ? '' : s)
+            .replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+        /**
+         * 💸 رمز الجلسة — أهمّ سطر في هذا الملف من ناحية التكلفة.
+         *
+         * بلا رمز جلسة يُحاسِب جوجل **كل اقتراحٍ أثناء الكتابة** طلباً مستقلاً، ثم
+         * يُحاسِب نداءَ تحديد الموقع فوقها. كان الكود يفعل الأسوأ: بلا رمز، ومع
+         * Geocoder منفصل — فبحثٌ من عشر ضغطات = أحد عشر عملية محاسَبة.
+         * مع الرمز تُحسب كتابةُ العميل كلها واختيارُه **جلسةً واحدة**.
+         * ⚠️ يُستهلك الرمز عند getDetails، فيلزم رمزٌ جديد لكل بحث تالٍ.
+         */
+        function freshToken() {
+            sessionToken = new google.maps.places.AutocompleteSessionToken();
+            return sessionToken;
+        }
 
         function initSearchServices() {
-            if (!window.google || !window.google.maps) return false;
-            if (!autocompleteService) {
-                autocompleteService = new google.maps.places.AutocompleteService();
-            }
-            if (!placesService && document.getElementById('map')) {
-                placesService = new google.maps.places.PlacesService(
-                    document.createElement('div')
-                );
-            }
+            if (!window.google || !window.google.maps || !google.maps.places) return false;
+            if (!autocompleteService) autocompleteService = new google.maps.places.AutocompleteService();
+            if (!placesService) placesService = new google.maps.places.PlacesService(document.createElement('div'));
+            if (!sessionToken) freshToken();
             return true;
+        }
+
+        /**
+         * 🗺️ حدود منطقة التوصيل — تُبنى من نفس المضلّع المرسوم على الخريطة.
+         * لماذا: القيد الوحيد كان «السودان». فبحث «الرياض» يُرجع أحياءً في مدنٍ
+         * أخرى، يختار العميل واحداً، ثم تنزل عليه لافتة «خارج منطقة التوصيل» —
+         * منعٌ بعد الاختيار بدل منعٍ قبله. الأفضل ألّا نعرض ما لا نوصّل إليه.
+         */
+        function zoneBounds() {
+            const poly = window.deliveryZonePolygon;
+            if (!poly || !google.maps.LatLngBounds) return null;
+            try {
+                const b = new google.maps.LatLngBounds();
+                poly.getPath().forEach(p => b.extend(p));
+                return b.isEmpty() ? null : b;
+            } catch (_) { return null; }
         }
 
         const searchInput = document.getElementById('map-search-input');
         const searchBtn = document.getElementById('map-search-btn');
+        const clearBtn = document.getElementById('map-search-clear');
         const resultsDiv = document.getElementById('map-search-results');
         if (!searchInput || !resultsDiv) return;
+
+        function row({ icon, iconColor, title, sub, onclick }) {
+            return `
+            <div onclick="${onclick}"
+                style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:11px;transition:background 0.15s;"
+                onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                <i class="bi ${icon}" style="color:${iconColor};font-size:17px;flex-shrink:0;"></i>
+                <div style="overflow:hidden;flex:1;">
+                    <div style="font-size:13px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</div>
+                    ${sub ? `<div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">${esc(sub)}</div>` : ''}
+                </div>
+                <i class="bi bi-arrow-up-left" style="color:#cbd5e1;font-size:13px;flex-shrink:0;"></i>
+            </div>`;
+        }
+
+        /**
+         * 📍 الحالة الخاملة: مواقع العميل المحفوظة.
+         * أشيع حالة على الإطلاق (البيت/الشغل) كانت تتطلّب كتابةَ عنوانٍ كامل
+         * ونداءات مدفوعة — وهي عندنا في الجهاز مجاناً بضغطة واحدة.
+         */
+        function renderSaved() {
+            let list = [];
+            try { list = (window.SavedLocations && SavedLocations.getAll()) || []; } catch (_) {}
+            list = list.filter(l => Number.isFinite(Number(l.lat)) && Number.isFinite(Number(l.lng)));
+            if (!list.length) { resultsDiv.style.display = 'none'; return; }
+
+            resultsDiv.innerHTML =
+                `<div style="padding:9px 16px;font-size:11px;font-weight:800;color:#94a3b8;background:#f8fafc;">
+                    <i class="bi bi-bookmark-star-fill"></i> مواقعك المحفوظة
+                 </div>` +
+                list.slice(0, 5).map(l => row({
+                    icon: 'bi-bookmark-fill', iconColor: 'var(--primary)',
+                    title: l.name, sub: l.address || '',
+                    onclick: `window._useSavedLocation(${Number(l.id)})`
+                })).join('');
+            resultsDiv.style.display = 'block';
+        }
+
+        window._useSavedLocation = function (id) {
+            let loc = null;
+            try { loc = SavedLocations.get(id); } catch (_) {}
+            if (!loc) return;
+            applySelection(Number(loc.lat), Number(loc.lng), loc.address || loc.name);
+        };
+
+        /** ينقل الخريطة ويخزّن الوصف الذي يراه الكابتن — مسارٌ واحد لكل مصادر الاختيار */
+        function applySelection(lat, lng, text) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+            if (window._activeMapInstance) {
+                window._activeMapInstance.panTo({ lat, lng });
+                window._activeMapInstance.setZoom(17);
+            }
+            window._selectedSearchAddr = { text, lat, lng };
+            const pv = document.getElementById('map-address-preview');
+            if (pv && text) pv.innerHTML = `<i class="bi bi-geo-alt-fill" style="color:var(--primary);"></i> ${esc(text)}`;
+
+            searchInput.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            resultsDiv.style.display = 'none';
+        }
 
         function performSearch() {
             const query = searchInput.value.trim();
             clearTimeout(searchTimeout);
+            if (clearBtn) clearBtn.style.display = query ? 'flex' : 'none';
 
-            if (query.length < 2) {
-                resultsDiv.style.display = 'none';
-                return;
-            }
+            if (query.length < 2) { renderSaved(); return; }
 
             searchTimeout = setTimeout(() => {
                 if (!initSearchServices()) return;
 
-                autocompleteService.getPlacePredictions({
+                const req = {
                     input: query,
                     componentRestrictions: { country: 'sd' },
-                    types: ['establishment', 'geocode']
-                }, (predictions, status) => {
-                    if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
-                        resultsDiv.style.display = 'none';
+                    types: ['establishment', 'geocode'],
+                    sessionToken: sessionToken
+                };
+                // الحصر داخل منطقة التوصيل حين تكون مرسومة — وإلا يبقى قيد الدولة
+                const b = zoneBounds();
+                if (b) { req.bounds = b; req.strictBounds = true; }
+
+                autocompleteService.getPlacePredictions(req, (predictions, status) => {
+                    if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions || !predictions.length) {
+                        resultsDiv.innerHTML =
+                            `<div style="padding:16px;text-align:center;font-size:12.5px;color:#94a3b8;line-height:1.8;">
+                                ما لقينا نتيجة داخل منطقة التوصيل<br>
+                                <span style="font-size:11.5px;">حرّك الدبوس على الخريطة لتحديد الموقع</span>
+                             </div>`;
+                        resultsDiv.style.display = 'block';
                         return;
                     }
 
@@ -1262,23 +1382,13 @@
                         };
                         // أيقونة مميِّزة: محل/منشأة ↔ عنوان جغرافي
                         const isEstablishment = (p.types || []).includes('establishment') || (p.types || []).includes('point_of_interest');
-                        const icon = isEstablishment ? 'bi-shop' : 'bi-geo-alt-fill';
-                        const iconColor = isEstablishment ? '#b45309' : 'var(--primary)';
-                        return `
-                        <div onclick="window._selectSearchResult('${p.place_id}')"
-                            style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:11px;transition:background 0.15s;"
-                            onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                            <i class="bi ${icon}" style="color:${iconColor};font-size:17px;flex-shrink:0;"></i>
-                            <div style="overflow:hidden;flex:1;">
-                                <div style="font-size:13px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                    ${p.structured_formatting.main_text}
-                                </div>
-                                <div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
-                                    ${p.structured_formatting.secondary_text || ''}
-                                </div>
-                            </div>
-                            <i class="bi bi-arrow-up-left" style="color:#cbd5e1;font-size:13px;flex-shrink:0;"></i>
-                        </div>`;
+                        return row({
+                            icon: isEstablishment ? 'bi-shop' : 'bi-geo-alt-fill',
+                            iconColor: isEstablishment ? '#b45309' : 'var(--primary)',
+                            title: p.structured_formatting.main_text,
+                            sub: p.structured_formatting.secondary_text || '',
+                            onclick: `window._selectSearchResult('${esc(p.place_id)}')`
+                        });
                     }).join('');
                     resultsDiv.style.display = 'block';
                 });
@@ -1286,18 +1396,24 @@
         }
 
         searchInput.addEventListener('input', performSearch);
-        
+
         if (searchBtn) {
             searchBtn.addEventListener('click', () => {
-                // Animate button click
                 searchBtn.style.transform = 'translateY(-50%) scale(0.9)';
                 setTimeout(() => searchBtn.style.transform = 'translateY(-50%) scale(1)', 150);
-                
                 searchInput.blur(); // Hide keyboard
                 performSearch();
             });
         }
-        
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+                renderSaved();
+                searchInput.focus();
+            });
+        }
+
         // Also allow enter key to hide keyboard and perform search
         searchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
@@ -1306,15 +1422,15 @@
             }
         });
 
-
         // Close results on blur (with delay for click to register)
         searchInput.addEventListener('blur', () => {
             setTimeout(() => { resultsDiv.style.display = 'none'; }, 250);
         });
 
-        // Focus shows results again if there's content
+        // Focus: نتائج قائمة، وإلا المواقع المحفوظة — الشاشة لا تبقى فارغة أبداً
         searchInput.addEventListener('focus', () => {
-            if (resultsDiv.innerHTML.trim()) resultsDiv.style.display = 'block';
+            if (searchInput.value.trim().length >= 2 && resultsDiv.innerHTML.trim()) resultsDiv.style.display = 'block';
+            else renderSaved();
         });
 
         // Select a search result — move map + capture precise description for the captain
@@ -1326,24 +1442,19 @@
                 ? (pred.main + (pred.secondary ? '، ' + pred.secondary : ''))
                 : '';
 
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ placeId: placeId }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    const loc = results[0].geometry.location;
-                    const lat = loc.lat(), lng = loc.lng();
-                    if (window._activeMapInstance) {
-                        window._activeMapInstance.panTo(loc);
-                        window._activeMapInstance.setZoom(17);
-                    }
-                    // 📍 خزّن الوصف الدقيق ليُستخدم عند تأكيد الموقع (يراه الكابتن)
-                    const finalText = placeText || (results[0].formatted_address || '').replace(/،?\s*السودان\s*$/, '').trim();
-                    window._selectedSearchAddr = { text: finalText, lat, lng };
-                    const pv = document.getElementById('map-address-preview');
-                    if (pv && finalText) pv.innerHTML = `<i class="bi bi-geo-alt-fill" style="color:var(--primary);"></i> ${finalText}`;
-
-                    searchInput.value = '';
-                    resultsDiv.style.display = 'none';
-                }
+            // ⚠️ getDetails بنفس رمز الجلسة لا Geocoder: هذا ما يُغلق الجلسة عند جوجل
+            // فتُحسب كلها عمليةً واحدة. نداء Geocoder المنفصل كان يُحاسَب فوقها.
+            placesService.getDetails({
+                placeId: placeId,
+                fields: ['geometry', 'formatted_address', 'name'],
+                sessionToken: sessionToken
+            }, (place, status) => {
+                freshToken();   // استُهلك الرمز — الجلسة التالية تبدأ جديدة
+                if (status !== google.maps.places.PlacesServiceStatus.OK || !place || !place.geometry) return;
+                const loc = place.geometry.location;
+                const finalText = placeText || (place.formatted_address || place.name || '')
+                    .replace(/،?\s*السودان\s*$/, '').trim();
+                applySelection(loc.lat(), loc.lng(), finalText);
             });
         };
     })();
