@@ -317,6 +317,8 @@ async function loadAdminPlaces() {
         const statActiveEl = document.getElementById('statActivePlaces');
         if (statPlacesEl) statPlacesEl.textContent = places.length;
         if (statActiveEl) statActiveEl.textContent = places.filter(p => p.is_open).length;
+        const statErrandEl = document.getElementById('statErrandPlaces');
+        if (statErrandEl) statErrandEl.textContent = places.filter(p => p.errandEnabled).length;
     } catch (e) {
         document.querySelector('#placesTable tbody').innerHTML = '<tr><td colspan="5" style="color:red;text-align:center;">فشل التحميل</td></tr>';
     }
@@ -348,7 +350,22 @@ function renderAdminPlacesTable(places) {
 
     const defaultStoreSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2304553A' stroke-width='2'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E";
 
-    tbody.innerHTML = places.map(p => `
+    const pill = (bg, color, html) =>
+        `<span style="background:${bg};color:${color};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;">${html}</span>`;
+
+    tbody.innerHTML = places.map(p => {
+        // 🛍️ نوع المحل أهمّ من حالته: متجرٌ بتاجر يبيع منتجاته، ومحلٌّ بلا تاجر
+        // لا يصله إلا طلب "اشترِ لي". الخلط بينهما في جدول واحد بلا تمييز كان
+        // يُخفي أن المحلات المضافة للخدمة صفر.
+        const isErrand = !!p.errandEnabled;
+        const noOwner = !p.ownerId;
+        const kind = isErrand
+            ? pill('#ede9fe', '#5b21b6', '<i class="fas fa-bag-shopping"></i> اشترِ لي')
+            : (noOwner
+                ? pill('#fef3c7', '#92400e', '<i class="fas fa-user-slash"></i> بدون تاجر')
+                : pill('#dcfce7', '#166534', '<i class="fas fa-user-tie"></i> متجر بتاجر'));
+
+        return `
         <tr>
             <td>
                 <img src="${p.image_url ? getFullImageUrl(p.image_url) : defaultStoreSvg}" onerror="handlePlaceImageError(this)" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-left:8px;vertical-align:middle;background:#f3f4f6;padding:2px;">
@@ -356,6 +373,7 @@ function renderAdminPlacesTable(places) {
                 <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
                     <i class="bi bi-geo-alt-fill"></i> ${p.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}
                 </div>
+                <div style="margin-top:6px;">${kind}</div>
             </td>
             <td>${p.category?.name || '-'}</td>
             <td>${p.phone || '-'}</td>
@@ -370,6 +388,13 @@ function renderAdminPlacesTable(places) {
             : ''}
             </td>
             <td>
+                <!-- 🛍️ مفتاح سريع: تفعيل الخدمة لمحلٍّ قائم كان يتطلب فتح نافذة
+                     التعديل كاملة (خريطة وصور ومنتجات) لأجل مربّع واحد -->
+                <button onclick="toggleErrandEnabled('${p._id}', ${isErrand}, this)"
+                    title="${isErrand ? 'إيقاف إتاحته في اشترِ لي' : 'إتاحته في اشترِ لي'}"
+                    style="padding:6px 12px;font-size:12px;margin-left:6px;border:none;border-radius:8px;cursor:pointer;background:${isErrand ? '#7c3aed' : '#e5e7eb'};color:${isErrand ? '#fff' : '#6b7280'};">
+                    <i class="fas fa-bag-shopping"></i>
+                </button>
                 ${p.ownerId
             ? `<button onclick="togglePlaceTier('${p._id}', '${p.tier === 'pro' ? 'pro' : 'basic'}', '${(p.name || '').replace(/'/g, '')}')" title="تغيير باقة المتجر" style="padding:6px 12px;font-size:12px;margin-left:6px;background:${p.tier === 'pro' ? '#6d28d9' : '#94a3b8'};color:#fff;border:none;border-radius:8px;cursor:pointer;">
                     <i class="fas fa-crown"></i>
@@ -386,7 +411,8 @@ function renderAdminPlacesTable(places) {
                 </button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 
     // Initialize DataTables
     if (typeof $ !== 'undefined' && $.fn.dataTable) {
@@ -400,6 +426,30 @@ function renderAdminPlacesTable(places) {
             responsive: true,
             destroy: true
         });
+    }
+}
+
+/**
+ * 🛍️ تبديل إتاحة المحل في خدمة "اشترِ لي" من الجدول مباشرة.
+ * بلا تأكيد: العملية عكسية بضغطة، ونافذة تأكيد لكل تبديل تجعل ضبط عشرين محلاً عذاباً.
+ */
+async function toggleErrandEnabled(placeId, current, btn) {
+    const next = !current;
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
+    try {
+        const res = await fetch(`${API_URL}/api/places/${placeId}`, {
+            method: 'PUT', headers: headers(),
+            body: JSON.stringify({ errandEnabled: next })
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'فشل التحديث');
+        Swal.fire({
+            icon: 'success', toast: true, position: 'top-end', timer: 1800, showConfirmButton: false,
+            title: next ? 'صار متاحاً في "اشترِ لي"' : 'أُوقفت إتاحته في "اشترِ لي"'
+        });
+        loadAdminPlaces();
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
+        loadAdminPlaces();   // أعِد الرسم حتى لا يبقى الزر معطّلاً بحالة كاذبة
     }
 }
 
@@ -1096,9 +1146,52 @@ function setOwnerMode(mode) {
     }
 }
 
-function openAddPlaceModal() {
+/**
+ * 🛍️ وضع النافذة: 'merchant' متجر بتاجر، 'errand' محل بدون تاجر لخدمة "اشترِ لي".
+ *
+ * نافذة واحدة بوضعين لا نافذتان: الخريطة والدبوس والصورة ورفع الملفات منطقٌ ثقيل،
+ * ونسخُه لنافذة ثانية يعني عطلاً يُصلَح في واحدة ويبقى في الأخرى. الفرق بين
+ * الوضعين عرضٌ فقط: ما لا معنى له لمحلٍّ بلا تاجر (هاتفه، منيو، ساعات عمل،
+ * وصف تسويقي) يُخفى بدل أن يُملأ بلا فائدة.
+ */
+let _addPlaceMode = 'merchant';
+
+function applyAddPlaceMode(mode) {
+    _addPlaceMode = (mode === 'errand') ? 'errand' : 'merchant';
+    const isErrand = _addPlaceMode === 'errand';
+
+    document.querySelectorAll('#addPlaceForm [data-merchant-only]').forEach(el => {
+        el.style.display = isErrand ? 'none' : '';
+    });
+
+    const banner = document.getElementById('addPlaceErrandBanner');
+    if (banner) banner.style.display = isErrand ? 'block' : 'none';
+
+    // قسم التاجر بلا معنى هنا: الاختيار محسوم بالزر الذي فُتحت منه النافذة
+    const ownerSection = document.getElementById('addPlaceOwnerSection');
+    if (ownerSection) ownerSection.style.display = isErrand ? 'none' : '';
+
+    const title = document.getElementById('addPlaceTitle');
+    if (title) {
+        title.innerHTML = isErrand
+            ? '<i class="fas fa-bag-shopping"></i> إضافة محل بدون تاجر'
+            : '<i class="fas fa-store-alt"></i> إدراج منشأة';
+    }
+
+    const submit = document.getElementById('addPlaceSubmitBtn');
+    if (submit) {
+        submit.innerHTML = isErrand
+            ? '<i class="fas fa-check-double"></i> إضافة المحل لخدمة "اشترِ لي"'
+            : '<i class="fas fa-check-double"></i> تأكيد وإدراج المنشأة';
+        submit.style.background = isErrand ? 'linear-gradient(135deg,#7c3aed,#4f46e5)' : '';
+    }
+}
+
+function openAddPlaceModal(mode) {
     populateCategorySelect(); // refresh categories in select
-    setOwnerMode('new'); // افتراضياً: تاجر جديد
+    applyAddPlaceMode(mode);
+    // بلا تاجر في وضع "اشترِ لي" — وهو ما يجعل المحل خاضعاً للخدمة أصلاً
+    setOwnerMode(_addPlaceMode === 'errand' ? 'none' : 'new');
     document.getElementById('addPlaceModal').classList.add('show');
     // 🗺️ افتح الخريطة فوراً على مركز المدينة — الدبوس هو مصدر الموقع.
     // كانت مخفية حتى يلصق الأدمن رابطاً، فلا يجد أين يحدد الموقع أصلاً.
@@ -1107,6 +1200,9 @@ function openAddPlaceModal() {
 function closeAddPlaceModal() {
     document.getElementById('addPlaceModal').classList.remove('show');
     document.getElementById('addPlaceForm').reset();
+    // ⚠️ إعادة الوضع الافتراضي: بلا هذا تفتح النافذة التالية بحقول مخفية من
+    // الفتحة السابقة، فيُنشئ الأدمن متجر تاجر بلا هاتف ولا ساعات عمل بلا أن يدري
+    applyAddPlaceMode('merchant');
     clearMenuImage();
     clearPlaceImage();
     // مسح حقول التاجر
@@ -1147,6 +1243,14 @@ async function createPlace(e) {
     const ownerEmail = document.getElementById('ownerEmail')?.value.trim() || '';
     const ownerPassword = document.getElementById('ownerPassword')?.value.trim() || '';
     const ownerBankAccount = document.getElementById('ownerBankAccount')?.value.trim() || '';
+
+    // 🛍️ إتاحة المحل في "اشترِ لي".
+    // ⚠️ العطل الذي يُصلَح هنا: هذا الحقل لم يكن يُرسَل أصلاً عند الإنشاء، فكل محل
+    // يُضاف يولد بـ errandEnabled=false مهما كانت نيّة الأدمن. الطريق الوحيد
+    // لتفعيله كان: أنشئ المتجر، أغلق، افتح نافذة التعديل، ابحث عن مفتاح مدفون
+    // أسفلها — فلم يُفعَّل أيّ محل عملياً وبقيت الشاشة الأولى للخدمة فارغة.
+    const errandEnabled = (_addPlaceMode === 'errand') ||
+        (ownerMode === 'none' && !!document.getElementById('placeErrandEnabled')?.checked);
 
     if (!name || !category || !address) {
         Swal.fire('تنبيه', 'يرجى ملء الحقول الإلزامية (*): الاسم، التصنيف، العنوان', 'warning');
@@ -1203,7 +1307,7 @@ async function createPlace(e) {
         name, category, image_url, phone, whatsapp, address, map_url,
         notes, description, menu: menu_url,
         city, // 🌍 Add city to payload
-        location,
+        location, errandEnabled,
         workingHours: { open, close, days: [0, 1, 2, 3, 4, 5, 6] }
     };
 
@@ -1250,6 +1354,20 @@ async function createPlace(e) {
                     `,
                     confirmButtonText: 'حسناً',
                     confirmButtonColor: '#065f46'
+                });
+            } else if (errandEnabled) {
+                // تأكيدٌ يقول أين ظهر المحل فعلاً: "تمت الإضافة" وحدها لا تُطمئن
+                // الأدمن أن الخدمة صارت تعرضه، وهي بالضبط النقطة التي كانت تفشل
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تمت إضافة المحل',
+                    html: `<div style="text-align:right;line-height:2;font-size:14px;">
+                        <b>${name}</b> صار متاحاً في خدمة "اشترِ لي".<br>
+                        <span style="color:#6b7280;font-size:13px;">
+                            يظهر للعملاء في بحث الرئيسية وفي الشاشة الأولى لمنتقي "اشترِ لي".
+                        </span></div>`,
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#4f46e5'
                 });
             } else {
                 Swal.fire({ icon: 'success', title: 'تمت إضافة المحل بنجاح!', timer: 2000, showConfirmButton: false });

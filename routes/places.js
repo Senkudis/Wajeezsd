@@ -43,7 +43,15 @@ router.get('/', async (req, res) => {
         const query = { isActive: true };
         if (category_id) query.category = category_id;
         // 🛒 قائمة أماكن "اشترِ لي" المنسّقة (?errand=1) لمنتقي خدمة الشراء
-        if (req.query.errand === '1' || req.query.errand === 'true') query.errandEnabled = true;
+        if (req.query.errand === '1' || req.query.errand === 'true') {
+            query.errandEnabled = true;
+        } else if (req.query.city !== 'all') {
+            // 🛍️ محلٌّ بلا تاجر مُتاح في "اشترِ لي" ليس متجراً يُتصفَّح: لا مالك ولا
+            // منتجات ولا صفحة. عرضه في شبكة التسوّق كان يقود العميل إلى صفحة متجر
+            // فارغة — وعدٌ يكسره أول نقر. مكانه قسم "اشترِ لي" وحده.
+            // ⚠️ city=all استثناء مقصود: لوحة الأدمن تريد كل شيء لتديره.
+            query.$or = [{ errandEnabled: { $ne: true } }, { ownerId: { $ne: null } }];
+        }
 
         // 🌍 City isolation: only return places in the requested city.
         // If city='all', bypass the city filter (useful for admin dashboard).
@@ -149,6 +157,26 @@ router.get('/search', async (req, res) => {
             return obj;
         });
 
+        // 🛍️ فصل محلات "اشترِ لي" (بلا تاجر) عن المتاجر: بطاقتها تقود لطلب شراء لا
+        // لصفحة متجر فارغة، وعدُّها ضمن المتاجر كان يُخفي عن العميل أن محلّه غير
+        // مسجّل — فيدخل صفحةً بلا منتج واحد ويظنّ الخلل عندنا.
+        const errandPlaces = places
+            .filter(p => !p.ownerId && p.errandEnabled === true)
+            .map(p => ({
+                placeId: String(p._id),
+                name: p.name,
+                address: p.address || '',
+                lat: p.location ? p.location.lat : null,
+                lng: p.location ? p.location.lng : null,
+                image_url: p.image_url || '',
+                category: (p.category && p.category.name) || '',
+                distanceKm: p.distanceKm,
+                curated: true,
+                errandOnly: true,   // للواجهة: لا تفتح صفحة متجر — ابدأ طلب شراء
+                source: 'wajeez'    // مسجّل عندنا ⇒ الطلب يُربط بمعرّفه
+            }));
+        places = places.filter(p => !(!p.ownerId && p.errandEnabled === true));
+
         // منتجات للعرض (فقط ما متجره ضمن المدينة وفعّال) + اسم المتجر + المسافة
         let products = productDocs
             .filter(pr => placeMap[String(pr.placeId)])
@@ -170,7 +198,7 @@ router.get('/search', async (req, res) => {
             products.sort(byDist);
         }
 
-        res.json({ categories: matchedCats, places, products });
+        res.json({ categories: matchedCats, places, products, errandPlaces });
     } catch (err) {
         logger.error('Places Search Error:', err);
         res.status(500).json({ message: 'Server Error' });

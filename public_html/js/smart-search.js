@@ -187,6 +187,9 @@
                 // تجاهل الاستجابة إن تغيّر النص (سباق طلبات)
                 if (!fresh()) return;
                 lastData = data; filter = 'all';
+                // 🛍️ محلات "اشترِ لي" المسجّلة عندنا (أضافها الأدمن بلا تاجر) تتصدّر
+                // القسم: بياناتها مؤكَّدة ومختارة يدوياً، أدقّ من أي نتيجة خارجية.
+                mergeErrand(data.errandPlaces || [], true);
                 var total = (data.products || []).length + (data.places || []).length + (data.categories || []).length;
                 if (total > 0) saveRecent(q);
                 render();
@@ -205,7 +208,7 @@
             .then(function (d) {
                 if (!fresh()) return;
                 errandLoading = false;
-                errandList = withDistance(d.external || []);
+                mergeErrand(d.external || []);
                 // لا نرسم إن كان البحث الأصلي لم يصل بعد — رسمه ناقصاً ثم إكماله ارتجاف
                 if (lastData) render();
             })
@@ -347,10 +350,39 @@
         });
     }
 
+    /**
+     * يضمّ نتائج جديدة للقسم بلا تكرار.
+     * @param {boolean} [first] ضعها في المقدّمة (محلات منسّقة تسبق نتائج البحث)
+     */
+    function mergeErrand(list, first) {
+        // ⚠️ المطابقة بالاسم أيضاً لا بالمعرّف وحده: نفس المحل يصل من ردّين
+        // مختلفين بمعرّفين مختلفين (معرّفنا للمنسّق، ومعرّف جوجل للمتعلَّم)،
+        // فيظهر مرّتين للعميل — والتكرار يجعله يشكّ أيّهما الصحيح.
+        var keys = function (p) {
+            return [p.placeId, p.externalId, String(p.name || '').trim().toLowerCase()].filter(Boolean);
+        };
+        var seen = {};
+        var mark = function (p) { keys(p).forEach(function (k) { seen[k] = 1; }); };
+        errandList.forEach(mark);
+        var add = (list || []).filter(function (p) {
+            if (!p || keys(p).some(function (k) { return seen[k]; })) return false;
+            mark(p);
+            return true;
+        });
+        if (!add.length) return;
+        // withDistance يرتّب بالأقرب داخل كل مجموعة، والمنسّق يبقى فوق نتائج البحث
+        errandList = first
+            ? withDistance(add).concat(errandList)
+            : errandList.concat(withDistance(add));
+    }
+
     function errandCardHtml(p, i) {
         var isOurs = p.source === 'wajeez';
         var meta = [];
-        if (isOurs) meta.push('<span class="ss-eb ss-eb-ours"><i class="bi bi-patch-check-fill"></i> متجر مسجّل</span>');
+        // شارتان مختلفتان لحالتين مختلفتين: «متجر مسجّل» له صفحة ومنتجات، أما
+        // «محل موثّق» فمكانٌ اختاره الأدمن بلا تاجر — الوعد بصفحة لا يجوز هنا.
+        if (p.errandOnly) meta.push('<span class="ss-eb ss-eb-pick"><i class="bi bi-hand-thumbs-up-fill"></i> محل موثّق</span>');
+        else if (isOurs) meta.push('<span class="ss-eb ss-eb-ours"><i class="bi bi-patch-check-fill"></i> متجر مسجّل</span>');
         if (p.category) meta.push('<span class="ss-eb"><i class="bi bi-tag"></i> ' + esc(p.category) + '</span>');
         if (p.distanceKm != null) meta.push('<span class="ss-eb"><i class="bi bi-signpost-2"></i> ' + esc(fmtKm(p.distanceKm)) + '</span>');
 
@@ -407,9 +439,10 @@
             el.addEventListener('click', function () {
                 var p = errandList[parseInt(el.getAttribute('data-i'), 10)];
                 if (!p) return;
-                // متجرٌ مسجّل ظهر هنا (طابق العنوان لا الاسم): صفحته أغنى من طلب
-                // شراء أعمى — فيها منتجاته وأسعاره.
-                if (p.source === 'wajeez' && p.placeId) {
+                // متجرٌ مسجّل بتاجر ظهر هنا (طابق العنوان لا الاسم): صفحته أغنى من
+                // طلب شراء أعمى — فيها منتجاته وأسعاره. أما محل "اشترِ لي" فبلا
+                // صفحة أصلاً، وفتحها له وعدٌ فارغ.
+                if (p.source === 'wajeez' && p.placeId && !p.errandOnly) {
                     window.location.href = 'shop-detail.html?placeId=' + encodeURIComponent(p.placeId);
                     return;
                 }
@@ -447,16 +480,9 @@
             })
             .then(function (d) {
                 if ((inputEl.value || '').trim() !== q) return;
-                // المتعلَّم المعروض أولاً ثم الجديد، بلا تكرار
-                var seen = {};
-                var key = function (p) { return (p.externalId || String(p.name || '').trim().toLowerCase()); };
-                errandList.forEach(function (p) { seen[key(p)] = 1; });
-                var extra = (d.ours || []).concat(d.external || []).filter(function (p) {
-                    if (seen[key(p)]) return false;
-                    seen[key(p)] = 1;
-                    return true;
-                });
-                errandList = withDistance(errandList.concat(extra));
+                // المعروض يبقى في مكانه والجديد يُذيَّل — إعادة ترتيب القائمة تحت
+                // إصبع العميل تجعله يضغط غير ما نظر إليه
+                mergeErrand((d.ours || []).concat(d.external || []));
                 errandNote = d.externalError || '';
                 errandDeep = true; errandDeepBusy = false;
                 render();

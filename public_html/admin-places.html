@@ -20,11 +20,13 @@
 
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <link rel="stylesheet" href="css/admin-dashboard.css?v=0278f143">
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/admin-cache-buster.js?v=d70c699f"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
 </head>
 
 <body>
@@ -62,8 +64,8 @@
                 <button class="nav-item" onclick="location.href='admin-settings.html'">
                     <i class="fas fa-sliders-h"></i><span>إعدادات التسعير</span>
                 </button>
-                <button class="nav-item" onclick="location.href='admin-finance.html'" style="background:linear-gradient(135deg,rgba(10,135,84,0.15),rgba(6,163,102,0.1));border-right:3px solid #04553A;">
-                    <i class="fas fa-wallet" style="color:#04553A;"></i><span style="color:#04553A;font-weight:700;">الإدارة المالية 💳</span>
+                <button class="nav-item" onclick="location.href='admin-finance.html'" style="background:linear-gradient(135deg,rgba(10,135,84,0.15),rgba(6,163,102,0.1));border-right:3px solid var(--primary);">
+                    <i class="fas fa-wallet" style="color:var(--primary);"></i><span style="color:var(--primary);font-weight:700;">الإدارة المالية 💳</span>
                 </button>
             </nav>
 
@@ -118,15 +120,22 @@
                                 <i class="fas fa-folder-plus"></i> تصنيف جديد
                             </button>
                             <button class="btn-success-custom btn-custom"
-                                onclick="openAddPlaceModal()">
-                                <i class="fas fa-plus-circle"></i> إضافة متجر
+                                onclick="openAddPlaceModal('merchant')">
+                                <i class="fas fa-plus-circle"></i> متجر بتاجر
+                            </button>
+                            <!-- 🛍️ مدخل صريح لمحل "اشترِ لي": كان الوحيد لإضافته هو
+                                 إنشاء متجر كامل ثم فتح نافذة التعديل وتفعيل مفتاح مدفون —
+                                 خطوتان ومعرفةٌ ضمنية، فلم يُضَف أيّ محل عملياً. -->
+                            <button class="btn-custom" onclick="openAddPlaceModal('errand')"
+                                style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;">
+                                <i class="fas fa-bag-shopping"></i> محل بدون تاجر
                             </button>
                         </div>
                     </div>
 
                     <!-- 📊 Stats Cards -->
                     <div class="row g-3 mb-4" id="placesStatsCards">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="stat-card bg-primary text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;">
                                 <div class="stat-icon bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
                                     <i class="fas fa-store"></i>
@@ -137,7 +146,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="stat-card bg-success text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #198754, #157347) !important;">
                                 <div class="stat-icon bg-white text-success rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
                                     <i class="fas fa-check-circle"></i>
@@ -148,7 +157,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="stat-card bg-warning text-dark p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #ffc107, #ffb300) !important;">
                                 <div class="stat-icon bg-white text-warning rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
                                     <i class="fas fa-tags"></i>
@@ -156,6 +165,19 @@
                                 <div>
                                     <h6 class="mb-1" style="opacity:0.9;">إجمالي التصنيفات</h6>
                                     <h3 class="mb-0 fw-bold" id="statTotalCategories">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 🛍️ عدّاد منفصل: محلات "اشترِ لي" تُقاس بنفسها لا ضمن المتاجر —
+                             صفرٌ هنا يعني أن الشاشة الأولى للخدمة فارغة عند العملاء. -->
+                        <div class="col-md-3">
+                            <div class="stat-card text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;">
+                                <div class="stat-icon bg-white rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;color:#7c3aed;">
+                                    <i class="fas fa-bag-shopping"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1" style="opacity:0.9;">محلات "اشترِ لي"</h6>
+                                    <h3 class="mb-0 fw-bold" id="statErrandPlaces">0</h3>
                                 </div>
                             </div>
                         </div>
@@ -243,7 +265,21 @@
             <button class="modal-close-btn shadow-sm"
                 onclick="closeAddPlaceModal()"><i
                     class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-store-alt"></i> إدراج منشأة</h2>
+            <h2 class="modal-title" id="addPlaceTitle"><i class="fas fa-store-alt"></i> إدراج منشأة</h2>
+
+            <!-- 🛍️ لافتة وضع "اشترِ لي" — الأدمن يجب أن يعرف قبل أن يكتب أنه لا
+                 يُنشئ متجراً بمنتجات وأسعار، بل نقطةً على الخريطة يشتري منها الكابتن. -->
+            <div id="addPlaceErrandBanner" class="p-3 rounded-3 mb-3" style="display:none;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;">
+                <div class="fw-bold mb-1" style="color:#4f46e5;">
+                    <i class="fas fa-bag-shopping me-1"></i> محل بدون تاجر — خدمة "اشترِ لي"
+                </div>
+                <div class="small text-muted" style="line-height:1.8;">
+                    محلٌّ مشهور غير مسجّل عندنا: بلا حساب تاجر ولا منتجات ولا أسعار.
+                    يظهر للعميل في بحث الرئيسية وفي منتقي "اشترِ لي"، فيطلب منه والكابتن يشتري ويوصّل.
+                    <b>المطلوب: الاسم، القسم، المدينة، ودبوس الموقع.</b>
+                </div>
+            </div>
+
             <form id="addPlaceForm" onsubmit="createPlace(event)">
                 <div class="form-group">
                     <label class="form-label">لافتة المحل (الاسم)*</label>
@@ -256,7 +292,7 @@
                     </select>
                 </div>
                 
-                <div class="form-group mt-3">
+                <div class="form-group mt-3" data-merchant-only>
                     <label class="form-label">وصف المتجر (نبذة للعملاء)</label>
                     <textarea id="placeDescription" class="form-control" rows="2" maxlength="300" placeholder="نبذة موجزة عن المتجر وما يميزه..."></textarea>
                     <small class="text-muted">يظهر للعملاء في صفحة المتجر (اختياري).</small>
@@ -321,7 +357,7 @@
                     <input type="hidden" id="placeImage">
                 </div>
 
-                <div class="row g-3 form-group">
+                <div class="row g-3 form-group" data-merchant-only>
                     <div class="col-md-6">
                         <label class="form-label">رقم الاتصال المباشر</label>
                         <input type="tel" id="placePhone" class="form-control" dir="ltr" placeholder="09xxxxxxxx">
@@ -339,7 +375,7 @@
                 </div>
 
                 <!-- ⚙️ خيارات إضافية (اختيارية) — مطويّة لتبسيط النموذج -->
-                <details class="mt-3 p-2 border rounded-3" style="background:#fafafa;">
+                <details class="mt-3 p-2 border rounded-3" style="background:#fafafa;" data-merchant-only>
                     <summary class="fw-bold text-secondary" style="cursor:pointer;">
                         <i class="fas fa-sliders-h"></i> خيارات إضافية (اختيارية) — منيو وملاحظات
                     </summary>
@@ -418,7 +454,7 @@
                             <div id="adminPlaceMapCoords" class="text-muted small"></div>
                         </div>
                         <div style="position:relative;">
-                            <div id="adminPlaceMap" style="display: block; height:240px; border-radius:12px; border:2px solid #04553A; overflow:hidden; width: 100%; position:relative;"></div>
+                            <div id="adminPlaceMap" style="display: block; height:240px; border-radius:12px; border:2px solid var(--primary); overflow:hidden; width: 100%; position:relative;"></div>
                         </div>
                     </div>
 
@@ -440,7 +476,7 @@
                     </details>
                 </div>
 
-                <div class="row form-group mt-3 text-center">
+                <div class="row form-group mt-3 text-center" data-merchant-only>
                     <div class="col-6">
                         <label class="form-label">ساعة الفتح</label>
                         <input type="time" id="placeOpen" class="form-control text-center text-primary fw-bold"
@@ -456,7 +492,7 @@
                 <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
                 <!-- 👤 قسم بيانات التاجر (اختياري)            -->
                 <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-                <div class="form-group p-3 border rounded-3 mt-3" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border-color:#6ee7b7!important;">
+                <div id="addPlaceOwnerSection" class="form-group p-3 border rounded-3 mt-3" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border-color:#6ee7b7!important;">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <i class="fas fa-user-tie text-success" style="font-size:1.2rem;"></i>
                         <span class="fw-bold" style="color:#065f46;">بيانات التاجر (اختياري)</span>
@@ -514,14 +550,26 @@
 
                     <!-- حالة: بدون تاجر -->
                     <div id="ownerNoneInfo" style="display:none;">
-                        <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:12px;border-radius:8px;">
+                        <div class="alert alert-warning py-2 px-3 mb-2" style="font-size:12px;border-radius:8px;">
                             <i class="fas fa-exclamation-triangle me-1"></i>
                             سيُضاف المتجر بدون حساب تاجر. لن يتمكن أحد من إدارته حتى يتم ربطه لاحقاً.
+                        </div>
+                        <!-- ⚠️ متجرٌ بلا تاجر لا يملك منتجات ولا من يستقبل طلباته: الطريق
+                             الوحيد ليصله طلبُ عميلٍ هو "اشترِ لي". لذلك المفتاح مرفوع
+                             افتراضياً هنا — تركه مطفأً يعني محلاً لا يراه أحد ولا يفيد أحداً. -->
+                        <div class="form-check form-switch p-3 rounded-3" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+                            <input class="form-check-input" type="checkbox" id="placeErrandEnabled" checked style="cursor:pointer;">
+                            <label class="form-check-label fw-bold" for="placeErrandEnabled" style="cursor:pointer;color:#4f46e5;">
+                                <i class="fas fa-bag-shopping me-1"></i> إتاحته في خدمة "اشترِ لي"
+                            </label>
+                            <div class="small text-muted mt-1">
+                                يظهر في بحث العملاء وفي منتقي "اشترِ لي" — والكابتن يشتري منه نيابةً عنهم.
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-success-custom btn-custom w-100 justify-content-center mt-4 py-3">
+                <button type="submit" id="addPlaceSubmitBtn" class="btn-success-custom btn-custom w-100 justify-content-center mt-4 py-3">
                     <i class="fas fa-check-double"></i> تأكيد وإدراج المنشأة
                 </button>
             </form>
@@ -701,7 +749,7 @@
                         <div id="editPlaceMapCoords" class="text-muted small"></div>
                     </div>
                     <div style="position:relative;">
-                        <div id="editPlaceMap" style="display: block; height:220px; border-radius:12px; border:2px solid #04553A; overflow:hidden; width: 100%; position:relative;"></div>
+                        <div id="editPlaceMap" style="display: block; height:220px; border-radius:12px; border:2px solid var(--primary); overflow:hidden; width: 100%; position:relative;"></div>
                     </div>
 
                     <input type="hidden" id="editPlaceLat">
@@ -809,10 +857,10 @@
     <script>loadGoogleMaps({ libraries: 'places' });</script>
 
 
-    <script src="js/admin-places.js?v=97ebb7db"></script>
+    <script src="js/admin-places.js?v=2fb61c04"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
 
 </body>
 

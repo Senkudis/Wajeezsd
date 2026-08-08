@@ -445,6 +445,7 @@
     background: #f1f5f9; border-radius: 99px; padding: 2px 8px;
 }
 .ss-eb-ours { background: #dcfce7; color: #15803d; }
+.ss-eb-pick { background: #ede9fe; color: #5b21b6; }
 
 .ss-eload {
     display: flex; align-items: center; gap: 8px;
@@ -541,6 +542,7 @@ body.dark-mode .ss-ename { color: #f1f5f9; }
 body.dark-mode .ss-eic { background: #2b2350; color: #a78bfa; }
 body.dark-mode .ss-eb { background: #263449; color: #94a3b8; }
 body.dark-mode .ss-eb-ours { background: #14532d; color: #86efac; }
+body.dark-mode .ss-eb-pick { background: #2b2350; color: #c4b5fd; }
 body.dark-mode .ss-noresult h6 { color: #cbd5e1; }
 body.dark-mode .ss-noresult-ic { background: #2b2350; color: #a78bfa; }
 
