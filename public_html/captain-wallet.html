@@ -6,33 +6,48 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>محفظتي | كابتن</title>
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <!-- Bootstrap 5 RTL -->
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/tour.css?v=92063527">
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="vendor/image-compression/browser-image-compression.js"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         /* إضافة ستايلات إضافية خاصة بالمحفظة (لكن تحترم النسق العام) */
         .wallet-card {
             /* ✅ تمّ توحيد النسق مع هوية الكابتن بالأخضر الرسمي */
-            background: linear-gradient(145deg, #023d2a 0%, #04553A 45%, #065f42 100%);
+            background: linear-gradient(145deg, #023d2a 0%, var(--primary) 45%, #065f42 100%);
             border-radius: 22px;
             padding: 22px;
             color: white;
             position: relative;
             overflow: hidden;
             box-shadow: 0 12px 35px rgba(4, 85, 58, 0.45);
-            margin-top: -40px;
+            /* ⚠️ كان هنا margin-top:-40px ليتداخل الكرت مع الترويسة، وهو
+               تداخل لا يعمل أصلاً: .app-header لاصقة (sticky) بـ z-index:100
+               فترسم دائماً فوق الكرت، فيختفي أول 40px منه — وفيها بالضبط
+               عنوان "رصيد المحفظة" وشارة الحالة. والتداخل مع ترويسة لاصقة
+               متناقض بطبعه: هي تبقى ثابتة والمحتوى يمرّ تحتها عند التمرير. */
+            margin-top: 4px;
         }
 
         .wallet-card::before {
@@ -57,11 +72,29 @@
             background: rgba(10, 135, 84, 0.15);
         }
 
+        @media (max-width: 380px) {
+            .wallet-balance { font-size: 1.8rem !important; }
+        }
+
+        /* البطاقتان في شبكة واحدة: التفاف المبلغ لسطرين كان يطوّل إحداهما
+           فتبدوان غير متساويتين. المبلغ سطر واحد والبطاقة تُمطّ للأطول. */
+        .stats-grid > .card { height: 100%; }
+        .stats-grid .fs-5 { white-space: nowrap; }
+
         .wallet-balance {
             font-size: 2.2rem;
             font-weight: 900;
             letter-spacing: 1px;
             margin: 8px 0 4px;
+        }
+
+        /* المبالغ داخل سياق عربي: الرقم وإشارته يُعزلان اتجاهياً.
+           بدون العزل يضع خوارزم bidi إشارة السالب على الطرف البصري
+           الخطأ فيقرأ الكابتن مديونيته رصيداً موجباً. */
+        .num {
+            unicode-bidi: isolate;
+            direction: ltr;
+            display: inline-block;
         }
 
         .wallet-balance.negative {
@@ -173,251 +206,252 @@
             margin: 0 auto 12px;
         }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body class="bg-light">
 
-    <!-- Header Section -->
-    <div class="app-header text-center pb-5 pt-4">
-        <h2 class="h4 fw-bold text-white mb-1">محفظتي 💳</h2>
-        <p class="text-white opacity-75 small mb-4">رصيد المديونية والمدفوعات</p>
-    </div>
+ <!-- Header Section -->
+ <div class="app-header text-center pb-3" style="padding-top: calc(1.25rem + var(--sat, 0px));">
+ <h2 class="h4 fw-bold text-white mb-1">محفظتي</h2>
+ <p class="text-white opacity-75 small mb-4">رصيد المديونية والمدفوعات</p>
+ </div>
 
-    <!-- Main Content -->
-    <div class="container mb-5 pb-5">
+ <!-- Main Content -->
+ <div class="container mb-5 pb-5">
 
-        <!-- WALLET CARD (Overlaps Header) -->
-        <div class="wallet-card mb-4 mx-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="small text-white-50">رصيد المحفظة</span>
-                <span class="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold" id="wStatusChip">
-                    <i class="bi bi-check-circle-fill text-success"></i> نشط
-                </span>
-            </div>
+ <!-- WALLET CARD (Overlaps Header) -->
+ <div class="wallet-card mb-4 mx-2">
+ <div class="d-flex justify-content-between align-items-center mb-2">
+ <span class="small text-white-50">رصيد المحفظة</span>
+ <span class="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold" id="wStatusChip">
+ <i class="bi bi-check-circle-fill text-success"></i> نشط
+ </span>
+ </div>
 
-            <div class="wallet-balance skeleton" id="wBalance">جاري التحميل...</div>
+ <div class="wallet-balance skeleton" id="wBalance">جاري التحميل...</div>
 
-            <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
-                <div>
-                    <span class="d-block small text-white-50">الحد الائتماني</span>
-                    <span class="fw-bold text-danger" id="wLimit">-5000 ج.س</span>
-                </div>
-                <div class="text-end">
-                    <span class="d-block small text-white-50">نسبة المديونية</span>
-                    <span class="fw-bold text-white" id="wPct">0%</span>
-                </div>
-            </div>
+ <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+ <div>
+ <span class="d-block small text-white-50">الحد الائتماني</span>
+ <span class="fw-bold text-danger" id="wLimit">-5000 ج.س</span>
+ </div>
+ <div class="text-end">
+ <span class="d-block small text-white-50">نسبة المديونية</span>
+ <span class="fw-bold text-white" id="wPct">0%</span>
+ </div>
+ </div>
 
-            <div class="progress-track mb-3">
-                <div class="progress-fill" id="wBar"></div>
-            </div>
+ <div class="progress-track mb-3">
+ <div class="progress-fill" id="wBar"></div>
+ </div>
 
-            <div class="small text-white-50">
-                <i class="bi bi-info-circle me-1"></i> تُخصم عمولة التطبيق تلقائياً بعد كل توصيل
-            </div>
-        </div>
+ <div class="small text-white-50">
+ <i class="bi bi-info-circle me-1"></i> تُخصم عمولة التطبيق تلقائياً بعد كل توصيل
+ </div>
+ </div>
 
-        <!-- STATS GRID -->
-        <div class="stats-grid mb-4 mx-2">
-            <div class="card glass-card border-0 p-3 d-flex flex-row align-items-center gap-3">
-                <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
-                    <i class="bi bi-arrow-down-circle-fill fs-4"></i>
-                </div>
-                <div>
-                    <small class="text-muted d-block">إجمالي العمولات</small>
-                    <span class="fw-bold text-dark fs-5" id="wTotalDeducted">—</span>
-                </div>
-            </div>
-            <div class="card glass-card border-0 p-3 d-flex flex-row align-items-center gap-3 mt-3">
-                <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
-                    <i class="bi bi-arrow-up-circle-fill fs-4"></i>
-                </div>
-                <div>
-                    <small class="text-muted d-block">أجمالي المدفوعات</small>
-                    <span class="fw-bold text-dark fs-5" id="wTotalPaid">—</span>
-                </div>
-            </div>
-        </div>
+ <!-- STATS GRID -->
+ <div class="stats-grid mb-4 mx-2">
+ <div class="card glass-card border-0 p-3 d-flex flex-row align-items-center gap-3">
+ <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+ <i class="bi bi-arrow-down-circle-fill fs-4"></i>
+ </div>
+ <div>
+ <small class="text-muted d-block">إجمالي العمولات</small>
+ <span class="fw-bold text-dark fs-5" id="wTotalDeducted">—</span>
+ </div>
+ </div>
+ <div class="card glass-card border-0 p-3 d-flex flex-row align-items-center gap-3">
+ <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
+ <i class="bi bi-arrow-up-circle-fill fs-4"></i>
+ </div>
+ <div>
+ <small class="text-muted d-block">إجمالي المدفوعات</small>
+ <span class="fw-bold text-dark fs-5" id="wTotalPaid">—</span>
+ </div>
+ </div>
+ </div>
 
-        <!-- PAY BUTTON -->
-        <div class="px-2 mb-4">
-            <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm fs-6" id="mainPayBtn"
+ <!-- PAY BUTTON -->
+ <div class="px-2 mb-4">
+ <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm fs-6" id="mainPayBtn"
                 onclick="openSheet()">
-                <i class="bi bi-send-check-fill me-2"></i> إرسال إشعار سداد
-            </button>
-        </div>
+ <i class="bi bi-send-check-fill me-2"></i> إرسال إشعار سداد
+ </button>
+ </div>
 
-        <h5 class="fw-bold mb-3 text-secondary px-2">سجل الدفعات السابقة</h5>
+ <h5 class="fw-bold mb-3 text-secondary px-2">سجل الدفعات السابقة</h5>
 
-        <!-- PAYMENT HISTORY LIST -->
-        <div id="payHistoryList" class="px-2">
-            <!-- Skeleton items -->
-            <div class="pay-history-card">
-                <div class="skeleton rounded-circle" style="width:44px;height:44px;"></div>
-                <div class="flex-grow-1">
-                    <div class="skeleton rounded mb-2" style="height:16px;width:100px;"></div>
-                    <div class="skeleton rounded" style="height:12px;width:70px;"></div>
-                </div>
-            </div>
-        </div>
+ <!-- PAYMENT HISTORY LIST -->
+ <div id="payHistoryList" class="px-2">
+ <!-- Skeleton items -->
+ <div class="pay-history-card">
+ <div class="skeleton rounded-circle" style="width:44px;height:44px;"></div>
+ <div class="flex-grow-1">
+ <div class="skeleton rounded mb-2" style="height:16px;width:100px;"></div>
+ <div class="skeleton rounded" style="height:12px;width:70px;"></div>
+ </div>
+ </div>
+ </div>
 
-        <!-- ── سجل التعاملات الكامل ── -->
-        <h5 class="fw-bold mt-4 mb-3 text-secondary px-2">📋 سجل التعاملات</h5>
-        <div id="txList" class="px-2">
-            <div class="pay-history-card">
-                <div class="skeleton rounded-circle" style="width:44px;height:44px;"></div>
-                <div class="flex-grow-1">
-                    <div class="skeleton rounded mb-2" style="height:16px;width:120px;"></div>
-                    <div class="skeleton rounded" style="height:12px;width:80px;"></div>
-                </div>
-            </div>
-        </div>
-        <div class="text-center py-2 px-2" id="txLoadMoreBtn" style="display:none;">
-            <button class="btn btn-outline-secondary btn-sm rounded-pill px-4" onclick="loadMoreTx()">
-                <i class="bi bi-arrow-down-circle me-1"></i> تحميل المزيد
-            </button>
-        </div>
-    </div>
+ <!-- ── سجل التعاملات الكامل ── -->
+ <h5 class="fw-bold mt-4 mb-3 text-secondary px-2"> سجل التعاملات</h5>
+ <div id="txList" class="px-2">
+ <div class="pay-history-card">
+ <div class="skeleton rounded-circle" style="width:44px;height:44px;"></div>
+ <div class="flex-grow-1">
+ <div class="skeleton rounded mb-2" style="height:16px;width:120px;"></div>
+ <div class="skeleton rounded" style="height:12px;width:80px;"></div>
+ </div>
+ </div>
+ </div>
+ <div class="text-center py-2 px-2" id="txLoadMoreBtn" style="display:none;">
+ <button class="btn btn-outline-secondary btn-sm rounded-pill px-4" onclick="loadMoreTx()">
+ <i class="bi bi-arrow-down-circle me-1"></i> تحميل المزيد
+ </button>
+ </div>
+ </div>
 
-    <!-- BOTTOM SHEET FOR PAYMENT -->
-    <div class="sheet-backdrop" id="paySheet" onclick="handleBackdropClick(event)">
-        <div class="sheet shadow-lg">
-            <div class="sheet-handle"></div>
-            <h3 class="h5 fw-bold text-center mb-2">إرسال إشعار السداد</h3>
-            <p class="text-muted small text-center mb-4">
-                حوّل المبلغ عبر بنكك (بنك الخرطوم / بنكك) ثم أدخل تفاصيل الإشعار
-            </p>
+ <!-- BOTTOM SHEET FOR PAYMENT -->
+ <div class="sheet-backdrop" id="paySheet" onclick="handleBackdropClick(event)">
+ <div class="sheet shadow-lg">
+ <div class="sheet-handle"></div>
+ <h3 class="h5 fw-bold text-center mb-2">إرسال إشعار السداد</h3>
+ <p class="text-muted small text-center mb-4">
+ حوّل المبلغ عبر بنكك (بنك الخرطوم / بنكك) ثم أدخل تفاصيل الإشعار
+ </p>
 
-            <div class="mb-3">
-                <label class="form-label small fw-bold">المبلغ المحوّل (ج.س) *</label>
-                <input type="number" id="sfAmount" class="form-control form-control-lg bg-light" min="1"
+ <div class="mb-3">
+ <label class="form-label small fw-bold">المبلغ المحوّل (ج.س) *</label>
+ <input type="number" id="sfAmount" class="form-control form-control-lg bg-light" min="1"
                     placeholder="مثال: 2000">
-            </div>
+ </div>
 
-            <div class="mb-3">
-                <label class="form-label small fw-bold">رقم إشعار التحويل *</label>
-                <input type="text" id="sfTransId" class="form-control form-control-lg bg-light"
+ <div class="mb-3">
+ <label class="form-label small fw-bold">رقم إشعار التحويل *</label>
+ <input type="text" id="sfTransId" class="form-control form-control-lg bg-light"
                     placeholder="مثال: 20240322343421">
-            </div>
+ </div>
 
-            <div class="mb-4">
-                <label class="form-label small fw-bold">صورة الإشعار </label>
-                <img id="sfPreview" class="receipt-preview" style="display:none;" src="" alt="إشعار">
-                <label for="sfFile" class="upload-label" id="sfUploadLabel">
-                    <i class="bi bi-camera fs-4"></i> إرفاق صورة الإشعار
-                </label>
-                <input type="file" id="sfFile" accept="image/*" class="d-none" onchange="handleFileSelect(this)">
-            </div>
+ <div class="mb-4">
+ <label class="form-label small fw-bold">صورة الإشعار </label>
+ <img id="sfPreview" class="receipt-preview" style="display:none;" src="" alt="إشعار">
+ <label for="sfFile" class="upload-label" id="sfUploadLabel">
+ <i class="bi bi-camera fs-4"></i> إرفاق صورة الإشعار
+ </label>
+ <input type="file" id="sfFile" accept="image/*" class="d-none" onchange="handleFileSelect(this)">
+ </div>
 
-            <div class="alert alert-danger d-none py-2 px-3 small mx-0" id="sfError"></div>
+ <div class="alert alert-danger d-none py-2 px-3 small mx-0" id="sfError"></div>
 
-            <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm" id="sfSubmitBtn"
+ <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm" id="sfSubmitBtn"
                 onclick="submitPayment()">
-                <i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال
-            </button>
-            <button class="btn btn-light w-100 py-2 fw-bold rounded-pill border text-muted mt-2" onclick="closeSheet()">
-                إلغاء
-            </button>
-        </div>
-    </div>
+ <i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال
+ </button>
+ <button class="btn btn-light w-100 py-2 fw-bold rounded-pill border text-muted mt-2" onclick="closeSheet()">
+ إلغاء
+ </button>
+ </div>
+ </div>
 
-    <!-- Bottom Navigation -->
-    <nav class="mobile-nav-glass">
-        <a href="captain-dashboard.html" class="nav-item-link">
-            <i class="bi bi-house-door-fill"></i>
-        </a>
-        <a href="captain-orders.html" class="nav-item-link">
-            <i class="bi bi-bicycle"></i>
-        </a>
-        <a href="captain-missions.html" class="nav-item-link">
-            <i class="bi bi-card-checklist"></i>
-        </a>
-        <a href="captain-notifications.html" class="nav-item-link">
-            <i class="bi bi-bell-fill"></i>
-        </a>
-        <a href="captain-profile.html" class="nav-item-link">
-            <i class="bi bi-person-circle"></i>
-        </a>
-    </nav>
+ <!-- Bottom Navigation -->
+ <nav class="mobile-nav-glass">
+ <a href="captain-dashboard.html" class="nav-item-link">
+ <i class="bi bi-house-door-fill"></i>
+ </a>
+ <a href="captain-orders.html" class="nav-item-link">
+ <i class="bi bi-bicycle"></i>
+ </a>
+ <a href="captain-missions.html" class="nav-item-link">
+ <i class="bi bi-card-checklist"></i>
+ </a>
+ <a href="captain-notifications.html" class="nav-item-link">
+ <i class="bi bi-bell-fill"></i>
+ </a>
+ <a href="captain-profile.html" class="nav-item-link">
+ <i class="bi bi-person-circle"></i>
+ </a>
+ </nav>
 
 
-    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+ <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+ <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
-    <script>
-        // Check Auth
-        if (!window.Auth || !window.Auth.isAuthenticated()) {
-            window.location.href = 'captain-login.html';
-        }
-        const token = window.Auth.getToken();
-        const H = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+ <script>
+ // Check Auth
+ if (!window.Auth || !window.Auth.isAuthenticated()) {
+ window.location.href = 'captain-login.html';
+ }
+ const token = window.Auth.getToken();
+ const H = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-        let receiptBase64 = null;
+ let receiptBase64 = null;
 
-        async function initPage() {
-            await loadWallet();
-            await loadHistory();
-            loadTransactions(1);   // ✅ سجل التعاملات الكامل
-        }
+ async function initPage() {
+ await loadWallet();
+ await loadHistory();
+ loadTransactions(1); // سجل التعاملات الكامل
+ }
 
-        async function loadWallet() {
-            try {
-                const res = await fetchWithRetry(`${API_URL}/api/captain/wallet`, { headers: H });
-                if (!res.ok) return;
-                const walletData = await res.json();
+ async function loadWallet() {
+ try {
+ const res = await fetchWithRetry(`${API_URL}/api/captain/wallet`, { headers: H });
+ if (!res.ok) return;
+ const walletData = await res.json();
 
-                const balance = walletData.wallet_balance ?? 0;
-                const limit = walletData.credit_limit ?? -5000;
+ const balance = walletData.wallet_balance ?? 0;
+ const limit = walletData.credit_limit ?? -5000;
 
-                const balEl = document.getElementById('wBalance');
-                balEl.textContent = `${balance.toFixed(0)} ج.س`;
-                balEl.className = `wallet-balance ${balance < 0 ? 'negative' : 'positive'}`;
+ const balEl = document.getElementById('wBalance');
+ balEl.innerHTML = `<span class="num">${balance.toFixed(0)}</span> ج.س`;
+ balEl.className = `wallet-balance ${balance < 0 ? 'negative' : 'positive'}`;
                 balEl.classList.remove('skeleton');
 
-                document.getElementById('wLimit').textContent = `${limit.toFixed(0)} ج.س`;
+                document.getElementById('wLimit').innerHTML = `<span class="num">${limit.toFixed(0)}</span> ج.س`;
 
-                // 📊 BUG #27: Unified debtPercentage formula (same as captain-dashboard.html)
-                const debtPercentage = balance === 0 ? 0 : Math.min(100, Math.max(0, (balance / limit) * 100));
+ // BUG #27: Unified debtPercentage formula (same as captain-dashboard.html)
+ const debtPercentage = balance === 0 ? 0 : Math.min(100, Math.max(0, (balance / limit) * 100));
 
-                document.getElementById('wPct').textContent = `${Math.round(debtPercentage)}%`;
-                document.getElementById('wBar').style.width = `${Math.min(Math.round(debtPercentage), 100)}%`;
+ document.getElementById('wPct').textContent = `${Math.round(debtPercentage)}%`;
+ document.getElementById('wBar').style.width = `${Math.min(Math.round(debtPercentage), 100)}%`;
 
-                const chip = document.getElementById('wStatusChip');
-                if (walletData.is_blocked) {
-                    chip.className = 'badge bg-danger rounded-pill px-3 py-1 fw-bold text-white';
-                    chip.innerHTML = '<i class="bi bi-lock-fill"></i> موقوف، الرجاء السداد';
+ const chip = document.getElementById('wStatusChip');
+ if (walletData.is_blocked) {
+ chip.className = 'badge bg-danger rounded-pill px-3 py-1 fw-bold text-white';
+ chip.innerHTML = '<i class="bi bi-lock-fill"></i> موقوف، الرجاء السداد';
                 } else if (debtPercentage >= 80) {
-                    chip.className = 'badge bg-warning rounded-pill px-3 py-1 fw-bold text-dark';
-                    chip.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> قريب من الحد';
-                } else {
-                    chip.className = 'badge bg-white text-dark rounded-pill px-3 py-1 fw-bold shadow-sm';
-                    chip.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> الحساب نشط';
-                }
-            } catch (e) {
-                document.getElementById('wBalance').textContent = '—';
-                document.getElementById('wBalance').classList.remove('skeleton');
-            }
-        }
+ chip.className = 'badge bg-warning rounded-pill px-3 py-1 fw-bold text-dark';
+ chip.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> قريب من الحد';
+ } else {
+ chip.className = 'badge bg-white text-dark rounded-pill px-3 py-1 fw-bold shadow-sm';
+ chip.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> الحساب نشط';
+ }
+ } catch (e) {
+ document.getElementById('wBalance').textContent = '—';
+ document.getElementById('wBalance').classList.remove('skeleton');
+ }
+ }
 
-        async function loadHistory() {
-            const list = document.getElementById('payHistoryList');
-            try {
-                const res = await fetchWithRetry(`${API_URL}/api/captain/wallet/pay/history`, { headers: H });
-                if (!res.ok) return;
-                const data = await res.json();
-                renderHistory(list, data.requests || []);
-            } catch (e) {
-                list.innerHTML = `<div class="text-center text-muted p-4"><i class="bi bi-cloud-slash fs-1"></i><p>تعذّر تحميل البيانات</p></div>`;
-            }
-        }
+ async function loadHistory() {
+ const list = document.getElementById('payHistoryList');
+ try {
+ const res = await fetchWithRetry(`${API_URL}/api/captain/wallet/pay/history`, { headers: H });
+ if (!res.ok) return;
+ const data = await res.json();
+ renderHistory(list, data.requests || []);
+ } catch (e) {
+ list.innerHTML = `<div class="text-center text-muted p-4"><i class="bi bi-cloud-slash fs-1"></i><p>تعذّر تحميل البيانات</p></div>`;
+ }
+ }
 
-        function renderHistory(container, requests) {
-            if (!requests.length) {
-                container.innerHTML = `
-                    <div class="text-center text-muted p-4 bg-white rounded-4 border">
-                        <i class="bi bi-receipt fs-1 d-block mb-2 opacity-50"></i>
-                        <p class="mb-0">لا توجد طلبات سداد سابقة</p>
-                    </div>`;
+ function renderHistory(container, requests) {
+ if (!requests.length) {
+ container.innerHTML = `
+ <div class="text-center text-muted p-4 bg-white rounded-4 border">
+ <i class="bi bi-receipt fs-1 d-block mb-2 opacity-50"></i>
+ <p class="mb-0">لا توجد طلبات سداد سابقة</p>
+ </div>`;
                 updatePayButton(null);
                 document.getElementById('wTotalPaid').textContent = '0 ج.س';
                 document.getElementById('wTotalDeducted').textContent = '0 ج.س'; // Approximated later or from API
@@ -431,58 +465,58 @@
             };
 
             container.innerHTML = requests.map(r => {
-                const s = statusMap[r.status] || statusMap.pending;
-                const date = new Date(r.createdAt).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric' });
-                return `
-                    <div class="pay-history-card">
-                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center border shadow-sm" style="width:50px; height:50px;">
-                            <i class="bi ${s.icon} fs-4"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold fs-6">${(r.amount || 0).toLocaleString()} ج.س</span>
-                                <span class="badge ${s.badge} rounded-pill font-monospace" style="font-size: 0.7rem">${s.label}</span>
-                            </div>
-                            <small class="text-muted d-block" style="font-size: 0.8rem">رقم الإشعار: ${r.transactionId || '—'}</small>
-                            ${r.adminNote ? `<small class="text-danger d-block mt-1" style="font-size: 0.75rem"><i class="bi bi-info-circle me-1"></i> ${r.adminNote}</small>` : ''}
-                            <small class="text-muted opacity-75" style="font-size: 0.7rem">${date}</small>
-                        </div>
-                    </div>`;
+ const s = statusMap[r.status] || statusMap.pending;
+ const date = new Date(r.createdAt).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric' });
+ return `
+ <div class="pay-history-card">
+ <div class="bg-light rounded-circle d-flex align-items-center justify-content-center border shadow-sm" style="width:50px; height:50px;">
+ <i class="bi ${s.icon} fs-4"></i>
+ </div>
+ <div class="flex-grow-1">
+ <div class="d-flex justify-content-between align-items-center mb-1">
+ <span class="fw-bold fs-6">${(r.amount || 0).toLocaleString()} ج.س</span>
+ <span class="badge ${s.badge} rounded-pill font-monospace" style="font-size: 0.7rem">${s.label}</span>
+ </div>
+ <small class="text-muted d-block" style="font-size: 0.8rem">رقم الإشعار: ${r.transactionId || '—'}</small>
+ ${r.adminNote ? `<small class="text-danger d-block mt-1" style="font-size: 0.75rem"><i class="bi bi-info-circle me-1"></i> ${r.adminNote}</small>` : ''}
+ <small class="text-muted opacity-75" style="font-size: 0.7rem">${date}</small>
+ </div>
+ </div>`;
             }).join('');
 
             // Update totals visually
             const totalPaid = requests.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.amount || 0), 0);
-            document.getElementById('wTotalPaid').textContent = `${totalPaid.toLocaleString()} ج.س`;
+ document.getElementById('wTotalPaid').innerHTML = `<span class="num">${totalPaid.toLocaleString()}</span> ج.س`;
 
-            // update bottom
-            updatePayButton(requests[0]);
-        }
+ // update bottom
+ updatePayButton(requests[0]);
+ }
 
-        function updatePayButton(latestReq) {
-            const btn = document.getElementById('mainPayBtn');
-            if (!latestReq || latestReq.status !== 'pending') {
-                btn.className = 'btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm fs-6';
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> إرسال إشعار سداد';
-                btn.onclick = openSheet;
-            } else {
-                btn.className = 'btn btn-warning w-100 py-3 fw-bold rounded-pill shadow-sm fs-6 text-dark';
-                btn.disabled = true;
-                btn.innerHTML = '<i class="bi bi-hourglass-split me-2 spin"></i> طلبك قيد المراجعة...';
-            }
-        }
+ function updatePayButton(latestReq) {
+ const btn = document.getElementById('mainPayBtn');
+ if (!latestReq || latestReq.status !== 'pending') {
+ btn.className = 'btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm fs-6';
+ btn.disabled = false;
+ btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> إرسال إشعار سداد';
+ btn.onclick = openSheet;
+ } else {
+ btn.className = 'btn btn-warning w-100 py-3 fw-bold rounded-pill shadow-sm fs-6 text-dark';
+ btn.disabled = true;
+ btn.innerHTML = '<i class="bi bi-hourglass-split me-2 spin"></i> طلبك قيد المراجعة...';
+ }
+ }
 
-        function openSheet() {
-            document.getElementById('sfAmount').value = '';
-            document.getElementById('sfTransId').value = '';
-            document.getElementById('sfFile').value = '';
-            document.getElementById('sfPreview').style.display = 'none';
-            document.getElementById('sfUploadLabel').style.display = 'flex';
-            document.getElementById('sfError').classList.add('d-none');
+ function openSheet() {
+ document.getElementById('sfAmount').value = '';
+ document.getElementById('sfTransId').value = '';
+ document.getElementById('sfFile').value = '';
+ document.getElementById('sfPreview').style.display = 'none';
+ document.getElementById('sfUploadLabel').style.display = 'flex';
+ document.getElementById('sfError').classList.add('d-none');
 
-            const btn = document.getElementById('sfSubmitBtn');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال';
+ const btn = document.getElementById('sfSubmitBtn');
+ btn.disabled = false;
+ btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال';
             receiptBase64 = null;
             document.getElementById('paySheet').classList.add('open');
         }
@@ -507,64 +541,64 @@
             }
             const reader = new FileReader();
             reader.onload = (e) => {
-                receiptBase64 = e.target.result;
-                const preview = document.getElementById('sfPreview');
-                const label = document.getElementById('sfUploadLabel');
-                preview.src = receiptBase64;
-                preview.style.display = 'block';
-                label.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
-        }
+ receiptBase64 = e.target.result;
+ const preview = document.getElementById('sfPreview');
+ const label = document.getElementById('sfUploadLabel');
+ preview.src = receiptBase64;
+ preview.style.display = 'block';
+ label.style.display = 'none';
+ };
+ reader.readAsDataURL(file);
+ }
 
-        async function submitPayment() {
-            const amount = document.getElementById('sfAmount').value.trim();
-            const transId = document.getElementById('sfTransId').value.trim();
-            const errEl = document.getElementById('sfError');
-            const btn = document.getElementById('sfSubmitBtn');
+ async function submitPayment() {
+ const amount = document.getElementById('sfAmount').value.trim();
+ const transId = document.getElementById('sfTransId').value.trim();
+ const errEl = document.getElementById('sfError');
+ const btn = document.getElementById('sfSubmitBtn');
 
-            if (!amount || isNaN(amount) || Number(amount) <= 0) {
+ if (!amount || isNaN(amount) || Number(amount) <= 0) {
                 errEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i> الرجاء إدخال مبلغ صحيح';
-                errEl.classList.remove('d-none'); return;
-            }
-            if (!transId) {
-                errEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i> الرجاء إدخال رقم إشعار التحويل';
-                errEl.classList.remove('d-none'); return;
-            }
+ errEl.classList.remove('d-none'); return;
+ }
+ if (!transId) {
+ errEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i> الرجاء إدخال رقم إشعار التحويل';
+ errEl.classList.remove('d-none'); return;
+ }
 
-            errEl.classList.add('d-none');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> جارٍ الإرسال...';
+ errEl.classList.add('d-none');
+ btn.disabled = true;
+ btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> جارٍ الإرسال...';
 
-            try {
-                const res = await fetchWithRetry(`${API_URL}/api/captain/wallet/pay`, {
-                    method: 'POST',
-                    headers: H,
-                    body: JSON.stringify({ amount: Number(amount), transactionId: transId, receiptImage: receiptBase64 || null })
-                });
+ try {
+ const res = await fetchWithRetry(`${API_URL}/api/captain/wallet/pay`, {
+ method: 'POST',
+ headers: H,
+ body: JSON.stringify({ amount: Number(amount), transactionId: transId, receiptImage: receiptBase64 || null })
+ });
 
-                const data = await res.json();
+ const data = await res.json();
 
-                if (res.ok) {
-                    closeSheet();
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'تم الإرسال بنجاح!',
-                        text: 'تم إرسال إشعار السداد للإدارة. سيتم مراجعة الدفعة قريباً.',
-                        confirmButtonColor: '#04553A'
-                    });
-                    initPage();
-                } else {
-                    errEl.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> ${data.message || 'حدث خطأ، حاول مرة أخرى'}`;
-                    errEl.classList.remove('d-none');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال';
-                }
-            } catch (e) {
-                errEl.innerHTML = '<i class="bi bi-wifi-off me-1"></i> تعذّر الاتصال بالخادم. تحقق من الإنترنت.';
-                errEl.classList.remove('d-none');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال';
+ if (res.ok) {
+ closeSheet();
+ await Swal.fire({
+ icon: 'success',
+ title: 'تم الإرسال بنجاح!',
+ text: 'تم إرسال إشعار السداد للإدارة. سيتم مراجعة الدفعة قريباً.',
+ confirmButtonColor: 'var(--primary)'
+ });
+ initPage();
+ } else {
+ errEl.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> ${data.message || 'حدث خطأ، حاول مرة أخرى'}`;
+ errEl.classList.remove('d-none');
+ btn.disabled = false;
+ btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال';
+ }
+ } catch (e) {
+ errEl.innerHTML = '<i class="bi bi-wifi-off me-1"></i> تعذّر الاتصال بالخادم. تحقق من الإنترنت.';
+ errEl.classList.remove('d-none');
+ btn.disabled = false;
+ btn.innerHTML = '<i class="bi bi-send-check-fill me-2"></i> تأكيد وإرسال';
             }
         }
 
@@ -590,74 +624,76 @@
                     const totalDeducted = (data.transactions || [])
                         .filter(t => t.type === 'commission_deducted')
                         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-                    const deductedEl = document.getElementById('wTotalDeducted');
-                    if (deductedEl) deductedEl.textContent = `${totalDeducted.toLocaleString()} ج.س`;
-                }
-            } catch (e) {
-                console.error('TX load error:', e);
-            }
-        }
+ const deductedEl = document.getElementById('wTotalDeducted');
+ if (deductedEl) deductedEl.innerHTML = `<span class="num">${totalDeducted.toLocaleString()}</span> ج.س`;
+ }
+ } catch (e) {
+ console.error('TX load error:', e);
+ }
+ }
 
-        function loadMoreTx() {
-            txPage++;
-            loadTransactions(txPage);
-        }
+ function loadMoreTx() {
+ txPage++;
+ loadTransactions(txPage);
+ }
 
-        const TX_CONFIG = {
-            debt_added:          { icon: 'bi-plus-circle-fill',    color: '#dc3545', bg: '#fff1f2' },
-            debt_cleared:        { icon: 'bi-check-circle-fill',   color: '#059669', bg: '#f0fdf4' },
-            debt_partial:        { icon: 'bi-scissors',            color: '#d97706', bg: '#fffbeb' },
-            payment_approved:    { icon: 'bi-credit-card-fill',    color: '#0284c7', bg: '#eff6ff' },
-            commission_deducted: { icon: 'bi-bicycle',             color: '#7c3aed', bg: '#f5f3ff' }
-        };
+ const TX_CONFIG = {
+ debt_added: { icon: 'bi-plus-circle-fill', color: '#dc3545', bg: '#fff1f2' },
+ debt_cleared: { icon: 'bi-check-circle-fill', color: '#059669', bg: '#f0fdf4' },
+ debt_partial: { icon: 'bi-scissors', color: '#d97706', bg: '#fffbeb' },
+ payment_approved: { icon: 'bi-credit-card-fill', color: '#0284c7', bg: '#eff6ff' },
+ commission_deducted: { icon: 'bi-bicycle', color: '#7c3aed', bg: '#f5f3ff' }
+ };
 
-        function renderTransactions(txs, page) {
-            const list = document.getElementById('txList');
+ function renderTransactions(txs, page) {
+ const list = document.getElementById('txList');
 
-            if (page === 1 && txs.length === 0) {
-                list.innerHTML = `<div class="text-center text-muted p-4 bg-white rounded-4 border">
-                    <i class="bi bi-clock-history fs-1 d-block mb-2 opacity-50"></i>
-                    <p class="mb-0">لا توجد تعاملات بعد</p>
-                </div>`;
+ if (page === 1 && txs.length === 0) {
+ list.innerHTML = `<div class="text-center text-muted p-4 bg-white rounded-4 border">
+ <i class="bi bi-clock-history fs-1 d-block mb-2 opacity-50"></i>
+ <p class="mb-0">لا توجد تعاملات بعد</p>
+ </div>`;
                 return;
             }
 
             if (page === 1) list.innerHTML = '';
 
             txs.forEach(tx => {
-                const cfg  = TX_CONFIG[tx.type] || TX_CONFIG.commission_deducted;
-                const date = new Date(tx.date).toLocaleDateString('ar-SA', { day:'numeric', month:'short', year:'numeric' });
-                const time = new Date(tx.date).toLocaleTimeString('ar-EG', { hour:'2-digit', minute:'2-digit' });
+ const cfg = TX_CONFIG[tx.type] || TX_CONFIG.commission_deducted;
+ const date = new Date(tx.date).toLocaleDateString('ar-SA', { day:'numeric', month:'short', year:'numeric' });
+ const time = new Date(tx.date).toLocaleTimeString('ar-EG', { hour:'2-digit', minute:'2-digit' });
 
-                const card = document.createElement('div');
-                card.className = 'pay-history-card';
-                card.innerHTML = `
-                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+ const card = document.createElement('div');
+ card.className = 'pay-history-card';
+ card.innerHTML = `
+ <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                          style="width:46px;height:46px;background:${cfg.bg};">
-                        <i class="bi ${cfg.icon} fs-5" style="color:${cfg.color};"></i>
-                    </div>
-                    <div class="flex-grow-1 overflow-hidden">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold" style="font-size:.9rem">${tx.label}</span>
-                            <span class="fw-bold" style="color:${cfg.color};white-space:nowrap;font-size:.9rem">
-                                ${tx.amount > 0 ? tx.amount.toLocaleString() + ' ج.س' : '—'}
-                            </span>
-                        </div>
-                        ${tx.note ? `<small class="text-muted d-block text-truncate" style="font-size:.78rem">${tx.note}</small>` : ''}
-                        ${'balance' in tx ? `<small class="text-muted d-block" style="font-size:.75rem">الرصيد بعدها: <b>${tx.balance?.toFixed(0)} ج.س</b></small>` : ''}
-                        <small class="text-muted opacity-75" style="font-size:.72rem">${date} — ${time}</small>
-                    </div>`;
-                list.appendChild(card);
-            });
-        }
-    </script>
+ <i class="bi ${cfg.icon} fs-5" style="color:${cfg.color};"></i>
+ </div>
+ <div class="flex-grow-1 overflow-hidden">
+ <div class="d-flex justify-content-between align-items-center mb-1">
+ <span class="fw-bold" style="font-size:.9rem">${tx.label}</span>
+ <span class="fw-bold" style="color:${cfg.color};white-space:nowrap;font-size:.9rem">
+                                ${tx.amount > 0 ? '<span class="num">' + tx.amount.toLocaleString() + '</span> ج.س' : '—'}
+ </span>
+ </div>
+ ${tx.note ? `<small class="text-muted d-block text-truncate" style="font-size:.78rem">${tx.note}</small>` : ''}
+ ${'balance' in tx ? `<small class="text-muted d-block" style="font-size:.75rem">الرصيد بعدها: <b><span class="num">${tx.balance?.toFixed(0)}</span> ج.س</b></small>` : ''}
+ <small class="text-muted opacity-75" style="font-size:.72rem">${date} — ${time}</small>
+ </div>`;
+ list.appendChild(card);
+ });
+ }
+ </script>
 
-    <!-- Auth Helper & App Core (Provides Real-Time Features like profile) -->
-    <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
-    <script src="vendor/socket.io/socket.io.min.js"></script>
-    <script src="notification-toast.js"></script>
+ <!-- Auth Helper & App Core (Provides Real-Time Features like profile) -->
+ <script src="js/geo.js?v=3f3df042"></script>
+ <script type="module" src="js/app-core.js?v=f1decda9"></script>
+ <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+ <script src="vendor/socket.io/socket.io.min.js"></script>
+ <script src="notification-toast.js"></script>
+ <script src="js/tour.js?v=90018b4b"></script>
+ <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 
 </html>
