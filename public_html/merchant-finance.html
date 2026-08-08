@@ -7,10 +7,11 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <link rel="stylesheet" href="css/merchant-ui.css?v=fca49c8f">
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
         body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
@@ -43,45 +44,32 @@
             width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; font-size: 1rem;
         }
-        .merchant-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: white; border-top: 1px solid #f0f0f0;
-            display: flex; z-index: 1000;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        /* Wallet/Nav from merchant-ui.css?v=v3_1785875711038 */
+        .wallet-card {
+            background: linear-gradient(135deg, var(--m-amber, #f59e0b), var(--m-amber-dark, #d97706));
+            border-radius: 20px; padding: 20px;
+            margin: 0 14px 16px; position: relative; z-index: 10;
+            box-shadow: 0 8px 24px rgba(245,158,11,0.30);
+            overflow: hidden;
         }
-        .merchant-nav a {
-            flex: 1; display: flex; flex-direction: column; align-items: center;
-            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
-            text-decoration: none; transition: color 0.2s;
-        }
-        .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
-        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
-        .form-label { font-weight: 700; font-size: 13px; color: #374151; }
-        .modal-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; }
-        .modal-title { font-weight: 800; }
-        .status-pill { font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 99px; }
-        .fab {
-            position: fixed; bottom: 80px; left: 20px;
-            width: 56px; height: 56px; border-radius: 50%;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white; border: none; font-size: 1.5rem;
-            box-shadow: 0 4px 16px rgba(245,158,11,0.5);
-            display: none; align-items: center; justify-content: center;
-            cursor: pointer; z-index: 999;
-        }
+        .wallet-balance { font-size: 2.1rem; font-weight: 900; line-height: 1; color: #1a1a2e; }
+        .mini-stat { background: rgba(255,255,255,0.28); border-radius: 12px; padding: 8px 10px; flex: 1; text-align: center; }
+        .mini-stat .n { font-weight: 900; font-size: 14px; color: #1a1a2e; }
+        .mini-stat .l { font-size: 10px; font-weight: 700; opacity: 0.70; color: #1a1a2e; }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/tour.css?v=92063527">
 </head>
 <body>
 
-<div class="page-header">
-    <div class="d-flex align-items-center gap-3">
-        <a href="merchant-dashboard.html" class="text-white text-decoration-none fs-5">
+<div class="m-page-header">
+    <div class="d-flex align-items-center gap-3 pb-2">
+        <a href="merchant-dashboard.html" class="m-back-btn">
             <i class="bi bi-arrow-right"></i>
         </a>
         <div>
-            <h5 class="fw-bold mb-0">المحاسبة والمصروفات</h5>
-            <small class="text-white-50">مستحقاتك لدى وجيز وكشف حسابك</small>
+            <h5 class="m-header-title">المحاسبة والمصروفات</h5>
+            <div class="m-header-subtitle">مستحقاتك لدى وجيز وكشف حسابك</div>
         </div>
     </div>
 </div>
@@ -115,7 +103,7 @@
     <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
 </div>
 
-<button class="fab" id="fabAddExpense" onclick="openExpenseModal()">
+<button class="m-fab" id="fabAddExpense" onclick="openExpenseModal()" style="display:none;">
     <i class="bi bi-plus-lg"></i>
 </button>
 
@@ -197,11 +185,26 @@
 </div>
 
 <nav class="merchant-nav">
-    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i> الرئيسية</a>
-    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i> الطلبات</a>
-    <a href="merchant-pos.html"><i class="bi bi-upc-scan"></i> نقطة بيع</a>
-    <a href="merchant-reports.html"><i class="bi bi-graph-up"></i> تقارير</a>
-    <a href="merchant-finance.html" class="active"><i class="bi bi-wallet2"></i> محاسبة</a>
+    <a href="merchant-dashboard.html">
+        <i class="bi bi-house-door-fill"></i>
+        <span>الرئيسية</span>
+    </a>
+    <a href="merchant-orders.html">
+        <i class="bi bi-bag-check-fill"></i>
+        <span>الطلبات</span>
+    </a>
+    <a href="merchant-pos.html">
+        <i class="bi bi-upc-scan"></i>
+        <span>نقطة بيع</span>
+    </a>
+    <a href="merchant-reports.html">
+        <i class="bi bi-graph-up"></i>
+        <span>تقارير</span>
+    </a>
+    <a href="merchant-finance.html" class="active">
+        <i class="bi bi-wallet2"></i>
+        <span>محاسبة</span>
+    </a>
 </nav>
 
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
@@ -491,9 +494,11 @@
     loadOverview();
     loadLedger(1);
 </script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
+    <script src="js/tour.js?v=90018b4b"></script>
+    <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 </html>
