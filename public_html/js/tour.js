@@ -23,6 +23,7 @@ window.WajeezTour = (function () {
 
     let steps = [];
     let rawSteps = [];
+    let single = false;
     let idx = 0;
     let tourId = '';
     let nodes = null;
@@ -232,9 +233,18 @@ window.WajeezTour = (function () {
         nodes.noteSlot.innerHTML = step.note
             ? '<div class="wtour-note"><i class="bi bi-lightbulb-fill"></i><span>' + esc(step.note) + '</span></div>'
             : '';
-        nodes.back.style.visibility = idx === 0 ? 'hidden' : 'visible';
-        nodes.next.textContent = idx === steps.length - 1 ? 'ابدأ العمل' : 'التالي';
-        renderDots();
+        if (single) {
+            // تلميح لحظي: لا تقدّم ولا رجوع — رسالة واحدة تُفهم وتُغلق
+            nodes.stepOf.hidden = true;
+            nodes.back.style.display = 'none';
+            nodes.dots.style.display = 'none';
+            nodes.skip.hidden = true;
+            nodes.next.textContent = 'فهمت';
+        } else {
+            nodes.back.style.visibility = idx === 0 ? 'hidden' : 'visible';
+            nodes.next.textContent = idx === steps.length - 1 ? 'ابدأ العمل' : 'التالي';
+            renderDots();
+        }
 
         const centered = !el || step.placement === 'center';
         if (centered) {
@@ -390,6 +400,7 @@ window.WajeezTour = (function () {
         }
 
         rawSteps = cfg.steps;
+        single = !!cfg.single;
         onDone = cfg.onDone || null;
         idx = 0;
 
@@ -426,5 +437,32 @@ window.WajeezTour = (function () {
     /** إنهاء الجولة الجارية بلا تسجيل إتمام */
     function stop() { if (nodes) finish(false); }
 
-    return { start, stop, isDone, markDone, reset };
+    /**
+     * تلميح لحظي: خطوة واحدة تُعرض مرّة واحدة عند ظهور شيء جديد.
+     *
+     * الجولة الترحيبية تشرح ما هو موجود وقت الدخول، لكن أهمّ ما يحتاج
+     * الشرح لا يكون موجوداً حينها: الكابتن يدخل أول مرّة بلا طلبات،
+     * فشرح "كيف تقبل الطلب" على شاشة فارغة كلامٌ بلا مرجع. التلميح
+     * ينتظر وصول أول طلب فعلي ثم يشرح عليه.
+     *
+     * @param {object} cfg { id, el?, title, body, note?, force? }
+     */
+    function hint(cfg) {
+        if (!cfg || !cfg.id) return false;
+        return start({
+            id: 'hint_' + cfg.id,
+            force: !!cfg.force,
+            single: true,
+            steps: [{
+                el: cfg.el || null,
+                title: cfg.title,
+                body: cfg.body,
+                note: cfg.note,
+                pad: cfg.pad,
+                radius: cfg.radius
+            }]
+        });
+    }
+
+    return { start, stop, hint, isDone, markDone, reset };
 })();

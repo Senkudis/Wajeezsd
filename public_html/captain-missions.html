@@ -6,24 +6,34 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>مهامي الجارية | وجيز</title>
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <!-- Bootstrap 5 RTL -->
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/tour.css?v=92063527">
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/geo.js?v=3f3df042"></script>
     <script src="js/maps-loader.js?v=c382a678"></script>
     <script src="vendor/image-compression/browser-image-compression.js"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         /* ───── مهامّ أصغر وأنظف (توحيد مع صفحة "طلباتي") ───── */
         #missions-container .card { border-radius: 15px !important; box-shadow: 0 2px 10px rgba(15,23,42,0.06) !important; }
         #missions-container .card .p-3 { padding: 10px !important; }
@@ -33,6 +43,7 @@
         #missions-container .card .btn { font-size: 13px !important; }
         #missions-container .card img { max-height: 140px !important; }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body class="bg-light">
@@ -103,7 +114,7 @@
 
             // ✅ BUG #16: Direct socket init — no setInterval polling
             const socket = io(API_URL, {
-                transports: ['polling', 'websocket'],
+                transports: ['websocket', 'polling'],
                 auth: { token: localStorage.getItem('token') }
             });
             socket.on('connect', () => {
@@ -111,13 +122,14 @@
             });
             socket.on('order_status_updated', () => fetchMissions());
             socket.on('new_order_available', () => fetchMissions());
+            socket.on('errand_quote_confirmed', () => fetchMissions());
         }
 
         // ⏱️ كتلة ETA + الخط الزمني المصغّر للكابتن (أنماط inline — مستقلة عن CSS الصفحة)
         function missionProgressHtml(order) {
             let html = '';
             if (order.eta && order.eta.text && !['delivered', 'cancelled'].includes(order.status)) {
-                html += `<div style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#04553A,#0a7a54);color:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;font-weight:800;margin-bottom:10px;">
+                html += `<div style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--primary),#0a7a54);color:#fff;border-radius:10px;padding:7px 11px;font-size:12.5px;font-weight:800;margin-bottom:10px;">
                     <i class="bi bi-clock-history"></i> زمن التوصيل المتوقّع ~${order.eta.text}${order.eta.distanceKm != null ? ` · ${order.eta.distanceKm} كم` : ''}
                 </div>`;
             }
@@ -128,14 +140,14 @@
                     const last = i === tl.steps.length - 1;
                     const color = s.cancelled ? '#ef4444' : (s.done ? '#22c55e' : '#cbd5e1');
                     const active = s.key === tl.current && !s.cancelled;
-                    const bg = s.cancelled ? '#ef4444' : (active ? '#04553A' : (s.done ? '#22c55e' : '#fff'));
+                    const bg = s.cancelled ? '#ef4444' : (active ? 'var(--primary)' : (s.done ? '#22c55e' : '#fff'));
                     const fg = (s.done || active || s.cancelled) ? '#fff' : '#94a3b8';
                     const icon = s.cancelled ? '<i class="bi bi-x"></i>' : (s.done ? '<i class="bi bi-check"></i>' : '');
                     const lineColor = s.done ? '#22c55e' : '#e2e8f0';
                     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
                         ${!last ? `<div style="position:absolute;top:9px;left:calc(50% + 10px);right:calc(-50% + 10px);height:2px;background:${lineColor};"></div>` : ''}
                         <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${color};background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1;">${icon}</div>
-                        <div style="font-size:9px;font-weight:700;color:${(s.done || active) ? '#04553A' : '#94a3b8'};margin-top:3px;text-align:center;">${s.label}</div>
+                        <div style="font-size:9px;font-weight:700;color:${(s.done || active) ? 'var(--primary)' : '#94a3b8'};margin-top:3px;text-align:center;">${s.label}</div>
                         <div style="font-size:8.5px;font-weight:700;color:#94a3b8;min-height:10px;">${fmt(s.at)}</div>
                     </div>`;
                 }).join('')}</div>`;
@@ -167,6 +179,15 @@
                             <a href="captain-orders.html" class="btn btn-primary rounded-pill px-4 shadow-sm">تصفح الطلبات</a>
                         </div>`;
                     return;
+                }
+
+                // 🎓 الشرح يتبع مرحلة المهمة: المقبولة تحتاج شرح الاستلام،
+                // والمستلَمة تحتاج شرح التسليم. أولوية للأبعد في الرحلة
+                // كي لا يشرح الاستلام لمن تجاوزه فعلاً.
+                if (orders.some(o => o.status === 'picked_up')) {
+                    coachFire('captain_first_pickup', '#missions-container > *');
+                } else if (orders.some(o => o.status === 'accepted')) {
+                    coachFire('captain_first_mission', '#missions-container > *');
                 }
 
                 orders.forEach(order => {
@@ -546,7 +567,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'نعم، تم التسليم ✅',
                 cancelButtonText: 'تراجع',
-                confirmButtonColor: '#04553A',
+                confirmButtonColor: 'var(--primary)',
                 cancelButtonColor: '#7f8c8d'
             });
             if (!result.isConfirmed) return;
@@ -613,7 +634,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'نعم، تم',
                 cancelButtonText: 'تراجع',
-                confirmButtonColor: '#04553A'
+                confirmButtonColor: 'var(--primary)'
             });
             if (!result.isConfirmed) return;
             try {
@@ -739,7 +760,7 @@
 
             const remaining = order.stops.filter(s => !s.done && Number.isFinite(s.lat) && Number.isFinite(s.lng));
             if (remaining.length === 0) {
-                Swal.fire({ icon: 'info', text: 'كل المحطات مكتملة', confirmButtonColor: '#04553A' });
+                Swal.fire({ icon: 'info', text: 'كل المحطات مكتملة', confirmButtonColor: 'var(--primary)' });
                 return;
             }
 
@@ -782,7 +803,7 @@
                     _routeRenderer = new google.maps.DirectionsRenderer({
                         map: _routeMap,
                         suppressMarkers: true,     // نرسم دبابيسنا المرقّمة بدلاً من A/B/C
-                        polylineOptions: { strokeColor: '#04553A', strokeWeight: 5, strokeOpacity: 0.85 }
+                        polylineOptions: { strokeColor: 'var(--primary)', strokeWeight: 5, strokeOpacity: 0.85 }
                     });
                 } else {
                     _routeRenderer.setMap(_routeMap);
@@ -879,7 +900,7 @@
                 if (!res.ok) throw new Error(data.message || 'تعذّر حساب أفضل مسار');
 
                 if (!data.changed) {
-                    Swal.fire({ icon: 'success', title: 'ترتيبك ممتاز أصلاً', text: 'ما لقينا مساراً أقصر من الحالي.', confirmButtonColor: '#04553A' });
+                    Swal.fire({ icon: 'success', title: 'ترتيبك ممتاز أصلاً', text: 'ما لقينا مساراً أقصر من الحالي.', confirmButtonColor: 'var(--primary)' });
                     return;
                 }
 
@@ -900,7 +921,7 @@
                     showCancelButton: true,
                     confirmButtonText: 'اعتمد هذا الترتيب',
                     cancelButtonText: 'خلّيك على الحالي',
-                    confirmButtonColor: '#04553A'
+                    confirmButtonColor: 'var(--primary)'
                 });
                 if (!confirmed.isConfirmed) return;
 
@@ -915,7 +936,7 @@
                 await Swal.fire({ icon: 'success', title: 'تم تحديث المسار', timer: 1400, showConfirmButton: false });
                 fetchMissions();
             } catch (err) {
-                Swal.fire({ icon: 'error', title: 'تعذّر الترتيب', text: err.message, confirmButtonColor: '#04553A' });
+                Swal.fire({ icon: 'error', title: 'تعذّر الترتيب', text: err.message, confirmButtonColor: 'var(--primary)' });
             }
         }
 
@@ -928,7 +949,7 @@
     <div class="modal fade" id="routeMapModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg mx-2">
             <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
-                <div class="modal-header border-0" style="background:linear-gradient(135deg,#04553A,#0a8754);color:white;">
+                <div class="modal-header border-0" style="background:linear-gradient(135deg,var(--primary),#0a8754);color:white;">
                     <h5 class="modal-title fw-bold"><i class="bi bi-map-fill me-2"></i>المسار الكامل</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
                 </div>
@@ -1023,8 +1044,10 @@
 
     <!-- Auth Helper & App Core -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script src="js/tour.js?v=90018b4b"></script>
+    <script src="js/coach.js?v=12c08075"></script>
 </body>
 
 </html>

@@ -12,15 +12,21 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/tour.css?v=92063527">
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         /* ───── بطاقات أطلبات أصغر وأنظف (توحيد مع صفحة "طلباتي") ───── */
         #orders-list .card { border-radius: 15px !important; box-shadow: 0 2px 10px rgba(15,23,42,0.06) !important; }
         #orders-list .card-header { padding-top: 10px !important; padding-bottom: 6px !important; }
@@ -35,6 +41,7 @@
         #orders-list .card .alert { padding: 8px 10px !important; margin-bottom: 9px !important; }
         #orders-list .card img { max-height: 150px !important; }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body class="bg-light">
@@ -240,6 +247,9 @@
                     </div>`;
                 return;
             }
+
+            // 🎓 أول طلب حقيقي يظهر للكابتن ⇒ نشرح القبول عليه لا على شاشة فارغة
+            coachFire('captain_first_order', '#orders-list > *');
 
             orders.forEach(order => {
                 // ✅ Use live commission rate from Settings (not hardcoded 10%)
@@ -526,7 +536,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'نعم، توكلنا! 🚀',
                 cancelButtonText: 'تراجع',
-                confirmButtonColor: '#04553A',
+                confirmButtonColor: 'var(--primary)',
                 cancelButtonColor: '#7f8c8d'
             });
 
@@ -545,7 +555,7 @@
                             title: 'مبروك!',
                             text: 'تم قبول الطلب بنجاح',
                             icon: 'success',
-                            confirmButtonColor: '#04553A'
+                            confirmButtonColor: 'var(--primary)'
                         }).then(() => window.location.href = 'captain-missions.html');
                     } else {
                         const err = await res.json();
@@ -605,7 +615,7 @@
                 confirmButtonText: '📤 إرسال العرض',
                 cancelButtonText: 'إلغاء',
                 showCancelButton: true,
-                confirmButtonColor: '#04553A',
+                confirmButtonColor: 'var(--primary)',
                 cancelButtonColor: '#7f8c8d',
                 preConfirm: () => {
                     const val = parseFloat(document.getElementById('proposed-price-input').value);
@@ -640,7 +650,7 @@
                         `,
                         icon: 'success',
                         confirmButtonText: 'حسناً',
-                        confirmButtonColor: '#04553A'
+                        confirmButtonColor: 'var(--primary)'
                     });
                     fetchOrders(); // ✅ Refresh UI so the button changes to "Withdraw"
                 } else {
@@ -684,7 +694,7 @@
                     <img src="${imageUrl}" class="img-fluid rounded-3 shadow" style="max-height:60vh; object-fit:contain;" alt="إشعار الدفع" />
                 `,
                 confirmButtonText: 'تم التحقق ✔️',
-                confirmButtonColor: '#04553A',
+                confirmButtonColor: 'var(--primary)',
                 showCancelButton: true,
                 cancelButtonText: 'إغلاق',
                 width: '90%'
@@ -692,7 +702,7 @@
         }
 
         const socket = io(API_URL, {
-            transports: ['polling', 'websocket'],
+            transports: ['websocket', 'polling'],
             auth: { token }
         });
 
@@ -794,7 +804,7 @@
                     html: `السعر النهائي: <strong class="text-success fs-4">${data.finalPrice} ج.س</strong>`,
                     icon: 'success',
                     confirmButtonText: 'عرض مهامي 🚀',
-                    confirmButtonColor: '#04553A'
+                    confirmButtonColor: 'var(--primary)'
                 }).then(() => window.location.href = 'captain-missions.html');
             } else if (data.result === 'rejected') {
                 Swal.fire({
@@ -802,7 +812,7 @@
                     text: 'الطلب لا يزال متاحاً. يمكنك المحاولة مجدداً أو قبول الطلب بالسعر الأصلي.',
                     icon: 'warning',
                     confirmButtonText: 'حسناً',
-                    confirmButtonColor: '#04553A'
+                    confirmButtonColor: 'var(--primary)'
                 });
                 fetchOrders(); // Refresh to show updated order
             } else if (data.result === 'order_taken') {
@@ -811,7 +821,7 @@
                     text: 'قبل العميل عرض كابتن آخر. تم تعيين الطلب لغيرك.',
                     icon: 'info',
                     confirmButtonText: 'حسناً',
-                    confirmButtonColor: '#04553A'
+                    confirmButtonColor: 'var(--primary)'
                 });
                 fetchOrders();
             }
@@ -896,8 +906,10 @@
 
     <!-- Auth Helper & App Core -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script src="js/tour.js?v=90018b4b"></script>
+    <script src="js/coach.js?v=12c08075"></script>
 </body>
 
 </html>

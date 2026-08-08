@@ -115,3 +115,19 @@ window.escapeHtml = function(unsafe) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 };
+
+/**
+ * 🎓 طابور الشرح اللحظي.
+ *
+ * صفحات كثيرة تجلب بياناتها في سكربت مضمّن يبدأ فوراً، بينما coach.js
+ * يُحمَّل في آخر <body>. على شبكة سريعة يعود الردّ ويُرسَم المحتوى قبل
+ * أن يصل المحلّل إلى وسم coach.js، فيكون window.Coach غير معرّف —
+ * وحارس `if (window.Coach)` يبتلع النداء بصمت فلا يظهر الشرح أبداً.
+ *
+ * الطابور يُعرَّف هنا لأن config.js أول ما تُحمّله كل الصفحات، فأي نداء
+ * مبكّر يُخزَّن، ثم يستنزفه coach.js عند جاهزيته. الترتيب لم يعد يهمّ.
+ */
+window.__coachQ = window.__coachQ || [];
+window.coachFire = function (key, selector) {
+    window.__coachQ.push([key, selector]);
+};
