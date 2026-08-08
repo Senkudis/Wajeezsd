@@ -1,0 +1,145 @@
+/* ════════════════════════════════════════════════════════════════
+   admin-mobile.css — طبقة الهاتف الموحّدة للوحة الإدارة
+   ════════════════════════════════════════════════════════════════
+
+   لماذا ملفّ واحد مشترك: أربع عشرة صفحة من عشرين تحمل <style> خاصاً بها
+   ولا تشترك في أي ملفّ تنسيق. فلم يكن ثمّة موضعٌ واحد يُصلَح فيه شيء —
+   وأيّ تحسين للهاتف كان يعني تكراره أربع عشرة مرّة ثم مطاردته كلما
+   أُضيفت صفحة. هذا الملفّ هو ذلك الموضع.
+
+   لا يمسّ شاشة الحاسوب إطلاقاً: كل ما فيه داخل @media حتى 768px.
+   ════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+    /* ── ١) الجداول: بطاقات بدل تمرير أفقي ─────────────────────
+       أعرض جداول اللوحة تُقاس بين ٤٨٦ و٧٦٠ بكسل على شاشة ٣٧٥.
+       الحاوية الأفقية تجعل الأدمن يسحب يميناً ليرى العمود التالي وقد
+       نسي الأول؛ وما لا حاوية له يُقصّ ببساطة. البطاقة تُبقي الصفّ
+       كاملاً أمام العين. (data-adm-cards يضعه js/admin-mobile.js) */
+
+    table[data-adm-cards="yes"] { width: 100% !important; min-width: 0 !important; display: block; }
+    table[data-adm-cards="yes"] thead { display: none; }
+    table[data-adm-cards="yes"] tbody { display: block; width: 100%; }
+
+    table[data-adm-cards="yes"] tbody tr {
+        display: block;
+        width: 100%;
+        background: var(--adm-card-bg, #fff);
+        border: 1px solid var(--adm-card-border, #e9edf3);
+        border-radius: 14px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 6px rgba(15, 23, 42, 0.05);
+    }
+
+    table[data-adm-cards="yes"] tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: auto !important;
+        padding: 7px 0 !important;
+        border: 0 !important;
+        border-bottom: 1px dashed var(--adm-row-sep, #eef2f7) !important;
+        text-align: left;
+        white-space: normal !important;
+        word-break: break-word;
+        font-size: 13px;
+    }
+    table[data-adm-cards="yes"] tbody td:last-child { border-bottom: 0 !important; }
+
+    /* العنوان من رأس الجدول — يسبق القيمة في الاتجاه العربي */
+    table[data-adm-cards="yes"] tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        max-width: 45%;
+        color: var(--adm-label, #6b7280);
+        font-weight: 700;
+        font-size: 11.5px;
+        text-align: right;
+    }
+    /* خلية بلا عنوان (عمود بلا رأس) لا تترك فراغاً */
+    table[data-adm-cards="yes"] tbody td[data-label=""]::before { content: none; }
+
+    /* خلية الإجراءات: الأزرار تحتاج العرض كاملاً لا نصفه */
+    table[data-adm-cards="yes"] tbody td:has(button),
+    table[data-adm-cards="yes"] tbody td:has(.btn),
+    table[data-adm-cards="yes"] tbody td:has(a.btn) {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 6px;
+    }
+    table[data-adm-cards="yes"] tbody td button,
+    table[data-adm-cards="yes"] tbody td .btn {
+        min-height: 36px;
+    }
+
+    /* صفّ "لا توجد بيانات" ليس بطاقة */
+    table[data-adm-cards="yes"] tbody tr[data-adm-empty] {
+        background: transparent; border: 0; box-shadow: none; padding: 18px 0;
+    }
+    table[data-adm-cards="yes"] tbody tr[data-adm-empty] td {
+        display: block; text-align: center; border: 0 !important;
+    }
+    table[data-adm-cards="yes"] tbody tr[data-adm-empty] td::before { content: none; }
+
+    /* جدول بلا رأس لا يصلح للبطاقات ⇒ يبقى تمريراً أفقياً لكن محصوراً
+       في حاويته فلا يدفع الصفحة كلها جانباً */
+    table[data-adm-cards="no"] { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── ٢) قواعد عامة للشاشة الضيّقة ───────────────────────── */
+
+    /* 🔒 لا تمرير أفقي للصفحة مهما فعل محتوى بداخلها */
+    html, body { max-width: 100%; overflow-x: hidden; }
+
+    /* ⚠️ 16px حدّ أدنى لحقول الإدخال: أقلّ منه يجعل iOS يُقرّب الشاشة
+       تلقائياً عند اللمس، فتخرج الصفحة عن إطارها ولا تعود إلا يدوياً */
+    input, select, textarea { font-size: 16px !important; }
+
+    /* أشرطة الأدوات تلتفّ بدل أن تتزاحم أو تُقصّ */
+    .section-header, .page-header, .toolbar, .filters, .btn-group { flex-wrap: wrap !important; }
+    .section-header > *, .page-header > * { min-width: 0; }
+
+    /* أزرار الإجراءات: عرضٌ كافٍ للمس (٤٤ بكسل توصية إمكانية الوصول) */
+    .btn-custom, .btn-primary-custom, .btn-success-custom, .btn-danger-custom {
+        min-height: 42px;
+    }
+
+    /* بطاقات الإحصاء تنزل عموداً واحداً بدل ثلاثة مضغوطة */
+    .stat-card { min-width: 0; }
+    .stat-card h3, .stat-card h6 { word-break: break-word; }
+
+    /* النوافذ الحوارية تملأ الشاشة بدل هوامش تسرق نصف العرض */
+    .modal-box { max-width: 100% !important; width: 100% !important; border-radius: 18px 18px 0 0; }
+    .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+
+    /* العناوين الطويلة لا تدفع الصفحة */
+    h1, h2, h3, .section-title { word-break: break-word; }
+}
+
+/* ── ٣) تصحيحات خاصة بصفحات بعينها ─────────────────────────
+   تُجمع هنا لا في كل صفحة: هذا الملفّ هو موضع سلوك الهاتف كله، ومن يبحث
+   عن سبب انكسارٍ على الجوّال يجده في مكان واحد. */
+@media (max-width: 768px) {
+    /* 🗺️ الخريطة المباشرة: شريط البحث كان يحجز ٣٨٠ بكسل للوحة الجانبية
+       عبر calc(100vw - 380px). على شاشة ٣٧٥ يصير الناتج سالباً فينهار
+       العرض إلى صفر، ويخرج حقل البحث من إطار الصفحة (قِيس: ٣٩٣ بكسل
+       عرضَ مستند على شاشة ٣٧٥). لا لوحة جانبية على الهاتف أصلاً. */
+    #searchBar {
+        left: 12px !important;
+        right: 12px !important;
+        width: auto !important;
+        transform: none !important;
+    }
+}
+
+/* الوضع الليلي: البطاقات تتبع ألوان الصفحة لا تُبيّضها */
+@media (max-width: 768px) {
+    body.dark-mode table[data-adm-cards="yes"] tbody tr {
+        --adm-card-bg: #1e293b;
+        --adm-card-border: #263449;
+        --adm-row-sep: #263449;
+    }
+    body.dark-mode table[data-adm-cards="yes"] tbody td::before { --adm-label: #94a3b8; }
+}
