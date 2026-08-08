@@ -63,10 +63,27 @@ router.get('/users', protect, requirePermission('view_users'), async (req, res) 
 // @desc    جلب الكباتن فقط (مع فلتر اختياري بالمدينة)
 // 🌍 ?city=Khartoum | PortSudan (optional)
 
+/**
+ * ⚡ حقول القائمة — اختيارٌ صريح لا `-password`.
+ *
+ * كان المسار يُرجع مستند الكابتن كاملاً إلا كلمة المرور، فيحمل في كل صفٍّ
+ * رموز التحقّق (verificationCode، otpCode) ورمز الإشعارات (fcmToken) وروابط
+ * المستندات — بيانات لا تستعملها أيّ شاشة، وبعضها أسرارٌ لا داعي لخروجها من
+ * السيرفر أصلاً. شاشتان تستهلكان هذا المسار ولا تحتاجان بينهما غير ما هنا:
+ * الإدارة المالية (الرصيد والحدّ والحجب) وتبديل كابتن الطلب (الاسم والمركبة).
+ *
+ * الأثر: حمولة أصغر بمراتب على مسارٍ تُناديه صفحة المالية عند كل فتح.
+ */
+const CAPTAIN_LIST_FIELDS =
+    'name phone city role isActive approvalStatus vehicleType ' +
+    'wallet_balance credit_limit is_blocked averageRating completedTrips createdAt';
+
 router.get('/captains', protect, requirePermission('view_captains'), async (req, res) => {
     try {
         // 🌍 sub_admin يرى كباتن مدينته فقط
-        const captains = await User.find({ role: 'captain', ...getAdminCityFilter(req) }).select('-password');
+        const captains = await User.find({ role: 'captain', ...getAdminCityFilter(req) })
+            .select(CAPTAIN_LIST_FIELDS)
+            .lean();   // قراءةٌ للعرض فقط — لا حاجة لمستندات mongoose كاملة
         res.json(captains);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });

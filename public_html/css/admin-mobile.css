@@ -132,6 +132,31 @@
         width: auto !important;
         transform: none !important;
     }
+
+    /* 💰 الإدارة المالية: مؤشّراتها الأربعة كانت تنهار إلى عمود واحد
+       (minmax أعرض من الشاشة)، فتصير ٤×١٠٨ بكسل — شاشةٌ كاملة تُمرَّر
+       لأجل أربعة أرقام قبل الوصول إلى أي محتوى. عمودان يعرضانها دفعةً. */
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+    .kpi-card { padding: 12px !important; }
+    .kpi-card .kpi-value { font-size: 17px !important; }
+    .kpi-card .kpi-label { font-size: 11px !important; line-height: 1.5; }
+
+    /* 🗂️ شريط تبويبات المالية: أربعة أزرار بعرض أدنى ١٤٠ بكسل في صفٍّ
+       واحد قابل للتمرير — فيبقى تبويبان خارج الشاشة بلا أي إشارة إلى
+       وجودهما. الالتفاف صفّين يُظهر الأربعة معاً. */
+    .nav-tabs-wrapper {
+        flex-wrap: wrap !important;
+        overflow-x: visible !important;
+    }
+    .nav-tabs-wrapper .tab-btn {
+        flex: 1 1 calc(50% - 6px) !important;
+        min-width: 0 !important;
+        font-size: 12.5px !important;
+        padding-inline: 8px !important;
+    }
 }
 
 /* الوضع الليلي: البطاقات تتبع ألوان الصفحة لا تُبيّضها */
