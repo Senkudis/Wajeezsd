@@ -1,357 +1,358 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>سجل الرحلات | وجيز</title>
+    <title>سجل الرحلات | كابتن وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-            color: var(--secondary);
-            margin-bottom: 10px;
-        }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .stat-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .stat-box h3 {
-            font-size: 14px;
-            opacity: 0.9;
-            margin-bottom: 10px;
-        }
-
-        .stat-box .number {
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .trips-grid {
-            display: grid;
-            gap: 20px;
-        }
-
-        .trip-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-        }
-
-        .trip-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        }
-
-        .trip-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .trip-date {
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-
-        .trip-status {
-            background: #27ae60;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-
-        .trip-route {
-            margin-bottom: 20px;
-        }
-
-        .location {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-
-        .location i {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-        }
-
-        .pickup i {
-            background: #3498db;
-            color: white;
-        }
-
-        .dropoff i {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .trip-earnings {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-        }
-
-        .earning-item {
-            text-align: center;
-        }
-
-        .earning-item label {
-            display: block;
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 5px;
-        }
-
-        .earning-item .value {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .earning-item.total .value {
-            color: #3498db;
-        }
-
-        .earning-item.commission .value {
-            color: #e74c3c;
-        }
-
-        .earning-item.profit .value {
-            color: #27ae60;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: white;
-            font-size: 18px;
-        }
-
-        .empty-state {
-            background: white;
-            padding: 60px;
-            border-radius: 15px;
-            text-align: center;
-        }
-
-        .empty-state i {
-            font-size: 80px;
-            color: #ddd;
-            margin-bottom: 20px;
-        }
-
-        .back-btn {
-            background: white;
-            color: #667eea;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            font-weight: bold;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
-
-        .back-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-    </style>
-    <!-- Mobile App Overrides -->
+    <link rel="stylesheet" href="style.css?v=3.4">
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
     <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
+    <!-- نظام تصميم الكابتن — بعد dark-mode.css عمداً كي تفوز قواعده الليلية -->
+    <link rel="stylesheet" href="css/captain-ui.css?v=bfe4aff0">
     <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
+
+    <style>
+        /*
+         * ────────────────────────────────────────────────────────────
+         *  ما يخصّ هذه الشاشة وحدها. كل ما عداه من captain-ui.css.
+         *
+         *  الصفحة السابقة كانت بهوية بنفسجية (#667eea → #764ba2) لا صلة
+         *  لها بهوية الكابتن الخضراء، ولا تُحمّل captain-ui.css أصلاً،
+         *  وبأيقونات 80px وحاوية 1200px وحشو 20px — تصميم شاشة مكتب
+         *  على هاتف يُمسك بيد واحدة تحت الشمس.
+         * ────────────────────────────────────────────────────────────
+         */
+
+        /* بطاقة الرحلة: المسار أولاً ثم الأرقام — الكابتن يتعرّف على
+           الرحلة بمكانها لا بمبلغها. */
+        .trip {
+            background: var(--cap-surface);
+            border: 1px solid var(--cap-line);
+            border-radius: var(--cap-r-lg);
+            box-shadow: var(--cap-shadow);
+            padding: 14px;
+            margin-bottom: 10px;
+            transition: box-shadow .3s, transform .3s;
+        }
+
+        .trip-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .trip .trip-when {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--cap-ink-3);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trip-done {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--cap-green);
+            background: var(--cap-green-soft);
+            border-radius: 999px;
+            padding: 4px 10px;
+            white-space: nowrap;
+        }
+
+        /* خطّ المسار: نقطتان يربطهما خط — أوضح من أيقونتين منفصلتين */
+        .trip-route {
+            display: grid;
+            grid-template-columns: 14px 1fr;
+            gap: 0 10px;
+        }
+
+        .trip-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+            justify-self: center;
+        }
+
+        .trip-dot.from { background: var(--cap-blue); }
+        .trip-dot.to { background: var(--cap-green); }
+
+        .trip-line {
+            grid-column: 1;
+            width: 2px;
+            background: var(--cap-line);
+            justify-self: center;
+            margin: 2px 0;
+            min-height: 14px;
+        }
+
+        /* ⚠️ محدّد مركّب: dark-mode.css يحمل `body.dark-mode div` بوزن
+           (0,1,2) يهزم `.trip-addr` (0,1,0)، فيخرج العنوان بلون العنوان
+           الرئيسي نفسه ليلاً وتضيع التفرقة بين التسمية والعنوان. */
+        .trip .trip-addr {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--cap-ink-2);
+            line-height: 1.5;
+            padding-bottom: 8px;
+            /* عنوان طويل يُقصّ بدل أن يمطّ البطاقة */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .trip .trip-addr small {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 800;
+            color: var(--cap-ink-3);
+            margin-bottom: 1px;
+        }
+
+        /* الأرقام: صافي الربح هو ما يهمّ الكابتن فيأخذ الوزن الأكبر */
+        .trip-money {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--cap-line);
+            text-align: center;
+        }
+
+        .trip-money .m-price b,
+        .trip-money .m-fee b,
+        .trip-money .m-net b {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--cap-ink-3);
+            margin-bottom: 2px;
+        }
+
+        /* الأرقام معزولة اتجاهياً: إشارة السالب في سياق عربي تنتقل
+           للطرف البصري الخطأ فتُقرأ العمولة ربحاً */
+        .trip-money span {
+            font-size: 14px;
+            font-weight: 900;
+            unicode-bidi: isolate;
+            direction: ltr;
+            display: inline-block;
+        }
+
+        /* ⚠️ محدّدات مركّبة: dark-mode.css يحمل `body.dark-mode span`
+           بوزن (0,1,2) وهو يهزم `.m-net span` (0,1,1)، فيخرج الأحمر
+           والأخضر أبيضين ليلاً وتضيع القراءة اللونية للأرقام —
+           وهي أسرع ما يميّز العمولة عن الربح بنظرة خاطفة. */
+        .trip-money .m-price span { color: var(--cap-ink-2); }
+        .trip-money .m-fee span { color: var(--cap-red); }
+        .trip-money .m-net span { color: var(--cap-green); font-size: 16px; }
+
+        /* حالة فارغة: أيقونة 26px لا 80px — الشاشة صغيرة والرسالة أهمّ */
+        .cap-empty {
+            text-align: center;
+            padding: 46px 20px;
+        }
+
+        .cap-empty-ico {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            background: var(--cap-surface-2);
+            color: var(--cap-ink-3);
+        }
+
+        .cap-empty h2 {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--cap-ink);
+            margin-bottom: 6px;
+        }
+
+        .cap-empty p {
+            font-size: 13px;
+            color: var(--cap-ink-2);
+            margin-bottom: 16px;
+        }
+
+        .trip-skel {
+            height: 148px;
+            border-radius: var(--cap-r-lg);
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 
-<body>
-    <div class="container">
-        <button class="back-btn" onclick="window.location.href='captain-dashboard.html'">
-            <i class="fas fa-arrow-right"></i> العودة للوحة التحكم
-        </button>
+<body class="cap-body">
 
-        <div class="header">
-            <h1><i class="fas fa-history"></i> سجل رحلاتي</h1>
-            <p style="color: #7f8c8d;">جميع رحلاتك المكتملة وأرباحك</p>
-
-            <div class="stats-row" id="stats">
-                <div class="stat-box">
-                    <h3>إجمالي الرحلات</h3>
-                    <div class="number" id="totalTrips">0</div>
-                </div>
-                <div class="stat-box">
-                    <h3>إجمالي الأرباح</h3>
-                    <div class="number" id="totalEarnings">0 ج.س</div>
-                </div>
-                <div class="stat-box">
-                    <h3>متوسط الربح</h3>
-                    <div class="number" id="avgProfit">0 ج.س</div>
+    <!-- ═══ الترويسة: نفس بنية لوحة الكابتن ═══ -->
+    <header class="cap-topbar">
+        <div class="cap-wrap" style="padding:0;">
+            <div class="cap-topbar-row">
+                <div class="cap-identity">
+                    <a href="captain-dashboard.html" class="cap-avatar" aria-label="رجوع"
+                        style="text-decoration:none;">
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                    <div class="cap-hello">
+                        <h1 class="cap-hello-name">سجل رحلاتي</h1>
+                        <p class="cap-hello-sub">رحلاتك المكتملة وأرباحك</p>
+                    </div>
                 </div>
             </div>
+
+            <!-- المقياس البطل: الرقم الذي يفتح الكابتن الصفحة لأجله -->
+            <div class="cap-hero">
+                <div class="cap-hero-label">صافي أرباحك</div>
+                <div id="totalEarnings" class="cap-hero-value">0</div>
+                <div class="cap-hero-unit">جنيه سوداني</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="cap-wrap">
+        <div class="cap-metrics">
+            <div class="cap-metric">
+                <i class="bi bi-bicycle"></i>
+                <div id="totalTrips" class="cap-metric-val">0</div>
+                <div class="cap-metric-lbl">الرحلات</div>
+            </div>
+            <div class="cap-metric tone-amber">
+                <i class="bi bi-graph-up"></i>
+                <div id="avgProfit" class="cap-metric-val">0</div>
+                <div class="cap-metric-lbl">متوسط الرحلة</div>
+            </div>
+            <a href="captain-wallet.html" class="cap-metric">
+                <i class="bi bi-wallet2"></i>
+                <div class="cap-metric-val"><i class="bi bi-chevron-left"></i></div>
+                <div class="cap-metric-lbl">المحفظة</div>
+            </a>
         </div>
 
-        <div id="tripsContainer"></div>
+        <div class="cap-section">
+            <div class="cap-section-title">
+                <i class="bi bi-clock-history"></i> كل الرحلات
+            </div>
+            <div id="tripsContainer"></div>
+        </div>
     </div>
 
+    <nav class="captain-nav">
+        <a href="captain-dashboard.html">
+            <i class="bi bi-house-door-fill"></i><span>الرئيسية</span>
+        </a>
+        <a href="captain-orders.html">
+            <i class="bi bi-bicycle"></i><span>الطلبات</span>
+        </a>
+        <a href="captain-missions.html">
+            <i class="bi bi-card-checklist"></i><span>مهامي</span>
+        </a>
+        <a href="captain-notifications.html">
+            <i class="bi bi-bell-fill"></i><span>الإشعارات</span>
+        </a>
+        <a href="captain-profile.html">
+            <i class="bi bi-person-circle"></i><span>حسابي</span>
+        </a>
+    </nav>
+
     <script>
-        // Check Auth
-        if (!window.Auth || !window.Auth.isAuthenticated()) {
-            // Identify login page based on context or generic
-            // window.location.href = "client-login.html"; // handled by specific pages usually
+        const token = window.Auth && window.Auth.getToken();
+        if (!token) window.location.href = 'captain-login.html';
+
+        const esc = s => String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+        const fmt = n => Number(n || 0).toLocaleString('en-US');
+
+        function emptyState(icon, title, text, action) {
+            return `<div class="cap-empty">
+                <div class="cap-empty-ico"><i class="bi ${icon}"></i></div>
+                <h2>${esc(title)}</h2>
+                <p>${esc(text)}</p>
+                ${action || ''}
+            </div>`;
         }
-        const token = window.Auth.getToken();
-        if (!token) {
-            window.location.href = 'captain-login.html';
+
+        function tripCard(t) {
+            const when = new Date(t.createdAt).toLocaleString('ar-EG', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
+            return `
+            <div class="trip" id="order-${esc(t._id)}">
+                <div class="trip-top">
+                    <span class="trip-when"><i class="bi bi-calendar3"></i> ${esc(when)}</span>
+                    <span class="trip-done"><i class="bi bi-check-circle-fill"></i> مكتملة</span>
+                </div>
+
+                <div class="trip-route">
+                    <span class="trip-dot from"></span>
+                    <div class="trip-addr"><small>الاستلام</small>${esc(t.pickup?.address || 'غير محدد')}</div>
+                    <span class="trip-line"></span>
+                    <span></span>
+                    <span class="trip-dot to"></span>
+                    <div class="trip-addr" style="padding-bottom:0"><small>التسليم</small>${esc(t.dropoff?.address || 'غير محدد')}</div>
+                </div>
+
+                <div class="trip-money">
+                    <div class="m-price"><b>الأجرة</b><span>${fmt(t.price)}</span></div>
+                    <div class="m-fee"><b>العمولة</b><span>-${fmt(t.commission)}</span></div>
+                    <div class="m-net"><b>صافي الربح</b><span>${fmt(t.netProfit)}</span></div>
+                </div>
+            </div>`;
         }
 
         async function loadTrips() {
             const container = document.getElementById('tripsContainer');
-            container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+            container.innerHTML = '<div class="cap-skeleton trip-skel"></div>'.repeat(3);
 
             try {
                 const res = await fetchWithRetry(`${API_URL}/api/captain/trips`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: window.Auth.getAuthHeader()
                 });
-
                 if (!res.ok) throw new Error('Failed to fetch trips');
 
                 const data = await res.json();
-                const trips = data.trips || [];
+                const trips = Array.isArray(data) ? data : (data.trips || []);
 
-                if (trips.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-box-open"></i>
-                            <h2>لا توجد رحلات بعد</h2>
-                            <p style="color: #7f8c8d;">ابدأ بقبول الطلبات لرؤية سجل رحلاتك هنا</p>
-                        </div>
-                    `;
+                if (!trips.length) {
+                    container.innerHTML = emptyState(
+                        'bi-inbox', 'لا توجد رحلات بعد',
+                        'ستظهر هنا كل رحلة تُكملها، بأجرتها وعمولتها وصافي ربحك منها.',
+                        '<a href="captain-orders.html" class="cap-btn cap-btn-primary">تصفّح الطلبات المتاحة</a>'
+                    );
                     return;
                 }
 
-                // Calculate stats
-                const totalTrips = trips.length;
-                const totalEarnings = trips.reduce((sum, trip) => sum + (trip.netProfit || 0), 0);
-                const avgProfit = Math.round(totalEarnings / totalTrips);
+                const total = trips.reduce((s, t) => s + (t.netProfit || 0), 0);
+                document.getElementById('totalTrips').textContent = trips.length;
+                document.getElementById('totalEarnings').textContent = fmt(total.toFixed(0));
+                document.getElementById('avgProfit').textContent = fmt(Math.round(total / trips.length));
 
-                document.getElementById('totalTrips').textContent = totalTrips;
-                document.getElementById('totalEarnings').textContent = totalEarnings.toFixed(0) + ' ج.س';
-                document.getElementById('avgProfit').textContent = avgProfit + ' ج.س';
-
-                // Render trips
-                container.innerHTML = trips.map(trip => `
-                    <div class="trip-card" id="order-${trip._id}">
-                        <div class="trip-header">
-                            <div>
-                                <div class="trip-date">
-                                    <i class="fas fa-calendar"></i> 
-                                    ${new Date(trip.createdAt).toLocaleDateString('ar-EG', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })}
-                                </div>
-                            </div>
-                            <div class="trip-status">
-                                <i class="fas fa-check-circle"></i> مكتملة
-                            </div>
-                        </div>
-
-                        <div class="trip-route">
-                            <div class="location pickup">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <div>
-                                    <strong>الاستلام</strong>
-                                    <div style="color: #7f8c8d; font-size: 14px;">${trip.pickup?.address || 'غير محدد'}</div>
-                                </div>
-                            </div>
-                            <div class="location dropoff">
-                                <i class="fas fa-flag-checkered"></i>
-                                <div>
-                                    <strong>التسليم</strong>
-                                    <div style="color: #7f8c8d; font-size: 14px;">${trip.dropoff?.address || 'غير محدد'}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="trip-earnings">
-                            <div class="earning-item total">
-                                <label>السعر الكلي</label>
-                                <div class="value">${trip.price || 0} ج.س</div>
-                            </div>
-                            <div class="earning-item commission">
-                                <label>العمولة</label>
-                                <div class="value">-${trip.commission || 0} ج.س</div>
-                            </div>
-                            <div class="earning-item profit">
-                                <label>صافي الربح</label>
-                                <div class="value">${trip.netProfit || 0} ج.س</div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                container.innerHTML = trips.map(tripCard).join('');
 
                 // 🎯 إبراز الرحلة القادمة من الإشعار (?highlight=<orderId>)
                 const highlightId = new URLSearchParams(window.location.search).get('highlight');
@@ -360,9 +361,8 @@
                         const card = document.getElementById(`order-${highlightId}`);
                         if (!card) return;
                         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        card.style.transition = 'box-shadow 0.4s, transform 0.4s';
-                        card.style.boxShadow = '0 0 0 4px rgba(10,135,84,0.5), 0 10px 30px rgba(10,135,84,0.3)';
-                        card.style.transform = 'scale(1.02)';
+                        card.style.boxShadow = '0 0 0 3px var(--cap-green), var(--cap-shadow-lg)';
+                        card.style.transform = 'scale(1.01)';
                         setTimeout(() => {
                             card.style.boxShadow = '';
                             card.style.transform = '';
@@ -370,26 +370,21 @@
                     }, 400);
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
-
             } catch (error) {
                 console.error('Error loading trips:', error);
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i>
-                        <h2>خطأ في تحميل البيانات</h2>
-                        <p style="color: #7f8c8d;">حاول مرة أخرى لاحقاً</p>
-                    </div>
-                `;
+                container.innerHTML = emptyState(
+                    'bi-wifi-off', 'تعذّر تحميل الرحلات',
+                    'تحقّق من اتصالك ثم أعد المحاولة.',
+                    '<button type="button" class="cap-btn cap-btn-primary" onclick="loadTrips()">إعادة المحاولة</button>'
+                );
             }
         }
 
         loadTrips();
     </script>
-    <!-- Auth Helper & App Core -->
-    <!-- Socket.io & App Core -->
+
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
-    <script src="js/geo.js?v=3f3df042"></script>
     <script type="module" src="js/app-core.js?v=f1decda9"></script>
     <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="js/tour.js?v=90018b4b"></script>
