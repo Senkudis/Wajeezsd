@@ -5,6 +5,24 @@
 var token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 if (!token) window.location.href = 'admin-login.html';
 
+/**
+ * 🚩 هذا الملفّ يتولّى الصفحة.
+ *
+ * admin.html وحدها تحمّل admin-dashboard.js و admin-panel.js معاً، وبينهما
+ * **ثماني دوال بنفس الاسم** في النطاق العام (loadDashboard، loadUsers،
+ * loadAllOrders، toggleUserStatus، deleteUser، approveCaptain،
+ * rejectCaptain، logout). الأخير تحميلاً يطمس الأول، فتبقى نسخة واحدة —
+ * لكن كِلا الملفّين يسجّل DOMContentLoaded ويستدعي loadDashboard، فتُنفَّذ
+ * النسخة الباقية **مرّتين**: نداءان لـ dashboard ولـ orders/live
+ * ولـ active-captains، وإعادة رسمٍ كاملة، وتهيئة الخريطة المصغّرة مرّتين.
+ * (قِيس فعلاً: dashboard×2, orders/live×2, active-captains×2)
+ *
+ * هذه الراية تُخبر admin-dashboard.js أن يتنحّى عن التهيئة هنا.
+ * ⚠️ ليست حلاً للتصادم نفسه — الحلّ إخراج الملفّين من النطاق العام، وهو
+ * تغييرٌ أوسع. الراية تُغلق الضرر المقاس بلا مساس بمنطق أيّ منهما.
+ */
+window.__adminPanelOwnsPage = true;
+
 const BASE = window.API_URL || 'https://wajeezsd.com';
 const headers = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
 

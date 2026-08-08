@@ -103,6 +103,45 @@ router.get('/mine', protect, async (req, res) => {
     }
 });
 
+// @route  GET /api/complaints/stats
+// @desc   عدّادات شريط الإحصاء في لوحة الشكاوى — استعلامٌ واحد
+// @access Admin
+//
+// ⚠️ معرَّف قبل /:id عمداً: مسار المعرّف يلتقط أي مقطع، فلو جاء بعده لصار
+// "stats" معرّفَ تذكرة ورُدّ بـ 404.
+//
+// لماذا وُجد: كانت الواجهة تجلب العدّادات الخمسة بخمسة نداءات منفصلة إلى
+// GET /api/complaints?limit=1 لا تقرأ من كلٍّ منها غير `total` — خمس رحلات
+// شبكة وخمسة countDocuments لأجل خمسة أرقام في شريط. تجميعةٌ واحدة تُعطيها
+// كلها: القاعدة تمرّ على المجموعة مرّة لا خمساً.
+router.get('/stats', protect, adminOnly, async (req, res) => {
+    try {
+        const [byStatus, urgent] = await Promise.all([
+            Complaint.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
+            Complaint.countDocuments({ priority: 'urgent' })
+        ]);
+
+        const counts = {};
+        let all = 0;
+        for (const row of byStatus) {
+            counts[row._id] = row.n;
+            all += row.n;
+        }
+
+        res.json({
+            all,
+            open:        counts.open        || 0,
+            in_progress: counts.in_progress || 0,
+            resolved:    counts.resolved    || 0,
+            dismissed:   counts.dismissed   || 0,
+            urgent
+        });
+    } catch (error) {
+        logger.error('Complaints stats error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route  GET /api/complaints/:id
 // @desc   تفاصيل تذكرة واحدة (للعميل أو الأدمن)
 // @access Client | Admin

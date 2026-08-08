@@ -71,8 +71,8 @@
         .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 10px; }
     </style>
     <script src="js/safe-area.js?v=58b4c12a"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=f52c9e07">
-    <script src="js/admin-mobile.js?v=f52c9e07"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
+    <script src="js/admin-mobile.js?v=d3e81a45"></script>
 </head>
 <body>
 <div class="page-header">
@@ -134,18 +134,15 @@
 
     async function loadStats() {
         try {
-            const [all,open,prog,res,urg] = await Promise.all([
-                fetch(`${BASE}/api/complaints?limit=1`,{headers:hdr()}).then(r=>r.json()),
-                fetch(`${BASE}/api/complaints?status=open&limit=1`,{headers:hdr()}).then(r=>r.json()),
-                fetch(`${BASE}/api/complaints?status=in_progress&limit=1`,{headers:hdr()}).then(r=>r.json()),
-                fetch(`${BASE}/api/complaints?status=resolved&limit=1`,{headers:hdr()}).then(r=>r.json()),
-                fetch(`${BASE}/api/complaints?priority=urgent&limit=1`,{headers:hdr()}).then(r=>r.json()),
-            ]);
-            document.getElementById('stat-all').textContent=all.total||0;
-            document.getElementById('stat-open').textContent=open.total||0;
-            document.getElementById('stat-progress').textContent=prog.total||0;
-            document.getElementById('stat-resolved').textContent=res.total||0;
-            document.getElementById('stat-urgent').textContent=urg.total||0;
+            // ⚡ نداء واحد بدل خمسة: كانت خمس رحلات شبكة وخمسة countDocuments
+            // على القاعدة لأجل خمسة أرقام في شريط، كلٌّ منها يجلب سجلاً كاملاً
+            // (limit=1) ثم يُهمله ولا يقرأ غير `total`.
+            const s = await fetch(`${BASE}/api/complaints/stats`,{headers:hdr()}).then(r=>r.json());
+            document.getElementById('stat-all').textContent=s.all||0;
+            document.getElementById('stat-open').textContent=s.open||0;
+            document.getElementById('stat-progress').textContent=s.in_progress||0;
+            document.getElementById('stat-resolved').textContent=s.resolved||0;
+            document.getElementById('stat-urgent').textContent=s.urgent||0;
         } catch {}
     }
 

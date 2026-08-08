@@ -511,6 +511,14 @@ function logout() {
 
 // --- Initialize ---
 document.addEventListener('DOMContentLoaded', () => {
+    // ⚠️ admin.html تحمّل هذا الملفّ و admin-panel.js معاً، وبينهما ثماني
+    // دوال بنفس الاسم في النطاق العام — فتطمس نسخةُ الثاني نسخةَ الأول.
+    // استدعاؤها من هنا أيضاً كان يُنفّذ نسخة admin-panel مرّتين: نداءان
+    // لـ dashboard ولـ orders/live ولـ active-captains عند كل فتح.
+    // حين يتولّى admin-panel.js الصفحة نتنحّى عن التهيئة — دوالّنا هنا
+    // مطموسة أصلاً فلا فائدة من نداء يكرّر عمل غيرنا.
+    if (window.__adminPanelOwnsPage) return;
+
     loadDashboard();
     loadUsers();
     loadAllOrders();
