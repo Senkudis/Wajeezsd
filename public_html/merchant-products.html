@@ -557,9 +557,15 @@
                 body: JSON.stringify(body)
             });
             if (res.ok) {
+                // `id` فارغ ⇒ إضافة لا تعديل. (editProductId عنصر DOM لا قيمته،
+                // فاستخدامه مباشرةً يكون صادقاً دائماً.)
+                const wasFirst = !id && document.querySelectorAll('#productsContainer > *').length === 0;
                 bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
                 Swal.fire({ icon: 'success', title: 'تم الحفظ', timer: 1500, showConfirmButton: false });
                 loadProducts();
+                // 🎓 أول منتج فقط: بعده صار المتجر قابلاً للتصفّح والطلب،
+                // وهي المعلومة التي لا يعرفها التاجر الجديد.
+                if (wasFirst) coachFire('merchant_first_product', '#productsContainer > *');
             } else {
                 const err = await res.json();
                 Swal.fire('خطأ', err.message, 'error');

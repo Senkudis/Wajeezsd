@@ -653,6 +653,9 @@
                         confirmButtonColor: 'var(--primary)'
                     });
                     fetchOrders(); // ✅ Refresh UI so the button changes to "Withdraw"
+                    // 🎓 أول عرض سعر يرسله الكابتن: يشرح ما ينتظره بعده.
+                    // بلا عنصر مُبرَز — الشرح عن حالة لا عن زرّ في الشاشة.
+                    coachFire('captain_first_negotiation');
                 } else {
                     Swal.fire('تنبيه', data.message, 'warning');
                 }

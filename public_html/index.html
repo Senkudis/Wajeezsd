@@ -1019,6 +1019,12 @@
                     class="list-group-item list-group-item-action py-3">
                     <i class="bi bi-shield-check me-3 text-secondary"></i> سياسة الخصوصية
                 </a>
+                <!-- إعادة الجولة — وعدت بها الخطوة الأخيرة من جولة العميل
+                     نصّاً ("من القائمة الجانبية")، فكان وعداً بلا تنفيذ -->
+                <a href="#" onclick="event.preventDefault(); replayClientTour();" id="menu-replay-tour"
+                    class="list-group-item list-group-item-action py-3">
+                    <i class="bi bi-play-circle me-3 text-success"></i> إعادة الجولة التعريفية
+                </a>
                 <a href="#" onclick="logout()" id="menu-logout-btn"
                     class="list-group-item list-group-item-action py-3 text-danger d-none">
                     <i class="bi bi-box-arrow-right me-3"></i> تسجيل الخروج
@@ -1121,7 +1127,7 @@
 
     <script src="notification-toast.js"></script>
 
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/city-service.js?v=40791ec5"></script>
     <script src="js/home-banners.js?v=5f77eb1f"></script>
     <script src="js/console-cleaner.js?v=10115678"></script>
@@ -1172,11 +1178,22 @@
 
     <script src="js/maps-loader.js?v=c382a678"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/tour.js?v=be99eb1f"></script>
+    <script src="js/tour.js?v=90018b4b"></script>
     <script src="js/tour-client.js?v=931a740c"></script>
     <script>
         // 🎓 الجولة للعميل المسجَّل فقط: الزائر لم يُنشئ حساباً بعد،
         // وشرح "طلباتي" و"عناويني المحفوظة" لمن لا يملكها إرباك.
+        // يمسح علامة الإتمام ويعيد التشغيل فوراً — العميل هنا على
+        // الصفحة نفسها التي تشير إليها خطوات الجولة، فلا حاجة للتنقّل.
+        window.replayClientTour = function () {
+            try {
+                window.WajeezTour && window.WajeezTour.reset('client_v1');
+                const off = document.querySelector('.offcanvas.show');
+                if (off && window.bootstrap) bootstrap.Offcanvas.getInstance(off)?.hide();
+                setTimeout(() => window.startClientTour && window.startClientTour({ force: true }), 350);
+            } catch (e) { }
+        };
+
         window.addEventListener('load', () => {
             if (!localStorage.getItem('token')) return;
             setTimeout(() => {

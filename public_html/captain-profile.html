@@ -12,14 +12,15 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/vehicle-types.js?v=eedaff8e"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body class="bg-light">
@@ -114,17 +115,15 @@
                 </button>
             </div>
 
-            <div class="p-3 pb-0">
+            <div class="p-3 pb-3">
+                <!-- إعادة الجولة الترحيبية — وعدت بها الخطوة الأخيرة من جولة
+                     الكابتن نصّاً ("من صفحة حسابك")، فكان وعداً بلا تنفيذ -->
+                <button class="btn btn-outline-success w-100 fw-bold py-3 rounded-3 hover-scale mb-2"
+                    onclick="replayTour()">
+                    <i class="bi bi-play-circle me-2"></i> إعادة الجولة الترحيبية
+                </button>
                 <button class="btn btn-outline-danger w-100 fw-bold py-3 rounded-3 hover-scale" onclick="logout()">
                     <i class="bi bi-box-arrow-right me-2"></i> تسجيل الخروج
-                </button>
-            </div>
-
-            <!-- حذف الحساب داخل التطبيق — شرط App Store 5.1.1(v) -->
-            <div class="p-3">
-                <button class="btn btn-link w-100 text-danger text-decoration-none py-2"
-                    onclick="openDeleteAccount()">
-                    <i class="bi bi-person-x me-2"></i> حذف الحساب نهائياً
                 </button>
             </div>
         </div>
@@ -132,6 +131,10 @@
         <!-- ⚠️ كان الرقم مكتوباً هنا يدوياً (2.0.0 بينما التطبيق 1.0.9) — فاحص الإصدار
              لا يرى ملفات HTML، فبقي الخطأ سنوات. الآن يُقرأ من APP_VERSION فلا يفترقان. -->
         <div class="text-center mt-4 text-muted small">
+            <!-- حذف الحساب مخفي أسفل الصفحة -->
+            <a href="#" class="d-inline-block text-danger text-decoration-none small mb-3" onclick="event.preventDefault(); openDeleteAccount()">
+                <i class="bi bi-person-x me-1"></i> حذف الحساب نهائياً
+            </a><br>
             الإصدار <span data-app-version>—</span>
         </div>
     </div>
@@ -157,7 +160,7 @@
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-    <script src="js/delete-account.js?v=d132d4b9"></script>
+    <script src="js/delete-account.js?v=5fc26bb0"></script>
 
     <script>
         // Check Auth
@@ -227,6 +230,13 @@
             }
         }
 
+        // الجولة تعيش في اللوحة لا هنا: خطواتها تُشير إلى عناصرها.
+        // نمسح علامة الإتمام ثم ننقل الكابتن إليها فتبدأ من جديد.
+        function replayTour() {
+            try { window.WajeezTour && window.WajeezTour.reset('captain_v1'); } catch (e) {}
+            window.location.href = 'captain-dashboard.html';
+        }
+
         function logout() {
             Swal.fire({
                 title: 'تسجيل الخروج؟',
@@ -265,11 +275,12 @@
     </script>
     <!-- Auth Helper & App Core -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script src="js/share-app.js?v=19bc445f"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script src="js/share-app.js?v=fcdd5cd2"></script>
+    <script type="module" src="js/app-core.js?v=f1decda9"></script>
+    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
+    <script src="js/tour.js?v=90018b4b"></script>
 </body>
 
 </html>
