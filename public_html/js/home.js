@@ -1557,6 +1557,13 @@ window._errandCtx = null;
         }
         // التسليم يبقى يدوياً في الحالتين — لا نفترض أن العميل في بيته الآن.
 
+        // 🎓 الميزانية والموافقة المسبقة تخصّان المال، ولا وجود لهما إلا في
+        // هذا النموذج — فيُشرحان هنا مرّة واحدة عند أول طلب شراء، لا في
+        // الجولة الترحيبية على شاشة لا تحوي الحقل أصلاً.
+        if (window.coachFire) {
+            setTimeout(() => { try { window.coachFire('client_errand_budget', '#errand-budget'); } catch (_) {} }, 900);
+        }
+
         // نظّف السياق حتى لا يُعاد تفعيله عند إعادة التحميل بلا قصد
         try { sessionStorage.removeItem('errandContext'); } catch (_) {}
     } catch (e) { console.warn('errand mode init failed', e); }

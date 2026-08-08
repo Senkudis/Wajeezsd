@@ -1184,10 +1184,10 @@
     <script type="module" src="js/app-core.js?v=f1decda9"></script>
     <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
 
-    <script src="js/home.js?v=6a29d3f0"></script>
+    <script src="js/home.js?v=c3f70e18"></script>
     <script src="js/order-feature.js?v=9f7d4809"></script>
     <script src="js/errand-context.js?v=1a90c3f7"></script>
-    <script src="js/smart-search.js?v=b407d19c"></script>
+    <script src="js/smart-search.js?v=9ab2d651"></script>
 
     <!-- ✅ Google Maps JavaScript API (Web SDK) -->
     <script>
@@ -1200,8 +1200,11 @@
 
     <script src="js/maps-loader.js?v=c382a678"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/tour.js?v=90018b4b"></script>
+    <script src="js/tour.js?v=5e17c2a4"></script>
     <script src="js/tour-client.js?v=931a740c"></script>
+    <!-- ⚠️ كان غائباً عن الرئيسية وحدها: coachFire في config.js مجرّد طابور،
+         ومن يستنزفه هو coach.js. بدونه كل شرح لحظي هنا يُصطفّ ولا يُعرض أبداً. -->
+    <script src="js/coach.js?v=4d90a6b1"></script>
     <script>
         // 🎓 الجولة للعميل المسجَّل فقط: الزائر لم يُنشئ حساباً بعد،
         // وشرح "طلباتي" و"عناويني المحفوظة" لمن لا يملكها إرباك.
@@ -1317,6 +1320,11 @@
                     onclick: `window._useSavedLocation(${Number(l.id)})`
                 })).join('');
             resultsDiv.style.display = 'block';
+
+            // 🎓 لا يُشرح إلا لمن عنده ما يُعرض — شرح ميزةٍ بقائمة فارغة إرباك
+            if (window.coachFire) {
+                try { window.coachFire('client_map_saved', '#map-search-results'); } catch (_) {}
+            }
         }
 
         window._useSavedLocation = function (id) {

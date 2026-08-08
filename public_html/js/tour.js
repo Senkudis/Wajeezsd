@@ -20,12 +20,27 @@ window.WajeezTour = (function () {
     'use strict';
 
     const KEY_PREFIX = 'wajeez_tour_done_';
+    const AT_PREFIX  = 'wajeez_tour_at_';
+
+    /**
+     * كم مرّة تُعرض الجولة تلقائياً قبل أن نكفّ عنها.
+     *
+     * ⚠️ العطل الذي يُغلقه هذا كله: الإتمام كان يُسجَّل عند الوصول للخطوة
+     * الأخيرة أو الضغط على "تخطّي" **فقط**. أيّ خروجٍ آخر — تحديث الصفحة،
+     * تنقّل، Escape، إغلاق التطبيق — لا يترك أثراً، فتبدأ الجولة من الصفر
+     * في كل فتحة. عملياً: جولةٌ تلاحق المستخدم إلى الأبد ولا تُعدّ منتهية
+     * أبداً. الآن يُحفظ التقدّم فور العرض، فالتحديث يُستأنف من موضعه، ومن
+     * تركها مرّتين لا تُفرَض عليه ثالثة — يبقى مدخل "إعادة الجولة" متاحاً.
+     */
+    const MAX_AUTO_SHOWS = 2;
 
     let steps = [];
     let rawSteps = [];
     let single = false;
     let idx = 0;
     let tourId = '';
+    let shownCount = 0;   // كم مرّة عُرضت هذه الجولة تلقائياً (يُقرأ من التقدّم)
+    let resumeAt = 0;     // الخطوة التي نستأنف منها بعد ترشيح الخطوات
     let nodes = null;
     let onDone = null;
 
@@ -38,17 +53,41 @@ window.WajeezTour = (function () {
     }
 
     function storageKey(id) { return KEY_PREFIX + id + '_' + userKey(); }
+    function progressKey(id) { return AT_PREFIX + id + '_' + userKey(); }
 
     function isDone(id) {
         try { return localStorage.getItem(storageKey(id)) === '1'; } catch (e) { return false; }
     }
 
     function markDone(id) {
-        try { localStorage.setItem(storageKey(id), '1'); } catch (e) { /* التخزين ممتلئ أو محجوب */ }
+        try {
+            localStorage.setItem(storageKey(id), '1');
+            localStorage.removeItem(progressKey(id));   // انتهت ⇒ لا معنى لتقدّمها
+        } catch (e) { /* التخزين ممتلئ أو محجوب */ }
+    }
+
+    /** { step, shows } — أين وصل، وكم مرّة عُرضت عليه تلقائياً */
+    function readProgress(id) {
+        try {
+            const raw = localStorage.getItem(progressKey(id));
+            if (!raw) return { step: 0, shows: 0 };
+            const p = JSON.parse(raw);
+            return {
+                step: Number.isFinite(Number(p.step)) ? Math.max(0, Number(p.step)) : 0,
+                shows: Number.isFinite(Number(p.shows)) ? Math.max(0, Number(p.shows)) : 0
+            };
+        } catch (e) { return { step: 0, shows: 0 }; }
+    }
+
+    function writeProgress(id, p) {
+        try { localStorage.setItem(progressKey(id), JSON.stringify(p)); } catch (e) { }
     }
 
     function reset(id) {
-        try { localStorage.removeItem(storageKey(id)); } catch (e) { }
+        try {
+            localStorage.removeItem(storageKey(id));
+            localStorage.removeItem(progressKey(id));   // إعادةٌ تعني البدء من أوّلها
+        } catch (e) { }
     }
 
     function esc(s) {
@@ -298,6 +337,9 @@ window.WajeezTour = (function () {
 
     function go(n) {
         idx = Math.max(0, Math.min(n, steps.length - 1));
+        // يُحفظ فور كل خطوة لا عند الخروج: الخروج قد لا يحدث أصلاً (إغلاق
+        // التطبيق، انهيار التبويب) — وما لا يُحفظ إلا في النهاية لا يُحفظ.
+        if (!single) writeProgress(tourId, { step: idx, shows: shownCount });
         paint();
     }
 
@@ -310,6 +352,7 @@ window.WajeezTour = (function () {
         window.removeEventListener('resize', onResize);
         window.removeEventListener('scroll', onScroll, true);
         if (completed) markDone(tourId);
+        else if (!single) writeProgress(tourId, { step: idx, shows: shownCount });
         if (typeof onDone === 'function') onDone(completed);
     }
 
@@ -404,6 +447,22 @@ window.WajeezTour = (function () {
         onDone = cfg.onDone || null;
         idx = 0;
 
+        // 📍 الاستئناف من حيث تُرك — لا من الصفر.
+        // تحديثُ الصفحة في منتصف جولة من اثنتي عشرة خطوة كان يعيدها كاملةً،
+        // فيُعاقَب المستخدم على تحديثٍ عابر بجولة يعرفها. والتلميح المفرد
+        // (single) بلا تقدّم: خطوة واحدة لا موضع فيها.
+        const prog = single ? { step: 0, shows: 0 } : readProgress(tourId);
+        shownCount = prog.shows;
+        resumeAt = prog.step;
+
+        // ⚠️ الكفّ عن العرض التلقائي بعد مرّتين: من تركها مرّتين لن ينهيها
+        // الثالثة، وملاحقته بها كل فتحة إزعاجٌ لا تعليم. تُعلَّم منتهية فلا
+        // تعود، ويبقى مدخل "إعادة الجولة" في القائمة لمن أرادها.
+        if (!cfg.force && !single && shownCount >= MAX_AUTO_SHOWS) {
+            markDone(tourId);
+            return false;
+        }
+
         // حوار آخر مفتوح ⇒ ننتظر إغلاقه بدل التكدّس فوقه
         if (modalOpen()) {
             whenClear(() => { if (!nodes) launch(); });
@@ -419,6 +478,17 @@ window.WajeezTour = (function () {
         // بلقطة قديمة يُسقط خطوة صارت مرئية أو يُبقي أخرى اختفت.
         steps = rawSteps.filter(s => !s.el || visible(resolve(s.el)) || s.keepIfMissing);
         if (!steps.length) return false;
+
+        // الاستئناف بعد الترشيح: عدد الخطوات المرئية يختلف بين فتحةٍ وأخرى،
+        // فحصْرُ الموضع هنا يمنع الوقوف على خطوة غير موجودة أصلاً.
+        idx = Math.max(0, Math.min(resumeAt, steps.length - 1));
+
+        // ✅ يُسجَّل العرض فور حدوثه لا عند إتمامه: هذه هي النقطة التي كان
+        // النظام يفقد فيها كل شيء عند التحديث.
+        if (!single) {
+            shownCount += 1;
+            writeProgress(tourId, { step: idx, shows: shownCount });
+        }
 
         nodes = build();
 

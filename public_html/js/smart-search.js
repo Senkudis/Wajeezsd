@@ -435,6 +435,13 @@
     }
 
     function bindErrandCards() {
+        // 🎓 شرحٌ في لحظته: هذا القسم لا يظهر إلا حين لا يجد العميل محلّه،
+        // فلا موضع له في الجولة الترحيبية. يُشرح مرّة واحدة عند أول ظهور،
+        // وبعد أن تُرسم البطاقات فعلاً — لا على قسمٍ فارغ.
+        if (errandList.length && window.coachFire) {
+            try { window.coachFire('client_errand_results', '.ss-errand-wrap'); } catch (_) {}
+        }
+
         resultsEl.querySelectorAll('.ss-ecard').forEach(function (el) {
             el.addEventListener('click', function () {
                 var p = errandList[parseInt(el.getAttribute('data-i'), 10)];

@@ -155,6 +155,9 @@
             return html;
         }
 
+        // محدّد زر أول طلب شراء ينتظر تسعيراً — يُملأ أثناء الرسم ويُستهلك بعده
+        let _pendingErrandCoach = null;
+
         async function fetchMissions() {
             try {
                 const response = await fetchWithRetry(`${API_URL}/api/orders/my-missions`, {
@@ -211,9 +214,12 @@
                             </button>`;
                         } else {
                             actionBtn = `
-                            <button class="btn btn-primary w-100 py-2 fw-bold mb-2 shadow-sm rounded-3" onclick="openErrandQuote('${order._id}', '', ${order.errand?.budget || 0}, ${!!(order.errand && order.errand.autoApprove)})">
+                            <button class="btn btn-primary w-100 py-2 fw-bold mb-2 shadow-sm rounded-3" id="errand-quote-btn-${order._id}" onclick="openErrandQuote('${order._id}', '', ${order.errand?.budget || 0}, ${!!(order.errand && order.errand.autoApprove)})">
                                 <i class="bi bi-cash-coin me-2"></i> أدخِل سعر البضاعة
                             </button>`;
+                            // 🎓 أول طلب شراء يصل الكابتن: مسار مختلف عن التوصيل
+                            // (سعر ثم تأكيد ثم شراء). يُشرح على الزر نفسه لحظة ظهوره.
+                            _pendingErrandCoach = `#errand-quote-btn-${order._id}`;
                         }
                     } else if (order.status === 'accepted') {
                         const buyLabel = isErrand ? 'صوّر البضاعة وأكّد الشراء' : `صوّر الطلبية وأكّد ${isMulti ? 'أول استلام' : 'الاستلام'}`;
@@ -405,6 +411,13 @@
                     `;
                     container.innerHTML += html;
                 });
+
+                // 🎓 بعد اكتمال الرسم لا داخل الحلقة: العنصر يحتاج أن يوجد
+                // في الصفحة بأبعاد فعلية حتى تُقاس عليه بؤرة الشرح.
+                if (_pendingErrandCoach) {
+                    coachFire('captain_errand_quote', _pendingErrandCoach);
+                    _pendingErrandCoach = null;
+                }
             } catch (error) {
                 // ✅ FIX: منع ظهور "Failed to fetch" الخام للمستخدم
                 const container = document.getElementById('missions-container');
@@ -1076,8 +1089,8 @@
     <script src="js/geo.js?v=3f3df042"></script>
     <script type="module" src="js/app-core.js?v=f1decda9"></script>
     <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
-    <script src="js/tour.js?v=90018b4b"></script>
-    <script src="js/coach.js?v=12c08075"></script>
+    <script src="js/tour.js?v=5e17c2a4"></script>
+    <script src="js/coach.js?v=4d90a6b1"></script>
     <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 
