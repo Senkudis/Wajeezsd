@@ -216,7 +216,13 @@ const STATUS_LABELS = {
     accepted: 'مقبول',
     picked_up: 'قيد التوصيل',
     delivered: 'مكتمل',
-    cancelled: 'ملغي'
+    cancelled: 'ملغي',
+    // 🛒 حالات طلب المتجر قبل إنشاء طلب التوصيل — صارت تصل اللوحة الآن،
+    // وبلا ترجمتها كانت ستُعرض بالإنجليزية الخام أمام الإدارة
+    shop_pending: 'وصل التاجر',
+    shop_preparing: 'قيد التجهيز',
+    ready_for_pickup: 'بانتظار كابتن',
+    captain_assigned: 'مع الكابتن'
 };
 
 function statusLabel(s) { return STATUS_LABELS[s] || s; }
@@ -610,20 +616,38 @@ async function loadLiveOrders() {
             return '<span style="font-size:10px;font-weight:700;color:#7c3aed;"><i class="fas fa-city" style="margin-left:3px;"></i> الخرطوم</span>';
         };
 
-        feed.innerHTML = live.slice(0, 30).map(o => `
-            <div class="gv-order-item" onclick="viewOrder('${o._id}')">
+        feed.innerHTML = live.slice(0, 30).map(o => {
+            // 🛒 طلب متجر: يُعرَّف بمتجره. كان يظهر كتوصيلٍ مجهول المصدر،
+            // فلا تعرف المتابعة أيّ طلبٍ يخصّ أيّ تاجر.
+            const shopTag = o.orderType === 'shop'
+                ? `<span style="font-size:10px;font-weight:700;color:#6d28d9;margin-left:6px;">
+                     <i class="fas fa-store" style="margin-left:3px;"></i>${window.escapeHtml(o.shopName || 'متجر')}</span>`
+                : '';
+            // ⚠️ طال انتظاره كابتناً — أوّل ما يجب أن تراه العين في بثٍّ حيّ
+            const stuckTag = o.escalatedAt
+                ? `<span class="gv-badge" style="background:#fef3c7;color:#92400e;font-size:10px;margin-left:4px;">
+                     <i class="fas fa-clock"></i> متعثّر</span>`
+                : '';
+            // طلب ما زال عند التاجر: لا طلب توصيل له بعد، ففتحه كطلب توصيل خطأ
+            const openable = !o.isShopOnly;
+            const route = o.isShopOnly
+                ? 'عند التاجر — لم يُرفع للكباتن بعد'
+                : `${window.escapeHtml(o.pickup?.address || '?')} → ${window.escapeHtml(o.dropoff?.address || '?')}`;
+
+            return `
+            <div class="gv-order-item" ${openable ? `onclick="viewOrder('${o._id}')"` : 'style="cursor:default;"'}>
                 <div class="gv-order-status ${o.status}"></div>
                 <div class="gv-order-info">
-                    <h5>${window.escapeHtml(o.client?.name || 'عميل')} ${o.captain ? '← ' + window.escapeHtml(o.captain.name) : ''}</h5>
-                    <p>${window.escapeHtml(o.pickup?.address || '?')} → ${window.escapeHtml(o.dropoff?.address || '?')}</p>
-                    ${cityLabel(o.city)} ${offersBadge(o)}
+                    <h5>${window.escapeHtml(o.client?.name || 'عميل')} ${o.captain ? '← ' + window.escapeHtml(o.captain.name) : ''}${shopTag}</h5>
+                    <p>${route}</p>
+                    ${cityLabel(o.city)} ${stuckTag} ${offersBadge(o)}
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
                     <span class="gv-badge ${o.status}">${statusLabel(o.status)}</span>
                     <div class="gv-order-price">${o.price} ج.س</div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     } catch(e) {
         console.error('Live orders error:', e);
     }

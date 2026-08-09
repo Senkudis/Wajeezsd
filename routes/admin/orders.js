@@ -34,22 +34,88 @@ function withNegotiationSummary(order) {
     return { ...rest, negotiationSummary: summarizeNegotiations(negotiations) };
 }
 
+/**
+ * 🛒 الحقول التي تُميّز طلب المتجر عن التوصيل العادي.
+ *
+ * ⚠️ كانت محذوفة من select في مساري اللوحة معاً، فتُعرض طلبات المتاجر
+ * كتوصيلٍ مجهول المصدر: لا اسم متجر ولا نوع ولا رابطٌ بطلب المتجر — فيتعذّر
+ * على المتابعة معرفةُ أيّ طلبٍ يخصّ أيّ تاجر، وهو أوّل ما تحتاجه.
+ */
+const ORDER_LIST_FIELDS =
+    'status price pickup dropoff createdAt client captain type city negotiations ' +
+    'orderType shopOrderId shopName escalatedAt';
+
+/**
+ * 🛒 طلبات متاجر لم يُنشأ لها طلب توصيل بعد (وصلت التاجر أو قيد التجهيز).
+ *
+ * بدونها تختفي مرحلةٌ كاملة عن اللوحة: العميل دفع والتاجر يُجهّز، ولا أثر
+ * لذلك عند الإدارة حتى يضغط التاجر "جاهز". وهي بالضبط المرحلة التي تحتاج
+ * المتابعة فيها أن ترى أين وقف الطلب.
+ *
+ * 🌍 ShopOrder بلا حقل مدينة، فتُقرأ من العميل ويُطبَّق عليها حصر المدينة يدوياً.
+ *
+ * @param {object|null} cityFilter مرشّح مدينة الأدمن ({} للمدير العام)
+ * @param {number} limit
+ */
+async function pendingAtMerchantOrders(cityFilter, limit = 100) {
+    try {
+        const ShopOrder = require('../../models/ShopOrder');
+        const raw = await ShopOrder.find({ status: { $in: ['shop_pending', 'shop_preparing'] } })
+            .select('status createdAt client place itemsTotal deliveryFee paymentStatus')
+            .populate('client', 'name phone city')
+            .populate('place', 'name city')
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean();
+
+        const wantCity = cityFilter && cityFilter.city;
+        return raw
+            .filter(so => !wantCity || (so.client && so.client.city) === wantCity)
+            .map(so => ({
+                _id: so._id,
+                isShopOnly: true,          // للواجهة: لا طلب توصيل له بعد
+                orderType: 'shop',
+                shopOrderId: so._id,
+                shopName: so.place ? so.place.name : '—',
+                status: so.status,
+                price: so.deliveryFee || 0,
+                totalAmount: so.itemsTotal || 0,
+                paymentStatus: so.paymentStatus,
+                city: (so.client && so.client.city) || 'Khartoum',
+                client: so.client ? { name: so.client.name, phone: so.client.phone } : null,
+                captain: null,
+                createdAt: so.createdAt
+            }));
+    } catch (e) {
+        // فشل الدمج لا يُسقط قائمة الطلبات الأساسية
+        logger.error({ err: e.message }, 'admin orders: shop-only merge failed');
+        return [];
+    }
+}
+
+const byNewest = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+
 router.get('/orders/live', protect, requirePermission('view_orders'), async (req, res) => {
     try {
         // 🌍 sub_admin يرى طلبات مدينته فقط
         const cityFilter = getAdminCityFilter(req);
         const liveStatuses = ['pending', 'scheduled', 'accepted', 'picked_up'];
         const orders = await Order.find({ status: { $in: liveStatuses }, ...cityFilter })
-            .select('status price pickup dropoff createdAt client captain type city negotiations')
+            .select(ORDER_LIST_FIELDS)
             .populate('client', 'name phone')
             .populate('captain', 'name phone')
             .sort({ createdAt: -1 })
             .limit(50)
             .lean();
 
+        // 🛒 وطلبات المتاجر التي ما زالت عند التاجر — «نشطة» بكل معنى الكلمة:
+        // العميل دفع وينتظر. غيابها عن اللوحة العامة كان يُخفي أكثر المراحل
+        // احتياجاً للمتابعة.
+        const atMerchant = await pendingAtMerchantOrders(cityFilter, 50);
+
         // 💬 ملخّص عروض المفاوضة لكل طلب — الإدارة كانت لا ترى المفاوضات إطلاقاً،
         // فطلبٌ عليه ثلاثة عروض يبدو مهملاً تماماً كطلبٍ لم يلتفت إليه أحد.
-        res.json(orders.map(withNegotiationSummary));
+        res.json(orders.map(withNegotiationSummary).concat(atMerchant).sort(byNewest));
     } catch (error) {
         logger.error("Live Orders Error:", error);
         res.status(500).json({ message: 'Server error' });
@@ -234,57 +300,15 @@ router.get('/orders', protect, requirePermission('view_orders'), async (req, res
         // 🌍 sub_admin يرى طلبات مدينته فقط
         const cityFilter = getAdminCityFilter(req);
 
-        // ⚠️ orderType و shopOrderId و shopName كانت محذوفة من الـ select، فكانت
-        // اللوحة تعرض طلبات المتاجر كأنها توصيلٌ عادي: لا يُعرف المتجر ولا يُميَّز
-        // النوع، ولا يمكن ربط الطلب بطلب المتجر لمتابعة عطلٍ أو تعيين كابتن.
-        // و escalatedAt يكشف الطلب الذي طال انتظاره كابتناً — وهو أوّل ما تحتاجه
-        // المتابعة.
         const orders = await Order.find(cityFilter)
-            .select('status price pickup dropoff createdAt client captain type totalAmount city negotiations ' +
-                    'orderType shopOrderId shopName escalatedAt cancelledBy cancelReason')
+            .select(ORDER_LIST_FIELDS + ' totalAmount cancelledBy cancelReason')
             .populate('client', 'name phone')
             .populate('captain', 'name phone')
             .sort({ createdAt: -1 })
             .limit(200)
             .lean();
 
-        // 🛒 طلبات متاجر لم يُنشأ لها طلب توصيل بعد (عند التاجر: وصل/يُجهَّز).
-        // بدونها تختفي مرحلةٌ كاملة عن اللوحة: العميل دفع والتاجر يُجهّز،
-        // ولا أثر لذلك عند الإدارة حتى يضغط التاجر "جاهز".
-        let pendingAtMerchant = [];
-        try {
-            const ShopOrder = require('../../models/ShopOrder');
-            const soFilter = { status: { $in: ['shop_pending', 'shop_preparing'] } };
-            const raw = await ShopOrder.find(soFilter)
-                .select('status createdAt client place itemsTotal deliveryFee paymentStatus')
-                .populate('client', 'name phone city')
-                .populate('place', 'name city')
-                .sort({ createdAt: -1 })
-                .limit(100)
-                .lean();
-
-            // 🌍 الحصر بالمدينة يدوياً: ShopOrder بلا حقل مدينة، فتُقرأ من العميل
-            const wantCity = cityFilter && cityFilter.city;
-            pendingAtMerchant = raw
-                .filter(so => !wantCity || (so.client && so.client.city) === wantCity)
-                .map(so => ({
-                    _id: so._id,
-                    isShopOnly: true,          // للواجهة: لا طلب توصيل له بعد
-                    orderType: 'shop',
-                    shopOrderId: so._id,
-                    shopName: so.place ? so.place.name : '—',
-                    status: so.status,
-                    price: so.deliveryFee || 0,
-                    totalAmount: so.itemsTotal || 0,
-                    paymentStatus: so.paymentStatus,
-                    city: (so.client && so.client.city) || 'Khartoum',
-                    client: so.client ? { name: so.client.name, phone: so.client.phone } : null,
-                    captain: null,
-                    createdAt: so.createdAt
-                }));
-        } catch (e) {
-            logger.error({ err: e.message }, 'admin orders: shop-only merge failed');
-        }
+        const pendingAtMerchant = await pendingAtMerchantOrders(cityFilter, 100);
 
         const merged = orders.map(withNegotiationSummary).concat(pendingAtMerchant)
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
