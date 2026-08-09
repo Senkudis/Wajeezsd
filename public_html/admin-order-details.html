@@ -6,9 +6,9 @@
     <title>تفاصيل الطلب | وجيز</title>
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/admin-cache-buster.js?v=d70c699f"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Cairo', sans-serif; background: #f1f5f9; direction: rtl; color: #1e293b; min-height: 100vh; }
@@ -110,9 +110,9 @@
         }
         .od-img-preview:hover { transform: scale(1.05); }
     </style>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
 </head>
 <body>
 
@@ -405,7 +405,19 @@ function renderOrder(o) {
             <div class="od-card-title"><i class="fas fa-route"></i> مسار التوصيل</div>
             <div class="od-map" id="orderMap"></div>
             <div id="orderRouteSummary" style="padding:8px 4px 0;font-size:12px;color:#64748b;"></div>
-        </div>` : ''}
+        </div>` : `
+        <!-- ⚠️ طرفٌ بلا إحداثيات: الصمت هنا كان يترك الأدمن يظنّ أن الخريطة
+             معطّلة، بينما المشكلة في بيانات الطلب نفسه. -->
+        <div class="od-card" style="margin-bottom:20px;">
+            <div class="od-card-title"><i class="fas fa-route"></i> مسار التوصيل</div>
+            <div style="padding:16px;border-radius:12px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;font-size:13px;line-height:1.9;">
+                <b><i class="fas fa-triangle-exclamation"></i> تعذّر رسم المسار</b><br>
+                ${missingCoordLabels(o).length
+                    ? `لا توجد إحداثيات محفوظة لـ <b>${missingCoordLabels(o).join(' و')}</b>.`
+                    : 'إحداثيات الطلب غير مكتملة.'}
+                العنوان النصّي أعلاه هو المرجع، وللكابتن الاتصال بالعميل لتحديد الموقع.
+            </div>
+        </div>`}
 
         <!-- Actions -->
         <div class="od-card">
@@ -433,10 +445,29 @@ function renderOrder(o) {
  * استلام وآخر تسليم (عقد models/Order.js) — الاعتماد عليهما وحدهما كان يُسقط كلَّ المحطات
  * الوسطى من الخريطة، فتظهر رحلةٌ بخمس محطات للأدمن كنقطتين وخطٍّ مستقيم بينهما.
  */
+/**
+ * 🧭 إحداثيات صالحة للرسم على الخريطة.
+ *
+ * ⚠️ العطل الذي يُغلقه: فحص `lat != null` وحده كان يمرّر حالتين تُنتجان دبوساً
+ * كاذباً:
+ *   • lng مفقود تماماً — لم يكن يُفحص إطلاقاً.
+ *   • lat = lng = 0 — رقمٌ صالح لكنه ليس موقعاً، بل نقطة تقاطع خطّي الأصل في
+ *     خليج غينيا. رُصد فعلاً في الإنتاج: طلبٌ استلامه في السودان وتسليمه
+ *     يُرسم في المحيط الأطلسي، ويفشل حساب المسار بلا سبب ظاهر للأدمن.
+ *
+ * الصفران معاً يعنيان «بلا موقع» لا موقعاً في المحيط — ولا مدينة نخدمها تقترب
+ * منهما، فرفضهما آمن.
+ */
+function validCoord(lat, lng) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    if (lat === 0 && lng === 0) return false;          // "Null Island" — إحداثيات غائبة
+    return Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+}
+
 function routePoints(o) {
     if (o.isMultiStop && Array.isArray(o.stops) && o.stops.length >= 2) {
         return o.stops
-            .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng))
+            .filter(s => validCoord(s.lat, s.lng))
             .map((s, i) => ({
                 lat: s.lat, lng: s.lng,
                 type: s.type, done: !!s.done,
@@ -445,9 +476,21 @@ function routePoints(o) {
             }));
     }
     const pts = [];
-    if (o.pickup?.lat  != null) pts.push({ lat: o.pickup.lat,  lng: o.pickup.lng,  type: 'pickup',  done: false, label: 'الاستلام', address: o.pickup.address  || '' });
-    if (o.dropoff?.lat != null) pts.push({ lat: o.dropoff.lat, lng: o.dropoff.lng, type: 'dropoff', done: false, label: 'التسليم',  address: o.dropoff.address || '' });
+    if (validCoord(o.pickup?.lat,  o.pickup?.lng))  pts.push({ lat: o.pickup.lat,  lng: o.pickup.lng,  type: 'pickup',  done: false, label: 'الاستلام', address: o.pickup.address  || '' });
+    if (validCoord(o.dropoff?.lat, o.dropoff?.lng)) pts.push({ lat: o.dropoff.lat, lng: o.dropoff.lng, type: 'dropoff', done: false, label: 'التسليم',  address: o.dropoff.address || '' });
     return pts;
+}
+
+/** أيّ طرفٍ من الرحلة بلا إحداثيات — يُقال للأدمن صراحةً بدل خريطةٍ ناقصة بصمت */
+function missingCoordLabels(o) {
+    if (o.isMultiStop && Array.isArray(o.stops) && o.stops.length >= 2) {
+        const bad = o.stops.filter(s => !validCoord(s.lat, s.lng)).length;
+        return bad ? [`${bad} محطة بلا إحداثيات`] : [];
+    }
+    const out = [];
+    if (!validCoord(o.pickup?.lat,  o.pickup?.lng))  out.push('الاستلام');
+    if (!validCoord(o.dropoff?.lat, o.dropoff?.lng)) out.push('التسليم');
+    return out;
 }
 
 function hasMappableRoute(o) {

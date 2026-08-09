@@ -514,7 +514,8 @@
         // 🧭 waypoints: نقاط وسطية اختيارية للتوصيل متعدد النقاط
         function drawRouteOnStreets(pickup, dropoff, waypoints) {
             if (!directionsService || !directionsRenderer) return;
-            if (!pickup?.lat || !dropoff?.lat) return;
+            // 🧭 lng كان لا يُفحص إطلاقاً، والصفران يمرّان كموقعٍ صالح في المحيط
+            if (!validCoord(pickup?.lat, pickup?.lng) || !validCoord(dropoff?.lat, dropoff?.lng)) return;
 
             const req = {
                 origin: { lat: pickup.lat, lng: pickup.lng },
@@ -566,6 +567,18 @@
         }
 
         // ===== Status Steps Logic =====
+        /**
+         * 🧭 إحداثيات صالحة للرسم.
+         * ⚠️ الفحص السابق `if (order.pickup?.lat)` كان يمرّر طلباً بلا `lng` إطلاقاً
+         * (لم يكن يُفحص)، ويمرّر lat=lng=0 — وهي ليست موقعاً بل نقطة الأصل في خليج
+         * غينيا. رُصد في الإنتاج: طلبٌ استلامه في السودان وتسليمه يُرسم في المحيط.
+         */
+        function validCoord(lat, lng) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+            if (lat === 0 && lng === 0) return false;
+            return Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+        }
+
         const STATUS_ORDER = ['pending', 'accepted', 'picked_up', 'delivered'];
         // ⚠️ 'scheduled' خارج STATUS_ORDER عمداً: لم تبدأ الرحلة بعد، فلا خطوة
         // مكتملة. لكن غياب نصّها كان يترك العنوان فارغاً — طلبٌ حيّ بلا أي بيان.
@@ -778,7 +791,7 @@
             if (map && typeof google !== 'undefined' && google.maps) {
                 bounds = new google.maps.LatLngBounds();
 
-                if (order.pickup?.lat) {
+                if (validCoord(order.pickup?.lat, order.pickup?.lng)) {
                     const pos = new google.maps.LatLng(order.pickup.lat, order.pickup.lng);
                     if (!pickupMarker) {
                         pickupMarker = new google.maps.Marker({
@@ -788,7 +801,7 @@
                     }
                     bounds.extend(pos);
                 }
-                if (order.dropoff?.lat) {
+                if (validCoord(order.dropoff?.lat, order.dropoff?.lng)) {
                     const pos = new google.maps.LatLng(order.dropoff.lat, order.dropoff.lng);
                     if (!dropoffMarker) {
                         dropoffMarker = new google.maps.Marker({
