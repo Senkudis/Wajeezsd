@@ -10,15 +10,15 @@
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="css/admin-panel.css?v=8023c6eb">
+    <link rel="stylesheet" href="css/admin-panel.css?v=726a2d3d">
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=d70c699f"></script>
+    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
     <script src="js/vehicle-types.js?v=eedaff8e"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
 </head>
 <body>
 
@@ -98,6 +98,9 @@
 </aside>
 
 
+<!-- Sidebar Overlay -->
+<div class="gv-sidebar-overlay" id="gvSidebarOverlay" onclick="toggleMobileSidebar(false)"></div>
+
 <!-- Notification Overlay -->
 <div class="gv-overlay" id="notifOverlay" onclick="toggleNotifPanel(false)"></div>
 
@@ -119,7 +122,7 @@
     <!-- Top Bar -->
     <div class="gv-topbar">
         <div class="gv-topbar-right">
-            <button class="gv-topbar-btn" onclick="toggleMobileSidebar()" style="display:none;" id="menuToggle">
+            <button class="gv-topbar-btn" onclick="toggleMobileSidebar()" id="menuToggle">
                 <i class="fas fa-bars"></i>
             </button>
             <span class="page-title" id="pageTitle">نظرة عامة</span>
@@ -237,6 +240,11 @@
                             <option value="delivered">مكتمل</option>
                             <option value="cancelled">ملغي</option>
                             <option value="scheduled">مجدول</option>
+                            <!-- 🛒 حالات طلب المتجر — صارت تصل اللوحة، وبلا خياراتها
+                                 كان أيّ فلتر يُخفيها تماماً فتبدو وكأنها اختفت -->
+                            <option value="at_merchant">عند التاجر</option>
+                            <option value="awaiting_captain">بانتظار كابتن</option>
+                            <option value="stuck">⚠️ عالق</option>
                         </select>
                     </div>
                 </div>
@@ -429,8 +437,8 @@
 <!-- SweetAlert2 -->
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 <script src="vendor/chartjs/chart.umd.min.js"></script>
-<script src="js/admin-dashboard.js?v=91af0c76"></script>
-<script src="js/admin-panel.js?v=e41f0d29"></script>
+<script src="js/admin-dashboard.js?v=8e5feaa8"></script>
+<script src="js/admin-panel.js?v=b73c0e51"></script>
 <script src="js/admin-web-push.js?v=7c56c6b8"></script>
 <script src="js/geo.js?v=3f3df042"></script>
 <script type="module" src="js/app-core.js?v=f1decda9"></script>
@@ -633,6 +641,25 @@
         }
     }
 </script>
+
+<!-- 📱 Mobile Bottom Navigation Bar (شريط التنقل السفلي للهواتف) -->
+<div class="gv-mobile-bottom-nav" id="gvMobileBottomNav">
+    <button class="gv-bottom-nav-item active" data-page="overview" onclick="switchPage('overview')">
+        <i class="fas fa-th-large"></i><span>الرئيسية</span>
+    </button>
+    <button class="gv-bottom-nav-item" data-page="orders" onclick="switchPage('orders')">
+        <i class="fas fa-box-open"></i><span>الطلبات</span>
+    </button>
+    <button class="gv-bottom-nav-item" data-page="livemap" onclick="switchPage('livemap')">
+        <i class="fas fa-map-marked-alt"></i><span>الخريطة</span>
+    </button>
+    <button class="gv-bottom-nav-item" data-page="captains" onclick="switchPage('captains')">
+        <i class="fas fa-motorcycle"></i><span>الكباتن</span>
+    </button>
+    <button class="gv-bottom-nav-item" onclick="toggleMobileSidebar(true)">
+        <i class="fas fa-bars"></i><span>القائمة</span>
+    </button>
+</div>
 
 </body>
 </html>

@@ -23,7 +23,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
 
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
     <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
@@ -460,9 +460,12 @@
 
         if (!isGuest && token) {
 
+            // ⚠️ 'scheduled' حالةٌ في النموذج ولم تكن هنا: العميل الذي يجدول
+            // طلبه كان يرى كلمة "scheduled" بالإنجليزية وشارةً رمادية مجهولة.
             const getStatusName = (s) => ({
                 'chat_initiated': 'محادثة مع التاجر',
                 'pending': 'في الانتظار',
+                'scheduled': 'مجدول — سيُنشر في موعده',
                 'negotiating': 'جاري التفاوض',
                 'accepted': 'جاري التنفيذ',
                 'picked_up': 'تم الاستلام',
@@ -473,6 +476,7 @@
             const getStatusBadge = (s) => ({
                 'chat_initiated': 'bg-info text-dark',
                 'pending': 'bg-warning text-dark',
+                'scheduled': 'bg-primary',
                 'negotiating': 'bg-info text-dark',
                 'accepted': 'bg-primary',
                 'picked_up': 'bg-info text-dark',
@@ -655,10 +659,19 @@
                                 <i class="bi bi-chat-dots-fill me-1"></i> فتح المحادثة مع التاجر
                             </button>`;
                         } else if (['accepted', 'picked_up'].includes(order.status) && order.captain) {
+                            // ⚠️ صفحة التتبّع تطلب /api/orders/:id — أي معرّف **طلب التوصيل**.
+                            // وطلب المتجر يأتي هنا بـ _id = معرّف ShopOrder، فكان الزرّ
+                            // يمرّر المعرّف الخطأ فينتهي بـ«الطلب غير موجود» ورجوعٍ
+                            // للرئيسية: التتبّع معطّل لكل طلبات المتاجر بلا استثناء.
+                            // المعرّف الصحيح يصل من السيرفر أصلاً في deliveryOrderId.
+                            const trackId = order.deliveryOrderId || (order.orderType === 'shop' ? null : order._id);
+                            const trackBtn = trackId
+                                ? `<a href="tracking.html?orderId=${trackId}" class="btn btn-success flex-grow-1 rounded-pill fw-bold shadow-sm"><i class="bi bi-geo-alt-fill me-1"></i> تتبع</a>`
+                                : '';
                             activeBtns = `
                             <div class="d-flex gap-2">
                                 <button id="chat-btn-${order._id}" class="btn flex-grow-1 rounded-pill fw-bold shadow-sm text-white" style="background-color:#0d6efd;" onclick="chat('${order._id}', '${order.captain._id}')"><i class="bi bi-person-fill me-1"></i> محادثة الكابتن</button>
-                                <a href="tracking.html?orderId=${order._id}" class="btn btn-success flex-grow-1 rounded-pill fw-bold shadow-sm"><i class="bi bi-geo-alt-fill me-1"></i> تتبع</a>
+                                ${trackBtn}
                             </div>
                         `;
                             // ✅ لا يُسمح للعميل بإلغاء الطلب بعد قبول الكابتن
@@ -1493,8 +1506,8 @@
     <script src="js/geo.js?v=3f3df042"></script>
     <script type="module" src="js/app-core.js?v=f1decda9"></script>
     <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
-    <script src="js/tour.js?v=5e17c2a4"></script>
-    <script src="js/coach.js?v=4d90a6b1"></script>
+    <script src="js/tour.js?v=d6d632d6"></script>
+    <script src="js/coach.js?v=c0090731"></script>
     <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 

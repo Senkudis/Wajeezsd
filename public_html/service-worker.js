@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-8c02e5b7';
+const CACHE_NAME = 'wajeez-static-tracking-fix-v3';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -79,6 +79,9 @@ self.addEventListener('fetch', (event) => {
     // CRITICAL EXCLUSIONS — bypass service worker entirely for these:
     if (url.pathname.startsWith('/api/') ||
         url.pathname.startsWith('/uploads/') || // Images uploaded by admin — always fetch fresh
+        url.pathname.includes('/css/admin') || // Admin CSS — always fetch fresh from network
+        url.pathname.includes('/js/admin') || // Admin JS — always fetch fresh from network
+        url.pathname.includes('admin.html') || // Admin HTML pages — always fetch fresh
         url.pathname.includes('socket.io') ||
         event.request.method !== 'GET') {
         return; // Go directly to network, no caching

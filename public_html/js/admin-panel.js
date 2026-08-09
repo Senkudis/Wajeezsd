@@ -222,7 +222,8 @@ const STATUS_LABELS = {
     shop_pending: 'وصل التاجر',
     shop_preparing: 'قيد التجهيز',
     ready_for_pickup: 'بانتظار كابتن',
-    captain_assigned: 'مع الكابتن'
+    captain_assigned: 'مع الكابتن',
+    chat_initiated: 'محادثة مع التاجر'
 };
 
 function statusLabel(s) { return STATUS_LABELS[s] || s; }
@@ -382,6 +383,13 @@ function switchPage(page) {
     const navBtn = document.querySelector(`.gv-nav-item[data-page="${page}"]`);
     if (navBtn) navBtn.classList.add('active');
 
+    // تحديث الحالة النشطة في شريط التنقل السفلي للهاتف
+    document.querySelectorAll('.gv-bottom-nav-item').forEach(b => {
+        if (b.hasAttribute('data-page')) {
+            b.classList.toggle('active', b.getAttribute('data-page') === page);
+        }
+    });
+
     const titles = {
         overview: 'نظرة عامة', orders: 'الطلبات', livemap: 'الخريطة الحية',
         users: 'المستخدمين', captains: 'الكباتن', broadcast: 'إرسال إشعار'
@@ -400,7 +408,7 @@ function switchPage(page) {
     if (page === 'captains') document.getElementById('captainsBadge').style.display = 'none';
 
     // Close mobile sidebar
-    document.getElementById('gvSidebar').classList.remove('mobile-open');
+    toggleMobileSidebar(false);
 }
 
 async function refreshCurrentPage() {
@@ -672,15 +680,46 @@ async function loadAllOrders() {
 }
 
 
+/**
+ * 🔎 مرشّحات القائمة — مسنَدة لمعناها لا لنصّ الحالة الخام.
+ *
+ * ⚠️ العطل الذي تُغلقه: المقارنة كانت `o.status === status` حرفياً، والقائمة
+ * صارت تضمّ طلبات متاجر بحالات أخرى (shop_pending / shop_preparing /
+ * ready_for_pickup). فأيّ اختيارٍ في الفلتر كان يُسقطها كلها — تبدو للإدارة
+ * وكأنها اختفت، ولا سبيل للوصول إليها إلا بـ«كل الحالات».
+ *
+ * ولذلك صارت الخريطة بدوالّ: «قيد الانتظار» يعني *كل* ما ينتظر كابتناً أياً
+ * كان نوعه — وهو ما تقصده الإدارة حين تختاره.
+ */
+const ORDER_FILTERS = {
+    all:              () => true,
+    // ينتظر كابتناً: طلب توصيل معلّق، أو طلب متجر جاهز بلا كابتن
+    pending:          o => o.status === 'pending' || o.status === 'ready_for_pickup',
+    accepted:         o => o.status === 'accepted' || o.status === 'captain_assigned',
+    picked_up:        o => o.status === 'picked_up',
+    delivered:        o => o.status === 'delivered',
+    cancelled:        o => o.status === 'cancelled',
+    scheduled:        o => o.status === 'scheduled',
+    at_merchant:      o => o.status === 'shop_pending' || o.status === 'shop_preparing',
+    awaiting_captain: o => o.status === 'pending' || o.status === 'ready_for_pickup',
+    stuck:            o => !!o.isOrphaned || !!o.escalatedAt
+};
+
 function filterOrders() {
     const status = document.getElementById('orderStatusFilter').value;
     const q = (document.getElementById('orderSearch').value || '').toLowerCase().trim();
     let filtered = allOrders;
-    if (status !== 'all') filtered = filtered.filter(o => o.status === status);
+
+    const pred = ORDER_FILTERS[status];
+    if (pred) filtered = filtered.filter(pred);
+
     if (q) {
+        // 🛒 اسم المتجر ضمن البحث: طلب المتجر بلا عناوين استلام/تسليم، فكان
+        // البحث عنه مستحيلاً إلا باسم العميل — واسم المتجر أوّل ما يُبحث به.
         filtered = filtered.filter(o =>
             (o.client?.name || '').toLowerCase().includes(q) ||
             (o.captain?.name || '').toLowerCase().includes(q) ||
+            (o.shopName || '').toLowerCase().includes(q) ||
             (o.pickup?.address || '').toLowerCase().includes(q) ||
             (o.dropoff?.address || '').toLowerCase().includes(q) ||
             String(o.price).includes(q)
@@ -1598,37 +1637,52 @@ async function loadMapCaptains(map, cityFilter) {
 }
 
 function initMiniMap() {
-    if (miniMapInstance || !window.google?.maps) return;
+    if (miniMapInstance) return;
+    if (!window.google?.maps?.Map || typeof google.maps.Map !== 'function') {
+        setTimeout(initMiniMap, 500);
+        return;
+    }
     const el = document.getElementById('miniMap');
     if (!el) return;
 
-    miniMapInstance = new google.maps.Map(el, {
-        center: { lat: 15.6445, lng: 32.4777 }, zoom: 12,
-        disableDefaultUI: true, zoomControl: true,
-        styles: [
-            { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-            { featureType: 'transit', stylers: [{ visibility: 'off' }] }
-        ]
-    });
-    loadMapCaptains(miniMapInstance);
-}
-
-function initFullMap() {
-    if (!window.google?.maps) { setTimeout(initFullMap, 500); return; }
-    const el = document.getElementById('fullMap');
-    if (!el) return;
-
-    if (!gvMap) {
-        gvMap = new google.maps.Map(el, {
-            center: { lat: 15.6445, lng: 32.4777 }, zoom: 13,
-            mapTypeControl: false, streetViewControl: false, fullscreenControl: true,
+    try {
+        miniMapInstance = new google.maps.Map(el, {
+            center: { lat: 15.6445, lng: 32.4777 }, zoom: 12,
+            disableDefaultUI: true, zoomControl: true,
             styles: [
                 { featureType: 'poi', stylers: [{ visibility: 'off' }] },
                 { featureType: 'transit', stylers: [{ visibility: 'off' }] }
             ]
         });
+        loadMapCaptains(miniMapInstance);
+    } catch(e) {
+        console.warn('initMiniMap failed:', e);
     }
-    refreshMapCaptains();
+}
+
+function initFullMap() {
+    if (!window.google?.maps?.Map || typeof google.maps.Map !== 'function') {
+        setTimeout(initFullMap, 500);
+        return;
+    }
+    const el = document.getElementById('fullMap');
+    if (!el) return;
+
+    try {
+        if (!gvMap) {
+            gvMap = new google.maps.Map(el, {
+                center: { lat: 15.6445, lng: 32.4777 }, zoom: 13,
+                mapTypeControl: false, streetViewControl: false, fullscreenControl: true,
+                styles: [
+                    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+                    { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+                ]
+            });
+        }
+        refreshMapCaptains();
+    } catch(e) {
+        console.warn('initFullMap failed:', e);
+    }
 }
 
 
