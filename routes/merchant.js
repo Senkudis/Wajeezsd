@@ -509,9 +509,103 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
         }
 
 
+        // 📣 وقت أول بثّ = بداية مهلة زر "تذكير الكباتن"
+        await ShopOrder.updateOne({ _id: order._id }, { $set: { lastCaptainNudgeAt: new Date() } });
+
         emitShopOrderAdminUpdate(req.app, order, place);
         res.json({ message: 'تم تحديد الطلب كجاهز', order });
     } catch (err) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// @route  POST /api/merchant/orders/:id/remind-captains
+// @desc   📣 التاجر يُعيد تنبيه كباتن مدينته لطلبٍ جاهز ينتظر
+// @access Merchant (صاحب المتجر وحده)
+//
+// لماذا: كان التاجر يقف عاجزاً أمام طلبٍ جاهز لا يلتقطه أحد — لا وسيلة
+// لتنبيه الكباتن غير انتظار المجدول. الزر يمنحه المبادرة.
+//
+// ⚠️ مهلة خمس دقائق بين تذكيرين، محسوبة على الوثيقة لا في ذاكرة العملية:
+// بلا مهلة يصير الزرّ مدفعَ إشعاراتٍ على كل كباتن المدينة، فيُطفئون
+// الإشعارات — فنخسر القناة كلها لا هذا الطلب وحده.
+// ═══════════════════════════════════════════════════════════
+router.post('/orders/:id/remind-captains', protect, merchantOnly, async (req, res) => {
+    try {
+        const { canNudgeCaptains, isAwaitingCaptain, NUDGE_COOLDOWN_MIN } = require('../utils/shopDispatch');
+        const { notifyCityCaptains } = require('../utils/captainBroadcast');
+
+        const place = await Place.findOne({ ownerId: req.user._id });
+        if (!place) return res.status(404).json({ message: 'لا يوجد متجر مرتبط بحسابك' });
+
+        // 🔒 الطلب لمتجر هذا التاجر — لا يُذكَّر أحدٌ بطلب غيره
+        const shopOrder = await ShopOrder.findOne({ _id: req.params.id, place: place._id })
+            .select('status lastCaptainNudgeAt captainNudgeCount client');
+        if (!shopOrder) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        if (!isAwaitingCaptain(shopOrder.status)) {
+            return res.status(400).json({ message: 'هذا الطلب لا ينتظر كابتناً الآن' });
+        }
+
+        const gate = canNudgeCaptains({ lastNudgeAt: shopOrder.lastCaptainNudgeAt });
+        if (!gate.allowed) {
+            const mins = Math.ceil(gate.waitSec / 60);
+            return res.status(429).json({
+                message: `انتظر ${mins} دقيقة قبل التذكير مرة أخرى`,
+                waitSec: gate.waitSec
+            });
+        }
+
+        // 🌍 مدينة الطلب من طلب التوصيل نفسه لا من التاجر: العميل قد يكون في
+        // مدينة أخرى، والطلب يُبثّ لكباتن مدينة العميل (كما عند التجهيز).
+        const Order = require('../models/Order');
+        const deliveryOrder = await Order.findOne({ shopOrderId: shopOrder._id, orderType: 'shop' })
+            .select('_id city price status').lean();
+        if (!deliveryOrder) return res.status(400).json({ message: 'لم يُنشأ طلب توصيل لهذا الطلب بعد' });
+        if (deliveryOrder.status !== 'pending') {
+            return res.status(400).json({ message: 'الطلب لم يعد متاحاً للكباتن' });
+        }
+
+        // ⚠️ الختم أولاً وذرياً بشرط المهلة: ضغطتان متزامنتان (نقرٌ مزدوج، أو
+        // نسختا تطبيق) كانتا ستمرّان كلتاهما لو ختمنا بعد الإرسال.
+        const since = new Date(Date.now() - NUDGE_COOLDOWN_MIN * 60000);
+        const claimed = await ShopOrder.updateOne(
+            {
+                _id: shopOrder._id,
+                $or: [{ lastCaptainNudgeAt: null }, { lastCaptainNudgeAt: { $lte: since } }]
+            },
+            { $set: { lastCaptainNudgeAt: new Date() }, $inc: { captainNudgeCount: 1 } }
+        );
+        if (!claimed.modifiedCount) {
+            return res.status(429).json({ message: 'تم إرسال تذكير للتو — انتظر قليلاً' });
+        }
+
+        const result = await notifyCityCaptains(req.app, {
+            city: deliveryOrder.city,
+            title: '🛒 طلب محل ينتظر كابتن',
+            body: `طلب من ${place.name} بأجرة ${deliveryOrder.price} ج.س جاهز للاستلام الآن.`,
+            data: {
+                type: 'shop_order',
+                orderId: String(deliveryOrder._id),
+                url: `/captain-orders.html?highlight=${deliveryOrder._id}`
+            },
+            socketEvent: 'shop_order_available',
+            socketPayload: {
+                orderId: deliveryOrder._id, shopName: place.name,
+                pickup: place.address, price: deliveryOrder.price, kind: 'reminder'
+            }
+        });
+
+        res.json({
+            message: result.targeted
+                ? `تم تنبيه ${result.targeted} كابتن في ${result.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}`
+                : 'لا يوجد كباتن متاحون في المدينة حالياً',
+            targeted: result.targeted,
+            cooldownSec: NUDGE_COOLDOWN_MIN * 60
+        });
+    } catch (err) {
+        logger.error({ err: err.message }, 'merchant remind captains error');
         res.status(500).json({ message: 'Server Error' });
     }
 });

@@ -66,7 +66,13 @@ const ShopOrderSchema = new mongoose.Schema({
         default: 'shop_pending'
     },
 
-    cancelledBy: { type: String, enum: ['client', 'merchant', 'admin'], default: null },
+    cancelledBy: { type: String, enum: ['client', 'merchant', 'admin', 'system'], default: null },
+    // 📣 آخر تذكير أُرسل لكباتن المدينة بهذا الطلب — يفرض مهلة بين التذكيرين.
+    // مخزَّن على الوثيقة لا في ذاكرة العملية: المهلة يجب أن تصمد أمام إعادة
+    // التشغيل وأن تكون مشتركة بين نسخ التطبيق، وإلا وزّع التاجر ضغطاته على
+    // نسختين فحصل على ضعف السقف.
+    lastCaptainNudgeAt: { type: Date, default: null },
+    captainNudgeCount:  { type: Number, default: 0 },
     cancelReason: { type: String, default: '' },
 
     proofOfPickupImage: { type: String, default: null }, // صورة إثبات الاستلام

@@ -233,15 +233,63 @@ router.get('/orders', protect, requirePermission('view_orders'), async (req, res
     try {
         // 🌍 sub_admin يرى طلبات مدينته فقط
         const cityFilter = getAdminCityFilter(req);
+
+        // ⚠️ orderType و shopOrderId و shopName كانت محذوفة من الـ select، فكانت
+        // اللوحة تعرض طلبات المتاجر كأنها توصيلٌ عادي: لا يُعرف المتجر ولا يُميَّز
+        // النوع، ولا يمكن ربط الطلب بطلب المتجر لمتابعة عطلٍ أو تعيين كابتن.
+        // و escalatedAt يكشف الطلب الذي طال انتظاره كابتناً — وهو أوّل ما تحتاجه
+        // المتابعة.
         const orders = await Order.find(cityFilter)
-            .select('status price pickup dropoff createdAt client captain type totalAmount city negotiations')
+            .select('status price pickup dropoff createdAt client captain type totalAmount city negotiations ' +
+                    'orderType shopOrderId shopName escalatedAt cancelledBy cancelReason')
             .populate('client', 'name phone')
             .populate('captain', 'name phone')
             .sort({ createdAt: -1 })
             .limit(200)
             .lean();
 
-        res.json(orders.map(withNegotiationSummary));
+        // 🛒 طلبات متاجر لم يُنشأ لها طلب توصيل بعد (عند التاجر: وصل/يُجهَّز).
+        // بدونها تختفي مرحلةٌ كاملة عن اللوحة: العميل دفع والتاجر يُجهّز،
+        // ولا أثر لذلك عند الإدارة حتى يضغط التاجر "جاهز".
+        let pendingAtMerchant = [];
+        try {
+            const ShopOrder = require('../../models/ShopOrder');
+            const soFilter = { status: { $in: ['shop_pending', 'shop_preparing'] } };
+            const raw = await ShopOrder.find(soFilter)
+                .select('status createdAt client place itemsTotal deliveryFee paymentStatus')
+                .populate('client', 'name phone city')
+                .populate('place', 'name city')
+                .sort({ createdAt: -1 })
+                .limit(100)
+                .lean();
+
+            // 🌍 الحصر بالمدينة يدوياً: ShopOrder بلا حقل مدينة، فتُقرأ من العميل
+            const wantCity = cityFilter && cityFilter.city;
+            pendingAtMerchant = raw
+                .filter(so => !wantCity || (so.client && so.client.city) === wantCity)
+                .map(so => ({
+                    _id: so._id,
+                    isShopOnly: true,          // للواجهة: لا طلب توصيل له بعد
+                    orderType: 'shop',
+                    shopOrderId: so._id,
+                    shopName: so.place ? so.place.name : '—',
+                    status: so.status,
+                    price: so.deliveryFee || 0,
+                    totalAmount: so.itemsTotal || 0,
+                    paymentStatus: so.paymentStatus,
+                    city: (so.client && so.client.city) || 'Khartoum',
+                    client: so.client ? { name: so.client.name, phone: so.client.phone } : null,
+                    captain: null,
+                    createdAt: so.createdAt
+                }));
+        } catch (e) {
+            logger.error({ err: e.message }, 'admin orders: shop-only merge failed');
+        }
+
+        const merged = orders.map(withNegotiationSummary).concat(pendingAtMerchant)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(merged);
     } catch (error) {
         logger.error("Orders Error:", error);
         res.status(500).json({ message: 'Server error' });
@@ -346,9 +394,14 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
         const order = await Order.findById(req.params.id).populate('captain', 'name');
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
 
-        if (!['accepted', 'picked_up'].includes(order.status)) {
-            return res.status(400).json({ message: 'لا يمكن تبديل الكابتن إلا في طلبات نشطة (مقبول / قيد التوصيل)' });
+        // ✅ pending مسموح الآن: هذا هو **التعيين اليدوي** — الحالة التي يحتاجها
+        // الأدمن أكثر من غيرها. كان المسار يرفضها، فيقف أمام طلبٍ لا يلتقطه
+        // أحد بلا حيلة إلا الإلغاء. تعيين كابتن على طلب معلّق ينقله إلى
+        // 'accepted' كما لو قبِله بنفسه.
+        if (!['pending', 'accepted', 'picked_up'].includes(order.status)) {
+            return res.status(400).json({ message: 'لا يمكن تعيين كابتن على طلب منتهٍ أو ملغى' });
         }
+        const isManualAssign = order.status === 'pending';
 
         const newCaptain = await User.findById(newCaptainId).select('name phone role is_blocked');
         if (!newCaptain || newCaptain.role !== 'captain') {
@@ -363,8 +416,20 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
         const oldCaptainId = order.captain?._id;
         const oldCaptainName = order.captain?.name || 'الكابتن السابق';
 
+        // 🌍 حصر المدينة: كابتن بورتسودان لا يُعيَّن على طلب الخرطوم. لا يمنعه
+        // شيء تقنياً، والنتيجة طلبٌ مسنَدٌ لمن لا يستطيع الوصول إليه أصلاً.
+        const capCity = await User.findById(newCaptainId).select('city').lean();
+        if (capCity && capCity.city && order.city && capCity.city !== order.city) {
+            return res.status(400).json({
+                message: `الكابتن من ${capCity.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'} والطلب في ${order.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}`
+            });
+        }
+
         // Reassign
         order.captain = newCaptainId;
+        // التعيين اليدوي على طلب معلّق ينقله لحالة "مقبول" — وبحفظه عبر save()
+        // يمرّ على خطّاف المزامنة فيصير ShopOrder = captain_assigned تلقائياً
+        if (isManualAssign) order.status = 'accepted';
         await order.save();
 
         const io = req.app.get('io');
@@ -410,9 +475,66 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
             });
         }
 
-        res.json({ message: `تم تحويل الطلب من ${oldCaptainName} إلى ${newCaptain.name} بنجاح`, order });
+        res.json({
+            message: isManualAssign
+                ? `تم تعيين ${newCaptain.name} على الطلب`
+                : `تم تحويل الطلب من ${oldCaptainName} إلى ${newCaptain.name} بنجاح`,
+            manualAssign: isManualAssign,
+            order
+        });
     } catch (error) {
         logger.error({ err: error }, 'Reassign Captain Error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// =========================================================
+// 📣 تذكير كباتن المدينة بطلبٍ معلّق — Admin
+// @route   POST /api/admin/orders/:id/remind-captains
+// =========================================================
+//
+// نظير زرّ التاجر، لكن **بلا مهلة**: الأدمن يتدخّل عند عطلٍ قائم، وتقييده
+// بخمس دقائق يعطّل معالجةً عاجلة. الحدّ هنا صلاحيةُ manage_orders نفسها.
+router.post('/orders/:id/remind-captains', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const { notifyCityCaptains } = require('../../utils/captainBroadcast');
+
+        const order = await Order.findById(req.params.id).select('status city price shopName orderType').lean();
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (order.status !== 'pending') {
+            return res.status(400).json({ message: 'الطلب ليس معلّقاً — لا حاجة لتنبيه الكباتن' });
+        }
+
+        // 🌍 sub_admin لا يُنبّه كباتن مدينة أخرى
+        const cityFilter = getAdminCityFilter(req);
+        if (cityFilter && cityFilter.city && cityFilter.city !== order.city) {
+            return res.status(403).json({ message: 'هذا الطلب خارج مدينتك' });
+        }
+
+        const isShop = order.orderType === 'shop';
+        const result = await notifyCityCaptains(req.app, {
+            city: order.city,
+            title: isShop ? '🛒 طلب محل ينتظر كابتن' : '📦 طلب ينتظر كابتن',
+            body: `${isShop ? `طلب من ${order.shopName || 'متجر'}` : 'طلب توصيل'} بأجرة ${order.price} ج.س ما زال متاحاً.`,
+            data: {
+                type: isShop ? 'shop_order' : 'new_order',
+                orderId: String(order._id),
+                url: `/captain-orders.html?highlight=${order._id}`
+            },
+            socketEvent: isShop ? 'shop_order_available' : 'new_order_available',
+            socketPayload: { orderId: order._id, shopName: order.shopName, price: order.price, kind: 'admin_reminder' }
+        });
+
+        await logAdminAction(req, 'remind_captains', `تنبيه كباتن ${result.city} لطلب ${String(order._id).slice(-6)}`, order._id);
+
+        res.json({
+            message: result.targeted
+                ? `تم تنبيه ${result.targeted} كابتن`
+                : 'لا يوجد كباتن متاحون في هذه المدينة',
+            targeted: result.targeted
+        });
+    } catch (error) {
+        logger.error({ err: error.message }, 'Admin remind captains error');
         res.status(500).json({ message: 'Server Error' });
     }
 });

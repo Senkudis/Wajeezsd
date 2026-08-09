@@ -663,22 +663,110 @@ function renderAllOrders(orders) {
         body.innerHTML = '<tr><td colspan="8"><div class="gv-empty"><i class="fas fa-inbox"></i><p>لا توجد طلبات</p></div></td></tr>';
         return;
     }
-    body.innerHTML = orders.slice(0, 200).map(o => `
-        <tr onclick="viewOrder('${o._id}')" style="cursor:pointer;">
-            <td style="font-weight:700;">${window.escapeHtml(o.client?.name || '—')}</td>
+    body.innerHTML = orders.slice(0, 200).map(o => {
+        // 🛒 تمييز طلبات المتاجر: كانت تُعرض كتوصيلٍ عادي بلا اسم المتجر ولا
+        // نوعٍ، فيتعذّر على المتابعة معرفةُ أيّ طلبٍ يخصّ أيّ تاجر.
+        const isShop = o.orderType === 'shop';
+        const shopTag = isShop
+            ? `<div style="font-size:11px;color:#6d28d9;font-weight:700;margin-top:2px;">
+                 <i class="fas fa-store"></i> ${window.escapeHtml(o.shopName || 'متجر')}</div>`
+            : '';
+        // ⚠️ طلب صُعِّد: مضى عليه أكثر من ٦ ساعات بلا كابتن — أوّل ما تحتاجه المتابعة
+        const stuckTag = o.escalatedAt
+            ? `<span class="gv-badge" style="background:#fef3c7;color:#92400e;margin-right:4px;" title="مضى وقت طويل بلا كابتن">
+                 <i class="fas fa-clock"></i> متعثّر</span>`
+            : '';
+        // طلب عند التاجر لم يُنشأ له طلب توصيل بعد — لا يُفتح كطلب توصيل
+        const rowClick = o.isShopOnly ? '' : `onclick="viewOrder('${o._id}')" style="cursor:pointer;"`;
+
+        return `
+        <tr ${rowClick}>
+            <td style="font-weight:700;">${window.escapeHtml(o.client?.name || '—')}${shopTag}</td>
             <td>${o.captain ? window.escapeHtml(o.captain.name) : '<span style="color:#94a3b8;">—</span>'}</td>
-            <td>${window.escapeHtml(o.pickup?.address || '—')}</td>
+            <td>${window.escapeHtml(o.pickup?.address || (o.isShopOnly ? 'عند التاجر' : '—'))}</td>
             <td>${window.escapeHtml(o.dropoff?.address || '—')}</td>
             <td>${o.price || 0} SDG</td>
-            <td><span class="gv-badge ${o.status}">${window.statusLabel ? window.statusLabel(o.status) : o.status}</span>${offersBadge(o)}</td>
+            <td><span class="gv-badge ${o.status}">${window.statusLabel ? window.statusLabel(o.status) : o.status}</span>${stuckTag}${offersBadge(o)}</td>
             <td>${new Date(o.createdAt).toLocaleDateString('ar-SA')}</td>
             <td onclick="event.stopPropagation();">
+                ${o.isShopOnly ? '' : `
                 <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="viewOrder('${o._id}')" title="عرض">
                     <i class="fas fa-eye"></i>
+                </button>`}
+                ${(!o.isShopOnly && o.status === 'pending') ? `
+                <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="assignCaptainManually('${o._id}')" title="تعيين كابتن يدوياً">
+                    <i class="fas fa-user-plus"></i>
                 </button>
+                <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="remindCaptainsAdmin('${o._id}', this)" title="تنبيه كباتن المدينة">
+                    <i class="fas fa-megaphone"></i>
+                </button>` : ''}
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
+}
+
+/**
+ * 📣 تنبيه كباتن مدينة الطلب — بلا مهلة (الأدمن يتدخّل عند عطلٍ قائم).
+ * السيرفر يمنع تنبيه مدينة أخرى لمن صلاحيته مدينة واحدة.
+ */
+async function remindCaptainsAdmin(orderId, btn) {
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
+    try {
+        const res = await fetch(`${BASE}/api/admin/orders/${orderId}/remind-captains`, {
+            method: 'POST', headers: headers()
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'تعذّر التنبيه');
+        Swal.fire({
+            icon: 'success', toast: true, position: 'top-end',
+            title: data.message, timer: 2200, showConfirmButton: false
+        });
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-megaphone"></i>'; }
+    }
+}
+
+/**
+ * 👤 تعيين كابتن يدوياً على طلبٍ معلّق.
+ * كان المسار يرفض الطلبات المعلّقة، فيقف الأدمن أمام طلبٍ لا يلتقطه أحد
+ * بلا حيلة إلا الإلغاء — وهو آخر ما يصلح لطلبٍ دفع العميل ثمن بضاعته.
+ */
+async function assignCaptainManually(orderId) {
+    try {
+        const res = await fetch(`${BASE}/api/admin/captains`, { headers: headers() });
+        if (!res.ok) throw new Error('تعذّر جلب الكباتن');
+        const all = await res.json();
+        const captains = (Array.isArray(all) ? all : []).filter(c => c.isActive && !c.is_blocked);
+        if (!captains.length) return Swal.fire('تنبيه', 'لا يوجد كباتن متاحون', 'warning');
+
+        const { value: captainId } = await Swal.fire({
+            title: 'تعيين كابتن على الطلب',
+            html: `<select id="capSel" class="swal2-select" style="width:100%;">
+                     <option value="">— اختر كابتن —</option>
+                     ${captains.map(c => `<option value="${c._id}">${window.escapeHtml(c.name)} — ${c.phone || ''} (${c.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'})</option>`).join('')}
+                   </select>
+                   <div style="font-size:12px;color:#64748b;margin-top:8px;">
+                     الكابتن يجب أن يكون في مدينة الطلب نفسها.
+                   </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'تعيين',
+            cancelButtonText: 'إلغاء',
+            preConfirm: () => document.getElementById('capSel').value || Swal.showValidationMessage('اختر كابتناً')
+        });
+        if (!captainId) return;
+
+        const asg = await fetch(`${BASE}/api/admin/orders/${orderId}/reassign-captain`, {
+            method: 'PUT', headers: headers(), body: JSON.stringify({ newCaptainId: captainId })
+        });
+        const data = await asg.json().catch(() => ({}));
+        if (!asg.ok) throw new Error(data.message || 'فشل التعيين');
+        Swal.fire({ icon: 'success', title: data.message, timer: 2000, showConfirmButton: false });
+        loadAllOrders();
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
+    }
 }
 
 async function loadUsers() {

@@ -92,6 +92,9 @@ const OrderSchema = new mongoose.Schema(
         // والسؤال الذي نحتاج إجابته ("لماذا يتسرّب العملاء؟") تجميعي بطبعه.
         cancelReasonCode: { type: String, default: null },
         cancelledAt: { type: Date, default: null },
+        // ⚠️ طلب متجر طال انتظاره كابتناً فصُعِّد للإدارة وأُعيد بثّه.
+        // يُختم مرّة واحدة: التصعيد تنبيهٌ لا حالة، وتكراره كل ساعة إزعاج.
+        escalatedAt: { type: Date, default: null },
 
         // ⏳ مفاتيح تنبيهات التأخير المُرسلة لهذا الطلب ('delay1' / 'delay2').
         // مصفوفة لا علَم واحد: كل عتبة تُرسل مرة واحدة فقط مهما تكرّر مرور
@@ -302,6 +305,47 @@ OrderSchema.post('save', async function(doc) {
         } catch (err) {
             logger.error({ err }, 'Error syncing Order to ShopOrder');
         }
+    }
+});
+
+/**
+ * 🔗 نفس المزامنة على مسار التحديث المباشر.
+ *
+ * ⚠️ العطل الذي يُغلقه هذا: خطّاف post('save') أعلاه لا يُنفَّذ إطلاقاً مع
+ * findByIdAndUpdate / findOneAndUpdate / updateOne — وهي الطريقة المستعملة في
+ * أربعة عشر موضعاً عبر المشروع، منها إلغاءُ المجدول للطلبات المعلّقة.
+ *
+ * النتيجة المرصودة فعلياً: طلبُ متجرٍ جُهّز ورُفع للكباتن، ألغاه المجدول بعد
+ * ست ساعات، فاختفى من الكباتن — بينما بقي ShopOrder على ready_for_pickup،
+ * فظلّ التاجر والعميل يريان «جاري البحث عن كابتن» إلى الأبد. طلبٌ ميّتٌ
+ * يبدو حيّاً لطرفين، وحيٌّ يبدو ميّتاً لطرفٍ ثالث.
+ *
+ * نُعيد تحميل الوثيقة ونحفظها بـ save() ليمرّ التحديث بنفس الخطّاف الواحد،
+ * فلا يفترق المنطقان.
+ */
+OrderSchema.post(['findOneAndUpdate', 'updateOne', 'updateMany'], async function () {
+    try {
+        // 🎯 حصرٌ على تحديثات الحالة وحدها: أغلب التحديثات تمسّ الموقع أو
+        // الطوابع أو عدّادات، وإعادةُ حفظ الوثيقة لأجلها هدرٌ خالص.
+        const update = this.getUpdate ? (this.getUpdate() || {}) : {};
+        const fields = { ...(update.$set || {}), ...update };
+        if (!Object.prototype.hasOwnProperty.call(fields, 'status')) return;
+
+        const Order = mongoose.model('Order');
+        // 🔒 السقف يحمي من تحديثٍ جماعي واسع يُترجَم إلى مئات الحفظات
+        const docs = await Order.find({
+            ...(this.getFilter ? this.getFilter() : {}),
+            shopOrderId: { $ne: null }
+        }).select('_id').limit(50).lean();
+
+        for (const d of docs) {
+            // إعادة الحفظ تُطلق post('save') فتجري المزامنة الكاملة (حالة،
+            // كابتن، مخزون، دفتر أستاذ) بلا نسخِ منطقها هنا
+            const fresh = await Order.findById(d._id);
+            if (fresh) await fresh.save();
+        }
+    } catch (err) {
+        logger.error({ err }, 'Error syncing Order to ShopOrder (update path)');
     }
 });
 

@@ -127,3 +127,22 @@ describe('بصمة النشر', () => {
         expect(a.digest).toMatch(/^[0-9a-f]{12}$/);
     });
 });
+
+describe('admin/orders — مسارات التحكّم في الطلب', () => {
+    const app = appWith('/api/admin', '../routes/admin/orders');
+
+    it('المسارات الجديدة موجودة ومحمية (401 لا 404)', async () => {
+        // 404 هنا كان سيعني أن المسار غير منشور أصلاً — وهو العطل الذي
+        // يظهر كزرٍّ لا يفعل شيئاً في اللوحة
+        expect((await request(app).post('/api/admin/orders/507f1f77bcf86cd799439011/remind-captains')).status).toBe(401);
+        expect((await request(app).put('/api/admin/orders/507f1f77bcf86cd799439011/reassign-captain')).status).toBe(401);
+    });
+});
+
+describe('merchant — تذكير الكباتن', () => {
+    const app = appWith('/api/merchant', '../routes/merchant');
+
+    it('مسار التذكير منشور ومحمي', async () => {
+        expect((await request(app).post('/api/merchant/orders/507f1f77bcf86cd799439011/remind-captains')).status).toBe(401);
+    });
+});

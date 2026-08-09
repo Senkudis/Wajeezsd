@@ -499,9 +499,16 @@
 
         // 4) مراحل الكابتن — تتبع بلا إجراءات
         if (o.status === 'ready_for_pickup') {
+            // 📣 مبادرةٌ بدل انتظار: كان التاجر يقف عاجزاً أمام طلبٍ جاهز لا
+            // يلتقطه أحد. الزر يُعيد تنبيه كباتن المدينة، بمهلة خمس دقائق
+            // يفرضها السيرفر (والواجهة تعطّل الزر حتى انقضائها لتوضّحها).
             return `<div class="track-box waiting">
                 <span class="spinner-mini"></span> بانتظار كابتن قريب لاستلام الطلب
             </div>
+            <button class="btn-primary-step" id="nudge-${id}" style="margin-top:8px;background:linear-gradient(135deg,#7c3aed,#4f46e5);"
+                onclick="remindCaptains('${id}', this)">
+                <i class="bi bi-megaphone-fill"></i> تذكير الكباتن
+            </button>
             <div class="next-action" style="padding-top:0;">${secondary}</div>`;
         }
         if (o.status === 'captain_assigned' || o.status === 'picked_up') {
@@ -710,6 +717,56 @@
             if (res.ok) { showToast('الطلب جاهز', 'تم إشعار العميل وفتح الطلب للكباتن', 'success'); loadOrders(true); }
             else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل تحديث الحالة', 'error'); loadOrders(true); }
         } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); loadOrders(true); }
+    }
+
+    /**
+     * 📣 تذكير كباتن المدينة بطلبٍ جاهز ينتظر.
+     * المهلة يفرضها السيرفر (ذرياً، فلا تُتجاوَز بنقرٍ مزدوج أو نسختَي تطبيق)،
+     * وهنا نعطّل الزر ونعدّ تنازلياً حتى لا يضغط التاجر في فراغ ويظنّها معطّلة.
+     */
+    async function remindCaptains(id, btn) {
+        const original = btn.innerHTML;
+        busyBtn(btn, 'جاري التنبيه...');
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/orders/${id}/remind-captains`, {
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (res.ok) {
+                showToast('تم التنبيه', data.message || 'أُرسل تنبيه للكباتن', 'success');
+                startNudgeCooldown(btn, data.cooldownSec || 300, original);
+            } else if (res.status === 429) {
+                showToast('انتظر قليلاً', data.message || 'تم التذكير للتو', 'info');
+                startNudgeCooldown(btn, data.waitSec || 300, original);
+            } else {
+                Swal.fire('خطأ', data.message || 'تعذّر إرسال التنبيه', 'error');
+                btn.disabled = false; btn.innerHTML = original;
+                loadOrders(true);
+            }
+        } catch (e) {
+            Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error');
+            btn.disabled = false; btn.innerHTML = original;
+        }
+    }
+
+    function startNudgeCooldown(btn, seconds, original) {
+        let left = Math.max(1, Math.ceil(seconds));
+        btn.disabled = true;
+        btn.style.opacity = '0.65';
+        const tick = () => {
+            if (!document.body.contains(btn)) return;   // أُعيد رسم القائمة
+            const m = Math.floor(left / 60), s = left % 60;
+            btn.innerHTML = `<i class="bi bi-hourglass-split"></i> تذكير بعد ${m}:${String(s).padStart(2, '0')}`;
+            if (--left < 0) {
+                btn.disabled = false;
+                btn.style.opacity = '';
+                btn.innerHTML = original;
+                return;
+            }
+            setTimeout(tick, 1000);
+        };
+        tick();
     }
 
     async function confirmPayment(id, btn) {

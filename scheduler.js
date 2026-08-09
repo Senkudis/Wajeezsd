@@ -36,11 +36,22 @@ const startScheduler = (app) => {
         try {
             const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
             // ✅ BUG-011 FIX: استثناء الطلبات ذات عروض تفاوض نشطة لمنع إلغائها وإشعار الكباتن بشكل خاطئ
+            //
+            // 🛒 واستثناء طلبات المتاجر: العميل دفع ثمن البضاعة والتاجر جهّزها
+            //    وأخرجها من مخزونه. إلغاؤها لأن كابتناً لم يلتقطها يُضيع مال
+            //    العميل وبضاعة التاجر لسببٍ لا يد لأيٍّ منهما فيه — تُصعَّد
+            //    وتُعاد للبثّ بدل إعدامها (انظر الكتلة التالية).
             const staleOrders = await Order.find({
                 status: 'pending',
                 createdAt: { $lt: sixHoursAgo },
-                negotiations: { $not: { $elemMatch: { status: 'pending' } } }
+                negotiations: { $not: { $elemMatch: { status: 'pending' } } },
+                orderType: { $ne: 'shop' },
+                shopOrderId: null
             }).populate('client', 'name email phone fcmToken');
+
+            // 🛒 طلبات المتاجر المتأخّرة: تصعيدٌ للإدارة وإعادةُ بثّ لكباتن مدينتها
+            await escalateStaleShopOrders(app, sixHoursAgo).catch(e =>
+                logger.error({ err: e.message }, 'stale shop order escalation failed'));
 
             if (staleOrders.length === 0) {
                 logger.info('No stale orders to archive');
@@ -1062,6 +1073,80 @@ const startScheduler = (app) => {
  * @param {string} orderId
  * @param {number} expiresInMs  - milliseconds until expiry (e.g. 5 * 60 * 1000)
  */
+/**
+ * 🛒 طلبات المتاجر التي طال انتظارها كابتناً — تصعيدٌ لا إلغاء.
+ *
+ * العطل الذي يُغلقه هذا بالكامل: كان المجدول يُلغي طلب التوصيل بعد ست ساعات
+ * عبر findByIdAndUpdate، ولأن خطّاف المزامنة كان على save() وحده لم يصل
+ * الإلغاء إلى ShopOrder — فاختفى الطلب من الكباتن وبقي عند التاجر والعميل
+ * «جاري البحث عن كابتن» بلا نهاية. الآن: لا إلغاء أصلاً لطلبٍ دُفع ثمنه،
+ * بل إشعارُ الإدارة وإعادةُ بثٍّ لكباتن المدينة نفسها.
+ *
+ * يُنبَّه مرّة واحدة لكل طلب (escalatedAt) فلا يتحوّل إلى إزعاجٍ كل ساعة.
+ */
+async function escalateStaleShopOrders(app, cutoff) {
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState !== 1) return;
+
+    const ShopOrder = require('./models/ShopOrder');
+    const { notifyCityCaptains } = require('./utils/captainBroadcast');
+    const { notifyAdmins } = require('./utils/notificationHelper');
+
+    const stuck = await Order.find({
+        status: 'pending',
+        orderType: 'shop',
+        createdAt: { $lt: cutoff },
+        escalatedAt: null
+    }).select('_id city shopName shopOrderId price').limit(30).lean();
+
+    if (!stuck.length) return;
+    logger.info({ count: stuck.length }, 'Escalating stale shop orders (not cancelling — client already paid)');
+
+    for (const order of stuck) {
+        try {
+            // العلامة أولاً وذرياً: لو فشل الإشعار لا نُعيد التصعيد كل ساعة
+            const marked = await Order.updateOne(
+                { _id: order._id, escalatedAt: null },
+                { $set: { escalatedAt: new Date() } }
+            );
+            if (!marked.modifiedCount) continue;
+
+            // ⚠️ لا نُصعّد طلباً أُلغي أو التُقط بين الاستعلام والآن
+            const so = order.shopOrderId
+                ? await ShopOrder.findById(order.shopOrderId).select('status').lean()
+                : null;
+            if (so && so.status !== 'ready_for_pickup') continue;
+
+            await notifyCityCaptains(app, {
+                city: order.city,
+                title: '🛒 طلب محل ينتظر منذ ساعات',
+                body: `طلب من ${order.shopName || 'متجر'} بأجرة ${order.price} ج.س ما زال بلا كابتن — استلمه الآن.`,
+                data: {
+                    type: 'shop_order',
+                    orderId: String(order._id),
+                    url: `/captain-orders.html?highlight=${order._id}`
+                },
+                socketEvent: 'shop_order_available',
+                socketPayload: { orderId: order._id, shopName: order.shopName, price: order.price, kind: 'escalated' }
+            });
+
+            await notifyAdmins(app, {
+                title: '⚠️ طلب متجر بلا كابتن',
+                message: `طلب من ${order.shopName || 'متجر'} (${order.city}) مضى عليه أكثر من 6 ساعات بلا كابتن. يحتاج تعييناً يدوياً.`,
+                type: 'admin_order_alert',
+                relatedId: order._id
+            }).catch(() => {});
+
+            const io = app && app.get ? app.get('io') : null;
+            if (io) io.to('admin_room').emit('admin_order_update', {
+                orderId: order._id, status: 'pending', city: order.city, escalated: true
+            });
+        } catch (e) {
+            logger.error({ err: e.message, orderId: order._id }, 'shop order escalation failed');
+        }
+    }
+}
+
 async function sendOfferExpiryReminder(captainFcmToken, orderId, expiresInMs) {
     if (!captainFcmToken || !orderId) return;
     const reminderDelay = expiresInMs - 2 * 60 * 1000; // 2 minutes before expiry
