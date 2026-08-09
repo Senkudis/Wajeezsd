@@ -40,6 +40,74 @@
             --primary-gradient: #0A6E47;
             --accent: #f59e0b;
         }
+
+        /* ═══ 🗂️ شريط فلاتر الطلبات ═══════════════════════════
+           لاصقٌ أسفل الترويسة: مع عشرين طلباً كان الوصول لطلبٍ بعينه
+           يعني تمريراً بآلاف البكسلات، والشريط الثابت يُغني عن ذلك. */
+        .orders-filterbar {
+            position: sticky; top: 0; z-index: 20;
+            display: flex; gap: 7px; overflow-x: auto;
+            padding: 10px 14px; margin-bottom: 2px;
+            background: rgba(248, 250, 252, 0.96);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e9eef5;
+            scrollbar-width: none;
+        }
+        .orders-filterbar::-webkit-scrollbar { display: none; }
+        .of-tab {
+            flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 99px; cursor: pointer;
+            background: #fff; border: 1px solid #e2e8f0;
+            font-size: 12.5px; font-weight: 700; color: #64748b;
+            white-space: nowrap; transition: all .15s;
+        }
+        .of-tab:active { transform: scale(0.96); }
+        .of-tab.active {
+            background: var(--primary); border-color: var(--primary); color: #fff;
+            box-shadow: 0 3px 10px rgba(4, 140, 91, 0.28);
+        }
+        .of-tab .cnt {
+            background: #f1f5f9; color: #64748b; border-radius: 99px;
+            font-size: 10.5px; font-weight: 800; padding: 1px 7px; min-width: 20px; text-align: center;
+        }
+        .of-tab.active .cnt { background: rgba(255,255,255,0.25); color: #fff; }
+
+        /* ═══ 📤 زر رفع الإشعار — بديل input[type=file] الخام ═══ */
+        .upload-receipt-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 11px 14px; margin-bottom: 8px;
+            border: 2px dashed var(--primary); border-radius: 12px;
+            background: rgba(4, 140, 91, 0.06); color: var(--primary);
+            font-weight: 800; font-size: 13.5px; cursor: pointer;
+            transition: background .15s, transform .12s;
+        }
+        .upload-receipt-btn:active { transform: scale(0.98); background: rgba(4, 140, 91, 0.12); }
+        .upload-receipt-btn i { font-size: 17px; }
+
+        /* ═══ 📱 ضغط البطاقات على الهاتف ═══════════════════════
+           بطاقةٌ واحدة كانت تبلغ ٨٤٢ بكسل — أطول من الشاشة كاملة، فلا يرى
+           العميل طلبين معاً أبداً. الصفحة كانت بلا أي @media إطلاقاً. */
+        @media (max-width: 576px) {
+            .container.pt-3 { padding-left: 12px !important; padding-right: 12px !important; }
+            #orders-list { gap: 10px !important; }
+            #orders-list .card { border-radius: 14px !important; }
+            #orders-list .card-body,
+            #orders-list .p-3 { padding: 11px !important; }
+            #orders-list .mb-3 { margin-bottom: 9px !important; }
+            #orders-list .fs-5 { font-size: 0.95rem !important; }
+            #orders-list .btn { font-size: 12.5px !important; padding: 8px 12px !important; }
+
+            /* لوحة البحث عن كابتن: أطول كتلة في البطاقة */
+            .searching-panel { padding: 11px 10px !important; }
+            .radar { width: 46px !important; height: 46px !important; margin-bottom: 6px !important; }
+            .radar .radar-core { width: 30px !important; height: 30px !important; font-size: 14px !important; }
+            @keyframes radarPulse {
+                0%   { width: 16px; height: 16px; opacity: 0.9; }
+                100% { width: 46px; height: 46px; opacity: 0; }
+            }
+            .searching-title { font-size: 13px !important; }
+            .searching-sub { font-size: 10.5px !important; line-height: 1.5 !important; }
+        }
         /* ───── 🔍 لوحة البحث عن كابتن (حالة الانتظار) ───── */
         .searching-panel {
             background: linear-gradient(135deg, #064e3b, var(--primary));
@@ -244,7 +312,11 @@
         </div>
     </div>
 
-    <div class="container pt-4">
+    <!-- 🗂️ فلاتر الطلبات — ٥ طلبات كانت تعني ٢٣٧٩ بكسل تمرير بلا أي وسيلة
+         للوصول إلى طلبٍ بعينه. الشريط لاصق فيبقى في المتناول أثناء التمرير. -->
+    <div class="orders-filterbar" id="ordersFilterBar"></div>
+
+    <div class="container pt-3">
         <div id="orders-list" class="d-flex flex-column gap-3">
             <div class="skeleton-card skeleton">
                 <div class="skeleton-avatar skeleton"></div>
@@ -537,6 +609,66 @@
             let currentPage = 1;
             let currentTotalPages = 1;
 
+            // ═══ 🗂️ فلاتر الطلبات ═══════════════════════════════════
+            // مسنَدة للمعنى لا لنصّ الحالة: طلب المتجر يمرّ بحالات مختلفة تماماً
+            // عن طلب التوصيل، والعميل لا يعرف الفرق ولا يعنيه — يعنيه «جارٍ» أو
+            // «انتهى». لذلك تجمع كل مجموعة حالات النوعين معاً.
+            let _ordersSeen = [];
+            let _activeFilter = 'active';
+
+            const ORDER_TABS = [
+                { key: 'active', label: 'جارية', match: s =>
+                    ['pending','scheduled','accepted','picked_up',
+                     'shop_pending','shop_preparing','ready_for_pickup','captain_assigned'].includes(s) },
+                { key: 'waiting', label: 'بانتظار كابتن', match: s =>
+                    ['pending','ready_for_pickup'].includes(s) },
+                { key: 'delivered', label: 'مكتملة', match: s => s === 'delivered' },
+                { key: 'cancelled', label: 'ملغاة', match: s => s === 'cancelled' },
+                { key: 'all', label: 'الكل', match: () => true }
+            ];
+
+            function renderOrderTabs() {
+                const bar = document.getElementById('ordersFilterBar');
+                if (!bar) return;
+                // شريطٌ بلا طلبات ضوضاء — يُخفى حتى تصل البيانات
+                if (!_ordersSeen.length) { bar.style.display = 'none'; return; }
+                bar.style.display = 'flex';
+                bar.innerHTML = ORDER_TABS.map(t => {
+                    const n = _ordersSeen.filter(o => t.match(o.fstatus)).length;
+                    return `<div class="of-tab ${_activeFilter === t.key ? 'active' : ''}"
+                        onclick="applyOrderFilter('${t.key}')">${t.label}<span class="cnt">${n}</span></div>`;
+                }).join('');
+            }
+
+            window.applyOrderFilter = function (key) {
+                _activeFilter = key;
+                const tab = ORDER_TABS.find(t => t.key === key) || ORDER_TABS[0];
+                let shown = 0;
+                _ordersSeen.forEach(o => {
+                    const el = document.getElementById('order-' + o.id);
+                    if (!el) return;
+                    const ok = tab.match(o.fstatus);
+                    el.style.display = ok ? '' : 'none';
+                    if (ok) shown++;
+                });
+
+                // رسالة فراغٍ خاصّة بالفلتر — «لم تطلب بعد» كذبةٌ هنا
+                let empty = document.getElementById('filter-empty-state');
+                if (!shown) {
+                    if (!empty) {
+                        empty = document.createElement('div');
+                        empty.id = 'filter-empty-state';
+                        empty.className = 'text-center py-5';
+                        document.getElementById('orders-list').appendChild(empty);
+                    }
+                    empty.innerHTML = `<i class="bi bi-funnel fs-1 text-secondary opacity-50 mb-2 d-block"></i>
+                        <p class="text-muted fw-bold mb-0">لا توجد طلبات ${tab.label === 'الكل' ? '' : 'في «' + tab.label + '»'}</p>`;
+                } else if (empty) {
+                    empty.remove();
+                }
+                renderOrderTabs();
+            };
+
             async function loadOrders(page = 1, append = false) {
                 const list = document.getElementById('orders-list');
                 const loadMoreBtnId = 'load-more-btn-container';
@@ -572,9 +704,11 @@
                     currentPage = data.currentPage || 1;
                     currentTotalPages = data.totalPages || 1;
 
-                    if (!append) list.innerHTML = '';
+                    if (!append) { list.innerHTML = ''; _ordersSeen = []; }
 
                     if (orders.length === 0 && !append) {
+                        const bar = document.getElementById('ordersFilterBar');
+                        if (bar) bar.style.display = 'none';
                         list.innerHTML = `
                         <div class="text-center py-5">
                             <i class="bi bi-box-seam fs-1 text-secondary opacity-50 mb-3"></i>
@@ -730,7 +864,14 @@
                                         </div>
                                     </div>
                                     ` : ''}
-                                    <input type="file" id="receiptFile-${order.shopOrderId || order._id}" accept="image/*" class="form-control form-control-sm mb-2" onchange="compressAndUploadReceipt('${order.shopOrderId || order._id}')">
+                                    <!-- ⚠️ كان input[type=file] خاماً: يعرضه المتصفّح بزرّ إنجليزي
+                                         "Choose File / No file chosen" وسط واجهة عربية — أوّل ما
+                                         تقع عليه العين في أهمّ خطوة (رفع إشعار الدفع). -->
+                                    <input type="file" id="receiptFile-${order.shopOrderId || order._id}" accept="image/*" class="d-none" onchange="compressAndUploadReceipt('${order.shopOrderId || order._id}')">
+                                    <label for="receiptFile-${order.shopOrderId || order._id}" class="upload-receipt-btn">
+                                        <i class="bi bi-cloud-arrow-up-fill"></i>
+                                        <span>ارفع صورة إشعار الدفع</span>
+                                    </label>
                                     <small id="upload-status-${order.shopOrderId || order._id}" class="text-muted d-block text-center"></small>
                                 </div>
                                 `;
@@ -758,8 +899,12 @@
                                     <div class="o-cost-sub"><span>المنتجات (للمتجر)</span><span>${order.itemsTotal} ج.س</span></div>
                                     <div class="o-cost-sub"><span>التوصيل (للكابتن)</span><span class="text-danger">${order.deliveryFee} ج.س</span></div>` : '';
 
+                        // 🗂️ وسمُ الحالة على البطاقة نفسها: الفلترة تُخفي وتُظهر بلا
+                        // إعادة رسم — فلا يُمسّ منطق البناء أعلاه ولا تُفقد حالة
+                        // النماذج المفتوحة داخل البطاقة (كرفع الإشعار).
+                        const _fstatus = order.realShopStatus || order.status;
                         const html = `
-                        <div class="o-card" id="order-${order._id}">
+                        <div class="o-card" id="order-${order._id}" data-fstatus="${_fstatus}">
                             <div class="o-head">
                                 <span class="badge ${badgeClass} o-status">${getDisplayStatusName(order)}</span>
                                 <span class="o-id">#${order._id.slice(-6)}</span>
@@ -827,12 +972,21 @@
                         </div>
                     `;
                         list.insertAdjacentHTML('beforeend', html);
+                        _ordersSeen.push({ id: order._id, fstatus: _fstatus });
                     });
 
                     if (!append) {
                         // BUG FIX: Removed the automatic trigger for confirmDelivery here to prevent spamming popups.
                         // Now it relies on the "قيِّم الطلب" button on the order card or the push notification.
                     }
+
+                    // 🗂️ أوّل تحميل: افتح على «جارية» إن وُجدت — الطلب الجاري هو ما
+                    // يفتح العميل الصفحة لأجله، لا سجلّ ما انتهى قبل شهر.
+                    if (!append) {
+                        const hasActive = _ordersSeen.some(o => ORDER_TABS[0].match(o.fstatus));
+                        _activeFilter = hasActive ? 'active' : 'all';
+                    }
+                    applyOrderFilter(_activeFilter);
 
                     if (currentPage < currentTotalPages) {
                         const loadMoreHtml = `
