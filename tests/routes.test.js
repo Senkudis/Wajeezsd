@@ -146,3 +146,12 @@ describe('merchant — تذكير الكباتن', () => {
         expect((await request(app).post('/api/merchant/orders/507f1f77bcf86cd799439011/remind-captains')).status).toBe(401);
     });
 });
+
+describe('admin/shop-orders — إعادة رفع الطلب العالق', () => {
+    const app = appWith('/api/admin', '../routes/admin/orders');
+
+    it('مسار إعادة الرفع منشور ومحمي', async () => {
+        // زرٌّ في اللوحة بلا مسار = ضغطةٌ لا تفعل شيئاً أمام طلبٍ دُفع ثمنه
+        expect((await request(app).post('/api/admin/shop-orders/507f1f77bcf86cd799439011/republish')).status).toBe(401);
+    });
+});

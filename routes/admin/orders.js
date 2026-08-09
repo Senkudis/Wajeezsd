@@ -60,32 +60,59 @@ const ORDER_LIST_FIELDS =
 async function pendingAtMerchantOrders(cityFilter, limit = 100) {
     try {
         const ShopOrder = require('../../models/ShopOrder');
-        const raw = await ShopOrder.find({ status: { $in: ['shop_pending', 'shop_preparing'] } })
+
+        // 🩹 و«اليتيم»: طلبٌ حالته ready_for_pickup بينما طلب التوصيل المرتبط
+        // به ملغى أو مفقود. هذه بالضبط الطلبات التي خلّفها العطل: ألغى المجدول
+        // طلب التوصيل بعد ست ساعات ولم تصل المزامنة لـ ShopOrder، فبقي التاجر
+        // والعميل يريان «جاري البحث» وسقط الطلب من اللوحة كلّياً — لا مع
+        // الطلبات الحيّة (طلب توصيله ملغى) ولا مع «عند التاجر» (حالته أبعد).
+        // وهي أوْلى ما يجب أن تراه المتابعة: العميل دفع والتاجر جهّز ولا أحد قادم.
+        const raw = await ShopOrder.find({
+            status: { $in: ['shop_pending', 'shop_preparing', 'ready_for_pickup'] }
+        })
             .select('status createdAt client place itemsTotal deliveryFee paymentStatus')
             .populate('client', 'name phone city')
             .populate('place', 'name city')
             .sort({ createdAt: -1 })
             .limit(limit)
             .lean();
+        if (!raw.length) return [];
+
+        // أيّ من طلبات ready_for_pickup له طلب توصيل حيّ؟ ما عداه يتيم.
+        const readyIds = raw.filter(so => so.status === 'ready_for_pickup').map(so => so._id);
+        let aliveSet = new Set();
+        if (readyIds.length) {
+            const alive = await Order.find({
+                shopOrderId: { $in: readyIds },
+                status: { $in: ['pending', 'scheduled', 'accepted', 'picked_up'] }
+            }).select('shopOrderId').lean();
+            aliveSet = new Set(alive.map(o => String(o.shopOrderId)));
+        }
 
         const wantCity = cityFilter && cityFilter.city;
         return raw
             .filter(so => !wantCity || (so.client && so.client.city) === wantCity)
-            .map(so => ({
-                _id: so._id,
-                isShopOnly: true,          // للواجهة: لا طلب توصيل له بعد
-                orderType: 'shop',
-                shopOrderId: so._id,
-                shopName: so.place ? so.place.name : '—',
-                status: so.status,
-                price: so.deliveryFee || 0,
-                totalAmount: so.itemsTotal || 0,
-                paymentStatus: so.paymentStatus,
-                city: (so.client && so.client.city) || 'Khartoum',
-                client: so.client ? { name: so.client.name, phone: so.client.phone } : null,
-                captain: null,
-                createdAt: so.createdAt
-            }));
+            // طلبٌ جاهز وله طلب توصيل حيّ يظهر أصلاً ضمن الطلبات — لا نُكرّره
+            .filter(so => so.status !== 'ready_for_pickup' || !aliveSet.has(String(so._id)))
+            .map(so => {
+                const orphaned = so.status === 'ready_for_pickup';
+                return {
+                    _id: so._id,
+                    isShopOnly: true,        // للواجهة: لا طلب توصيل حيّ له
+                    isOrphaned: orphaned,    // ⚠️ عالق: جاهز بلا طلب توصيل — يحتاج تدخّلاً
+                    orderType: 'shop',
+                    shopOrderId: so._id,
+                    shopName: so.place ? so.place.name : '—',
+                    status: so.status,
+                    price: so.deliveryFee || 0,
+                    totalAmount: so.itemsTotal || 0,
+                    paymentStatus: so.paymentStatus,
+                    city: (so.client && so.client.city) || 'Khartoum',
+                    client: so.client ? { name: so.client.name, phone: so.client.phone } : null,
+                    captain: null,
+                    createdAt: so.createdAt
+                };
+            });
     } catch (e) {
         // فشل الدمج لا يُسقط قائمة الطلبات الأساسية
         logger.error({ err: e.message }, 'admin orders: shop-only merge failed');
@@ -119,6 +146,75 @@ router.get('/orders/live', protect, requirePermission('view_orders'), async (req
     } catch (error) {
         logger.error("Live Orders Error:", error);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// @route  POST /api/admin/shop-orders/:id/republish
+// @desc   🩹 إعادة رفع طلب متجر عالق للكباتن
+// ═══════════════════════════════════════════════════════════
+//
+// «العالق» = ShopOrder على ready_for_pickup بلا طلب توصيل حيّ. خلّفه عطلٌ
+// سابق: أُلغي طلب التوصيل تلقائياً بعد ست ساعات ولم تصل المزامنة، فبقي
+// التاجر والعميل يريان «جاري البحث» ولا أحد قادم — والطلب ساقطٌ من اللوحة.
+//
+// هذا هو المخرج اليدوي لكل طلبٍ علِق قبل الإصلاح: ضغطةٌ تُنشئ طلب توصيل
+// جديداً وتبثّه لكباتن مدينته.
+router.post('/shop-orders/:id/republish', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const ShopOrder = require('../../models/ShopOrder');
+        const Place = require('../../models/Place');
+        const { republishShopOrder } = require('../../utils/shopDelivery');
+        const { notifyCityCaptains } = require('../../utils/captainBroadcast');
+
+        const shopOrder = await ShopOrder.findById(req.params.id);
+        if (!shopOrder) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        const place = await Place.findById(shopOrder.place);
+        if (!place) return res.status(404).json({ message: 'متجر الطلب غير موجود' });
+
+        const result = await republishShopOrder(shopOrder, place);
+        if (!result.created) return res.status(400).json({ message: result.reason });
+
+        // 🌍 sub_admin لا يتصرّف في مدينة غير مدينته — يُفحص بعد معرفة مدينة الطلب
+        const cityFilter = getAdminCityFilter(req);
+        if (cityFilter && cityFilter.city && cityFilter.city !== result.order.city) {
+            // تراجع: الطلب أُنشئ لكنه خارج صلاحيته
+            await require('../../models/Order').deleteOne({ _id: result.order._id });
+            return res.status(403).json({ message: 'هذا الطلب خارج مدينتك' });
+        }
+
+        await notifyCityCaptains(req.app, {
+            city: result.order.city,
+            title: '🛒 طلب محل جاهز للاستلام',
+            body: `طلب من ${place.name} بأجرة ${result.order.price} ج.س متاح الآن.`,
+            data: {
+                type: 'shop_order',
+                orderId: String(result.order._id),
+                url: `/captain-orders.html?highlight=${result.order._id}`
+            },
+            socketEvent: 'shop_order_available',
+            socketPayload: {
+                orderId: result.order._id, shopName: place.name,
+                pickup: place.address, price: result.order.price, kind: 'republished'
+            }
+        });
+
+        // بداية مهلة زرّ التاجر من جديد
+        await ShopOrder.updateOne({ _id: shopOrder._id }, { $set: { lastCaptainNudgeAt: new Date() } });
+
+        await logAdminAction(req, 'republish_shop_order',
+            `إعادة رفع طلب متجر ${String(shopOrder._id).slice(-6)} للكباتن`, shopOrder._id);
+
+        const io = req.app.get('io');
+        if (io) io.to('admin_room').emit('admin_order_update', {
+            orderId: result.order._id, status: 'pending', city: result.order.city
+        });
+
+        res.json({ message: 'تم رفع الطلب للكباتن من جديد', orderId: result.order._id });
+    } catch (error) {
+        logger.error({ err: error.message }, 'Republish shop order error');
+        res.status(500).json({ message: 'Server Error' });
     }
 });
 

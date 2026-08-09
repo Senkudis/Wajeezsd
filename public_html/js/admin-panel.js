@@ -628,11 +628,19 @@ async function loadLiveOrders() {
                 ? `<span class="gv-badge" style="background:#fef3c7;color:#92400e;font-size:10px;margin-left:4px;">
                      <i class="fas fa-clock"></i> متعثّر</span>`
                 : '';
+            // ⚠️ عالق: جاهز عند التاجر بلا طلب توصيل حيّ — العميل دفع ولا أحد
+            // قادم. أخطر حالة في اللوحة، فتُصبغ بالأحمر لا بالكهرماني.
+            const orphanTag = o.isOrphaned
+                ? `<span class="gv-badge" style="background:#fee2e2;color:#991b1b;font-size:10px;margin-left:4px;">
+                     <i class="fas fa-triangle-exclamation"></i> عالق — بلا طلب توصيل</span>`
+                : '';
             // طلب ما زال عند التاجر: لا طلب توصيل له بعد، ففتحه كطلب توصيل خطأ
             const openable = !o.isShopOnly;
-            const route = o.isShopOnly
-                ? 'عند التاجر — لم يُرفع للكباتن بعد'
-                : `${window.escapeHtml(o.pickup?.address || '?')} → ${window.escapeHtml(o.dropoff?.address || '?')}`;
+            const route = o.isOrphaned
+                ? 'جاهز عند التاجر — طلب التوصيل مفقود، يحتاج إعادة رفع'
+                : (o.isShopOnly
+                    ? 'عند التاجر — لم يُرفع للكباتن بعد'
+                    : `${window.escapeHtml(o.pickup?.address || '?')} → ${window.escapeHtml(o.dropoff?.address || '?')}`);
 
             return `
             <div class="gv-order-item" ${openable ? `onclick="viewOrder('${o._id}')"` : 'style="cursor:default;"'}>
@@ -640,7 +648,7 @@ async function loadLiveOrders() {
                 <div class="gv-order-info">
                     <h5>${window.escapeHtml(o.client?.name || 'عميل')} ${o.captain ? '← ' + window.escapeHtml(o.captain.name) : ''}${shopTag}</h5>
                     <p>${route}</p>
-                    ${cityLabel(o.city)} ${stuckTag} ${offersBadge(o)}
+                    ${cityLabel(o.city)} ${orphanTag} ${stuckTag} ${offersBadge(o)}
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
                     <span class="gv-badge ${o.status}">${statusLabel(o.status)}</span>
@@ -724,9 +732,44 @@ function renderAllOrders(orders) {
                 <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="remindCaptainsAdmin('${o._id}', this)" title="تنبيه كباتن المدينة">
                     <i class="fas fa-megaphone"></i>
                 </button>` : ''}
+                ${o.isOrphaned ? `
+                <button class="gv-btn gv-btn-icon" style="background:#dc2626;color:#fff;" onclick="republishShopOrder('${o._id}', this)" title="إعادة رفع الطلب للكباتن">
+                    <i class="fas fa-rotate-right"></i>
+                </button>` : ''}
             </td>
         </tr>`;
     }).join('');
+}
+
+/**
+ * 🩹 إعادة رفع طلب متجر عالق للكباتن.
+ * العالق = جاهز عند التاجر بلا طلب توصيل حيّ — خلّفه إلغاءٌ تلقائي سابق لم
+ * تصل مزامنته. هذا مخرجه اليدوي: طلب توصيل جديد وبثٌّ لكباتن مدينته.
+ */
+async function republishShopOrder(shopOrderId, btn) {
+    const ok = await Swal.fire({
+        icon: 'question',
+        title: 'إعادة رفع الطلب للكباتن؟',
+        text: 'سيُنشأ طلب توصيل جديد ويُنبَّه كباتن مدينة الطلب.',
+        showCancelButton: true, confirmButtonText: 'نعم، ارفعه', cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#dc2626'
+    });
+    if (!ok.isConfirmed) return;
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
+    try {
+        const res = await fetch(`${BASE}/api/admin/shop-orders/${shopOrderId}/republish`, {
+            method: 'POST', headers: headers()
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'تعذّرت إعادة الرفع');
+        Swal.fire({ icon: 'success', title: data.message, timer: 2200, showConfirmButton: false });
+        loadAllOrders();
+        if (typeof loadLiveOrders === 'function') loadLiveOrders();
+    } catch (e) {
+        Swal.fire('خطأ', e.message, 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-rotate-right"></i>'; }
+    }
 }
 
 /**

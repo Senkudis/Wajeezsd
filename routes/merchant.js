@@ -403,52 +403,22 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
         if (!order) return res.status(400).json({ message: 'الطلب غير موجود أو ليس في مرحلة التجهيز' });
 
         // 🚀 Create the delivery Order for the captains to see and accept
-        const Order = require('../models/Order');
-        const deliveryFee = order.deliveryFee && order.deliveryFee > 0 ? order.deliveryFee : (place.defaultDeliveryFee || 500);
-        
-        // Settings for commission — use the CLIENT's city for correct rates
-        const Settings = require('../models/Settings');
-        const User = require('../models/User');
-        const clientDoc = await User.findById(order.client).select('city').lean();
-        const orderCity = clientDoc?.city || 'Khartoum';
-        const settings = await Settings.getSettings(orderCity);
-        const commissionRate = settings.commissionRate ?? 0.15;
+        // ⚠️ عبر الأداة المشتركة: يُنشأ طلب التوصيل هنا وعند إعادة رفع الأدمن
+        // لطلبٍ عالق. نسختان تعنيان أن تُحسب العمولة بمدينةٍ في مسار وبأخرى في
+        // الآخر أو يُنسى ختمُ المدينة في أحدهما — انظر utils/shopDelivery.js
+        const { createDeliveryOrder } = require('../utils/shopDelivery');
 
-        const newDeliveryOrder = new Order({
-            client: order.client,
-            city: orderCity,       // 🌍 Stamp city on the delivery order
-            shopOrderId: order._id,
-            shopId: place._id,
-            shopName: place.name,
-            shopPhone: place.phone,
-            orderType: 'shop',
-            pickup: {
-                address: place.address || 'عنوان المتجر',
-                contactName: place.name,
-                contactPhone: place.phone || '0000000000',
-                lat: place.location?.lat,
-                lng: place.location?.lng
-            },
-            dropoff: order.dropoff,
-            distanceType: 'custom',
-            price: deliveryFee,
-            appFee: deliveryFee * commissionRate,
-            netRevenue: deliveryFee - (deliveryFee * commissionRate),
-            details: order.notes,
-            shopOrderDetails: order.items.map(i => `${i.quantity}x ${i.name}`).join('، '),
-            receiptImage: order.paymentReceiptImage,
-            status: 'pending' // So it appears to captains!
-        });
-
+        let newDeliveryOrder;
         // ✅ FIX #7: Wrap delivery order save in try/catch with ShopOrder rollback
         try {
-            await newDeliveryOrder.save();
+            newDeliveryOrder = await createDeliveryOrder(order, place);
         } catch (deliveryErr) {
             logger.error({ err: deliveryErr }, 'Failed to create delivery order — rolling back ShopOrder status');
             // Rollback: revert ShopOrder back to shop_preparing so merchant can retry
             await ShopOrder.findByIdAndUpdate(req.params.id, { status: 'shop_preparing' });
             return res.status(500).json({ message: 'فشل إنشاء طلب التوصيل. يرجى المحاولة مجدداً.' });
         }
+        const orderCity = newDeliveryOrder.city;
 
         // Notify client
         await sendNotification(req.app, {
