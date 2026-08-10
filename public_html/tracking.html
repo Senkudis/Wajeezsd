@@ -574,9 +574,14 @@
          * غينيا. رُصد في الإنتاج: طلبٌ استلامه في السودان وتسليمه يُرسم في المحيط.
          */
         function validCoord(lat, lng) {
-            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
-            if (lat === 0 && lng === 0) return false;
-            return Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+            // ⚠️ الرفض الصريح أولاً: Number(null) و Number('') يساويان صفراً لا NaN،
+            // فقيمة مفقودة كانت تمرّ كخط طولٍ صفر (على خطّ غرينتش).
+            if (lat === null || lat === undefined || lat === '' ||
+                lng === null || lng === undefined || lng === '') return false;
+            const a = Number(lat), b = Number(lng);
+            if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+            if (a === 0 && b === 0) return false;
+            return Math.abs(a) <= 90 && Math.abs(b) <= 180;
         }
 
         const STATUS_ORDER = ['pending', 'accepted', 'picked_up', 'delivered'];

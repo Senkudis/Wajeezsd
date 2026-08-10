@@ -459,7 +459,12 @@ function renderOrder(o) {
  * منهما، فرفضهما آمن.
  */
 function validCoord(lat, lng) {
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    // ⚠️ الرفض الصريح أولاً: Number(null) و Number('') يساويان صفراً لا NaN،
+    // فقيمة مفقودة كانت تمرّ كخط طولٍ صفر (على خطّ غرينتش).
+    if (lat === null || lat === undefined || lat === '' ||
+        lng === null || lng === undefined || lng === '') return false;
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return false;
+    lat = Number(lat); lng = Number(lng);
     if (lat === 0 && lng === 0) return false;          // "Null Island" — إحداثيات غائبة
     return Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 }

@@ -892,6 +892,23 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             return res.status(400).json({ message: 'عنوان التوصيل طويل جداً (الحد الأقصى 300 حرف)' });
         }
 
+        // 🧭 تطبيع إحداثيات التسليم: ما ليس موقعاً يُحفظ null لا رقماً.
+        //
+        // ⚠️ كان كائن dropoff يُمرَّر من العميل كما هو إلى القاعدة. فإن أرسل عنواناً
+        // بلا دبوس (أو صفرين، أو نصّاً) استقرّ في القاعدة كإحداثيات (0, 0) — وهي
+        // نقطة تقاطع خطّي الأصل في خليج غينيا. رُصد في الإنتاج: أربعة طلبات متاجر
+        // عناوينها Plus Codes صحيحة وإحداثياتها صفران، فتُرسم نقطة التسليم في
+        // المحيط الأطلسي في لوحة الإدارة ويفشل حساب المسار.
+        //
+        // null يقول «لا موقع» صراحةً — يرفضه كل فحصٍ سليم، ويبقى العنوان النصّي
+        // مرجعاً للكابتن.
+        if (dropoff && typeof dropoff === 'object') {
+            const { isUsableCoord } = require('../utils/coords');
+            const ok = isUsableCoord(dropoff.lat, dropoff.lng);
+            dropoff.lat = ok ? Number(dropoff.lat) : null;
+            dropoff.lng = ok ? Number(dropoff.lng) : null;
+        }
+
         const place = await Place.findById(req.params.placeId);
         if (!place || !place.isActive) return res.status(404).json({ message: 'المتجر غير متاح' });
 

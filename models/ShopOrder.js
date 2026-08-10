@@ -37,8 +37,19 @@ const ShopOrderSchema = new mongoose.Schema({
         address: { type: String, required: false, default: 'غير محدد بعد' },
         receiverName: { type: String, required: false, default: 'العميل' },
         receiverPhone: { type: String, required: false, default: '0000000000' },
-        lat: { type: Number, default: 0 },
-        lng: { type: Number, default: 0 }
+        // ⚠️ الافتراضي null لا 0.
+        //
+        // كان `default: 0` فيُحفظ كل طلبٍ بلا دبوس بإحداثيات (0, 0) — وهي رقمان
+        // صالحان شكلاً لكنهما ليسا موقعاً، بل نقطة تقاطع خطّي الأصل في خليج
+        // غينيا. رُصد فعلاً: أربعة طلبات في الإنتاج، كلها طلبات متاجر وعناوينها
+        // Plus Codes (كتبها العميل بلا تثبيت دبوس). النتيجة: لوحة الإدارة ترسم
+        // نقطة التسليم في المحيط الأطلسي ويفشل حساب المسار، بينما شاشة الكابتن
+        // تُخفي العطل مصادفةً لأن `0` قيمة كاذبة في جافاسكربت فتتخطّاه وتستعمل
+        // العنوان النصّي.
+        //
+        // null يقول «لا موقع» صراحةً، فيرفضه كل فحصٍ سليم بدل أن يمرّ كإحداثيات.
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null }
     },
 
     notes: { type: String, default: '' }, // ملاحظات إضافية
