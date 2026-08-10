@@ -12,7 +12,7 @@
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
     <style>
-        body {
+        html, body {
             font-family: 'Cairo', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -28,6 +28,19 @@
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            html, body {
+                padding: 10px !important;
+            }
+            .settings-card {
+                padding: 16px 14px !important;
+                border-radius: 14px !important;
+            }
+            .settings-card h1 {
+                font-size: 1.25rem !important;
+            }
         }
 
         .settings-card h1 {
@@ -101,13 +114,15 @@
         }
     </style>
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/admin-cache-buster.js?v=d70c699f"></script>
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <script src="js/theme-manager.js?v=a33a528b"></script>
 </head>
 
 <body>

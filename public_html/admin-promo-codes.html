@@ -7,14 +7,19 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
-        .page-header { background: linear-gradient(135deg, #04553A, #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
+        .page-header { background: linear-gradient(135deg, var(--primary), #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
         .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
         .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
         .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
         .btn { padding: 10px 20px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; }
-        .btn-primary { background: #04553A; color: #fff; }
+        .btn-primary { background: var(--primary); color: #fff; }
         .btn-primary:hover { background: #033A27; transform: translateY(-1px); }
         .btn-danger  { background: #ef4444; color: #fff; }
         .btn-sm { padding: 6px 14px; font-size: 0.85rem; }
@@ -32,14 +37,14 @@
         .promo-card.inactive { opacity: 0.6; }
         .promo-card.expired  { opacity: 0.55; border-color: #fecaca; }
         .card-accent { position: absolute; top: 0; right: 0; width: 6px; height: 100%; }
-        .code-display { font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; color: #04553A; font-family: monospace; margin-bottom: 8px; }
+        .code-display { font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; color: var(--primary); font-family: monospace; margin-bottom: 8px; }
         .card-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
         .card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
         .meta-item { background: #f8fafc; border-radius: 8px; padding: 8px 10px; }
         .meta-item .mlbl { font-size: 0.72rem; color: #64748b; font-weight: 700; }
         .meta-item .mval { font-size: 0.88rem; font-weight: 800; color: #1e293b; }
         .progress-bar { background: #f1f5f9; border-radius: 20px; height: 6px; margin-bottom: 14px; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #04553A, #0A6E47); transition: width .4s; }
+        .progress-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, var(--primary), #0A6E47); transition: width .4s; }
         .badge { padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
         .badge-green  { background: #dcfce7; color: #166534; }
         .badge-red    { background: #fee2e2; color: #991b1b; }
@@ -56,16 +61,18 @@
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-weight: 700; font-size: 0.88rem; color: #475569; margin-bottom: 6px; }
         .form-control { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.95rem; color: #1e293b; outline: none; background: #f8fafc; transition: border-color .2s; }
-        .form-control:focus { border-color: #04553A; background: #fff; }
+        .form-control:focus { border-color: var(--primary); background: #fff; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .hint { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
         .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
         .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
     </style>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
+    <script src="js/theme-manager.js?v=a33a528b"></script>
 </head>
 <body>
 <div class="page-header">
@@ -90,7 +97,7 @@
 <!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-        <h2><i class="fas fa-ticket-alt" style="color:#04553A;margin-left:8px;"></i> <span id="modalTitle">إنشاء كوبون جديد</span></h2>
+        <h2><i class="fas fa-ticket-alt" style="color:var(--primary);margin-left:8px;"></i> <span id="modalTitle">إنشاء كوبون جديد</span></h2>
         <input type="hidden" id="editingId">
 
         <div class="form-group">
@@ -211,7 +218,7 @@
         grid.innerHTML = promos.map(p => {
             const expired  = new Date(p.validUntil) < now;
             const pct      = p.usageLimit ? Math.min(100, (p.usedCount / p.usageLimit) * 100) : 0;
-            const accentC  = p.type === 'percentage' ? '#04553A' : '#7c3aed';
+            const accentC  = p.type === 'percentage' ? 'var(--primary)' : '#7c3aed';
             const valueStr = p.type === 'percentage' ? `${p.value}% خصم` : `${p.value} ج.س خصم`;
             return `
             <div class="promo-card ${!p.isActive ? 'inactive' : ''} ${expired ? 'expired' : ''}">
@@ -277,7 +284,7 @@
         const value = parseFloat(document.getElementById('fValue').value);
         const until = document.getElementById('fUntil').value;
         if (!code || !type || isNaN(value) || !until) {
-            return Swal.fire({ icon:'warning', title:'تنبيه', text:'الكود، النوع، القيمة، وتاريخ الانتهاء مطلوبة', confirmButtonColor:'#04553A' });
+            return Swal.fire({ icon:'warning', title:'تنبيه', text:'الكود، النوع، القيمة، وتاريخ الانتهاء مطلوبة', confirmButtonColor:'var(--primary)' });
         }
         const body = {
             code, type, value,

@@ -7,11 +7,16 @@
     <title>المحادثات | وجيز</title>
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <script src="js/config.js?v=6706269c"></script>
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
-        .page-header { background: linear-gradient(135deg, #04553A, #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
+        .page-header { background: linear-gradient(135deg, var(--primary), #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
         .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
         .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: .9rem; display: flex; align-items: center; gap: 6px; }
         .main { max-width: 1100px; margin: 0 auto; padding: 20px 14px 60px; }
@@ -44,8 +49,11 @@
         .btn-danger:hover { background: #fecaca; }
         .btn:disabled { opacity: .55; cursor: default; }
     </style>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
+    <script src="js/theme-manager.js?v=a33a528b"></script>
 </head>
 
 <body>

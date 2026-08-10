@@ -58,6 +58,79 @@ body.dark-mode a:not(.btn):not(.nav-item-link):not(.contact-btn) {
     color: var(--text-dark);
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   🔆 استثناء: نصٌّ داخل عنصر يحمل خلفيته الفاتحة بنفسه
+   ══════════════════════════════════════════════════════════════════
+
+   القاعدة أعلاه تُلوّن **كل** span و div بلونٍ فاتح في الوضع الداكن. لكنها
+   لا تعرف أن بعض العناصر تحمل خلفيةً فاتحة بنفسها — شارات الحالة، والتنبيهات،
+   والرقائق الملوّنة. فيصير نصٌّ فاتح على خلفية فاتحة: **اختفاء تام**.
+
+   الحالة المقيسة في «طلباتي»:
+       <span class="o-status" style="background:#fffbeb;color:#b45309">
+           <span>في الانتظار</span>   ← تلتقطه القاعدة فيصير أبيض
+       </span>
+   تباين 1.01 — أي غير مرئي إطلاقاً. ولا يحميه لون الأب لأن القاعدة تطابق
+   الابن مباشرةً، وتخصيصُ المحدِّد يغلب الوراثة.
+
+   العلاج: من ضبط خلفيته ولونه معاً (سواء في السطر أو عبر صنف شارة) فهو أدرى
+   بالتباين الذي يريد — فيرث أبناؤه لونه بدل أن يُعاد تلوينهم.
+   ⚠️ inherit لا لونٌ ثابت: يعمل مع الفاتح والداكن معاً بلا افتراضٍ عن أيّهما.
+   ══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   🖥️ لوحة التحكم (نظام gv-) — لم يكن لها أيّ دعم للوضع الداكن إطلاقاً
+   ══════════════════════════════════════════════════════════════════
+
+   admin-panel.css يبني اللوحة كلها على متغيّرات (--gv-*) لكنه يعرّفها في
+   :root بقيم فاتحة فقط، و**صفر** قاعدة ليلية في المشروع كله. فكل ما بُني
+   عليها يبقى فاتحاً ليلاً: أزرار الأشباح (gv-btn-ghost) نصّها رمادي داكن
+   على خلفية شفّافة فوق سطحٍ داكن ⇒ اختفاء تام. وهذا بالضبط ما رُصد في
+   «زرّ بثّ الإشعارات» و«زرّ تنبيه الكباتن» في جدول الطلبات.
+
+   إعادة تعريف المتغيّرات أصحّ من مطاردة كل عنصر: كل ما يقرأها يتبعها،
+   بما في ذلك شاشاتٌ تُضاف لاحقاً بلا أن يعرف بها هذا الملف.
+   ══════════════════════════════════════════════════════════════════ */
+body.dark-mode {
+    --gv-dark:    #e2e8f0;   /* كان نصّاً داكناً — صار نصّاً فاتحاً */
+    --gv-dark-2:  #94a3b8;   /* نصّ ثانوي مقروء على سطح داكن */
+    --gv-light:   #111827;   /* الأسطح الفاتحة تصير خلفية داكنة */
+    --gv-white:   #1f2937;   /* البطاقات */
+    --gv-border:  #334155;
+    --gv-shadow:    0 4px 20px rgba(0, 0, 0, 0.45);
+    --gv-shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* ما يستعمل الأبيض صراحةً لا عبر المتغيّر */
+body.dark-mode .gv-panel,
+body.dark-mode .gv-stat-card,
+body.dark-mode .gv-topbar,
+body.dark-mode .gv-notif-panel,
+body.dark-mode .gv-table thead th {
+    background: var(--card-bg) !important;
+    color: var(--text-dark);
+}
+body.dark-mode .gv-btn-ghost {
+    color: var(--gv-dark-2) !important;
+    border-color: var(--gv-border) !important;
+}
+body.dark-mode .gv-btn-ghost:hover {
+    color: var(--gv-primary) !important;
+    background: rgba(99, 102, 241, 0.12) !important;
+}
+body.dark-mode .gv-table td,
+body.dark-mode .gv-table th { border-color: var(--gv-border) !important; }
+body.dark-mode .gv-empty { color: var(--gv-dark-2) !important; }
+
+body.dark-mode [style*="background"][style*="color"] *,
+body.dark-mode .badge *,
+body.dark-mode .o-status *,
+body.dark-mode [class*="badge-"] *,
+body.dark-mode [class*="status-"] *,
+body.dark-mode [class*="chip"] *,
+body.dark-mode .alert * {
+    color: inherit;
+}
+
 body.dark-mode .text-dark {
     color: var(--text-dark) !important;
 }
@@ -100,10 +173,41 @@ body.dark-mode .app-header .btn-light {
     color: white !important;
 }
 
-/* --- Section Cards --- */
-body.dark-mode .section-card {
-    background: var(--card-bg) !important;
-    border-color: var(--border-color) !important;
+/* --- Section & KPI Cards --- */
+body.dark-mode .section-card,
+body.dark-mode .kpi-card,
+body.dark-mode .stat-card,
+body.dark-mode .stat-chip,
+body.dark-mode .stat-box,
+body.dark-mode .dash-card,
+body.dark-mode .metric-card,
+body.dark-mode .info-card,
+body.dark-mode .finance-card,
+body.dark-mode .wallet-card,
+body.dark-mode .analytics-card,
+body.dark-mode .summary-card,
+body.dark-mode .order-card,
+body.dark-mode .merchant-card,
+body.dark-mode .captain-card {
+    background: var(--card-bg, #1e293b) !important;
+    border-color: var(--border-color, #334155) !important;
+    color: var(--text-dark, #f8fafc) !important;
+}
+
+body.dark-mode .kpi-label,
+body.dark-mode .kpi-sub,
+body.dark-mode .stat-label,
+body.dark-mode .stat-lbl,
+body.dark-mode .field-label,
+body.dark-mode .field-hint {
+    color: var(--text-muted, #94a3b8) !important;
+}
+
+body.dark-mode .kpi-value,
+body.dark-mode .kpi-num,
+body.dark-mode .stat-num,
+body.dark-mode .stat-value {
+    color: var(--text-dark, #f8fafc) !important;
 }
 
 body.dark-mode .section-title {
@@ -1414,15 +1518,35 @@ body.dark-mode .notif-icon.alert {
     background: #3a1a1a !important;
 }
 
-/* --- merchant-orders.html --- */
+/* --- merchant pages (.m-page-header) --- */
+body.dark-mode .m-page-header,
 body.dark-mode .page-header {
-    background: var(--card-bg) !important;
+    background: var(--card-bg, #1e293b) !important;
+    border-color: var(--border-color, #334155) !important;
 }
+
+body.dark-mode .m-header-title,
+body.dark-mode .m-page-header .m-header-title {
+    color: var(--text-dark, #f8fafc) !important;
+}
+
+body.dark-mode .m-header-subtitle,
+body.dark-mode .m-page-header .m-header-subtitle {
+    color: var(--text-muted, #94a3b8) !important;
+}
+
+body.dark-mode .m-back-btn {
+    background: #334155 !important;
+    color: #f8fafc !important;
+    border-color: #475569 !important;
+}
+
 body.dark-mode .filter-tab {
     background: var(--card-bg) !important;
     border-color: var(--border-color) !important;
-    color: var(--text-color) !important;
+    color: var(--text-dark) !important;
 }
+
 body.dark-mode .filter-tab .cnt {
     background: #374151 !important;
     color: var(--text-dark) !important;
@@ -1471,4 +1595,415 @@ body.dark-mode .logout-btn {
 }
 body.dark-mode .logout-btn:hover {
     background: #4a2020 !important;
+}
+
+/* ========================================
+   AUDIT FIXES — 2026-08-04
+   Client Pages, Captain Pages, Merchant Pages
+   ======================================== */
+
+/* --- index.html — Map overlay & search bar --- */
+body.dark-mode #map-loading-overlay {
+    background: rgba(17, 24, 39, 0.97) !important;
+}
+body.dark-mode #map-mode-label {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode #map-city-btn {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode #map-search-input {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+}
+body.dark-mode #map-search-results {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode #map-search-results .search-result-item:hover {
+    background: rgba(16, 185, 129, 0.1) !important;
+}
+/* زر إغلاق الخريطة */
+body.dark-mode [onclick="window.closeMapUI()"] {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+/* التدرج أسفل تأكيد الموقع */
+body.dark-mode .map-confirm-gradient {
+    background: linear-gradient(transparent, rgba(17, 24, 39, 0.98) 30%) !important;
+}
+
+/* --- client-order.html --- */
+body.dark-mode .section-label {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .section-label::after {
+    background: linear-gradient(90deg, var(--border-color), transparent) !important;
+}
+body.dark-mode .cat-chip {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .cat-chip .chip-label {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .cat-note-banner {
+    background: linear-gradient(135deg, #451a03, #78350f) !important;
+    border-color: #92400e !important;
+    color: #fde68a !important;
+}
+/* إصلاح القوس الفاصل بين hero والمحتوى */
+body.dark-mode .order-hero::after {
+    background: var(--bg-color) !important;
+}
+
+/* --- client-my-orders.html --- */
+body.dark-mode .offer-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .offer-name {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .offer-meta {
+    color: var(--text-muted) !important;
+}
+body.dark-mode .offer-countdown {
+    background: #451a03 !important;
+    color: #fde68a !important;
+}
+body.dark-mode .o-tl-dot {
+    background: var(--card-bg) !important;
+    border-color: #475569 !important;
+}
+body.dark-mode .o-route-connector {
+    background: #475569 !important;
+}
+
+/* --- notifications.html --- */
+body.dark-mode #notifications-body .fw-bold.text-dark,
+body.dark-mode #notifications-body h6.fw-bold {
+    color: var(--text-dark) !important;
+}
+body.dark-mode #notifications-body .text-secondary {
+    color: var(--text-muted) !important;
+}
+body.dark-mode .notif-icon-circle {
+    background: rgba(16, 185, 129, 0.15) !important;
+}
+/* نقطة الإشعار غير المقروء */
+body.dark-mode .border-white.rounded-circle {
+    border-color: var(--card-bg) !important;
+}
+
+/* --- captain-dashboard.html — نافذة الدفع --- */
+body.dark-mode #paymentModal > div,
+body.dark-mode [id="paymentModal"] .modal-sheet {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+}
+body.dark-mode .sheet-handle,
+body.dark-mode [style*="background:#ddd"],
+body.dark-mode [style*="background: #ddd"] {
+    background: var(--border-color) !important;
+}
+body.dark-mode #payError {
+    background: #3a1a1a !important;
+    border-color: #c0392b !important;
+    color: #fca5a5 !important;
+}
+body.dark-mode .bank-info-box {
+    background: linear-gradient(135deg, #1e3a5f, #1a2e4a) !important;
+    border-color: #2e6da4 !important;
+}
+/* زر إلغاء نافذة الدفع */
+body.dark-mode [onclick="closePaymentModal()"] {
+    background: var(--card-bg) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border-color) !important;
+}
+/* زر التوفر في الهيدر */
+body.dark-mode #availabilityToggle.btn-light {
+    background: rgba(255,255,255,0.15) !important;
+    color: white !important;
+    border-color: rgba(255,255,255,0.3) !important;
+}
+/* مؤشر رفع الإيصال */
+body.dark-mode .upload-label {
+    border-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+body.dark-mode .receipt-preview {
+    border-color: var(--border-color) !important;
+}
+
+/* --- captain-orders.html & captain-missions.html --- */
+/* دائرة أيقونة الهيدر */
+body.dark-mode .bg-white.rounded-circle {
+    background: rgba(255,255,255,0.15) !important;
+}
+/* شارة حالة المحفظة */
+body.dark-mode #wStatusChip.bg-white {
+    background: rgba(255,255,255,0.2) !important;
+    color: white !important;
+}
+/* خطوط الأهداف غير المكتملة في المهمات */
+body.dark-mode .mission-timeline-line {
+    background: var(--border-color) !important;
+}
+body.dark-mode .mission-dot-empty {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* --- جميع الصفحات: إزالة bg-light من body --- */
+/* bg-light على body يمنع تطبيق dark background — override شامل */
+body.dark-mode.bg-light,
+body.dark-mode .bg-light:not(.badge):not(.spinner-border) {
+    background-color: var(--bg-color) !important;
+}
+
+/* ========================================
+   MERCHANT PAGES — DARK MODE FIXES
+   ======================================== */
+
+/* --- merchant-dashboard.html --- */
+body.dark-mode .stat-card,
+body.dark-mode .quick-btn,
+body.dark-mode .order-row,
+body.dark-mode .sk-row {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .quick-btn {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .section-title {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .merchant-nav {
+    background: var(--card-bg) !important;
+    border-top-color: var(--border-color) !important;
+}
+
+/* --- merchant-notifications.html --- */
+body.dark-mode .notif-card {
+    background: var(--card-bg) !important;
+}
+body.dark-mode .notif-card.unread {
+    background: linear-gradient(135deg, #1a3a2e, #1f2937) !important;
+    border-right-color: var(--primary-color) !important;
+}
+body.dark-mode .notif-title {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .notif-msg {
+    color: var(--text-muted) !important;
+}
+body.dark-mode .notif-icon.system {
+    background: linear-gradient(135deg, #1e3a5f, #1a2e4a) !important;
+    color: #60a5fa !important;
+}
+body.dark-mode .notif-icon.chat {
+    background: linear-gradient(135deg, #1a3a2e, #0f2922) !important;
+    color: var(--primary-color) !important;
+}
+
+/* --- merchant-finance.html --- */
+body.dark-mode .tab-btn {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+body.dark-mode .tab-btn.active {
+    background: var(--primary-color) !important;
+    color: white !important;
+    border-color: var(--primary-color) !important;
+}
+body.dark-mode .item-card {
+    background: var(--card-bg) !important;
+}
+body.dark-mode .wallet-balance,
+body.dark-mode .mini-stat .n,
+body.dark-mode .mini-stat .l {
+    color: var(--text-dark) !important;
+}
+body.dark-mode .alert-light {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+body.dark-mode .btn-warning.text-dark {
+    color: #1a1a1a !important;
+}
+
+/* --- merchant-orders.html — Status Pills (inline style override) --- */
+/* نضطر لاستخدام attr selector لأن inline styles لها أعلى أولوية */
+/* الحل: نُضيف class لكل pill عبر dark-mode.css على المستوى العام */
+body.dark-mode [class*="status-pill"],
+body.dark-mode .status-pill {
+    filter: brightness(0.75) saturate(0.8) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+}
+/* Filter tabs في merchant-orders وأي صفحة تستخدمها */
+body.dark-mode .filter-tab {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+body.dark-mode .filter-tab.active {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+body.dark-mode .filter-tab .cnt {
+    background: var(--border-color) !important;
+    color: var(--text-dark) !important;
+}
+/* money-box الأخضر في بطاقة الطلب */
+body.dark-mode .money-box {
+    background: linear-gradient(135deg, #1a3a2e, #0f2922) !important;
+    border-color: #065f46 !important;
+}
+body.dark-mode .money-box .lbl {
+    color: #6ee7b7 !important;
+}
+/* track-box الأزرق والأخضر */
+body.dark-mode .track-box.waiting {
+    background: #1e3a5f !important;
+    color: #93c5fd !important;
+    border-color: #1d4ed8 !important;
+}
+body.dark-mode .track-box.moving {
+    background: #1a3a2e !important;
+    color: #6ee7b7 !important;
+    border-color: #065f46 !important;
+}
+/* step dots على بطاقة المراحل */
+body.dark-mode .step-dot {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+body.dark-mode .step.active .step-dot {
+    background: var(--card-bg) !important;
+}
+/* addr-box و qty-chip */
+body.dark-mode .addr-box,
+body.dark-mode .qty-chip {
+    background: var(--bg-color) !important;
+    color: var(--text-dark) !important;
+}
+/* receipt-box الأصفر */
+body.dark-mode .receipt-box {
+    background: #451a03 !important;
+    border-color: #92400e !important;
+}
+/* page-header */
+body.dark-mode .page-header {
+    background: var(--card-bg) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+/* order-card */
+body.dark-mode .order-card {
+    background: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .client-name {
+    color: var(--text-dark) !important;
+}
+
+/* ========================================
+   STATUS PILL — PER-CLASS DARK OVERRIDES
+   كل حالة لها لون مناسب للوضع الداكن
+   ======================================== */
+body.dark-mode .status-pill.sp-pending {
+    background: #451a03 !important;
+    color: #fde68a !important;
+}
+body.dark-mode .status-pill.sp-preparing {
+    background: #1e3a5f !important;
+    color: #93c5fd !important;
+}
+body.dark-mode .status-pill.sp-ready {
+    background: #2e1065 !important;
+    color: #c4b5fd !important;
+}
+body.dark-mode .status-pill.sp-captain {
+    background: #164e63 !important;
+    color: #67e8f9 !important;
+}
+body.dark-mode .status-pill.sp-delivered {
+    background: #14532d !important;
+    color: #86efac !important;
+}
+body.dark-mode .status-pill.sp-cancelled {
+    background: #450a0a !important;
+    color: #fca5a5 !important;
+}
+body.dark-mode .status-pill.sp-chat {
+    background: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+
+/* ========================================
+   CLIENT-ORDER — أزرار رفع/تنزيل السعر والـ Chat
+   ======================================== */
+
+/* زر محادثة التاجر في popup المتجر */
+body.dark-mode .chat-modal-btn {
+    background: linear-gradient(135deg, #374151, #4b5563) !important;
+    color: var(--text-dark) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .chat-modal-btn:hover {
+    background: linear-gradient(135deg, #4b5563, #6b7280) !important;
+}
+
+/* خانة العملة (جنيه / ج.س) بجانب حقل السعر */
+body.dark-mode .price-currency-label {
+    background: #374151 !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* زر ± لتعديل السعر — الحالة المعطّلة في الوضع الداكن */
+body.dark-mode .btn-price-step:disabled {
+    background: #374151 !important;
+    color: #6b7280 !important;
+    cursor: not-allowed;
+}
+
+/* حقل السعر نفسه */
+body.dark-mode .price-input {
+    background: #1a3a2e !important;
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Popup/Modal بطاقة تفاصيل المتجر (placeDetailsModal) */
+body.dark-mode .modal-content,
+body.dark-mode [role="dialog"] .modal-content {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+}
+body.dark-mode .modal-body {
+    background: var(--card-bg) !important;
+}
+/* الـ Bottom Sheet (fade show in client-order) */
+body.dark-mode .modal-bottom-sheet {
+    background: var(--card-bg) !important;
+}
+body.dark-mode #placeDetailsModal .modal-content {
+    background: var(--card-bg) !important;
+}
+/* حاوية الأزرار السفلية داخل popup المتجر */
+body.dark-mode #placeDetailsModal [style*="padding:14px 18px"],
+body.dark-mode #placeDetailsModal [style*="padding:0 18px"] {
+    background: var(--card-bg) !important;
 }

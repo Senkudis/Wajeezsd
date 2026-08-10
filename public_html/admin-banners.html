@@ -7,11 +7,16 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }
 
         .page-header {
-            background: linear-gradient(135deg, #04553A 0%, #0A6E47 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, #0A6E47 100%);
             padding: 20px 24px;
             display: flex;
             align-items: center;
@@ -25,7 +30,7 @@
         .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
 
         .btn { padding: 10px 20px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; }
-        .btn-primary { background: #04553A; color: #fff; }
+        .btn-primary { background: var(--primary); color: #fff; }
         .btn-primary:hover { background: #033A27; transform: translateY(-1px); }
         .btn-danger  { background: #ef4444; color: #fff; }
         .btn-danger:hover { background: #dc2626; }
@@ -117,14 +122,14 @@
             outline: none;
             background: #f8fafc;
         }
-        .form-control:focus { border-color: #04553A; background: #fff; }
+        .form-control:focus { border-color: var(--primary); background: #fff; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border-radius: 10px; border: 1.5px solid #e2e8f0; }
         .toggle-switch { position: relative; width: 44px; height: 24px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 24px; cursor: pointer; transition: background .2s; }
         .slider:before { content: ''; position: absolute; width: 18px; height: 18px; right: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; }
-        input:checked + .slider { background: #04553A; }
+        input:checked + .slider { background: var(--primary); }
         input:checked + .slider:before { transform: translateX(-20px); }
         .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
@@ -132,11 +137,13 @@
         .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
         .empty-state p { font-size: 1rem; }
 
-        .sort-badge { background: #04553A; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; }
+        .sort-badge { background: var(--primary); color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; }
     </style>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
+    <script src="js/theme-manager.js?v=a33a528b"></script>
 </head>
 <body>
 <div class="page-header">
@@ -166,7 +173,7 @@
 <!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-        <h2><i class="fas fa-image" style="color:#04553A;"></i> <span id="modalTitle">إضافة بانر جديد</span></h2>
+        <h2><i class="fas fa-image" style="color:var(--primary);"></i> <span id="modalTitle">إضافة بانر جديد</span></h2>
         <input type="hidden" id="editingId">
         <div class="form-group">
             <label>العنوان *</label>
@@ -446,7 +453,7 @@
         const title   = document.getElementById('fTitle').value.trim();
         const image   = document.getElementById('fImage').value.trim();
         if (!title || !image) {
-            return Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'العنوان والصورة مطلوبان', confirmButtonColor: '#04553A' });
+            return Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'العنوان والصورة مطلوبان', confirmButtonColor: 'var(--primary)' });
         }
         // 🎯 بناء معرّف الهدف من القائمة المختارة (بدل لصق ID يدوياً)
         const targetType = document.getElementById('fTargetType').value;
@@ -460,7 +467,7 @@
             targetId = (s && p) ? `${s}:${p}` : '';
         }
         if (targetType !== 'none' && !targetId) {
-            return Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى اختيار هدف البانر (المتجر/المنتج/القسم/الرابط)', confirmButtonColor: '#04553A' });
+            return Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'يرجى اختيار هدف البانر (المتجر/المنتج/القسم/الرابط)', confirmButtonColor: 'var(--primary)' });
         }
 
         const body = {
@@ -485,7 +492,7 @@
             const res    = await fetch(url, { method, headers: hdr(), body: JSON.stringify(body) });
             const data   = await res.json();
             if (!res.ok) throw new Error(data.message);
-            Swal.fire({ icon: 'success', title: '✅ تم الحفظ!', text: 'تم حفظ البانر بنجاح', confirmButtonColor: '#04553A', timer: 2000, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: '✅ تم الحفظ!', text: 'تم حفظ البانر بنجاح', confirmButtonColor: 'var(--primary)', timer: 2000, showConfirmButton: false });
             closeModal();
             loadBanners();
         } catch (e) {

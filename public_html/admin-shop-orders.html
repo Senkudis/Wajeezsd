@@ -7,12 +7,17 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/admin-cache-buster.js?v=d70c699f"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         :root {
-            --brand: #04553A; --amber: #f59e0b;
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
+        :root {
+            --brand: var(--primary); --amber: #f59e0b;
             --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --bg: #f1f5f9;
         }
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
@@ -77,9 +82,11 @@
         .empty i { font-size: 3.4rem; display: block; margin-bottom: 12px; opacity: 0.5; }
         .load-more { display: block; margin: 14px auto; }
     </style>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <script src="js/theme-manager.js?v=a33a528b"></script>
 </head>
 <body>
 
@@ -293,7 +300,7 @@
         reloadTimer = setTimeout(reload, 600);
     }
     try {
-        const socket = io(API_URL, { transports: ['polling', 'websocket'], auth: { token } });
+        const socket = io(API_URL, { transports: ['websocket', 'polling'], auth: { token } });
         socket.on('connect', () => {
             const uid = userObj._id || userObj.id || localStorage.getItem('userId');
             if (uid) socket.emit('user_join', uid);

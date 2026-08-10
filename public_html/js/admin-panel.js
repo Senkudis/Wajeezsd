@@ -769,7 +769,7 @@ function renderAllOrders(orders) {
                     <i class="fas fa-user-plus"></i>
                 </button>
                 <button class="gv-btn gv-btn-ghost gv-btn-icon" onclick="remindCaptainsAdmin('${o._id}', this)" title="تنبيه كباتن المدينة">
-                    <i class="fas fa-megaphone"></i>
+                    <i class="fas fa-bullhorn"></i>
                 </button>` : ''}
                 ${o.isOrphaned ? `
                 <button class="gv-btn gv-btn-icon" style="background:#dc2626;color:#fff;" onclick="republishShopOrder('${o._id}', this)" title="إعادة رفع الطلب للكباتن">
@@ -830,7 +830,7 @@ async function remindCaptainsAdmin(orderId, btn) {
     } catch (e) {
         Swal.fire('خطأ', e.message, 'error');
     } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-megaphone"></i>'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bullhorn"></i>'; }
     }
 }
 
