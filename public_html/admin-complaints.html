@@ -7,9 +7,14 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
-        .page-header { background: linear-gradient(135deg, #04553A, #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
+        .page-header { background: linear-gradient(135deg, var(--primary), #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
         .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
         .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
         .page-header a:hover { color: #fff; }
@@ -23,9 +28,9 @@
         .filter-group { display: flex; flex-direction: column; gap: 4px; }
         .filter-group label { font-size: 0.8rem; font-weight: 700; color: #64748b; }
         .filter-group select { padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; background: #f8fafc; color: #1e293b; outline: none; }
-        .filter-group select:focus { border-color: #04553A; background: #fff; }
+        .filter-group select:focus { border-color: var(--primary); background: #fff; }
         .btn { padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all .2s; }
-        .btn-primary { background: #04553A; color: #fff; }
+        .btn-primary { background: var(--primary); color: #fff; }
         .btn-primary:hover { background: #033A27; }
         .btn-sm { padding: 6px 12px; font-size: 0.82rem; }
         .btn-resolve { background: #dcfce7; color: #166534; }
@@ -50,7 +55,7 @@
         .priority-urgent { background: #fee2e2; color: #991b1b; }
         .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
         .page-btn { padding: 7px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #fff; font-family: 'Tajawal', sans-serif; font-size: 0.85rem; cursor: pointer; color: #374151; font-weight: 700; transition: all .2s; }
-        .page-btn:hover, .page-btn.active { background: #04553A; color: #fff; border-color: #04553A; }
+        .page-btn:hover, .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
         .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
         .modal-overlay.active { display: flex; }
@@ -58,21 +63,22 @@
         .modal h2 { font-size: 1.15rem; font-weight: 800; color: #1e293b; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; }
         .chat-thread { max-height: 340px; overflow-y: auto; padding: 12px; background: #f8fafc; border-radius: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
         .chat-msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 0.88rem; line-height: 1.5; }
-        .chat-msg.admin { background: #04553A; color: #fff; align-self: flex-start; border-bottom-right-radius: 4px; }
+        .chat-msg.admin { background: var(--primary); color: #fff; align-self: flex-start; border-bottom-right-radius: 4px; }
         .chat-msg.client { background: #fff; border: 1px solid #e2e8f0; align-self: flex-end; border-bottom-left-radius: 4px; color: #1e293b; }
         .chat-msg .msg-meta { font-size: 0.72rem; opacity: 0.7; margin-top: 4px; }
         .chat-input { display: flex; gap: 8px; }
         .chat-input textarea { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; resize: none; height: 60px; outline: none; }
-        .chat-input textarea:focus { border-color: #04553A; }
+        .chat-input textarea:focus { border-color: var(--primary); }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
         .info-item { background: #f8fafc; border-radius: 10px; padding: 10px 14px; }
         .info-item .info-label { font-size: 0.75rem; color: #64748b; font-weight: 700; margin-bottom: 3px; }
         .info-item .info-val { font-size: 0.9rem; font-weight: 800; color: #1e293b; }
         .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 10px; }
     </style>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=d3e81a45">
-    <script src="js/admin-mobile.js?v=d3e81a45"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
+    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
 </head>
 <body>
 <div class="page-header">
@@ -104,7 +110,7 @@
 
 <div class="modal-overlay" id="detailModal">
     <div class="modal">
-        <h2><i class="fas fa-headset" style="color:#04553A;"></i> تفاصيل التذكرة</h2>
+        <h2><i class="fas fa-headset" style="color:var(--primary);"></i> تفاصيل التذكرة</h2>
         <div class="info-grid"  id="ticketInfo"></div>
         <div class="action-bar" id="ticketActions"></div>
         <div class="chat-thread" id="chatThread"></div>
@@ -124,6 +130,19 @@
     if (!token) window.location.href = 'admin-login.html';
     const BASE = window.API_URL || 'https://wajeezsd.com';
     const hdr  = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+
+    /**
+     * 🔒 هروب HTML — إلزامي لكل ما يكتبه المستخدمون.
+     *
+     * ⚠️ الثغرة التي يغلقها: نصّ الشكوى وموضوعها وردودها يكتبها **العميل**
+     * وتُحقَن هنا خاماً في innerHTML داخل لوحة الإدارة. أي عميل يرسل شكوى تحوي
+     * وسماً تنفيذياً يُنفَّذ في متصفّح الأدمن بصلاحياته ورمز دخوله — أي استيلاء
+     * على لوحة التحكم من حساب عميل عادي. ولا تطهير في السيرفر (routes/complaints.js
+     * يحفظ الوصف كما ورد)، فالهروب عند العرض هو الحاجز الوحيد.
+     */
+    const esc = (v) => String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
     let currentPage = 1, totalPages = 1, activeTicketId = null;
     const statusLabel   = { open:'مفتوحة', in_progress:'قيد المعالجة', resolved:'محلولة', dismissed:'مرفوضة', pending:'معلقة' };
@@ -165,7 +184,7 @@
             renderTable(data.complaints);
             renderPagination();
         } catch(e) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#ef4444;">${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#ef4444;">${esc(e.message)}</td></tr>`;
         }
     }
 
@@ -174,12 +193,12 @@
         if (!items.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;">لا توجد تذاكر</td></tr>'; return; }
         tbody.innerHTML = items.map(c=>`
             <tr style="cursor:pointer;" onclick="openDetail('${c._id}')">
-                <td><div style="font-weight:800;">${c.client?.name||'—'}</div><div style="font-size:0.78rem;color:#64748b;">${c.client?.phone||''}</div></td>
-                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.subject||'—'}</td>
-                <td><span class="badge" style="background:#f1f5f9;color:#374151;">${catLabel[c.category]||c.category||'—'}</span></td>
-                <td><span class="badge ${priorityClass[c.priority]}">${priorityLabel[c.priority]||c.priority}</span></td>
-                <td><span class="badge ${statusClass[c.status]}">${statusLabel[c.status]||c.status}</span></td>
-                <td style="text-align:center;font-weight:700;color:#04553A;">${c.replies?.length||0}</td>
+                <td><div style="font-weight:800;">${esc(c.client?.name)||'—'}</div><div style="font-size:0.78rem;color:#64748b;">${esc(c.client?.phone)}</div></td>
+                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.subject)||'—'}</td>
+                <td><span class="badge" style="background:#f1f5f9;color:#374151;">${catLabel[c.category]||esc(c.category)||'—'}</span></td>
+                <td><span class="badge ${priorityClass[c.priority]}">${priorityLabel[c.priority]||esc(c.priority)}</span></td>
+                <td><span class="badge ${statusClass[c.status]}">${statusLabel[c.status]||esc(c.status)}</span></td>
+                <td style="text-align:center;font-weight:700;color:var(--primary);">${c.replies?.length||0}</td>
                 <td style="font-size:0.8rem;color:#64748b;white-space:nowrap;">${new Date(c.createdAt).toLocaleDateString('ar-EG')}</td>
                 <td onclick="event.stopPropagation()">
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -210,11 +229,11 @@
             const res = await fetch(`${BASE}/api/complaints/${id}`,{headers:hdr()});
             const c   = await res.json();
             document.getElementById('ticketInfo').innerHTML=`
-                <div class="info-item"><div class="info-label">العميل</div><div class="info-val">${c.client?.name||'—'} · ${c.client?.phone||''}</div></div>
-                <div class="info-item"><div class="info-label">الموضوع</div><div class="info-val">${c.subject||'—'}</div></div>
+                <div class="info-item"><div class="info-label">العميل</div><div class="info-val">${esc(c.client?.name)||'—'} · ${esc(c.client?.phone)}</div></div>
+                <div class="info-item"><div class="info-label">الموضوع</div><div class="info-val">${esc(c.subject)||'—'}</div></div>
                 <div class="info-item"><div class="info-label">الحالة</div><div class="info-val"><span class="badge ${statusClass[c.status]}">${statusLabel[c.status]}</span></div></div>
                 <div class="info-item"><div class="info-label">الأولوية</div><div class="info-val"><span class="badge ${priorityClass[c.priority]}">${priorityLabel[c.priority]}</span></div></div>
-                <div class="info-item" style="grid-column:1/-1;"><div class="info-label">الوصف</div><div class="info-val" style="font-weight:500;line-height:1.6;">${c.description}</div></div>`;
+                <div class="info-item" style="grid-column:1/-1;"><div class="info-label">الوصف</div><div class="info-val" style="font-weight:500;line-height:1.6;">${esc(c.description)}</div></div>`;
 
             let actions=`<select id="prioritySelect" style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:Tajawal,sans-serif;font-size:0.85rem;background:#fff;">
                 <option value="low" ${c.priority==='low'?'selected':''}>🟢 منخفضة</option>
@@ -235,12 +254,12 @@
             (c.replies||[]).forEach(r=>{
                 const div=document.createElement('div');
                 div.className=`chat-msg ${r.senderRole==='admin'?'admin':'client'}`;
-                div.innerHTML=`${r.message}<div class="msg-meta">${new Date(r.createdAt).toLocaleString('ar-EG')} · ${r.senderRole==='admin'?'🔐 الأدمن':'👤 العميل'}</div>`;
+                div.innerHTML=`${esc(r.message)}<div class="msg-meta">${new Date(r.createdAt).toLocaleString('ar-EG')} · ${r.senderRole==='admin'?'🔐 الأدمن':'👤 العميل'}</div>`;
                 thread.appendChild(div);
             });
             thread.scrollTop=thread.scrollHeight;
         } catch(e) {
-            document.getElementById('ticketInfo').innerHTML=`<div style="grid-column:1/-1;color:#ef4444;padding:12px;">فشل التحميل: ${e.message}</div>`;
+            document.getElementById('ticketInfo').innerHTML=`<div style="grid-column:1/-1;color:#ef4444;padding:12px;">فشل التحميل: ${esc(e.message)}</div>`;
         }
     }
 
@@ -259,11 +278,11 @@
     }
 
     async function resolveTicket(id) {
-        const {isConfirmed}=await Swal.fire({icon:'question',title:'تأكيد',text:'هل تم حل هذه المشكلة؟',showCancelButton:true,confirmButtonText:'نعم',cancelButtonText:'إلغاء',confirmButtonColor:'#04553A'});
+        const {isConfirmed}=await Swal.fire({icon:'question',title:'تأكيد',text:'هل تم حل هذه المشكلة؟',showCancelButton:true,confirmButtonText:'نعم',cancelButtonText:'إلغاء',confirmButtonColor:'var(--primary)'});
         if(!isConfirmed)return;
         await fetch(`${BASE}/api/complaints/${id}/resolve`,{method:'PUT',headers:hdr()});
         loadComplaints(currentPage); loadStats();
-        Swal.fire({icon:'success',title:'تم!',text:'تم حل التذكرة وإشعار العميل',confirmButtonColor:'#04553A',timer:2000,showConfirmButton:false});
+        Swal.fire({icon:'success',title:'تم!',text:'تم حل التذكرة وإشعار العميل',confirmButtonColor:'var(--primary)',timer:2000,showConfirmButton:false});
     }
 
     async function dismissTicket(id) {

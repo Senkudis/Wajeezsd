@@ -819,8 +819,13 @@ router.post('/shop/:placeId/start-chat', protect, async (req, res) => {
                 totalAmount: 0,
                 dropoff: {
                     address: req.body?.dropoffAddress || 'غير محدد بعد',
-                    lat: req.body?.lat || 0,
-                    lng: req.body?.lng || 0,
+                    // 🧭 null لا 0 — نفس عطل «دبوس خليج غينيا» (انظر utils/coords.js).
+                    // `|| 0` كان يحوّل كل موقعٍ غائب إلى إحداثيات صالحة شكلاً في المحيط.
+                    ...(function () {
+                        const { isUsableCoord } = require('../utils/coords');
+                        const ok = isUsableCoord(req.body?.lat, req.body?.lng);
+                        return { lat: ok ? Number(req.body.lat) : null, lng: ok ? Number(req.body.lng) : null };
+                    })(),
                     receiverName: req.user.name || req.user.username || 'العميل',
                     receiverPhone: req.user.phone || req.body?.phone || '0000000000'
                 },

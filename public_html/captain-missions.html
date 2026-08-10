@@ -16,7 +16,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
     <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
@@ -126,6 +126,18 @@
         }
 
         // ⏱️ كتلة ETA + الخط الزمني المصغّر للكابتن (أنماط inline — مستقلة عن CSS الصفحة)
+        /**
+         * 🔒 هروب HTML لكل ما يكتبه العميل ويُعرض للكابتن.
+         *
+         * ⚠️ العناوين وأسماء جهات الاتصال يكتبها **العميل** وتُحقَن هنا خاماً في
+         * innerHTML داخل شاشة الكابتن. عنوانٌ يحوي وسماً تنفيذياً يُنفَّذ في متصفّح
+         * الكابتن بصلاحياته ورمز دخوله. ولا تطهير في السيرفر، فالهروب عند العرض
+         * هو الحاجز الوحيد.
+         */
+        const esc = (v) => String(v == null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
         function missionProgressHtml(order) {
             let html = '';
             if (order.eta && order.eta.text && !['delivered', 'cancelled'].includes(order.status)) {
@@ -319,7 +331,7 @@
                                                 <div class="d-flex justify-content-between align-items-start">
                                                     <div>
                                                         <small class="text-muted d-block" style="font-size: 0.75rem;">استلام من:</small>
-                                                        <strong class="text-dark d-block mb-1">${order.pickup.address}</strong>
+                                                        <strong class="text-dark d-block mb-1">${esc(order.pickup.address)}</strong>
                                                     </div>
                                                     <button
                                                         class="btn btn-sm btn-primary text-white border-0 rounded-pill px-2 py-1 nav-btn"
@@ -332,8 +344,8 @@
                                                     </button>
                                                 </div>
                                                 <div class="d-flex gap-2 mt-2">
-                                                    ${order.pickup.contactName ? `<span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${order.pickup.contactName}</span>` : ''}
-                                                    <a href="tel:${order.pickup.contactPhone}" class="text-decoration-none badge bg-success"><i class="bi bi-telephone-fill"></i> اتصل</a>
+                                                    ${order.pickup.contactName ? `<span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${esc(order.pickup.contactName)}</span>` : ''}
+                                                    <a href="tel:${esc(order.pickup.contactPhone)}" class="text-decoration-none badge bg-success"><i class="bi bi-telephone-fill"></i> اتصل</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -345,7 +357,7 @@
                                                 <div class="d-flex justify-content-between align-items-start">
                                                     <div>
                                                         <small class="text-muted d-block" style="font-size: 0.75rem;">تسليم إلى:</small>
-                                                        <strong class="text-dark d-block mb-1">${order.dropoff.address}</strong>
+                                                        <strong class="text-dark d-block mb-1">${esc(order.dropoff.address)}</strong>
                                                     </div>
                                                     <button
                                                         class="btn btn-sm btn-danger text-white border-0 rounded-pill px-2 py-1 nav-btn"
@@ -361,8 +373,8 @@
                                                     </button>
                                                 </div>
                                                 <div class="d-flex gap-2 mt-2">
-                                                    ${order.dropoff.receiverName ? `<span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${order.dropoff.receiverName}</span>` : ''}
-                                                    <a href="tel:${order.dropoff.receiverPhone}" class="text-decoration-none badge bg-success"><i class="bi bi-telephone-fill"></i> اتصل</a>
+                                                    ${order.dropoff.receiverName ? `<span class="badge bg-light text-dark border"><i class="bi bi-person"></i> ${esc(order.dropoff.receiverName)}</span>` : ''}
+                                                    <a href="tel:${esc(order.dropoff.receiverPhone)}" class="text-decoration-none badge bg-success"><i class="bi bi-telephone-fill"></i> اتصل</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -1089,8 +1101,8 @@
     <script src="js/geo.js?v=3f3df042"></script>
     <script type="module" src="js/app-core.js?v=f1decda9"></script>
     <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
-    <script src="js/tour.js?v=5e17c2a4"></script>
-    <script src="js/coach.js?v=4d90a6b1"></script>
+    <script src="js/tour.js?v=d6d632d6"></script>
+    <script src="js/coach.js?v=c0090731"></script>
     <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 
