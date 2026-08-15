@@ -75,20 +75,94 @@
             background: rgba(10, 135, 84, 0.15);
         }
 
-        @media (max-width: 380px) {
-            .wallet-balance { font-size: 1.8rem !important; }
+
+        /* ══════════════════════════════════════════════════════════════
+           بطاقتا الإجماليات
+           ──────────────────────────────────────────────────────────────
+           ⚠️ كانتا صفّاً أفقياً: أيقونة بقطر ~56px ثم النص، مع
+           `white-space: nowrap` على المبلغ. وشبكة style.css تعطي عمودين
+           بعرض 137px لكلٍّ منهما، فيبقى للمبلغ ~70px. ومبلغٌ مثل
+           «8,765,432 ج.س» يحتاج ضِعف ذلك، وnowrap يمنعه من الالتفاف،
+           وغياب `min-width:0` يمنع الصندوق المرن من الانكماش — فيخرج
+           الرقم من البطاقة 83px، ويجرّ الصفحة كلها لتمرير أفقي
+           (415px على شاشة 375px).
+
+           الحل: الأيقونة والتسمية في سطر، والمبلغ في سطر تحتهما بعرض
+           البطاقة كاملاً، مع تصغير تدريجي للخط عبر clamp حتى تتّسع
+           الأرقام الكبيرة بلا قصّ ولا تمرير.
+           ══════════════════════════════════════════════════════════════ */
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;   /* عمودان ثابتان — auto-fit كان يعطي عموداً واحداً أحياناً */
+            gap: 10px;
+            padding: 0;
         }
 
-        /* البطاقتان في شبكة واحدة: التفاف المبلغ لسطرين كان يطوّل إحداهما
-           فتبدوان غير متساويتين. المبلغ سطر واحد والبطاقة تُمطّ للأطول. */
-        .stats-grid > .card { height: 100%; }
-        .stats-grid .fs-5 { white-space: nowrap; }
+        .stat-tile {
+            background: var(--card-bg, #fff);
+            border: 1px solid rgba(4, 85, 58, .07);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 2px 12px rgba(4, 85, 58, .06);
+            min-width: 0;                     /* ← بدونه لا ينكمش المحتوى فيفيض */
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
 
+        .stat-tile-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .stat-tile-ico {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            flex: none;
+        }
+
+        .stat-tile-ico.ico-fee { background: rgba(13, 110, 253, .1); color: #0d6efd; }
+        .stat-tile-ico.ico-paid { background: rgba(25, 135, 84, .1); color: #198754; }
+
+        /* التسمية تلتفّ لسطرين بدل أن تُقصّ: «إجمالي المدفوعات» أطول من
+           العرض المتاح بعد الأيقونة، والقصّ كان يُخفي كلمة كاملة. */
+        .stat-tile-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            line-height: 1.35;
+            color: var(--text-muted, #6c757d);
+            min-width: 0;
+        }
+
+        /* margin-top:auto يدفع المبلغ لأسفل البطاقة، فيستوي المبلغان على
+           خطٍّ واحد ولو اختلف طول التسميتين — الشبكة تمطّ البطاقتين لنفس
+           الارتفاع أصلاً. */
+        .stat-tile-val {
+            margin-top: auto;
+            font-size: clamp(14px, 4.4vw, 18px);
+            font-weight: 800;
+            line-height: 1.25;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-dark, #1a202c);
+            min-width: 0;
+            overflow-wrap: anywhere;          /* آخر خطّ دفاع لقيمة خيالية الطول */
+        }
+
+        /* الرقم البطل: يتقلّص تدريجياً مع عرض الشاشة بدل قفزة عند 380px.
+           letter-spacing حُذف — كان يضيف عرضاً لرقمٍ طويل بلا فائدة قرائية،
+           وtabular-nums يجعل الخانات متساوية فلا يرقص الرقم عند التحديث. */
         .wallet-balance {
-            font-size: 2.2rem;
+            font-size: clamp(1.5rem, 8.5vw, 2.2rem);
             font-weight: 900;
-            letter-spacing: 1px;
+            font-variant-numeric: tabular-nums;
             margin: 8px 0 4px;
+            overflow-wrap: anywhere;
         }
 
         /* المبالغ داخل سياق عربي: الرقم وإشارته يُعزلان اتجاهياً.
@@ -125,7 +199,7 @@
         }
 
         .pay-history-card {
-            background: var(--bg-card, #ffffff);
+            background: var(--card-bg, #ffffff);
             border-radius: 16px;
             padding: 14px 16px;
             box-shadow: 0 2px 12px rgba(4, 85, 58, 0.07);
@@ -156,7 +230,7 @@
         }
 
         .sheet {
-            background: var(--bg-card, white);
+            background: var(--card-bg, #ffffff);
             border-radius: 28px 28px 0 0;
             padding: 10px 20px 40px;
             width: 100%;
@@ -164,7 +238,7 @@
             animation: slideUp .35s cubic-bezier(.22, .68, 0, 1.2);
             max-height: 95vh;
             overflow-y: auto;
-            color: var(--text-color, #1a202c);
+            color: var(--text-dark, #1a202c);
         }
 
         @keyframes slideUp {
@@ -256,23 +330,19 @@
 
  <!-- STATS GRID -->
  <div class="stats-grid mb-4 mx-2">
- <div class="card glass-card border-0 p-3 d-flex flex-row align-items-center gap-3">
- <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
- <i class="bi bi-arrow-down-circle-fill fs-4"></i>
+ <div class="stat-tile">
+ <div class="stat-tile-head">
+ <span class="stat-tile-ico ico-fee"><i class="bi bi-arrow-down-circle-fill"></i></span>
+ <span class="stat-tile-label">إجمالي العمولات</span>
  </div>
- <div>
- <small class="text-muted d-block">إجمالي العمولات</small>
- <span class="fw-bold text-dark fs-5" id="wTotalDeducted">—</span>
+ <div class="stat-tile-val" id="wTotalDeducted">—</div>
  </div>
+ <div class="stat-tile">
+ <div class="stat-tile-head">
+ <span class="stat-tile-ico ico-paid"><i class="bi bi-arrow-up-circle-fill"></i></span>
+ <span class="stat-tile-label">إجمالي المدفوعات</span>
  </div>
- <div class="card glass-card border-0 p-3 d-flex flex-row align-items-center gap-3">
- <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
- <i class="bi bi-arrow-up-circle-fill fs-4"></i>
- </div>
- <div>
- <small class="text-muted d-block">إجمالي المدفوعات</small>
- <span class="fw-bold text-dark fs-5" id="wTotalPaid">—</span>
- </div>
+ <div class="stat-tile-val" id="wTotalPaid">—</div>
  </div>
  </div>
 
@@ -396,6 +466,10 @@
      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+ // 💰 صيغة المبالغ الموحّدة للصفحة: فواصل آلاف، بلا كسور (الجنيه السوداني
+ // متضخّم فالقروش بلا معنى)، وأرقام لاتينية تُقرأ بنفس الشكل في كل مكان.
+ const fmtSDG = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
+
  async function initPage() {
  await loadWallet();
  await loadHistory();
@@ -408,15 +482,18 @@
  if (!res.ok) return;
  const walletData = await res.json();
 
- const balance = walletData.wallet_balance ?? 0;
- const limit = walletData.credit_limit ?? -5000;
+ const balance = Number(walletData.wallet_balance) || 0;
+ const limit = Number(walletData.credit_limit ?? -5000) || -5000;
 
+ // ⚠️ كان `toFixed(0)` يطبع «-1234568» بلا فواصل، بينما بطاقتا الإجماليات
+ // أسفلها تستعملان toLocaleString — رقمان بأسلوبين في شاشة واحدة، وأصعبهما
+ // قراءةً هو الأهمّ. الآن fmtSDG واحدة للصفحة كلها.
  const balEl = document.getElementById('wBalance');
- balEl.innerHTML = `<span class="num">${balance.toFixed(0)}</span> ج.س`;
+ balEl.innerHTML = `<span class="num">${fmtSDG(balance)}</span> ج.س`;
  balEl.className = `wallet-balance ${balance < 0 ? 'negative' : 'positive'}`;
                 balEl.classList.remove('skeleton');
 
-                document.getElementById('wLimit').innerHTML = `<span class="num">${limit.toFixed(0)}</span> ج.س`;
+                document.getElementById('wLimit').innerHTML = `<span class="num">${fmtSDG(limit)}</span> ج.س`;
 
  // BUG #27: Unified debtPercentage formula (same as captain-dashboard.html)
  const debtPercentage = balance === 0 ? 0 : Math.min(100, Math.max(0, (balance / limit) * 100));
@@ -426,7 +503,7 @@
 
  // 💰 إجمالي العمولات مدى الحياة — من السيرفر لا من صفحة واحدة من السجل
  const dedEl = document.getElementById('wTotalDeducted');
- if (dedEl) dedEl.innerHTML = `<span class="num">${Number(walletData.total_commission || 0).toLocaleString('en-US')}</span> ج.س`;
+ if (dedEl) dedEl.innerHTML = `<span class="num">${fmtSDG(walletData.total_commission)}</span> ج.س`;
 
  const chip = document.getElementById('wStatusChip');
  if (walletData.is_blocked) {
@@ -487,8 +564,10 @@
  </div>
  <div class="flex-grow-1">
  <div class="d-flex justify-content-between align-items-center mb-1">
- <span class="fw-bold fs-6">${(r.amount || 0).toLocaleString()} ج.س</span>
- <span class="badge ${s.badge} rounded-pill font-monospace" style="font-size: 0.7rem">${s.label}</span>
+ <span class="fw-bold fs-6"><span class="num">${fmtSDG(r.amount)}</span> ج.س</span>
+ <!-- font-monospace حُذف: كان يُسقط نصّ الشارة العربي على خطّ SFMono
+      اللاتيني، فيخرج بأشكال حروف وتباعد لا يشبهان بقية الصفحة -->
+ <span class="badge ${s.badge} rounded-pill flex-shrink-0" style="font-size:.72rem;">${s.label}</span>
  </div>
  <small class="text-muted d-block" style="font-size: 0.8rem">رقم الإشعار: ${esc(r.transactionId || '—')}</small>
  ${r.adminNote ? `<small class="text-danger d-block mt-1" style="font-size: 0.75rem"><i class="bi bi-info-circle me-1"></i> ${esc(r.adminNote)}</small>` : ''}
@@ -501,7 +580,7 @@
             const totalPaid = summary && typeof summary.totalApproved === 'number'
                 ? summary.totalApproved
                 : requests.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.amount || 0), 0);
- document.getElementById('wTotalPaid').innerHTML = `<span class="num">${Number(totalPaid).toLocaleString('en-US')}</span> ج.س`;
+ document.getElementById('wTotalPaid').innerHTML = `<span class="num">${fmtSDG(totalPaid)}</span> ج.س`;
 
  // update bottom
  updatePayButton(requests[0]);
@@ -696,11 +775,11 @@
  <div class="d-flex justify-content-between align-items-center mb-1">
  <span class="fw-bold" style="font-size:.9rem">${esc(tx.label)}</span>
  <span class="fw-bold" style="color:${cfg.color};white-space:nowrap;font-size:.9rem">
-                                ${tx.amount > 0 ? '<span class="num">' + tx.amount.toLocaleString() + '</span> ج.س' : '—'}
+                                ${Number(tx.amount) > 0 ? '<span class="num">' + fmtSDG(tx.amount) + '</span> ج.س' : '—'}
  </span>
  </div>
  ${tx.note ? `<small class="text-muted d-block text-truncate" style="font-size:.78rem">${esc(tx.note)}</small>` : ''}
- ${'balance' in tx ? `<small class="text-muted d-block" style="font-size:.75rem">الرصيد بعدها: <b><span class="num">${tx.balance?.toFixed(0)}</span> ج.س</b></small>` : ''}
+ ${'balance' in tx ? `<small class="text-muted d-block" style="font-size:.75rem">الرصيد بعدها: <b><span class="num">${fmtSDG(tx.balance)}</span> ج.س</b></small>` : ''}
  <small class="text-muted opacity-75" style="font-size:.72rem">${date} — ${time}</small>
  </div>`;
  list.appendChild(card);
@@ -710,7 +789,7 @@
 
  <!-- Auth Helper & App Core (Provides Real-Time Features like profile) -->
  <script src="js/geo.js?v=3f3df042"></script>
- <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+ <script type="module" src="js/app-core.js?v=742cf357"></script>
  <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
  <script src="vendor/socket.io/socket.io.min.js"></script>
  <script src="notification-toast.js"></script>
