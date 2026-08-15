@@ -831,10 +831,13 @@ body.cap-body {
 .cap-sos {
     position: fixed !important;
     bottom: calc(78px + var(--sab, 0px)) !important;
+    /* ⚠️ لا تُضِف inset-inline-* هنا: الخصائص المنطقية تُكتب بعد الفيزيائية
+       فتهزمها في نفس الكتلة، وهي في RTL معكوسة (inset-inline-start = right).
+       كان السطران `inset-inline-start/end: unset` يُلغيان left وright أعلاه
+       فيصير كلاهما auto ⇒ يسقط الزر في موضعه الساكن (حافة اليمين) فوق زر
+       الوضع الليلي تماماً — وهو التداخل الذي أرادا منعه. */
     left: 16px !important;
     right: auto !important;
-    inset-inline-start: unset !important;
-    inset-inline-end: unset !important;
     width: 60px !important;
     height: 60px !important;
     border-radius: 50% !important;
@@ -1349,10 +1352,10 @@ body.cap-body .theme-toggle,
 body:has(.cap-sos) .theme-toggle,
 body:has(.captain-nav) .theme-toggle {
     position: fixed !important;
+    /* ⚠️ فيزيائية فقط — انظر التحذير في .cap-sos: inset-inline-* بعدها
+       كانت تُصفّرها فيلتصق الزر بحافة اليمين فوق زر النجدة. */
     right: 16px !important;
     left: auto !important;
-    inset-inline-start: unset !important;
-    inset-inline-end: unset !important;
     bottom: calc(78px + var(--sab, 0px)) !important;
     z-index: 999 !important;
 }
