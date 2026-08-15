@@ -12,13 +12,13 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <script src="js/config.js?v=6706269c"></script>
     <script src="js/vehicle-types.js?v=eedaff8e"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
 </head>
@@ -140,21 +140,21 @@
     </div>
 
     <!-- Bottom Navigation -->
-    <nav class="mobile-nav-glass">
-        <a href="captain-dashboard.html" class="nav-item-link">
-            <i class="bi bi-house-door-fill"></i>
+    <nav class="captain-nav">
+        <a href="captain-dashboard.html">
+            <i class="bi bi-house-door-fill"></i><span>الرئيسية</span>
         </a>
-        <a href="captain-orders.html" class="nav-item-link">
-            <i class="bi bi-bicycle"></i>
+        <a href="captain-orders.html">
+            <i class="bi bi-bicycle"></i><span>الطلبات</span>
         </a>
-        <a href="captain-missions.html" class="nav-item-link">
-            <i class="bi bi-card-checklist"></i>
+        <a href="captain-missions.html">
+            <i class="bi bi-card-checklist"></i><span>مهامي</span>
         </a>
-        <a href="captain-notifications.html" class="nav-item-link">
-            <i class="bi bi-bell-fill"></i>
+        <a href="captain-notifications.html">
+            <i class="bi bi-bell-fill"></i><span>الإشعارات</span>
         </a>
-        <a href="captain-profile.html" class="nav-item-link active">
-            <i class="bi bi-person-circle"></i>
+        <a href="captain-profile.html" class="active">
+            <i class="bi bi-person-circle"></i><span>حسابي</span>
         </a>
     </nav>
 
@@ -199,22 +199,36 @@
                     }
 
                     // Update contents
-                    document.getElementById('name').innerText = data.name;
-                    document.getElementById('email').innerText = data.email;
-                    document.getElementById('phone').innerText = data.phone;
-                    document.getElementById('orders').innerText = data.totalOrders;
-                    document.getElementById('revenue').innerText = data.totalEarnings.toLocaleString() + ' ج.س';
+                    // ⚠️ كل قيمة محروسة: `data.totalEarnings.toLocaleString()` كان يرمي
+                    // TypeError لو غاب الحقل، فيسقط تحميل البروفايل كله إلى نافذة خطأ
+                    // عامة — والاسم والهاتف الموجودان فعلاً لا يُعرضان.
+                    document.getElementById('name').innerText = data.name || '—';
+                    document.getElementById('email').innerText = data.email || '—';
+                    document.getElementById('phone').innerText = data.phone || '—';
+                    document.getElementById('orders').innerText = Number(data.totalOrders || 0).toLocaleString('en-US');
+                    document.getElementById('revenue').innerText =
+                        Number(data.totalEarnings || 0).toLocaleString('en-US') + ' ج.س';
 
                     // Vehicle Logic — من المصدر المركزي vehicle-types.js
                     const vehicleText = data.vehicleType ? window.VehicleTypes.iconLabel(data.vehicleType) : 'غير محدد';
                     document.getElementById('vehicle-text').innerText = vehicleText;
                     document.getElementById('vehicle-tag').innerText = data.vehicleType ? data.vehicleType.toUpperCase() : 'N/A';
 
-                    // Date Logic
+                    // Date Logic — تاريخ غير صالح كان يُطبع «انضممت في undefined NaN»
                     const date = new Date(data.joinDate);
-                    const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-                    document.getElementById('date').innerText = `انضممت في ${months[date.getMonth()]} ${date.getFullYear()}`;
+                    const wrapper = document.getElementById('dateWrapper');
+                    if (data.joinDate && !isNaN(date.getTime())) {
+                        const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+                        document.getElementById('date').innerText = `انضممت في ${months[date.getMonth()]} ${date.getFullYear()}`;
+                    } else if (wrapper) {
+                        wrapper.classList.add('d-none');
+                        wrapper.classList.remove('d-inline-flex');
+                    }
 
+                } else if (res.status === 401 || res.status === 403) {
+                    // جلسة منتهية: الرسالة العامة كانت تُقرأ كعطل في التطبيق
+                    window.Auth.logout('captain-login.html');
+                    return;
                 } else {
                     throw new Error('Failed to load');
                 }
@@ -276,11 +290,11 @@
     <!-- Auth Helper & App Core -->
     <script src="js/geo.js?v=3f3df042"></script>
     <script src="js/share-app.js?v=fcdd5cd2"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
-    <script src="js/tour.js?v=5e17c2a4"></script>
+    <script src="js/tour.js?v=d6d632d6"></script>
 </body>
 
 </html>

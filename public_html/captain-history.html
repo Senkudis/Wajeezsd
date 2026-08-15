@@ -10,15 +10,15 @@
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <!-- نظام تصميم الكابتن — بعد dark-mode.css عمداً كي تفوز قواعده الليلية -->
-    <link rel="stylesheet" href="css/captain-ui.css?v=bfe4aff0">
+    <link rel="stylesheet" href="css/captain-ui.css?v=9f34e602">
     <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
 
@@ -325,20 +325,34 @@
             </div>`;
         }
 
-        async function loadTrips() {
+        // 📄 المسار /api/captain/trips مُصفَّح (٢٠ رحلة للصفحة). كانت الصفحة تجلب
+        // الصفحة الأولى فقط وتعرض مجموعها تحت عنوان «صافي أرباحك» و«الرحلات» —
+        // فكابتن أنجز ٩٠ رحلة يقرأ هنا رقماً غير الذي يقرأه في «حسابي» (المجموع
+        // الحقيقي مدى الحياة). الآن: الإجماليات من السيرفر، والقائمة تُحمَّل تباعاً.
+        let tripsPage = 1;
+        let tripsHasMore = false;
+        let loadedTrips = [];
+
+        async function loadTrips(page = 1) {
             const container = document.getElementById('tripsContainer');
-            container.innerHTML = '<div class="cap-skeleton trip-skel"></div>'.repeat(3);
+            if (page === 1) {
+                loadedTrips = [];
+                container.innerHTML = '<div class="cap-skeleton trip-skel"></div>'.repeat(3);
+            }
 
             try {
-                const res = await fetchWithRetry(`${API_URL}/api/captain/trips`, {
+                const res = await fetchWithRetry(`${API_URL}/api/captain/trips?page=${page}&limit=20`, {
                     headers: window.Auth.getAuthHeader()
                 });
                 if (!res.ok) throw new Error('Failed to fetch trips');
 
                 const data = await res.json();
                 const trips = Array.isArray(data) ? data : (data.trips || []);
+                tripsPage = page;
+                tripsHasMore = data.pagination?.hasMore ?? false;
+                loadedTrips = page === 1 ? trips : loadedTrips.concat(trips);
 
-                if (!trips.length) {
+                if (!loadedTrips.length) {
                     container.innerHTML = emptyState(
                         'bi-inbox', 'لا توجد رحلات بعد',
                         'ستظهر هنا كل رحلة تُكملها، بأجرتها وعمولتها وصافي ربحك منها.',
@@ -347,12 +361,18 @@
                     return;
                 }
 
-                const total = trips.reduce((s, t) => s + (t.netProfit || 0), 0);
-                document.getElementById('totalTrips').textContent = trips.length;
-                document.getElementById('totalEarnings').textContent = fmt(total.toFixed(0));
-                document.getElementById('avgProfit').textContent = fmt(Math.round(total / trips.length));
+                // الإجماليات مدى الحياة من /stats — لا من الصفحة المعروضة وحدها
+                const lifetimeCount = data.pagination?.total ?? loadedTrips.length;
+                document.getElementById('totalTrips').textContent = fmt(lifetimeCount);
+                if (page === 1) loadLifetimeEarnings(lifetimeCount);
 
-                container.innerHTML = trips.map(tripCard).join('');
+                container.innerHTML = loadedTrips.map(tripCard).join('')
+                    + (tripsHasMore
+                        ? `<button type="button" class="cap-btn cap-btn-ghost" style="width:100%;margin-top:6px;"
+                                   id="tripsMoreBtn" onclick="loadMoreTrips(this)">
+                               <i class="bi bi-arrow-down-circle"></i> عرض رحلات أقدم
+                           </button>`
+                        : '');
 
                 // 🎯 إبراز الرحلة القادمة من الإشعار (?highlight=<orderId>)
                 const highlightId = new URLSearchParams(window.location.search).get('highlight');
@@ -380,14 +400,40 @@
             }
         }
 
+        async function loadMoreTrips(btn) {
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> جاري التحميل…'; }
+            await loadTrips(tripsPage + 1);
+        }
+
+        // 💰 صافي الأرباح مدى الحياة — نفس المصدر الذي تقرأ منه صفحة «حسابي»
+        // (مجموع netRevenue لكل الطلبات المسلَّمة)، فلا تختلف الشاشتان.
+        async function loadLifetimeEarnings(tripCount) {
+            const el = document.getElementById('totalEarnings');
+            const avgEl = document.getElementById('avgProfit');
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/captain/stats`, {
+                    headers: window.Auth.getAuthHeader()
+                });
+                if (!res.ok) throw new Error('stats');
+                const s = await res.json();
+                const total = Number(s.earnings || 0);
+                el.textContent = fmt(Math.round(total));
+                avgEl.textContent = tripCount ? fmt(Math.round(total / tripCount)) : '0';
+            } catch (_) {
+                // بلا إجمالي موثوق لا نعرض رقماً قد يكون ناقصاً
+                el.textContent = '—';
+                avgEl.textContent = '—';
+            }
+        }
+
         loadTrips();
     </script>
 
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
-    <script src="js/tour.js?v=5e17c2a4"></script>
+    <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
+    <script src="js/tour.js?v=d6d632d6"></script>
     <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 

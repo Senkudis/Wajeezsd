@@ -12,14 +12,14 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <!-- شاشة الإشعارات الموحّدة — بعد dark-mode.css عمداً (انظر رأس الملف) -->
-    <link rel="stylesheet" href="css/notifications-ui.css?v=eabd9895">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <link rel="stylesheet" href="css/notifications-ui.css?v=e0ebecde">
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
     <style>
@@ -31,18 +31,21 @@
 
     <!-- Header Section -->
     <div class="app-header">
-        <div class="container pt-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="container pt-1">
+            <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="bg-transparent border-0 shadow-none p-0">
-                        <i class="bi bi-bell-fill text-white" style="font-size: 1.5rem;"></i>
+                    <div class="header-brand-badge">
+                        <i class="bi bi-bell-fill text-white" style="font-size: 1.4rem;"></i>
                     </div>
                     <div>
-                        <h2 class="h5 fw-bold mb-0 text-white">الإشعارات</h2>
-                        <p class="small text-white-50 mb-0" id="headerSubtitle">كل جديدك هنا</p>
+                        <h2 class="h5 fw-bold mb-0 text-white">إشعارات الكابتن</h2>
+                        <div class="live-status-pill">
+                            <span class="pulse-dot"></span>
+                            <span id="headerSubtitle">كل جديدك وتحديثاتك هنا</span>
+                        </div>
                     </div>
                 </div>
-                <img src="logo-mark-white.png" alt="وجيز" style="height:44px;width:auto;object-fit:contain;">
+                <img src="logo-mark-white.png" alt="وجيز" style="height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
             </div>
         </div>
     </div>
@@ -64,26 +67,26 @@
     <div class="wn-toast" id="wnToast" role="status" aria-live="polite"></div>
 
     <!-- Bottom Navigation -->
-    <nav class="mobile-nav-glass">
-        <a href="captain-dashboard.html" class="nav-item-link">
-            <i class="bi bi-house-door-fill"></i>
+    <nav class="captain-nav">
+        <a href="captain-dashboard.html">
+            <i class="bi bi-house-door-fill"></i><span>الرئيسية</span>
         </a>
-        <a href="captain-orders.html" class="nav-item-link">
-            <i class="bi bi-bicycle"></i>
+        <a href="captain-orders.html">
+            <i class="bi bi-bicycle"></i><span>الطلبات</span>
         </a>
-        <a href="captain-missions.html" class="nav-item-link">
-            <i class="bi bi-card-checklist"></i>
+        <a href="captain-missions.html">
+            <i class="bi bi-card-checklist"></i><span>مهامي</span>
         </a>
-        <a href="captain-notifications.html" class="nav-item-link active">
-            <i class="bi bi-bell-fill"></i>
+        <a href="captain-notifications.html" class="active">
+            <i class="bi bi-bell-fill"></i><span>الإشعارات</span>
         </a>
-        <a href="captain-profile.html" class="nav-item-link">
-            <i class="bi bi-person-circle"></i>
+        <a href="captain-profile.html">
+            <i class="bi bi-person-circle"></i><span>حسابي</span>
         </a>
     </nav>
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="js/notifications-ui.js?v=4a4a1297"></script>
+    <script src="js/notifications-ui.js?v=dd0a61e9"></script>
     <script>
         WajeezNotifications.init({
             loginUrl: 'captain-login.html',
@@ -95,8 +98,10 @@
     </script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
-    <script src="js/app-core.js?v=f1decda9"></script>
-    <script src="js/native-notifications.js?v=6b3a3771"></script>
+    <!-- type="module" كبقية الصفحات: كملفَّين عاديَّين تتسرّب كل تعريفاتهما
+         العليا إلى النطاق العام فتصطدم بأسماء notifications-ui.js -->
+    <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
 </body>
 
 </html>

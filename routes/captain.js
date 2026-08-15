@@ -221,9 +221,13 @@ router.get('/:id/location', protect, async (req, res) => {
 // ==========================================
 router.put('/update-location', protect, captainOnly, async (req, res) => {
     try {
-        const { lat, lng } = req.body;
-        if (lat == null || lng == null || isNaN(Number(lat)) || isNaN(Number(lng))) {
-            return res.status(400).json({ message: 'إحداثيات غير صالحة — lat و lng مطلوبان كأرقام' });
+        // 🧭 نفس فحص utils/coords.js المستعمل في بقية المسارات: isNaN وحده كان
+        // يمرّر (0,0) وخطوط الطول خارج المدى، فيُحفظ «بلا موقع» كنقطة في خليج غينيا.
+        const { isUsableCoord } = require('../utils/coords');
+        const lat = Number(req.body.lat);
+        const lng = Number(req.body.lng);
+        if (!isUsableCoord(req.body.lat, req.body.lng)) {
+            return res.status(400).json({ message: 'إحداثيات غير صالحة — lat و lng مطلوبان كأرقام ضمن المدى' });
         }
 
         const User = require('../models/User');
@@ -279,6 +283,12 @@ router.put('/toggle-availability', protect, captainOnly, async (req, res) => {
         // ✅ FIX: Prevent blocked captains from toggling availability to TRUE
         if (wantsToWork === true && req.user.is_blocked) {
             return res.status(403).json({ message: 'حسابك محجوب مؤقتاً (إما بسبب الديون أو من قبل الإدارة). لا يمكنك تلقي طلبات حالياً.' });
+        }
+
+        // BUG-L11 FIX: كابتن موقوف إدارياً (isActive=false) لا يستطيع تفعيل التوفر
+        // is_blocked = حجب مالي تلقائي | isActive = إيقاف إداري يدوي — كلاهما يمنع الاستقبال
+        if (wantsToWork === true && req.user.isActive === false) {
+            return res.status(403).json({ message: 'حسابك موقوف من قبل الإدارة. تواصل مع الدعم الفني لإعادة التفعيل.' });
         }
 
         // ✅ FIX #17: لو الكابتن يريد إيقاف التوفر، أخبره لو لديه طلبات نشطة
@@ -410,10 +420,16 @@ router.get('/wallet', protect, captainOnly, async (req, res) => {
         const User     = require('../models/User');
         const Settings = require('../models/Settings');
 
-        // Fetch both in parallel for speed
-        const [captain, settings] = await Promise.all([
+        // Fetch in parallel for speed
+        // 📊 إجمالي العمولات مدى الحياة: كانت الواجهة تجمعها من أول ١٥ سطراً في
+        // سجلّ التعاملات وتعرضها بعنوان «إجمالي العمولات» — رقمٌ ناقص بصمت.
+        const [captain, settings, commissionAgg] = await Promise.all([
             User.findById(req.user._id).select('wallet_balance credit_limit is_blocked name'),
-            Settings.getSettings(req.user.city || 'Khartoum')
+            Settings.getSettings(req.user.city || 'Khartoum'),
+            Order.aggregate([
+                { $match: { captain: req.user._id, status: 'delivered' } },
+                { $group: { _id: null, total: { $sum: { $ifNull: ['$appFee', 0] } } } }
+            ])
         ]);
 
         if (!captain) return res.status(404).json({ message: 'الكابتن غير موجود' });
@@ -447,6 +463,7 @@ router.get('/wallet', protect, captainOnly, async (req, res) => {
             credit_limit:   limit,
             is_blocked:     captain.is_blocked ?? false,
             usage_percent:  Math.min(Math.round(pctUsed), 100),
+            total_commission: Math.round(commissionAgg[0]?.total || 0),
 
             // 🏦 Bank Details — always from live Settings
             bankName:          settings.bankName          ?? 'بنك الخرطوم',
@@ -566,21 +583,34 @@ router.get('/wallet/pay/history', protect, captainOnly, async (req, res) => {
             .limit(20)
             .select('status amount transactionId createdAt adminNote');
 
-        // حساب إجمالي المبالغ المقبولة والمعلقة
-        const totalApproved = requests
-            .filter(r => r.status === 'approved')
-            .reduce((sum, r) => sum + (r.amount || 0), 0);
-
-        const totalPending = requests
-            .filter(r => r.status === 'pending')
-            .reduce((sum, r) => sum + (r.amount || 0), 0);
+        // ⚠️ الإجماليات تُحسب على كل السجلّ لا على العشرين المعروضة. كانت تُجمع من
+        // `requests` وحدها، فكابتن سدّد ٣٠ مرة يرى «إجمالي المدفوعات» ناقصاً —
+        // رقمٌ يُقرأ كإجمالي وهو ليس كذلك.
+        const [totals] = await PaymentRequest.aggregate([
+            { $match: { captainId: req.user._id } },
+            {
+                $group: {
+                    _id: '$status',
+                    sum: { $sum: { $ifNull: ['$amount', 0] } },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    byStatus: { $push: { status: '$_id', sum: '$sum', count: '$count' } },
+                    count: { $sum: '$count' }
+                }
+            }
+        ]);
+        const pick = (s) => (totals?.byStatus || []).find(x => x.status === s)?.sum || 0;
 
         res.json({
             requests,
             summary: {
-                totalApproved,
-                totalPending,
-                count: requests.length
+                totalApproved: pick('approved'),
+                totalPending:  pick('pending'),
+                count: totals?.count || 0
             }
         });
     } catch (error) {

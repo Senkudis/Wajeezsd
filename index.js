@@ -25,6 +25,7 @@ const User         = require('./models/User');
 const Order        = require('./models/Order');
 const Notification = require('./models/Notification');
 const { sanitizeChatImageUrl } = require('./utils/chatImage');
+const { isUsableCoord } = require('./utils/coords');
 
 // معاينة نص الإشعار: رسالة الصورة قد تأتي بلا نص، و`text.substring` كانت ترمي عليها
 const chatPreview = (text, imageUrl) => {
@@ -130,8 +131,10 @@ app.use(helmet({
     crossOriginResourcePolicy: false  // Allow images to load cross-origin
 }));
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ limit: '1mb', extended: true }));
+// 📸 الحد العالمي رُفع إلى 10MB لأن صور كاميرا الهاتف مرمّزة بـ Base64 تبلغ 3-7MB.
+// كان 1MB يرفض كل طلبات الإثبات صامتاً (413) قبل أن تصل للـ route.
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // ✅ Fallback to ensure req.body is never undefined (prevents destructuring crashes)
 app.use((req, res, next) => {
@@ -441,8 +444,8 @@ io.use(async (socket, next) => {
         );
 
         if (!identity) {
-            logger.warn({ socketId: socket.id }, '[SocketAuth] Unauthenticated connection — no privileges granted');
-            return next();
+            logger.warn({ socketId: socket.id }, '[SocketAuth] Unauthenticated connection — blocked');
+            return next(new Error('unauthorized'));
         }
 
         // 🔑 المصدر الوحيد للهوية من هنا فصاعداً
@@ -764,8 +767,12 @@ io.on('connection', (socket) => {
             // 🔒 الهوية من التوكن حصراً — data.userId يُتجاهل (كان يسمح بتزوير موقع أي كابتن).
             if (!socket.authUserId) return;
             const userId = socket.authUserId;
-            const { lat, lng, orderId } = data;
-            if (!lat || !lng) return;
+            const { orderId } = data;
+            // 🧭 `!lat || !lng` كان يرفض الصفر مصادفةً ويمرّر النصوص والقيم خارج المدى.
+            // المصدر الموحّد utils/coords.js يرفض (0,0) والقيم غير الصالحة صراحةً.
+            if (!isUsableCoord(data.lat, data.lng)) return;
+            const lat = Number(data.lat);
+            const lng = Number(data.lng);
 
             // ⚡ Throttle: ignore if updated less than 3 seconds ago
             const _now = Date.now();

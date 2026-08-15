@@ -16,13 +16,13 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="vendor/image-compression/browser-image-compression.js"></script>
 
@@ -388,6 +388,11 @@
 
  let receiptBase64 = null;
 
+ // 🔒 ملاحظات الإدارة وعناوين الاستلام (يكتبها العميل) تُحقَن في innerHTML هنا
+ const esc = (v) => String(v == null ? '' : v)
+     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
  async function initPage() {
  await loadWallet();
  await loadHistory();
@@ -416,6 +421,10 @@
  document.getElementById('wPct').textContent = `${Math.round(debtPercentage)}%`;
  document.getElementById('wBar').style.width = `${Math.min(Math.round(debtPercentage), 100)}%`;
 
+ // 💰 إجمالي العمولات مدى الحياة — من السيرفر لا من صفحة واحدة من السجل
+ const dedEl = document.getElementById('wTotalDeducted');
+ if (dedEl) dedEl.innerHTML = `<span class="num">${Number(walletData.total_commission || 0).toLocaleString('en-US')}</span> ج.س`;
+
  const chip = document.getElementById('wStatusChip');
  if (walletData.is_blocked) {
  chip.className = 'badge bg-danger rounded-pill px-3 py-1 fw-bold text-white';
@@ -439,13 +448,13 @@
  const res = await fetchWithRetry(`${API_URL}/api/captain/wallet/pay/history`, { headers: H });
  if (!res.ok) return;
  const data = await res.json();
- renderHistory(list, data.requests || []);
+ renderHistory(list, data.requests || [], data.summary || null);
  } catch (e) {
  list.innerHTML = `<div class="text-center text-muted p-4"><i class="bi bi-cloud-slash fs-1"></i><p>تعذّر تحميل البيانات</p></div>`;
  }
  }
 
- function renderHistory(container, requests) {
+ function renderHistory(container, requests, summary) {
  if (!requests.length) {
  container.innerHTML = `
  <div class="text-center text-muted p-4 bg-white rounded-4 border">
@@ -454,7 +463,8 @@
  </div>`;
                 updatePayButton(null);
                 document.getElementById('wTotalPaid').textContent = '0 ج.س';
-                document.getElementById('wTotalDeducted').textContent = '0 ج.س'; // Approximated later or from API
+                // ⚠️ لا نلمس wTotalDeducted هنا: loadWallet ملأه بإجمالي العمولات
+                // الحقيقي، وكان هذا السطر يمسحه إلى صفر لمجرّد غياب طلبات سداد.
                 return;
             }
 
@@ -477,16 +487,18 @@
  <span class="fw-bold fs-6">${(r.amount || 0).toLocaleString()} ج.س</span>
  <span class="badge ${s.badge} rounded-pill font-monospace" style="font-size: 0.7rem">${s.label}</span>
  </div>
- <small class="text-muted d-block" style="font-size: 0.8rem">رقم الإشعار: ${r.transactionId || '—'}</small>
- ${r.adminNote ? `<small class="text-danger d-block mt-1" style="font-size: 0.75rem"><i class="bi bi-info-circle me-1"></i> ${r.adminNote}</small>` : ''}
+ <small class="text-muted d-block" style="font-size: 0.8rem">رقم الإشعار: ${esc(r.transactionId || '—')}</small>
+ ${r.adminNote ? `<small class="text-danger d-block mt-1" style="font-size: 0.75rem"><i class="bi bi-info-circle me-1"></i> ${esc(r.adminNote)}</small>` : ''}
  <small class="text-muted opacity-75" style="font-size: 0.7rem">${date}</small>
  </div>
  </div>`;
             }).join('');
 
-            // Update totals visually
-            const totalPaid = requests.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.amount || 0), 0);
- document.getElementById('wTotalPaid').innerHTML = `<span class="num">${totalPaid.toLocaleString()}</span> ج.س`;
+            // 💵 الإجمالي من ملخّص السيرفر (كل السجل) لا من العشرين المعروضة
+            const totalPaid = summary && typeof summary.totalApproved === 'number'
+                ? summary.totalApproved
+                : requests.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.amount || 0), 0);
+ document.getElementById('wTotalPaid').innerHTML = `<span class="num">${Number(totalPaid).toLocaleString('en-US')}</span> ج.س`;
 
  // update bottom
  updatePayButton(requests[0]);
@@ -618,15 +630,8 @@
                 document.getElementById('txLoadMoreBtn').style.display = txHasMore ? 'block' : 'none';
 
                 renderTransactions(data.transactions || [], page);
-
-                // 💰 BUG #35: Calculate wTotalDeducted from commission_deducted transactions
-                if (page === 1) {
-                    const totalDeducted = (data.transactions || [])
-                        .filter(t => t.type === 'commission_deducted')
-                        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
- const deductedEl = document.getElementById('wTotalDeducted');
- if (deductedEl) deductedEl.innerHTML = `<span class="num">${totalDeducted.toLocaleString()}</span> ج.س`;
- }
+                // 💰 «إجمالي العمولات» يأتي الآن من /api/captain/wallet (مجموع مدى الحياة).
+                // كان يُجمع هنا من صفحة واحدة (١٥ سطراً) ويُعرض بعنوان «إجمالي» — رقمٌ ناقص.
  } catch (e) {
  console.error('TX load error:', e);
  }
@@ -672,12 +677,12 @@
  </div>
  <div class="flex-grow-1 overflow-hidden">
  <div class="d-flex justify-content-between align-items-center mb-1">
- <span class="fw-bold" style="font-size:.9rem">${tx.label}</span>
+ <span class="fw-bold" style="font-size:.9rem">${esc(tx.label)}</span>
  <span class="fw-bold" style="color:${cfg.color};white-space:nowrap;font-size:.9rem">
                                 ${tx.amount > 0 ? '<span class="num">' + tx.amount.toLocaleString() + '</span> ج.س' : '—'}
  </span>
  </div>
- ${tx.note ? `<small class="text-muted d-block text-truncate" style="font-size:.78rem">${tx.note}</small>` : ''}
+ ${tx.note ? `<small class="text-muted d-block text-truncate" style="font-size:.78rem">${esc(tx.note)}</small>` : ''}
  ${'balance' in tx ? `<small class="text-muted d-block" style="font-size:.75rem">الرصيد بعدها: <b><span class="num">${tx.balance?.toFixed(0)}</span> ج.س</b></small>` : ''}
  <small class="text-muted opacity-75" style="font-size:.72rem">${date} — ${time}</small>
  </div>`;
@@ -688,11 +693,11 @@
 
  <!-- Auth Helper & App Core (Provides Real-Time Features like profile) -->
  <script src="js/geo.js?v=3f3df042"></script>
- <script type="module" src="js/app-core.js?v=f1decda9"></script>
- <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+ <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+ <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
  <script src="vendor/socket.io/socket.io.min.js"></script>
  <script src="notification-toast.js"></script>
- <script src="js/tour.js?v=5e17c2a4"></script>
+ <script src="js/tour.js?v=d6d632d6"></script>
  <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 

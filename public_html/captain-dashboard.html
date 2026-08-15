@@ -30,16 +30,16 @@
     <link rel="stylesheet" href="style.css?v=3.4">
 
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <!-- نظام تصميم الكابتن — بعد dark-mode.css عمداً كي تفوز قواعده الليلية -->
-    <link rel="stylesheet" href="css/captain-ui.css?v=bfe4aff0">
+    <link rel="stylesheet" href="css/captain-ui.css?v=9f34e602">
     <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="vendor/image-compression/browser-image-compression.js"></script>
     <!-- ✅ Socket.io يجب تحميله مبكراً قبل DOMContentLoaded -->
@@ -374,22 +374,28 @@
 
             sessionStorage.setItem('workStatusAsked', 'true');
 
+            // ⚠️ الزر يسأل بحسب الحالة الحالية. كان يسأل «هل تريد العمل الآن؟»
+            // حتى والكابتن متصل بالفعل، فيقرأ سؤالاً لا علاقة له بما سيحدث:
+            // «نعم» تُبقيه كما هو و«لا» هي التي توقفه — عكس ما يفهمه من النص.
+            const goingOffline = isWorking;
             Swal.fire({
- title: 'هل تريد العمل الآن؟',
-                text: 'سيتم تفعيل استقبال الطلبات',
+                title: goingOffline ? 'إيقاف استقبال الطلبات؟' : 'هل تريد العمل الآن؟',
+                text: goingOffline
+                    ? 'لن تصلك طلبات جديدة حتى تعود للاتصال'
+                    : 'سيتم تفعيل استقبال الطلبات',
                 icon: 'question',
                 showCancelButton: true,
- confirmButtonText: 'نعم، أنا جاهز',
- cancelButtonText: 'لا، لاحقاً',
-                confirmButtonColor: 'var(--primary)',
+                confirmButtonText: goingOffline ? 'نعم، أوقف الاستقبال' : 'نعم، أنا جاهز',
+                cancelButtonText: goingOffline ? 'ابقَ متصلاً' : 'لا، لاحقاً',
+                confirmButtonColor: goingOffline ? '#dc3545' : 'var(--primary)',
                 cancelButtonColor: '#7f8c8d',
                 allowOutsideClick: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    toggleStatus(true);
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    toggleStatus(false);
+                    toggleStatus(!goingOffline);
                 }
+                // الإلغاء لا يغيّر شيئاً: كان يستدعي toggleStatus(false) فيوقف
+                // كابتناً ضغط الزر بالخطأ ثم تراجع.
             });
         }
 
@@ -405,20 +411,40 @@
                     body: JSON.stringify({ isActive: forceState })
                 });
 
-                if (res.ok) {
-                    const data = await res.json();
-                    isWorking = data.isActive;
-                    updateUI(isWorking);
+                const data = await res.json().catch(() => ({}));
 
-                    if (isWorking) {
-                        startLocationTracking();
-                        if (forceState !== null) Swal.fire('تم التفعيل', 'أنت الآن متصل وتستقبل الطلبات', 'success');
-                    } else {
-                        stopLocationTracking();
-                    }
+                // ⚠️ كان الفشل يُبتلع بصمت: الكابتن المحجوب مالياً أو الموقوف إدارياً
+                // أو الذي لديه طلبات نشطة يضغط الزر فلا يحدث شيء ولا يُقال له لماذا.
+                // السيرفر يرسل السبب نصّاً في 400/403 — نعرضه كما هو.
+                if (!res.ok) {
+                    updateUI(isWorking); // أعِد الزر لحالته الحقيقية
+                    Swal.fire({
+                        icon: res.status === 403 ? 'error' : 'warning',
+                        title: 'تعذّر تغيير الحالة',
+                        text: data.message || 'حدث خطأ، حاول مجدداً',
+                        confirmButtonColor: 'var(--primary)'
+                    });
+                    return;
+                }
+
+                isWorking = data.isActive;
+                updateUI(isWorking);
+
+                if (isWorking) {
+                    startLocationTracking();
+                    if (forceState !== null) Swal.fire('تم التفعيل', 'أنت الآن متصل وتستقبل الطلبات', 'success');
+                } else {
+                    stopLocationTracking();
                 }
             } catch (err) {
                 console.error("Status toggle error", err);
+                updateUI(isWorking);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'تعذّر الاتصال',
+                    text: 'تحقّق من الإنترنت ثم حاول مجدداً',
+                    confirmButtonColor: 'var(--primary)'
+                });
             }
         }
 
@@ -1114,10 +1140,10 @@
     </script>
     <!-- App Core & Captain Service -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
-    <script type="module" src="js/captain-service.js?v=adcd1a16"></script>
-    <script src="js/tour.js?v=5e17c2a4"></script>
+    <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
+    <script type="module" src="js/captain-service.js?v=d9e8447a"></script>
+    <script src="js/tour.js?v=d6d632d6"></script>
     <script src="js/tour-captain.js?v=89bd03b8"></script>
 </body>
 

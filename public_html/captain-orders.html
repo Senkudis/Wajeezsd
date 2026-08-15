@@ -14,11 +14,11 @@
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
@@ -110,21 +110,21 @@
     </div>
 
     <!-- Bottom Navigation -->
-    <nav class="mobile-nav-glass">
-        <a href="captain-dashboard.html" class="nav-item-link">
-            <i class="bi bi-house-door-fill"></i>
+    <nav class="captain-nav">
+        <a href="captain-dashboard.html">
+            <i class="bi bi-house-door-fill"></i><span>الرئيسية</span>
         </a>
-        <a href="captain-orders.html" class="nav-item-link active">
-            <i class="bi bi-bicycle"></i>
+        <a href="captain-orders.html" class="active">
+            <i class="bi bi-bicycle"></i><span>الطلبات</span>
         </a>
-        <a href="captain-missions.html" class="nav-item-link">
-            <i class="bi bi-card-checklist"></i>
+        <a href="captain-missions.html">
+            <i class="bi bi-card-checklist"></i><span>مهامي</span>
         </a>
-        <a href="captain-notifications.html" class="nav-item-link">
-            <i class="bi bi-bell-fill"></i>
+        <a href="captain-notifications.html">
+            <i class="bi bi-bell-fill"></i><span>الإشعارات</span>
         </a>
-        <a href="captain-profile.html" class="nav-item-link">
-            <i class="bi bi-person-circle"></i>
+        <a href="captain-profile.html">
+            <i class="bi bi-person-circle"></i><span>حسابي</span>
         </a>
     </nav>
 
@@ -159,6 +159,19 @@
 
         // 🛡️ BUG #13: Race-condition guard — prevent double-accept
         let isAccepting = false;
+
+        /**
+         * 🔒 هروب HTML لكل ما يكتبه العميل ويُعرض للكابتن.
+         *
+         * ⚠️ العناوين والأسماء والملاحظات وأرقام الهواتف يكتبها **العميل** وكانت
+         * تُحقَن هنا خاماً في innerHTML داخل شاشة الكابتن. عنوانٌ يحوي وسماً
+         * تنفيذياً يُنفَّذ في متصفّح الكابتن بصلاحياته ورمز دخوله. ولا تطهير في
+         * السيرفر، فالهروب عند العرض هو الحاجز الوحيد.
+         * (نفس الدالة موجودة في captain-missions.html للسبب نفسه.)
+         */
+        const esc = (v) => String(v == null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
         // ✅ Live commission rate from Settings — loaded once at start
         let commissionRate = 0.15; // default fallback
@@ -223,6 +236,20 @@
         // 🗺️ خريطة لتخزين صور الطلبات (Base64 تكون طويلة جداً لوضعها في onclick)
         const orderImagesMap = {};
 
+        /**
+         * 🧭 هل يصلح الزوج كموقع حقيقي؟ نفس منطق utils/coords.js على السيرفر.
+         * `lat && lng` كان يرفض الصفر مصادفةً ويمرّر النصوص، و(0,0) تعني
+         * «بلا موقع» لا نقطةً في خليج غينيا — فلا نبني منها رابط ملاحة.
+         */
+        const hasCoord = (lat, lng) => {
+            if (lat === null || lat === undefined || lat === '' ||
+                lng === null || lng === undefined || lng === '') return false;
+            const a = Number(lat), b = Number(lng);
+            if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+            if (a === 0 && b === 0) return false;
+            return Math.abs(a) <= 90 && Math.abs(b) <= 180;
+        };
+
         function renderOrders(orders) {
             const container = document.getElementById('orders-list');
             container.innerHTML = '';
@@ -251,21 +278,24 @@
             // 🎓 أول طلب حقيقي يظهر للكابتن ⇒ نشرح القبول عليه لا على شاشة فارغة
             coachFire('captain_first_order', '#orders-list > *');
 
-            orders.forEach(order => {
+            // ⚠️ نبني كل البطاقات ثم نُسندها دفعةً واحدة. كان `innerHTML +=` داخل
+            // الحلقة يُعيد تحليل الشجرة كلها عند كل طلب (O(n²)) ويُعيد تحميل كل
+            // صورة سبق رسمها — بطءٌ محسوس على هاتف الكابتن حين تكثر الطلبات.
+            const cards = orders.map(order => {
                 // ✅ Use live commission rate from Settings (not hardcoded 10%)
-                const netProfit = order.netRevenue || (order.price * (1 - commissionRate));
+                const netProfit = Number(order.netRevenue ?? (order.price * (1 - commissionRate))) || 0;
 
                 // ✅ استخدام الإحداثيات إذا متوفرة، وإلا العنوان النصي
-                const pickupCoords = (order.pickup?.lat && order.pickup?.lng)
+                const pickupCoords = hasCoord(order.pickup?.lat, order.pickup?.lng)
                     ? `${order.pickup.lat},${order.pickup.lng}`
                     : encodeURIComponent(order.pickup?.address || '');
-                const dropoffCoords = (order.dropoff?.lat && order.dropoff?.lng)
+                const dropoffCoords = hasCoord(order.dropoff?.lat, order.dropoff?.lng)
                     ? `${order.dropoff.lat},${order.dropoff.lng}`
                     : encodeURIComponent(order.dropoff?.address || '');
 
                 // 🧭 توصيل متعدد النقاط
                 const isMulti = order.isMultiStop && Array.isArray(order.stops) && order.stops.length >= 2;
-                const stopCoord = (s) => (s.lat && s.lng) ? `${s.lat},${s.lng}` : encodeURIComponent(s.address || '');
+                const stopCoord = (s) => hasCoord(s.lat, s.lng) ? `${s.lat},${s.lng}` : encodeURIComponent(s.address || '');
 
                 // رابط المسار الكامل — مع نقاط وسطية عند تعدّد النقاط
                 let routeLink;
@@ -285,12 +315,12 @@
                         <span class="position-absolute top-0 start-0 translate-middle p-1 ${isP ? 'bg-primary' : 'bg-danger'} border border-white rounded-circle" style="left:-2px;"></span>
                         <div class="d-flex justify-content-between align-items-start">
                             <div style="min-width:0;">
-                                <small class="text-muted d-block">${isP ? 'استلام' : 'تسليم'} ${i + 1}${s.contactName ? ' — ' + s.contactName : ''}:</small>
-                                <strong class="text-dark d-block" style="font-size:0.9rem;">${s.address || ''}</strong>
-                                ${s.contactPhone ? `<a href="tel:${s.contactPhone}" class="text-success small fw-bold text-decoration-none" dir="ltr"><i class="bi bi-telephone-fill"></i> ${s.contactPhone}</a>` : ''}
+                                <small class="text-muted d-block">${isP ? 'استلام' : 'تسليم'} ${i + 1}${s.contactName ? ' — ' + esc(s.contactName) : ''}:</small>
+                                <strong class="text-dark d-block" style="font-size:0.9rem;">${esc(s.address)}</strong>
+                                ${s.contactPhone ? `<a href="tel:${esc(s.contactPhone)}" class="text-success small fw-bold text-decoration-none" dir="ltr"><i class="bi bi-telephone-fill"></i> ${esc(s.contactPhone)}</a>` : ''}
                             </div>
                             <button class="btn btn-sm ${isP ? 'btn-primary' : 'btn-danger'} text-white border-0 rounded-pill px-2 py-1 nav-btn" style="font-size:0.72rem;"
-                                data-type="${s.type}" data-lat="${s.lat || ''}" data-lng="${s.lng || ''}" data-addr="${(s.address || '').replace(/"/g, '&quot;')}" onclick="openMapsNav(this)">
+                                data-type="${esc(s.type)}" data-lat="${esc(s.lat)}" data-lng="${esc(s.lng)}" data-addr="${esc(s.address)}" onclick="openMapsNav(this)">
                                 <i class="bi bi-geo-alt-fill"></i>
                             </button>
                         </div>
@@ -319,10 +349,10 @@
                 const headerClass = isShop ? 'bg-success bg-opacity-10 border-bottom border-success border-opacity-25'
                     : isErrand ? 'border-bottom' : 'bg-transparent border-bottom-0';
                 const badgeHtml = isShop
-                    ? `<span class="badge bg-success shadow-sm px-3 rounded-pill"><i class="bi bi-shop me-1"></i> طلب محل: ${order.shopName || ''}</span>`
+                    ? `<span class="badge bg-success shadow-sm px-3 rounded-pill"><i class="bi bi-shop me-1"></i> طلب محل: ${esc(order.shopName)}</span>`
                     : isErrand
-                        ? `<span class="badge shadow-sm px-3 rounded-pill" style="background:#7c3aed;"><i class="bi bi-bag-heart-fill me-1"></i> اشترِ لي: ${order.shopName || ''}</span>`
-                        : `<span class="badge bg-light text-secondary border">#${order._id.slice(-4)}</span>`;
+                        ? `<span class="badge shadow-sm px-3 rounded-pill" style="background:#7c3aed;"><i class="bi bi-bag-heart-fill me-1"></i> اشترِ لي: ${esc(order.shopName)}</span>`
+                        : `<span class="badge bg-light text-secondary border">#${esc(String(order._id).slice(-4))}</span>`;
 
                 // 🛡️ Pre-paid disclaimer badge (shop orders only)
                 const prepaidBadgeHtml = isShop ? `
@@ -349,14 +379,14 @@
                 const detailsItemsHtml = isShop && shopDetails ? `
                     <div class="bg-success bg-opacity-10 p-3 rounded-3 mb-3 border border-success border-opacity-25">
                         <h6 class="fw-bold text-success mb-2"><i class="bi bi-receipt me-1"></i> تفاصيل الطلبية:</h6>
-                        <p class="mb-0 text-dark small" style="white-space:pre-line;">${shopDetails}</p>
+                        <p class="mb-0 text-dark small" style="white-space:pre-line;">${esc(shopDetails)}</p>
                     </div>` : '';
 
                 // 🛍️ errand: قائمة المطلوب شراؤه + الميزانية
                 const errandItemsHtml = isErrand && Array.isArray(order.items) && order.items.length ? `
                     <div class="p-3 rounded-3 mb-3" style="background:rgba(124,58,237,0.08);border:1px solid #ddd6fe;">
                         <h6 class="fw-bold mb-2" style="color:#6d28d9;"><i class="bi bi-bag-check-fill me-1"></i> المطلوب شراؤه${order.errand && order.errand.budget ? ` — ميزانية تقديرية: ${order.errand.budget} ج.س` : ''}:</h6>
-                        <ul class="mb-0 ps-3 text-dark small">${order.items.map(it => `<li>${(it || '').toString().replace(/[<>]/g, '')}</li>`).join('')}</ul>
+                        <ul class="mb-0 ps-3 text-dark small">${order.items.map(it => `<li>${esc(it)}</li>`).join('')}</ul>
                     </div>` : '';
 
                 // 📷 زر عرض إيصال الدفع (طلبات المحل فقط) — يُخزَّن في الخريطة
@@ -373,7 +403,7 @@
                 }
 
 
-                const html = `
+                return `
                     <div class="col-12 col-md-6 col-lg-4">
                         <div class="card glass-card card-hover h-100 ${isShop ? 'border border-success border-2 shadow' : 'border-0'}">
                             <div class="card-header ${headerClass} pt-3 px-3 d-flex justify-content-between align-items-center">
@@ -389,7 +419,7 @@
                                     <div class="bg-light rounded-circle p-2 text-primary">
                                         <i class="bi bi-person-fill"></i>
                                     </div>
-                                    <h6 class="fw-bold fs-6 mb-0">${order.client?.name || 'عميل'}</h6>
+                                    <h6 class="fw-bold fs-6 mb-0">${esc(order.client?.name || 'عميل')}</h6>
                                 </div>
 
                                 <!-- ✅ تفاصيل جهات الاتصال — ظاهرة قبل القبول -->
@@ -397,13 +427,13 @@
                                     <div class="row g-2">
                                         <div class="col-6">
                                             <small class="text-muted d-block mb-1"><i class="bi bi-telephone-outbound text-primary"></i> جهة الاستلام</small>
-                                            <strong class="d-block">${order.pickup?.contactName || '—'}</strong>
-                                            ${order.pickup?.contactPhone ? `<a href="tel:${order.pickup.contactPhone}" class="text-decoration-none text-success small fw-bold" dir="ltr"><i class="bi bi-telephone-fill"></i> ${order.pickup.contactPhone}</a>` : ''}
+                                            <strong class="d-block">${esc(order.pickup?.contactName || '—')}</strong>
+                                            ${order.pickup?.contactPhone ? `<a href="tel:${esc(order.pickup.contactPhone)}" class="text-decoration-none text-success small fw-bold" dir="ltr"><i class="bi bi-telephone-fill"></i> ${esc(order.pickup.contactPhone)}</a>` : ''}
                                         </div>
                                         <div class="col-6 border-start">
                                             <small class="text-muted d-block mb-1"><i class="bi bi-telephone-inbound text-danger"></i> جهة التسليم</small>
-                                            <strong class="d-block">${order.dropoff?.receiverName || '—'}</strong>
-                                            ${order.dropoff?.receiverPhone ? `<a href="tel:${order.dropoff.receiverPhone}" class="text-decoration-none text-success small fw-bold" dir="ltr"><i class="bi bi-telephone-fill"></i> ${order.dropoff.receiverPhone}</a>` : ''}
+                                            <strong class="d-block">${esc(order.dropoff?.receiverName || '—')}</strong>
+                                            ${order.dropoff?.receiverPhone ? `<a href="tel:${esc(order.dropoff.receiverPhone)}" class="text-decoration-none text-success small fw-bold" dir="ltr"><i class="bi bi-telephone-fill"></i> ${esc(order.dropoff.receiverPhone)}</a>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -415,7 +445,7 @@
                                         <i class="bi bi-chat-left-text-fill text-warning fs-5"></i>
                                         <div>
                                             <strong class="d-block text-dark mb-1">ملاحظات العميل:</strong>
-                                            <span class="text-dark" style="white-space:pre-line;">${order.details}</span>
+                                            <span class="text-dark" style="white-space:pre-line;">${esc(order.details)}</span>
                                         </div>
                                     </div>
                                 </div>` : ''}
@@ -436,15 +466,15 @@
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
                                                 <small class="text-muted d-block">من:</small>
-                                                <strong class="text-dark fs-6 d-block">${order.pickup?.address}</strong>
+                                                <strong class="text-dark fs-6 d-block">${esc(order.pickup?.address)}</strong>
                                             </div>
-                                            <button 
+                                            <button
                                                 class="btn btn-sm btn-primary text-white border-0 rounded-pill px-2 py-1 d-flex align-items-center gap-1 nav-btn"
                                                 style="font-size:0.75rem;"
                                                 data-type="pickup"
-                                                data-lat="${order.pickup?.lat || ''}"
-                                                data-lng="${order.pickup?.lng || ''}"
-                                                data-addr="${(order.pickup?.address || '').replace(/"/g, '&quot;')}"
+                                                data-lat="${esc(order.pickup?.lat)}"
+                                                data-lng="${esc(order.pickup?.lng)}"
+                                                data-addr="${esc(order.pickup?.address)}"
                                                 onclick="openMapsNav(this)">
                                                 <i class="bi bi-geo-alt-fill"></i> اتجاهات
                                             </button>
@@ -457,18 +487,18 @@
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
                                                 <small class="text-muted d-block">إلى:</small>
-                                                <strong class="text-dark fs-6 d-block">${order.dropoff?.address}</strong>
+                                                <strong class="text-dark fs-6 d-block">${esc(order.dropoff?.address)}</strong>
                                             </div>
-                                            <button 
+                                            <button
                                                 class="btn btn-sm btn-danger text-white border-0 rounded-pill px-2 py-1 d-flex align-items-center gap-1 nav-btn"
                                                 style="font-size:0.75rem;"
                                                 data-type="dropoff"
-                                                data-lat="${order.dropoff?.lat || ''}"
-                                                data-lng="${order.dropoff?.lng || ''}"
-                                                data-addr="${(order.dropoff?.address || '').replace(/"/g, '&quot;')}"
-                                                data-from-lat="${order.pickup?.lat || ''}"
-                                                data-from-lng="${order.pickup?.lng || ''}"
-                                                data-from-addr="${(order.pickup?.address || '').replace(/"/g, '&quot;')}"
+                                                data-lat="${esc(order.dropoff?.lat)}"
+                                                data-lng="${esc(order.dropoff?.lng)}"
+                                                data-addr="${esc(order.dropoff?.address)}"
+                                                data-from-lat="${esc(order.pickup?.lat)}"
+                                                data-from-lng="${esc(order.pickup?.lng)}"
+                                                data-from-addr="${esc(order.pickup?.address)}"
                                                 onclick="openMapsNav(this)">
                                                 <i class="bi bi-flag-fill"></i> اتجاهات
                                             </button>
@@ -513,8 +543,8 @@
                         </div>
                     </div>
                 `;
-                container.innerHTML += html;
             });
+            container.innerHTML = cards.join('');
         }
 
         async function acceptOrder(id) {
@@ -704,14 +734,13 @@
             });
         }
 
-        const socket = io(API_URL, {
-            transports: ['websocket', 'polling'],
-            auth: { token }
-        });
-
-        socket.on('connect', () => {
-            socket.emit('user_join', userId);
-        });
+        // ♻️ اتصال واحد لا اتصالان: initNotificationSocket أعلاه أنشأ window.socket
+        // بإعادة اتصال تلقائية وانضمام لغرفة المستخدم. كان هذا السطر يفتح جلسة
+        // socket ثانية لنفس الكابتن — ضِعف استهلاك الشبكة والبطارية، و`user_join`
+        // مكرّر، وحدثان لكل إشعار.
+        const socket = window.socket;
+        if (!socket) console.warn('socket غير متاح — سيعتمد التحديث على الفحص الدوري');
+        const onSocket = (ev, fn) => { if (socket) socket.on(ev, fn); };
 
         // 🔔 Robust Web Audio API Implementation
         let audioCtx = null;
@@ -771,7 +800,7 @@
         // Initialize on load
         document.addEventListener('DOMContentLoaded', initAudio);
 
-        socket.on('new_order_available', () => {
+        onSocket('new_order_available', () => {
             playOrderAlert(); // 🔊 Sound alert
             const toast = Swal.mixin({
                 toast: true, position: 'top-end', showConfirmButton: false,
@@ -783,12 +812,12 @@
 
         // 🚗 طلب أخذه كابتن آخر → حدّث القائمة بصمت ليختفي فوراً (بدون صوت/تنبيه)
         let orderTakenTimer = null;
-        socket.on('order_taken', () => {
+        onSocket('order_taken', () => {
             clearTimeout(orderTakenTimer);
             orderTakenTimer = setTimeout(fetchOrders, 400);
         });
 
-        socket.on('shop_order_available', (data) => {
+        onSocket('shop_order_available', (data) => {
             playOrderAlert(false, true); // True for special shop alert
             const toast = Swal.mixin({
                 toast: true, position: 'top-end', showConfirmButton: false,
@@ -799,7 +828,7 @@
         });
 
         // 🔔 نتيجة التفاوض (رد العميل)
-        socket.on('negotiation_resolved', (data) => {
+        onSocket('negotiation_resolved', (data) => {
             activeNegotiationOrderId = null;
             if (data.result === 'accepted') {
                 Swal.fire({
@@ -879,7 +908,7 @@
             if (document.visibilityState === 'visible') fetchOrders();
         });
         // تحديث فوري عند إعادة الاتصال بالسوكت (بعد انقطاع الشبكة)
-        socket.on('connect', () => { fetchOrders(); });
+        onSocket('connect', () => { fetchOrders(); });
 
         fetchOrders().then(() => {
             // ✅ Highlight order if came from push notification
@@ -909,8 +938,8 @@
 
     <!-- Auth Helper & App Core -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
     <script src="js/tour.js?v=d6d632d6"></script>
     <script src="js/coach.js?v=c0090731"></script>
     <script src="js/tour-pages.js?v=5e20479b"></script>

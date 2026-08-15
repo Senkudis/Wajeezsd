@@ -11,7 +11,12 @@
     <script src="vendor/chartjs/chart.umd.min.js"></script>
     <style>
         :root {
-            --primary: #04553A;
+            /* ⚠️ كان `--primary: var(--primary)` — مرجعٌ دائري يُبطل القاعدة،
+               فيبقى المتغيّر غير معرَّف. وكل تدرّجٍ يستعمله يصير باطلاً بدوره
+               (invalid at computed-value time) فتُهمَل خلفيته كاملة: ترويسة
+               الصفحة بلا خلفية، ونصّها الأبيض على خلفية فاتحة ⇒ تباين 1.05،
+               أي عنوان الصفحة وأزرارها غير مرئية. */
+            --primary: #048c5b;
             --primary-light: #25d366;
             --bg: #f0f4f8;
             --card-bg: #ffffff;
@@ -109,8 +114,8 @@
             padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px));
         }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body>
@@ -118,7 +123,7 @@
     <!-- Header -->
     <div class="header-gradient">
         <div class="d-flex align-items-center gap-3 mb-3">
-            <a href="captain-home.html" class="text-white text-decoration-none">
+            <a href="captain-dashboard.html" class="text-white text-decoration-none">
                 <i class="bi bi-arrow-right fs-4"></i>
             </a>
             <div>
@@ -194,7 +199,7 @@
     <!-- Bottom Nav -->
     <div class="bottom-nav-bar">
         <div class="d-flex justify-content-around align-items-center py-2">
-            <a href="captain-home.html" class="text-center text-decoration-none text-muted">
+            <a href="captain-dashboard.html" class="text-center text-decoration-none text-muted">
                 <i class="bi bi-house-fill d-block fs-5"></i><small>الرئيسية</small>
             </a>
             <a href="captain-orders.html" class="text-center text-decoration-none text-muted">
@@ -212,12 +217,17 @@
         </div>
     </div>
 
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script>
         const token = Auth.getToken();
         if (!token) window.location.href = 'captain-login.html';
+
+        // 🔒 العناوين يكتبها العميل وتُحقَن في innerHTML داخل شاشة الكابتن
+        const esc = (v) => String(v == null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
         let currentPeriod = 'today';
         let earningsChart = null;
@@ -279,7 +289,9 @@
                         label: 'الأرباح (ج.س)',
                         data,
                         backgroundColor: 'rgba(10, 135, 84, 0.7)',
-                        borderColor: '#04553A',
+                        // ⚠️ لونٌ صريح لا var(--primary): Chart.js يرسم على canvas ولا يمرّ
+                        // بمحرّك CSS، فالمتغيّر يصل نصّاً غير صالح ويسقط الإطار كلياً.
+                        borderColor: '#0a8754',
                         borderWidth: 2,
                         borderRadius: 8
                     }]
@@ -305,8 +317,8 @@
             <div class="trip-row">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <small class="fw-bold d-block">${t.pickup?.address || 'غير محدد'}</small>
-                        <small class="text-muted">→ ${t.dropoff?.address || 'غير محدد'}</small>
+                        <small class="fw-bold d-block">${esc(t.pickup?.address || 'غير محدد')}</small>
+                        <small class="text-muted">→ ${esc(t.dropoff?.address || 'غير محدد')}</small>
                     </div>
                     <div class="text-end">
                         <span class="fw-bold text-success">${Math.round(t.netRevenue || t.price * (1 - commissionRate))} ج.س</span>
@@ -357,7 +369,7 @@
         loadData();
     </script>
 
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
 </body>
