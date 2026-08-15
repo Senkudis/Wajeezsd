@@ -626,6 +626,7 @@
                 if (!res.ok) return;
                 const data = await res.json();
 
+                txPage = page; // العداد يتقدّم بنجاح الجلب لا بنيّة المستخدم
                 txHasMore = data.pagination?.hasMore ?? false;
                 document.getElementById('txLoadMoreBtn').style.display = txHasMore ? 'block' : 'none';
 
@@ -637,9 +638,22 @@
  }
  }
 
- function loadMoreTx() {
- txPage++;
- loadTransactions(txPage);
+ // ⚠️ كان الضغط المتكرر يزيد txPage قبل وصول الرد، فتُقفَز صفحات ويظهر
+ // السجل بفجوات. نُقفل الزر حتى تنتهي الصفحة الجارية ولا نزيد العداد
+ // إلا بعد نجاحها (loadTransactions هي التي تضبط txPage).
+ let _txLoading = false;
+ async function loadMoreTx() {
+ if (_txLoading) return;
+ _txLoading = true;
+ const btn = document.querySelector('#txLoadMoreBtn button');
+ const original = btn ? btn.innerHTML : '';
+ if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> جاري التحميل...'; }
+ try {
+ await loadTransactions(txPage + 1);
+ } finally {
+ _txLoading = false;
+ if (btn) { btn.disabled = false; btn.innerHTML = original; }
+ }
  }
 
  const TX_CONFIG = {

@@ -629,35 +629,50 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
         const limit = Math.min(50, parseInt(req.query.limit) || 20);
         const skip  = (page - 1) * limit;
 
+        // 🚧 حدٌّ أعلى للتصفّح العميق: skip يُترجَم إلى حجم جلبٍ من كل مصدر (أدناه)،
+        // فصفحةٌ برقم خيالي كانت ستسحب المجموعات كاملة إلى الذاكرة.
+        if (skip > 5000) {
+            return res.status(400).json({ message: 'رقم الصفحة خارج المدى' });
+        }
+
         const DebtAdjustment = require('../models/DebtAdjustment');
         const PaymentRequest = require('../models/PaymentRequest');
 
-        // ── 1. تعديلات الإدارة (زيادة دين / خصم / صفر) ─────────────────
-        const adjustments = await DebtAdjustment.find({ captain: req.user._id })
-            .sort({ createdAt: -1 })
-            .limit(100)
-            .select('mode amount previousBalance newBalance note createdAt')
-            .lean();
+        const adjQuery = { captain: req.user._id };
+        const payQuery = { captainId: req.user._id, status: 'approved' };
+        const delQuery = { captain: req.user._id, status: 'delivered' };
 
-        // ── 2. طلبات السداد المقبولة ─────────────────────────────────────
-        const payments = await PaymentRequest.find({
-            captainId: req.user._id,
-            status: 'approved'
-        })
-            .sort({ createdAt: -1 })
-            .limit(100)
-            .select('amount transactionId adminNote createdAt')
-            .lean();
+        // ⚠️ كان لكل مصدر سقفٌ ثابت (١٠٠ سجل)، فالسجلّ يُقصّ عند ٣٠٠ تعاملة:
+        // ما بعدها لا يظهر أبداً، و`total` يُبلّغ ٣٠٠ فيتوقّف زر «المزيد» عند رقم
+        // كاذب. الصحيح أن الحدّ يتبع الصفحة المطلوبة: أعلى (skip + limit) سجلاً
+        // عالمياً لا بدّ أن تكون ضمن أعلى (skip + limit) من كل مصدر على حدة —
+        // فهذا القدر يكفي ويزيد، وأيّ ما تجاوزه لا يمكن أن يقع في هذه الصفحة.
+        const need = skip + limit;
 
-        // ── 3. طلبات التوصيل المكتملة (عمولة مخصومة) ────────────────────
-        const deliveries = await Order.find({
-            captain: req.user._id,
-            status: 'delivered'
-        })
-            .sort({ createdAt: -1 })
-            .limit(100)
-            .select('price appFee netRevenue pickup.address createdAt')
-            .lean();
+        const [adjustments, payments, deliveries, adjCount, payCount, delCount] = await Promise.all([
+            // ── 1. تعديلات الإدارة (زيادة دين / خصم / صفر) ─────────────────
+            DebtAdjustment.find(adjQuery)
+                .sort({ createdAt: -1 })
+                .limit(need)
+                .select('mode amount previousBalance newBalance note createdAt')
+                .lean(),
+            // ── 2. طلبات السداد المقبولة ─────────────────────────────────────
+            PaymentRequest.find(payQuery)
+                .sort({ createdAt: -1 })
+                .limit(need)
+                .select('amount transactionId adminNote createdAt')
+                .lean(),
+            // ── 3. طلبات التوصيل المكتملة (عمولة مخصومة) ────────────────────
+            Order.find(delQuery)
+                .sort({ createdAt: -1 })
+                .limit(need)
+                .select('price appFee netRevenue pickup.address createdAt')
+                .lean(),
+            // 🔢 الإجمالي الحقيقي — countDocuments لا طول المصفوفة المقصوصة
+            DebtAdjustment.countDocuments(adjQuery),
+            PaymentRequest.countDocuments(payQuery),
+            Order.countDocuments(delQuery)
+        ]);
 
         // ── دمج وتحويل لتنسيق موحد ────────────────────────────────────────
         const timeline = [
@@ -666,9 +681,11 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
                 type:      a.mode === 'add'     ? 'debt_added'
                          : a.mode === 'zero'    ? 'debt_cleared'
                          :                       'debt_partial',
-                label:     a.mode === 'add'     ? '➕ إضافة دين'
-                         : a.mode === 'zero'    ? '✅ إعفاء كامل'
-                         :                       '✂️ تخفيض دين',
+                // 🏷️ نصّ خالص بلا إيموجي — الواجهة ترسم أيقونة لكل نوع من
+                // TX_CONFIG، فالرمز داخل النص كان تكراراً لها بأسلوب أقل رصانة.
+                label:     a.mode === 'add'     ? 'إضافة دين'
+                         : a.mode === 'zero'    ? 'إعفاء كامل'
+                         :                       'تخفيض دين',
                 amount:    a.amount,
                 balance:   a.newBalance,
                 note:      a.note || '',
@@ -677,7 +694,7 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
             ...payments.map(p => ({
                 _id:    p._id,
                 type:   'payment_approved',
-                label:  '💳 دفعة مقبولة',
+                label:  'دفعة مقبولة',
                 amount: p.amount,
                 note:   `رقم الإشعار: ${p.transactionId}${p.adminNote ? ' — ' + p.adminNote : ''}`,
                 date:   p.createdAt
@@ -685,7 +702,7 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
             ...deliveries.map(d => ({
                 _id:    d._id,
                 type:   'commission_deducted',
-                label:  '🏍️ توصيلة مكتملة',
+                label:  'توصيلة مكتملة',
                 // ✅ BUG FIX: استخدام ?? بدل || لأن appFee = 0 قيمة صالحة (عمولة صفر)
                 // || كان يتعامل مع 0 كـ falsy ويعرض 0 حتى لو كانت القيمة مقصودة
                 amount: d.appFee ?? 0,
@@ -697,7 +714,9 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
         // ── ترتيب تنازلي حسب التاريخ ─────────────────────────────────────
         timeline.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        const total = timeline.length;
+        // الإجمالي من العدّ الحقيقي للمجموعات الثلاث، لا من طول المصفوفة المدموجة
+        // (تلك مقصوصة عند `need` عمداً — طولها لا يمثّل شيئاً).
+        const total = adjCount + payCount + delCount;
         const paged = timeline.slice(skip, skip + limit);
 
         res.json({
