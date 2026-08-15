@@ -122,7 +122,7 @@
                 <i class="bi bi-arrow-right fs-4"></i>
             </a>
             <div>
-                <h5 class="mb-0 fw-bold">📊 تحليلاتي</h5>
+                <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart-line-fill me-1"></i> تحليلاتي</h5>
                 <small class="opacity-75">إحصائياتك ومكاسبك</small>
             </div>
         </div>
@@ -142,28 +142,28 @@
         <div class="row g-3 mb-3">
             <div class="col-6">
                 <div class="stat-card">
-                    <div class="stat-icon bg-success bg-opacity-10 text-success mb-2">💰</div>
+                    <div class="stat-icon bg-success bg-opacity-10 text-success mb-2"><i class="bi bi-cash-coin"></i></div>
                     <div class="stat-value text-success" id="stat-earnings">--</div>
                     <div class="stat-label">إجمالي الأرباح (ج.س)</div>
                 </div>
             </div>
             <div class="col-6">
                 <div class="stat-card">
-                    <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-2">📦</div>
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-2"><i class="bi bi-box-seam-fill"></i></div>
                     <div class="stat-value text-primary" id="stat-orders">--</div>
                     <div class="stat-label">طلبات مكتملة</div>
                 </div>
             </div>
             <div class="col-6">
                 <div class="stat-card">
-                    <div class="stat-icon bg-warning bg-opacity-10 text-warning mb-2">⭐</div>
+                    <div class="stat-icon bg-warning bg-opacity-10 text-warning mb-2"><i class="bi bi-star-fill"></i></div>
                     <div class="stat-value text-warning" id="stat-rating">--</div>
                     <div class="stat-label">متوسط التقييم</div>
                 </div>
             </div>
             <div class="col-6">
                 <div class="stat-card">
-                    <div class="stat-icon bg-info bg-opacity-10 text-info mb-2">📈</div>
+                    <div class="stat-icon bg-info bg-opacity-10 text-info mb-2"><i class="bi bi-graph-up-arrow"></i></div>
                     <div class="stat-value text-info" id="stat-avg">--</div>
                     <div class="stat-label">متوسط الطلب (ج.س)</div>
                 </div>
@@ -172,13 +172,13 @@
 
         <!-- Earnings Chart -->
         <div class="chart-card mb-3">
-            <h6 class="fw-bold mb-3">📈 الأرباح خلال الفترة</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-1"></i> الأرباح خلال الفترة</h6>
             <canvas id="earningsChart" height="160"></canvas>
         </div>
 
         <!-- Recent Trips -->
         <div class="chart-card mb-3">
-            <h6 class="fw-bold mb-3">🕐 آخر الرحلات</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-1"></i> آخر الرحلات</h6>
             <div id="trips-list">
                 <div class="text-center text-muted py-3">
                     <div class="spinner-border spinner-border-sm"></div>
@@ -330,7 +330,7 @@
                 if (statsRes.ok) {
                     const stats = await statsRes.json();
                     document.getElementById('stat-rating').textContent =
-                        Math.min(5, stats.rating || 5.0).toFixed(1) + ' / 5 ⭐';
+                        Math.min(5, stats.rating || 5.0).toFixed(1) + ' / 5';   // النجمة أيقونة البطاقة أعلاه
                 }
 
                 // ✅ Load live commission rate for accurate earnings display
