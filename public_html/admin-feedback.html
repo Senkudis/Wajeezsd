@@ -16,16 +16,16 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
+        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; color: #1e293b; }
 
         .page-header {
             background: linear-gradient(135deg, var(--primary), #0A6E47);
-            padding: 20px 24px; display: flex; align-items: center;
+            padding: 16px 24px; display: flex; align-items: center;
             justify-content: space-between; box-shadow: 0 4px 20px rgba(10, 135, 84, .25);
         }
-        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
+        .page-header h1 { color: #fff; font-size: 1.2rem; font-weight: 800; }
         .page-header a {
-            color: rgba(255, 255, 255, .85); text-decoration: none; font-size: .9rem;
+            color: rgba(255, 255, 255, .9); text-decoration: none; font-size: .88rem;
             display: flex; align-items: center; gap: 6px;
         }
         .page-header a:hover { color: #fff; }
@@ -73,13 +73,13 @@
         .filter-group label { font-size: .8rem; font-weight: 700; color: #64748b; }
         .filter-group select {
             padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-            font-family: 'Tajawal', sans-serif; font-size: .9rem; background: #f8fafc;
+            font-family: 'Cairo', sans-serif; font-size: .9rem; background: #f8fafc;
             color: #1e293b; outline: none;
         }
         .filter-group select:focus { border-color: var(--primary); background: #fff; }
 
         .btn {
-            padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif;
+            padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Cairo', sans-serif;
             font-size: .9rem; font-weight: 700; cursor: pointer; display: inline-flex;
             align-items: center; gap: 7px; transition: all .2s;
         }
@@ -121,7 +121,7 @@
         .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
         .pagination button {
             padding: 7px 14px; border: 1.5px solid #e2e8f0; background: #fff; border-radius: 8px;
-            cursor: pointer; font-family: 'Tajawal', sans-serif; font-weight: 700; font-size: .85rem;
+            cursor: pointer; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: .85rem;
         }
         .pagination button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
@@ -129,18 +129,33 @@
             .reason-lbl { min-width: 120px; font-size: .8rem; }
             .main { padding: 16px 10px; }
         }
+body.dark-mode { background: #111827 !important; color: #f9fafb !important; }
+body.dark-mode .stat-chip { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .reasons { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .reason-bar { background: #374151 !important; }
+body.dark-mode .filter-bar { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .filter-group select { background: #111827 !important; color: #f9fafb !important; border-color: #374151 !important; }
+body.dark-mode .table-wrap { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode th { background: #111827 !important; color: #9ca3af !important; }
+body.dark-mode .msg { color: #d1d5db !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </head>
 
 <body>
     <div class="page-header">
         <h1><i class="fas fa-comment-dots" style="margin-left:8px;"></i> صوت العميل</h1>
-        <a href="admin.html"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+        <div class="d-flex align-items-center gap-2">
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+        </div>
     </div>
 
     <div class="main">

@@ -6,7 +6,7 @@ var token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 if (!token) window.location.href = 'admin-login.html';
 
 /**
- * 🚩 هذا الملفّ يتولّى الصفحة.
+ *  هذا الملفّ يتولّى الصفحة.
  *
  * admin.html وحدها تحمّل admin-dashboard.js و admin-panel.js معاً، وبينهما
  * **ثماني دوال بنفس الاسم** في النطاق العام (loadDashboard، loadUsers،
@@ -18,7 +18,7 @@ if (!token) window.location.href = 'admin-login.html';
  * (قِيس فعلاً: dashboard×2, orders/live×2, active-captains×2)
  *
  * هذه الراية تُخبر admin-dashboard.js أن يتنحّى عن التهيئة هنا.
- * ⚠️ ليست حلاً للتصادم نفسه — الحلّ إخراج الملفّين من النطاق العام، وهو
+ *  ليست حلاً للتصادم نفسه — الحلّ إخراج الملفّين من النطاق العام، وهو
  * تغييرٌ أوسع. الراية تُغلق الضرر المقاس بلا مساس بمنطق أيّ منهما.
  */
 window.__adminPanelOwnsPage = true;
@@ -29,8 +29,8 @@ const headers = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'ap
 //  Format numbers in English (not Arabic ٠١٢٣)
 function fmtNum(n) { return Number(n || 0).toLocaleString('en'); }
 
-// 🍞 توست موحّد للوحة الأدمن.
-// 🐛 إصلاح "فشل الاتصال" الوهمي: admin.html لا يحمّل notification-toast.js
+//  توست موحّد للوحة الأدمن.
+//  إصلاح "فشل الاتصال" الوهمي: admin.html لا يحمّل notification-toast.js
 // (المصدر الوحيد لـ showToast)، فكانت النداءات بعد نجاح الحفظ ترمي ReferenceError
 // داخل الـ try — فيُعرض "فشل الاتصال" رغم نجاح التحديث فعلياً.
 if (typeof window.showToast !== 'function') {
@@ -147,7 +147,7 @@ socket.on('admin_order_update', (data) => {
     if (currentPage === 'orders') loadAllOrders();
 });
 
-// 💬 عرض تفاوض جديد أو مسحوب أو مرفوض — نحدّث الشارات فوراً بلا انتظار تحديث الصفحة
+//  عرض تفاوض جديد أو مسحوب أو مرفوض — نحدّث الشارات فوراً بلا انتظار تحديث الصفحة
 socket.on('negotiation_update', () => {
     if (currentPage === 'overview') loadLiveOrders();
     if (currentPage === 'orders') loadAllOrders();
@@ -186,7 +186,7 @@ socket.on('new_notification', (data) => {
     }
 });
 
-// 🚨 Emergency SOS alert from a captain — distinct siren + prominent popup
+//  Emergency SOS alert from a captain — distinct siren + prominent popup
 socket.on('emergency_alert', (data) => {
     if (!data) return;
     // الأدمن المساعد يتلقّى نجدات مدينته فقط
@@ -217,7 +217,7 @@ const STATUS_LABELS = {
     picked_up: 'قيد التوصيل',
     delivered: 'مكتمل',
     cancelled: 'ملغي',
-    // 🛒 حالات طلب المتجر قبل إنشاء طلب التوصيل — صارت تصل اللوحة الآن،
+    //  حالات طلب المتجر قبل إنشاء طلب التوصيل — صارت تصل اللوحة الآن،
     // وبلا ترجمتها كانت ستُعرض بالإنجليزية الخام أمام الإدارة
     shop_pending: 'وصل التاجر',
     shop_preparing: 'قيد التجهيز',
@@ -238,7 +238,7 @@ function playNotifSound() {
     } catch(e) {}
 }
 
-// ── 🚨 Emergency siren (Web Audio — نغمة نجدة متذبذبة مميّزة، بدون ملف صوت) ──
+// ──  Emergency siren (Web Audio — نغمة نجدة متذبذبة مميّزة، بدون ملف صوت) ──
 let _sirenCtx = null, _sirenOsc = null, _sirenGain = null, _sirenTimer = null, _sirenStop = null;
 function playEmergencySiren() {
     try {
@@ -279,23 +279,23 @@ function handleEmergencyAlert(data) {
     const name = window.escapeHtml(data.captainName || 'كابتن');
     const phone = window.escapeHtml(data.captainPhone || '');
     const cityLabel = data.city === 'PortSudan' ? 'بورتسودان' : (data.city === 'Khartoum' ? 'الخرطوم' : '');
-    addNotification('🚨 نجدة: ' + name, 'طلب طوارئ — اضغط لعرض الموقع', null);
+    addNotification(' نجدة: ' + name, 'طلب طوارئ — اضغط لعرض الموقع', null);
 
     if (window.Swal) {
         Swal.fire({
             icon: 'error',
-            title: '🚨 نجدة طارئة!',
+            title: ' نجدة طارئة!',
             html: `الكابتن <b>${name}</b> طلب النجدة!<br><br>` +
-                  (phone ? `📞 <a href="tel:${phone}" dir="ltr" style="font-weight:700;">${phone}</a><br>` : '') +
-                  (cityLabel ? `🏙️ ${cityLabel}<br>` : '') +
-                  `<a href="${data.mapsLink || '#'}" target="_blank" style="display:inline-block;margin-top:12px;background:#04553A;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700;">📍 عرض الموقع على الخريطة</a>`,
+                  (phone ? ` <a href="tel:${phone}" dir="ltr" style="font-weight:700;">${phone}</a><br>` : '') +
+                  (cityLabel ? `️ ${cityLabel}<br>` : '') +
+                  `<a href="${data.mapsLink || '#'}" target="_blank" style="display:inline-block;margin-top:12px;background:#04553A;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700;"> عرض الموقع على الخريطة</a>`,
             confirmButtonText: 'تم الاطلاع — إيقاف الصوت',
             confirmButtonColor: '#e74c3c',
             allowOutsideClick: false,
             allowEscapeKey: false
         }).then(() => stopEmergencySiren());
     } else {
-        showToast('🚨 نجدة: ' + name);
+        showToast(' نجدة: ' + name);
         setTimeout(stopEmergencySiren, 8000);
     }
 }
@@ -341,7 +341,7 @@ function toggleNotifPanel(open) {
     if (open) { notifications.forEach(n => n.unread = false); updateNotifCount(); renderNotifications(); }
 }
 
-// ── 🔐 Admin Permissions (frontend gate — defense in depth) ──
+// ──  Admin Permissions (frontend gate — defense in depth) ──
 function isSuperAdmin() {
     return !userObj || !userObj.adminRole || userObj.adminRole === 'super_admin';
 }
@@ -370,9 +370,9 @@ function applyAdminPermissionsUI() {
 
 // ── Page Navigation ──
 function switchPage(page) {
-    // 🔐 منع الأدمن المساعد من فتح صفحة لا يملك صلاحيتها (حتى عبر التلاعب)
+    //  منع الأدمن المساعد من فتح صفحة لا يملك صلاحيتها (حتى عبر التلاعب)
     if (!canAccessPage(page)) {
-        showToast('🚫 لا تملك صلاحية الوصول لهذه الصفحة');
+        showToast(' لا تملك صلاحية الوصول لهذه الصفحة');
         return;
     }
     currentPage = page;
@@ -588,7 +588,7 @@ async function loadOnlineCaptainsCount() {
 }
 
 /**
- * 💬 شارة عروض المفاوضة المفتوحة على الطلب.
+ *  شارة عروض المفاوضة المفتوحة على الطلب.
  *
  * لماذا: الإدارة لم تكن ترى المفاوضات إطلاقاً، فطلبٌ عليه ثلاثة عروض وينتظر ردّ
  * العميل يبدو في اللوحة مطابقاً تماماً لطلبٍ لم يلتفت إليه أحد. الشارة تُظهر
@@ -625,18 +625,18 @@ async function loadLiveOrders() {
         };
 
         feed.innerHTML = live.slice(0, 30).map(o => {
-            // 🛒 طلب متجر: يُعرَّف بمتجره. كان يظهر كتوصيلٍ مجهول المصدر،
+            //  طلب متجر: يُعرَّف بمتجره. كان يظهر كتوصيلٍ مجهول المصدر،
             // فلا تعرف المتابعة أيّ طلبٍ يخصّ أيّ تاجر.
             const shopTag = o.orderType === 'shop'
                 ? `<span style="font-size:10px;font-weight:700;color:#6d28d9;margin-left:6px;">
                      <i class="fas fa-store" style="margin-left:3px;"></i>${window.escapeHtml(o.shopName || 'متجر')}</span>`
                 : '';
-            // ⚠️ طال انتظاره كابتناً — أوّل ما يجب أن تراه العين في بثٍّ حيّ
+            //  طال انتظاره كابتناً — أوّل ما يجب أن تراه العين في بثٍّ حيّ
             const stuckTag = o.escalatedAt
                 ? `<span class="gv-badge" style="background:#fef3c7;color:#92400e;font-size:10px;margin-left:4px;">
                      <i class="fas fa-clock"></i> متعثّر</span>`
                 : '';
-            // ⚠️ عالق: جاهز عند التاجر بلا طلب توصيل حيّ — العميل دفع ولا أحد
+            //  عالق: جاهز عند التاجر بلا طلب توصيل حيّ — العميل دفع ولا أحد
             // قادم. أخطر حالة في اللوحة، فتُصبغ بالأحمر لا بالكهرماني.
             const orphanTag = o.isOrphaned
                 ? `<span class="gv-badge" style="background:#fee2e2;color:#991b1b;font-size:10px;margin-left:4px;">
@@ -681,9 +681,9 @@ async function loadAllOrders() {
 
 
 /**
- * 🔎 مرشّحات القائمة — مسنَدة لمعناها لا لنصّ الحالة الخام.
+ *  مرشّحات القائمة — مسنَدة لمعناها لا لنصّ الحالة الخام.
  *
- * ⚠️ العطل الذي تُغلقه: المقارنة كانت `o.status === status` حرفياً، والقائمة
+ *  العطل الذي تُغلقه: المقارنة كانت `o.status === status` حرفياً، والقائمة
  * صارت تضمّ طلبات متاجر بحالات أخرى (shop_pending / shop_preparing /
  * ready_for_pickup). فأيّ اختيارٍ في الفلتر كان يُسقطها كلها — تبدو للإدارة
  * وكأنها اختفت، ولا سبيل للوصول إليها إلا بـ«كل الحالات».
@@ -714,7 +714,7 @@ function filterOrders() {
     if (pred) filtered = filtered.filter(pred);
 
     if (q) {
-        // 🛒 اسم المتجر ضمن البحث: طلب المتجر بلا عناوين استلام/تسليم، فكان
+        //  اسم المتجر ضمن البحث: طلب المتجر بلا عناوين استلام/تسليم، فكان
         // البحث عنه مستحيلاً إلا باسم العميل — واسم المتجر أوّل ما يُبحث به.
         filtered = filtered.filter(o =>
             (o.client?.name || '').toLowerCase().includes(q) ||
@@ -735,14 +735,14 @@ function renderAllOrders(orders) {
         return;
     }
     body.innerHTML = orders.slice(0, 200).map(o => {
-        // 🛒 تمييز طلبات المتاجر: كانت تُعرض كتوصيلٍ عادي بلا اسم المتجر ولا
+        //  تمييز طلبات المتاجر: كانت تُعرض كتوصيلٍ عادي بلا اسم المتجر ولا
         // نوعٍ، فيتعذّر على المتابعة معرفةُ أيّ طلبٍ يخصّ أيّ تاجر.
         const isShop = o.orderType === 'shop';
         const shopTag = isShop
             ? `<div style="font-size:11px;color:#6d28d9;font-weight:700;margin-top:2px;">
                  <i class="fas fa-store"></i> ${window.escapeHtml(o.shopName || 'متجر')}</div>`
             : '';
-        // ⚠️ طلب صُعِّد: مضى عليه أكثر من ٦ ساعات بلا كابتن — أوّل ما تحتاجه المتابعة
+        //  طلب صُعِّد: مضى عليه أكثر من ٦ ساعات بلا كابتن — أوّل ما تحتاجه المتابعة
         const stuckTag = o.escalatedAt
             ? `<span class="gv-badge" style="background:#fef3c7;color:#92400e;margin-right:4px;" title="مضى وقت طويل بلا كابتن">
                  <i class="fas fa-clock"></i> متعثّر</span>`
@@ -781,7 +781,7 @@ function renderAllOrders(orders) {
 }
 
 /**
- * 🩹 إعادة رفع طلب متجر عالق للكباتن.
+ *  إعادة رفع طلب متجر عالق للكباتن.
  * العالق = جاهز عند التاجر بلا طلب توصيل حيّ — خلّفه إلغاءٌ تلقائي سابق لم
  * تصل مزامنته. هذا مخرجه اليدوي: طلب توصيل جديد وبثٌّ لكباتن مدينته.
  */
@@ -812,7 +812,7 @@ async function republishShopOrder(shopOrderId, btn) {
 }
 
 /**
- * 📣 تنبيه كباتن مدينة الطلب — بلا مهلة (الأدمن يتدخّل عند عطلٍ قائم).
+ *  تنبيه كباتن مدينة الطلب — بلا مهلة (الأدمن يتدخّل عند عطلٍ قائم).
  * السيرفر يمنع تنبيه مدينة أخرى لمن صلاحيته مدينة واحدة.
  */
 async function remindCaptainsAdmin(orderId, btn) {
@@ -835,7 +835,7 @@ async function remindCaptainsAdmin(orderId, btn) {
 }
 
 /**
- * 👤 تعيين كابتن يدوياً على طلبٍ معلّق.
+ *  تعيين كابتن يدوياً على طلبٍ معلّق.
  * كان المسار يرفض الطلبات المعلّقة، فيقف الأدمن أمام طلبٍ لا يلتقطه أحد
  * بلا حيلة إلا الإلغاء — وهو آخر ما يصلح لطلبٍ دفع العميل ثمن بضاعته.
  */
@@ -894,7 +894,7 @@ window.filterUsers = function() {
     if (city !== 'all') {
         filtered = filtered.filter(u => u.city === city);
     }
-    // 📵 فلتر التفعيل — للعملاء الذين لم تصلهم رسالة الـ SMS من المزود
+    //  فلتر التفعيل — للعملاء الذين لم تصلهم رسالة الـ SMS من المزود
     if (verify === 'unverified') {
         filtered = filtered.filter(u => !u.isVerified);
     } else if (verify === 'verified') {
@@ -958,7 +958,7 @@ function renderUsers(users) {
     `).join('');
 }
 
-// 📞 تطبيع رقم الهاتف لصيغة واتساب الدولية (أرقام فقط، بمفتاح السودان 249)
+//  تطبيع رقم الهاتف لصيغة واتساب الدولية (أرقام فقط، بمفتاح السودان 249)
 // الأرقام في القاعدة مختلطة: 249xxxxxxxxx أو 09xxxxxxxx أو +249xxxxxxxxx
 function toWhatsAppNumber(phone) {
     let p = String(phone || '').replace(/\D/g, ''); // أزل +، مسافات، شرطات
@@ -969,7 +969,7 @@ function toWhatsAppNumber(phone) {
     return p;
 }
 
-// 💬 إبلاغ العميل بتفعيل حسابه عبر واتساب الأدمن (رسالة جاهزة، بلا بوت)
+//  إبلاغ العميل بتفعيل حسابه عبر واتساب الأدمن (رسالة جاهزة، بلا بوت)
 function whatsappActivated(userId) {
     const u = allUsers.find(x => x._id === userId);
     if (!u || !u.phone) { showToast('لا يوجد رقم هاتف لهذا المستخدم'); return; }
@@ -997,7 +997,7 @@ function whatsappActivated(userId) {
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-// 📵 تفعيل/إلغاء تفعيل حساب يدوياً — لعملاء لم تصلهم رسالة OTP من مزود الـ SMS
+//  تفعيل/إلغاء تفعيل حساب يدوياً — لعملاء لم تصلهم رسالة OTP من مزود الـ SMS
 async function toggleUserVerify(userId, willVerify) {
     const result = await Swal.fire({
         title: willVerify ? 'تفعيل الحساب يدوياً؟' : 'إلغاء تفعيل الحساب؟',
@@ -1016,7 +1016,7 @@ async function toggleUserVerify(userId, willVerify) {
         if (!res.ok) { Swal.fire('خطأ', d.message || 'فشل تحديث التفعيل', 'error'); return; }
         loadUsers();
 
-        // 💬 بعد التفعيل: اعرض إبلاغ العميل عبر واتساب.
+        //  بعد التفعيل: اعرض إبلاغ العميل عبر واتساب.
         // window.open داخل معالج نقرة الزر مباشرة — لولا ذلك يحجبه المتصفح
         // (تفويض المستخدم ينتهي بعد await fetch).
         if (willVerify) {
@@ -1040,7 +1040,9 @@ async function toggleUserStatus(userId) {
         await fetch(`${BASE}/api/admin/user/${userId}/status`, { method: 'PUT', headers: headers() });
         loadUsers();
         showToast('تم تحديث حالة المستخدم');
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        console.error(e);
+    }
 }
 
 async function deleteUser(userId) {
@@ -1078,7 +1080,7 @@ async function editUser(userId) {
         <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
             <img id="swal-photo-preview" src="${photoUrl}" alt=""
                 style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;background:#f1f5f9;${photoUrl ? '' : 'display:none;'}">
-            <span id="swal-photo-placeholder" style="width:54px;height:54px;border-radius:50%;display:${photoUrl ? 'none' : 'flex'};align-items:center;justify-content:center;background:#f1f5f9;border:2px solid #e2e8f0;font-size:22px;color:#94a3b8;">📷</span>
+            <span id="swal-photo-placeholder" style="width:54px;height:54px;border-radius:50%;display:${photoUrl ? 'none' : 'flex'};align-items:center;justify-content:center;background:#f1f5f9;border:2px solid #e2e8f0;font-size:22px;color:#94a3b8;"></span>
             <input type="file" id="swal-photo" accept="image/png,image/jpeg,image/webp" style="flex:1;font-size:12px;"
                 onchange="(function(i){if(i.files&&i.files[0]){var r=new FileReader();r.onload=function(e){var p=document.getElementById('swal-photo-preview');p.src=e.target.result;p.style.display='block';document.getElementById('swal-photo-placeholder').style.display='none';};r.readAsDataURL(i.files[0]);}})(this)">
         </div>
@@ -1134,7 +1136,7 @@ async function editUser(userId) {
         const data = await res.json();
         if (!res.ok) { Swal.fire('خطأ', data.message, 'error'); return; }
 
-        // 📷 رفع صورة الكابتن بعد حفظ البيانات (إن اختيرت) — مع شريط تقدّم
+        //  رفع صورة الكابتن بعد حفظ البيانات (إن اختيرت) — مع شريط تقدّم
         if (photoFile) {
             try {
                 await uploadCaptainPhotoWithProgress(userId, photoFile);
@@ -1148,7 +1150,7 @@ async function editUser(userId) {
     } catch(e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
 }
 
-// 📷 رفع صورة الكابتن مع شريط تقدّم (XHR يدعم onprogress عكس fetch)
+//  رفع صورة الكابتن مع شريط تقدّم (XHR يدعم onprogress عكس fetch)
 function uploadCaptainPhotoWithProgress(userId, photoFile) {
     return new Promise((resolve, reject) => {
         const fd = new FormData();
@@ -1199,7 +1201,7 @@ function uploadCaptainPhotoWithProgress(userId, photoFile) {
 // ── Captains ──
 async function loadCaptains() {
     try {
-        // 🌍 فلتر المدينة (super_admin فقط؛ الأدمن المساعد مقيّد بمدينته في الباك-إند)
+        //  فلتر المدينة (super_admin فقط؛ الأدمن المساعد مقيّد بمدينته في الباك-إند)
         const cityEl = document.getElementById('captainCityFilter');
         // إخفاء الفلتر عن الأدمن المساعد — هو مقيّد بمدينة واحدة
         if (cityEl && userObj && userObj.adminRole === 'sub_admin') cityEl.style.display = 'none';
@@ -1331,7 +1333,9 @@ function openAddCaptainModal() {
             </select>
             <label style="display:block;text-align:right;font-weight:700;margin-top:8px;font-size:13px;">نوع المركبة</label>
             <select id="swal-vehicle" class="swal2-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;">
-                ${window.VehicleTypes.optionsHtml()}
+                <option value="motorcycle">موتر</option>
+                <option value="electric">موتر كهربائي</option>
+                <option value="bicycle">عجلة هوائية</option>
             </select>
             <input id="swal-pass" class="swal2-input" placeholder="كلمة المرور" type="password">
         `,
@@ -1408,12 +1412,14 @@ function searchBroadcastUser() {
                 resultsDiv.innerHTML = filtered.map(u => `
                     <div onclick="selectBroadcastUser('${u._id}', '${(u.name || '').replace(/'/g, "\\'")}' )" 
                         style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--gv-border);display:flex;align-items:center;justify-content:space-between;transition:background .15s;"
-                        onmouseover="this.style.background='var(--gv-bg)'" onmouseout="this.style.background='transparent'">
+                        onmouseover="this.style.background='var(--gv-light, #f8fafc)'" onmouseout="this.style.background='transparent'">
                         <div>
                             <span style="font-weight:700;font-size:14px;">${window.escapeHtml(u.name || '—')}</span>
                             <span style="font-size:12px;color:var(--gv-dark-2);margin-right:8px;" dir="ltr">${u.phone || ''}</span>
                         </div>
-                        <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--gv-bg);color:var(--gv-dark-2);">${roleMap[u.role] || u.role}</span>
+                        <!-- ⚠️ --gv-bg اسم لا وجود له وبلا احتياطي: لا خلفية للشارة ولا
+                             إضاءة عند مرور المؤشّر فوق الصف. الاسم الحقيقي --gv-light. -->
+                        <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--gv-light, #f8fafc);color:var(--gv-dark-2);">${roleMap[u.role] || u.role}</span>
                     </div>
                 `).join('');
             }
@@ -1722,12 +1728,12 @@ checkMobile();
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
-    applyAdminPermissionsUI(); // 🔐 إخفاء التنقل غير المصرّح للأدمن المساعد
+    applyAdminPermissionsUI(); //  إخفاء التنقل غير المصرّح للأدمن المساعد
     loadDashboard();
-    loadAdminNotifications(); // 🔔 تحميل سجلّ الإشعارات حتى لا تكون الخانة فارغة
+    loadAdminNotifications(); //  تحميل سجلّ الإشعارات حتى لا تكون الخانة فارغة
 });
 
-// 🔔 تحميل سجلّ إشعارات الأدمن من السيرفر (تظهر عند الفتح وتبقى بعد التحديث)
+//  تحميل سجلّ إشعارات الأدمن من السيرفر (تظهر عند الفتح وتبقى بعد التحديث)
 async function loadAdminNotifications() {
     try {
         const res = await fetch(`${BASE}/api/notifications?limit=50`, { headers: headers() });

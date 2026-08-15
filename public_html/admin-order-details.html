@@ -7,7 +7,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -109,12 +109,21 @@
             cursor: pointer; transition: transform 0.2s;
         }
         .od-img-preview:hover { transform: scale(1.05); }
+body.dark-mode { background: #111827 !important; color: #f9fafb !important; }
+body.dark-mode .od-back { background: #1f2937 !important; border-color: #374151 !important; color: #9ca3af !important; }
+body.dark-mode .od-header { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .od-card { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .od-field span { color: #d1d5db !important; }
+body.dark-mode .od-btn-ghost { background: #1f2937 !important; border-color: #374151 !important; color: #9ca3af !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 <body>
 
@@ -133,10 +142,12 @@
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
 <script>
-const token = localStorage.getItem('adminToken');
+const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 let userObj = null;
 try { userObj = JSON.parse(localStorage.getItem('user')); } catch(e) {}
-if (!token || !userObj || userObj.role !== 'admin') window.location.href = 'admin-login.html';
+if (!token || !userObj || (userObj.role !== 'admin' && userObj.role !== 'sub_admin')) {
+    window.location.href = 'admin-login.html';
+}
 
 const BASE = window.API_URL || 'https://wajeezsd.com';
 const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -278,11 +289,16 @@ function renderOrder(o) {
     const createdDate = new Date(o.createdAt).toLocaleString('ar-SA');
 
     container.innerHTML = `
-        <button class="od-back" onclick="history.back()"><i class="fas fa-arrow-right"></i> رجوع للوحة التحكم</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <button class="od-back" onclick="history.back()" style="margin-bottom:0;"><i class="fas fa-arrow-right"></i> رجوع للوحة التحكم</button>
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
 
         <div class="od-header">
             <div class="od-header-right">
-                <h1><i class="fas fa-receipt" style="color:#6366f1;"></i> طلب #${o._id.slice(-6).toUpperCase()}</h1>
+                <h1><i class="fas fa-receipt" style="color:var(--primary, #048c5b);"></i> طلب #${o._id.slice(-6).toUpperCase()}</h1>
                 <p>تم الإنشاء: ${createdDate}</p>
             </div>
             <span class="od-status-badge ${o.status}">${statusMap[o.status] || o.status}</span>

@@ -13,10 +13,10 @@
             --accent: #f59e0b;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
-        .page-header { background: linear-gradient(135deg, var(--primary), #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
-        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
-        .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; color: #1e293b; }
+        .page-header { background: linear-gradient(135deg, var(--primary), #0A6E47); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
+        .page-header h1 { color: #fff; font-size: 1.2rem; font-weight: 800; }
+        .page-header a { color: rgba(255,255,255,.9); text-decoration: none; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; }
         .page-header a:hover { color: #fff; }
         .main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
         .stats-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
@@ -27,9 +27,9 @@
         .filter-bar { background: #fff; border-radius: 14px; padding: 16px 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 2px 8px rgba(0,0,0,.05); border: 1px solid #e2e8f0; margin-bottom: 20px; }
         .filter-group { display: flex; flex-direction: column; gap: 4px; }
         .filter-group label { font-size: 0.8rem; font-weight: 700; color: #64748b; }
-        .filter-group select { padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; background: #f8fafc; color: #1e293b; outline: none; }
+        .filter-group select { padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: 'Cairo', sans-serif; font-size: 0.9rem; background: #f8fafc; color: #1e293b; outline: none; }
         .filter-group select:focus { border-color: var(--primary); background: #fff; }
-        .btn { padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all .2s; }
+        .btn { padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Cairo', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all .2s; }
         .btn-primary { background: var(--primary); color: #fff; }
         .btn-primary:hover { background: #033A27; }
         .btn-sm { padding: 6px 12px; font-size: 0.82rem; }
@@ -54,7 +54,7 @@
         .priority-high { background: #ffedd5; color: #c2410c; }
         .priority-urgent { background: #fee2e2; color: #991b1b; }
         .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
-        .page-btn { padding: 7px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #fff; font-family: 'Tajawal', sans-serif; font-size: 0.85rem; cursor: pointer; color: #374151; font-weight: 700; transition: all .2s; }
+        .page-btn { padding: 7px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #fff; font-family: 'Cairo', sans-serif; font-size: 0.85rem; cursor: pointer; color: #374151; font-weight: 700; transition: all .2s; }
         .page-btn:hover, .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
         .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; }
@@ -67,24 +67,48 @@
         .chat-msg.client { background: #fff; border: 1px solid #e2e8f0; align-self: flex-end; border-bottom-left-radius: 4px; color: #1e293b; }
         .chat-msg .msg-meta { font-size: 0.72rem; opacity: 0.7; margin-top: 4px; }
         .chat-input { display: flex; gap: 8px; }
-        .chat-input textarea { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.9rem; resize: none; height: 60px; outline: none; }
+        .chat-input textarea { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Cairo', sans-serif; font-size: 0.9rem; resize: none; height: 60px; outline: none; }
         .chat-input textarea:focus { border-color: var(--primary); }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
         .info-item { background: #f8fafc; border-radius: 10px; padding: 10px 14px; }
         .info-item .info-label { font-size: 0.75rem; color: #64748b; font-weight: 700; margin-bottom: 3px; }
         .info-item .info-val { font-size: 0.9rem; font-weight: 800; color: #1e293b; }
         .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 10px; }
+body.dark-mode { background: #111827 !important; color: #f9fafb !important; }
+body.dark-mode .stat-chip { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .filter-bar { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .filter-group select { background: #111827 !important; color: #f9fafb !important; border-color: #374151 !important; }
+body.dark-mode .table-wrap { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode thead { background: #111827 !important; color: #9ca3af !important; }
+body.dark-mode tr:hover td { background: #263449 !important; }
+body.dark-mode .modal { background: #1f2937 !important; color: #f9fafb !important; }
+body.dark-mode .chat-thread { background: #111827 !important; border-color: #374151 !important; }
+body.dark-mode .chat-msg.client { background: #1e293b !important; color: #f9fafb !important; }
+body.dark-mode .info-item { background: #111827 !important; border-color: #374151 !important; color: #d1d5db !important; }
+body.dark-mode .action-bar { background: #111827 !important; border-color: #374151 !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 <body>
 <div class="page-header">
     <h1><i class="fas fa-headset" style="margin-left:8px;"></i> الدعم الفني / الشكاوى</h1>
-    <a href="admin.html"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+    <div class="d-flex align-items-center gap-2">
+        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search"></i>
+        </button>
+        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon"></i>
+        </button>
+        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+    </div>
 </div>
 <div class="main">
     <div class="stats-bar">
@@ -99,6 +123,9 @@
         <div class="filter-group"><label>الأولوية</label><select id="fPriority" onchange="loadComplaints(1)"><option value="">الكل</option><option value="urgent">عاجلة</option><option value="high">عالية</option><option value="medium">متوسطة</option><option value="low">منخفضة</option></select></div>
         <div class="filter-group"><label>الفئة</label><select id="fCategory" onchange="loadComplaints(1)"><option value="">الكل</option><option value="late_delivery">تأخر التوصيل</option><option value="wrong_item">منتج خاطئ</option><option value="captain_behavior">سلوك الكابتن</option><option value="payment">مشكلة دفع</option><option value="app_bug">خطأ تطبيق</option><option value="other">أخرى</option></select></div>
         <button class="btn btn-primary" onclick="loadComplaints(1)"><i class="fas fa-filter"></i> تطبيق</button>
+        <button class="admin-export-btn" style="margin-right:auto;" onclick="AdminExport.tableToCSV('table', 'wajeez_complaints_report')">
+            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+        </button>
     </div>
     <div class="table-wrap">
         <table>
@@ -236,7 +263,7 @@
                 <div class="info-item"><div class="info-label">الأولوية</div><div class="info-val"><span class="badge ${priorityClass[c.priority]}">${priorityLabel[c.priority]}</span></div></div>
                 <div class="info-item" style="grid-column:1/-1;"><div class="info-label">الوصف</div><div class="info-val" style="font-weight:500;line-height:1.6;">${esc(c.description)}</div></div>`;
 
-            let actions=`<select id="prioritySelect" style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:Tajawal,sans-serif;font-size:0.85rem;background:#fff;">
+            let actions=`<select id="prioritySelect" style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:Cairo,sans-serif;font-size:0.85rem;background:#fff;">
                 <option value="low" ${c.priority==='low'?'selected':''}>🟢 منخفضة</option>
                 <option value="medium" ${c.priority==='medium'?'selected':''}>🟡 متوسطة</option>
                 <option value="high" ${c.priority==='high'?'selected':''}>🟠 عالية</option>

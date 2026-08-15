@@ -237,16 +237,27 @@
             70%  { transform: scale(2.2); opacity: 0;  }
             100% { transform: scale(2.2); opacity: 0;  }
         }
+body.dark-mode .map-header { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important; }
+body.dark-mode .map-header h1 { color: #f9fafb !important; }
+body.dark-mode .stats-panel { background: #1f2937 !important; border-color: #374151 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important; }
+body.dark-mode .stat-value { color: #f9fafb !important; }
+body.dark-mode .legend { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .search-box { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode #searchClearBtn { background: #374151 !important; color: #9ca3af !important; }
+body.dark-mode #searchDropdown { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .search-result-item { border-bottom-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .search-result-item:hover, body.dark-mode .search-result-item.highlighted { background: #1a3a2e !important; }
     </style>
 
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </head>
 <body>
 
@@ -261,7 +272,12 @@
 
     <!-- Header Panel -->
     <div class="map-header">
-        <h1><i class="fas fa-satellite-dish"></i> الخريطة المباشرة</h1>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <h1><i class="fas fa-satellite-dish"></i> الخريطة المباشرة</h1>
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي" style="width:32px;height:32px;">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
         <div id="connectionStatus">متصل</div>
         <select id="liveCitySelector" onchange="changeLiveCity()" style="margin-top: 10px; width: 100%; padding: 6px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
             <option value="Khartoum">الخرطوم - أم درمان</option>

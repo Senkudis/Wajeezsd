@@ -8,7 +8,7 @@
     <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
@@ -78,23 +78,44 @@
         .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 30px; }
         .page-btn { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-weight: 700; cursor: pointer; color: var(--text); }
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+body.dark-mode { background: #111827 !important; --surface: #1f2937; --bg: #111827; --text: #f9fafb; }
+body.dark-mode .topbar { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .filter-card { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .tl-icon { background-color: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .tl-content { background-color: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .tl-admin { background: #312e81 !important; color: #a5b4fc !important; }
+body.dark-mode .tl-desc { color: #d1d5db !important; }
+body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !important; border-color: #374151 !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 <body>
 
     <div class="topbar">
         <div class="topbar-brand">
             <span class="dot"></span>
-            لوحة التحكم / سجل النشاط
+            <i class="fas fa-history" style="color:var(--primary);margin-left:4px;"></i>
+            سجل النشاط
         </div>
-        <a href="admin.html" class="topbar-back">
-            <i class="fas fa-arrow-right"></i> العودة للرئيسية
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="admin.html" class="topbar-back">
+                <i class="fas fa-arrow-right"></i> الرئيسية
+            </a>
+        </div>
     </div>
 
     <div class="container-main">
@@ -129,6 +150,9 @@
             </div>
             <button class="btn-brand" onclick="loadLogs(1)">
                 <i class="fas fa-filter"></i> تطبيق الفلتر
+            </button>
+            <button class="admin-export-btn ms-auto" style="height:42px;" onclick="exportActivityCSV()">
+                <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
             </button>
         </div>
 
@@ -213,10 +237,30 @@
                     `;
                 }).join('');
 
+                let lastLogs = data.logs || [];
+                window._currentLogs = lastLogs;
+
             } catch (e) {
                 tl.innerHTML = '<div class="text-center text-danger" style="padding: 40px;">حدث خطأ في تحميل البيانات</div>';
             }
         }
+
+        window.exportActivityCSV = function () {
+            if (!window._currentLogs || window._currentLogs.length === 0) {
+                alert('لا توجد سجلات لتصديرها حالياً');
+                return;
+            }
+            const headers = ['العملية', 'الوصف', 'المسؤول', 'الدور', 'العنصر المتأثر', 'التاريخ والوقت'];
+            const rows = window._currentLogs.map(log => [
+                log.action,
+                log.description,
+                log.admin?.name || log.adminName || 'مجهول',
+                log.admin?.adminRole === 'super_admin' ? 'رئيسي' : 'مساعد',
+                log.targetName || '—',
+                new Date(log.createdAt).toLocaleString('ar-SD')
+            ]);
+            AdminExport.toCSV('wajeez_activity_log', headers, rows);
+        };
 
         document.addEventListener('DOMContentLoaded', () => loadLogs(1));
     </script>

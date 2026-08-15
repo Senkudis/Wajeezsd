@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
 
@@ -120,23 +120,36 @@
         }
         @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.5;} }
         .no-pending { text-align:center; padding: 24px; color: var(--muted); font-size:14px; }
+body.dark-mode { background: #111827 !important; --surface: #1f2937; --bg: #111827; --text: #f9fafb; --muted: #9ca3af; }
+body.dark-mode .topbar { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .table-custom th { background: #111827 !important; color: #9ca3af !important; border-color: #374151 !important; }
+body.dark-mode .form-control, body.dark-mode .form-select { background: #111827 !important; color: #f9fafb !important; border-color: #374151 !important; }
+body.dark-mode .req-card { background: #1c1a0f !important; border-color: #92400e !important; color: #f9fafb !important; }
+body.dark-mode .req-name { color: #f9fafb !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </head>
 <body>
 
     <div class="topbar">
         <div class="topbar-brand">
             <span class="dot"></span>
-            لوحة التحكم / الأدمن المساعد
+            <i class="fas fa-users-cog" style="color:var(--brand, var(--primary));margin-left:4px;"></i>
+            الأدمن المساعد والمشرفين
         </div>
-        <a href="admin.html" class="topbar-back">
-            <i class="fas fa-arrow-right"></i> العودة للرئيسية
-        </a>
+        <div class="d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:8px;">
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="admin.html" class="topbar-back">
+                <i class="fas fa-arrow-right"></i> الرئيسية
+            </a>
+        </div>
     </div>
 
     <div class="container-main">

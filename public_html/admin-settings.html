@@ -8,15 +8,24 @@
 
     <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-dark: #036943;
+            --primary-light: #10b981;
+            --accent: #f59e0b;
+        }
+
         html, body {
             font-family: 'Cairo', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f8fafc;
             min-height: 100vh;
             padding: 20px;
+            color: #0f172a;
         }
 
         .container {
@@ -25,9 +34,10 @@
 
         .settings-card {
             background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            padding: 36px 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
         }
 
         @media (max-width: 768px) {
@@ -44,30 +54,35 @@
         }
 
         .settings-card h1 {
-            color: var(--secondary);
-            margin-bottom: 10px;
+            color: #0f172a;
+            margin-bottom: 6px;
+            font-weight: 800;
+            font-size: 1.4rem;
         }
 
         .form-label {
-            font-weight: 600;
-            color: var(--secondary);
+            font-weight: 700;
+            color: #334155;
             margin-bottom: 8px;
+            font-size: 0.9rem;
         }
 
         .form-control {
             border-radius: 10px;
-            border: 2px solid #e0e0e0;
-            padding: 12px 15px;
-            transition: all 0.3s;
+            border: 1.5px solid #e2e8f0;
+            padding: 10px 14px;
+            transition: all 0.2s;
+            background: #f8fafc;
         }
 
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(4, 140, 91, 0.15);
+            background: #fff;
         }
 
         .btn-save {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, #0A6E47 100%);
             border: none;
             padding: 12px 40px;
             border-radius: 25px;
@@ -78,61 +93,118 @@
 
         .btn-save:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 20px rgba(4, 140, 91, 0.35);
         }
 
         .info-box {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 15px;
+            background: #f0fdf4;
+            border-right: 4px solid var(--primary);
+            border-left: none;
+            padding: 14px 16px;
             border-radius: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
+            color: #166534;
         }
 
         .back-btn {
             background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            padding: 10px 25px;
+            color: var(--primary);
+            border: 1.5px solid #e2e8f0;
+            padding: 8px 20px;
             border-radius: 25px;
             font-weight: bold;
             text-decoration: none;
-            display: inline-block;
-            margin-bottom: 20px;
-            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
         }
 
         .back-btn:hover {
-            background: #667eea;
+            background: var(--primary);
             color: white;
+            border-color: var(--primary);
         }
 
         .input-group-text {
-            background: #f8f9fa;
-            border: 2px solid #e0e0e0;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
             border-left: none;
         }
+
+        /* 🌙 Dark Mode overrides for admin-settings.html */
+        body.dark-mode {
+            background: #111827 !important;
+            color: #f9fafb !important;
+        }
+
+        body.dark-mode .settings-card {
+            background: #1f2937 !important;
+            color: #f9fafb !important;
+            border-color: #374151 !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+        }
+
+        body.dark-mode .settings-card h1 {
+            color: #f9fafb !important;
+        }
+
+        body.dark-mode .info-box {
+            background: #111827 !important;
+            border-right-color: var(--primary) !important;
+            color: #86efac !important;
+        }
+
+        body.dark-mode .back-btn {
+            background: #1f2937 !important;
+            color: #9ca3af !important;
+            border-color: #374151 !important;
+        }
+
+        body.dark-mode .back-btn:hover {
+            background: var(--primary) !important;
+            color: #fff !important;
+            border-color: var(--primary) !important;
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .form-select,
+        body.dark-mode #citySelector {
+            background: #111827 !important;
+            color: #f9fafb !important;
+            border-color: #374151 !important;
+        }
+
+        body.dark-mode .input-group-text {
+            background: #1e293b !important;
+            border-color: #374151 !important;
+            color: #9ca3af !important;
+        }
+
+        body.dark-mode .form-label {
+            color: #d1d5db !important;
+        }
     </style>
-    <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
-    <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
-    <script src="js/auth-helper.js?v=bf5c4a16"></script>
-    <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </head>
 
 <body>
     <div class="container">
-        <a href="admin.html" class="back-btn">
-            <i class="bi bi-arrow-right"></i> العودة للوحة التحكم
-        </a>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <a href="admin.html" class="back-btn">
+                <i class="fas fa-arrow-right"></i> العودة للوحة التحكم
+            </a>
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
 
         <div class="settings-card">
-            <h1><i class="bi bi-gear-fill text-primary"></i> إعدادات الأسعار الديناميكية</h1>
+            <h1><i class="fas fa-cog" style="color:var(--primary);"></i> إعدادات الأسعار الديناميكية</h1>
             <p class="text-muted">تحكم في أسعار الرحلات بدون تعديل الكود</p>
 
             <div class="info-box">
@@ -231,17 +303,17 @@
 
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-tag"></i> أحدث إصدار (مثال: 1.1.2)
+                            <i class="bi bi-tag"></i> أحدث إصدار (مثال: 1.2.1)
                         </label>
-                        <input type="text" id="appVersion" class="form-control" placeholder="1.1.2" required>
+                        <input type="text" id="appVersion" class="form-control" placeholder="1.2.1" required>
                         <small class="text-muted">أحدث إصدار متوفر</small>
                     </div>
 
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-shield-lock"></i> الحد الأدنى للإصدار (مثال: 1.1.2)
+                            <i class="bi bi-shield-lock"></i> الحد الأدنى للإصدار (مثال: 1.2.1)
                         </label>
-                        <input type="text" id="minVersion" class="form-control" placeholder="1.1.2" required>
+                        <input type="text" id="minVersion" class="form-control" placeholder="1.2.1" required>
                         <small class="text-muted">الإصدارات الأقدم ستجبر على التحديث</small>
                     </div>
 
@@ -414,10 +486,10 @@
         </div>
     </div>
 
-    <script src="js/admin-settings.js?v=12101efa"></script>
+    <script src="js/admin-settings.js?v=06d13a63"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script type="module" src="js/app-core.js?v=742cf357"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
 </body>
 
 </html>

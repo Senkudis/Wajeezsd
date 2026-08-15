@@ -8,7 +8,7 @@
     <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
@@ -212,12 +212,25 @@
             .section-card-body { padding: 16px; }
             .pay-table th, .pay-table td { padding: 10px 12px; font-size: 13px; }
         }
+body.dark-mode { background: #111827 !important; --surface: #1f2937; --bg: #111827; --text: #f9fafb; --muted: #9ca3af; }
+body.dark-mode .topbar { background: #1f2937 !important; border-color: #374151 !important; }
+body.dark-mode .kpi-card { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .section-card { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .field-input { background: #111827 !important; color: #f9fafb !important; border-color: #374151 !important; }
+body.dark-mode .pill { background: #1f2937 !important; color: #9ca3af !important; border-color: #374151 !important; }
+body.dark-mode .btn-ghost { background: #1f2937 !important; color: #9ca3af !important; border-color: #374151 !important; }
+body.dark-mode .pay-table thead tr { background: #111827 !important; color: #9ca3af !important; }
+body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 <body>
 
@@ -225,11 +238,20 @@
 <header class="topbar">
     <div class="topbar-brand">
         <span class="dot"></span>
-        <span>وجيز · سجل المديونيات</span>
+        <i class="fas fa-file-invoice-dollar" style="color:var(--primary);margin-left:4px;"></i>
+        <span>سجل المديونيات</span>
     </div>
-    <a href="admin-finance.html" class="topbar-back">
-        <i class="fas fa-arrow-right"></i> رجوع للمالية
-    </a>
+    <div class="d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:8px;">
+        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search"></i>
+        </button>
+        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon"></i>
+        </button>
+        <a href="admin-finance.html" class="topbar-back">
+            <i class="fas fa-arrow-right"></i> المالية
+        </a>
+    </div>
 </header>
 
 <div class="page-wrap">
@@ -239,7 +261,7 @@
         <p>عرض كامل لكل عمليات تعديل أرصدة الكباتن من الإدارة، مع التأثير على الأرباح.</p>
     </div>
 
-    <!-- KPIs -->
+    <!-- KPIS -->
     <div class="kpi-grid">
         <div class="kpi-card green">
             <div class="kpi-icon green"><i class="fas fa-plus-circle"></i></div>
@@ -273,6 +295,9 @@
             <h2><i class="fas fa-filter"></i> الفلاتر</h2>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button class="btn-ghost" onclick="resetFilters()"><i class="fas fa-undo"></i> إعادة تعيين</button>
+                <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.pay-table', 'wajeez_debt_history')">
+                    <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                </button>
                 <button class="btn-brand" onclick="applyFilters()"><i class="fas fa-search"></i> تطبيق</button>
             </div>
         </div>

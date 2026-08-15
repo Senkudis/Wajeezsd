@@ -13,23 +13,23 @@
             --accent: #f59e0b;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }
+        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; color: #1e293b; min-height: 100vh; }
 
         .page-header {
             background: linear-gradient(135deg, var(--primary) 0%, #0A6E47 100%);
-            padding: 20px 24px;
+            padding: 16px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 4px 20px rgba(10,135,84,.25);
         }
-        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
-        .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+        .page-header h1 { color: #fff; font-size: 1.2rem; font-weight: 800; }
+        .page-header a { color: rgba(255,255,255,.9); text-decoration: none; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; transition: color .2s; }
         .page-header a:hover { color: #fff; }
 
         .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
 
-        .btn { padding: 10px 20px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; }
+        .btn { padding: 10px 20px; border: none; border-radius: 10px; font-family: 'Cairo', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all .2s; }
         .btn-primary { background: var(--primary); color: #fff; }
         .btn-primary:hover { background: #033A27; transform: translateY(-1px); }
         .btn-danger  { background: #ef4444; color: #fff; }
@@ -115,7 +115,7 @@
             padding: 10px 14px;
             border: 1.5px solid #e2e8f0;
             border-radius: 10px;
-            font-family: 'Tajawal', sans-serif;
+            font-family: 'Cairo', sans-serif;
             font-size: 0.95rem;
             color: #1e293b;
             transition: border-color .2s;
@@ -138,17 +138,37 @@
         .empty-state p { font-size: 1rem; }
 
         .sort-badge { background: var(--primary); color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; }
+body.dark-mode { background: #111827 !important; color: #f9fafb !important; }
+body.dark-mode .banner-card { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .banner-img { background: #111827 !important; border-color: #374151 !important; }
+body.dark-mode .banner-title { color: #f9fafb !important; }
+body.dark-mode .badge-gray { background: #374151 !important; color: #9ca3af !important; }
+body.dark-mode .modal { background: #1f2937 !important; color: #f9fafb !important; }
+body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !important; border-color: #374151 !important; }
+body.dark-mode .toggle-row { background: #111827 !important; border-color: #374151 !important; color: #d1d5db !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 <body>
 <div class="page-header">
     <h1><i class="fas fa-images" style="margin-left:8px;"></i> إدارة البانرات الإعلانية</h1>
-    <a href="admin.html"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+    <div class="d-flex align-items-center gap-2">
+        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search"></i>
+        </button>
+        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon"></i>
+        </button>
+        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+    </div>
 </div>
 
 <div class="main">

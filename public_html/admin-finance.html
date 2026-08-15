@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
@@ -455,11 +455,15 @@
             .kpi-grid { grid-template-columns: 1fr; }
         }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 <body>
 
@@ -470,6 +474,12 @@
         الإدارة المالية والمحافظ
     </div>
     <div class="topbar-actions">
+        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search"></i>
+        </button>
+        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon"></i>
+        </button>
         <a href="admin.html" class="topbar-back">
             <i class="fas fa-arrow-right"></i> لوحة التحكم
         </a>
@@ -590,6 +600,9 @@
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
+                    <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.pay-table', 'wajeez_payments_report')">
+                        <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                    </button>
                 </div>
             </div>
             <div class="table-wrap">

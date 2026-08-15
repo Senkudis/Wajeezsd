@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منسق مناطق التوصيل | الإدارة</title>
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <style>
         :root {
@@ -22,13 +23,15 @@
             flex-direction: column; 
         }
         .header { 
-            background: var(--primary); 
+            background: linear-gradient(135deg, var(--primary) 0%, #0A6E47 100%); 
             color: white; 
-            padding-top: calc(15px + var(--sat, env(safe-area-inset-top, 0px)));
+            padding-top: calc(12px + var(--sat, env(safe-area-inset-top, 0px)));
             padding-right: 20px;
-            padding-bottom: 15px;
+            padding-bottom: 12px;
             padding-left: 20px;
-            text-align: center; 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 10;
         }
@@ -137,16 +140,29 @@
             #admin-map { height: 50vh; }
             textarea { height: 100px; }
         }
+body.dark-mode { background: #111827 !important; }
+body.dark-mode .side-panel { background: #1f2937 !important; border-right-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode textarea { background: #111827 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode textarea:focus { background: #0f172a !important; border-color: #10b981 !important; }
+body.dark-mode #zone-draw-status { background: #111827 !important; border-color: #374151 !important; color: #9ca3af !important; }
+body.dark-mode .instructions { background: #1c1a0f !important; border-color: #92400e !important; color: #fde68a !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </head>
 <body>
     <div class="header">
-        <h4 class="mb-0">منسق مناطق التوصيل (Geofence Builder)</h4>
+        <h4 class="mb-0" style="font-size:1.1rem;font-weight:800;"><i class="fas fa-draw-polygon me-2"></i> منسق مناطق التوصيل</h4>
+        <div class="d-flex align-items-center gap-2">
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+        </div>
     </div>
     
     <div class="container-fluid">
@@ -207,7 +223,7 @@
     <!-- Dependencies -->
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <!-- Admin Logic -->

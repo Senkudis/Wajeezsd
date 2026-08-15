@@ -15,10 +15,10 @@
             --accent: #f59e0b;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Tajawal', sans-serif; background: #f1f5f9; color: #1e293b; }
-        .page-header { background: linear-gradient(135deg, var(--primary), #0A6E47); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
-        .page-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; }
-        .page-header a { color: rgba(255,255,255,.85); text-decoration: none; font-size: .9rem; display: flex; align-items: center; gap: 6px; }
+        body { font-family: 'Cairo', sans-serif; background: #f1f5f9; color: #1e293b; }
+        .page-header { background: linear-gradient(135deg, var(--primary), #0A6E47); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(10,135,84,.25); }
+        .page-header h1 { color: #fff; font-size: 1.2rem; font-weight: 800; }
+        .page-header a { color: rgba(255,255,255,.9); text-decoration: none; font-size: .88rem; display: flex; align-items: center; gap: 6px; }
         .main { max-width: 1100px; margin: 0 auto; padding: 20px 14px 60px; }
         .notice { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 12px; padding: 11px 14px; font-size: .85rem; margin-bottom: 16px; display: flex; gap: 9px; align-items: flex-start; }
         .row-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: box-shadow .15s, transform .15s; }
@@ -43,23 +43,35 @@
         .modal-overlay.active { display: flex; }
         .modal { background: #fff; border-radius: 18px; padding: 18px; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; }
         .modal h2 { font-size: 1.05rem; margin-bottom: 12px; }
-        .btn { padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Tajawal', sans-serif; font-weight: 700; font-size: .9rem; cursor: pointer; }
+        .btn { padding: 9px 18px; border: none; border-radius: 10px; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: .9rem; cursor: pointer; }
         .btn-close { background: #f1f5f9; color: #475569; }
         .btn-danger { background: #fee2e2; color: #b91c1c; }
         .btn-danger:hover { background: #fecaca; }
         .btn:disabled { opacity: .55; cursor: default; }
+body.dark-mode { background: #111827 !important; color: #f9fafb !important; }
+body.dark-mode .notice { background: #1c1a0f !important; border-color: #92400e !important; color: #fde68a !important; }
+body.dark-mode .row-card { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; }
+body.dark-mode .thread { background: #111827 !important; border-color: #374151 !important; }
+body.dark-mode .modal { background: #1f2937 !important; color: #f9fafb !important; }
+body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </head>
 
 <body>
     <div class="page-header">
         <h1><i class="fas fa-comments"></i> المحادثات</h1>
-        <a href="admin.html"><i class="fas fa-arrow-right"></i> لوحة التحكم</a>
+        <div class="d-flex align-items-center gap-2">
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+        </div>
     </div>
 
     <div class="main">

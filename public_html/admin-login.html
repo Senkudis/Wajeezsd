@@ -420,44 +420,91 @@
             }
         }
 
-        /* 🌙 دعم الوضع الداكن التلقائي */
-        body.dark-mode .login-box,
-        @media (prefers-color-scheme: dark) {
-            .login-box {
-                background: rgba(15, 23, 42, 0.92);
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-            }
-            h2 {
-                color: #f8fafc;
-            }
-            .subtitle {
-                color: #94a3b8;
-            }
-            input {
-                background: #1e293b;
-                border-color: #334155;
-                color: #f8fafc;
-            }
-            input:focus {
-                background: #0f172a;
-            }
-            .input-group i,
-            .toggle-password {
-                color: #64748b;
-            }
-            .divider {
-                border-top-color: #334155;
-            }
-            .back-link {
-                color: #94a3b8;
-            }
-            .back-link:hover {
-                color: #f8fafc;
-            }
-            .error {
-                background: #450a0a;
-                color: #fca5a5;
-            }
+        /* 🌙 دعم الوضع الداكن الشامل */
+        body.dark-mode {
+            background: linear-gradient(135deg, #042f1f 0%, #09131d 50%, #030712 100%) !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .login-box {
+            background: #1e293b !important;
+            background-color: #1e293b !important;
+            border: 1px solid #334155 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode h2,
+        body.dark-mode .login-box h2 {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .subtitle,
+        body.dark-mode .login-box .subtitle {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode input,
+        body.dark-mode .login-box input {
+            background: #0f172a !important;
+            border: 1.5px solid #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode input:focus,
+        body.dark-mode .login-box input:focus {
+            background: #0f172a !important;
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+        }
+
+        body.dark-mode .input-group i,
+        body.dark-mode .toggle-password {
+            color: #10b981 !important;
+        }
+
+        body.dark-mode .divider {
+            border-top-color: #334155 !important;
+        }
+
+        body.dark-mode .back-link {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode .back-link:hover {
+            color: #34d399 !important;
+        }
+
+        body.dark-mode .error {
+            background: #450a0a !important;
+            color: #fca5a5 !important;
+        }
+
+        .header-theme-toggle {
+            background: #f1f5f9;
+            border: 1.5px solid #e2e8f0;
+            color: #475569;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .header-theme-toggle:hover {
+            background: #e2e8f0;
+            transform: scale(1.05);
+        }
+
+        body.dark-mode .header-theme-toggle {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        .theme-toggle {
+            display: none !important;
         }
     </style>
     <!-- Mobile App Overrides -->
@@ -467,10 +514,11 @@
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=661bf31f">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </head>
 
 <body>
@@ -488,13 +536,16 @@
     </div>
 
     <div class="login-container">
-        <div class="login-box">
+        <div class="login-box" style="position:relative;">
+            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي" style="position:absolute;top:18px;left:18px;width:36px;height:36px;">
+                <i class="fas fa-moon"></i>
+            </button>
             <div class="logo-container">
                 <div class="logo-icon">
-                    <i class="fas fa-crown"></i>
+                    <i class="fas fa-user-shield"></i>
                 </div>
-                <h2>لوحة التحكم</h2>
-                <p class="subtitle">تسجيل دخول المدير / الأدمن المساعد</p>
+                <h2>وَجِـيـز · الإدارة</h2>
+                <p class="subtitle">تسجيل دخول المدير والمشرفين</p>
             </div>
 
             <form id="loginForm">
@@ -796,8 +847,8 @@
     <!-- Auth Helper already loaded in head -->
     <script src="js/admin-web-push.js?v=7c56c6b8"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script type="module" src="js/app-core.js?v=742cf357"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
 </body>
 
 </html>
