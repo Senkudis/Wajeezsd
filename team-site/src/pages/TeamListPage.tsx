@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Api, type TeamMember } from '../api';
 import Avatar from '../components/Avatar';
 import Layout from '../components/Layout';
-import { IconAlert } from '../components/icons';
+import { IconAlert, IconUsers } from '../components/icons';
 
 const PAGE_LIMIT = 24;
 
@@ -55,9 +55,17 @@ export default function TeamListPage() {
       <main className="container">
         <div className="hero">
           <h1 className="hero__title">فريق وجيز</h1>
+          <div className="hero__rule" />
           <p className="hero__subtitle">
             الأعضاء المعتمدون رسمياً — امسح رمز البطاقة للتحقق من أي عضو
           </p>
+          {status === 'ready' && total > 0 && (
+            <span className="hero__count">
+              <span className="hero__dot" />
+              <IconUsers />
+              {total} عضو معتمد
+            </span>
+          )}
         </div>
 
         {departments.length > 1 && (
@@ -65,15 +73,17 @@ export default function TeamListPage() {
             <button
               type="button"
               className={department === '' ? 'chip chip--active' : 'chip'}
+              style={{ '--i': 0 } as CSSProperties}
               onClick={() => selectDepartment('')}
             >
               الكل
             </button>
-            {departments.map((dept) => (
+            {departments.map((dept, index) => (
               <button
                 key={dept}
                 type="button"
                 className={department === dept ? 'chip chip--active' : 'chip'}
+                style={{ '--i': index + 1 } as CSSProperties}
                 onClick={() => selectDepartment(dept)}
               >
                 {dept}
@@ -85,7 +95,7 @@ export default function TeamListPage() {
         {status === 'loading' && (
           <div className="grid" aria-busy="true" aria-label="جارٍ التحميل">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="skeleton" />
+              <div key={i} className="skeleton" style={{ animationDelay: `${i * 90}ms` } as CSSProperties} />
             ))}
           </div>
         )}
@@ -113,8 +123,13 @@ export default function TeamListPage() {
         {status === 'ready' && items.length > 0 && (
           <>
             <div className="grid">
-              {items.map((member) => (
-                <Link key={member.publicId} to={`/m/${member.publicId}`} className="member">
+              {items.map((member, index) => (
+                <Link
+                  key={member.publicId}
+                  to={`/m/${member.publicId}`}
+                  className="member"
+                  style={{ '--i': index } as CSSProperties}
+                >
                   <Avatar src={member.imageUrl} alt={member.name} className="member__avatar" />
                   <h2 className="member__name">{member.name}</h2>
                   {member.jobTitle && <p className="member__title">{member.jobTitle}</p>}

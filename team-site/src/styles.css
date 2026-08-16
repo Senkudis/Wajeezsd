@@ -32,6 +32,15 @@
   --shadow-sm: 0 1px 2px rgba(15, 28, 23, 0.06), 0 2px 8px rgba(15, 28, 23, 0.04);
   --shadow: 0 4px 16px rgba(15, 28, 23, 0.08);
   --shadow-lg: 0 12px 40px rgba(15, 28, 23, 0.12);
+  --shadow-brand: 0 10px 30px rgba(4, 140, 91, 0.22);
+
+  /* منحنيات الحركة: ease-out قوي للدخول (يصل بسرعة ثم يستقر) وspring خفيف
+     للتفاعل. القيم موحّدة هنا لا مكرّرة في كل قاعدة، فالإيقاع واحد عبر الموقع. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --dur-fast: 0.18s;
+  --dur: 0.32s;
+  --dur-slow: 0.6s;
 
   /* المسافة الآمنة على الأيفون — max() تضمن حداً أدنى على الأجهزة التي تُرجع 0 */
   --safe-top: max(16px, env(safe-area-inset-top));
@@ -60,6 +69,19 @@ body {
   overflow-x: hidden;
 }
 
+/* هالتان خضراوان ثابتتان خلف الصفحة تكسران بياض الخلفية بلا صورة ولا طلب شبكة.
+   fixed لا absolute: تبقيان مكانهما أثناء التمرير فلا تتحرّك الخلفية مع المحتوى. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(58vw 42vw at 82% -8%, rgba(16, 185, 129, 0.16), transparent 62%),
+    radial-gradient(50vw 40vw at 8% 4%, rgba(4, 140, 91, 0.11), transparent 60%);
+}
+
 img {
   max-width: 100%;
   display: block;
@@ -73,6 +95,65 @@ a {
 button {
   font-family: inherit;
 }
+
+/* ── مكتبة الحركة ────────────────────────────────────────── */
+/* كل حركة هنا `both` لتبدأ من حالتها الأولى قبل انطلاق التأخير — بدونها
+   يومض العنصر ظاهراً ثم يقفز إلى بدايته، وهو أسوأ من غياب الحركة أصلاً. */
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes riseInSmall {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.82); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(26px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* وميض يمرّ مرّة واحدة فوق شريط البطاقة — يوحي ببريق بطاقة مطبوعة */
+@keyframes sheen {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(320%) skewX(-18deg); }
+}
+
+/* حلقة تتمدّد وتتلاشى حول صورة العضو: تأكيد لحظة التحقّق، مرّتان ثم تتوقف */
+@keyframes ringOut {
+  0% { opacity: 0.55; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.32); }
+}
+
+/* رسم علامة الصح بدل إظهارها دفعةً واحدة */
+@keyframes drawStroke {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* ــ التدرّج الزمني ــ
+   عنصر يحمل --i يتأخّر بمقداره. السقف عند 10 مقصود: قائمة من ٥٠ عضواً
+   بتأخير تراكمي تجعل آخر بطاقة تظهر بعد ثانيتين — يبدو تعطّلاً لا حركة.
+
+   ⚠️ يُكتب `animation-delay` داخل قاعدة كل عنصر بعد اختصار `animation`، لا في
+   قاعدة عامة مشتركة: الاختصار يصفّر التأخير، وقاعدة عامة سابقة له تُدهَس بصمت
+   فتظهر البطاقات كلها دفعةً واحدة بلا تدرّج. */
 
 /* ── هيكل الصفحة ─────────────────────────────────────────── */
 
@@ -95,11 +176,19 @@ button {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid transparent;
   padding-top: var(--safe-top);
+  transition: border-color var(--dur) ease, box-shadow var(--dur) ease,
+              background var(--dur) ease;
+}
+
+/* الحدّ والظل يظهران فقط بعد التمرير — شريطٌ عائم فوق محتوى ثابت يبدو ملصقاً */
+.topbar--scrolled {
+  border-bottom-color: var(--line);
+  box-shadow: 0 4px 20px rgba(15, 28, 23, 0.06);
 }
 
 .topbar__inner {
@@ -142,31 +231,98 @@ button {
   color: var(--brand-dark);
   font-size: 13px;
   font-weight: 700;
-  transition: background 0.18s ease;
+  transition: background var(--dur-fast) ease, transform var(--dur-fast) var(--ease-spring);
+}
+
+.topbar__link svg {
+  transition: transform var(--dur) var(--ease-out);
+}
+
+/* السهم يزحف نحو الجهة التي يعود إليها — الاتجاه RTL فالعودة يميناً */
+.topbar__link:hover svg {
+  transform: translateX(3px);
 }
 
 .topbar__link:active {
   background: #d8ece1;
+  transform: scale(0.96);
+}
+
+.topbar__logo {
+  transition: transform var(--dur) var(--ease-spring);
+}
+
+.topbar__brand:active .topbar__logo {
+  transform: scale(0.94);
 }
 
 /* ── ترويسة الصفحة ───────────────────────────────────────── */
 
 .hero {
-  padding: 28px 0 20px;
+  padding: 34px 0 22px;
   text-align: center;
 }
 
 .hero__title {
-  margin: 0 0 6px;
-  font-size: clamp(22px, 6vw, 30px);
+  margin: 0 0 8px;
+  font-size: clamp(24px, 6.5vw, 34px);
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  animation: riseIn var(--dur-slow) var(--ease-out) both;
+}
+
+/* خط تحته ينمو من الوسط — إشارة بدء هادئة تُنهي حركة الدخول */
+.hero__rule {
+  width: 56px;
+  height: 3px;
+  margin: 0 auto 12px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-light));
+  transform-origin: center;
+  animation: growRule 0.7s var(--ease-out) 0.22s both;
+}
+
+@keyframes growRule {
+  from { transform: scaleX(0); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
 }
 
 .hero__subtitle {
   margin: 0;
   color: var(--ink-muted);
   font-size: 14px;
+  animation: riseIn var(--dur-slow) var(--ease-out) 0.1s both;
+}
+
+.hero__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  animation: popIn 0.5s var(--ease-spring) 0.3s both;
+}
+
+/* نبضة حيّة صغيرة بجانب العدد */
+.hero__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-light);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: livePulse 2.4s ease-out infinite;
+}
+
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  70%, 100% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
 }
 
 /* ── شريط الأقسام ────────────────────────────────────────── */
@@ -196,18 +352,28 @@ button {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease,
+              background var(--dur-fast) ease, transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-fast) ease;
+  animation: riseInSmall 0.45s var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 45ms);
 }
 
 .chip:hover {
   border-color: var(--brand-light);
   color: var(--brand-dark);
+  transform: translateY(-1px);
+}
+
+.chip:active {
+  transform: scale(0.96);
 }
 
 .chip--active {
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
+  box-shadow: var(--shadow-brand);
 }
 
 .chip--active:hover {
@@ -237,6 +403,7 @@ button {
 }
 
 .member {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -247,17 +414,38 @@ button {
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   text-align: center;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  overflow: hidden;
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) ease,
+              border-color var(--dur) ease;
+  animation: riseIn 0.55s var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 45ms);
+}
+
+/* توهّج يتبع أعلى البطاقة عند التمرير — طبقة منفصلة كي لا تُعاد رسمة الخلفية */
+.member::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.09), transparent 55%);
+  opacity: 0;
+  transition: opacity var(--dur) ease;
+  pointer-events: none;
 }
 
 .member:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow);
   border-color: var(--brand-light);
 }
 
+.member:hover::before {
+  opacity: 1;
+}
+
 .member:active {
-  transform: translateY(0);
+  transform: translateY(-1px) scale(0.985);
+  transition-duration: var(--dur-fast);
 }
 
 .member__avatar {
@@ -268,6 +456,12 @@ button {
   background: var(--surface-alt);
   border: 2px solid var(--surface);
   box-shadow: 0 0 0 2px var(--brand-soft);
+  transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur) ease;
+}
+
+.member:hover .member__avatar {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px var(--brand-light);
 }
 
 .member__name {
@@ -320,11 +514,25 @@ button {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  animation: cardIn 0.62s var(--ease-out) both;
 }
 
 .card__banner {
+  position: relative;
   height: 96px;
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%);
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 55%, #34d399 100%);
+}
+
+/* بريق يمرّ مرّة واحدة عبر الشريط عند فتح البطاقة */
+.card__banner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  animation: sheen 1.5s var(--ease-out) 0.35s both;
 }
 
 .card__body {
@@ -332,7 +540,7 @@ button {
   text-align: center;
 }
 
-.card__avatar {
+.card__avatar-wrap {
   /* الصورة تتداخل مع الشريط العلوي بنصفها — z-index صريح لأن أي عنصر
      مُموضَع في البطاقة يُرسم فوق الصور الساكنة فيبتلع نصفها */
   position: relative;
@@ -340,6 +548,24 @@ button {
   width: 116px;
   height: 116px;
   margin: -58px auto 14px;
+  animation: popIn 0.55s var(--ease-spring) 0.14s both;
+}
+
+/* حلقتان تتمدّدان وتتلاشيان: تأكيد بصري للحظة التحقّق، ثم تختفيان
+   نهائياً (forwards) — نبضٌ دائم خلف صورة شخص يشتّت لا يطمئن. */
+.card__avatar-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-light);
+  opacity: 0;
+  animation: ringOut 1.5s var(--ease-out) 0.5s 2 forwards;
+  pointer-events: none;
+}
+
+.card__avatar {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   background: var(--surface-alt);
@@ -352,6 +578,7 @@ button {
   font-size: 21px;
   font-weight: 800;
   line-height: 1.35;
+  animation: riseIn 0.5s var(--ease-out) 0.24s both;
 }
 
 .card__titles {
@@ -366,6 +593,8 @@ button {
   font-size: 15px;
   font-weight: 700;
   color: var(--brand-dark);
+  animation: riseInSmall 0.45s var(--ease-out) both;
+  animation-delay: calc(0.32s + min(var(--i, 0), 4) * 60ms);
 }
 
 .card__title--secondary {
@@ -382,6 +611,7 @@ button {
   color: var(--brand-dark);
   font-size: 12px;
   font-weight: 700;
+  animation: popIn 0.45s var(--ease-spring) 0.44s both;
 }
 
 .card__verified {
@@ -392,15 +622,29 @@ button {
   margin-top: 20px;
   padding: 12px;
   border-radius: var(--radius-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--line);
+  background: linear-gradient(135deg, var(--surface-alt), #eef7f2);
+  border: 1px solid #d6e9df;
   color: var(--brand-dark);
   font-size: 13px;
   font-weight: 700;
+  animation: riseIn 0.5s var(--ease-out) 0.54s both;
 }
 
 .card__verified svg {
   flex: 0 0 auto;
+}
+
+/* علامة الصح تُرسم بدل أن تظهر — الفرق بين "شارة مطبوعة" و"تحقّق يحدث الآن" */
+.card__check-path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: drawStroke 0.5s var(--ease-out) 0.8s both;
+}
+
+.card__shield-path {
+  stroke-dasharray: 62;
+  stroke-dashoffset: 62;
+  animation: drawStroke 0.7s var(--ease-out) 0.6s both;
 }
 
 .card__note {
@@ -408,6 +652,7 @@ button {
   font-size: 12px;
   line-height: 1.7;
   color: var(--ink-faint);
+  animation: fadeIn 0.6s ease 0.9s both;
 }
 
 /* ── أزرار التواصل ───────────────────────────────────────── */
@@ -418,7 +663,16 @@ button {
   margin-top: 16px;
 }
 
+.actions .btn {
+  animation: riseIn 0.5s var(--ease-out) both;
+}
+
+.actions .btn:nth-child(1) { animation-delay: 0.66s; }
+.actions .btn:nth-child(2) { animation-delay: 0.74s; }
+
 .btn {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -430,22 +684,38 @@ button {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: filter 0.18s ease, background 0.18s ease;
+  transition: transform var(--dur-fast) var(--ease-spring), filter var(--dur-fast) ease,
+              box-shadow var(--dur) ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
 }
 
 .btn:active {
+  transform: translateY(0) scale(0.975);
   filter: brightness(0.94);
 }
 
 .btn--primary {
-  background: var(--brand);
+  background: linear-gradient(135deg, var(--brand), var(--brand-light));
   color: #fff;
+  box-shadow: var(--shadow-brand);
+}
+
+.btn--primary:hover {
+  box-shadow: 0 14px 34px rgba(4, 140, 91, 0.3);
 }
 
 .btn--ghost {
   background: var(--surface);
   border-color: var(--line);
   color: var(--ink);
+}
+
+.btn--ghost:hover {
+  border-color: var(--brand-light);
+  color: var(--brand-dark);
 }
 
 /* ── الحالات: تحميل، خطأ، فراغ ───────────────────────────── */
@@ -460,6 +730,12 @@ button {
   padding: 64px 24px;
   text-align: center;
   color: var(--ink-muted);
+  animation: riseIn 0.5s var(--ease-out) both;
+}
+
+/* الأيقونة تطفو ببطء: تُبقي الشاشة الفارغة حيّة دون أن تسحب الانتباه */
+.state > svg {
+  animation: floatSlow 3.4s ease-in-out infinite;
 }
 
 .spinner {
@@ -492,13 +768,23 @@ button {
   }
 }
 
+/* احترام تفضيل تقليل الحركة — قاعدة شاملة لا قائمة محدَّثة يدوياً.
+   الحركة هنا زينة بالكامل: لا شيء منها يحمل معنى يضيع بإلغائها، ومن يفعّل
+   هذا التفضيل غالباً يفعله لسببٍ طبي (دوار حركي) لا لتفضيل جمالي. */
 @media (prefers-reduced-motion: reduce) {
-  .spinner,
-  .skeleton {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-  .member {
-    transition: none;
+  /* المسارات المرسومة تُلغى دفعةً واحدة وإلا بقيت مخفيّة بلا حركة تُظهرها */
+  .card__check-path,
+  .card__shield-path {
+    stroke-dashoffset: 0;
   }
 }
 
@@ -535,6 +821,19 @@ button {
   font-weight: 700;
   color: var(--ink);
   cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring),
+              border-color var(--dur-fast) ease, color var(--dur-fast) ease,
+              opacity var(--dur-fast) ease;
+}
+
+.pager__btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+.pager__btn:not(:disabled):active {
+  transform: translateY(0) scale(0.97);
 }
 
 .pager__btn:disabled {
@@ -584,6 +883,20 @@ button {
   font-size: 13px;
   font-weight: 700;
   color: var(--ink);
+  transition: transform var(--dur-fast) var(--ease-spring),
+              border-color var(--dur-fast) ease, color var(--dur-fast) ease,
+              background var(--dur-fast) ease;
+}
+
+.footer__link:hover {
+  transform: translateY(-2px);
+  background: var(--surface);
+  border-color: var(--brand-light);
+  color: var(--brand-dark);
+}
+
+.footer__link:active {
+  transform: translateY(0) scale(0.97);
 }
 
 .footer__copy {

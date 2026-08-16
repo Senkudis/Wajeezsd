@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Api, ApiError, type TeamMember } from '../api';
@@ -92,14 +92,23 @@ export default function MemberCardPage() {
           <article className="card">
             <div className="card__banner" />
             <div className="card__body">
-              <Avatar src={member.imageUrl} alt={member.name} className="card__avatar" />
+              <div className="card__avatar-wrap">
+                {/* حلقتان بتأخير مختلف تُنتجان موجتين متتاليتين لا نبضة واحدة */}
+                <span className="card__avatar-ring" aria-hidden="true" />
+                <span className="card__avatar-ring" style={{ animationDelay: '1.1s' }} aria-hidden="true" />
+                <Avatar src={member.imageUrl} alt={member.name} className="card__avatar" />
+              </div>
 
               <h1 className="card__name">{member.name}</h1>
 
               {member.jobTitles.length > 0 && (
                 <div className="card__titles">
                   {member.jobTitles.map((title, index) => (
-                    <p key={title} className={index === 0 ? 'card__title' : 'card__title card__title--secondary'}>
+                    <p
+                      key={title}
+                      className={index === 0 ? 'card__title' : 'card__title card__title--secondary'}
+                      style={{ '--i': index } as CSSProperties}
+                    >
                       {title}
                     </p>
                   ))}

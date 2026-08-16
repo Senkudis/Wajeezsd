@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { BRAND_NAME, MAIN_SITE_URL, SUPPORT_PHONE, SUPPORT_WHATSAPP } from '../config';
@@ -17,9 +17,20 @@ export default function Layout({
   children: ReactNode;
   showBackLink?: boolean;
 }) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    // passive: مستمع تمرير غير passive يمنع المتصفح من تمرير الصفحة قبل تنفيذه،
+    // فيبدو التمرير متقطّعاً على الهاتف.
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <div className="shell">
-      <header className="topbar">
+      <header className={scrolled ? 'topbar topbar--scrolled' : 'topbar'}>
         <div className="container topbar__inner">
           <Link to="/" className="topbar__brand">
             <img src="/logo-full.png" alt={BRAND_NAME} className="topbar__logo" />
