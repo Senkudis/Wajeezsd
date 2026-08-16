@@ -50,3 +50,10 @@ graphify-out/cache/
 
 # ملف فارغ عالق
 cairo.css
+
+# مصدر الخطوط الخام (1058 ملف، 119 ميجا) — المستعمَل منها محوَّل إلى
+# public_html/assets/fonts بصيغة woff2 وهو وحده ما يُنشر.
+/fonts/
+
+# مخرجات بناء موقع الفريق (يُعاد توليدها بـ npm run build)
+team-site/tsconfig.tsbuildinfo
