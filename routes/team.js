@@ -18,7 +18,6 @@ const validateObjectId = require('../middleware/validateObjectId');
 // لا يمسّ :publicId — ذاك معرّف غُفل خاص بالبطاقات وله فحصه الخاص.
 router.param('id', validateObjectId);
 const mongoose = require('mongoose');
-const QRCode = require('qrcode');
 
 const User = require('../models/User');
 const { protect, requirePermission, getAdminCityFilter, adminCanActOnUser } = require('../middleware/authMiddleware');
@@ -36,6 +35,23 @@ const DEFAULT_LIMIT = 24;
 
 /** عنوان موقع الفريق — يُبنى منه رابط الـ QR المطبوع على البطاقة. */
 const TEAM_BASE_URL = (process.env.TEAM_BASE_URL || 'https://team.wajeezsd.com').replace(/\/+$/, '');
+
+/**
+ * تحميل مكتبة QR عند أول استعمال لا عند الإقلاع.
+ *
+ * ⚠️ النشر هنا يدوي ملفاً ملفاً، و`qrcode` حزمة أُضيفت مع هذه الميزة. لو رُفع
+ * الكود قبل تشغيل npm install على السيرفر، فـ require في أعلى الملف يرمي عند
+ * الإقلاع ⇒ **الموقع كله لا يقوم**: الطلبات والمحادثات والدفع، كلها تسقط بسبب
+ * توليد رمز QR في لوحة الأدمن. التحميل الكسول يحصر العطل في مساره وحده.
+ */
+function loadQRCode() {
+    try {
+        return require('qrcode');
+    } catch (err) {
+        logger.error({ err }, '[Team] حزمة qrcode غير مثبّتة — شغّل npm install على السيرفر');
+        return null;
+    }
+}
 
 /**
  * فلتر Mongo لمن يظهر في الصفحة العامة.
@@ -343,6 +359,13 @@ router.get('/admin/members/:id/qr', protect, canManageTeam, async (req, res) => 
             // إن سبقنا طلبٌ آخر إلى التوليد، المعرّف المثبَّت هو الصحيح لا معرّفنا
             const fresh = await User.findById(doc._id).select('teamProfile.publicId').lean();
             publicId = (fresh && fresh.teamProfile && fresh.teamProfile.publicId) || publicId;
+        }
+
+        const QRCode = loadQRCode();
+        if (!QRCode) {
+            return res.status(503).json({
+                message: 'مكتبة توليد QR غير مثبّتة على السيرفر — شغّل npm install ثم أعد المحاولة'
+            });
         }
 
         const url = `${TEAM_BASE_URL}/m/${publicId}`;
