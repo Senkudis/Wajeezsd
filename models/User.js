@@ -155,6 +155,23 @@ const UserSchema = new mongoose.Schema(
             ]
         },
 
+        // 🪪 بطاقة الفريق العامة (team.wajeezsd.com) — تُبنى من هذا الحساب نفسه.
+        // المصدر الوحيد للحقيقة هو مجموعة users: لا مجموعة كباتن منفصلة ولا إدخال يدوي.
+        // كل الحقول اختيارية وتتجاوز الاشتقاق التلقائي في utils/teamProfile.js عند ملئها.
+        //
+        // ⚠️ publicId وليس _id في الرابط العام: رابط البطاقة يُطبَع على بطاقة بلاستيكية
+        // ويُمسح من أي غريب، ومعرّف المستند الحقيقي يُستعمل في مسارات الطلبات والمحادثات
+        // — كشفه للعلن يربط بطاقةً بحسابٍ في النظام بلا داعٍ. publicId معرّف غُفل
+        // ثابت مدى الحياة (لا يتغيّر عند أي تعديل) فالبطاقات المطبوعة لا تُبطَل أبداً.
+        teamProfile: {
+            publicId:   { type: String, unique: true, sparse: true },  // 24 hex غُفل — يُولَّد عند أول ظهور
+            show:       { type: Boolean, default: true },              // إخفاء يدوي من لوحة الأدمن
+            jobTitles:  { type: [String], default: [] },               // يتجاوز الاشتقاق التلقائي
+            department: { type: String, default: '', maxlength: 100 }, // يتجاوز الاشتقاق التلقائي
+            photo:      { type: String, default: '' },                 // يتجاوز documents.profilePhoto
+            order:      { type: Number, default: 0 }                   // ترتيب العرض (تصاعدي)
+        },
+
         // 🔑 Trusted Devices — قائمة الأجهزة الموثوقة للأدمن المساعد
         // كل جهاز يدخل لأول مرة يُحفظ هنا بعد موافقة super_admin
         trustedDevices: [
@@ -185,5 +202,9 @@ UserSchema.index({ role: 1, isActive: 1 });                             // For f
 UserSchema.index({ city: 1 });                                          // For city-filtered admin queries
 UserSchema.index({ city: 1, role: 1, isActive: 1 });                    // City-scoped captain lookup
 UserSchema.index({ city: 1, role: 1, isAvailableForWork: 1 });          // City-scoped captain dispatch
+
+// 🪪 صفحة الفريق العامة: استعلامٌ واحد يفلتر بالدور والظهور ويرتّب — فهرس مركّب
+// يغطّيه كاملاً. الصفحة عامة بلا مصادقة فهي أكثر مسارات القراءة تعرّضاً للزحف.
+UserSchema.index({ 'teamProfile.show': 1, role: 1, 'teamProfile.order': 1 });
 
 module.exports = mongoose.model('User', UserSchema);

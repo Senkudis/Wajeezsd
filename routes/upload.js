@@ -84,7 +84,9 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
     // فحص مبدئي فقط — mimetype غير موثوقة. التحقق الحقيقي بعد الكتابة عبر magic bytes.
-    if (MIME_EXT[file.mimetype]) {
+    // نضيف HEIC/HEIF لأن iOS يرسلها بهذا الـ MIME ولكن الضغط في الـ frontend يحوّلها JPEG.
+    const ALLOWED = { ...MIME_EXT, 'image/heic': '.jpg', 'image/heif': '.jpg' };
+    if (ALLOWED[file.mimetype]) {
         cb(null, true);
     } else {
         cb(new Error('نوع الملف غير مدعوم — يرجى رفع JPG أو PNG أو WebP'), false);
@@ -431,6 +433,49 @@ router.post('/admin/captain-photo/:id', protect, adminOnly, (req, res) => {
             });
         } catch (e) {
             return res.status(500).json({ message: 'تعذّر حفظ صورة الكابتن' });
+        }
+    });
+});
+
+// 🪪 صورة بطاقة الفريق العامة — منفصلة عن documents.profilePhoto عمداً:
+// صورة الوثائق هي ما رفعه الكابتن عند التسجيل (قد تكون رديئة أو غير لائقة للنشر)،
+// وهذه هي الصورة التي يختارها الأدمن للعرض العلني. الأولى تبقى كما هي للتحقق.
+const teamPhotoStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, path.join(uploadDir, 'profiles')),
+    filename: (req, file, cb) => cb(null, safeUploadName(`team${req.params.id}`, file.mimetype))
+});
+const teamPhotoUpload = multer({ storage: teamPhotoStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+
+router.post('/admin/team-photo/:id', protect, adminOnly, (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'معرف المستخدم غير صحيح' });
+    }
+
+    teamPhotoUpload.single('photo')(req, res, async (err) => {
+        if (err) {
+            return res.status(400).json({ message: err.message || 'خطأ في رفع الصورة' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ message: 'لم يتم اختيار صورة' });
+        }
+        const bad = await rejectNonImages(req);
+        if (bad) return res.status(400).json({ message: bad });
+
+        try {
+            const fileUrl = `/uploads/profiles/${req.file.filename}`;
+            const target = await User.findByIdAndUpdate(
+                req.params.id,
+                { 'teamProfile.photo': fileUrl },
+                { new: true }
+            ).select('_id name teamProfile.photo');
+
+            if (!target) {
+                return res.status(404).json({ message: 'المستخدم غير موجود' });
+            }
+
+            res.json({ success: true, message: 'تم تحديث صورة البطاقة', url: fileUrl });
+        } catch (e) {
+            return res.status(500).json({ message: 'تعذّر حفظ صورة البطاقة' });
         }
     });
 });

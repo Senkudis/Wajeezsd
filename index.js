@@ -75,6 +75,8 @@ const approvedOrigins = [
     'https://www.wajeezsd.com',      // ✅ www subdomain
     'https://ref.wajeezsd.com',      // ✅ Referral subdomain
     'http://ref.wajeezsd.com',
+    'https://team.wajeezsd.com',     // 🪪 موقع بطاقات الفريق (يخدمه هذا السيرفر نفسه)
+    'http://team.wajeezsd.com',
     'https://localhost',
     'http://localhost',
     'http://localhost:3000',         // ✅ التطوير المحلي (السيرفر نفسه يخدم الواجهة)
@@ -223,6 +225,60 @@ express.static(path.join(__dirname, 'uploads')),
 }
 );
 
+// ═══════════════════════════════════════════════════════════════
+// 🪪 موقع بطاقات الفريق — team.wajeezsd.com
+// ═══════════════════════════════════════════════════════════════
+// تطبيق صفحة واحدة مبني من team-site/ إلى public_html/team. يُخدَم من نطاقه
+// الفرعي الخاص (البطاقات المطبوعة تحمل روابطه) ومن wajeezsd.com/team معاً.
+//
+// أصول البناء تحت /team-assets/ لا /assets/ لأن الملف نفسه يُخدَم من مسارين:
+// جذر النطاق الفرعي و/team على النطاق الرئيسي. مسارٌ مطلق واحد يعمل في
+// الحالتين — بينما المسار النسبي ينكسر على الروابط العميقة مثل /m/<id>.
+const teamSiteDir = path.join(__dirname, 'public_html', 'team');
+const TEAM_HOSTS = (process.env.TEAM_HOSTS || 'team.wajeezsd.com')
+    .split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+
+app.use('/team-assets', express.static(path.join(teamSiteDir, 'team-assets'), {
+    // أسماء ملفات Vite تحمل بصمة المحتوى ⇒ آمنٌ تخزينها سنة كاملة
+    setHeaders(res) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+}));
+
+const teamStatic = express.static(teamSiteDir, { index: false });
+
+/**
+ * غلاف التطبيق لأي مسار تنقّل داخلي (/، /m/<id>).
+ *
+ * أي مسار يحمل امتداد ملف يُمرَّر إلى بقية السلسلة بدلاً من ابتلاعه: الخطوط
+ * والشعارات تُخدَم من public_html المشترك، وإرجاع HTML مكان ملف .css يكسرها
+ * بصمت على النطاق الفرعي.
+ */
+function sendTeamIndex(req, res, next) {
+    if (path.extname(req.path)) return next();
+    const indexPath = path.join(teamSiteDir, 'index.html');
+    if (!fs.existsSync(indexPath)) return next();
+    // لا كاش على غلاف التطبيق: بناءٌ جديد يجب أن يُلتقط فوراً، وإلا بقي المتصفح
+    // يطلب أصولاً بأسماء بصمات لم تعد موجودة فتظهر صفحة بيضاء.
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(indexPath);
+}
+
+// 1) النطاق الفرعي: كل ما ليس API أو رفوعات هو التطبيق نفسه
+app.use((req, res, next) => {
+    const host = (req.hostname || '').toLowerCase();
+    if (!TEAM_HOSTS.includes(host)) return next();
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+    teamStatic(req, res, () => sendTeamIndex(req, res, next));
+});
+
+// 2) النطاق الرئيسي: wajeezsd.com/team و/team/m/<id> يعملان أيضاً
+app.use('/team', (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    teamStatic(req, res, () => sendTeamIndex(req, res, next));
+});
+
 // جعل مجلد public متاحاً — مع كاش محدود للملفات الثابتة (لا تتغير إلا بتغيير الكود)
 app.use(express.static(path.join(__dirname, 'public_html'), {
     // Versioned assets (?v=xxxx): cache 30 days
@@ -262,6 +318,8 @@ const merchantRequestsRoutes = require('./routes/merchantRequests');
 apiRoutes.use('/merchant-requests', merchantRequestsRoutes);
 apiRoutes.use('/banners', require('./routes/banners'));
 apiRoutes.use('/referral', require('./routes/referral'));
+// 🪪 صفحة الفريق العامة — تحلّ محل مشروع captin-verfiy المنفصل بقاعدة بياناته الخاصة
+apiRoutes.use('/team', require('./routes/team'));
 
 
 // ✅ Serve logo-transparent.png from embedded base64 (Render-safe)

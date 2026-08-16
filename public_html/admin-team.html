@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>بطاقات الفريق | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
+
+    <style>
+        :root {
+            --primary: #048c5b;
+            --brand: #048c5b;
+            --brand-dark: #076b43;
+            --accent: #f59e0b;
+            --danger: #e53e3e;
+            --surface: #ffffff;
+            --bg: #f0f4f8;
+            --border: #e2e8f0;
+            --text: #1a202c;
+            --muted: #718096;
+            --radius: 16px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.07);
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        .topbar {
+            background: #fff; border-bottom: 1px solid var(--border);
+            padding: 0 20px; height: 64px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; }
+        .topbar-back {
+            display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; font-weight: 600;
+            text-decoration: none; padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border);
+        }
+
+        .container-main { max-width: 1100px; margin: 24px auto 60px; padding: 0 16px; }
+
+        .page-head { margin-bottom: 20px; }
+        .page-head h2 { font-weight: 800; font-size: 22px; margin: 0 0 6px; }
+        .page-head p { color: var(--muted); font-size: 14px; margin: 0; }
+
+        .toolbar {
+            display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 14px; margin-bottom: 18px; box-shadow: var(--shadow);
+        }
+        .toolbar input, .toolbar select {
+            flex: 1 1 180px; min-height: 44px; padding: 0 14px;
+            border: 1px solid var(--border); border-radius: 12px;
+            font-family: inherit; font-size: 14px; font-weight: 600; background: #fff; color: var(--text);
+        }
+        .toolbar input:focus, .toolbar select:focus { outline: none; border-color: var(--brand); }
+
+        .btn-brand {
+            background: var(--brand); color: #fff; border: none; min-height: 44px; padding: 0 20px;
+            border-radius: 12px; font-weight: 700; font-size: 14px;
+            display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+        }
+        .btn-ghost {
+            background: #fff; color: var(--text); border: 1px solid var(--border); min-height: 44px; padding: 0 18px;
+            border-radius: 12px; font-weight: 700; font-size: 14px;
+            display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+        }
+        .btn-brand:disabled, .btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
+
+        .hint {
+            background: #eef6f2; border: 1px solid #cfe6db; color: #075e42;
+            border-radius: 12px; padding: 12px 14px; font-size: 13px; font-weight: 600;
+            margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start;
+        }
+
+        /* صفوف الأعضاء — بطاقات لا جدول: الجدول يفيض أفقياً على الهاتف */
+        .rows { display: flex; flex-direction: column; gap: 12px; }
+        .row-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 14px; display: flex; gap: 12px; align-items: center;
+        }
+        .row-card.is-hidden { opacity: .58; border-style: dashed; }
+
+        .drag-handle {
+            flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border);
+            background: #f8fafc; color: var(--muted); display: flex; align-items: center; justify-content: center;
+            cursor: grab; touch-action: none;
+        }
+        .row-card.dragging { opacity: .45; }
+        .row-card.drop-target { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(4,140,91,.18); }
+
+        .row-avatar {
+            flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; object-fit: cover;
+            background: #eef2f5; border: 1px solid var(--border);
+        }
+        .row-main { flex: 1 1 auto; min-width: 0; }
+        .row-name { font-weight: 800; font-size: 15px; margin: 0 0 2px; }
+        .row-meta { color: var(--muted); font-size: 12.5px; font-weight: 600; margin: 0; }
+        .row-derived { color: #94a3b8; font-size: 12px; font-weight: 600; margin: 2px 0 0; }
+        .row-actions { flex: 0 0 auto; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+        .icon-btn {
+            width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--border);
+            background: #fff; color: var(--muted); display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 14px;
+        }
+        .icon-btn:hover { border-color: var(--brand); color: var(--brand); }
+        .icon-btn.is-on { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+        .badge-role { padding: 3px 9px; border-radius: 7px; font-size: 11px; font-weight: 700; }
+        .badge-captain { background: #dcfce7; color: #166534; }
+        .badge-admin { background: #fef08a; color: #854d0e; }
+        .badge-merchant { background: #e0e7ff; color: #4338ca; }
+        .badge-off { background: #fee2e2; color: #991b1b; }
+
+        .empty, .loading { text-align: center; padding: 60px 20px; color: var(--muted); font-weight: 600; }
+
+        /* نافذة التعديل */
+        .modal-backdrop-c {
+            position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 900;
+            display: none; align-items: center; justify-content: center; padding: 16px;
+        }
+        .modal-backdrop-c.open { display: flex; }
+        .modal-c {
+            background: #fff; border-radius: 20px; width: 100%; max-width: 480px;
+            max-height: 90dvh; overflow-y: auto; padding: 22px;
+        }
+        .modal-c h3 { font-size: 18px; font-weight: 800; margin: 0 0 4px; }
+        .modal-c .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+        .field { margin-bottom: 14px; }
+        .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+        .field input[type=text] {
+            width: 100%; min-height: 46px; padding: 0 14px; border: 1px solid var(--border);
+            border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 600;
+        }
+        .field input:focus { outline: none; border-color: var(--brand); }
+        .field small { display: block; color: var(--muted); font-size: 12px; margin-top: 5px; line-height: 1.6; }
+        .titles-list { display: flex; flex-direction: column; gap: 8px; }
+        .title-row { display: flex; gap: 8px; }
+        .title-row input { flex: 1; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions > * { flex: 1; justify-content: center; }
+
+        .qr-preview { text-align: center; }
+        .qr-preview img { width: 240px; height: 240px; margin: 0 auto 12px; border: 1px solid var(--border); border-radius: 14px; }
+        .qr-url {
+            direction: ltr; word-break: break-all; background: #f8fafc; border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 14px;
+        }
+
+        @media (max-width: 640px) {
+            .row-card { flex-wrap: wrap; }
+            .row-main { flex: 1 1 100%; order: 3; }
+            .row-actions { flex: 1 1 100%; order: 4; justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <i class="fas fa-id-card" style="color:var(--brand);"></i>
+        بطاقات الفريق
+    </div>
+    <a href="admin.html" class="topbar-back"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+</div>
+
+<div class="container-main">
+    <div class="page-head">
+        <h2>بطاقات الفريق العامة</h2>
+        <p>الصفحة العامة تُبنى من حسابات النظام مباشرةً — كل كابتن يُعتمد يظهر فيها تلقائياً.</p>
+    </div>
+
+    <div class="hint">
+        <i class="fas fa-circle-info" style="margin-top:2px;"></i>
+        <span>
+            المسمّى الوظيفي والقسم يُشتقّان تلقائياً من الدور ونوع المركبة. اترك الحقل فارغاً ليبقى
+            الاشتقاق التلقائي، أو اكتب قيمة لتتجاوزه. أرقام الهواتف لا تظهر في الصفحة العامة إطلاقاً.
+        </span>
+    </div>
+
+    <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="ابحث بالاسم أو رقم الهاتف">
+        <select id="roleFilter">
+            <option value="">كل الأدوار</option>
+            <option value="captain">الكباتن</option>
+            <option value="admin">الإدارة</option>
+            <option value="merchant">الشركاء</option>
+        </select>
+        <button class="btn-ghost" id="reloadBtn"><i class="fas fa-rotate"></i> تحديث</button>
+        <button class="btn-brand" id="saveOrderBtn" disabled><i class="fas fa-arrow-down-1-9"></i> حفظ الترتيب</button>
+        <a class="btn-ghost" id="viewSiteBtn" href="#" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> عرض الصفحة</a>
+    </div>
+
+    <div id="content" class="loading"><i class="fas fa-spinner fa-spin"></i> جارٍ التحميل…</div>
+</div>
+
+<!-- نافذة تعديل البطاقة -->
+<div class="modal-backdrop-c" id="editModal">
+    <div class="modal-c">
+        <h3 id="editTitle">تعديل البطاقة</h3>
+        <p class="sub" id="editSubtitle"></p>
+
+        <div class="field">
+            <label>المسمّيات الوظيفية</label>
+            <div class="titles-list" id="titlesList"></div>
+            <button type="button" class="btn-ghost" style="margin-top:8px;min-height:38px;" id="addTitleBtn">
+                <i class="fas fa-plus"></i> إضافة مسمّى
+            </button>
+            <small id="derivedTitleHint"></small>
+        </div>
+
+        <div class="field">
+            <label>القسم</label>
+            <input type="text" id="deptInput" maxlength="100" placeholder="اتركه فارغاً للاشتقاق التلقائي">
+            <small id="derivedDeptHint"></small>
+        </div>
+
+        <div class="field">
+            <label>صورة البطاقة</label>
+            <input type="file" id="photoInput" accept="image/*" style="font-size:13px;">
+            <small>اختيارية — إن لم تُرفع صورة تُستخدم الصورة الشخصية من ملف التسجيل.</small>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-ghost" id="cancelEditBtn">إلغاء</button>
+            <button class="btn-brand" id="saveEditBtn"><i class="fas fa-check"></i> حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة رمز QR -->
+<div class="modal-backdrop-c" id="qrModal">
+    <div class="modal-c qr-preview">
+        <h3 id="qrTitle">رمز البطاقة</h3>
+        <p class="sub">اطبع هذا الرمز على بطاقة العضو — الرابط ثابت ولا يتغيّر عند تعديل البيانات.</p>
+        <img id="qrImage" alt="رمز QR">
+        <div class="qr-url" id="qrUrl"></div>
+        <div class="modal-actions">
+            <button class="btn-ghost" id="closeQrBtn">إغلاق</button>
+            <button class="btn-brand" id="downloadQrBtn"><i class="fas fa-download"></i> تنزيل PNG</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    const token = localStorage.getItem('adminToken');
+    if (!token) { window.location.href = 'admin-login.html'; return; }
+
+    const BASE = window.API_URL || 'https://wajeezsd.com';
+    const AUTH = { 'Authorization': 'Bearer ' + token };
+
+    /** الصورة الرمزية عندما لا توجد صورة — نفس صورة الموقع العام. */
+    const AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'>" +
+        "<rect width='120' height='120' fill='#e8f0ec'/>" +
+        "<circle cx='60' cy='47' r='22' fill='#b6cec3'/>" +
+        "<path d='M18 116c0-23 19-42 42-42s42 19 42 42' fill='#b6cec3'/></svg>"
+    );
+
+    const ROLE_LABEL = { captain: 'كابتن', admin: 'إدارة', merchant: 'شريك' };
+    const ROLE_CLASS = { captain: 'badge-captain', admin: 'badge-admin', merchant: 'badge-merchant' };
+
+    let members = [];
+    let teamBaseUrl = '';
+    let orderDirty = false;
+    let editingId = null;
+    let qrObjectUrl = null;
+
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    function toast(icon, title) {
+        Swal.fire({ icon, title, toast: true, position: 'top', showConfirmButton: false, timer: 2400 });
+    }
+
+    // ── التحميل ────────────────────────────────────────────
+    async function load() {
+        const search = $('searchInput').value.trim();
+        const role = $('roleFilter').value;
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (role) params.set('role', role);
+
+        $('content').className = 'loading';
+        $('content').innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ التحميل…';
+
+        try {
+            const res = await fetch(BASE + '/api/team/admin/members?' + params.toString(), { headers: AUTH });
+            if (res.status === 401) { window.location.href = 'admin-login.html'; return; }
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            members = data.items || [];
+            teamBaseUrl = data.teamBaseUrl || '';
+            $('viewSiteBtn').href = teamBaseUrl || '/team';
+            orderDirty = false;
+            $('saveOrderBtn').disabled = true;
+            render();
+        } catch (err) {
+            $('content').className = 'empty';
+            $('content').innerHTML = 'تعذّر تحميل القائمة. <button class="btn-ghost" onclick="location.reload()">إعادة المحاولة</button>';
+        }
+    }
+
+    // ── العرض ──────────────────────────────────────────────
+    function render() {
+        if (members.length === 0) {
+            $('content').className = 'empty';
+            $('content').innerHTML = 'لا يوجد أعضاء مطابقون.';
+            return;
+        }
+
+        $('content').className = '';
+        $('content').innerHTML = '<div class="rows" id="rows">' + members.map(rowHtml).join('') + '</div>';
+        bindRows();
+    }
+
+    function rowHtml(m) {
+        const titles = (m.jobTitles.length ? m.jobTitles : m.derivedJobTitles).join(' • ');
+        const dept = m.department || m.derivedDepartment;
+        const isManual = m.jobTitles.length > 0 || m.department !== '';
+
+        return '' +
+        '<div class="row-card' + (m.show ? '' : ' is-hidden') + '" draggable="true" data-id="' + m.id + '">' +
+            '<div class="drag-handle" title="اسحب لتغيير الترتيب"><i class="fas fa-grip-lines"></i></div>' +
+            '<img class="row-avatar" src="' + escapeHtml(m.effectiveImage || AVATAR) + '" alt="" ' +
+                 'onerror="this.src=\'' + AVATAR + '\'">' +
+            '<div class="row-main">' +
+                '<p class="row-name">' + escapeHtml(m.name) +
+                    ' <span class="badge-role ' + ROLE_CLASS[m.role] + '">' + (ROLE_LABEL[m.role] || m.role) + '</span>' +
+                    (m.show ? '' : ' <span class="badge-role badge-off">مخفي</span>') +
+                '</p>' +
+                '<p class="row-meta">' + escapeHtml(titles || '—') + (dept ? ' — ' + escapeHtml(dept) : '') + '</p>' +
+                (isManual ? '' : '<p class="row-derived">مشتقّ تلقائياً من الدور</p>') +
+            '</div>' +
+            '<div class="row-actions">' +
+                '<button class="icon-btn' + (m.show ? ' is-on' : '') + '" data-act="toggle" ' +
+                        'title="' + (m.show ? 'إخفاء من الصفحة' : 'إظهار في الصفحة') + '">' +
+                    '<i class="fas fa-' + (m.show ? 'eye' : 'eye-slash') + '"></i></button>' +
+                '<button class="icon-btn" data-act="edit" title="تعديل البطاقة"><i class="fas fa-pen"></i></button>' +
+                '<button class="icon-btn" data-act="qr" title="رمز QR"><i class="fas fa-qrcode"></i></button>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function bindRows() {
+        document.querySelectorAll('.row-card').forEach((card) => {
+            const id = card.dataset.id;
+            card.querySelectorAll('[data-act]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const act = btn.dataset.act;
+                    if (act === 'toggle') toggleShow(id);
+                    else if (act === 'edit') openEdit(id);
+                    else if (act === 'qr') openQr(id);
+                });
+            });
+            card.addEventListener('dragstart', onDragStart);
+            card.addEventListener('dragover', onDragOver);
+            card.addEventListener('dragleave', onDragLeave);
+            card.addEventListener('drop', onDrop);
+            card.addEventListener('dragend', onDragEnd);
+        });
+    }
+
+    // ── السحب والإفلات للترتيب ─────────────────────────────
+    let draggedId = null;
+
+    function onDragStart(e) {
+        draggedId = e.currentTarget.dataset.id;
+        e.currentTarget.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox لا يبدأ السحب أصلاً بدون setData
+        e.dataTransfer.setData('text/plain', draggedId);
+    }
+    function onDragOver(e) {
+        e.preventDefault();
+        if (e.currentTarget.dataset.id !== draggedId) e.currentTarget.classList.add('drop-target');
+    }
+    function onDragLeave(e) { e.currentTarget.classList.remove('drop-target'); }
+    function onDragEnd() {
+        document.querySelectorAll('.row-card').forEach((c) => c.classList.remove('dragging', 'drop-target'));
+    }
+    function onDrop(e) {
+        e.preventDefault();
+        const targetId = e.currentTarget.dataset.id;
+        onDragEnd();
+        if (!draggedId || draggedId === targetId) return;
+
+        const from = members.findIndex((m) => m.id === draggedId);
+        const to = members.findIndex((m) => m.id === targetId);
+        if (from < 0 || to < 0) return;
+
+        members.splice(to, 0, members.splice(from, 1)[0]);
+        orderDirty = true;
+        $('saveOrderBtn').disabled = false;
+        render();
+    }
+
+    async function saveOrder() {
+        if (!orderDirty) return;
+        $('saveOrderBtn').disabled = true;
+        try {
+            const res = await fetch(BASE + '/api/team/admin/reorder', {
+                method: 'PUT',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, AUTH),
+                body: JSON.stringify({ ids: members.map((m) => m.id) })
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            orderDirty = false;
+            toast('success', 'تم حفظ الترتيب');
+        } catch (err) {
+            $('saveOrderBtn').disabled = false;
+            toast('error', 'تعذّر حفظ الترتيب');
+        }
+    }
+
+    // ── الإظهار والإخفاء ───────────────────────────────────
+    async function toggleShow(id) {
+        const member = members.find((m) => m.id === id);
+        if (!member) return;
+        const next = !member.show;
+        try {
+            const updated = await patchMember(id, { show: next });
+            Object.assign(member, updated);
+            render();
+            toast('success', next ? 'ظهر في الصفحة العامة' : 'أُخفي من الصفحة العامة');
+        } catch (err) {
+            toast('error', err.message || 'تعذّر الحفظ');
+        }
+    }
+
+    async function patchMember(id, body) {
+        const res = await fetch(BASE + '/api/team/admin/members/' + id, {
+            method: 'PATCH',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, AUTH),
+            body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'تعذّر الحفظ');
+        return data;
+    }
+
+    // ── نافذة التعديل ──────────────────────────────────────
+    function titleRowHtml(value) {
+        return '<div class="title-row">' +
+            '<input type="text" maxlength="100" value="' + escapeHtml(value) + '" placeholder="مثال: كابتن دراجة نارية">' +
+            '<button type="button" class="icon-btn" data-remove-title><i class="fas fa-xmark"></i></button>' +
+        '</div>';
+    }
+
+    function openEdit(id) {
+        const member = members.find((m) => m.id === id);
+        if (!member) return;
+        editingId = id;
+
+        $('editSubtitle').textContent = member.name + ' — ' + (ROLE_LABEL[member.role] || member.role);
+        $('titlesList').innerHTML = (member.jobTitles.length ? member.jobTitles : ['']).map(titleRowHtml).join('');
+        $('deptInput').value = member.department;
+        $('photoInput').value = '';
+        $('derivedTitleHint').textContent = 'الاشتقاق التلقائي: ' + (member.derivedJobTitles.join(' • ') || '—');
+        $('derivedDeptHint').textContent = 'الاشتقاق التلقائي: ' + (member.derivedDepartment || '—');
+        bindTitleRemovers();
+        $('editModal').classList.add('open');
+    }
+
+    function bindTitleRemovers() {
+        $('titlesList').querySelectorAll('[data-remove-title]').forEach((btn) => {
+            btn.onclick = () => {
+                btn.parentElement.remove();
+                // إبقاء صفٍّ فارغ دائماً: قائمة بلا حقول لا يمكن الكتابة فيها
+                if ($('titlesList').children.length === 0) {
+                    $('titlesList').innerHTML = titleRowHtml('');
+                    bindTitleRemovers();
+                }
+            };
+        });
+    }
+
+    async function saveEdit() {
+        if (!editingId) return;
+        const id = editingId;
+        const member = members.find((m) => m.id === id);
+        const titles = Array.from($('titlesList').querySelectorAll('input'))
+            .map((i) => i.value.trim()).filter((v) => v !== '');
+
+        $('saveEditBtn').disabled = true;
+        try {
+            // الصورة أولاً: فشل رفعها يجب ألا يترك المسمّيات محفوظة والصورة لا
+            const file = $('photoInput').files[0];
+            if (file) {
+                const form = new FormData();
+                form.append('photo', file);
+                const up = await fetch(BASE + '/api/upload/admin/team-photo/' + id, {
+                    method: 'POST', headers: AUTH, body: form
+                });
+                const upData = await up.json().catch(() => ({}));
+                if (!up.ok) throw new Error(upData.message || 'تعذّر رفع الصورة');
+            }
+
+            const updated = await patchMember(id, { jobTitles: titles, department: $('deptInput').value.trim() });
+            Object.assign(member, updated);
+            closeEdit();
+            render();
+            toast('success', 'تم حفظ البطاقة');
+        } catch (err) {
+            toast('error', err.message || 'تعذّر الحفظ');
+        } finally {
+            $('saveEditBtn').disabled = false;
+        }
+    }
+
+    function closeEdit() {
+        editingId = null;
+        $('editModal').classList.remove('open');
+    }
+
+    // ── نافذة QR ───────────────────────────────────────────
+    async function openQr(id) {
+        const member = members.find((m) => m.id === id);
+        if (!member) return;
+
+        $('qrTitle').textContent = 'رمز بطاقة ' + member.name;
+        $('qrUrl').textContent = '…';
+        $('qrImage').removeAttribute('src');
+        $('qrModal').classList.add('open');
+
+        try {
+            // fetch لا <img src> مباشرةً: المسار محميّ بتوكن ولا يمكن للمتصفح إرساله في وسم صورة
+            const res = await fetch(BASE + '/api/team/admin/members/' + id + '/qr', { headers: AUTH });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            if (qrObjectUrl) URL.revokeObjectURL(qrObjectUrl);
+            qrObjectUrl = URL.createObjectURL(blob);
+            $('qrImage').src = qrObjectUrl;
+            $('qrUrl').textContent = res.headers.get('X-Team-Card-Url')
+                || (teamBaseUrl + '/m/' + (member.publicId || ''));
+        } catch (err) {
+            $('qrModal').classList.remove('open');
+            toast('error', 'تعذّر توليد رمز QR');
+        }
+    }
+
+    function closeQr() {
+        $('qrModal').classList.remove('open');
+        if (qrObjectUrl) { URL.revokeObjectURL(qrObjectUrl); qrObjectUrl = null; }
+    }
+
+    function downloadQr() {
+        if (!qrObjectUrl) return;
+        const a = document.createElement('a');
+        a.href = qrObjectUrl;
+        a.download = 'wajeez-card.png';
+        a.click();
+    }
+
+    // ── الربط ──────────────────────────────────────────────
+    let searchTimer = null;
+    $('searchInput').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(load, 350);
+    });
+    $('roleFilter').addEventListener('change', load);
+    $('reloadBtn').addEventListener('click', load);
+    $('saveOrderBtn').addEventListener('click', saveOrder);
+    $('addTitleBtn').addEventListener('click', () => {
+        $('titlesList').insertAdjacentHTML('beforeend', titleRowHtml(''));
+        bindTitleRemovers();
+    });
+    $('cancelEditBtn').addEventListener('click', closeEdit);
+    $('saveEditBtn').addEventListener('click', saveEdit);
+    $('closeQrBtn').addEventListener('click', closeQr);
+    $('downloadQrBtn').addEventListener('click', downloadQr);
+    $('editModal').addEventListener('click', (e) => { if (e.target === $('editModal')) closeEdit(); });
+    $('qrModal').addEventListener('click', (e) => { if (e.target === $('qrModal')) closeQr(); });
+
+    // مغادرة الصفحة بترتيب غير محفوظ تُضيّع العمل بصمت
+    window.addEventListener('beforeunload', (e) => {
+        if (orderDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    load();
+})();
+</script>
+</body>
+</html>
