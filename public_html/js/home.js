@@ -136,6 +136,9 @@ window.openMapModal = function(mode) {
     if (modeLabel) {
         modeLabel.textContent = mode === 'pickup' ? 'حدد موقع الاستلام' : 'حدد وجهتك';
     }
+    // تسمية البطاقة السفلية تتبع الوضع أيضاً — العنوان أسفلها هو عنوان أيّ طرف؟
+    const addrLabel = document.getElementById('wj-addr-label');
+    if (addrLabel) addrLabel.textContent = mode === 'pickup' ? 'موقع الاستلام' : 'وجهة التسليم';
 
     // Simply show the map container
     document.getElementById('static-map-container').style.display = 'block';
@@ -248,6 +251,12 @@ function initMap() {
 
         // ⚠️ حُذف مستمع center_changed: كان جسمه تعليقاً فقط، وهو حدثٌ يقع عشرات
         // المرات في السحبة الواحدة — استدعاء دالة فارغة على كل إطار حركة.
+
+        // 🎯 استجابة الدبوس للسحب: يرتفع ويتقلّص ظلّه أثناء الحركة ثم يستقرّ.
+        // بدونها تبدو الشاشة صورةً ساكنة لا أداةَ تحديد.
+        const _mapShell = document.getElementById('static-map-container');
+        map.addListener('dragstart', () => _mapShell && _mapShell.classList.add('is-dragging'));
+        map.addListener('idle', () => _mapShell && _mapShell.classList.remove('is-dragging'));
 
         map.addListener('idle', () => {
             // 📍 حدّث معاينة العنوان النصي (reverse geocode) بعد توقّف الحركة
@@ -586,8 +595,13 @@ const _escAddr = (v) => (window.escapeHtml
     : String(v == null ? '' : v).replace(/[&<>"']/g,
         c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 
-const _pinHtml = (addr) =>
-    `<i class="bi bi-geo-alt-fill" style="color:#04553A;"></i> ${_escAddr(addr)}`;
+const _pinHtml = (addr) => _escAddr(addr);
+
+/** حالة «جارٍ الحلّ» على البطاقة السفلية — تُخفّت لون العنوان ريثما يصل */
+function _sheetResolving(on) {
+    const sheet = document.getElementById('wj-map-sheet');
+    if (sheet) sheet.classList.toggle('is-resolving', !!on);
+}
 
 // تحديث معاينة العنوان أسفل الخريطة (حيّاً عند توقّف الحركة)
 function _updateCenterAddress() {
@@ -611,11 +625,13 @@ function _updateCenterAddress() {
     const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
     if (key === _centerAddrKey) return;
     _centerAddrKey = key;
-    if (previewEl) previewEl.innerHTML = `<span style="opacity:.55;">جارٍ تحديد العنوان…</span>`;
+    _sheetResolving(true);
+    if (previewEl) previewEl.innerHTML = `<span style="opacity:.6;">جارٍ تحديد العنوان…</span>`;
     _resolveAddress(lat, lng).then(addr => {
         const c2 = map.getCenter();
         if (`${c2.lat().toFixed(4)},${c2.lng().toFixed(4)}` !== key) return; // تحرّك أثناء الحل
         _centerAddress = addr;
+        _sheetResolving(false);
         if (previewEl) previewEl.innerHTML = _pinHtml(addr);
     });
 }

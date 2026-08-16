@@ -831,6 +831,253 @@
                     transform: rotate(360deg)
                 }
             }
+
+            /* ══════════════════════════════════════════════════════════════
+               🗺️ شاشة تحديد الموقع — أهمّ شاشة في التطبيق
+               ──────────────────────────────────────────────────────────────
+               ثلاث علل كانت تحكم شكلها:
+               1. الدبوس يطفو بلا نقطة ارتكاز، فلا يعرف العميل أيّ بكسل
+                  اختاره بالضبط — وهذا كلّ ما تفعله الشاشة.
+               2. لا استجابة للحركة إطلاقاً: تسحب الخريطة فلا شيء يتحرّك،
+                  فتبدو صورةً لا أداة.
+               3. أسفل الشاشة تدرّجٌ عارٍ يطفو فوقه نصّ 12.5px — وهو نصّ
+                  التأكيد الذي يُبنى عليه الطلب كلّه.
+               والذهب (--gold) — «لمسة وجيز» بنصّ style.css — لم يكن له أثر
+               في الشاشة الأهمّ.
+               ══════════════════════════════════════════════════════════════ */
+            #static-map-container {
+                --wj-ease: cubic-bezier(.22, 1, .36, 1);
+                --wj-gold: #BF8B1F;
+                --wj-green: #04553A;
+            }
+
+            /* ── الدبوس: جسمٌ يرتفع + ظلٌّ وأثرٌ ذهبي على نقطة الاختيار ── */
+            .wj-pin {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 0;
+                height: 0;
+                pointer-events: none;
+                z-index: 5;
+            }
+
+            /* الأثر الأرضي = النقطة المختارة بالضبط. وجوده وحده يحسم
+               السؤال «أين سيصل الكابتن؟» */
+            .wj-pin-dot {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--wj-gold);
+                box-shadow: 0 0 0 2.5px rgba(191, 139, 31, .3);
+                transition: transform .3s var(--wj-ease), box-shadow .3s var(--wj-ease);
+            }
+
+            .wj-pin-shadow {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%) scale(1);
+                width: 26px;
+                height: 9px;
+                border-radius: 50%;
+                background: rgba(0, 0, 0, .22);
+                filter: blur(2px);
+                transition: transform .3s var(--wj-ease), opacity .3s var(--wj-ease);
+            }
+
+            .wj-pin-body {
+                position: absolute;
+                left: 50%;
+                bottom: 0;
+                /* طرف الدبوس على النقطة تماماً وقت السكون */
+                transform: translate(-50%, 0);
+                transform-origin: 50% 100%;
+                transition: transform .3s var(--wj-ease);
+                filter: drop-shadow(0 4px 7px rgba(0, 0, 0, .28));
+            }
+
+            /* أثناء السحب: يرتفع الدبوس ويتقلّص ظلّه — إيحاء العمق نفسه
+               الذي تستعمله كل خرائط الاختيار، وهو ما يجعل الحركة «تُحسّ». */
+            #static-map-container.is-dragging .wj-pin-body {
+                transform: translate(-50%, -20px);
+            }
+
+            #static-map-container.is-dragging .wj-pin-shadow {
+                transform: translate(-50%, -50%) scale(.6);
+                opacity: .45;
+            }
+
+            #static-map-container.is-dragging .wj-pin-dot {
+                transform: translate(-50%, -50%) scale(.75);
+                box-shadow: 0 0 0 5px rgba(191, 139, 31, .18);
+            }
+
+            /* ── شريط علوي موحّد: ارتفاع واحد ونصف قطر واحد وظلّ واحد ── */
+            .wj-chip {
+                height: 42px;
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                padding: 0 15px;
+                border: none;
+                border-radius: 999px;
+                background: #fff;
+                box-shadow: 0 3px 14px rgba(0, 0, 0, .16);
+                font-family: 'Cairo', sans-serif;
+                font-size: 13px;
+                font-weight: 800;
+                color: var(--wj-green);
+                white-space: nowrap;
+                cursor: pointer;
+                transition: transform .16s var(--wj-ease);
+            }
+
+            .wj-chip:active { transform: scale(.95); }
+
+            .wj-chip-icon {
+                width: 42px;
+                padding: 0;
+                justify-content: center;
+                font-size: 1.15rem;
+                flex: none;
+            }
+
+            /* ⚠️ على شاشة 320px كان الصفّ يفيض 7px خارجها: زرّ + «حدد موقع
+               الاستلام» + اسم مدينة طويل («الخرطوم (أم درمان)») لا تتّسع لها
+               288px المتاحة. الشريحتان النصّيتان تنكمشان الآن وتُقصّان بثلاث
+               نقاط بدل أن تدفع إحداهما الأخرى خارج الشاشة. */
+            #map-mode-label,
+            .wj-chip-city {
+                flex: 0 1 auto;
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            #map-mode-label,
+            .wj-chip-city > span {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* نقطة ذهبية تسبق اسم المدينة — لمسة الهوية حيث تُقرأ */
+            .wj-chip-city::before {
+                content: '';
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: var(--wj-gold);
+                flex: none;
+            }
+
+            /* ── البطاقة السفلية: سطحٌ حقيقي بدل تدرّجٍ عارٍ ── */
+            .wj-sheet {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: #fff;
+                border-radius: 22px 22px 0 0;
+                box-shadow: 0 -6px 28px rgba(0, 0, 0, .14);
+                padding: 14px 16px calc(14px + var(--sab, env(safe-area-inset-bottom, 0px)));
+                pointer-events: auto;
+            }
+
+            .wj-sheet-grip {
+                width: 42px;
+                height: 4px;
+                border-radius: 999px;
+                background: #e2e8f0;
+                margin: 0 auto 12px;
+            }
+
+            .wj-addr {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                margin-bottom: 14px;
+                min-height: 42px;
+            }
+
+            .wj-addr-ico {
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                background: rgba(4, 85, 58, .09);
+                color: var(--wj-green);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 15px;
+                flex: none;
+            }
+
+            .wj-addr-label {
+                font-size: 11px;
+                font-weight: 800;
+                color: #94a3b8;
+                margin-bottom: 1px;
+            }
+
+            /* النصّ الذي يُبنى عليه الطلب — 14.5px لا 12.5px */
+            #map-address-preview {
+                font-family: 'Cairo', sans-serif;
+                font-size: 14.5px;
+                font-weight: 700;
+                color: #1e293b;
+                line-height: 1.55;
+                min-width: 0;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            #map-address-preview i { color: var(--wj-green); }
+
+            /* أثناء حلّ العنوان: وميضٌ خفيف بدل نصٍّ رماديّ ساكن */
+            .wj-sheet.is-resolving #map-address-preview {
+                color: #94a3b8;
+                font-weight: 600;
+            }
+
+            .wj-confirm {
+                width: 100%;
+                height: 56px;
+                border: none;
+                border-radius: 16px;
+                background: linear-gradient(135deg, var(--wj-green), #0a8754);
+                color: #fff;
+                font-family: 'Cairo', sans-serif;
+                font-size: 16.5px;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 6px 18px rgba(4, 85, 58, .32);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: transform .16s var(--wj-ease), box-shadow .2s var(--wj-ease);
+            }
+
+            .wj-confirm:active {
+                transform: scale(.975);
+                box-shadow: 0 3px 10px rgba(4, 85, 58, .3);
+            }
+
+            /* ── حلقة تركيز خضراء لحقل البحث ── */
+            #map-search-input {
+                transition: box-shadow .2s var(--wj-ease);
+            }
+
+            #map-search-input:focus {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, .12), 0 0 0 2.5px rgba(4, 85, 58, .55);
+            }
         </style>
 
         <!-- Overlay UI — on top of the web map -->
@@ -842,12 +1089,16 @@
             ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ -->
             <div
                 style="pointer-events:none;position:absolute;top:0;left:0;right:0;padding-top:calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px);padding-right:16px;padding-bottom:8px;padding-left:16px;display:flex;align-items:center;gap:10px;">
-                <button type="button" onclick="window.closeMapUI()"
-                    style="pointer-events:auto;touch-action:manipulation;flex-shrink:0;width:44px;height:44px;border-radius:50%;background:white;border:none;box-shadow:0 2px 12px rgba(0,0,0,0.18);font-size:1.2rem;color:#dc3545;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                <!-- ⚠️ ثلاث قطع بثلاثة ارتفاعات وأنصاف أقطار وظلال مختلفة كانت
+                     تتزاحم في صفٍّ واحد. الآن لغةٌ واحدة (.wj-chip): 42px،
+                     نصف قطر كامل، ظلٌّ واحد — فيُقرأ الصفّ كشريطٍ لا كثلاثة
+                     عناصر متنافرة. -->
+                <button type="button" onclick="window.closeMapUI()" aria-label="رجوع"
+                    class="wj-chip wj-chip-icon"
+                    style="pointer-events:auto;touch-action:manipulation;flex-shrink:0;color:#dc3545;">
                     <i class="bi bi-arrow-right"></i>
                 </button>
-                <div id="map-mode-label"
-                    style="background:white;border-radius:12px;padding:8px 14px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;color:var(--primary);box-shadow:0 2px 12px rgba(0,0,0,0.12);white-space:nowrap;">
+                <div id="map-mode-label" class="wj-chip" style="cursor:default;">
                     <!-- بلا إيموجي: home.js يكتب هذا النص بـ textContent فور فتح
                          الخريطة («حدد موقع الاستلام» / «حدد وجهتك») بلا رمز،
                          فالرمز هنا يظهر لحظةً واحدة عند أول رسم ثم يختفي. -->
@@ -855,8 +1106,9 @@
                 </div>
                 <!-- City Switch — أقصى اليمين في الشريط العلوي -->
                 <button type="button" id="map-city-btn" onclick="window.chooseMapCity()" title="تغيير المدينة"
-                    style="pointer-events:auto;touch-action:manipulation;margin-right:auto;background:white;border:2px solid var(--primary);border-radius:20px;padding:7px 14px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--primary);box-shadow:0 2px 10px rgba(10,135,84,0.2);cursor:pointer;white-space:nowrap;font-family:'Cairo',sans-serif;">
-                    <i class="bi bi-buildings-fill"></i> <span id="map-city-label">تبديل المدينة</span>
+                    class="wj-chip wj-chip-city"
+                    style="pointer-events:auto;touch-action:manipulation;margin-right:auto;">
+                    <span id="map-city-label">تبديل المدينة</span>
                 </button>
             </div>
 
@@ -890,31 +1142,41 @@
 
 
 
-            <!-- Center pin -->
-            <div
-                style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.4));">
-                <svg width="44" height="54" viewBox="0 0 48 58" fill="none">
-                    <defs>
-                        <linearGradient id="pgNuc" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#25d366" />
-                            <stop offset="100%" stop-color="var(--primary)" />
-                        </linearGradient>
-                        <filter id="psNuc">
-                            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.35" />
-                        </filter>
-                    </defs>
-                    <path d="M24 0C14.06 0 6 8.06 6 18c0 12.75 18 28 18 28s18-15.25 18-28C42 8.06 33.94 0 24 0z"
-                        fill="url(#pgNuc)" filter="url(#psNuc)" />
-                    <circle cx="24" cy="18" r="8" fill="white" />
-                    <circle cx="24" cy="18" r="4" fill="var(--primary)" />
-                </svg>
+            <!-- ▔▔▔ الدبوس ▔▔▔
+                 كان صورةً واحدة معلّقة فوق المركز: لا نقطة ارتكاز تُبيّن أيّ
+                 موضعٍ اختير بالضبط، ولا استجابة للسحب. الآن ثلاث طبقات —
+                 أثرٌ ذهبي على النقطة نفسها، وظلٌّ أرضي، وجسمٌ يعلوهما ويرتفع
+                 أثناء الحركة. -->
+            <div class="wj-pin">
+                <div class="wj-pin-shadow"></div>
+                <div class="wj-pin-body">
+                    <!-- ⚠️ viewBox مقصوص عند 47 لا 58: مسار الدبوس ينتهي عند y=46،
+                         فكان أسفله 12 وحدة فارغة تدفع الرأس لأعلى وتترك فجوةً
+                         بينه وبين نقطته. الآن طرف الدبوس هو حافة الرسم. -->
+                    <svg width="42" height="41" viewBox="0 0 48 47" fill="none">
+                        <defs>
+                            <linearGradient id="pgNuc" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#25d366" />
+                                <stop offset="100%" stop-color="#04553A" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M24 0C14.06 0 6 8.06 6 18c0 12.75 18 28 18 28s18-15.25 18-28C42 8.06 33.94 0 24 0z"
+                            fill="url(#pgNuc)" />
+                        <circle cx="24" cy="18" r="8.5" fill="#fff" />
+                        <!-- حلقة ذهبية داخل رأس الدبوس — توقيع وجيز -->
+                        <circle cx="24" cy="18" r="5.5" fill="none" stroke="#BF8B1F" stroke-width="2" />
+                    </svg>
+                </div>
+                <div class="wj-pin-dot"></div>
             </div>
 
             <!-- ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
                  RIGHT-SIDE FLOATING BUTTONS
             ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ -->
+            <!-- ⚠️ 130px كانت تكفي التدرّج القديم؛ البطاقة الآن أطول (مقبض +
+                 سطرا العنوان + زرّ 56px + المنطقة الآمنة) فتُخفي الزرّين. -->
             <div
-                style="pointer-events:none;position:absolute;right:16px;bottom:130px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+                style="pointer-events:none;position:absolute;right:16px;bottom:calc(184px + var(--sab, env(safe-area-inset-bottom, 0px)));display:flex;flex-direction:column;align-items:center;gap:10px;">
 
                 <!-- Locate Me -->
                 <button type="button" id="locate-me-btn" onclick="locateMe()" title="تحديد موقعي" class="map-fab-btn"
@@ -940,14 +1202,23 @@
             <!-- ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
                  BOTTOM CONFIRM BAR
             ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁ -->
-            <div
-                style="pointer-events:none;position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + var(--sab, env(safe-area-inset-bottom, 0px)));background:linear-gradient(transparent,rgba(255,255,255,0.98) 30%);">
-                <div id="map-address-preview"
-                    style="font-family:'Cairo',sans-serif;font-size:12.5px;font-weight:600;color:var(--primary);text-align:center;margin-bottom:8px;min-height:18px;line-height:1.5;padding:0 6px;">
-                    <span style="opacity:.55;">حرّك الخريطة لتحديد موقعك بدقة…</span>
+            <!-- ▔▔▔ البطاقة السفلية ▔▔▔
+                 كانت تدرّجاً شفافاً يطفو فوقه نصّ 12.5px مركزيّ ثم زرّ — بلا
+                 سطحٍ يجمعها. العنوان هنا هو ما يقرؤه الكابتن ويصل إليه، فيستحقّ
+                 بطاقةً وتسميةً وحجماً يُقرأ تحت الشمس. -->
+            <div id="wj-map-sheet" class="wj-sheet">
+                <div class="wj-sheet-grip"></div>
+                <div class="wj-addr">
+                    <span class="wj-addr-ico"><i class="bi bi-geo-alt-fill"></i></span>
+                    <div style="min-width:0;flex:1;">
+                        <div class="wj-addr-label" id="wj-addr-label">موقع الاستلام</div>
+                        <div id="map-address-preview">
+                            <span style="opacity:.6;">حرّك الخريطة لتحديد موقعك بدقة…</span>
+                        </div>
+                    </div>
                 </div>
                 <button id="map-confirm-btn" type="button" onclick="window.confirmLocationSelection()"
-                    style="pointer-events:auto;touch-action:manipulation;width:100%;padding:16px;background:linear-gradient(135deg,var(--primary),#25d366);color:white;border:none;border-radius:16px;font-size:17px;font-weight:700;font-family:'Cairo',sans-serif;cursor:pointer;box-shadow:0 4px 20px rgba(10,135,84,0.35);transition:opacity 0.2s, background 0.2s;">
+                    class="wj-confirm" style="touch-action:manipulation;position:relative;">
                     تأكيد الموقع
                 </button>
             </div>
@@ -1187,7 +1458,7 @@
     <script type="module" src="js/app-core.js?v=742cf357"></script>
     <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
 
-    <script src="js/home.js?v=70b46a3a"></script>
+    <script src="js/home.js?v=36ebee03"></script>
     <script src="js/order-feature.js?v=9f7d4809"></script>
     <script src="js/errand-context.js?v=f33a33bc"></script>
     <script src="js/smart-search.js?v=85909b45"></script>
