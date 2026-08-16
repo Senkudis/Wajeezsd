@@ -31,6 +31,7 @@ const SERVER_FILES = [
     'routes/team.js',
     'routes/upload.js',
     'utils/teamProfile.js',
+    'utils/teamHost.js',
     'scripts/migrate-team-captains.js',
     'package.json',
     'package-lock.json'
@@ -151,7 +152,8 @@ const README_TEXT = `رفع ميزة بطاقات الفريق — وجيز
 ما بداخله
 ---------
 ملفات الخادم        : index.js، models/User.js، routes/team.js، routes/upload.js،
-                      utils/teamProfile.js، scripts/migrate-team-captains.js
+                      utils/teamProfile.js، utils/teamHost.js،
+                      scripts/migrate-team-captains.js
 الاعتماديات         : package.json، package-lock.json، وnode_modules/qrcode مع تبعياتها
 الواجهة             : public_html/admin-team.html (جديد)، admin.html، service-worker.js
 موقع الفريق         : public_html/team/ (تطبيق مبني كاملاً)
@@ -161,8 +163,12 @@ const README_TEXT = `رفع ميزة بطاقات الفريق — وجيز
 1. أعد تشغيل تطبيق Node من لوحة الاستضافة (ضروري — ملفات الخادم لا تُقرأ إلا عند الإقلاع).
 2. إن كانت الاستضافة تتيح "Run NPM Install" فشغّله. غير ذلك فحزمة qrcode مرفقة
    داخل node_modules ولا حاجة لشيء.
-3. وجّه النطاق الفرعي team.wajeezsd.com إلى نفس التطبيق.
+3. أنشئ النطاق الفرعي team.wajeezsd.com في cPanel واجعل جذر مستنداته
+   هو نفسه جذر تطبيق وجيز (نفس المسار تماماً، لا مجلد جديد).
    لاسم نطاق مختلف اضبط متغيّري البيئة: TEAM_HOSTS و TEAM_BASE_URL.
+
+⚠️ لا ترفع هذا الأرشيف في مجلد النطاق الفرعي. موقع الفريق ليس موقعاً مستقلاً —
+   يخدمه تطبيق وجيز نفسه ويقرأ من نفس قاعدة البيانات. مكانه جذر التطبيق فقط.
 
 التحقق بعد الرفع
 ----------------

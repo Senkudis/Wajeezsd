@@ -235,8 +235,8 @@ express.static(path.join(__dirname, 'uploads')),
 // جذر النطاق الفرعي و/team على النطاق الرئيسي. مسارٌ مطلق واحد يعمل في
 // الحالتين — بينما المسار النسبي ينكسر على الروابط العميقة مثل /m/<id>.
 const teamSiteDir = path.join(__dirname, 'public_html', 'team');
-const TEAM_HOSTS = (process.env.TEAM_HOSTS || 'team.wajeezsd.com')
-    .split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+const teamHost = require('./utils/teamHost');
+const TEAM_HOSTS = teamHost.parseTeamHosts(process.env.TEAM_HOSTS);
 
 app.use('/team-assets', express.static(path.join(teamSiteDir, 'team-assets'), {
     // أسماء ملفات Vite تحمل بصمة المحتوى ⇒ آمنٌ تخزينها سنة كاملة
@@ -250,12 +250,14 @@ const teamStatic = express.static(teamSiteDir, { index: false });
 /**
  * غلاف التطبيق لأي مسار تنقّل داخلي (/، /m/<id>).
  *
- * أي مسار يحمل امتداد ملف يُمرَّر إلى بقية السلسلة بدلاً من ابتلاعه: الخطوط
- * والشعارات تُخدَم من public_html المشترك، وإرجاع HTML مكان ملف .css يكسرها
- * بصمت على النطاق الفرعي.
+ * الخطوط والشعارات وحدها تُمرَّر إلى public_html المشترك — إرجاع HTML مكان
+ * ملف .css يكسرها بصمت. ما عداها من الملفات لا يُخدَم على نطاق الفريق أصلاً.
  */
 function sendTeamIndex(req, res, next) {
-    if (path.extname(req.path)) return next();
+    if (path.extname(req.path)) {
+        if (teamHost.isSharedAsset(req.path)) return next();
+        return res.status(404).type('text/plain').send('Not Found');
+    }
     const indexPath = path.join(teamSiteDir, 'index.html');
     if (!fs.existsSync(indexPath)) return next();
     // لا كاش على غلاف التطبيق: بناءٌ جديد يجب أن يُلتقط فوراً، وإلا بقي المتصفح
@@ -266,10 +268,9 @@ function sendTeamIndex(req, res, next) {
 
 // 1) النطاق الفرعي: كل ما ليس API أو رفوعات هو التطبيق نفسه
 app.use((req, res, next) => {
-    const host = (req.hostname || '').toLowerCase();
-    if (!TEAM_HOSTS.includes(host)) return next();
+    if (!teamHost.isTeamHost(req.hostname, TEAM_HOSTS)) return next();
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+    if (teamHost.isPassthrough(req.path)) return next();
     teamStatic(req, res, () => sendTeamIndex(req, res, next));
 });
 
