@@ -246,14 +246,13 @@ function initMap() {
         });
         directionsRenderer.setMap(map);
 
-        // Keep the address preview updated as the user drags the map
-        map.addListener('center_changed', () => {
-            // Wait for map 'idle' to draw the actual street route to save API limits
-        });
-        
+        // ⚠️ حُذف مستمع center_changed: كان جسمه تعليقاً فقط، وهو حدثٌ يقع عشرات
+        // المرات في السحبة الواحدة — استدعاء دالة فارغة على كل إطار حركة.
+
         map.addListener('idle', () => {
-            // 📍 حدّث معاينة العنوان النصي (reverse geocode) عند توقّف الحركة
-            _updateCenterAddress();
+            // 📍 حدّث معاينة العنوان النصي (reverse geocode) بعد توقّف الحركة
+            //    فعلاً — مُهدَّأة كي لا تُنادى على كل محطة في سحبةٍ متلاحقة.
+            _updateCenterAddressDebounced();
             // Update live route dynamically when map stops moving
             if (currentSelectionMode === 'dropoff') {
                 _setupLiveRoute('dropoff');
@@ -573,6 +572,23 @@ function _resolveAddressNominatim(lat, lng) {
         .catch(() => `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
 }
 
+/**
+ * 🔒 العنوان المعروض ليس نصّاً موثوقاً.
+ *
+ * البديل الثاني لفكّ الإحداثيات هو Nominatim أي OpenStreetMap، وحقوله
+ * (road/neighbourhood/city) يحرّرها أي مساهم في العالم. وكان الناتج يُحقن
+ * خاماً في innerHTML أدناه — فاسم شارعٍ يحوي وسماً تنفيذياً يُنفَّذ في
+ * متصفّح العميل. وGoogle نفسه يُعيد نصّاً حرّاً من أسماء الأماكن.
+ * الهروب هنا هو الحاجز الوحيد (نفس ما تفعله نتائج البحث في index.html).
+ */
+const _escAddr = (v) => (window.escapeHtml
+    ? window.escapeHtml(v)
+    : String(v == null ? '' : v).replace(/[&<>"']/g,
+        c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+
+const _pinHtml = (addr) =>
+    `<i class="bi bi-geo-alt-fill" style="color:#04553A;"></i> ${_escAddr(addr)}`;
+
 // تحديث معاينة العنوان أسفل الخريطة (حيّاً عند توقّف الحركة)
 function _updateCenterAddress() {
     if (!map) return;
@@ -586,7 +602,7 @@ function _updateCenterAddress() {
         if (d < 45) {
             _centerAddress = window._selectedSearchAddr.text;
             _centerAddrKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-            if (previewEl) previewEl.innerHTML = `<i class="bi bi-geo-alt-fill" style="color:#04553A;"></i> ${_centerAddress}`;
+            if (previewEl) previewEl.innerHTML = _pinHtml(_centerAddress);
             return;
         }
         window._selectedSearchAddr = null; // ابتعد عن النتيجة → تجاهلها
@@ -600,10 +616,24 @@ function _updateCenterAddress() {
         const c2 = map.getCenter();
         if (`${c2.lat().toFixed(4)},${c2.lng().toFixed(4)}` !== key) return; // تحرّك أثناء الحل
         _centerAddress = addr;
-        if (previewEl) previewEl.innerHTML = `<i class="bi bi-geo-alt-fill" style="color:#04553A;"></i> ${addr}`;
+        if (previewEl) previewEl.innerHTML = _pinHtml(addr);
     });
 }
 window._updateCenterAddress = _updateCenterAddress;
+
+/**
+ * ⏳ تهدئة فكّ الإحداثيات: حدث idle يقع بعد كل استقرار للخريطة، والعميل
+ * الباحث عن بيته يسحب الخريطة عشرات المرات — وكل استقرارٍ نداءٌ مدفوع
+ * لـ Geocoder. المفتاح بأربع خانات يمنع تكرار النقطة نفسها لا تعدّد
+ * النقاط. التأخير يبتلع السحبات المتلاحقة فلا يُنادى إلا على ما استقرّ
+ * عليه فعلاً. (رمز الجلسة في البحث عولج بنفس المنطق — هذا نصفه الآخر.)
+ */
+let _centerAddrTimer = null;
+function _updateCenterAddressDebounced(delay = 450) {
+    clearTimeout(_centerAddrTimer);
+    _centerAddrTimer = setTimeout(_updateCenterAddress, delay);
+}
+window._updateCenterAddressDebounced = _updateCenterAddressDebounced;
 
 // ══════════════════════════════════════════════════════
 // confirmLocationSelection
