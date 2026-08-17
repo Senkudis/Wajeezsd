@@ -40,8 +40,12 @@ function collectTypes() {
 
     for (const file of files) {
         const src = fs.readFileSync(file, 'utf8');
-        // نافذة بعد كل نداء إنشاء إشعار — تكفي لالتقاط حقل type داخل الكائن
-        const callRe = /(sendNotification\s*\(|Notification\.create\s*\()/g;
+        // نافذة بعد كل نداء إنشاء إشعار — تكفي لالتقاط حقل type داخل الكائن.
+        // ⚠️ notifyAdmins جزء من المسح: غيابه عنه هو ما سمح للعطل بالبقاء.
+        // كان المسح يغطّي مسار المستخدم وحده، فمرّت أربعة أنواع تُرسل للإدارة
+        // (admin_order_alert، merchant_request، settlement_request، legacy_order)
+        // بلا وجود في المخطّط — ولم يصل الإدارة أيّ تنبيه منها منذ الإطلاق.
+        const callRe = /(sendNotification\s*\(|Notification\.create\s*\(|notifyAdmins\s*\()/g;
         let m;
         while ((m = callRe.exec(src)) !== null) {
             const window = src.slice(m.index, m.index + 600);
@@ -72,6 +76,22 @@ describe('أنواع الإشعارات', () => {
             if (doc.validateSync()) rejected.push(`${type} (${file})`);
         }
         expect(rejected).toEqual([]);
+    });
+
+    it('🛡️ أنواع تنبيهات الإدارة مقبولة في المخطّط', () => {
+        // كلها كانت مفقودة، فكان insertMany في notifyAdmins يرمي قبل خطوة الدفعة
+        const enumValues = Notification.schema.path('type').enumValues;
+        expect(enumValues).toEqual(expect.arrayContaining([
+            'admin_alert', 'admin_order_alert', 'merchant_request',
+            'settlement_request', 'legacy_order'
+        ]));
+    });
+
+    it('🧭 لكل نوع إداري وجهة في لوحة الأدمن', () => {
+        for (const type of ['merchant_request', 'settlement_request', 'admin_order_alert']) {
+            const url = resolvePushUrl('admin', type, 'X1');
+            expect(url, `${type} بلا وجهة`).toMatch(/^\/admin/);
+        }
     });
 
     it('الأنواع الجديدة لرحلة العميل موجودة', () => {

@@ -28,7 +28,8 @@ const CACHE_TTL = 60_000;
 
 async function getCachedSettings(city = 'Khartoum') {
     const cached = _settingsCache.get(city);
-    if (cached && Date.now() - cached.time < CACHE_TTL) return cached.data;
+    // BUG-L5 FIX: إعادة نسخة سطحية لا المرجع المباشر — تمنع تلوّث الكاش من خارجه
+    if (cached && Date.now() - cached.time < CACHE_TTL) return { ...cached.data };
     const data = await Settings.getSettings(city);
     _settingsCache.set(city, { data, time: Date.now() });
     return data;
@@ -133,17 +134,66 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
         }
         const isMultiStop = !!sanitizedStops;
 
-        // ✅ Get commission rate from the user's CITY Settings (fully isolated per city)
+        // ✅ Get commission rate and pricing limits from the user's CITY Settings (fully isolated per city)
         const settings = await getCachedSettings(req.userCity);
         const commissionRate = settings.commissionRate ?? 0.15; // null-safe fallback only
 
-        // ✅ Server-Side Security: Prevent clients from sending an abnormally low price
-        // Uses THIS city's baseFare, plus the per-extra-stop fee for multi-stop trips.
+        // 📏 حساب المسافة التقديرية والتسعيرة المحسوبة للرحلة
+        const { haversineKm } = require('../utils/geofence');
+        let totalDistanceKm = 0;
+        if (isMultiStop && Array.isArray(sanitizedStops) && sanitizedStops.length >= 2) {
+            for (let i = 1; i < sanitizedStops.length; i++) {
+                const segDist = haversineKm(sanitizedStops[i - 1], sanitizedStops[i]);
+                if (typeof segDist === 'number' && Number.isFinite(segDist)) {
+                    totalDistanceKm += segDist;
+                }
+            }
+        } else if (pickup && dropoff) {
+            const dist = haversineKm(pickup, dropoff);
+            if (typeof dist === 'number' && Number.isFinite(dist)) {
+                totalDistanceKm = dist;
+            }
+        }
+
         const base = settings.baseFare || 1000;
+        const costPerKm = settings.costPerKm || 200;
         const extraStopFee = settings.extraStopFee || 0;
-        const minPrice = base + (isMultiStop ? extraStopFee * Math.max(0, sanitizedStops.length - 2) : 0);
-        if (price < minPrice) {
-            return res.status(400).json({ message: `عذراً، السعر المطلوب (${price}) أقل من الحد الأدنى لتسعيرة مدينة ${req.userCity} (${minPrice})` });
+        const extraStops = isMultiStop ? Math.max(0, sanitizedStops.length - 2) : 0;
+
+        // تسعيرة التطبيق المقدرة للرحلة
+        let calculatedPrice = base + (totalDistanceKm * costPerKm) + (extraStopFee * extraStops);
+        calculatedPrice = Math.ceil(calculatedPrice / 100) * 100;
+
+        // نسب التخفيض والسقف من الإعدادات
+        const maxDiscountPercent = typeof settings.maxDiscountPercent === 'number' ? settings.maxDiscountPercent : 10;
+        const maxPriceSurgePercent = typeof settings.maxPriceSurgePercent === 'number' ? settings.maxPriceSurgePercent : 100;
+
+        // ✅ Server-Side Security: Prevent clients from sending an abnormally low price below the relative discount limit
+        const minPriceFloor = base + (extraStopFee * extraStops);
+        const relativeMinPrice = Math.ceil((calculatedPrice * (1 - (maxDiscountPercent / 100))) / 100) * 100;
+        const minAllowedPrice = Math.max(minPriceFloor, relativeMinPrice);
+
+        // سقف السعر الأقصى المسموح
+        const maxAllowedPrice = Math.ceil((calculatedPrice * (1 + (maxPriceSurgePercent / 100))) / 100) * 100;
+
+        if (price < minAllowedPrice) {
+            return res.status(400).json({
+                message: `عذراً، السعر المطلوب (${price} ج.س) أقل من الحد الأدنى المسموح به لهذا المشوار (${minAllowedPrice} ج.س). أقصى نسبة تخفيض مسموحة هي ${maxDiscountPercent}% من تسعيرة التطبيق المقدرة (${calculatedPrice} ج.س).`,
+                calculatedPrice,
+                minAllowedPrice,
+                maxAllowedPrice,
+                maxDiscountPercent
+            });
+        }
+
+        if (price > maxAllowedPrice) {
+            return res.status(400).json({
+                message: `عذراً، السعر المطلوب (${price} ج.س) يتجاوز الحد الأعلى المسموح به لهذا المشوار (${maxAllowedPrice} ج.س).`,
+                calculatedPrice,
+                minAllowedPrice,
+                maxAllowedPrice,
+                maxPriceSurgePercent
+            });
         }
 
         const appFee = price * commissionRate;
@@ -540,6 +590,15 @@ router.put('/:id/cancel', protect, async (req, res) => {
             shopOrder.cancelledAt = new Date();   // ⏱️ للخط الزمني
             await shopOrder.save();
 
+            // BUG-BL1 FIX: العميل ألغى ShopOrder، يجب إلغاء طلب التوصيل المرتبط (إن وجد)
+            const linkedOrder = await Order.findOne({ shopOrderId: shopOrder._id, status: { $in: ['pending', 'accepted'] } });
+            if (linkedOrder) {
+                linkedOrder.status = 'cancelled';
+                linkedOrder.cancelledBy = 'client';
+                await linkedOrder.save();
+                logger.info(`🔗 Linked delivery Order ${linkedOrder._id} cancelled with ShopOrder ${shopOrder._id}`);
+            }
+
             // BUG-C2 FIX: استعادة المخزون بشكل ذري — حذف الاستعلام المنفصل findById
             if (shopOrder.items && shopOrder.items.length > 0) {
                 const Product = require('../models/Product');
@@ -604,7 +663,14 @@ router.put('/:id/cancel', protect, async (req, res) => {
             return res.status(403).json({ message: 'You are not authorized to cancel this order' });
         }
 
-        // 🚫 لا يمكن الإلغاء بعد أن يقبل الكابتن الطلب أو يستلم الطرد
+        // BL-M3 FIX: منع تخطي حماية إلغاء طلب المتجر عبر طلب التوصيل المرتبط.
+        // السيناريو: المتجر بدأ بالتجهيز → حُظر إلغاء ShopOrder. لكن العميل يملك
+        // deliveryOrderId المرتبط (حالته pending) ويلغيه مباشرة → Hook يُلغي ShopOrder تلقائياً!
+        // الحل: أي Order مرتبط بـ ShopOrder لا يُلغى من هنا — استخدم مسار ShopOrder.
+        if (order.shopOrderId) {
+            return res.status(400).json({ message: 'هذا الطلب مرتبط بطلب متجر. استخدم مسار إلغاء طلب المتجر.' });
+        }
+
         if (['accepted', 'picked_up', 'delivered'].includes(order.status)) {
             return res.status(400).json({ message: 'لا يمكن إلغاء الطلب بعد قبول الكابتن. تواصل مع الدعم إن كان هناك مشكلة.' });
         }
@@ -645,31 +711,41 @@ router.put('/:id/cancel', protect, async (req, res) => {
 
         // 🚀 FIX 3: Notify negotiating captains when client cancels
         const io = req.app.get('io');
-        if (order.negotiations && order.negotiations.length > 0) {
-            for (let i = 0; i < order.negotiations.length; i++) {
-                if (order.negotiations[i].status === 'pending') {
-                    order.negotiations[i].status = 'rejected';
-                    const capId = order.negotiations[i].captainId;
-                    if (capId) {
-                        if (io) {
-                            io.to(capId.toString()).emit('negotiation_resolved', {
-                                orderId: order._id,
-                                result: 'order_taken' // reusing 'order_taken' to tell them it's gone
-                            });
-                        }
-                        await sendNotification(req.app, {
-                            userId: capId,
-                            title: 'تم إلغاء الطلب',
-                            message: 'قام العميل بإلغاء الطلب الذي قدمت عليه عرضاً.',
-                            type: 'order_update',
-                            relatedId: order._id
-                        });
-                    }
+
+        // BUG-L3 FIX: جمع العروض المعلّقة من cancelledOrder (مع new:true)
+        // ثم تحديث ذري في DB بدل تعديل الكائن المحلي ثم save()
+        // — save() كان يكتب كل الحقول ويُطلق post('save') hook (ShopOrder sync)
+        const pendingNegotiations = (order.negotiations || []).filter(n => n.status === 'pending');
+
+        if (pendingNegotiations.length > 0) {
+            // تحديث ذري: رفض كل العروض المعلّقة بعملية واحدة
+            await Order.updateOne(
+                { _id: order._id },
+                { $set: { 'negotiations.$[elem].status': 'rejected' } },
+                { arrayFilters: [{ 'elem.status': 'pending' }] }
+            );
+        }
+
+        // إشعار كل كابتن بعرض معلّق
+        for (const neg of pendingNegotiations) {
+            const capId = neg.captainId;
+            if (capId) {
+                if (io) {
+                    io.to(capId.toString()).emit('negotiation_resolved', {
+                        orderId: order._id,
+                        result: 'order_taken'
+                    });
                 }
+                await sendNotification(req.app, {
+                    userId: capId,
+                    title: 'تم إلغاء الطلب',
+                    message: 'قام العميل بإلغاء الطلب الذي قدمت عليه عرضاً.',
+                    type: 'order_update',
+                    relatedId: order._id
+                });
             }
         }
 
-        await order.save();
         
         // Notify admin and client about cancellation
         if (io) {
@@ -995,6 +1071,11 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
     if (req.user.is_blocked) {
         return res.status(403).json({ message: 'حسابك محجوب ولا يمكنك تقديم عروض' });
     }
+    // BUG-L6 FIX: منع الكابتن غير المعتمد من التفاوض — is_blocked يُعيَّن مالياً
+    // لكن كابتن approvalStatus='pending' قد لا يكون is_blocked بعد
+    if (req.user.approvalStatus !== 'approved') {
+        return res.status(403).json({ message: 'حسابك قيد المراجعة ولم يُعتمد بعد — لا يمكنك تقديم عروض' });
+    }
 
     try {
         const { proposedPrice } = req.body;
@@ -1031,8 +1112,11 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
 
         const expiresAt = new Date(Date.now() + NEGOTIATION_TTL_MS);
 
-        // ✅ Push new offer to the negotiations array — مع لقطة بيانات الكابتن لعرض احترافي
-        order.negotiations.push({
+        // BL-RC1 FIX: استبدال order.negotiations.push(...) + order.save() بـ تحديث ذري.
+        // المشكلة: كابتنان يرسلان عرضاً في نفس اللحظة → كلاهما يقرأ المستند → كل save()
+        // يكتب فوق الآخر → عرض أحدهما يُمسح نهائياً من قاعدة البيانات.
+        // $push هنا ذري تماماً: MongoDB يضمن أن العرضين يصلان حتى لو جاءا في نفس الجزء من الثانية.
+        const newOffer = {
             captainId: req.user._id,
             captainName: req.user.name,
             captainVehicle: req.user.vehicleType || null,
@@ -1043,8 +1127,12 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
             originalPrice: order.price,
             expiresAt,
             status: 'pending'
-        });
-        await order.save();
+        };
+
+        await Order.updateOne(
+            { _id: order._id },
+            { $push: { negotiations: newOffer } }
+        );
 
         // ✅ BUG-013 FIX: استدعاء sendOfferExpiryReminder فعلياً بعد حفظ العرض
         // يرسل إشعاراً FCM للكابتن قبل دقيقتين من انتهاء عرضه
@@ -1159,40 +1247,29 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
             }
 
             // Accept: update price, assign captain, change status
-            order.price = offer.proposedPrice;
-            order.captain = captainId;
-            order.status = 'accepted';
-            order.negotiations[offerIndex].status = 'accepted';
-
-            // Reject all other pending negotiations
-            order.negotiations.forEach((n, i) => {
-                if (i !== offerIndex && n.status === 'pending') {
-                    order.negotiations[i].status = 'rejected';
-                }
-            });
-
-            // Clear legacy lock
-            order.negotiation = { isActive: false, status: 'none' };
+            // BUG-L2 FIX: لا نُعدِّل order.negotiations المحلي ثم نكتبها كاملاً ($set: negotiations)
+            // — ذلك يُضيّع عروض كباتن أضافوا عرضاً بين findById والـ findOneAndUpdate.
+            // الحل: findOneAndUpdate يحمي الحقول الرئيسية فقط، ثم عمليتان ذريتان للـ negotiations.
 
             // Recalculate fees using the ORDER's city commission rate
             const settings = await getCachedSettings(order.city || 'Khartoum');
             const commissionRate = settings.commissionRate ?? 0.15;
-            order.appFee = order.price * commissionRate;
-            order.netRevenue = order.price - order.appFee;
+            const acceptedPrice  = offer.proposedPrice;
+            const newAppFee      = acceptedPrice * commissionRate;
+            const newNetRevenue  = acceptedPrice - newAppFee;
 
-            // 🛡️ CRITICAL FIX: Atomic update for negotiation accept to prevent race condition with captain direct acceptance
+            // 🛡️ Step 1: قبول الطلب ذرياً — بدون كتابة negotiations
             const updatedOrder = await Order.findOneAndUpdate(
                 { _id: req.params.id, status: 'pending' },
                 {
                     $set: {
-                        price: order.price,
-                        captain: order.captain,
+                        price: acceptedPrice,
+                        captain: captainId,
                         status: 'accepted',
                         acceptedAt: new Date(),   // ⏱️ للخط الزمني
-                        negotiation: order.negotiation,
-                        negotiations: order.negotiations,
-                        appFee: order.appFee,
-                        netRevenue: order.netRevenue
+                        negotiation: { isActive: false, status: 'none' },
+                        appFee: newAppFee,
+                        netRevenue: newNetRevenue
                     }
                 },
                 { new: true }
@@ -1201,6 +1278,20 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
             if (!updatedOrder) {
                 return res.status(400).json({ message: 'الطلب لم يعد متاحاً أو تم قبوله بالفعل' });
             }
+
+            // 🛡️ Step 2: تحديث negotiations بعمليات ذرية — لا نكتب المصفوفة كاملاً
+            // علّم عرض الكابتن الفائز كمقبول (positional $)
+            await Order.updateOne(
+                { _id: updatedOrder._id, 'negotiations.captainId': new mongoose.Types.ObjectId(captainId), 'negotiations.status': 'pending' },
+                { $set: { 'negotiations.$.status': 'accepted' } }
+            ).catch(e => logger.warn({ err: e.message }, 'BUG-L2: mark winner offer failed'));
+
+            // ارفض كل العروض المعلّقة الأخرى (arrayFilters)
+            await Order.updateOne(
+                { _id: updatedOrder._id },
+                { $set: { 'negotiations.$[elem].status': 'rejected' } },
+                { arrayFilters: [{ 'elem.status': 'pending', 'elem.captainId': { $ne: new mongoose.Types.ObjectId(captainId) } }] }
+            ).catch(e => logger.warn({ err: e.message }, 'BUG-L2: reject other offers failed'));
 
             // Sync ShopOrder manually
             if (updatedOrder.shopOrderId) {
@@ -1219,7 +1310,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                 io.to(captainId.toString()).emit('negotiation_resolved', {
                     orderId: order._id,
                     result: 'accepted',
-                    finalPrice: order.price
+                    finalPrice: acceptedPrice
                 });
                 io.to(order.client.toString()).emit('order_status_updated', {
                     orderId: order._id,
@@ -1231,15 +1322,14 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                 io.to('admin_room').emit('admin_order_update', {
                     orderId: order._id,
                     status: 'accepted',
-                    captainName: (order.negotiations[offerIndex] || {}).captainName,
+                    captainName: offer.captainName || null,
                     city: order.city
                 });
             }
 
-            // ✅ FIX #4: استخدام updatedOrder.negotiations بدلاً من order.negotiations القديم
-            // order.negotiations كانت تشير للكائن قبل findOneAndUpdate
-            // وكانت فهرسة offerIndex تستخدم الترتيب القديم بدلاً من تحديد الكابتن الفائز بدقة
-            // BUG-H3 FIX: فلترة الكباتن ذوي العروض النشطة فقط — لا نُرسل لمن رُفض أو انسحب
+            // BUG-H3 FIX: فلترة الكباتن ذوي العروض المعلّقة من updatedOrder (قبل Step 2)
+            // الكباتن الذين رُفضوا في Step 2 ستظهر عروضهم لا تزال 'pending' في updatedOrder
+            // لأن updatedOrder جُلب قبل Step 2 — نستخدم $ne لتجنب إشعار الفائز
             const rejectedCaptains = updatedOrder.negotiations.filter(
                 (n) => String(n.captainId) !== String(captainId) && n.captainId && n.status === 'pending'
             );
@@ -1262,7 +1352,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
             await sendNotification(req.app, {
                 userId: captainId,
                 title: 'تم قبول عرضك!',
-                message: `العميل وافق على السعر ${order.price} ج.س — انطلق الآن!`,
+                message: `العميل وافق على السعر ${acceptedPrice} ج.س — انطلق الآن!`,
                 type: 'order_accepted',
                 relatedId: order._id
             });
@@ -1368,6 +1458,11 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
     if (!req.user.isAvailableForWork) {
         return res.status(403).json({ message: 'أنت في وضع "غير متاح". يرجى تفعيل وضع الاستقبال أولاً.' });
     }
+    // BUG-L6 FIX: منع الكابتن غير المعتمد من قبول طلبات — is_blocked يُعيَّن مالياً
+    // لكن كابتن approvalStatus='pending' قد لا يكون is_blocked بعد
+    if (req.user.approvalStatus !== 'approved') {
+        return res.status(403).json({ message: 'حسابك قيد المراجعة ولم يُعتمد بعد' });
+    }
 
     try {
         // 🛡️ CRITICAL FIX: Atomic update to prevent Race Condition
@@ -1398,32 +1493,30 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
         let negotiationsUpdated = false;
         
         if (order.negotiations && order.negotiations.length > 0) {
-            order.negotiations.forEach((n, i) => {
-                if (n.status === 'pending') {
-                    order.negotiations[i].status = 'rejected';
-                    negotiationsUpdated = true;
-                    if (n.captainId && n.captainId.toString() !== req.user.id.toString()) {
-                        rejectedCaptains.push(n.captainId);
-                    }
-                }
-            });
-            if (negotiationsUpdated) {
-                await order.save(); // this will also trigger the post('save') hook!
-            }
-        } else {
-             // If we didn't save the order (no negotiations to update), we must manually trigger post('save') logic for ShopOrder sync
-             if (order.shopOrderId) {
-                 try {
-                     const ShopOrder = require('../models/ShopOrder');
-                     await ShopOrder.findByIdAndUpdate(order.shopOrderId, {
-                         status: 'captain_assigned',
-                         captain: order.captain,
-                         captainAssignedAt: new Date()   // ⏱️ للخط الزمني
-                     });
-                 } catch (err) { logger.error('Error syncing ShopOrder', err); }
-             }
+            // BL-RC1b FIX: رفض العروض المعلّقة بشكل ذري بدل تعديلها في الذاكرة ثم save().
+            // forEach + save() في حضور طلبات متزامنة يمحو عروضاً وصلت أثناء القراءة.
+            const pendingNegs = order.negotiations.filter(n => n.status === 'pending' && n.captainId?.toString() !== req.user.id.toString());
+            pendingNegs.forEach(n => rejectedCaptains.push(n.captainId));
+
+            await Order.updateOne(
+                { _id: order._id },
+                { $set: { 'negotiations.$[elem].status': 'rejected' } },
+                { arrayFilters: [{ 'elem.status': 'pending', 'elem.captainId': { $ne: req.user._id } }] }
+            );
         }
-        
+
+        // مزامنة ShopOrder دائماً بعد القبول (بغض النظر عن وجود عروض)
+        if (order.shopOrderId) {
+            try {
+                const ShopOrder = require('../models/ShopOrder');
+                await ShopOrder.findByIdAndUpdate(order.shopOrderId, {
+                    status: 'captain_assigned',
+                    captain: order.captain,
+                    captainAssignedAt: new Date()
+                });
+            } catch (err) { logger.error('Error syncing ShopOrder on accept', err); }
+        }
+
         // Notify rejected captains
         for (const rCapId of rejectedCaptains) {
             if (io) {
@@ -1517,6 +1610,60 @@ router.put('/:id/release', protect, captainOnly, async (req, res) => {
             io.to('admin_room').emit('admin_order_update', { orderId: released._id, status: 'pending', city: released.city });
         }
 
+        // 📣 إعادة إشعار الكباتن في نفس المدينة بأن الطلب متاح من جديد
+        setImmediate(async () => {
+            try {
+                const { sendPushToMany } = require('../utils/firebasePush');
+                const User = require('../models/User');
+
+                const activeCaptains = await User.find({
+                    role: 'captain',
+                    city: released.city,
+                    fcmToken: { $exists: true, $ne: null },
+                    isActive: true,
+                    _id: { $ne: req.user.id } // لا نرسل للكابتن الذي تنازل للتو
+                }).select('fcmToken');
+
+                const tokens = activeCaptains.map(c => c.fcmToken);
+                if (tokens.length > 0) {
+                    let title = '📦 طلب توصيل متاح من جديد! 🚨';
+                    let bodyMsg = `تم إعادة طلب للسوق بسعر ${released.price} ج.س. سارع بقبوله!`;
+                    let pushType = 'new_order';
+                    
+                    if (released.orderType === 'shop') {
+                        title = '🛒 طلب محل متاح من جديد! 🚨';
+                        bodyMsg = `طلب محل بسعر ${released.price} ج.س في انتظارك!`;
+                        pushType = 'shop_order';
+                    } else if (released.orderType === 'errand') {
+                        title = '🛍️ طلب شراء متاح من جديد! 🚨';
+                        bodyMsg = `طلب شراء بسعر ${released.price} ج.س في انتظارك!`;
+                        pushType = 'errand';
+                    }
+
+                    await sendPushToMany(tokens, title, bodyMsg, {
+                        type: pushType,
+                        orderId: released._id.toString(),
+                        url: `/captain-orders.html?highlight=${released._id.toString()}`
+                    });
+                }
+                
+                // إعادة بث عبر Socket
+                if (io && released.city) {
+                    const cityRoom = `room_${released.city}`;
+                    const eventName = released.orderType === 'shop' ? 'shop_order_available' : 'new_order_available';
+                    io.to(cityRoom).emit(eventName, {
+                        orderId: released._id,
+                        shopName: released.shopName || '',
+                        pickup: released.pickup ? released.pickup.address : '',
+                        price: released.price,
+                        city: released.city
+                    });
+                }
+            } catch (err) {
+                logger.error({ err }, 'Error broadcasting released order to captains');
+            }
+        });
+
         res.json({ message: 'تم التنازل عن الطلب وإعادته للكباتن', order: released });
     } catch (error) {
         logger.error({ err: error }, 'Order release error');
@@ -1576,14 +1723,15 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
             await order.save();
         }
 
-        // 🧭 توصيل متعدد النقاط: علّم أول نقطة استلام كمُنجَزة
+        // 🧭 توصيل متعدد النقاط: علّم أول نقطة استلام كمُنجَزة (تحديث ذري)
         if (order.isMultiStop && Array.isArray(order.stops)) {
-            const firstPickup = order.stops.find(s => s.type === 'pickup' && !s.done);
-            if (firstPickup) {
-                firstPickup.done = true;
-                firstPickup.doneAt = new Date();
-                await order.save();
-            }
+            // BL-RC2 FIX: استخدمنا $set مع arrayFilters بدل التعديل في الذاكرة + save()
+            // لأن save() يمحو أي تعديل متزامن حصل بعد الـ findOneAndUpdate الفوق.
+            await Order.updateOne(
+                { _id: order._id },
+                { $set: { 'stops.$[elem].done': true, 'stops.$[elem].doneAt': new Date() } },
+                { arrayFilters: [{ 'elem.type': 'pickup', 'elem.done': { $ne: true } }] }
+            );
         }
 
         // Sync ShopOrder manually since findOneAndUpdate bypasses post('save')
@@ -1612,7 +1760,7 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
             io.to(order.client.toString()).emit('order_status_updated', {
                 orderId: order._id,
                 status: 'picked_up',
-                proofOfPickupImage: proofImage
+                proofOfPickupImage: proofImageUrl  // BUG-L1 FIX: URL المحوَّل لا Base64 الأصلي
             });
             io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'picked_up', city: order.city });
         }
@@ -1867,13 +2015,17 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                         : shopOrder.itemsTotal;
                     if (goodsAmount > 0) {
                         const { recordLedgerEntry } = require('../utils/erpHelpers');
+                        // BL-M1 FIX: العميل دفع قيمة البضاعة بنكياً مباشرة للتاجر (paymentReceiptImage).
+                        // تسجيل 'sale_income' كان يضيف goodsAmount لمحفظة التاجر داخل التطبيق أيضاً
+                        // → التاجر يقبض مرتين (بنك + تطبيق). نُسجّل 'sale_record' للإحصاء فقط
+                        // بدون تعديل shopWalletBalance.
                         const ledgerResult = await recordLedgerEntry({
                             placeId: shopOrder.place,
-                            type: 'sale_income',
+                            type: 'sale_record',   // ← إحصاء فقط، لا تعديل للرصيد
                             amount: goodsAmount,
                             refModel: 'ShopOrder',
                             refId: shopOrder._id,
-                            note: 'دخل بيع — توصيل طلب متجر'
+                            note: 'تسجيل مبيعات — المبلغ مدفوع بنكياً خارج التطبيق'
                         });
                         if (ledgerResult.ok) {
                             try {
@@ -1883,8 +2035,8 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                                     const { sendNotification } = require('../utils/notificationHelper');
                                     await sendNotification(req.app, {
                                         userId: placeDoc.ownerId,
-                                        title: 'تمت إضافة مستحقات لرصيدك',
-                                        message: `تم توصيل الطلب بنجاح وأُضيف مبلغ ${goodsAmount} ج.س لرصيد مستحقاتك. الرصيد الحالي: ${ledgerResult.balanceAfter} ج.س.`,
+                                        title: 'تم توصيل الطلب بنجاح',
+                                        message: `تم توصيل الطلب بنجاح. قيمة البضاعة ${goodsAmount} ج.س تم دفعها عبر التحويل البنكي.`,
                                         type: 'shop_ledger',
                                         relatedId: shopOrder._id
                                     });
@@ -1905,9 +2057,17 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
             logger.warn('Could not load settings for credit limit, using default');
         }
 
+        // BL-M2 FIX: العمولة تُحسب على المبلغ الفعلي الذي استلمه الكابتن من العميل.
+        // قبل الإصلاح: commissionAmount = appFee أو price * 15% (بغض النظر عن الكوبون)
+        // سيناريو المشكلة: أجرة 1000 + كوبون 300 → الكابتن يستلم 700 نقداً لكن عمولته 150.
+        // المنصة تحمّل الكابتن الـ 45 فرق الكوبون من ماله الخاص!
+        // الإصلاح: إذا كان appFee محفوظاً نستخدمه مباشرة (هو بالفعل على السعر الصحيح عند الإنشاء).
+        // وإذا احتجنا نحسبه: نطرح discountAmount أولاً.
+        const discount = Number(order.discountAmount) || 0;
+        const effectivePrice = Math.max(0, (Number(order.price) || 0) - discount);
         const rawCommission = (order.appFee != null)
             ? Number(order.appFee)
-            : ((Number(order.price) || 0) * 0.15);
+            : (effectivePrice * 0.15);
         const commissionAmount = Math.max(0, parseFloat((isNaN(rawCommission) ? 0 : rawCommission).toFixed(2)));
 
         logger.info({ orderId: order._id, storedAppFee: order.appFee, commissionAmount }, 'Commission deduction on deliver');
@@ -1964,6 +2124,18 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                             });
                         } catch (notifErr) { logger.error({ err: notifErr }, 'Block notification failed'); }
 
+                        // 🔔 الإدارة أيضاً: كابتن محجوب يتوقف عن استقبال الطلبات، وهو
+                        // نقصٌ في الأسطول تحتاج الإدارة معرفته فوراً لا اكتشافه من شكوى.
+                        try {
+                            const { notifyAdmins } = require('../utils/notificationHelper');
+                            await notifyAdmins(req.app, {
+                                title: 'كابتن حُجب لتجاوز الحد الائتماني',
+                                message: `${captain.name || 'كابتن'} — الرصيد ${Math.round(captain.wallet_balance)} والحد ${creditLimit}`,
+                                type: 'captain_blocked',
+                                relatedId: captain._id
+                            });
+                        } catch (e) { logger.error({ err: e }, 'Admin block alert failed (non-critical)'); }
+
                         const ioForBlock = req.app.get('io');
                         if (ioForBlock) {
                             ioForBlock.to(captain._id.toString()).emit('wallet_limit_reached', {
@@ -1997,10 +2169,15 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
             // هو بالضبط من نريد أن نعرف لماذا لم يعد. يُرسل مرة واحدة فقط —
             // countDocuments == 1 يعني أن هذا الطلب هو الأول (حُدِّث للتوّ).
             try {
-                const deliveredCount = await Order.countDocuments({
-                    client: order.client, status: 'delivered'
-                });
-                if (deliveredCount === 1) {
+                // BUG-L9 FIX: عدّ كل الطلبات المكتملة (عادية + متجر) لتجنّب إشعار مُضلَّل
+                // لعميل أكمل 5 طلبات متجر ثم أول توصيل عادي
+                const ShopOrder = require('../models/ShopOrder');
+                const [deliveredCount, shopDeliveredCount] = await Promise.all([
+                    Order.countDocuments({ client: order.client, status: 'delivered' }),
+                    ShopOrder.countDocuments({ client: order.client, status: 'delivered' })
+                ]);
+                const totalDelivered = deliveredCount + shopDeliveredCount;
+                if (totalDelivered === 1) {
                     const Feedback = require('../models/Feedback');
                     const already = await Feedback.exists({ user: order.client, kind: 'first_order' });
                     if (!already) {
@@ -2207,6 +2384,20 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
         order.cancelledAt = new Date();
         await order.save();
 
+        // BUG-L12 FIX: مزامنة ShopOrder المرتبط إذا وُجد (حالة نادرة لكن ممكنة)
+        if (order.shopOrderId) {
+            try {
+                const ShopOrder = require('../models/ShopOrder');
+                await ShopOrder.findByIdAndUpdate(order.shopOrderId, {
+                    status: 'cancelled',
+                    cancelledBy: 'client',
+                    cancelReason: 'رفض العميل سعر البضاعة (errand)'
+                });
+            } catch (shopSyncErr) {
+                logger.warn({ err: shopSyncErr, orderId: order._id }, 'errand decline: ShopOrder sync failed');
+            }
+        }
+
         if (order.captain) {
             await sendNotification(req.app, {
                 userId: order.captain,
@@ -2349,7 +2540,9 @@ router.get('/price-config', protect, requireCity, async (req, res) => {
             baseFare: settings.baseFare ?? 1000,
             costPerKm: settings.costPerKm ?? 200,
             costPerMinute: settings.costPerMinute ?? 25,
-            extraStopFee: settings.extraStopFee ?? 0   // 🧭 رسم النقطة الإضافية للتوصيل متعدد النقاط
+            extraStopFee: settings.extraStopFee ?? 0,   // 🧭 رسم النقطة الإضافية للتوصيل متعدد النقاط
+            maxDiscountPercent: settings.maxDiscountPercent ?? 10, // 📉 أقصى نسبة تخفيض مسموحة للعميل
+            maxPriceSurgePercent: settings.maxPriceSurgePercent ?? 100 // 📈 أقصى نسبة زيادة / سقف السعر
         });
     } catch (error) {
         logger.error({ err: error }, 'Price Config Error');

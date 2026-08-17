@@ -40,7 +40,16 @@ const NotificationSchema = new mongoose.Schema({
             // 🚚 عروض الكابتن
             'offer_expired', 'offer_expiry_reminder', 'negotiation_accepted',
             // 🚨 Emergency SOS
-            'emergency'
+            'emergency',
+            // 🛡️ تنبيهات الإدارة — يرسلها utils/notificationHelper.notifyAdmins.
+            // ⚠️ كانت غائبة عن هذه القائمة بينما الكود يرسلها وpushRouting.js يعرف
+            // وجهاتها، فكان insertMany يرمي في notifyAdmins قبل خطوة الـ push:
+            // ولا إشعار واحد من هذه الأنواع وصل الإدارة منذ إطلاق النظام —
+            // لا طلب متجر جديد، ولا انضمام تاجر، ولا طلب تسوية، ولا طلب بلا كابتن.
+            'admin_alert', 'admin_order_alert', 'merchant_request',
+            'settlement_request', 'legacy_order',
+            // 👤 أحداث الحسابات التي تحتاج تدخّل الإدارة
+            'captain_pending', 'account_deletion', 'captain_blocked'
         ],
         default: 'system'
     },

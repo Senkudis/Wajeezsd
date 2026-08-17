@@ -28,21 +28,23 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'payment_confirmed':
                 case 'payment_reminder':
                 case 'shop_order':
+                case 'new_shop_order':
                     return `/client-shop-orders.html${r ? `?highlight=${r}` : ''}`;
                 case 'errand_quote':   // 🛒 سعر البضاعة بانتظار تأكيد العميل — يفتح التتبّع للتأكيد
-                case 'order_update':   // 🚚 تحديثات موقع الكابتن، وغيرها
                 case 'order_searching':// 🔍 استلمنا طلبك ونبحث عن كابتن
                 case 'order_delayed':  // ⏳ تأخّر القبول — التتبّع يتيح رفع السعر أو الإلغاء
                     return r ? `/tracking.html?orderId=${r}` : '/client-my-orders.html';
                 // 💬 نموذج رأي أول طلب يُفتح فوق قائمة الطلبات
                 case 'feedback_request':
                     return `/client-my-orders.html${r ? `?feedback=${r}` : '?feedback=1'}`;
+                case 'order_update':
+                case 'negotiation_offer':
+                case 'negotiate':
                 case 'order_accepted':
                 case 'order_delivered':
                 case 'order_cancelled':
                 case 'order_expired':
-                    // 📋 قائمة طلباتي لا التتبّع (الطلب انتهى أو لم يبدأ)، مع highlight
-                    // ليُبرَز الطلب المقصود — بدونه يهبط العميل على قائمة بلا سياق.
+                    // 📋 قائمة طلباتي مع تمييز الطلب (highlight) لعرض التفاصيل والإجراءات
                     return `/client-my-orders.html${r ? `?highlight=${r}` : ''}`;
                 default:
                     return '/notifications.html';
@@ -110,6 +112,12 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'payment_receipt':
                 case 'payment_request':
                     return '/admin-finance.html';
+                // 👤 أحداث الحسابات — تفتح شاشة الكباتن حيث يقع الإجراء المطلوب
+                case 'captain_pending':
+                case 'captain_blocked':
+                    return '/admin.html?page=captains';
+                case 'account_deletion':
+                    return '/admin.html?page=users';
                 case 'shop_order':
                 case 'admin_order_alert':
                 default:

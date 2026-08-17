@@ -7,6 +7,31 @@ const logger = require('./logger');
 const ALLOWED_TYPES = new Set(Notification.schema.path('type').enumValues);
 
 /**
+ * يضمن أن النوع موجود في المخطّط، وإلا هبط إلى بديل صالح مع صرخة في السجلّ.
+ *
+ * ⚠️ هذا ليس احتياطاً نظرياً. نوعٌ خارج الـ enum يجعل `create`/`insertMany` يرمي
+ * خطأ تحقّق يبتلعه try/catch الخارجي، فيسقط الإشعار كاملاً وبصمت: لا سجل، ولا
+ * socket، ولا دفعة FCM. حدث هذا فعلاً في notifyAdmins — الذي كان بلا حارس —
+ * فلم يصل الإدارة أيّ تنبيه من أنواع admin_order_alert وmerchant_request
+ * وsettlement_request وlegacy_order منذ إطلاق النظام، بينما كانت إشعارات
+ * الكباتن تصل لأن sendNotification وحده كان يحمل هذا الحارس.
+ *
+ * @param {string} type النوع المطلوب
+ * @param {string} fallback بديل صالح إن لم يكن معروفاً
+ * @param {object} ctx بيانات للسجلّ تساعد على تحديد مصدر النوع المجهول
+ */
+function safeNotificationType(type, fallback, ctx) {
+    const wanted = type || fallback;
+    if (ALLOWED_TYPES.has(wanted)) return wanted;
+
+    logger.error(
+        Object.assign({ invalidType: wanted, fallback }, ctx || {}),
+        'Notification type not in schema enum — delivered as fallback. Add it to models/Notification.js and utils/pushRouting.js'
+    );
+    return fallback;
+}
+
+/**
  * دالة مساعدة لإرسال الإشعارات وحفظها
  * تدعم: حفظ في DB + Socket.IO (داخل التطبيق) + FCM Push (خارج التطبيق)
  * @param {Object} app - تطبيق Express للحصول على io
@@ -14,17 +39,7 @@ const ALLOWED_TYPES = new Set(Notification.schema.path('type').enumValues);
  */
 const sendNotification = async (app, { userId, title, message, type, relatedId }) => {
     try {
-        // 🛡️ نوع خارج المخطّط كان يُسقِط الإشعار كلياً وبصمت: create يرمي
-        // validation error فلا سجل ولا socket ولا push. الآن نهبط إلى 'system'
-        // كي يصل الإشعار للمستخدم على أي حال، ونصرخ في السجلّات كي يُصلَح المخطّط.
-        let safeType = type || 'system';
-        if (!ALLOWED_TYPES.has(safeType)) {
-            logger.error(
-                { invalidType: safeType, userId, title },
-                'Notification type not in schema enum — delivered as "system". Add it to models/Notification.js and utils/pushRouting.js'
-            );
-            safeType = 'system';
-        }
+        const safeType = safeNotificationType(type, 'system', { userId, title });
 
         // 1. حفظ في قاعدة البيانات
         const notification = await Notification.create({
@@ -84,29 +99,48 @@ const notifyAdmins = async (app, { title, message, type, relatedId }) => {
         const admins = await User.find({ role: 'admin' }).select('_id fcmToken');
         if (!admins.length) return;
 
+        // 🛡️ نفس حارس sendNotification — غيابه هنا هو سبب ضياع كل تنبيهات
+        // الإدارة السابقة (انظر safeNotificationType)
+        const safeType = safeNotificationType(type, 'admin_alert', { title, scope: 'notifyAdmins' });
+
         // 1. حفظ إشعار لكل أدمن (سجلّ دائم يُحمَّل عند فتح اللوحة)
         const docs = admins.map(a => ({
             user: a._id, title, message,
-            type: type || 'admin_alert', relatedId, isRead: false
+            type: safeType, relatedId, isRead: false
         }));
-        await Notification.insertMany(docs);
+        // ⚠️ كل قناة في بلوك مستقل. كانت الثلاث في بلوك واحد، فأي فشل في الكتابة
+        // يقفز فوق البثّ والدفعة معاً — وتنبيه الإدارة حسّاس للوقت: خسارته لأن
+        // قاعدة البيانات تعثّرت لحظةً أسوأ من خسارة سجلّه.
+        try {
+            // ordered:false — سجلٌّ واحد معطوب لا يمنع بقية الأدمن من تلقّي التنبيه
+            await Notification.insertMany(docs, { ordered: false });
+        } catch (dbErr) {
+            logger.error({ err: dbErr, type: safeType }, 'notifyAdmins: تعذّر حفظ سجل الإشعار — يستمر البثّ والدفعة');
+        }
 
         // 2. socket فوري لغرفة الأدمن (تظهر مباشرة في اللوحة المفتوحة)
-        const io = app.get('io');
-        if (io) {
-            io.to('admin_room').emit('new_notification', { title, message, type: type || 'admin_alert', relatedId });
+        try {
+            const io = app.get('io');
+            if (io) {
+                io.to('admin_room').emit('new_notification', { title, message, type: safeType, relatedId });
+            }
+        } catch (ioErr) {
+            logger.error({ err: ioErr }, 'notifyAdmins socket failed (non-critical)');
         }
 
         // 3. FCM push لكل الأدمن بقناة الأدمن المميّزة (حتى لو اللوحة مغلقة)
         try {
             const { sendAdminPushToMany } = require('./firebasePush');
             const tokens = admins.map(a => a.fcmToken).filter(t => t && t.length > 10);
-            if (tokens.length) {
+            if (!tokens.length) {
+                // بلا هذا السطر يبدو الصمت كأن الدفعة أُرسلت ونجحت
+                logger.warn({ adminCount: admins.length, type: safeType }, 'notifyAdmins: لا يوجد أي أدمن بتوكن FCM — لن تصل دفعة');
+            } else {
                 // 🧭 وجهة النقرة لدور الأدمن
                 const { resolvePushUrl } = require('./pushRouting');
                 await sendAdminPushToMany(tokens, title, message, {
-                    type: type || 'admin_alert',
-                    url: resolvePushUrl('admin', type || 'admin_alert', relatedId),
+                    type: safeType,
+                    url: resolvePushUrl('admin', safeType, relatedId),
                     relatedId: relatedId ? relatedId.toString() : '',
                     orderId: relatedId ? relatedId.toString() : ''
                 });

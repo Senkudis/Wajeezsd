@@ -210,6 +210,23 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
             await User.findByIdAndUpdate(req.user._id, updates);
         }
 
+        // 🔔 تنبيه الإدارة: الكابتن يُبلَّغ عند التسجيل بأن «طلبه سيُراجَع»، ولم يكن
+        // أحد يُخبر الإدارة بذلك إطلاقاً — فيبقى ينتظر اعتماداً لا يعلم به أحد.
+        // اللحظة هي رفع الوثائق لا التسجيل: قبلها لا شيء لتراجعه الإدارة.
+        if (req.user.role === 'captain' && req.user.approvalStatus === 'pending') {
+            try {
+                const { notifyAdmins } = require('../utils/notificationHelper');
+                await notifyAdmins(req.app, {
+                    title: 'كابتن جديد بانتظار الاعتماد',
+                    message: `${req.user.name || 'كابتن'} رفع وثائقه ويحتاج مراجعة`,
+                    type: 'captain_pending',
+                    relatedId: req.user._id
+                });
+            } catch (e) {
+                logger.error({ err: e }, 'تعذّر تنبيه الإدارة برفع وثائق كابتن (غير حرج)');
+            }
+        }
+
         res.json({
             success: true,
             message: 'تم رفع الوثائق بنجاح',
