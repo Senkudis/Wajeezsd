@@ -92,6 +92,47 @@ function visibilityFilter() {
 const PUBLIC_FIELDS = 'name role city vehicleType adminRole documents.profilePhoto teamProfile';
 
 /**
+ * يُلحق صورة المحل بالتجّار الذين لا صورة شخصية لهم.
+ *
+ * التاجر لا يرفع صورة شخصية عادةً — هويّته التجارية هي محلّه. بدون هذا كان كل
+ * التجّار يظهرون بصورة رمزية واحدة رغم وجود صورة حقيقية لكل محل.
+ *
+ * استعلام واحد لكل الدفعة لا استعلام لكل تاجر، ومقصور على من يحتاجه فعلاً:
+ * من لديه صورة بطاقة أو صورة تسجيل لا يُسأل عنه أصلاً.
+ *
+ * @param {Array<object>} docs مستندات lean (تُعدَّل في مكانها)
+ */
+async function attachShopImages(docs) {
+    const needing = docs.filter(d =>
+        d.role === 'merchant' &&
+        !(d.teamProfile && d.teamProfile.photo) &&
+        !(d.documents && d.documents.profilePhoto)
+    );
+    if (needing.length === 0) return docs;
+
+    try {
+        const Place = require('../models/Place');
+        const places = await Place.find(
+            { ownerId: { $in: needing.map(d => d._id) }, image_url: { $nin: [null, ''] } }
+        ).select('ownerId image_url').lean();
+
+        const byOwner = new Map();
+        for (const p of places) {
+            // أوّل محلٍّ بصورة يكفي — التاجر بعدة محلات نعرض أوّلها لا نخلط
+            if (!byOwner.has(String(p.ownerId))) byOwner.set(String(p.ownerId), p.image_url);
+        }
+        for (const doc of needing) {
+            const img = byOwner.get(String(doc._id));
+            if (img) doc.shopImage = img;
+        }
+    } catch (err) {
+        // فشل هذا لا يمنع عرض الصفحة — التاجر يظهر بالصورة الرمزية فقط
+        logger.error({ err }, '[Team] تعذّر جلب صور المحلات');
+    }
+    return docs;
+}
+
+/**
  * يمنح معرّفاً عاماً لكل من يفتقده.
  *
  * لماذا كتابة داخل مسار قراءة عام؟ لأن الشرط الأساسي للنظام هو «بدون تدخل يدوي»:
@@ -158,6 +199,7 @@ router.get('/', async (req, res) => {
 
         docs.sort(compareTeamOrder);
         await ensurePublicIds(docs);
+        await attachShopImages(docs);
 
         const all = docs.map(toPublicTeamMember).filter(m => m.publicId !== '');
         const departments = [...new Set(all.map(m => m.department).filter(Boolean))];
@@ -195,6 +237,10 @@ router.get('/:publicId', async (req, res) => {
         if (!doc) {
             return res.status(404).json({ message: 'البطاقة غير موجودة' });
         }
+
+        // البطاقة المفردة هي وجهة رمز QR — لا يصحّ أن تعرض صورة رمزية بينما
+        // القائمة تعرض صورة المحل لنفس التاجر
+        await attachShopImages([doc]);
 
         res.json(toPublicTeamMember(doc));
     } catch (error) {
@@ -242,6 +288,7 @@ router.get('/admin/members', protect, canManageTeam, async (req, res) => {
         // نفس ترتيب الصفحة العامة كي يرى الأدمن ما يراه الزائر بالضبط
         docs.sort(compareTeamOrder);
         await ensurePublicIds(docs);
+        await attachShopImages(docs);
 
         res.json({
             items: docs.map(toAdminTeamMember),

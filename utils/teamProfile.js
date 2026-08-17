@@ -79,7 +79,16 @@ function deriveDepartment(user) {
 
 /**
  * الصورة المعروضة.
- * الأولوية: صورة الفريق التي يرفعها الأدمن ← الصورة الشخصية في وثائق التسجيل.
+ *
+ * الأولوية:
+ *   1. صورة البطاقة التي يرفعها الأدمن — قراره يعلو دائماً
+ *   2. الصورة الشخصية من وثائق التسجيل (يرفعها الكابتن من بروفايله)
+ *   3. صورة المحل — للتاجر وحده
+ *
+ * الثالثة تُلحَق بالمستند في routes/team.js (`shopImage`) لأن مصدرها مجموعة
+ * `places` لا `users`. بدونها يظهر كل التجّار بصورة رمزية واحدة رغم أن لكلّ
+ * محلٍّ صورةً حقيقية — والمحل هو هويّة التاجر التجارية أصلاً.
+ *
  * الفراغ مقصود: الواجهة ترسم صورة رمزية بدلاً من صورة مكسورة.
  */
 function derivePhoto(user) {
@@ -88,6 +97,8 @@ function derivePhoto(user) {
     if (manual && String(manual).trim() !== '') return String(manual).trim();
     const doc = user.documents && user.documents.profilePhoto;
     if (doc && String(doc).trim() !== '') return String(doc).trim();
+    const shop = user.shopImage;
+    if (shop && String(shop).trim() !== '') return String(shop).trim();
     return '';
 }
 

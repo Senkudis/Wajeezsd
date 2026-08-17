@@ -76,8 +76,27 @@ describe('اختيار الصورة', () => {
         expect(derivePhoto(user({ teamProfile: { photo: '   ' } }))).toBe('/uploads/profiles/a.jpg');
     });
 
-    it('تُرجع فراغاً لا undefined عند غياب الاثنتين — الواجهة ترسم صورة رمزية', () => {
+    it('تُرجع فراغاً لا undefined عند غياب الجميع — الواجهة ترسم صورة رمزية', () => {
         expect(derivePhoto(user({ documents: {} }))).toBe('');
+    });
+
+    it('🏪 التاجر بلا صورة شخصية يأخذ صورة محلّه', () => {
+        // كل التجّار في الإنتاج بلا صورة شخصية، ولكل محلٍّ منهم صورة —
+        // فبدون هذا يظهرون جميعاً بصورة رمزية واحدة رغم توفّر صورهم الحقيقية
+        const merchant = user({ role: 'merchant', documents: {}, shopImage: '/uploads/places/shop.jpg' });
+        expect(derivePhoto(merchant)).toBe('/uploads/places/shop.jpg');
+    });
+
+    it('🏪 صورة المحل آخر البدائل — لا تسبق صورة الأدمن ولا صورة التسجيل', () => {
+        const withDoc = user({ role: 'merchant', shopImage: '/uploads/places/shop.jpg' });
+        expect(derivePhoto(withDoc)).toBe('/uploads/profiles/a.jpg');
+
+        const withTeam = user({
+            role: 'merchant',
+            teamProfile: { photo: '/uploads/profiles/team.jpg' },
+            shopImage: '/uploads/places/shop.jpg'
+        });
+        expect(derivePhoto(withTeam)).toBe('/uploads/profiles/team.jpg');
     });
 });
 
