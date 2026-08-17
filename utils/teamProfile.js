@@ -110,6 +110,25 @@ function isTeamVisible(user) {
 }
 
 /**
+ * ترتيب العرض: من له ترتيب صريح أولاً بحسب رقمه، ثم البقية أبجدياً.
+ *
+ * ⚠️ لا يُعتمد على `sort` في Mongo هنا. الحقل الغائب يُعامَل `null` وهو أصغر من
+ * أي رقم، فيتقدّم من لا ترتيب له على من رُتِّب عمداً. وقع هذا فعلاً بعد هجرة
+ * الموقع القديم: المؤسّس والمدراء — وهم وحدهم من حملوا ترتيباً — انتقلوا إلى
+ * آخر القائمة خلف خمسةٍ وتسعين تاجراً. Infinity يجعل «بلا ترتيب» آخرَ الصفّ
+ * لا أوّله.
+ */
+function compareTeamOrder(a, b) {
+    const orderOf = (u) => (u.teamProfile && typeof u.teamProfile.order === 'number')
+        ? u.teamProfile.order
+        : Infinity;
+    const diff = orderOf(a) - orderOf(b);
+    if (diff !== 0 && Number.isFinite(diff)) return diff;
+    // متساويان (أو كلاهما بلا ترتيب) ⇒ أبجدياً بترتيب عربي صحيح
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+}
+
+/**
  * المُسقِط العام — الشكل الوحيد الذي يخرج إلى صفحة الفريق.
  *
  * لا هاتف، لا بريد، لا مدينة، لا رصيد، ولا معرّف داخلي: اسم وصورة ومسمّى وقسم فقط.
@@ -170,6 +189,7 @@ module.exports = {
     deriveDepartment,
     derivePhoto,
     isTeamVisible,
+    compareTeamOrder,
     toPublicTeamMember,
     toAdminTeamMember
 };

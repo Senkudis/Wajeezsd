@@ -25,6 +25,7 @@ const logger = require('../utils/logger');
 const {
     TEAM_ROLES,
     generatePublicId,
+    compareTeamOrder,
     toPublicTeamMember,
     toAdminTeamMember
 } = require('../utils/teamProfile');
@@ -150,11 +151,12 @@ router.get('/', async (req, res) => {
         // الفلترة بالقسم تُطبَّق بعد الاشتقاق لأن القسم قد يكون مشتقاً من الدور
         // (لا مخزّناً)، فلا يمكن التعبير عنه كشرط Mongo وحده. نجلب ثم نصفّي ثم
         // نُقسّم الصفحات — القائمة بعشرات لا بملايين، والفهرس يغطّي الاستعلام.
+        // الترتيب في الذاكرة لا في Mongo — انظر compareTeamOrder لسبب ذلك
         const docs = await User.find(filter)
             .select(PUBLIC_FIELDS)
-            .sort({ 'teamProfile.order': 1, name: 1 })
             .lean();
 
+        docs.sort(compareTeamOrder);
         await ensurePublicIds(docs);
 
         const all = docs.map(toPublicTeamMember).filter(m => m.publicId !== '');
@@ -234,10 +236,11 @@ router.get('/admin/members', protect, canManageTeam, async (req, res) => {
 
         const docs = await User.find(filter)
             .select(PUBLIC_FIELDS + ' phone approvalStatus isActive deletedAt')
-            .sort({ 'teamProfile.order': 1, name: 1 })
             .limit(500)
             .lean();
 
+        // نفس ترتيب الصفحة العامة كي يرى الأدمن ما يراه الزائر بالضبط
+        docs.sort(compareTeamOrder);
         await ensurePublicIds(docs);
 
         res.json({

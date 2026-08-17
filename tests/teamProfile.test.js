@@ -174,6 +174,42 @@ describe('المُسقِط الإداري', () => {
     });
 });
 
+describe('ترتيب العرض', () => {
+    const { compareTeamOrder } = require('../utils/teamProfile');
+    const sortNames = (list) => [...list].sort(compareTeamOrder).map(u => u.name);
+
+    it('🔒 من رُتِّب عمداً يتقدّم على من لا ترتيب له', () => {
+        // ⚠️ العطل الحقيقي: sort في Mongo يعامل الحقل الغائب null وهو أصغر من أي
+        // رقم، فبعد الهجرة انتقل المؤسّس والمدراء — وهم وحدهم من حملوا ترتيباً —
+        // إلى آخر القائمة خلف ٩٥ تاجراً.
+        const list = [
+            user({ name: 'تاجر', role: 'merchant', teamProfile: {} }),
+            user({ name: 'المؤسّس', role: 'admin', teamProfile: { order: 0 } }),
+            user({ name: 'كابتن', teamProfile: undefined })
+        ];
+        expect(sortNames(list)[0]).toBe('المؤسّس');
+    });
+
+    it('يحترم الأرقام تصاعدياً', () => {
+        const list = [
+            user({ name: 'ثالث', teamProfile: { order: 2 } }),
+            user({ name: 'أول', teamProfile: { order: 0 } }),
+            user({ name: 'ثانٍ', teamProfile: { order: 1 } })
+        ];
+        expect(sortNames(list)).toEqual(['أول', 'ثانٍ', 'ثالث']);
+    });
+
+    it('المتساوون وبلا ترتيب يُرتَّبون أبجدياً لا عشوائياً', () => {
+        // ترتيب مستقرّ يعني أن الصفحة لا تتبدّل بين تحديث وآخر
+        const list = [
+            user({ name: 'ياسر', teamProfile: {} }),
+            user({ name: 'أحمد', teamProfile: {} }),
+            user({ name: 'خالد', teamProfile: {} })
+        ];
+        expect(sortNames(list)).toEqual(['أحمد', 'خالد', 'ياسر']);
+    });
+});
+
 describe('المعرّف العام', () => {
     it('24 محرف hex — نفس شكل روابط البطاقات', () => {
         expect(generatePublicId()).toMatch(/^[a-f0-9]{24}$/);
