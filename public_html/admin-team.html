@@ -332,8 +332,12 @@
         return '' +
         '<div class="row-card' + (m.show ? '' : ' is-hidden') + '" draggable="true" data-id="' + m.id + '">' +
             '<div class="drag-handle" title="اسحب لتغيير الترتيب"><i class="fas fa-grip-lines"></i></div>' +
-            '<img class="row-avatar" src="' + escapeHtml(m.effectiveImage || AVATAR) + '" alt="" ' +
-                 'onerror="this.src=\'' + AVATAR + '\'">' +
+            // ⚠️ لا onerror نصية هنا. encodeURIComponent لا يهرّب علامة الاقتباس
+            // المفردة، والصورة الرمزية تحوي xmlns='http://…' — فكانت سلسلة JS
+            // داخل السمة تنتهي عند xmlns= ويصير http معرّفاً شارداً:
+            // SyntaxError لكل صف، ومعالج البديل لا يعمل فتبقى الصور مكسورة.
+            // البديل يُربط في bindRows() بالكود.
+            '<img class="row-avatar" src="' + escapeHtml(m.effectiveImage || AVATAR) + '" alt="">' +
             '<div class="row-main">' +
                 '<p class="row-name">' + escapeHtml(m.name) +
                     ' <span class="badge-role ' + ROLE_CLASS[m.role] + '">' + (ROLE_LABEL[m.role] || m.role) + '</span>' +
@@ -353,6 +357,16 @@
     }
 
     function bindRows() {
+        // صورة بديلة عند فشل التحميل — كثير من صور التسجيل القديمة مفقودة من
+        // القرص، فتردّ 404. الربط بالكود لا بسمة onerror نصية (انظر rowHtml).
+        document.querySelectorAll('.row-avatar').forEach((img) => {
+            img.addEventListener('error', function onImgError() {
+                // إزالة المستمع قبل التبديل: لو فشل البديل نفسه لدارت الحلقة بلا نهاية
+                img.removeEventListener('error', onImgError);
+                img.src = AVATAR;
+            });
+        });
+
         document.querySelectorAll('.row-card').forEach((card) => {
             const id = card.dataset.id;
             card.querySelectorAll('[data-act]').forEach((btn) => {
