@@ -177,6 +177,43 @@ describe('المُسقِط العام', () => {
     it('يُرجع publicId فارغاً لا undefined عند غيابه', () => {
         expect(toPublicTeamMember(user()).publicId).toBe('');
     });
+
+    it('🏷️ اسم العرض يتقدّم على اسم الحساب في البطاقة العامة', () => {
+        const out = toPublicTeamMember(user({
+            name: 'محمد الطيب',
+            teamProfile: { publicId: 'd'.repeat(24), displayName: 'كابتن محمد' }
+        }));
+        expect(out.name).toBe('كابتن محمد');
+    });
+
+    it('🏷️ اسم عرض فارغ يعيد اسم الحساب', () => {
+        for (const displayName of ['', '   ']) {
+            const out = toPublicTeamMember(user({ name: 'محمد الطيب', teamProfile: { displayName } }));
+            expect(out.name).toBe('محمد الطيب');
+        }
+    });
+});
+
+describe('🏷️ اسم العرض لا يمسّ الحساب', () => {
+    const { deriveDisplayName } = require('../utils/teamProfile');
+
+    it('اللوحة ترى الاسمين منفصلين', () => {
+        // الأدمن يجب أن يعرف أنه يعدّل بطاقةً لا حساباً، وأن يجد الشخص باسمه
+        // في التطبيق حتى لو غُيّر اسم بطاقته
+        const out = toAdminTeamMember(user({
+            name: 'محمد الطيب',
+            teamProfile: { displayName: 'كابتن محمد' }
+        }));
+        expect(out.name).toBe('محمد الطيب');          // اسم الحساب كما هو
+        expect(out.displayName).toBe('كابتن محمد');   // ما كُتب يدوياً
+        expect(out.effectiveName).toBe('كابتن محمد'); // ما يراه الزائر
+    });
+
+    it('deriveDisplayName يتحمّل الغياب بلا undefined', () => {
+        expect(deriveDisplayName(null)).toBe('');
+        expect(deriveDisplayName({})).toBe('');
+        expect(deriveDisplayName({ name: 'أحمد' })).toBe('أحمد');
+    });
 });
 
 describe('المُسقِط الإداري', () => {
@@ -196,6 +233,25 @@ describe('المُسقِط الإداري', () => {
 describe('ترتيب العرض', () => {
     const { compareTeamOrder } = require('../utils/teamProfile');
     const sortNames = (list) => [...list].sort(compareTeamOrder).map(u => u.name);
+
+    it('🏅 الإدارة أولاً ثم الكباتن ثم الشركاء', () => {
+        const list = [
+            user({ name: 'تاجر', role: 'merchant', teamProfile: {} }),
+            user({ name: 'كابتن', role: 'captain', teamProfile: {} }),
+            user({ name: 'مدير', role: 'admin', teamProfile: {} })
+        ];
+        expect(sortNames(list)).toEqual(['مدير', 'كابتن', 'تاجر']);
+    });
+
+    it('🏅 الدور يتقدّم على الترتيب اليدوي — كابتن مرقَّم لا يسبق مديراً', () => {
+        // الترتيب المنقول من الموقع القديم كان يحمله كباتن أيضاً، فلولا أسبقية
+        // الدور لتصدّر كابتنٌ رقمُه صفر صفحةَ الفريق قبل مدير النظام
+        const list = [
+            user({ name: 'كابتن مرقَّم', role: 'captain', teamProfile: { order: 0 } }),
+            user({ name: 'مدير بلا ترتيب', role: 'admin', teamProfile: {} })
+        ];
+        expect(sortNames(list)[0]).toBe('مدير بلا ترتيب');
+    });
 
     it('🔒 من رُتِّب عمداً يتقدّم على من لا ترتيب له', () => {
         // ⚠️ العطل الحقيقي: sort في Mongo يعامل الحقل الغائب null وهو أصغر من أي

@@ -338,6 +338,13 @@ router.patch('/admin/members/:id', protect, canManageTeam, async (req, res) => {
             update['teamProfile.department'] = req.body.department.trim().slice(0, 100);
         }
 
+        // 🏷️ اسم العرض — يمسّ البطاقة العامة وحدها. اسم الحساب (`name`) لا
+        // يُعدَّل من هنا إطلاقاً: هو ما يراه العميل في تتبّع الطلب والمحادثة
+        // والفواتير، وتغييره من شاشة بطاقات يُحدث أثراً لا يتوقّعه من يعدّل.
+        if (typeof req.body.displayName === 'string') {
+            update['teamProfile.displayName'] = req.body.displayName.trim().slice(0, 100);
+        }
+
         if (typeof req.body.photo === 'string') {
             const photo = req.body.photo.trim();
             // مسارات محلية أو روابط https فقط — لا javascript: ولا data:

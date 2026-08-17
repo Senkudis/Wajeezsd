@@ -166,6 +166,12 @@ const UserSchema = new mongoose.Schema(
         teamProfile: {
             publicId:   { type: String, unique: true, sparse: true },  // 24 hex غُفل — يُولَّد عند أول ظهور
             show:       { type: Boolean, default: true },              // إخفاء يدوي من لوحة الأدمن
+            // 🏷️ اسم العرض في صفحة الفريق وحدها.
+            // منفصل عن `name` عمداً: الأخير اسم الحساب الذي يظهر للعميل في تتبّع
+            // الطلب وفي المحادثة وفي الفواتير، وتعديله يمسّ التطبيق كله وسجلّاته.
+            // هذا الحقل يغيّر ما يُطبع على البطاقة العامة لا غير — الاسم الرسمي
+            // يبقى كما هو في الحساب. فارغ ⇒ يُستعمل `name`.
+            displayName: { type: String, default: '', maxlength: 100 },
             jobTitles:  { type: [String], default: [] },               // يتجاوز الاشتقاق التلقائي
             department: { type: String, default: '', maxlength: 100 }, // يتجاوز الاشتقاق التلقائي
             photo:      { type: String, default: '' },                 // يتجاوز documents.profilePhoto

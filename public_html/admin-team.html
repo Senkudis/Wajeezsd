@@ -206,6 +206,12 @@
         <p class="sub" id="editSubtitle"></p>
 
         <div class="field">
+            <label>الاسم في صفحة الفريق</label>
+            <input type="text" id="displayNameInput" maxlength="100" placeholder="اتركه فارغاً لاستخدام اسم الحساب">
+            <small id="accountNameHint"></small>
+        </div>
+
+        <div class="field">
             <label>المسمّيات الوظيفية</label>
             <div class="titles-list" id="titlesList"></div>
             <button type="button" class="btn-ghost" style="margin-top:8px;min-height:38px;" id="addTitleBtn">
@@ -339,11 +345,14 @@
             // البديل يُربط في bindRows() بالكود.
             '<img class="row-avatar" src="' + escapeHtml(m.effectiveImage || AVATAR) + '" alt="">' +
             '<div class="row-main">' +
-                '<p class="row-name">' + escapeHtml(m.name) +
+                '<p class="row-name">' + escapeHtml(m.effectiveName || m.name) +
                     ' <span class="badge-role ' + ROLE_CLASS[m.role] + '">' + (ROLE_LABEL[m.role] || m.role) + '</span>' +
                     (m.show ? '' : ' <span class="badge-role badge-off">مخفي</span>') +
                 '</p>' +
                 '<p class="row-meta">' + escapeHtml(titles || '—') + (dept ? ' — ' + escapeHtml(dept) : '') + '</p>' +
+                // يُعرَض اسم الحساب حين يختلف عن اسم البطاقة، وإلا بحث الأدمن
+                // عن اسمٍ يراه في التطبيق ولم يجده في هذه القائمة
+                (m.displayName ? '<p class="row-derived">اسم الحساب: ' + escapeHtml(m.name) + '</p>' : '') +
                 (isManual ? '' : '<p class="row-derived">مشتقّ تلقائياً من الدور</p>') +
             '</div>' +
             '<div class="row-actions">' +
@@ -477,6 +486,9 @@
         editingId = id;
 
         $('editSubtitle').textContent = member.name + ' — ' + (ROLE_LABEL[member.role] || member.role);
+        $('displayNameInput').value = member.displayName || '';
+        $('accountNameHint').textContent =
+            'اسم الحساب: ' + member.name + ' — لا يتغيّر، ويبقى هو الظاهر في التطبيق للعميل وفي المحادثات.';
         $('titlesList').innerHTML = (member.jobTitles.length ? member.jobTitles : ['']).map(titleRowHtml).join('');
         $('deptInput').value = member.department;
         $('photoInput').value = '';
@@ -520,7 +532,11 @@
                 if (!up.ok) throw new Error(upData.message || 'تعذّر رفع الصورة');
             }
 
-            const updated = await patchMember(id, { jobTitles: titles, department: $('deptInput').value.trim() });
+            const updated = await patchMember(id, {
+                displayName: $('displayNameInput').value.trim(),
+                jobTitles: titles,
+                department: $('deptInput').value.trim()
+            });
             Object.assign(member, updated);
             closeEdit();
             render();

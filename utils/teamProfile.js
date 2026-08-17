@@ -121,7 +121,30 @@ function isTeamVisible(user) {
 }
 
 /**
- * ترتيب العرض: من له ترتيب صريح أولاً بحسب رقمه، ثم البقية أبجدياً.
+ * أولوية الأدوار في العرض: الإدارة أولاً، ثم الكباتن، ثم الشركاء.
+ * صفحة الفريق تُقرأ من أعلى، ومن يمثّل الشركة رسمياً يجب أن يُرى أولاً.
+ */
+const ROLE_RANK = Object.freeze({ admin: 0, captain: 1, merchant: 2 });
+
+/**
+ * اسم العرض في صفحة الفريق.
+ * `teamProfile.displayName` يتقدّم على `name` — تعديله يغيّر البطاقة العامة
+ * وحدها ولا يمسّ اسم الحساب في التطبيق ولا في سجلّاته.
+ */
+function deriveDisplayName(user) {
+    if (!user) return '';
+    const manual = user.teamProfile && user.teamProfile.displayName;
+    if (manual && String(manual).trim() !== '') return String(manual).trim();
+    return String(user.name || '').trim();
+}
+
+/**
+ * ترتيب العرض: الدور أولاً (الإدارة ثم الكباتن ثم الشركاء)، ثم الترتيب اليدوي
+ * داخل المجموعة، ثم أبجدياً.
+ *
+ * الدور قبل الترتيب اليدوي عمداً: الترتيب المنقول من الموقع القديم كان يحمله
+ * كباتنُ أيضاً، فلو تقدّم على الدور لسبق كابتنٌ مرقَّمٌ مديرَ النظام. وبهذا
+ * يبقى السحب والإفلات مفهوماً — يُرتِّب داخل المجموعة لا يقفز فوقها.
  *
  * ⚠️ لا يُعتمد على `sort` في Mongo هنا. الحقل الغائب يُعامَل `null` وهو أصغر من
  * أي رقم، فيتقدّم من لا ترتيب له على من رُتِّب عمداً. وقع هذا فعلاً بعد هجرة
@@ -130,13 +153,19 @@ function isTeamVisible(user) {
  * لا أوّله.
  */
 function compareTeamOrder(a, b) {
+    const rankOf = (u) => (u && ROLE_RANK[u.role] !== undefined) ? ROLE_RANK[u.role] : 99;
+    const rankDiff = rankOf(a) - rankOf(b);
+    if (rankDiff !== 0) return rankDiff;
+
     const orderOf = (u) => (u.teamProfile && typeof u.teamProfile.order === 'number')
         ? u.teamProfile.order
         : Infinity;
     const diff = orderOf(a) - orderOf(b);
     if (diff !== 0 && Number.isFinite(diff)) return diff;
-    // متساويان (أو كلاهما بلا ترتيب) ⇒ أبجدياً بترتيب عربي صحيح
-    return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+
+    // متساويان (أو كلاهما بلا ترتيب) ⇒ أبجدياً بترتيب عربي صحيح.
+    // بالاسم المعروض لا اسم الحساب — كي يطابق الترتيب ما يراه الزائر فعلاً.
+    return deriveDisplayName(a).localeCompare(deriveDisplayName(b), 'ar');
 }
 
 /**
@@ -158,7 +187,7 @@ function toPublicTeamMember(user) {
 
     return {
         publicId: (user.teamProfile && user.teamProfile.publicId) || '',
-        name: user.name || '',
+        name: deriveDisplayName(user),
         jobTitles,
         jobTitle: jobTitles[0] || '',   // توافق مع أي مستهلك يقرأ حقلاً مفرداً
         department,
@@ -175,7 +204,11 @@ function toAdminTeamMember(user) {
     return {
         id: String(user._id),
         publicId: tp.publicId || '',
+        // اسم الحساب واسم العرض منفصلان في اللوحة: الأدمن يحتاج رؤية الاثنين
+        // ليعرف أنه يعدّل بطاقةً لا حساباً
         name: user.name || '',
+        displayName: tp.displayName || '',
+        effectiveName: deriveDisplayName(user),
         phone: user.phone || '',
         role: user.role,
         city: user.city || '',
@@ -195,7 +228,9 @@ module.exports = {
     TEAM_ROLES,
     DEPARTMENTS,
     CITY_LABELS,
+    ROLE_RANK,
     generatePublicId,
+    deriveDisplayName,
     deriveJobTitles,
     deriveDepartment,
     derivePhoto,
