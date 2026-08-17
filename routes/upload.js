@@ -140,12 +140,30 @@ router.post('/profile-photo', protect, setUploadType('profiles'), (req, res) => 
         const bad = await rejectNonImages(req);
         if (bad) return res.status(400).json({ message: bad });
 
+        // 🗜️ الضغط ليس تحسيناً هنا بل شرط صلاحية:
+        // هذه الصورة تظهر أيضاً في صفحة الفريق العامة التي تعرض ٢٤ صورة دفعةً
+        // واحدة. صورة هاتف خام (٣–٥ ميغا) × ٢٤ = عشرات الميغابايت على بيانات
+        // الجوال في كل فتحة للصفحة. ٨٠٠px تكفي لأكبر عرض (١١٦px على شاشة ×2).
+        try {
+            await compressImageFile(req.file.path, 800, 82);
+        } catch (e) {
+            logger.warn({ err: e }, '[Upload] تعذّر ضغط صورة البروفايل — تُحفظ كما هي');
+        }
+
         const fileUrl = `/uploads/profiles/${req.file.filename}`;
+        const previous = req.user.documents && req.user.documents.profilePhoto;
 
         // Update user profile photo
         await User.findByIdAndUpdate(req.user._id, {
             'documents.profilePhoto': fileUrl
         });
+
+        // 🧹 حذف الصورة السابقة بعد نجاح التحديث لا قبله: الحذف أولاً يعني أن
+        // فشل الكتابة يترك المستخدم بلا صورة إطلاقاً. مقيّد بمجلد الملفات
+        // الشخصية كي لا يمسّ مساراً خارجياً أو صورة يشاركها سجلّ آخر.
+        if (previous && previous !== fileUrl && previous.startsWith('/uploads/profiles/')) {
+            safeUnlink(path.join(uploadDir, 'profiles', path.basename(previous)));
+        }
 
         res.json({
             success: true,

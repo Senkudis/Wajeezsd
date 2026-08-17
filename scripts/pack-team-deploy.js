@@ -41,6 +41,7 @@ const SERVER_FILES = [
 const PUBLIC_FILES = [
     'public_html/admin-team.html',
     'public_html/admin.html',
+    'public_html/captain-profile.html',
     'public_html/service-worker.js'
 ];
 

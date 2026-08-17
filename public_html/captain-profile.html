@@ -31,11 +31,39 @@
     <!-- Header Section -->
     <div class="app-header text-center pb-3">
         <div class="container pt-2">
-            <div class="bg-white rounded-circle p-1 d-inline-block shadow-lg mb-3" style="width: 100px; height: 100px;">
-                <div id="profileAvatar"
-                    class="w-100 h-100 rounded-circle bg-light d-flex align-items-center justify-content-center text-primary overflow-hidden">
-                    <i class="bi bi-person-fill display-4"></i>
+            <!-- الصورة قابلة للضغط لتغييرها — الحاوية position-relative لتثبيت زر الكاميرا -->
+            <div class="position-relative d-inline-block mb-3">
+                <div class="bg-white rounded-circle p-1 shadow-lg position-relative" style="width: 100px; height: 100px;">
+                    <div id="profileAvatar" role="button" tabindex="0"
+                        aria-label="تغيير الصورة الشخصية"
+                        class="w-100 h-100 rounded-circle bg-light d-flex align-items-center justify-content-center text-primary overflow-hidden"
+                        style="cursor:pointer;">
+                        <i class="bi bi-person-fill display-4"></i>
+                    </div>
+
+                    <!-- طبقة تقدّم الرفع — inset:4px يطابق p-1 فتنطبق على دائرة
+                         الصورة تماماً لا على الإطار الأبيض حولها -->
+                    <div id="photoBusy"
+                        class="position-absolute rounded-circle d-none align-items-center justify-content-center"
+                        style="inset:4px;background:rgba(0,0,0,.5);">
+                        <div class="spinner-border spinner-border-sm text-white" role="status">
+                            <span class="visually-hidden">جارٍ الرفع</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- زر الكاميرا: هدف لمس مستقل ٣٤px، فلا يعتمد المستخدم على تخمين
+                     أن الصورة نفسها قابلة للضغط.
+                     z-index أعلى من طبقة التقدّم — الطبقة داخل الإطار والزر خارجه،
+                     وبدونه يظهر الزر نصفه مطموساً أثناء الرفع. -->
+                <button type="button" id="photoBtn"
+                    class="btn btn-light rounded-circle shadow position-absolute d-flex align-items-center justify-content-center p-0 border-0"
+                    style="width:34px;height:34px;bottom:0;left:0;z-index:2;"
+                    aria-label="تغيير الصورة الشخصية">
+                    <i class="bi bi-camera-fill text-primary" style="font-size:15px;"></i>
+                </button>
+
+                <input type="file" id="photoInput" accept="image/*" hidden>
             </div>
             <h2 class="h4 fw-bold text-white mb-1 skeleton mx-auto w-50" id="name" style="min-height: 1.5rem;">جاري
                 التحميل...</h2>
@@ -192,14 +220,7 @@
                     document.getElementById('dateWrapper').classList.add('d-inline-flex');
 
                     // 🖼️ صورة البروفايل
-                    if (data.profilePhoto) {
-                        const url = window.getFullImageUrl ? window.getFullImageUrl(data.profilePhoto) : data.profilePhoto;
-                        const avatar = document.getElementById('profileAvatar');
-                        if (avatar) {
-                            avatar.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;"
-                                onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-person-fill display-4&quot;&gt;&lt;/i&gt;'">`;
-                        }
-                    }
+                    if (data.profilePhoto) renderAvatar(data.profilePhoto);
 
                     // Update contents
                     // ⚠️ كل قيمة محروسة: `data.totalEarnings.toLocaleString()` كان يرمي
@@ -287,13 +308,128 @@
             });
         }
 
+        // ══════════════════════════════════════════════════════════
+        // 🖼️ الصورة الشخصية — يرفعها الكابتن بنفسه
+        // ══════════════════════════════════════════════════════════
+        // نفس الصورة تظهر في ثلاثة أماكن: هذه الصفحة، وشاشة تتبّع الطلب عند
+        // العميل، وبطاقة الفريق العامة على team.wajeezsd.com. مصدرها واحد
+        // (documents.profilePhoto) فلا تحتاج مزامنة بين الثلاثة.
+
+        const PHOTO_MAX_BYTES = 5 * 1024 * 1024; // نفس حدّ السيرفر
+
+        /** يرسم الصورة داخل الدائرة، ويعود للأيقونة الافتراضية إن فشل تحميلها. */
+        function renderAvatar(pathOrUrl) {
+            const avatar = document.getElementById('profileAvatar');
+            if (!avatar) return;
+
+            const url = window.getFullImageUrl ? window.getFullImageUrl(pathOrUrl) : pathOrUrl;
+            const img = document.createElement('img');
+            img.alt = '';
+            img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+            // معالج الخطأ يُربط بالكود لا بسمة onerror نصية: الصيغة النصية كانت
+            // تستبدل محتوى الحاوية كلها فتمحو معها زر الكاميرا وطبقة التقدّم.
+            img.onerror = () => { avatar.innerHTML = '<i class="bi bi-person-fill display-4"></i>'; };
+            img.src = url;
+
+            avatar.innerHTML = '';
+            avatar.appendChild(img);
+        }
+
+        function setPhotoBusy(busy) {
+            const layer = document.getElementById('photoBusy');
+            const btn = document.getElementById('photoBtn');
+            if (layer) layer.classList.toggle('d-none', !busy);
+            if (layer) layer.classList.toggle('d-flex', busy);
+            if (btn) btn.disabled = busy;
+        }
+
+        async function uploadProfilePhoto(file) {
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                Swal.fire({ icon: 'error', title: 'الملف ليس صورة', confirmButtonText: 'حسناً' });
+                return;
+            }
+            // الفحص هنا قبل الرفع: على بيانات الجوال، اكتشاف الحجم بعد رفع
+            // خمسة ميغابايت كاملة يعني إهدارها مرتين — مرة للرفع ومرة للإعادة.
+            if (file.size > PHOTO_MAX_BYTES) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'الصورة كبيرة جداً',
+                    text: 'الحد الأقصى ٥ ميغابايت. اختر صورة أصغر أو التقطها بجودة أقل.',
+                    confirmButtonText: 'حسناً'
+                });
+                return;
+            }
+
+            // معاينة فورية من الملف المحلي: الرفع على شبكة ضعيفة قد يستغرق ثوانيَ،
+            // وبقاء الصورة القديمة طوالها يجعل الكابتن يظن أن الضغطة لم تُسجَّل.
+            const localPreview = URL.createObjectURL(file);
+            renderAvatar(localPreview);
+            setPhotoBusy(true);
+
+            try {
+                const form = new FormData();
+                form.append('photo', file);
+
+                // بلا Content-Type: المتصفح يضبطه مع حدّ multipart الصحيح،
+                // وضبطه يدوياً يُفسد الطلب.
+                const res = await fetch(`${API_URL}/api/upload/profile-photo`, {
+                    method: 'POST',
+                    headers: window.Auth.getAuthHeader(),
+                    body: form
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || 'تعذّر رفع الصورة');
+
+                // الرابط العائد من السيرفر هو الصورة المضغوطة المحفوظة فعلاً
+                renderAvatar(data.url);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم تحديث صورتك',
+                    text: 'ستظهر للعملاء وفي صفحة فريق وجيز.',
+                    toast: true, position: 'top', showConfirmButton: false, timer: 2800
+                });
+            } catch (err) {
+                // فشل الرفع ⇒ نعيد الصورة المحفوظة سابقاً لا المعاينة المحلية،
+                // وإلا ظنّ الكابتن أن صورته حُفظت وهي لم تُحفظ.
+                await loadProfileData();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'لم تُحفظ الصورة',
+                    text: err.message || 'تحقّق من اتصالك ثم أعد المحاولة.',
+                    confirmButtonText: 'حسناً'
+                });
+            } finally {
+                setPhotoBusy(false);
+                URL.revokeObjectURL(localPreview);
+                // تصفير القيمة يسمح باختيار نفس الملف مرة أخرى بعد فشل
+                document.getElementById('photoInput').value = '';
+            }
+        }
+
+        (function bindPhotoUpload() {
+            const input = document.getElementById('photoInput');
+            const openPicker = () => input.click();
+
+            document.getElementById('photoBtn').addEventListener('click', openPicker);
+            document.getElementById('profileAvatar').addEventListener('click', openPicker);
+            document.getElementById('profileAvatar').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+            });
+
+            input.addEventListener('change', (e) => uploadProfilePhoto(e.target.files[0]));
+        })();
+
         // Init
         loadProfileData();
     </script>
     <!-- Auth Helper & App Core -->
     <script src="js/geo.js?v=3f3df042"></script>
     <script src="js/share-app.js?v=fcdd5cd2"></script>
-    <script type="module" src="js/app-core.js?v=4535a6e5"></script>
+    <script type="module" src="js/app-core.js?v=71670a72"></script>
     <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
