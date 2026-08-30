@@ -99,15 +99,21 @@ function routeNotificationTap(data) {
             return;
         }
 
-        // 📦 Client order update — go to my orders
-        if (role === 'client' && (data.type === 'order_update' || data.type === 'order_accepted' || data.type === 'order_delivered')) {
+        // 📦 Client order updates (errand quoting or active searching)
+        if (role === 'client' && (data.type === 'errand_quote' || data.type === 'order_searching' || data.type === 'order_delayed')) {
             window.location.href = recordId ? `tracking.html?orderId=${recordId}` : 'client-my-orders.html';
+            return;
+        }
+
+        // 📦 Client order status changes & updates -> my orders list with highlight
+        if (role === 'client' && (data.type === 'order_update' || data.type === 'order_accepted' || data.type === 'order_delivered' || data.type === 'order_cancelled' || data.type === 'order_expired' || data.type === 'negotiation_offer' || data.type === 'negotiate')) {
+            window.location.href = recordId ? `client-my-orders.html?highlight=${recordId}` : 'client-my-orders.html';
             return;
         }
 
         // 🌟 Client rate order request
         if (role === 'client' && data.type === 'order_completed') {
-            window.location.href = `client-my-orders.html?rateOrder=${recordId}`;
+            window.location.href = recordId ? `client-my-orders.html?rateOrder=${recordId}` : 'client-my-orders.html';
             return;
         }
 
@@ -119,10 +125,10 @@ function routeNotificationTap(data) {
 
         // Generic fallback using the record id (role-aware)
         if (recordId) {
-            if (role === 'captain') window.location.href = 'captain-orders.html';
-            else if (role === 'merchant') window.location.href = 'merchant-orders.html';
+            if (role === 'captain') window.location.href = `captain-orders.html?highlight=${recordId}`;
+            else if (role === 'merchant') window.location.href = `merchant-orders.html?highlight=${recordId}`;
             else if (role === 'admin') window.location.href = 'admin.html';
-            else window.location.href = `tracking.html?orderId=${recordId}`;
+            else window.location.href = `client-my-orders.html?highlight=${recordId}`;
             return;
         }
     }

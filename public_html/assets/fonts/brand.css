@@ -1,0 +1,38 @@
+/* ============================================================
+   خطوط وجيز — تُستضاف محلياً، لا من شبكة خارجية.
+   الاختيار: عنوانٌ هندسي ذو شخصية (Zawi) لعناوين قليلة كبيرة،
+   ونصٌّ عالي الوضوح (IBM Plex Arabic) لكل ما يُقرأ فعلاً.
+   وزنان لكل عائلة فقط — كل وزن إضافي تأخيرٌ في أول رسم للصفحة.
+   ============================================================ */
+
+@font-face {
+    font-family: 'Zawi';
+    src: url('Zawi-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Zawi';
+    src: url('Zawi-Black.woff2') format('woff2');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'PlexArabic';
+    src: url('PlexArabic-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'PlexArabic';
+    src: url('PlexArabic-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}

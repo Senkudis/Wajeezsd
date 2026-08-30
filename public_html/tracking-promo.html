@@ -15,6 +15,11 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         html, body {
             margin: 0; padding: 0;
             background: #04070f;
@@ -304,7 +309,7 @@
             transform: translateY(-120px); opacity: 0;
         }
         .push-icon {
-            width: 44px; height: 44px; background: #04553A; border-radius: 12px;
+            width: 44px; height: 44px; background: var(--primary); border-radius: 12px;
             display: flex; align-items: center; justify-content: center; flex: none;
         }
         .push-icon img { width: 26px; }
@@ -332,11 +337,11 @@
         .marker-icon {
             width: 50px; height: 50px; background: white; border-radius: 50%;
             display: flex; align-items: center; justify-content: center; font-size: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 4px solid #04553A;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 4px solid var(--primary);
         }
         .marker-icon.store { border-color: #111; color: #111; }
         .marker-icon.home { border-color: #3b82f6; color: #3b82f6; }
-        .marker-pin { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 12px solid #04553A; margin-top: -2px; }
+        .marker-pin { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 12px solid var(--primary); margin-top: -2px; }
         .marker-icon.store + .marker-pin { border-top-color: #111; }
         .marker-icon.home + .marker-pin { border-top-color: #3b82f6; }
 
@@ -377,7 +382,7 @@
         }
         .captain-avatar {
             width: 46px; height: 46px; border-radius: 50%;
-            background: linear-gradient(135deg, #04553A, #25d366);
+            background: linear-gradient(135deg, var(--primary), #25d366);
             display: flex; align-items: center; justify-content: center;
             color: white; font-size: 19px;
         }
@@ -392,7 +397,7 @@
         .route-point .addr { color: #1e293b; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .eta-bar {
             display: flex; align-items: center; justify-content: space-between;
-            background: linear-gradient(135deg, #04553A, #0f766e);
+            background: linear-gradient(135deg, var(--primary), #0f766e);
             border-radius: 16px; padding: 13px 18px; margin-top: 13px;
             color: white; box-shadow: 0 8px 25px rgba(4,85,58,0.3);
         }
@@ -463,7 +468,7 @@
             border: 1px solid #2e2e34;
             flex: none;
         }
-        .gp-shot .sh-head { height: 32px; background: linear-gradient(135deg, #04553A, #0a8f62); }
+        .gp-shot .sh-head { height: 32px; background: linear-gradient(135deg, var(--primary), #0a8f62); }
         .gp-shot .sh-body { padding: 7px; display: flex; flex-direction: column; gap: 5px; }
         .gp-shot .sh-line { height: 7px; border-radius: 4px; background: #3a3a41; }
         .gp-shot .sh-line.short { width: 60%; }
@@ -544,7 +549,7 @@
             padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 14px;
             cursor: pointer;
         }
-        .mode-btn.active { background: #04553A; border-color: #04553A; color: white; }
+        .mode-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
         #btnSound {
             background: transparent; color: #64748b;
             border: 2px solid #26333f; border-radius: 13px;
@@ -553,7 +558,7 @@
         }
         #btnSound.sound-on { color: #F5A623; border-color: rgba(245,166,35,0.5); }
         #btnPlay {
-            background: linear-gradient(135deg, #077a54, #04553A);
+            background: linear-gradient(135deg, #077a54, var(--primary));
             color: white; border: none;
             width: 92px; height: 92px; border-radius: 50%;
             font-size: 36px; cursor: pointer;
@@ -623,6 +628,7 @@
             #rotateHint { font-size: 12px; padding: 9px 14px; }
         }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 <body>
 
@@ -638,7 +644,7 @@
 
         <!-- شريط تقدم سينمائي -->
         <div id="cinemaProgress" style="position:absolute;bottom:0;left:0;right:0;height:5px;z-index:200;opacity:0;">
-            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,#04553A,#0e9f6e,#F5A623);box-shadow:0 0 14px rgba(245,166,35,0.8);border-radius:0 3px 3px 0;"></div>
+            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--primary),#0e9f6e,#F5A623);box-shadow:0 0 14px rgba(245,166,35,0.8);border-radius:0 3px 3px 0;"></div>
             <div id="cinemaPulse" style="position:absolute;right:100%;top:-4px;width:12px;height:12px;background:#F5A623;border-radius:50%;box-shadow:0 0 10px #F5A623,0 0 20px rgba(245,166,35,0.5);display:none;margin-right:-6px;"></div>
         </div>
 
@@ -755,7 +761,7 @@
 
                             <svg class="route-layer" viewBox="0 0 937 2030">
                                 <path id="bgRoute" d="M 316 416 L 316 816 L 666 816 L 666 1316" fill="none" stroke="#cbd5e1" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
-                                <path id="activeRoute" d="M 316 416 L 316 816 L 666 816 L 666 1316" fill="none" stroke="#04553A" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+                                <path id="activeRoute" d="M 316 416 L 316 816 L 666 816 L 666 1316" fill="none" stroke="var(--primary)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
                                 <path id="activeRouteGlow" d="M 316 416 L 316 816 L 666 816 L 666 1316" fill="none" stroke="#25d366" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="15, 30" style="opacity: 0.8;" />
                             </svg>
 
@@ -1157,7 +1163,7 @@
     };
 
     // ─── انفجار جسيمات ───
-    const burstParticles = (count = 20, colors = ['#04553A','#F5A623','#22c55e','#fff']) => {
+    const burstParticles = (count = 20, colors = ['var(--primary)','#F5A623','#22c55e','#fff']) => {
         const pc = document.getElementById('particleContainer');
         const cx = gsap.getProperty(cursor, 'x');
         const cy = gsap.getProperty(cursor, 'y');
@@ -1360,9 +1366,9 @@
               const rect = document.getElementById('deviceFrame').getBoundingClientRect();
               const cx = (rect.left + rect.width / 2) / window.innerWidth;
               const cy = (rect.top + rect.height / 2) / window.innerHeight;
-              confetti({ particleCount: 220, spread: 90, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff', '#fbbf24'], zIndex: 3000, disableForReducedMotion: true });
+              confetti({ particleCount: 220, spread: 90, origin: { x: cx, y: cy }, colors: ['var(--primary)', '#F5A623', '#22c55e', '#ffffff', '#fbbf24'], zIndex: 3000, disableForReducedMotion: true });
               setTimeout(() => confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0.2, y: cy }, colors: ['#F5A623', '#fff'], zIndex: 3000 }), 400);
-              setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 0.8, y: cy }, colors: ['#04553A', '#22c55e'], zIndex: 3000 }), 600);
+              setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 0.8, y: cy }, colors: ['var(--primary)', '#22c55e'], zIndex: 3000 }), 600);
           }, null, '<0.3');
         tl.add(hideText('#mt3'), '<');
         tl.add(showText('#mt4'), '+=0.2');

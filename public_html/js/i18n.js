@@ -152,9 +152,7 @@ const i18n = {
         this.currentLang = lang;
         localStorage.setItem(this.STORAGE_KEY, lang);
         this.applyLanguage();
-
-        // إعادة تحميل الصفحة لتطبيق التغييرات
-        window.location.reload();
+        window.dispatchEvent(new CustomEvent('language-changed', { detail: { lang } }));
     },
 
     /**

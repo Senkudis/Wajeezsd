@@ -121,6 +121,225 @@ body.dark-mode .gv-table td,
 body.dark-mode .gv-table th { border-color: var(--gv-border) !important; }
 body.dark-mode .gv-empty { color: var(--gv-dark-2) !important; }
 
+/* ── أزرار المدينة في الخريطة (gv-map-city-btn) ────────────────────
+   الحالة غير النشطة كانت background:#f8fafc وcolor:#64748b صارمتين،
+   فظهرتا كزر فاتح على خلفية داكنة وتكاد النصوص تختفي.
+   الآن يستخدم المتغيّرات ولكن نضمن هنا أن النشطة تظل زرقاء والغير نشطة مقروءة. */
+body.dark-mode .gv-map-city-btn:not(.active) {
+    background: var(--gv-white) !important;   /* #1f2937 في الداكن */
+    color: var(--gv-dark-2) !important;
+    border-color: var(--gv-border) !important;
+}
+body.dark-mode .gv-map-city-btn.active {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #fff !important;
+}
+
+/* ── حقول الإدخال في لوحة الأدمن ─────────────────────────────────
+   بعضها يملك inline style بخلفية ثابتة (#fff) فلا ترثها المتغيّرات. */
+body.dark-mode input:not([type=checkbox]):not([type=radio]):not([type=range]),
+body.dark-mode select,
+body.dark-mode textarea {
+    background: var(--gv-white) !important;
+    color: var(--text-dark) !important;
+    border-color: var(--gv-border) !important;
+}
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: var(--gv-dark-2) !important;
+    opacity: 1 !important;
+}
+/* الـ option داخل select تبقى قابلة للقراءة على بعض المتصفحات */
+body.dark-mode select option {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+}
+
+/* ── الشريط العلوي (Topbar) في الداكن ────────────────────────────── */
+body.dark-mode .gv-topbar {
+    background: rgba(15, 23, 42, 0.92) !important;
+    border-bottom-color: var(--gv-border) !important;
+}
+body.dark-mode .gv-topbar-btn {
+    background: var(--gv-white) !important;
+    border-color: var(--gv-border) !important;
+    color: var(--gv-dark-2) !important;
+}
+body.dark-mode .gv-topbar-btn:hover {
+    color: var(--gv-primary) !important;
+    border-color: var(--gv-primary) !important;
+}
+
+/* ── لوح الإشعار ───────────────────────────────────────────────── */
+body.dark-mode .gv-notif-item {
+    border-color: var(--gv-border) !important;
+}
+body.dark-mode .gv-notif-item.unread {
+    background: rgba(99,102,241,0.08) !important;
+    border-color: rgba(99,102,241,0.3) !important;
+}
+
+/* ── الوضع الداكن للوحة الأدمن الموحدة (Unified Admin Dark Mode) ── */
+body.dark-mode .admin-topbar,
+body.dark-mode .topbar,
+body.dark-mode .page-header,
+body.dark-mode .top-header,
+body.dark-mode .header {
+    background: rgba(17, 24, 39, 0.96) !important;
+    border-bottom: 1px solid #374151 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-mode .admin-topbar-title,
+body.dark-mode .page-header h1,
+body.dark-mode .header-title h1,
+body.dark-mode .header h4,
+body.dark-mode .topbar-brand {
+    color: #f9fafb !important;
+}
+
+body.dark-mode .admin-back-btn,
+body.dark-mode .topbar-back,
+body.dark-mode .back-btn,
+body.dark-mode .page-header a,
+body.dark-mode .od-back {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #9ca3af !important;
+}
+
+body.dark-mode .admin-back-btn:hover,
+body.dark-mode .topbar-back:hover,
+body.dark-mode .back-btn:hover,
+body.dark-mode .page-header a:hover,
+body.dark-mode .od-back:hover {
+    background: #048c5b !important;
+    color: #ffffff !important;
+    border-color: #048c5b !important;
+}
+
+body.dark-mode .admin-icon-btn,
+body.dark-mode .header-theme-toggle,
+body.dark-mode .admin-search-btn,
+body.dark-mode .menu-toggle {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .admin-icon-btn i,
+body.dark-mode .header-theme-toggle i,
+body.dark-mode .admin-search-btn i,
+body.dark-mode .menu-toggle i {
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .header-theme-toggle i {
+    color: #f59e0b !important;
+}
+
+body.dark-mode .admin-icon-btn:hover,
+body.dark-mode .header-theme-toggle:hover,
+body.dark-mode .admin-search-btn:hover,
+body.dark-mode .menu-toggle:hover {
+    background: #374151 !important;
+    color: #10b981 !important;
+    border-color: #10b981 !important;
+}
+
+body.dark-mode .admin-icon-btn:hover i,
+body.dark-mode .admin-search-btn:hover i {
+    color: #10b981 !important;
+}
+
+body.dark-mode .admin-card,
+body.dark-mode .section-card,
+body.dark-mode .filter-card,
+body.dark-mode .card-custom,
+body.dark-mode .table-wrap,
+body.dark-mode .od-card,
+body.dark-mode .promo-card,
+body.dark-mode .reasons,
+body.dark-mode .modal-content,
+body.dark-mode .modal {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+}
+
+body.dark-mode .admin-card-title,
+body.dark-mode .card-title,
+body.dark-mode .section-title,
+body.dark-mode .od-header-right h1,
+body.dark-mode .header-actions h2 {
+    color: #f9fafb !important;
+}
+
+body.dark-mode .admin-kpi-card,
+body.dark-mode .kpi-card,
+body.dark-mode .stat-chip,
+body.dark-mode .info-item,
+body.dark-mode .bank-box,
+body.dark-mode .meta-item,
+body.dark-mode .so-card {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .admin-kpi-val,
+body.dark-mode .kpi-value,
+body.dark-mode .stat-chip .num {
+    color: #f9fafb !important;
+}
+
+body.dark-mode .admin-kpi-lbl,
+body.dark-mode .kpi-label,
+body.dark-mode .stat-chip .lbl {
+    color: #9ca3af !important;
+}
+
+body.dark-mode .notice,
+body.dark-mode .req-card {
+    background: #1e1b13 !important;
+    border-color: #78350f !important;
+    color: #fef08a !important;
+}
+
+body.dark-mode table thead th,
+body.dark-mode .table-custom th {
+    background: #111827 !important;
+    color: #9ca3af !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode table tbody td,
+body.dark-mode .table-custom td {
+    border-color: #374151 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+body.dark-mode input:not([type=checkbox]):not([type=radio]):not([type=range]),
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: #64748b !important;
+}
+
 body.dark-mode [style*="background"][style*="color"] *,
 body.dark-mode .badge *,
 body.dark-mode .o-status *,
@@ -552,13 +771,66 @@ body.dark-mode .table> :not(caption)>*>* {
 }
 
 /* --- Auth Pages (Login/Register) --- */
-body.dark-mode .auth-container {
-    background: linear-gradient(135deg, #111827 0%, #1f2937 100%) !important;
+body.dark-mode .auth-container,
+body.dark-mode .login-container {
+    background: transparent !important;
 }
 
-body.dark-mode .auth-box {
-    background: var(--card-bg) !important;
-    border-color: var(--border-color) !important;
+body.dark-mode .auth-box,
+body.dark-mode .login-box,
+body.dark-mode .login-card {
+    background: #1e293b !important;
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+    color: #f8fafc !important;
+}
+
+body.dark-mode .login-box h2,
+body.dark-mode .login-box .h2,
+body.dark-mode .auth-box h2 {
+    color: #f8fafc !important;
+}
+
+body.dark-mode .login-box .subtitle,
+body.dark-mode .auth-box .subtitle,
+body.dark-mode .login-box p {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode .login-box input,
+body.dark-mode .auth-box input {
+    background: #0f172a !important;
+    border: 1.5px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-mode .login-box input:focus,
+body.dark-mode .auth-box input:focus {
+    background: #0f172a !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15) !important;
+}
+
+body.dark-mode .login-box .input-group i,
+body.dark-mode .auth-box .input-group i,
+body.dark-mode .login-box .toggle-password {
+    color: #10b981 !important;
+}
+
+body.dark-mode .login-box .divider,
+body.dark-mode .auth-box .divider {
+    border-top-color: #334155 !important;
+}
+
+body.dark-mode .login-box .back-link,
+body.dark-mode .auth-box .back-link {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode .login-box .back-link:hover,
+body.dark-mode .auth-box .back-link:hover {
+    color: #34d399 !important;
 }
 
 body.dark-mode .coming-soon-box {
@@ -698,29 +970,71 @@ body.dark-mode [class*="col-"] {
     position: fixed;
     bottom: 110px;
     right: 20px;
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary-color, #04553A) 0%, var(--primary-dark, #065f3a) 100%);
-    border: none;
-    color: white;
-    font-size: 1.3rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
     display: flex !important;
     align-items: center;
     justify-content: center;
+    padding: 0;
+}
+
+body.dark-mode .theme-toggle {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 1.5px solid #334155;
+    color: #fbbf24;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .theme-toggle:hover {
-    transform: scale(1.1) rotate(15deg);
+    transform: scale(1.1) rotate(12deg);
     box-shadow: 0 6px 20px rgba(10, 135, 84, 0.4);
 }
 
 .theme-toggle:active {
     transform: scale(0.95);
+}
+
+.theme-svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    pointer-events: none;
+    transition: transform 0.3s ease, color 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
+}
+
+.theme-moon {
+    fill: #334155 !important;
+}
+
+.theme-toggle:hover .theme-moon,
+.header-theme-toggle:hover .theme-moon,
+.gv-topbar-btn:hover .theme-moon {
+    fill: #048c5b !important;
+}
+
+body.dark-mode .theme-sun {
+    stroke: #f59e0b !important;
+    color: #f59e0b !important;
+}
+
+body.dark-mode .theme-toggle:hover .theme-sun,
+body.dark-mode .header-theme-toggle:hover .theme-sun,
+body.dark-mode .gv-topbar-btn:hover .theme-sun {
+    stroke: #fbbf24 !important;
+}
+
+.theme-toggle:hover .theme-svg,
+.header-theme-toggle:hover .theme-svg,
+.gv-topbar-btn:hover .theme-svg {
+    transform: rotate(15deg) scale(1.1);
 }
 
 /* Smooth transition for theme change */
@@ -2006,4 +2320,675 @@ body.dark-mode #placeDetailsModal .modal-content {
 body.dark-mode #placeDetailsModal [style*="padding:14px 18px"],
 body.dark-mode #placeDetailsModal [style*="padding:0 18px"] {
     background: var(--card-bg) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   🌙 ADMIN PANEL — شامل: تغطية جميع مكونات لوحة الأدمن في الوضع الداكن
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── متغيرات CSS المحلية — نعيد تعريفها في scope الـ dark-mode ── */
+body.dark-mode {
+    --white: #1f2937;
+    --bg: #111827;
+    --surface: #1f2937;
+    --text: #f9fafb;
+    --muted: #9ca3af;
+    --border: #374151;
+    --line: #374151;
+    --ink: #f1f5f9;
+}
+
+/* ── Topbar & Sidebar ── */
+body.dark-mode .top-header,
+body.dark-mode .topbar {
+    background: #1f2937 !important;
+    border-bottom: 1px solid #374151 !important;
+    color: #f9fafb !important;
+}
+
+/* ── Panel headers ── */
+body.dark-mode .gv-panel-header,
+body.dark-mode .card-header,
+body.dark-mode .section-header {
+    background: #1e293b !important;
+    border-bottom-color: #374151 !important;
+}
+
+/* ── General Cards & Surfaces ── */
+body.dark-mode .modal-box,
+body.dark-mode .settings-card,
+body.dark-mode .od-card,
+body.dark-mode .od-header,
+body.dark-mode .req-card,
+body.dark-mode .promo-card,
+body.dark-mode .banner-card,
+body.dark-mode .row-card,
+body.dark-mode .so-card,
+body.dark-mode .kpi-card,
+body.dark-mode .filter-card,
+body.dark-mode .filter-bar,
+body.dark-mode .stat-chip,
+body.dark-mode .captain-card,
+body.dark-mode .table-wrap,
+body.dark-mode .section-card,
+body.dark-mode .bank-box,
+body.dark-mode .info-box,
+body.dark-mode .side-panel,
+body.dark-mode .tl-content,
+body.dark-mode .reasons,
+body.dark-mode .thread,
+body.dark-mode .chat-thread,
+body.dark-mode #searchDropdown {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+/* ── Inputs, Selects, Textareas ── */
+body.dark-mode .city-select,
+body.dark-mode .filter-group select,
+body.dark-mode .field-input,
+body.dark-mode .input-group-text,
+body.dark-mode #citySelector {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+/* ── DataTables ── */
+body.dark-mode table.dataTable thead th,
+body.dark-mode .pay-table thead tr,
+body.dark-mode .table-custom th,
+body.dark-mode thead {
+    background: #111827 !important;
+    background-color: #111827 !important;
+    color: #9ca3af !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode table.dataTable tbody td,
+body.dark-mode .pay-table tbody td {
+    background: transparent !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode tbody tr:hover td,
+body.dark-mode .pay-table tbody tr:hover {
+    background: #263449 !important;
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_filter input,
+body.dark-mode .dataTables_wrapper .dataTables_length select {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_info,
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: #9ca3af !important;
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #10b981 !important;
+    color: #fff !important;
+    border-color: #10b981 !important;
+}
+
+/* ── Filter Pills & Chips ── */
+body.dark-mode .chip,
+body.dark-mode .filter-pill,
+body.dark-mode .pill,
+body.dark-mode .target-pill,
+body.dark-mode .page-btn,
+body.dark-mode .od-btn-ghost,
+body.dark-mode .back-btn,
+body.dark-mode .od-back,
+body.dark-mode .btn-ghost,
+body.dark-mode .search-box {
+    background: #1f2937 !important;
+    color: #9ca3af !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode .chip.active,
+body.dark-mode .filter-pill.active,
+body.dark-mode .pill.active {
+    background: #10b981 !important;
+    color: #fff !important;
+    border-color: #10b981 !important;
+}
+
+/* ── Modals ── */
+body.dark-mode .modal,
+body.dark-mode .modal > div {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .modal-header {
+    background: #111827 !important;
+    border-bottom-color: #374151 !important;
+}
+
+body.dark-mode .modal-footer {
+    background: #111827 !important;
+    border-top-color: #374151 !important;
+}
+
+/* ── Timeline (Activity Log) ── */
+body.dark-mode .tl-icon {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode .tl-admin {
+    background: #312e81 !important;
+    color: #a5b4fc !important;
+}
+
+body.dark-mode .tl-desc,
+body.dark-mode .msg {
+    color: #d1d5db !important;
+}
+
+/* ── Chat Bubbles ── */
+body.dark-mode .chat-msg,
+body.dark-mode .chat-msg.client {
+    background: #1e293b !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .chat-msg.admin {
+    background: #1a3a2e !important;
+    color: #f9fafb !important;
+}
+
+/* ── Badges & Status Indicators ── */
+body.dark-mode .badge-pending,
+body.dark-mode .badge-gray {
+    background: #78350f !important;
+    color: #fde68a !important;
+}
+
+body.dark-mode .badge-approved {
+    background: #065f46 !important;
+    color: #6ee7b7 !important;
+}
+
+body.dark-mode .badge-rejected {
+    background: #7f1d1d !important;
+    color: #fca5a5 !important;
+}
+
+body.dark-mode .tier-pro {
+    background: #312e81 !important;
+    color: #a5b4fc !important;
+}
+
+body.dark-mode .tier-basic {
+    background: #1e3a5f !important;
+    color: #93c5fd !important;
+}
+
+body.dark-mode .phone-chip {
+    background: #065f46 !important;
+    color: #6ee7b7 !important;
+}
+
+/* ── Notice / Alert bars ── */
+body.dark-mode .notice {
+    background: #1c1a0f !important;
+    border-color: #92400e !important;
+    color: #fde68a !important;
+}
+
+/* ── Progress Bars ── */
+body.dark-mode .reason-bar,
+body.dark-mode .gv-status-bar-progress {
+    background: #374151 !important;
+}
+
+/* ── Map overlays (admin-live-map) ── */
+body.dark-mode .map-header,
+body.dark-mode .stats-panel,
+body.dark-mode .legend {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+}
+
+body.dark-mode .map-header h1,
+body.dark-mode .stat-value,
+body.dark-mode .kpi-value,
+body.dark-mode .card-value,
+body.dark-mode .od-field span,
+body.dark-mode .req-name {
+    color: #f9fafb !important;
+}
+
+body.dark-mode .search-result-item {
+    border-bottom-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .search-result-item:hover,
+body.dark-mode .search-result-item.highlighted {
+    background: #1a3a2e !important;
+}
+
+body.dark-mode #searchClearBtn {
+    background: #374151 !important;
+    color: #9ca3af !important;
+}
+
+/* ── Zone Builder ── */
+body.dark-mode #zone-draw-status {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #9ca3af !important;
+}
+
+body.dark-mode .instructions {
+    background: #1c1a0f !important;
+    border-color: #92400e !important;
+    color: #fde68a !important;
+}
+
+/* ── Scrollbar in dark mode ── */
+body.dark-mode ::-webkit-scrollbar-track {
+    background: #111827 !important;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+    background: #4b5563 !important;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280 !important;
+}
+
+/* ── Action bar & Info items ── */
+body.dark-mode .action-bar,
+body.dark-mode .info-item,
+body.dark-mode .meta-item,
+body.dark-mode .toggle-row {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #d1d5db !important;
+}
+
+/* ── Inline style overrides — خلفيات فاتحة ثابتة ── */
+body.dark-mode [style*="background:#f8fafc"],
+body.dark-mode [style*="background: #f8fafc"],
+body.dark-mode [style*="background:#f1f5f9"],
+body.dark-mode [style*="background: #f1f5f9"],
+body.dark-mode [style*="background:#fafafa"],
+body.dark-mode [style*="background: #fafafa"],
+body.dark-mode [style*="background:#fff"],
+body.dark-mode [style*="background: #fff"],
+body.dark-mode [style*="background:#ffffff"],
+body.dark-mode [style*="background: #ffffff"],
+body.dark-mode [style*="background:#f0f4f8"],
+body.dark-mode [style*="background: #f0f4f8"],
+body.dark-mode [style*="background-color:#f8f9fa"],
+body.dark-mode [style*="background-color: #f8f9fa"] {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+/* استثناء: ألوان البطاقات الملونة — تتحول لنظيراتها الداكنة */
+body.dark-mode [style*="background:#dbeafe"],
+body.dark-mode [style*="background: #dbeafe"],
+body.dark-mode [style*="background:#eef2ff"],
+body.dark-mode [style*="background: #eef2ff"] {
+    background: #1e3a5f !important;
+    color: #93c5fd !important;
+}
+
+body.dark-mode [style*="background:#fef3c7"],
+body.dark-mode [style*="background: #fef3c7"],
+body.dark-mode [style*="background:#fffbeb"],
+body.dark-mode [style*="background: #fffbeb"] {
+    background: #1c1a0f !important;
+    color: #fde68a !important;
+}
+
+body.dark-mode [style*="background:#dcfce7"],
+body.dark-mode [style*="background: #dcfce7"],
+body.dark-mode [style*="background:#f0fdf4"],
+body.dark-mode [style*="background: #f0fdf4"] {
+    background: #065f46 !important;
+    color: #6ee7b7 !important;
+}
+
+body.dark-mode [style*="background:#fee2e2"],
+body.dark-mode [style*="background: #fee2e2"] {
+    background: #7f1d1d !important;
+    color: #fca5a5 !important;
+}
+
+/* ── نصوص داكنة ثابتة تصبح فاتحة ── */
+body.dark-mode [style*="color:#1e293b"],
+body.dark-mode [style*="color: #1e293b"],
+body.dark-mode [style*="color:#0f172a"],
+body.dark-mode [style*="color: #0f172a"],
+body.dark-mode [style*="color:#1a202c"],
+body.dark-mode [style*="color: #1a202c"],
+body.dark-mode [style*="color:#334155"],
+body.dark-mode [style*="color: #334155"],
+body.dark-mode [style*="color:#475569"],
+body.dark-mode [style*="color: #475569"],
+body.dark-mode [style*="color:#333"],
+body.dark-mode [style*="color: #333"],
+body.dark-mode [style*="color:#92400e"],
+body.dark-mode [style*="color: #92400e"],
+body.dark-mode [style*="color:#78350f"],
+body.dark-mode [style*="color: #78350f"],
+body.dark-mode [style*="color:#b45309"],
+body.dark-mode [style*="color: #b45309"] {
+    color: #d1d5db !important;
+}
+
+/* ── Stat values in mobile dark mode ── */
+@media (max-width: 991px) {
+    body.dark-mode .gv-stat-info h4,
+    body.dark-mode .stat-title,
+    body.dark-mode .kpi-label {
+        color: #9ca3af !important;
+    }
+
+    body.dark-mode .gv-stat-info h2,
+    body.dark-mode .stat-value,
+    body.dark-mode .kpi-value {
+        color: #f9fafb !important;
+    }
+
+    body.dark-mode .gv-panel-header,
+    body.dark-mode .section-header {
+        background: #111827 !important;
+        border-bottom-color: #374151 !important;
+    }
+
+    body.dark-mode .gv-panel,
+    body.dark-mode .card,
+    body.dark-mode .panel {
+        background: #1f2937 !important;
+        border-color: #374151 !important;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   🌙 FINAL GAP-FILL — تغطية كل الفجوات المتبقية بعد الفحص النهائي
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── عناصر غير مُغطّاة في الـ overrides السابقة ── */
+body.dark-mode .chip-time,
+body.dark-mode .status-dismissed,
+body.dark-mode .page-btn,
+body.dark-mode .btn-ghost,
+body.dark-mode .btn-close {
+    background: #1e293b !important;
+    color: #9ca3af !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus,
+body.dark-mode .filter-group select:focus,
+body.dark-mode .field-input:focus {
+    background: #0f172a !important;
+    color: #f9fafb !important;
+    border-color: #10b981 !important;
+}
+
+/* ── topbar/filter-card/tl-content استخدمت `background: white` ── */
+body.dark-mode .topbar,
+body.dark-mode .filter-card,
+body.dark-mode .tl-content,
+body.dark-mode .tl-icon {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+/* ── الجداول والـ thead والـ tbody hover للصفحات المستقلة ── */
+body.dark-mode table thead,
+body.dark-mode table thead tr,
+body.dark-mode table thead th,
+body.dark-mode table thead td {
+    background: #111827 !important;
+    background-color: #111827 !important;
+    color: #9ca3af !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode table tbody tr:hover,
+body.dark-mode table tbody tr:hover td {
+    background: #263449 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode table td,
+body.dark-mode table th {
+    border-color: #374151 !important;
+}
+
+/* ── Bootstrap utility classes التي قد تبقى ── */
+body.dark-mode .bg-white,
+body.dark-mode .bg-light {
+    background-color: #1f2937 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .text-dark,
+body.dark-mode .text-muted {
+    color: #9ca3af !important;
+}
+
+body.dark-mode .border,
+body.dark-mode .border-top,
+body.dark-mode .border-bottom,
+body.dark-mode .border-start,
+body.dark-mode .border-end {
+    border-color: #374151 !important;
+}
+
+/* ── select داخل filter-group ── */
+body.dark-mode .filter-group select,
+body.dark-mode select.form-select,
+body.dark-mode select.form-control {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+/* ── slider (toggle switch) — الكرة تبقى مرئية ── */
+body.dark-mode .slider:before {
+    background: #9ca3af !important;
+}
+
+body.dark-mode input:checked + .slider:before {
+    background: #fff !important;
+}
+
+/* ── img preview placeholders ── */
+body.dark-mode img[style*="background:#f8fafc"],
+body.dark-mode img[style*="background: #f8fafc"],
+body.dark-mode .img-preview,
+body.dark-mode .banner-img {
+    background: #111827 !important;
+    border-color: #374151 !important;
+}
+
+/* ── JS-generated dynamic elements (select, badge, pill) ── */
+/* هذه تُنشأ ديناميكياً في JS بـ template literals، الـ attribute selectors تُمسك بها */
+body.dark-mode select[style*="background:#fff"],
+body.dark-mode select[style*="background: #fff"],
+body.dark-mode select[style*="background:#ffffff"],
+body.dark-mode select[style*="background: #ffffff"],
+body.dark-mode select[style*="background:#f8fafc"],
+body.dark-mode select[style*="background: #f8fafc"] {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+/* ── مُدخلات التاريخ و number ── */
+body.dark-mode input[type="date"],
+body.dark-mode input[type="time"],
+body.dark-mode input[type="number"] {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+    color-scheme: dark;
+}
+
+/* ── Dropdown menus ── */
+body.dark-mode .dropdown-menu {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .dropdown-item {
+    color: #f9fafb !important;
+}
+
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+    background: #111827 !important;
+    color: #10b981 !important;
+}
+
+body.dark-mode .dropdown-divider {
+    border-color: #374151 !important;
+}
+
+/* ── List groups ── */
+body.dark-mode .list-group-item {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .list-group-item:hover {
+    background: #263449 !important;
+}
+
+/* ── Alerts / Notifications ── */
+body.dark-mode .alert {
+    border-color: #374151 !important;
+}
+
+body.dark-mode .alert-info {
+    background: #1e3a5f !important;
+    color: #93c5fd !important;
+    border-color: #1d4ed8 !important;
+}
+
+body.dark-mode .alert-warning {
+    background: #1c1a0f !important;
+    color: #fde68a !important;
+    border-color: #92400e !important;
+}
+
+body.dark-mode .alert-success {
+    background: #065f46 !important;
+    color: #6ee7b7 !important;
+    border-color: #059669 !important;
+}
+
+body.dark-mode .alert-danger {
+    background: #7f1d1d !important;
+    color: #fca5a5 !important;
+    border-color: #dc2626 !important;
+}
+
+/* ── Pagination ── */
+body.dark-mode .pagination .page-link {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #9ca3af !important;
+}
+
+body.dark-mode .pagination .page-item.active .page-link {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #fff !important;
+}
+
+body.dark-mode .pagination .page-link:hover {
+    background: #263449 !important;
+    color: #f9fafb !important;
+}
+
+/* ── Tooltips ── */
+body.dark-mode .tooltip-inner {
+    background: #374151 !important;
+    color: #f9fafb !important;
+}
+
+/* ── Nav tabs ── */
+body.dark-mode .nav-tabs {
+    border-bottom-color: #374151 !important;
+}
+
+body.dark-mode .nav-tabs .nav-link {
+    color: #9ca3af !important;
+}
+
+body.dark-mode .nav-tabs .nav-link.active {
+    background: #1f2937 !important;
+    border-color: #374151 #374151 #1f2937 !important;
+    color: #f9fafb !important;
+}
+
+/* ── Accordion ── */
+body.dark-mode .accordion-item {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode .accordion-button {
+    background: #1e293b !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .accordion-button:not(.collapsed) {
+    background: #111827 !important;
+    color: #10b981 !important;
+}
+
+body.dark-mode .accordion-body {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+}
+
+/* ── Breadcrumb ── */
+body.dark-mode .breadcrumb-item,
+body.dark-mode .breadcrumb-item a {
+    color: #9ca3af !important;
+}
+
+body.dark-mode .breadcrumb-item.active {
+    color: #f9fafb !important;
+}
+
+/* ── Tables — ضمان عام نهائي ── */
+body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: rgba(255,255,255,0.03) !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .table-hover > tbody > tr:hover > * {
+    background-color: #263449 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .table-bordered > :not(caption) > * {
+    border-color: #374151 !important;
 }

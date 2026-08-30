@@ -27,12 +27,14 @@ async function loadSettings() {
         if (document.getElementById('errandTripFee')) document.getElementById('errandTripFee').value = settings.errandTripFee || 0;
         document.getElementById('costPerMinute').value = settings.costPerMinute || 2;
         document.getElementById('commissionRate').value = settings.commissionRate || 0.15;
+        if (document.getElementById('maxDiscountPercent')) document.getElementById('maxDiscountPercent').value = settings.maxDiscountPercent ?? 10;
+        if (document.getElementById('maxPriceSurgePercent')) document.getElementById('maxPriceSurgePercent').value = settings.maxPriceSurgePercent ?? 100;
         document.getElementById('adminPhone').value = settings.adminPhone || '249112046348';
         
         // App Settings
         if (document.getElementById('appVersion')) {
-            document.getElementById('appVersion').value = settings.appVersion || '1.0.6';
-            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '1.0.6';
+            document.getElementById('appVersion').value = settings.appVersion || '1.2.1';
+            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '1.2.1';
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }
@@ -85,6 +87,8 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         errandTripFee: parseFloat(document.getElementById('errandTripFee')?.value) || 0,
         costPerMinute: parseFloat(document.getElementById('costPerMinute').value),
         commissionRate: parseFloat(document.getElementById('commissionRate').value),
+        maxDiscountPercent: parseFloat(document.getElementById('maxDiscountPercent')?.value ?? 10),
+        maxPriceSurgePercent: parseFloat(document.getElementById('maxPriceSurgePercent')?.value ?? 100),
         adminPhone: document.getElementById('adminPhone').value.trim(),
         city: document.getElementById('citySelector').value
     };

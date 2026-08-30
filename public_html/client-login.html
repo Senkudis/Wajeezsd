@@ -7,6 +7,11 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>دخول العملاء | وجيز</title>
 
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#04553A">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,19 +21,25 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css?v=3.4">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         /* Unused Animation Styles Removed */
     </style>
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
 
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/city-service.js?v=34b5af79"></script>
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/city-service.js?v=40791ec5"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body class="bg-light">
@@ -38,7 +49,7 @@
             <div class="text-center mb-4">
                 <a href="index.html" class="d-inline-block transition-transform hover-scale">
                     <img src="logo-mark-white.png" alt="شعار وجيز" height="80"
-                        style="object-fit:contain; background:#04553A; border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
+                        style="object-fit:contain; background:var(--primary); border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
                 </a>
                 </a>
             </div>
@@ -223,7 +234,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius:20px; border:none; overflow:hidden;">
                 <div class="modal-header"
-                    style="background:linear-gradient(135deg,#04553A,#0d9d63); border:none; padding:20px 24px;">
+                    style="background:linear-gradient(135deg,var(--primary),#0d9d63); border:none; padding:20px 24px;">
                     <h5 class="modal-title text-white fw-bold" id="otpModalLabel">
                         <i class="bi bi-phone-fill ms-2"></i> التحقق من رقم الهاتف
                     </h5>
@@ -298,6 +309,38 @@
             }
         }
 
+        // — عداد تنازلي عند حظر Rate Limit —
+        let _countdownTimer = null;
+        function startRateLimitCountdown(seconds, btn, originalBtnText) {
+            if (_countdownTimer) clearInterval(_countdownTimer);
+            let remaining = seconds;
+
+            const showAlert429 = (s) => {
+                const m = Math.floor(s / 60);
+                const sec = s % 60;
+                const timeStr = m > 0
+                    ? `${m}:${String(sec).padStart(2, '0')} دقيقة`
+                    : `${sec} ثانية`;
+                showAlert(`⛔ تجاوزت عدد المحاولات. تستطيع المحاولة مجدداً خلال: <strong>${timeStr}</strong>`, 'error');
+                btn.innerHTML = `⏳ انتظر ${timeStr}`;
+                btn.disabled = true;
+            };
+
+            showAlert429(remaining);
+            _countdownTimer = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(_countdownTimer);
+                    _countdownTimer = null;
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                    showAlert('✅ يمكنك المحاولة الآن', 'success');
+                } else {
+                    showAlert429(remaining);
+                }
+            }, 1000);
+        }
+
         // =============================================
         // Standard email/password login
         // =============================================
@@ -331,7 +374,7 @@
                         if (typeof CityService !== 'undefined' && data.user.city) CityService.setCity(data.user.city);
                         window.Auth.setAuth(data.token, data.user);
                         localStorage.setItem('role', data.user.role);
-                        const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                        const returnUrl = localStorage.getItem('returnUrl') || 'index.html';
                         localStorage.removeItem('returnUrl');
                         setTimeout(() => { window.location.replace(returnUrl); }, 800);
                     } else if (data.user.role === 'merchant') {
@@ -346,17 +389,19 @@
                         btn.disabled = false;
                     }
                 } else {
-                    // ✅ لو الحساب غير مفعّل — افتح شاشة التفعيل تلقائياً
-                    if (data.code === 'ACCOUNT_NOT_VERIFIED') {
+                    if (res.status === 429 && data.retryAfter) {
+                        startRateLimitCountdown(data.retryAfter, btn, originalBtnText);
+                    } else if (data.code === 'ACCOUNT_NOT_VERIFIED') {
                         showAlert(data.message, 'error');
                         btn.innerHTML = originalBtnText;
                         btn.disabled = false;
                         setTimeout(() => openActivationModal(data.email, email), 600);
                         return;
+                    } else {
+                        showAlert(data.message || 'بيانات الدخول غير صحيحة', "error");
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
                     }
-                    showAlert(data.message || 'بيانات الدخول غير صحيحة', "error");
-                    btn.innerHTML = originalBtnText;
-                    btn.disabled = false;
                 }
             } catch (err) {
                 console.error(err);
@@ -423,7 +468,7 @@
                 bootstrap.Modal.getInstance(document.getElementById('activationModal')).hide();
                 window.Auth.setAuth(data.token, data.user);
                 showAlert('تم تفعيل حسابك وتسجيل الدخول بنجاح! 🎉', 'success');
-                const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                const returnUrl = localStorage.getItem('returnUrl') || 'index.html';
                 localStorage.removeItem('returnUrl');
                 setTimeout(() => { window.location.replace(returnUrl); }, 800);
 
@@ -539,7 +584,7 @@
                 if (typeof CityService !== 'undefined' && data.user && data.user.city) CityService.setCity(data.user.city);
                 window.Auth.setAuth(data.token, data.user);
                 showAlert('تم تسجيل الدخول بنجاح! 🎉', 'success');
-                const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                const returnUrl = localStorage.getItem('returnUrl') || 'index.html';
                 localStorage.removeItem('returnUrl');
                 setTimeout(() => { window.location.replace(returnUrl); }, 700);
 
@@ -782,7 +827,7 @@
                 if (typeof CityService !== 'undefined' && data.user && data.user.city) CityService.setCity(data.user.city);
                 window.Auth.setAuth(data.token, data.user);
                 showAlert('تم تسجيل الدخول بنجاح! 🎉', 'success');
-                const returnUrl = localStorage.getItem('returnUrl') || 'client-my-orders.html';
+                const returnUrl = localStorage.getItem('returnUrl') || 'index.html';
                 localStorage.removeItem('returnUrl');
                 setTimeout(() => { window.location.replace(returnUrl); }, 700);
 
@@ -799,11 +844,11 @@
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>
 
-    <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
+    <script type="module" src="js/app-core.js?v=71670a72"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
 </body>
 
 </html>

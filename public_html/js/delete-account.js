@@ -37,6 +37,26 @@
     // ويبقى prompt احتياطاً لو لم يُحمَّل.
     async function askPhone() {
         if (window.Swal) {
+            // خطوة احتفاظ بالعميل (Retention Step)
+            const retentionRes = await Swal.fire({
+                title: 'هل تواجه مشكلة؟ 😔',
+                html: 'نحن هنا لمساعدتك! إذا كنت تواجه أي مشكلة في التطبيق أو لديك شكوى، يرجى التواصل مع الإدارة وسنقوم بحلها فوراً بدلاً من خسارتك.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-whatsapp"></i> تواصل مع الإدارة',
+                cancelButtonText: 'أريد حذف حسابي',
+                confirmButtonColor: '#25D366', // WhatsApp color
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true
+            });
+
+            if (retentionRes.isConfirmed) {
+                // توجيه إلى دعم الواتساب
+                window.open('https://wa.me/249114144414', '_blank');
+                return null;
+            }
+
+            // إذا أصرّ على الحذف، نطلب الرقم
             const res = await Swal.fire({
                 title: 'حذف الحساب نهائياً',
                 html: 'سيتم حذف اسمك ورقمك وبريدك وعناوينك المحفوظة نهائياً، ولن تتمكن من الدخول لهذا الحساب مرة أخرى.'
@@ -53,8 +73,13 @@
             });
             return res.isConfirmed ? (res.value || '').trim() : null;
         }
-        const val = prompt('لتأكيد حذف حسابك نهائياً اكتب رقم هاتف الحساب:');
-        return val === null ? null : val.trim();
+        
+        // Fallback for native prompt
+        if (confirm('هل تواجه مشكلة؟ يمكنك التواصل مع الإدارة بدلاً من الحذف.\nاضغط موافق للحذف، أو إلغاء للتراجع.')) {
+            const val = prompt('لتأكيد حذف حسابك نهائياً اكتب رقم هاتف الحساب:');
+            return val === null ? null : val.trim();
+        }
+        return null;
     }
 
     async function notify(icon, title, text) {

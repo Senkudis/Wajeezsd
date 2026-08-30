@@ -867,11 +867,23 @@
                         <input type="number" id="settingCostPerMinute" class="field-input" min="0" step="5" placeholder="مثال: 25">
                         <span class="field-hint">يُضرب في زمن التوصيل المتوقع بالدقائق</span>
                     </div>
+                    <div class="field-group">
+                        <label class="field-label" style="color:var(--success,#10b981);font-weight:700;">أقصى نسبة تخفيض للعميل (%)</label>
+                        <input type="number" id="settingMaxDiscountPercent" class="field-input" min="0" max="90" step="1" placeholder="مثال: 10">
+                        <span class="field-hint">مثال: 10 تعني منع خفض السعر بأكثر من 10% من تسعيرة التطبيق</span>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" style="color:var(--primary,#4f46e5);font-weight:700;">سقف السعر / أقصى زيادة (%)</label>
+                        <input type="number" id="settingMaxPriceSurgePercent" class="field-input" min="0" max="500" step="1" placeholder="مثال: 100">
+                        <span class="field-hint">سقف الزيادة المسموحة فوق تسعيرة التطبيق</span>
+                    </div>
                 </div>
                 <div style="background:rgba(4,140,91,0.06);border:1px solid rgba(4,140,91,0.2);border-radius:12px;padding:14px 18px;margin-top:20px;margin-bottom:20px;">
-                    <div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:6px;"><i class="fas fa-calculator me-1"></i> معادلة الاحتساب في السيرفر:</div>
+                    <div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:6px;"><i class="fas fa-calculator me-1"></i> معادلة الاحتساب وحدود السعر:</div>
                     <code style="font-size:13px;color:var(--primary-dark);direction:ltr;display:block;text-align:left;">
-                        Total Price = BaseFare + (DistanceKm × CostPerKm) + (DurationMin × CostPerMin)
+                        App Price = BaseFare + (DistanceKm × CostPerKm) + (ExtraStopFee × ExtraStops)<br>
+                        Min Allowed Price = App Price × (1 - MaxDiscountPercent / 100)<br>
+                        Max Allowed Price = App Price × (1 + MaxPriceSurgePercent / 100)
                     </code>
                 </div>
                 <div style="margin-top:24px;">
@@ -1074,9 +1086,13 @@ async function loadPricingSettings() {
         const bfEl   = document.getElementById('settingBaseFare');
         const kmEl   = document.getElementById('settingCostPerKm');
         const minEl  = document.getElementById('settingCostPerMinute');
-        if (bfEl)  bfEl.value  = data.baseFare      ?? 1000;
-        if (kmEl)  kmEl.value  = data.costPerKm     ?? 200;
-        if (minEl) minEl.value = data.costPerMinute ?? 25;
+        const discEl = document.getElementById('settingMaxDiscountPercent');
+        const surgeEl = document.getElementById('settingMaxPriceSurgePercent');
+        if (bfEl)   bfEl.value   = data.baseFare      ?? 1000;
+        if (kmEl)   kmEl.value   = data.costPerKm     ?? 200;
+        if (minEl)  minEl.value  = data.costPerMinute ?? 25;
+        if (discEl) discEl.value = data.maxDiscountPercent ?? 10;
+        if (surgeEl) surgeEl.value = data.maxPriceSurgePercent ?? 100;
     } catch (e) { console.warn('Pricing load error:', e.message); }
 }
 
@@ -1116,14 +1132,18 @@ async function saveFinancialSettings() {
 }
 
 async function savePricingSettings() {
-    const btn  = document.getElementById('savePricingBtn');
-    const bf   = parseFloat(document.getElementById('settingBaseFare').value);
-    const km   = parseFloat(document.getElementById('settingCostPerKm').value);
-    const min  = parseFloat(document.getElementById('settingCostPerMinute').value);
+    const btn   = document.getElementById('savePricingBtn');
+    const bf    = parseFloat(document.getElementById('settingBaseFare').value);
+    const km    = parseFloat(document.getElementById('settingCostPerKm').value);
+    const min   = parseFloat(document.getElementById('settingCostPerMinute').value);
+    const disc  = parseFloat(document.getElementById('settingMaxDiscountPercent')?.value ?? 10);
+    const surge = parseFloat(document.getElementById('settingMaxPriceSurgePercent')?.value ?? 100);
 
     if (isNaN(bf)  || bf  < 0) return toast('سعر فتح العداد غير صالح', 'error');
     if (isNaN(km)  || km  < 0) return toast('سعر الكيلومتر غير صالح', 'error');
     if (isNaN(min) || min < 0) return toast('سعر الدقيقة غير صالح', 'error');
+    if (isNaN(disc) || disc < 0 || disc > 90) return toast('أقصى نسبة تخفيض يجب أن تكون بين 0% و 90%', 'error');
+    if (isNaN(surge) || surge < 0 || surge > 500) return toast('سقف السعر يجب أن يكون بين 0% و 500%', 'error');
 
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> جارٍ الحفظ...';
@@ -1131,7 +1151,14 @@ async function savePricingSettings() {
     try {
         const res = await fetch(`${API}/api/admin/settings`, {
             method: 'PUT', headers: H(),
-            body: JSON.stringify({ city: financeCity, baseFare: bf, costPerKm: km, costPerMinute: min })
+            body: JSON.stringify({
+                city: financeCity,
+                baseFare: bf,
+                costPerKm: km,
+                costPerMinute: min,
+                maxDiscountPercent: disc,
+                maxPriceSurgePercent: surge
+            })
         });
         const data = await res.json();
         if (res.ok) { toast(`تم حفظ التسعيرة لـ ${financeCity === 'Khartoum' ? 'الخرطوم' : 'بورتسودان'} بنجاح`);

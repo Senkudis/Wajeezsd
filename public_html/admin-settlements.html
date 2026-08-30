@@ -12,11 +12,11 @@
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
-    <link rel="stylesheet" href="css/admin-dashboard.css?v=eac322b9">
+    <link rel="stylesheet" href="css/admin-dashboard.css?v=1cc69353">
     <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
 
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
 
     <style>
@@ -24,12 +24,19 @@
         .badge-approved { background: #dcfce7; color: #15803d; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;}
         .badge-rejected { background: #fee2e2; color: #b91c1c; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;}
         .bank-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; font-size: 12.5px; }
+body.dark-mode .badge-pending { background: #78350f !important; color: #fde68a !important; }
+body.dark-mode .badge-approved { background: #065f46 !important; color: #6ee7b7 !important; }
+body.dark-mode .badge-rejected { background: #7f1d1d !important; color: #fca5a5 !important; }
+body.dark-mode .bank-box { background: #111827 !important; border-color: #374151 !important; color: #d1d5db !important; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 
 <body>
@@ -40,9 +47,9 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <div class="logo"><i class="fas fa-crown"></i></div>
-                <h2>وَصِّلِي</h2>
-                <p id="adminName">المدير العام</p>
+                <div class="logo"><i class="fas fa-hand-holding-usd"></i></div>
+                <h2>وَجِـيـز</h2>
+                <p id="adminName">لوحة الإدارة</p>
             </div>
 
             <nav class="sidebar-nav">
@@ -83,12 +90,23 @@
                     <h1>تسويات مستحقات التجار</h1>
                     <p>مراجعة طلبات سحب المستحقات وتحويلها للتجار</p>
                 </div>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
             </header>
 
             <div class="content-body">
                 <div class="dashboard-section active section-card">
-                    <div class="section-header">
-                        <h2 class="section-title"><i class="fas fa-list"></i> طلبات التسوية</h2>
+                    <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <h2 class="section-title mb-0"><i class="fas fa-list"></i> طلبات التسوية</h2>
+                        <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.table', 'wajeez_settlements_report')">
+                            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                        </button>
                     </div>
 
                     <div id="filterTabs" class="d-flex gap-2 flex-wrap mb-3"></div>

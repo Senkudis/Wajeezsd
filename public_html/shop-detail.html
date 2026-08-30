@@ -4,16 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>تسوق من المتجر | وجيز</title>
+    <!-- ⚡ AMP-level Resource Hints for Mobile Speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <!-- شاشة تحديد الموقع — نفس مصدر index.html -->
+    <link rel="stylesheet" href="css/map-ui.css?v=6e46f188">
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         body { background: #f8fafc; min-height: 100vh; padding-bottom: 100px; }
 
         .shop-hero {
@@ -62,7 +73,7 @@
         /* 🔦 إبراز المنتج القادم من البحث */
         .product-card.product-highlight {
             animation: productPulse 1.3s ease 2;
-            box-shadow: 0 0 0 3px #04553A, 0 6px 24px rgba(4,85,58,0.35);
+            box-shadow: 0 0 0 3px var(--primary), 0 6px 24px rgba(4,85,58,0.35);
         }
         @keyframes productPulse {
             0%, 100% { box-shadow: 0 0 0 3px rgba(4,85,58,0.55), 0 6px 24px rgba(4,85,58,0.25); }
@@ -78,7 +89,7 @@
         .product-name { font-weight: 800; font-size: 14px; line-height: 1.3; margin-bottom: 4px; }
         .product-desc { font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .product-price { font-size: 15px; font-weight: 900; color: #04553A; }
+        .product-price { font-size: 15px; font-weight: 900; color: var(--primary); }
         .add-to-cart-btn {
             width: 100%; border: none; border-radius: 10px; padding: 8px;
             background: linear-gradient(135deg, #f59e0b, #d97706);
@@ -117,7 +128,7 @@
 
         .cart-fab {
             position: fixed; bottom: 20px; left: 20px; right: 20px; z-index: 999;
-            background: linear-gradient(135deg, #04553A, #086b43);
+            background: linear-gradient(135deg, var(--primary), #086b43);
             color: white; border: none; border-radius: 16px; padding: 14px 20px;
             cursor: pointer; box-shadow: 0 8px 30px rgba(4,85,58,0.3);
             display: flex; align-items: center; justify-content: space-between;
@@ -165,9 +176,9 @@
         .skeleton-btn { height: 34px; border-radius: 10px; }
 
         /* --- 💰 أزرار رفع/تنزيل السعر (±100) --- */
-        .price-input { text-align: center !important; font-weight: 800 !important; color: #04553A !important; }
+        .price-input { text-align: center !important; font-weight: 800 !important; color: var(--primary) !important; }
         .price-stepper .btn-price-step {
-            background: #04553A; color: #fff; border: none; width: 52px; font-size: 1.2rem;
+            background: var(--primary); color: #fff; border: none; width: 52px; font-size: 1.2rem;
             display: flex; align-items: center; justify-content: center;
             transition: background .15s ease, transform .08s ease;
         }
@@ -295,7 +306,7 @@
 <div class="modal fade" id="orderModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 rounded-4 overflow-hidden">
-            <div class="modal-header border-0" style="background:linear-gradient(135deg,#04553A,#0d9d63);color:white;">
+            <div class="modal-header border-0" style="background:linear-gradient(135deg,var(--primary),#0d9d63);color:white;">
                 <h6 class="modal-title fw-bold">
                     <i class="bi bi-bag-check-fill me-2"></i>تأكيد الطلب
                 </h6>
@@ -925,7 +936,7 @@
                 showCancelButton: true,
                 confirmButtonText: '<i class="bi bi-google-play"></i> تحميل التطبيق',
                 cancelButtonText: 'الدخول من المتصفح',
-                confirmButtonColor: '#04553A',
+                confirmButtonColor: 'var(--primary)',
                 cancelButtonColor: '#6c757d'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1043,7 +1054,7 @@
                         title: '✅ تم إرسال طلبك!',
                         html: `طلبك وصل للمتجر وينتظر موافقتهم.${discountMsg}<br><small class="text-muted">رقم الطلب: #${data.order._id.slice(-4)}</small>`,
                         confirmButtonText: 'متابعة طلباتي',
-                        confirmButtonColor: '#04553A'
+                        confirmButtonColor: 'var(--primary)'
                     });
                     window.location.href = 'client-my-orders.html';
                 }
@@ -1152,6 +1163,21 @@
             .catch(() => `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     }
 
+    /**
+     * 🔒 نفس علّة index.html: العنوان قد يأتي من Nominatim أي OpenStreetMap،
+     * وحقوله يحرّرها أي مساهم — فكان يُحقن خاماً في innerHTML. الهروب هنا هو
+     * الحاجز الوحيد. (أُصلحت في home.js ولم تصل هذه النسخة لأنها مكرّرة.)
+     */
+    const _escShopAddr = (v) => (window.escapeHtml
+        ? window.escapeHtml(v)
+        : String(v == null ? '' : v).replace(/[&<>"']/g,
+            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+
+    function _shopSheetResolving(on) {
+        const sheet = document.getElementById('wj-map-sheet');
+        if (sheet) sheet.classList.toggle('is-resolving', !!on);
+    }
+
     function _updateShopCenterAddress() {
         if (!shopMap) return;
         const c = shopMap.getCenter();
@@ -1163,7 +1189,7 @@
             if (d < 45) {
                 _shopCenterAddress = window._shopSelectedSearch.text;
                 _shopCenterKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-                if (previewEl) previewEl.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> ${_shopCenterAddress}`;
+                if (previewEl) previewEl.innerHTML = _escShopAddr(_shopCenterAddress);
                 return;
             }
             window._shopSelectedSearch = null;
@@ -1172,12 +1198,14 @@
         const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
         if (key === _shopCenterKey) return;
         _shopCenterKey = key;
-        if (previewEl) previewEl.innerHTML = `<span style="opacity:.55;">جارٍ تحديد العنوان…</span>`;
+        _shopSheetResolving(true);
+        if (previewEl) previewEl.innerHTML = `<span style="opacity:.6;">جارٍ تحديد العنوان…</span>`;
         _resolveAddress(lat, lng).then(addr => {
             const c2 = shopMap.getCenter();
             if (`${c2.lat().toFixed(4)},${c2.lng().toFixed(4)}` !== key) return;
             _shopCenterAddress = addr;
-            if (previewEl) previewEl.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> ${addr}`;
+            _shopSheetResolving(false);
+            if (previewEl) previewEl.innerHTML = _escShopAddr(addr);
         });
     }
 
@@ -1290,7 +1318,7 @@
                 resultsDiv.innerHTML = predictions.slice(0, 6).map(p => {
                     const isEstablishment = (p.types || []).includes('establishment') || (p.types || []).includes('point_of_interest');
                     const icon = isEstablishment ? 'bi-shop' : 'bi-geo-alt-fill';
-                    const iconColor = isEstablishment ? '#b45309' : '#04553A';
+                    const iconColor = isEstablishment ? '#b45309' : 'var(--primary)';
                     return `
                     <div onclick="window._selectShopSearch('${p.place_id}')"
                         style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:11px;">
@@ -1360,7 +1388,8 @@
                     const finalText = [nm, fa].filter(Boolean).join('، ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
                     window._shopSelectedSearch = { text: finalText, lat, lng };
                     const pv = document.getElementById('map-address-preview');
-                    if (pv) pv.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> ${finalText}`;
+                    // اسم المكان وعنوانه نصٌّ من جوجل — يُهرَّب كبقية العناوين
+                    if (pv) pv.innerHTML = _escShopAddr(finalText);
 
                     updateRoute(loc);
                 }
@@ -1373,7 +1402,20 @@
         }
 
         // 📍 معاينة العنوان النصّي حيّاً عند توقّف الحركة (reverse geocode)
-        shopMap.addListener('idle', _updateShopCenterAddress);
+        /**
+         * ⏳ تهدئة فكّ الإحداثيات — كل استقرارٍ للخريطة كان نداءً مدفوعاً
+         * لـ Geocoder، والعميل يسحب عشرات المرات وهو يبحث عن بيته.
+         */
+        let _shopAddrTimer = null;
+        shopMap.addListener('idle', () => {
+            clearTimeout(_shopAddrTimer);
+            _shopAddrTimer = setTimeout(_updateShopCenterAddress, 450);
+        });
+
+        // 🎯 استجابة الدبوس للسحب — نفس إيحاء العمق في index.html
+        const _shopShell = document.getElementById('static-map-container');
+        shopMap.addListener('dragstart', () => _shopShell && _shopShell.classList.add('is-dragging'));
+        shopMap.addListener('idle', () => _shopShell && _shopShell.classList.remove('is-dragging'));
         // ✅ FIX #1: لا نستدعي DirectionsService مع كل حركة drag — المسار يُرسم عند التأكيد فقط
 
         mapInitialized = true;
@@ -1426,10 +1468,10 @@
 
         deliveryZonePolygon = new google.maps.Polygon({
             paths: zoneCoords,
-            strokeColor: '#04553A',
+            strokeColor: 'var(--primary)',
             strokeOpacity: 0.15,
             strokeWeight: 2,
-            fillColor: '#04553A',
+            fillColor: 'var(--primary)',
             fillOpacity: 0.04,
             map: shopMap,
             clickable: false
@@ -1486,14 +1528,14 @@
         const pos = { lat, lng };
         if (!_suCircle) {
             _suCircle = new google.maps.Circle({ map: shopMap, center: pos, radius: Math.max(15, accuracy || 30),
-                strokeColor: '#04553A', strokeOpacity: 0.30, strokeWeight: 1, fillColor: '#04553A', fillOpacity: 0.08, clickable: false, zIndex: 1 });
+                strokeColor: 'var(--primary)', strokeOpacity: 0.30, strokeWeight: 1, fillColor: 'var(--primary)', fillOpacity: 0.08, clickable: false, zIndex: 1 });
         } else { _suCircle.setCenter(pos); _suCircle.setRadius(Math.max(15, accuracy || 30)); }
 
         const dotIcon = {
             url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
                 '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28">' +
                 '<circle cx="14" cy="14" r="9" fill="#fff" opacity="0.95"/>' +
-                '<circle cx="14" cy="14" r="6.5" fill="#04553A"/>' +
+                '<circle cx="14" cy="14" r="6.5" fill="var(--primary)"/>' +
                 '<circle cx="14" cy="14" r="6.5" fill="none" stroke="#25d366" stroke-width="1.5"/></svg>'),
             scaledSize: new google.maps.Size(28, 28), anchor: new google.maps.Point(14, 14)
         };
@@ -1570,7 +1612,7 @@
                 const dirService = new google.maps.DirectionsService();
                 const dirRenderer = new google.maps.DirectionsRenderer({
                     map: shopMap, suppressMarkers: true,
-                    polylineOptions: { strokeColor: '#04553A', strokeWeight: 4, strokeOpacity: 0.8 }
+                    polylineOptions: { strokeColor: 'var(--primary)', strokeWeight: 4, strokeOpacity: 0.8 }
                 });
                 dirService.route({
                     origin: storeMarkerRef.getPosition(),
@@ -1590,19 +1632,40 @@
             });
         }
 
+        function getShopDeliveryLimits(lat, lng) {
+            const destLat = lat || (_chosenCoords && _chosenCoords.lat);
+            const destLng = lng || (_chosenCoords && _chosenCoords.lng);
+            const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
+            const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
+            const maxDiscountPercent = (pricingConfig && typeof pricingConfig.maxDiscountPercent === 'number')
+                ? pricingConfig.maxDiscountPercent : 10;
+            const maxPriceSurgePercent = (pricingConfig && typeof pricingConfig.maxPriceSurgePercent === 'number')
+                ? pricingConfig.maxPriceSurgePercent : 100;
+
+            if (!shopData || !shopData.location || !destLat || !destLng) {
+                return { estimated: baseFare, minAllowed: baseFare, maxAllowed: 1000000, maxDiscountPercent, maxPriceSurgePercent };
+            }
+
+            const distKm = calculateDistance(destLat, destLng, shopData.location.lat, shopData.location.lng);
+            let estimated = baseFare + (distKm * perKm);
+            estimated = Math.ceil(estimated / 100) * 100;
+
+            const minAllowed = Math.max(baseFare, Math.ceil((estimated * (1 - (maxDiscountPercent / 100))) / 100) * 100);
+            const maxAllowed = Math.ceil((estimated * (1 + (maxPriceSurgePercent / 100))) / 100) * 100;
+
+            return { estimated, distKm, minAllowed, maxAllowed, maxDiscountPercent, maxPriceSurgePercent };
+        }
+
         // حساب سعر التوصيل
         if (shopData && shopData.location && shopData.location.lat && shopData.location.lng) {
             if (!isPriceManuallyEdited) {
-                const distKm = calculateDistance(lat, lng, shopData.location.lat, shopData.location.lng);
-                const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
-                const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
-                let finalPrice = baseFare + (distKm * perKm);
-                finalPrice = Math.ceil(finalPrice / 100) * 100;
+                const limits = getShopDeliveryLimits(lat, lng);
+                const finalPrice = limits.estimated;
 
                 const feeInput = document.getElementById('deliveryFee');
                 feeInput.value = finalPrice;
                 feeInput.classList.add('border-warning', 'border-2');
-                document.getElementById('deliveryFeeHint').textContent = `المسافة التقديرية للمتجر: ${distKm.toFixed(1)} كم`;
+                document.getElementById('deliveryFeeHint').innerHTML = `المسافة التقديرية: <b>${limits.distKm.toFixed(1)} كم</b> | أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>`;
                 // تغيّر سعر التوصيل المقترح يُبطل أي كوبون ويحدّث الملخص
                 resetPromoOnChange();
                 renderOrderSummary();
@@ -1619,8 +1682,32 @@
             const input = document.getElementById('deliveryFee');
             if (!input) return;
             const current = parseInt(input.value, 10) || 0;
+            const lat = _chosenCoords && _chosenCoords.lat;
+            const lng = _chosenCoords && _chosenCoords.lng;
+            const limits = (typeof getShopDeliveryLimits === 'function')
+                ? getShopDeliveryLimits(lat, lng)
+                : { estimated: 0, minAllowed: 0, maxAllowed: 1000000, maxDiscountPercent: 10 };
+
             const snapped = Math.round(current / STEP) * STEP;
             let next = snapped + (direction * STEP);
+
+            if (direction < 0 && limits.estimated > 0 && next < limits.minAllowed) {
+                next = limits.minAllowed;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top',
+                        icon: 'info',
+                        text: `أقل سعر توصيل مسموح: ${limits.minAllowed.toLocaleString()} ج.س (تخفيض ${limits.maxDiscountPercent}% كحد أقصى)`,
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                }
+            }
+            if (direction > 0 && limits.estimated > 0 && next > limits.maxAllowed) {
+                next = limits.maxAllowed;
+            }
+
             if (next < 0) next = 0;
             input.value = next;
             handleManualPriceEdit(); // يُثبّت السعر فلا تعيد الخريطة حسابه
@@ -1628,7 +1715,7 @@
             void input.offsetWidth;
             input.classList.add('bumped');
             const minus = document.getElementById('shop-price-minus');
-            if (minus) minus.disabled = (next <= 0);
+            if (minus) minus.disabled = (next <= (limits.estimated > 0 ? limits.minAllowed : 0));
         }
         const minus = document.getElementById('shop-price-minus');
         const plus = document.getElementById('shop-price-plus');
@@ -1711,7 +1798,7 @@
     // ─── Feature 1: Real-time Stock Updates — تحديث المخزون فوراً بدون Refresh ───
     if (typeof io !== 'undefined') {
         const _stockSocket = io(API_URL, {
-            transports: ['polling', 'websocket'],
+            transports: ['websocket', 'polling'],
             auth: { token: localStorage.getItem('token') || '' }
         });
         _stockSocket.on('connect', () => {
@@ -1796,26 +1883,26 @@
     <div id="map" style="width: 100%; height: 100%;"></div>
     
     <div id="map-ui-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100000;">
-        <!-- Top Header & Close -->
-        <div style="position: absolute; top: 20px; left: 20px; z-index: 10004; pointer-events:auto;">
-            <button class="btn btn-light rounded-pill shadow" onclick="closeShopMap()">
-                <i class="bi bi-x-lg text-danger"></i> إغلاق
+        <!-- ▔▔▔ الشريط العلوي ▔▔▔
+             كان زرّاً من Bootstrap في ركن وبطاقةً مخصّصة في الركن المقابل،
+             بارتفاعين وظلّين ونصفَي قطر مختلفين. الآن نفس لغة index.html. -->
+        <div style="pointer-events:none;position:absolute;top:0;left:0;right:0;padding-top:calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px);padding-right:16px;padding-bottom:8px;padding-left:16px;display:flex;align-items:center;gap:10px;">
+            <button type="button" onclick="closeShopMap()" aria-label="إغلاق"
+                class="wj-chip wj-chip-icon" style="pointer-events:auto;touch-action:manipulation;color:#dc3545;">
+                <i class="bi bi-x-lg"></i>
             </button>
-        </div>
-        
-        <!-- Shop Badge -->
-        <div id="shopMapBadge" style="position: absolute; top: 20px; right: 20px; z-index: 10004; pointer-events:auto; background: white; border-radius: 50px; padding: 8px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; max-width: 180px;">
-            <i class="bi bi-shop-window text-success" style="font-size: 1.1rem;"></i>
-            <span id="shopMapBadgeName" style="font-size: 11px; font-weight: 700; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">موقع التوصيل</span>
+            <div id="shopMapBadge" class="wj-chip wj-chip-city" style="pointer-events:auto;margin-right:auto;cursor:default;">
+                <span id="shopMapBadgeName">موقع التوصيل</span>
+            </div>
         </div>
 
         <!-- Search Bar & Banner -->
-        <div style="pointer-events:auto;position:absolute;top:70px;left:16px;right:16px;z-index:100001;">
+        <div style="pointer-events:auto;position:absolute;top:calc(var(--sat, env(safe-area-inset-top, 0px)) + 68px);left:16px;right:16px;z-index:100001;">
             <div style="position:relative;display:flex;align-items:center;">
                 <input type="text" id="map-search-input" placeholder="ابحث عن مكان أو عنوان..."
                     style="width:100%;padding:14px 48px 14px 16px;border:none;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:600;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.12);outline:none;direction:rtl;"
                     autocomplete="off">
-                <button type="button" id="map-search-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#04553A;color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
+                <button type="button" id="map-search-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--primary);color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
                     <i class="bi bi-search"></i>
                 </button>
             </div>
@@ -1831,35 +1918,57 @@
             </div>
         </div>
 
-        <!-- Locate Me -->
-        <button type="button" id="locateMeBtn" onclick="locateMeOnMap()" class="btn shadow position-absolute d-flex align-items-center gap-2 fw-bold" style="pointer-events:auto;top: 50%; right: 16px; transform: translateY(-50%); z-index: 10001; border-radius: 50px; background: white; color: #04553A; padding: 10px 16px;">
-            <i class="bi bi-crosshair2 fs-5"></i>
-            <span style="font-size: 12px;">موقعي</span>
-        </button>
+        <!-- ⚠️ كان معلّقاً في منتصف الحافة اليمنى (top:50%) — موضعٌ يعترض
+             الإبهام أثناء سحب الخريطة. صار فوق البطاقة كبقية أزرارها. -->
+        <div style="pointer-events:none;position:absolute;right:16px;bottom:calc(184px + var(--sab, env(safe-area-inset-bottom, 0px)));display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <button type="button" id="locateMeBtn" onclick="locateMeOnMap()" title="تحديد موقعي"
+                class="map-fab-btn" style="pointer-events:auto;touch-action:manipulation;">
+                <i class="bi bi-crosshair2"></i>
+            </button>
+        </div>
 
-        <!-- Floating Bottom Sheet -->
-        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: white; z-index: 10002; border-radius: 20px 20px 0 0; padding: 25px 20px; box-shadow: 0 -8px 25px rgba(0,0,0,0.15); pointer-events:auto; text-align:center;">
-            <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill text-success me-2"></i> تأكيد موقع التوصيل</h6>
-            <div id="map-address-preview" style="font-family:'Cairo',sans-serif;font-size:13.5px;font-weight:700;color:#04553A;margin-bottom:10px;line-height:1.5;min-height:18px;"><span style="opacity:.55;">حرّك الخريطة لتحديد موقعك بدقة…</span></div>
-            <button id="map-confirm-btn" onclick="confirmShopMap()" class="btn btn-success w-100 rounded-pill py-3 fw-bold shadow">
-                <i class="bi bi-check-circle-fill me-1"></i> تأكيد وحساب مسافة التوصيل
+        <!-- ▔▔▔ البطاقة السفلية ▔▔▔ نفس بنية index.html: مقبض، ثم أيقونة
+             وتسمية والعنوان في صفّ يُقرأ من اليمين، ثم زرّ التأكيد. -->
+        <div id="wj-map-sheet" class="wj-sheet" style="z-index:10002;">
+            <div class="wj-sheet-grip"></div>
+            <div class="wj-addr">
+                <span class="wj-addr-ico"><i class="bi bi-geo-alt-fill"></i></span>
+                <div style="min-width:0;flex:1;">
+                    <div class="wj-addr-label">موقع التوصيل</div>
+                    <div id="map-address-preview"><span style="opacity:.6;">حرّك الخريطة لتحديد موقعك بدقة…</span></div>
+                </div>
+            </div>
+            <button id="map-confirm-btn" onclick="confirmShopMap()" class="wj-confirm" style="touch-action:manipulation;">
+                تأكيد وحساب مسافة التوصيل
             </button>
         </div>
     </div>
     
-    <!-- Center Pin — green teardrop matching app brand -->
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);pointer-events:none;z-index:99;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52" style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.35));">
-            <path d="M20 2C11.16 2 4 9.16 4 18c0 10.5 16 32 16 32S36 28.5 36 18C36 9.16 28.84 2 20 2z" fill="#04553A"/>
-            <circle cx="20" cy="18" r="7" fill="white" opacity="0.9"/>
-            <circle cx="20" cy="18" r="4" fill="#04553A"/>
-        </svg>
+    <!-- ▔▔▔ الدبوس ▔▔▔ نفس دبوس index.html: أثرٌ ذهبي على النقطة المختارة
+         وظلٌّ أرضي وجسمٌ يرتفع أثناء السحب. viewBox مقصوص عند 51 لأن المسار
+         ينتهي عند y=50، فيلامس طرفُ الدبوس نقطتَه تماماً. -->
+    <div class="wj-pin" style="z-index:99;">
+        <div class="wj-pin-shadow"></div>
+        <div class="wj-pin-body">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="51" viewBox="0 0 40 51">
+                <defs>
+                    <linearGradient id="shopPinGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#25d366" />
+                        <stop offset="100%" stop-color="#04553A" />
+                    </linearGradient>
+                </defs>
+                <path d="M20 2C11.16 2 4 9.16 4 18c0 10.5 16 32 16 32S36 28.5 36 18C36 9.16 28.84 2 20 2z" fill="url(#shopPinGrad)"/>
+                <circle cx="20" cy="18" r="8" fill="#fff"/>
+                <circle cx="20" cy="18" r="5" fill="none" stroke="#BF8B1F" stroke-width="2"/>
+            </svg>
+        </div>
+        <div class="wj-pin-dot"></div>
     </div>
 </div>
 
 <script src="js/maps-loader.js?v=c382a678"></script>
 <script src="js/map-markers.js?v=f66d1f1b"></script>
-<script src="js/theme-manager.js?v=a33a528b"></script>
+<script src="js/theme-manager.js?v=286ae5ac"></script>
 <script>loadGoogleMaps({ libraries: 'places,geometry', need: ['routes'], callback: '__googleMapsReady' });</script>
 </body>
 </html>

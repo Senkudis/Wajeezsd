@@ -14,6 +14,11 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         html, body {
             margin: 0; padding: 0;
             background: #04070f;
@@ -236,7 +241,7 @@
 
         /* ─── قائمة المتاجر ─── */
         .merchants-screen { background:#f8fafc; }
-        .app-header { background:linear-gradient(135deg,#04553A,#077a54);padding:52px 14px 14px;color:white; }
+        .app-header { background:linear-gradient(135deg,var(--primary),#077a54);padding:52px 14px 14px;color:white; }
         .header-title { font-weight:800;font-size:16px;margin-bottom:8px; }
         .search-bar { background:rgba(255,255,255,0.2);border-radius:10px;padding:9px 12px;font-size:13px;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:6px; }
         .app-body { padding:12px; }
@@ -290,7 +295,7 @@
         }
         .cat-tabs { display: flex; gap: 9px; padding: 13px 14px; background: white; border-bottom: 1px solid #eef1f4; }
         .cat-tab { padding: 6px 16px; border-radius: 20px; font-size: 12.5px; font-weight: 700; background: #f1f5f9; color: #475569; }
-        .cat-tab.active { background: #04553A; color: white; }
+        .cat-tab.active { background: var(--primary); color: white; }
         .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 13px 14px; }
         .product-card {
             background: white; border-radius: 14px; border: 1px solid #eaeef2;
@@ -300,15 +305,15 @@
         .product-card img { width: 100%; height: 118px; object-fit: cover; }
         .product-card-body { padding: 10px; }
         .product-card-title { font-size: 12.5px; font-weight: 700; color: #0f172a; }
-        .product-card-price { font-size: 13.5px; font-weight: 800; color: #04553A; margin: 7px 0; }
+        .product-card-price { font-size: 13.5px; font-weight: 800; color: var(--primary); margin: 7px 0; }
         .add-to-cart-btn {
-            background: #04553A; color: white; border: none;
+            background: var(--primary); color: white; border: none;
             width: 100%; padding: 7px; border-radius: 9px;
             font-weight: 700; font-size: 11.5px; font-family: inherit;
         }
         .cart-fab {
             position: absolute; bottom: 18px; left: 16px; right: 16px;
-            background: #04553A; color: white; border-radius: 16px;
+            background: var(--primary); color: white; border-radius: 16px;
             padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 12px 28px rgba(4,85,58,0.42);
             transform: translateY(160px);
@@ -317,27 +322,27 @@
 
         /* ─── سلة المشتريات ─── */
         .cart-screen { background:white; }
-        .cart-header { background:linear-gradient(135deg,#04553A,#077a54);color:white;padding:52px 14px 14px;font-weight:800;font-size:15px; }
+        .cart-header { background:linear-gradient(135deg,var(--primary),#077a54);color:white;padding:52px 14px 14px;font-weight:800;font-size:15px; }
         .cart-item { display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f1f5f9; }
         .cart-img { width:48px;height:48px;border-radius:10px;object-fit:cover;background:#f1f5f9; }
         .cart-item-name { font-weight:700;font-size:13px;color:#0f172a; }
-        .cart-item-price { font-size:13px;color:#04553A;font-weight:800;margin-top:2px; }
+        .cart-item-price { font-size:13px;color:var(--primary);font-weight:800;margin-top:2px; }
         .qty-control { margin-right:auto;display:flex;align-items:center;gap:6px;background:#f1f5f9;border-radius:8px;padding:4px 8px; }
-        .qty-btn { background:none;border:none;font-size:16px;font-weight:900;color:#04553A;cursor:pointer; }
+        .qty-btn { background:none;border:none;font-size:16px;font-weight:900;color:var(--primary);cursor:pointer; }
         .qty-num { font-weight:800;font-size:13px; }
         .cart-total { padding:12px 14px;display:flex;justify-content:space-between;font-weight:800;border-top:2px solid #f1f5f9;font-size:14px; }
-        .checkout-btn { margin:8px 14px;background:linear-gradient(135deg,#04553A,#077a54);color:white;border:none;width:calc(100% - 28px);padding:13px;border-radius:12px;font-weight:800;font-size:14px;font-family:inherit; }
+        .checkout-btn { margin:8px 14px;background:linear-gradient(135deg,var(--primary),#077a54);color:white;border:none;width:calc(100% - 28px);padding:13px;border-radius:12px;font-weight:800;font-size:14px;font-family:inherit; }
 
         /* ─── تتبع الطلب ─── */
         .tracking-screen { background:#f8fafc; }
         .track-map { height:220px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);position:relative;overflow:hidden; }
         .map-grid { position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,0.3) 1px,transparent 1px);background-size:40px 40px; }
         .captain-pin { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;animation:pinBounce 1.5s ease-in-out infinite; }
-        .captain-pin-circle { width:36px;height:36px;background:#04553A;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25);display:flex;align-items:center;justify-content:center;color:white;font-size:16px; }
+        .captain-pin-circle { width:36px;height:36px;background:var(--primary);border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25);display:flex;align-items:center;justify-content:center;color:white;font-size:16px; }
         @keyframes pinBounce { 0%,100%{transform:translate(-50%,-50%)} 50%{transform:translate(-50%,-58%)} }
         .track-info { padding:14px;background:white; }
         .captain-row { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
-        .captain-avatar { width:44px;height:44px;background:#04553A;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:800; }
+        .captain-avatar { width:44px;height:44px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:800; }
         .captain-name { font-weight:800;font-size:14px;color:#0f172a; }
         .captain-status { font-size:11px;color:#16a34a;font-weight:700; }
         .eta-pill { background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:12px;color:#166534;font-weight:700;margin-right:auto; }
@@ -351,7 +356,7 @@
             opacity: 0; visibility: hidden;
         }
         .end-logo-card {
-    background: linear-gradient(135deg, #04553A, #077a54);
+    background: linear-gradient(135deg, var(--primary), #077a54);
     border-radius: 34px;
     padding: 54px 74px;
     box-shadow: 0 40px 100px rgba(0,0,0,0.55);
@@ -388,7 +393,7 @@
             padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 14px;
             cursor: pointer;
         }
-        .mode-btn.active { background: #04553A; border-color: #04553A; color: white; }
+        .mode-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
         #btnSound {
             background: transparent; color: #64748b;
             border: 2px solid #26333f; border-radius: 13px;
@@ -397,7 +402,7 @@
         }
         #btnSound.sound-on { color: #F5A623; border-color: rgba(245,166,35,0.5); }
         #btnPlay {
-            background: linear-gradient(135deg, #077a54, #04553A);
+            background: linear-gradient(135deg, #077a54, var(--primary));
             color: white; border: none;
             width: 92px; height: 92px; border-radius: 50%;
             font-size: 36px; cursor: pointer;
@@ -465,6 +470,7 @@
             #rotateHint { font-size: 12px; padding: 9px 14px; }
         }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 <body>
 
@@ -483,7 +489,7 @@
         <div id="flashLayer" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:300;"></div>
 
         <div id="cinemaProgress" style="position:absolute;bottom:0;left:0;right:0;height:4px;z-index:200;opacity:0;">
-            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,#04553A,#0e9f6e,#F5A623);box-shadow:0 0 12px rgba(245,166,35,0.7);border-radius:0 2px 2px 0;transition:none;"></div>
+            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--primary),#0e9f6e,#F5A623);box-shadow:0 0 12px rgba(245,166,35,0.7);border-radius:0 2px 2px 0;transition:none;"></div>
             <div id="cinemaPulse" style="position:absolute;right:0;top:-3px;width:10px;height:10px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;display:none;"></div>
         </div>
 
@@ -532,7 +538,7 @@
 
                     <!-- مشهد 0: قائمة المتاجر -->
                     <div id="scene0" class="screen active merchants-screen" style="background:#f0f4f8;">
-                        <div style="background:linear-gradient(160deg,#0a1628 0%,#0d3b2e 45%,#04553A 100%);padding:52px 20px 70px;position:relative;overflow:hidden;">
+                        <div style="background:linear-gradient(160deg,#0a1628 0%,#0d3b2e 45%,var(--primary) 100%);padding:52px 20px 70px;position:relative;overflow:hidden;">
                             <div style="position:absolute;inset:0;background:url(&quot;data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&quot;);"></div>
                             <div style="position:relative;z-index:2;">
                                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
@@ -554,7 +560,7 @@
                         </div>
                         <div style="margin-top:-20px;padding:0 16px;position:relative;z-index:2;">
                             <div style="font-size:16px;font-weight:800;color:#1a2332;margin:20px 0 12px;display:flex;align-items:center;gap:8px;">
-                                <i class="bi bi-grid-fill" style="color:#04553A;font-size:14px;"></i> التصنيفات
+                                <i class="bi bi-grid-fill" style="color:var(--primary);font-size:14px;"></i> التصنيفات
                                 <span style="flex:1;height:1px;background:linear-gradient(90deg,#e2e8f0,transparent);"></span>
                             </div>
                             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding-bottom:4px;">
@@ -595,7 +601,7 @@
                                             <span style="color:#d1d5db;">·</span>
                                             <span style="color:#6b7280;">120</span>
                                         </div>
-                                        <div style="background:linear-gradient(135deg,#04553A,#059669);color:white;border:none;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;">اطلب الآن <i class="bi bi-arrow-left-short"></i></div>
+                                        <div style="background:linear-gradient(135deg,var(--primary),#059669);color:white;border:none;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;">اطلب الآن <i class="bi bi-arrow-left-short"></i></div>
                                     </div>
                                 </div>
                                 <div style="background:white;border-radius:18px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);cursor:pointer;">
@@ -613,14 +619,14 @@
                                             <span style="color:#d1d5db;">·</span>
                                             <span style="color:#6b7280;">85</span>
                                         </div>
-                                        <div style="background:linear-gradient(135deg,#04553A,#059669);color:white;border:none;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;">اطلب الآن <i class="bi bi-arrow-left-short"></i></div>
+                                        <div style="background:linear-gradient(135deg,var(--primary),#059669);color:white;border:none;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;">اطلب الآن <i class="bi bi-arrow-left-short"></i></div>
                                     </div>
                                 </div>
                             </div>
                             <div style="height:70px;"></div>
                         </div>
                         <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-around;padding:8px 0 12px;z-index:10;">
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#04553A;font-weight:800;font-size:11px;">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--primary);font-weight:800;font-size:11px;">
                                 <i class="bi bi-house-door-fill" style="font-size:20px;"></i> الرئيسية
                             </div>
                             <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#94a3b8;font-weight:700;font-size:11px;">
@@ -666,7 +672,7 @@
                                 <img src="https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=500&q=80" style="width:100%;height:120px;object-fit:cover;" alt="">
                                 <div style="padding:10px;">
                                     <div style="font-weight:800;font-size:14px;color:#1e293b;margin-bottom:4px;">جاكيت جينز كلاسيك</div>
-                                    <div style="font-size:15px;font-weight:900;color:#04553A;margin-bottom:8px;">25,000 ج.س</div>
+                                    <div style="font-size:15px;font-weight:900;color:var(--primary);margin-bottom:8px;">25,000 ج.س</div>
                                     <button id="btnAddToCart2" style="width:100%;border:none;border-radius:10px;padding:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-weight:800;font-size:13px;cursor:pointer;font-family:'Cairo',sans-serif;">
                                         <i class="bi bi-cart-plus"></i> أضف للسلة
                                     </button>
@@ -676,7 +682,7 @@
                                 <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=500&q=80" style="width:100%;height:120px;object-fit:cover;" alt="">
                                 <div style="padding:10px;">
                                     <div style="font-weight:800;font-size:14px;color:#1e293b;margin-bottom:4px;">تيشيرت أساسي أبيض</div>
-                                    <div style="font-size:15px;font-weight:900;color:#04553A;margin-bottom:8px;">12,000 ج.س</div>
+                                    <div style="font-size:15px;font-weight:900;color:var(--primary);margin-bottom:8px;">12,000 ج.س</div>
                                     <button style="width:100%;border:none;border-radius:10px;padding:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-weight:800;font-size:13px;cursor:pointer;font-family:'Cairo',sans-serif;">
                                         <i class="bi bi-cart-plus"></i> أضف للسلة
                                     </button>
@@ -686,7 +692,7 @@
                                 <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=500&q=80" style="width:100%;height:120px;object-fit:cover;" alt="">
                                 <div style="padding:10px;">
                                     <div style="font-weight:800;font-size:14px;color:#1e293b;margin-bottom:4px;">سنيكرز يومي أبيض</div>
-                                    <div style="font-size:15px;font-weight:900;color:#04553A;margin-bottom:8px;">30,000 ج.س</div>
+                                    <div style="font-size:15px;font-weight:900;color:var(--primary);margin-bottom:8px;">30,000 ج.س</div>
                                     <button style="width:100%;border:none;border-radius:10px;padding:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-weight:800;font-size:13px;cursor:pointer;font-family:'Cairo',sans-serif;">
                                         <i class="bi bi-cart-plus"></i> أضف للسلة
                                     </button>
@@ -696,14 +702,14 @@
                                 <img src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=500&q=80" style="width:100%;height:120px;object-fit:cover;" alt="">
                                 <div style="padding:10px;">
                                     <div style="font-weight:800;font-size:14px;color:#1e293b;margin-bottom:4px;">قميص كاجوال</div>
-                                    <div style="font-size:15px;font-weight:900;color:#04553A;margin-bottom:8px;">18,000 ج.س</div>
+                                    <div style="font-size:15px;font-weight:900;color:var(--primary);margin-bottom:8px;">18,000 ج.س</div>
                                     <button style="width:100%;border:none;border-radius:10px;padding:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;font-weight:800;font-size:13px;cursor:pointer;font-family:'Cairo',sans-serif;">
                                         <i class="bi bi-cart-plus"></i> أضف للسلة
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        <div id="floatingCart2" style="position:absolute;bottom:18px;left:16px;right:16px;background:linear-gradient(135deg,#04553A,#086b43);color:white;border-radius:16px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 30px rgba(4,85,58,0.3);transform:translateY(160px);z-index:150;">
+                        <div id="floatingCart2" style="position:absolute;bottom:18px;left:16px;right:16px;background:linear-gradient(135deg,var(--primary),#086b43);color:white;border-radius:16px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 30px rgba(4,85,58,0.3);transform:translateY(160px);z-index:150;">
                             <div style="display:flex;align-items:center;gap:12px;">
                                 <div style="background:#f59e0b;color:white;border-radius:8px;padding:4px 10px;font-size:13px;font-weight:900;">1 عناصر</div>
                                 <div style="font-size:15px;font-weight:800;">25,000 ج.س</div>
@@ -716,19 +722,19 @@
 
                     <!-- مشهد 2: تأكيد الطلب -->
                     <div id="scene2" class="screen cart-screen" style="background:white;">
-                        <div style="background:linear-gradient(135deg,#04553A,#077a54);color:white;padding:52px 14px 14px;font-weight:800;font-size:15px;">
+                        <div style="background:linear-gradient(135deg,var(--primary),#077a54);color:white;padding:52px 14px 14px;font-weight:800;font-size:15px;">
                             <i class="bi bi-arrow-right" style="margin-left:8px;"></i> تأكيد الطلب
                         </div>
                         <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f1f5f9;">
                             <img src="https://images.unsplash.com/photo-1551537482-f2075a1d41f2?auto=format&fit=crop&w=150&q=80" style="width:48px;height:48px;border-radius:10px;object-fit:cover;background:#f1f5f9;" alt="">
                             <div style="flex:1;">
                                 <div style="font-weight:700;font-size:13px;color:#0f172a;">جاكيت جينز كلاسيك</div>
-                                <div style="font-size:13px;color:#04553A;font-weight:800;margin-top:2px;">25,000 ج.س</div>
+                                <div style="font-size:13px;color:var(--primary);font-weight:800;margin-top:2px;">25,000 ج.س</div>
                             </div>
                             <div style="display:flex;align-items:center;gap:6px;background:#f1f5f9;border-radius:8px;padding:4px 8px;">
-                                <button style="background:none;border:none;font-size:16px;font-weight:900;color:#04553A;cursor:pointer;">−</button>
+                                <button style="background:none;border:none;font-size:16px;font-weight:900;color:var(--primary);cursor:pointer;">−</button>
                                 <span style="font-weight:800;font-size:13px;">1</span>
-                                <button style="background:none;border:none;font-size:16px;font-weight:900;color:#04553A;cursor:pointer;">+</button>
+                                <button style="background:none;border:none;font-size:16px;font-weight:900;color:var(--primary);cursor:pointer;">+</button>
                             </div>
                         </div>
                         <div style="padding:12px 14px;">
@@ -739,13 +745,13 @@
                                 <span>سعر التوصيل <small style="color:#94a3b8;">(قابل للتفاوض)</small></span><span style="font-weight:800;">1,500 ج.س</span>
                             </div>
                             <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;border-top:2px solid #f1f5f9;padding-top:8px;">
-                                <span>الإجمالي</span><span style="color:#04553A;">26,500 ج.س</span>
+                                <span>الإجمالي</span><span style="color:var(--primary);">26,500 ج.س</span>
                             </div>
                         </div>
                         <div style="margin:0 14px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:9px 11px;font-size:10.5px;line-height:1.7;color:#92400e;">
                             مبلغ البضاعة يُحوَّل للمتجر مع إشعار الدفع، وسعر التوصيل يُدفع كاش للكابتن عند الاستلام.
                         </div>
-                        <button id="btnShopCheckout" style="margin:8px 14px;background:linear-gradient(135deg,#04553A,#077a54);color:white;border:none;width:calc(100% - 28px);padding:13px;border-radius:12px;font-weight:800;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                        <button id="btnShopCheckout" style="margin:8px 14px;background:linear-gradient(135deg,var(--primary),#077a54);color:white;border:none;width:calc(100% - 28px);padding:13px;border-radius:12px;font-weight:800;font-size:14px;font-family:'Cairo',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                             <i class="bi bi-check-circle-fill"></i> إرسال الطلب للمتجر
                         </button>
                     </div>
@@ -754,11 +760,11 @@
                     <div id="scene3" class="screen tracking-screen" style="background:#f0f4f8;">
                         <div style="flex-grow:1;position:relative;overflow:hidden;background:linear-gradient(135deg,#d1fae5,#a7f3d0);">
                             <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,0.3) 1px,transparent 1px);background-size:40px 40px;"></div>
-                            <div style="position:absolute;top:14px;left:14px;background:white;border-radius:99px;padding:8px 14px;display:flex;align-items:center;gap:7px;box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:12px;font-weight:800;color:#04553A;z-index:10;">
+                            <div style="position:absolute;top:14px;left:14px;background:white;border-radius:99px;padding:8px 14px;display:flex;align-items:center;gap:7px;box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:12px;font-weight:800;color:var(--primary);z-index:10;">
                                 <div style="width:9px;height:9px;border-radius:50%;background:#22c55e;"></div> تتبع مباشر
                             </div>
                             <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;animation:pinBounce 1.5s ease-in-out infinite;">
-                                <div style="width:36px;height:36px;background:#04553A;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25);display:flex;align-items:center;justify-content:center;color:white;font-size:16px;">
+                                <div style="width:36px;height:36px;background:var(--primary);border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25);display:flex;align-items:center;justify-content:center;color:white;font-size:16px;">
                                     <i class="bi bi-bicycle"></i>
                                 </div>
                                 <div style="background:white;border-radius:8px;padding:3px 8px;margin-top:4px;font-size:10px;font-weight:700;color:#0f172a;box-shadow:0 2px 8px rgba(0,0,0,0.15);white-space:nowrap;">محمد إبراهيم</div>
@@ -773,17 +779,17 @@
                             <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;">
                                 <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
                                     <div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;font-size:12px;color:white;"><i class="bi bi-check-lg"></i></div>
-                                    <div style="font-size:9px;font-weight:700;color:#04553A;">انتظار</div>
+                                    <div style="font-size:9px;font-weight:700;color:var(--primary);">انتظار</div>
                                 </div>
                                 <div style="flex:1;height:2px;background:#22c55e;"></div>
                                 <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
                                     <div style="width:28px;height:28px;border-radius:50%;background:#22c55e;border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;font-size:12px;color:white;"><i class="bi bi-check-lg"></i></div>
-                                    <div style="font-size:9px;font-weight:700;color:#04553A;">قُبل</div>
+                                    <div style="font-size:9px;font-weight:700;color:var(--primary);">قُبل</div>
                                 </div>
                                 <div style="flex:1;height:2px;background:#22c55e;"></div>
                                 <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
-                                    <div style="width:28px;height:28px;border-radius:50%;background:#04553A;border:2.5px solid #04553A;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 0 0 4px rgba(4,85,58,0.15);"><i class="bi bi-box2-fill"></i></div>
-                                    <div style="font-size:9px;font-weight:700;color:#04553A;">استلم</div>
+                                    <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);border:2.5px solid var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 0 0 4px rgba(4,85,58,0.15);"><i class="bi bi-box2-fill"></i></div>
+                                    <div style="font-size:9px;font-weight:700;color:var(--primary);">استلم</div>
                                 </div>
                                 <div style="flex:1;height:2px;background:#e2e8f0;"></div>
                                 <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
@@ -792,17 +798,17 @@
                                 </div>
                             </div>
                             <div style="display:flex;align-items:center;gap:12px;background:#f8fafc;border-radius:14px;padding:12px;margin-bottom:12px;">
-                                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#04553A,#25d366);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:800;flex-shrink:0;">م</div>
+                                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#25d366);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:800;flex-shrink:0;">م</div>
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-weight:700;font-size:13px;color:#1e293b;">محمد إبراهيم</div>
                                     <div style="font-size:11px;color:#64748b;">دراجة نارية</div>
                                 </div>
                                 <div style="display:flex;gap:8px;align-items:center;">
-                                    <div style="width:38px;height:38px;border-radius:50%;background:#04553A;display:flex;align-items:center;justify-content:center;color:white;"><i class="bi bi-telephone-fill"></i></div>
-                                    <div style="width:38px;height:38px;border-radius:50%;border:2px solid #04553A;display:flex;align-items:center;justify-content:center;color:#04553A;background:white;"><i class="bi bi-chat-dots-fill"></i></div>
+                                    <div style="width:38px;height:38px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;"><i class="bi bi-telephone-fill"></i></div>
+                                    <div style="width:38px;height:38px;border-radius:50%;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;color:var(--primary);background:white;"><i class="bi bi-chat-dots-fill"></i></div>
                                 </div>
                             </div>
-                            <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#04553A,#25d366);border-radius:12px;padding:10px 16px;color:white;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--primary),#25d366);border-radius:12px;padding:10px 16px;color:white;">
                                 <div>
                                     <div style="font-size:11px;opacity:0.8;">⏱ وقت الوصول</div>
                                     <div style="font-size:15px;font-weight:800;">~8 دقائق</div>
@@ -1083,7 +1089,7 @@
         gsap.fromTo(fl, { opacity: 0.75 }, { opacity: 0, duration: dur, ease: 'power2.out' });
     };
 
-    const burstParticles = (count = 18, colors = ['#04553A','#F5A623','#22c55e','#fff']) => {
+    const burstParticles = (count = 18, colors = ['var(--primary)','#F5A623','#22c55e','#fff']) => {
         const pc = document.getElementById('particleContainer');
         const cx = gsap.getProperty(cursor, 'x');
         const cy = gsap.getProperty(cursor, 'y');
@@ -1223,7 +1229,7 @@
             document.getElementById('btnAddToCart2').innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%; font-size:13px; padding:0 8px;">
                     <span style="font-size:17px;">−</span>
-                    <span style="background:white; color:#04553A; padding:1px 9px; border-radius:6px; font-weight:800;">1</span>
+                    <span style="background:white; color:var(--primary); padding:1px 9px; border-radius:6px; font-weight:800;">1</span>
                     <span style="font-size:17px;">+</span>
                 </div>`;
         })
@@ -1244,13 +1250,13 @@
             sfx.cashier();
             vibrate([100, 50, 200]);
             flashScreen('#F5A623', 0.25);
-            burstParticles(24, ['#04553A','#F5A623','#22c55e','#fff']);
+            burstParticles(24, ['var(--primary)','#F5A623','#22c55e','#fff']);
             Swal.fire({
                 icon: 'success',
                 title: 'تم الطلب!',
                 html: `طلبك من بوتيك لمسة تم إرساله!<br><small class="text-muted mt-2 d-block">رقم الطلب: #5217</small>`,
                 confirmButtonText: 'تتبع الطلب',
-                confirmButtonColor: '#04553A',
+                confirmButtonColor: 'var(--primary)',
                 allowOutsideClick: false,
                 backdrop: 'rgba(0,0,0,0.5)',
                 target: '#deviceFrame',
@@ -1261,7 +1267,7 @@
             const rect = document.getElementById('deviceFrame').getBoundingClientRect();
             const cx = (rect.left + rect.width / 2) / window.innerWidth;
             const cy = (rect.top + rect.height / 2) / window.innerHeight;
-            confetti({ particleCount: 220, spread: 80, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
+            confetti({ particleCount: 220, spread: 80, origin: { x: cx, y: cy }, colors: ['var(--primary)', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
         });
 
         tl.to([], { duration: 1.5 });

@@ -11,6 +11,11 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         body {
             background: #f7f9f8;
             color: #1e2a26;
@@ -28,13 +33,13 @@
         .doc h1 {
             font-size: 1.6rem;
             font-weight: 800;
-            color: #04553A;
+            color: var(--primary);
         }
 
         .doc h2 {
             font-size: 1.15rem;
             font-weight: 700;
-            color: #04553A;
+            color: var(--primary);
             margin-top: 2rem;
         }
 
@@ -48,15 +53,16 @@
         }
 
         .brand {
-            background: #04553A;
+            background: var(--primary);
             color: #fff;
             padding: 16px 22px;
         }
 
         a {
-            color: #04553A;
+            color: var(--primary);
         }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body>

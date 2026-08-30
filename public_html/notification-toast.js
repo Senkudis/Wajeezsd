@@ -1,413 +1,707 @@
 /**
- * نظام إشعارات وجيز الموحد
- * يدعم التنبيهات الصوتية، الـ Toasts العصرية، وتحديثات Socket.io
- * تم الإصلاح: الربط مع السيرفر الحقيقي
+ * 🔔 نظام إشعارات وجيز الموحد (Wajeez Unified In-App Toast & Socket System)
+ * 
+ * - تصميم عالي الفخامة (Glassmorphism / Dynamic Island Aesthetic)
+ * - دعم كامل لمنطقة الأمان (Safe Area / Status Bar / Notch) في أندرويد و iOS
+ * - منع تراكم وتكرار الإشعارات مع حد أقصى للظهور وتمرير الإغلاق باللمس (Swipe to Dismiss)
+ * - دعم الوضع الليلي والنهاري، التنبيهات الصوتية والاهتزاز الذكي (Haptics)
  */
 
-const showToast = (title, message, type = 'info', actionUrl = null) => {
-    // ✅ FIX: تأكد من تحميل Bootstrap Icons إذا لم تكن موجودة
-    if (!document.querySelector('link[href*="bootstrap-icons"]')) {
-        const biLink = document.createElement('link');
-        biLink.rel = 'stylesheet';
-        biLink.href = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css';
-        document.head.appendChild(biLink);
-    }
+(function () {
+    'use strict';
 
-    // إنشاء حاوية التنبيهات إذا لم تكن موجودة
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.style.cssText = `
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 9999; width: 90%; max-width: 400px;
-            display: flex; flex-direction: column; gap: 10px;
-        `;
-        document.body.appendChild(container);
-    }
+    // سجل الإشعارات النشطة للتحكم بالتكديس ومنع التكرار
+    let _activeToasts = [];
+    const MAX_VISIBLE_TOASTS = 2;
+    let _lastToastHash = '';
+    let _lastToastTime = 0;
 
-    const toast = document.createElement('div');
-
-    // ✅ خريطة موسّعة لجميع أنواع الإشعارات
-    const typeMap = {
-        'order_accepted': { color: '#0d6efd', icon: 'bi-bicycle', bg: '#e8f0fe' },
-        'order_completed': { color: '#198754', icon: 'bi-check-circle-fill', bg: '#e8f5e9' },
-        'order_update': { color: '#fd7e14', icon: 'bi-arrow-repeat', bg: '#fff3e0' },
-        'chat': { color: '#6f42c1', icon: 'bi-chat-dots-fill', bg: '#f3e8ff' },
-        'info': { color: '#04553A', icon: 'bi-bell-fill', bg: '#e0f5ef' },
-        'error': { color: '#dc3545', icon: 'bi-exclamation-circle-fill', bg: '#fdecea' },
-        'warning': { color: '#ffc107', icon: 'bi-exclamation-triangle-fill', bg: '#fff8e1' },
-        'system': { color: '#0dcaf0', icon: 'bi-bell-fill', bg: '#e0f7fa' },
+    // خريطة التنسيق البصري للأنواع المختلفة
+    const TOAST_THEMES = {
+        'order_accepted': {
+            gradient: 'linear-gradient(135deg, #0284c7, #38bdf8)',
+            icon: 'bi-bicycle',
+            accent: '#0284c7'
+        },
+        'order_assigned': {
+            gradient: 'linear-gradient(135deg, #0284c7, #0ea5e9)',
+            icon: 'bi-person-check-fill',
+            accent: '#0284c7'
+        },
+        'order_completed': {
+            gradient: 'linear-gradient(135deg, #059669, #10b981)',
+            icon: 'bi-check-circle-fill',
+            accent: '#059669'
+        },
+        'order_delivered': {
+            gradient: 'linear-gradient(135deg, #059669, #10b981)',
+            icon: 'bi-box2-heart-fill',
+            accent: '#059669'
+        },
+        'success': {
+            gradient: 'linear-gradient(135deg, #048c5b, #10b981)',
+            icon: 'bi-check2-circle',
+            accent: '#048c5b'
+        },
+        'order_update': {
+            gradient: 'linear-gradient(135deg, #ea580c, #f97316)',
+            icon: 'bi-arrow-repeat',
+            accent: '#ea580c'
+        },
+        'chat': {
+            gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+            icon: 'bi-chat-dots-fill',
+            accent: '#7c3aed'
+        },
+        'chat_message': {
+            gradient: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+            icon: 'bi-chat-text-fill',
+            accent: '#7c3aed'
+        },
+        'error': {
+            gradient: 'linear-gradient(135deg, #dc2626, #f43f5e)',
+            icon: 'bi-exclamation-circle-fill',
+            accent: '#dc2626'
+        },
+        'order_cancelled': {
+            gradient: 'linear-gradient(135deg, #dc2626, #f43f5e)',
+            icon: 'bi-x-circle-fill',
+            accent: '#dc2626'
+        },
+        'order_expired': {
+            gradient: 'linear-gradient(135deg, #dc2626, #ef4444)',
+            icon: 'bi-clock-history',
+            accent: '#dc2626'
+        },
+        'warning': {
+            gradient: 'linear-gradient(135deg, #d97706, #fbbf24)',
+            icon: 'bi-exclamation-triangle-fill',
+            accent: '#d97706'
+        },
+        'info': {
+            gradient: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+            icon: 'bi-bell-fill',
+            accent: '#0d9488'
+        },
+        'system': {
+            gradient: 'linear-gradient(135deg, #048c5b, #059669)',
+            icon: 'bi-shield-check',
+            accent: '#048c5b'
+        }
     };
 
-    const tm = typeMap[type] || typeMap['info'];
+    // حقن التنسيقات الحديثة
+    function injectStyles() {
+        if (document.getElementById('wj-toast-styles')) return;
 
-    toast.style.cssText = `
-        background: white; border-right: 4px solid ${tm.color};
-        padding: 12px 14px; border-radius: 14px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12); display: flex; align-items: center;
-        gap: 12px; animation: slideDown 0.4s ease-out; direction: rtl;
-        cursor: pointer; position: relative; overflow: hidden;
-    `;
-
-    toast.innerHTML = `
-        <div style="width:42px;height:42px;flex-shrink:0;border-radius:50%;background:${tm.bg};
-                    border:2px solid ${tm.color}40;display:flex;align-items:center;justify-content:center;">
-            <i class="bi ${tm.icon}" style="font-size:18px;color:${tm.color};"></i>
-        </div>
-        <div style="flex:1;min-width:0;">
-            <h4 style="margin:0;font-size:13px;font-weight:700;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</h4>
-            <p style="margin:3px 0 0;font-size:12px;color:#666;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${message}</p>
-        </div>
-        <div style="position:absolute;bottom:0;left:0;height:3px;background:${tm.color}55;width:100%;animation:toastProgress 4s linear forwards;"></div>
-    `;
-
-    // إضافة الأنيميشن
-    if (!document.getElementById('toast-styles')) {
         const style = document.createElement('style');
-        style.id = 'toast-styles';
-        style.innerHTML = `
-            @keyframes slideDown {
-                from { transform: translateY(-20px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
+        style.id = 'wj-toast-styles';
+        style.textContent = `
+            /* 🧭 حاوية التوست التكيفية مع الـ Safe Area */
+            .wj-toast-container {
+                position: fixed;
+                top: max(16px, calc(var(--sat, env(safe-area-inset-top, 0px)) + 12px));
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000000;
+                width: calc(100% - 28px);
+                max-width: 400px;
+                display: flex;
+                flex-direction: column;
+                gap: 9px;
+                align-items: center;
+                pointer-events: none;
             }
-            @keyframes fadeOut {
-                to { opacity: 0; transform: translateY(-10px); }
+
+            /* بطاقة الإشعار المنبثق الفخمة */
+            .wj-toast {
+                width: 100%;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px) saturate(180%);
+                -webkit-backdrop-filter: blur(20px) saturate(180%);
+                border: 1px solid rgba(226, 232, 240, 0.9);
+                border-radius: 18px;
+                box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+                padding: 10px 14px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                direction: rtl;
+                cursor: pointer;
+                position: relative;
+                overflow: hidden;
+                pointer-events: auto;
+                user-select: none;
+                touch-action: pan-y;
+                animation: wjToastSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, box-shadow 0.2s ease;
             }
-            @keyframes toastProgress {
-                from { width: 100%; }
-                to { width: 0%; }
+
+            .wj-toast:active {
+                transform: scale(0.975);
+            }
+
+            .wj-toast.wj-toast-out {
+                animation: wjToastSlideOut 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+            }
+
+            /* الوضع الليلي */
+            body.dark-mode .wj-toast,
+            [data-theme="dark"] .wj-toast {
+                background: rgba(15, 23, 42, 0.94);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                color: #f8fafc;
+            }
+
+            /* أيقونة الإشعار */
+            .wj-toast-icon {
+                width: 40px;
+                height: 40px;
+                flex-shrink: 0;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #ffffff;
+                font-size: 18px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+            }
+
+            /* المحتوى النصي */
+            .wj-toast-content {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+
+            .wj-toast-title {
+                margin: 0;
+                font-size: 13.5px;
+                font-weight: 800;
+                color: #0f172a;
+                line-height: 1.3;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                letter-spacing: -0.2px;
+            }
+            body.dark-mode .wj-toast-title,
+            [data-theme="dark"] .wj-toast-title {
+                color: #f8fafc;
+            }
+
+            .wj-toast-msg {
+                margin: 0;
+                font-size: 12px;
+                font-weight: 500;
+                color: #64748b;
+                line-height: 1.35;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            body.dark-mode .wj-toast-msg,
+            [data-theme="dark"] .wj-toast-msg {
+                color: #94a3b8;
+            }
+
+            /* الإجراءات والإغلاق */
+            .wj-toast-actions {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                flex-shrink: 0;
+            }
+
+            .wj-toast-close {
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                border: none;
+                background: rgba(0, 0, 0, 0.05);
+                color: #64748b;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                padding: 0;
+            }
+            .wj-toast-close:hover {
+                background: rgba(0, 0, 0, 0.1);
+                color: #0f172a;
+            }
+            body.dark-mode .wj-toast-close,
+            [data-theme="dark"] .wj-toast-close {
+                background: rgba(255, 255, 255, 0.1);
+                color: #94a3b8;
+            }
+            body.dark-mode .wj-toast-close:hover,
+            [data-theme="dark"] .wj-toast-close:hover {
+                background: rgba(255, 255, 255, 0.2);
+                color: #f8fafc;
+            }
+
+            .wj-toast-arrow {
+                font-size: 13px;
+                color: #94a3b8;
+                margin-right: 2px;
+            }
+
+            /* شريط التقدم الزمني */
+            .wj-toast-progress {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                height: 2.5px;
+                width: 100%;
+                opacity: 0.7;
+                animation: wjToastProgress 4s linear forwards;
+            }
+
+            @keyframes wjToastSlideIn {
+                0% {
+                    transform: translateY(-26px) scale(0.93);
+                    opacity: 0;
+                }
+                100% {
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes wjToastSlideOut {
+                0% {
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                    max-height: 80px;
+                    margin-bottom: 0;
+                }
+                100% {
+                    transform: translateY(-22px) scale(0.9);
+                    opacity: 0;
+                    max-height: 0;
+                    padding-top: 0;
+                    padding-bottom: 0;
+                    margin-bottom: -9px;
+                }
+            }
+
+            @keyframes wjToastProgress {
+                0% { width: 100%; }
+                100% { width: 0%; }
             }
         `;
         document.head.appendChild(style);
     }
 
-    container.appendChild(toast);
+    // دالة إنشاء وإظهار الإشعار المنبثق
+    const showToast = (arg1, arg2, arg3, arg4) => {
+        let title = '';
+        let message = '';
+        let type = 'info';
+        let actionUrl = null;
 
-    // إزالة التنبيه بعد 4 ثوانٍ
-    setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.4s forwards';
-        setTimeout(() => toast.remove(), 400);
-    }, 4000);
+        // دعم مختلف أشكال الاستدعاء (Overloads)
+        if (arg4 !== undefined) {
+            title = String(arg1 || '');
+            message = String(arg2 || '');
+            type = arg3 || 'info';
+            actionUrl = arg4;
+        } else if (arg3 !== undefined) {
+            title = String(arg1 || '');
+            message = String(arg2 || '');
+            type = arg3 || 'info';
+        } else if (arg2 !== undefined) {
+            const knownTypes = ['info', 'success', 'warning', 'error', 'danger', 'chat', 'chat_message', 'order_update', 'order_accepted', 'order_completed', 'order_delivered', 'order_cancelled', 'order_expired', 'system'];
+            if (knownTypes.includes(arg2)) {
+                title = 'تنبيه';
+                message = String(arg1 || '');
+                type = arg2;
+            } else {
+                title = String(arg1 || '');
+                message = String(arg2 || '');
+                type = 'info';
+            }
+        } else if (arg1 !== undefined) {
+            title = 'تنبيه';
+            message = String(arg1 || '');
+            type = 'info';
+        }
 
-    toast.onclick = () => {
-        toast.remove();
-        if (actionUrl) {
-            // انتقال مباشر للرابط المحدد (مثلاً: المحادثة)
-            window.location.href = actionUrl;
-        } else if (window.location.href.includes('captain')) {
-            window.location.href = 'captain-notifications.html';
-        } else {
-            window.location.href = 'notifications.html';
+        // منع تكرار نفس التوست المتطابق في أقل من 2 ثانية
+        const hash = `${title}_${message}_${type}`;
+        const now = Date.now();
+        if (hash === _lastToastHash && (now - _lastToastTime) < 2000) {
+            return;
+        }
+        _lastToastHash = hash;
+        _lastToastTime = now;
+
+        // تأكد من تحميل التنسيقات والأيقونات
+        injectStyles();
+        if (!document.querySelector('link[href*="bootstrap-icons"]')) {
+            const biLink = document.createElement('link');
+            biLink.rel = 'stylesheet';
+            biLink.href = 'vendor/bootstrap-icons/bootstrap-icons.min.css';
+            document.head.appendChild(biLink);
+        }
+
+        // إنشاء الحاوية إن لم تكن موجودة
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'wj-toast-container';
+            document.body.appendChild(container);
+        }
+
+        // إزالة أقدم توست إذا زاد العدد عن الحد المسموح
+        while (_activeToasts.length >= MAX_VISIBLE_TOASTS) {
+            const oldest = _activeToasts.shift();
+            if (oldest && oldest.el && oldest.el.parentNode) {
+                oldest.dismiss();
+            }
+        }
+
+        const theme = TOAST_THEMES[type] || TOAST_THEMES['info'];
+        const toast = document.createElement('div');
+        toast.className = `wj-toast wj-toast-${type}`;
+
+        toast.innerHTML = `
+            <div class="wj-toast-icon" style="background:${theme.gradient};">
+                <i class="bi ${theme.icon}"></i>
+            </div>
+            <div class="wj-toast-content">
+                <h4 class="wj-toast-title">${title}</h4>
+                <p class="wj-toast-msg">${message}</p>
+            </div>
+            <div class="wj-toast-actions">
+                ${actionUrl ? '<i class="bi bi-chevron-left wj-toast-arrow"></i>' : ''}
+                <button type="button" class="wj-toast-close" title="إغلاق" aria-label="إغلاق">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="wj-toast-progress" style="background:${theme.accent};"></div>
+        `;
+
+        let timer = null;
+        let isDismissed = false;
+
+        const dismiss = () => {
+            if (isDismissed) return;
+            isDismissed = true;
+            clearTimeout(timer);
+            toast.classList.add('wj-toast-out');
+            setTimeout(() => {
+                toast.remove();
+                _activeToasts = _activeToasts.filter(t => t.el !== toast);
+            }, 320);
+        };
+
+        // مؤقت الإغلاق التلقائي (4 ثوانٍ)
+        timer = setTimeout(dismiss, 4000);
+
+        // زر الإغلاق
+        const closeBtn = toast.querySelector('.wj-toast-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismiss();
+            });
+        }
+
+        // النقر على الإشعار للتوجيه
+        toast.addEventListener('click', () => {
+            dismiss();
+            if (actionUrl) {
+                window.location.href = actionUrl;
+            } else if (window.location.href.includes('captain')) {
+                window.location.href = 'captain-notifications.html';
+            } else if (window.location.href.includes('admin')) {
+                // البقاء في صفحة الأدمن أو فتح الإشعار
+            } else {
+                window.location.href = 'notifications.html';
+            }
+        });
+
+        // إيماءة التمرير للأعلى للإغلاق (Swipe up to dismiss)
+        let touchStartY = 0;
+        toast.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+            clearTimeout(timer); // إيقاف المؤقت أثناء لمس المستخدم
+        }, { passive: true });
+
+        toast.addEventListener('touchend', (e) => {
+            const touchEndY = e.changedTouches[0].clientY;
+            if (touchStartY - touchEndY > 30) {
+                // سحب للأعلى بمقدار 30 بكسل على الأقل
+                dismiss();
+            } else {
+                timer = setTimeout(dismiss, 2500); // استئناف المؤقت بعد الإفلات
+            }
+        }, { passive: true });
+
+        container.appendChild(toast);
+        _activeToasts.push({ el: toast, dismiss });
+
+        // تشغيل صوت التنبيه واهتزاز خفيف للأندرويد إن توفر
+        playNotificationSound();
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
+                window.Capacitor.Plugins.Haptics.impact({ style: 'LIGHT' });
+            }
+        } catch (_) {}
+    };
+
+    // ==========================================
+    // 🔴 Badge Helper — علامة رسالة جديدة على زر محادثة التاجر
+    // ==========================================
+    function _setChatMerchantBadge(orderId) {
+        const stored = JSON.parse(localStorage.getItem('_unreadChatOrders') || '[]');
+        if (!stored.includes(String(orderId))) {
+            stored.push(String(orderId));
+            localStorage.setItem('_unreadChatOrders', JSON.stringify(stored));
+        }
+
+        const chatBtn = document.getElementById('placeModalChatBtn');
+        if (chatBtn && !document.getElementById('_chatBadgeDot')) {
+            const dot = document.createElement('span');
+            dot.id = '_chatBadgeDot';
+            dot.style.cssText = `
+                display:inline-block; width:10px; height:10px; border-radius:50%;
+                background:#ef4444; border:2px solid white;
+                position:absolute; top:6px; right:6px;
+                animation: chatBadgePulse 1.2s ease-in-out infinite;
+            `;
+            chatBtn.style.position = 'relative';
+            chatBtn.appendChild(dot);
+
+            if (!document.getElementById('_chatBadgeStyle')) {
+                const s = document.createElement('style');
+                s.id = '_chatBadgeStyle';
+                s.textContent = `@keyframes chatBadgePulse {
+                    0%,100%{transform:scale(1);opacity:1;}
+                    50%{transform:scale(1.4);opacity:.7;}
+                }`;
+                document.head.appendChild(s);
+            }
+        }
+    }
+    window._setChatMerchantBadge = _setChatMerchantBadge;
+
+    window._clearChatBadge = function(orderId) {
+        let stored = JSON.parse(localStorage.getItem('_unreadChatOrders') || '[]');
+        stored = stored.filter(id => id !== String(orderId));
+        localStorage.setItem('_unreadChatOrders', JSON.stringify(stored));
+        const dot = document.getElementById('_chatBadgeDot');
+        if (dot) dot.remove();
+    };
+
+    (function checkUnreadBadgeOnLoad() {
+        const stored = JSON.parse(localStorage.getItem('_unreadChatOrders') || '[]');
+        if (stored.length > 0) {
+            setTimeout(() => {
+                const lastUnread = stored[stored.length - 1];
+                const chatBtn = document.getElementById('placeModalChatBtn');
+                if (chatBtn && !document.getElementById('_chatBadgeDot')) {
+                    _setChatMerchantBadge(lastUnread);
+                }
+            }, 800);
+        }
+    })();
+
+    // ✅ دالة الاتصال بالسيرفر
+    const initNotificationSocket = (userId) => {
+        if (!userId || typeof io === 'undefined') return;
+
+        if (window.socket && window.socket.connected && window._socketUserId === String(userId)) {
+            return;
+        }
+
+        if (window.socket) {
+            window.socket.disconnect();
+            window.socket = null;
+        }
+
+        const serverUrl = (typeof API_URL !== 'undefined') ? API_URL :
+            (window.API_BASE_URL || 'https://wajeezsd.com');
+
+        try {
+            const socket = io(serverUrl, {
+                path: '/socket.io',
+                transports: ['websocket', 'polling'],
+                auth: { token: localStorage.getItem('adminToken') || localStorage.getItem('token') },
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 3000,
+                reconnectionDelayMax: 15000,
+                timeout: 10000
+            });
+
+            window.socket = socket;
+            window._socketUserId = String(userId);
+            const cleanUserId = String(userId).trim();
+
+            socket.on('connect', () => {
+                socket.emit('user_join', cleanUserId);
+                refreshUnreadBadge();
+            });
+
+            socket.on('new_notification', (notification) => {
+                if (notification.type === 'chat_message' && notification.relatedId) {
+                    const orderId = notification.relatedId;
+                    const senderId = notification.senderId || '';
+                    const chatUrl = `chat.html?orderId=${orderId}&receiverId=${senderId}`;
+                    showToast(notification.title, notification.message, 'chat', chatUrl);
+                    _setChatMerchantBadge(orderId);
+                } else {
+                    showToast(notification.title, notification.message, notification.type);
+                }
+                bumpUnreadBadge();
+
+                window.dispatchEvent(new CustomEvent('wajeez:new-notification', {
+                    detail: notification
+                }));
+            });
+
+            socket.on('new_message', (msg) => {
+                if (!window._activeChatOrderId || window._activeChatOrderId !== msg.order) {
+                    _setChatMerchantBadge(msg.order);
+                }
+            });
+
+            socket.on('order_status_updated', (data) => {
+                const statusMap = {
+                    'accepted': 'تم قبول طلبك! الكابتن في الطريق.',
+                    'picked_up': 'تم استلام طلبك بنجاح.',
+                    'delivered': 'تم توصيل طلبك، شكراً لك!',
+                    'cancelled': 'تم إلغاء الطلب.'
+                };
+
+                if (statusMap[data.status]) {
+                    showToast('تحديث الطلب', statusMap[data.status], 'order_update');
+                }
+
+                if (typeof loadOrders === 'function') {
+                    loadOrders();
+                }
+            });
+
+            socket.on('account_role_changed', () => {
+                if (window.Auth && typeof window.Auth.syncRole === 'function') {
+                    window.Auth.syncRole();
+                }
+            });
+
+            socket.on('disconnect', (reason) => {
+                if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+                    window.socket = null;
+                    window._socketUserId = null;
+                }
+            });
+
+        } catch (e) {
+            console.error('Socket initialization failed:', e);
         }
     };
 
-    playNotificationSound();
-};
+    function playNotificationSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
 
-// ==========================================
-// 🔴 Badge Helper — علامة رسالة جديدة على زر محادثة التاجر
-// ==========================================
-function _setChatMerchantBadge(orderId) {
-    // 1. حفظ orderId في localStorage كـ "unread chat"
-    const stored = JSON.parse(localStorage.getItem('_unreadChatOrders') || '[]');
-    if (!stored.includes(String(orderId))) {
-        stored.push(String(orderId));
-        localStorage.setItem('_unreadChatOrders', JSON.stringify(stored));
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            oscillator.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); // C6
+
+            gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        } catch (e) {}
     }
 
-    // 2. لو زر "محادثة التاجر" موجود في الصفحة الحالية، ضع عليه نقطة حمراء
-    const chatBtn = document.getElementById('placeModalChatBtn');
-    if (chatBtn && !document.getElementById('_chatBadgeDot')) {
-        const dot = document.createElement('span');
-        dot.id = '_chatBadgeDot';
-        dot.style.cssText = `
-            display:inline-block; width:10px; height:10px; border-radius:50%;
-            background:#ef4444; border:2px solid white;
-            position:absolute; top:6px; right:6px;
-            animation: chatBadgePulse 1.2s ease-in-out infinite;
-        `;
-        // تأكد من أن الزر relative
-        chatBtn.style.position = 'relative';
-        chatBtn.appendChild(dot);
-
-        // CSS للنبضة
-        if (!document.getElementById('_chatBadgeStyle')) {
-            const s = document.createElement('style');
-            s.id = '_chatBadgeStyle';
-            s.textContent = `@keyframes chatBadgePulse {
-                0%,100%{transform:scale(1);opacity:1;}
-                50%{transform:scale(1.4);opacity:.7;}
-            }`;
-            document.head.appendChild(s);
-        }
-    }
-}
-window._setChatMerchantBadge = _setChatMerchantBadge;
-
-// ==========================================
-// ✅ مسح البادج عند فتح المحادثة
-// ==========================================
-window._clearChatBadge = function(orderId) {
-    let stored = JSON.parse(localStorage.getItem('_unreadChatOrders') || '[]');
-    stored = stored.filter(id => id !== String(orderId));
-    localStorage.setItem('_unreadChatOrders', JSON.stringify(stored));
-    const dot = document.getElementById('_chatBadgeDot');
-    if (dot) dot.remove();
-};
-
-// ✅ تحقق من وجود رسائل غير مقروءة وضع بادج عند تحميل الصفحة
-// ✅ إصلاح BUG-G: نستخدم refreshUnreadBadge() من الـ API بدل تخمين orderId غير صحيح
-(function checkUnreadBadgeOnLoad() {
-    const stored = JSON.parse(localStorage.getItem('_unreadChatOrders') || '[]');
-    if (stored.length > 0) {
-        setTimeout(() => {
-            // ضع badge على زر المحادثة إن كان موجوداً — آخر order غير مقروء
-            const lastUnread = stored[stored.length - 1];
-            const chatBtn = document.getElementById('placeModalChatBtn');
-            if (chatBtn && !document.getElementById('_chatBadgeDot')) {
-                _setChatMerchantBadge(lastUnread);
+    function renderUnreadBadge(count) {
+        count = Number(count) || 0;
+        const links = document.querySelectorAll('a[href*="notifications"], a[href*="captain-notifications"]');
+        links.forEach(link => {
+            let badge = link.querySelector('.unread-notif-badge');
+            if (count <= 0) { if (badge) badge.remove(); return; }
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'unread-notif-badge';
+                badge.style.cssText = 'position:absolute;top:2px;right:8px;min-width:18px;height:18px;padding:0 4px;background:#dc3545;color:#fff;border-radius:99px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.3);z-index:5;';
+                if (getComputedStyle(link).position === 'static') link.style.position = 'relative';
+                link.appendChild(badge);
             }
-        }, 800);
-    }
-    // ✅ دائماً: جلب عدد الإشعارات غير المقروءة من السيرفر وتحديث شارة التنقّل
-    // (refreshUnreadBadge تُستدعى تلقائياً في أسفل الملف)
-})();
-
-// ✅ دالة الاتصال بالسيرفر (تم التعديل والإصلاح هنا)
-const initNotificationSocket = (userId) => {
-    // التأكد من وجود userId ومكتبة socket.io
-    if (!userId || typeof io === 'undefined') return;
-
-    // ✅ SINGLETON GUARD: لا تنشئ اتصالاً جديداً إذا كان الاتصال قائماً للمستخدم نفسه
-    if (window.socket && window.socket.connected && window._socketUserId === String(userId)) {
-        console.log('🔌 Socket already connected for user:', userId);
-        return;
+            badge.textContent = count > 99 ? '99+' : String(count);
+        });
+        window._unreadNotifCount = count;
     }
 
-    // ✅ أغلق الاتصال القديم إن وجد قبل إنشاء جديد
-    if (window.socket) {
-        console.log('🔌 Closing stale socket before reconnecting...');
-        window.socket.disconnect();
-        window.socket = null;
-    }
-
-    // 1. تحديد رابط السيرفر بدقة (الأولوية لـ API_URL من config.js)
-    const serverUrl = (typeof API_URL !== 'undefined') ? API_URL :
-        (window.API_BASE_URL || 'https://wajeezsd.com');
-
-    console.log(`🔌 Initializing Notification Socket to: ${serverUrl}`);
-
-    try {
-        // 2. إعداد الاتصال مع خيارات النقل الصحيحة (مهم جداً للـ cPanel)
-        const socket = io(serverUrl, {
-            path: '/socket.io', // المسار القياسي
-            transports: ['websocket', 'polling'], // ✅ websocket أولاً لمنع انقطاع شبكة الجوال عند تبديل التابات
-            auth: { token: localStorage.getItem('adminToken') || localStorage.getItem('token') },
-            reconnection: true,
-            reconnectionAttempts: Infinity,
-            reconnectionDelay: 3000,         // ✅ 3 ثوان لمنع الإجهاد عند العودة للتبويب
-            reconnectionDelayMax: 15000,
-            timeout: 10000
-        });
-
-        // ✅ FIX: Expose socket globally so captain-service.js can use it for location updates
-        window.socket = socket;
-        window._socketUserId = String(userId);
-
-        const cleanUserId = String(userId).trim();
-
-        socket.on('connect', () => {
-            socket.emit('user_join', cleanUserId);
-            console.log('✅ Notification system active for:', cleanUserId);
-            // 🔔 حدّث شارة غير المقروء عند كل اتصال/إعادة اتصال — ضمان عدم تفويت إشعار
-            refreshUnreadBadge();
-        });
-
-        socket.on('new_notification', (notification) => {
-            // 💬 لو الإشعار رسالة محادثة: نفتح Chat مباشرةً عند الضغط + نحط علامة على زر التاجر
-            if (notification.type === 'chat_message' && notification.relatedId) {
-                const orderId   = notification.relatedId;
-                // استخرج senderId من بيانات الإشعار لو موجود
-                const senderId  = notification.senderId || '';
-                const chatUrl   = `chat.html?orderId=${orderId}&receiverId=${senderId}`;
-
-                showToast(notification.title, notification.message, 'chat', chatUrl);
-
-                // 🔴 ضع علامة (Badge) على زر "محادثة التاجر" لو الزر موجود في الصفحة الحالية
-                _setChatMerchantBadge(orderId);
-            } else {
-                showToast(notification.title, notification.message, notification.type);
-            }
-            // 🔔 إشعار جديد وصل → ارفع شارة غير المقروء فوراً
-            bumpUnreadBadge();
-
-            // 📄 صفحة الإشعارات إن كانت مفتوحة تُحدّث قائمتها فوراً.
-            // بلا هذا يرى المستخدم التوست ثم قائمةً قديمة تحته حتى يعيد التحميل.
-            window.dispatchEvent(new CustomEvent('wajeez:new-notification', {
-                detail: notification
-            }));
-        });
-
-        // ✅ إضافة مستمع لـ new_message لتحديث البادج في الوقت الفعلي
-        socket.on('new_message', (msg) => {
-            // لو المستخدم مش بشاهد محادثة هذا الطلب حالياً
-            if (!window._activeChatOrderId || window._activeChatOrderId !== msg.order) {
-                _setChatMerchantBadge(msg.order);
-            }
-        });
-
-        socket.on('order_status_updated', (data) => {
-            const statusMap = {
-                'accepted': 'تم قبول طلبك! الكابتن في الطريق.',
-                'picked_up': 'تم استلام طلبك بنجاح.',
-                'delivered': 'تم توصيل طلبك، شكراً لك!',
-                'cancelled': 'تم إلغاء الطلب.'
-            };
-
-            // عرض التنبيه فقط إذا كانت الحالة معروفة
-            if (statusMap[data.status]) {
-                showToast('تحديث الطلب', statusMap[data.status], 'order_update');
-            }
-
-            // تحديث قائمة الطلبات إذا كنا في صفحة الطلبات
-            if (typeof loadOrders === 'function') {
-                loadOrders();
-            }
-        });
-
-        // 🔄 ترقية الدور لحظياً (مثلاً: الأدمن وافق على طلب تاجر) — يجدّد التوكن
-        // وبيانات الجهاز فوراً دون تسجيل خروج/دخول أو حتى إعادة تحميل الصفحة
-        socket.on('account_role_changed', () => {
-            if (window.Auth && typeof window.Auth.syncRole === 'function') {
-                window.Auth.syncRole();
-            }
-        });
-
-        socket.on('connect_error', (err) => {
-            // تجاهل الأخطاء الصامتة
-            // console.warn('Socket connect error', err);
-        });
-
-        // ✅ نظّف المرجع عند قطع الاتصال النهائي
-        socket.on('disconnect', (reason) => {
-            if (reason === 'io server disconnect' || reason === 'io client disconnect') {
-                window.socket = null;
-                window._socketUserId = null;
-            }
-        });
-
-    } catch (e) {
-        console.error('Socket initialization failed:', e);
-    }
-};
-
-// دالة توليد صوت التنبيه (بدون ملفات خارجية)
-function playNotificationSound() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-        oscillator.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); // C6
-
-        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2);
-    } catch (e) {
-        // المتصفح قد يمنع الصوت إذا لم يكن هناك تفاعل من المستخدم
-    }
-}
-
-// ══════════════════════════════════════════════════════════════
-// 🔔 شارة الإشعارات غير المقروءة — تضمن أن المستخدم لا يفوّت أي إشعار
-//    تُحدَّث عند: تحميل الصفحة، الاتصال/إعادة الاتصال بالسوكت، ووصول إشعار جديد.
-// ══════════════════════════════════════════════════════════════
-function renderUnreadBadge(count) {
-    count = Number(count) || 0;
-    // ابحث عن رابط الإشعارات في شريط التنقّل (عام عبر كل الصفحات)
-    const links = document.querySelectorAll('a[href*="notifications"], a[href*="captain-notifications"]');
-    links.forEach(link => {
-        let badge = link.querySelector('.unread-notif-badge');
-        if (count <= 0) { if (badge) badge.remove(); return; }
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'unread-notif-badge';
-            badge.style.cssText = 'position:absolute;top:2px;right:8px;min-width:18px;height:18px;padding:0 4px;background:#dc3545;color:#fff;border-radius:99px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.3);z-index:5;';
-            if (getComputedStyle(link).position === 'static') link.style.position = 'relative';
-            link.appendChild(badge);
-        }
-        badge.textContent = count > 99 ? '99+' : String(count);
-    });
-    window._unreadNotifCount = count;
-}
-
-async function refreshUnreadBadge() {
-    try {
-        const token = (window.Auth && window.Auth.getToken && window.Auth.getToken())
-            || localStorage.getItem('token') || localStorage.getItem('adminToken');
-        if (!token) return;
-        const baseUrl = (typeof API_URL !== 'undefined') ? API_URL : (window.API_URL || '');
-        const res = await fetch(`${baseUrl}/api/notifications/unread-count`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.status === 401) {
-            // التوكن منتهي الصلاحية، نقوم بحذفه بصمت لتجنب تكرار الخطأ
-            if (window.Auth && window.Auth.logout) window.Auth.logout();
-            else { localStorage.removeItem('token'); localStorage.removeItem('adminToken'); }
-            return;
-        }
-        if (!res.ok) return;
-        const data = await res.json();
-        renderUnreadBadge(data.unreadCount || 0);
-    } catch (e) { /* غير حرج */ }
-}
-
-function bumpUnreadBadge() {
-    renderUnreadBadge((window._unreadNotifCount || 0) + 1);
-}
-
-window.renderUnreadBadge = renderUnreadBadge;
-window.refreshUnreadBadge = refreshUnreadBadge;
-
-// حدّث الشارة فور تحميل الصفحة (قبل اتصال السوكت)
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', refreshUnreadBadge);
-} else {
-    refreshUnreadBadge();
-}
-
-// تصدير الدوال للاستخدام العام
-window.showToast = showToast;
-window.initNotificationSocket = initNotificationSocket;
-
-// 🔔 تهيئة تلقائية لسوكت الإشعارات على أي صفحة تُحمِّل هذا الملف —
-// حتى تعمل تنبيهات "التطبيق مفتوح" (toast + صوت) في كل مكان يتصفّحه المستخدم،
-// لا فقط الصفحات التي تستدعي initNotificationSocket يدوياً (كان client-order وغيرها
-// تُحمّل الملف لكن لا تُشغّل السوكت أبداً → لا تنبيه أثناء فتح التطبيق).
-// آمنة: initNotificationSocket فيها حارس Singleton فلا تُنشئ اتصالاً مكرراً.
-(function autoInitNotificationSocket() {
-    function _tryInit() {
+    async function refreshUnreadBadge() {
         try {
             const token = (window.Auth && window.Auth.getToken && window.Auth.getToken())
                 || localStorage.getItem('token') || localStorage.getItem('adminToken');
             if (!token) return;
-            let uid = '';
-            try { uid = (window.Auth && window.Auth.getUser && (window.Auth.getUser() || {})._id) || ''; } catch (_) {}
-            uid = uid || localStorage.getItem('userId') || '';
-            if (uid) initNotificationSocket(uid); // يتحقق داخلياً من توفّر io
-        } catch (_) { /* غير حرج */ }
+            const baseUrl = (typeof API_URL !== 'undefined') ? API_URL : (window.API_URL || '');
+            const res = await fetch(`${baseUrl}/api/notifications/unread-count`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.status === 401) {
+                if (window.Auth && window.Auth.logout) window.Auth.logout();
+                else { localStorage.removeItem('token'); localStorage.removeItem('adminToken'); }
+                return;
+            }
+            if (!res.ok) return;
+            const data = await res.json();
+            renderUnreadBadge(data.unreadCount || 0);
+        } catch (e) {}
     }
+
+    function bumpUnreadBadge() {
+        renderUnreadBadge((window._unreadNotifCount || 0) + 1);
+    }
+
+    window.renderUnreadBadge = renderUnreadBadge;
+    window.refreshUnreadBadge = refreshUnreadBadge;
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _tryInit);
+        document.addEventListener('DOMContentLoaded', refreshUnreadBadge);
     } else {
-        _tryInit();
+        refreshUnreadBadge();
     }
+
+    window.showToast = showToast;
+    window.initNotificationSocket = initNotificationSocket;
+
+    (function autoInitNotificationSocket() {
+        function _tryInit() {
+            try {
+                const token = (window.Auth && window.Auth.getToken && window.Auth.getToken())
+                    || localStorage.getItem('token') || localStorage.getItem('adminToken');
+                if (!token) return;
+                let uid = '';
+                try { uid = (window.Auth && window.Auth.getUser && (window.Auth.getUser() || {})._id) || ''; } catch (_) {}
+                uid = uid || localStorage.getItem('userId') || '';
+                if (uid) initNotificationSocket(uid);
+            } catch (_) {}
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _tryInit);
+        } else {
+            _tryInit();
+        }
+    })();
 })();

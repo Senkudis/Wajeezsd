@@ -4,7 +4,7 @@
  * يحذف الـ Service Worker القديم وإعادة تسجيل الجديد.
  */
 (function() {
-    const CURRENT_VERSION = 'admin-2025.1';
+    const CURRENT_VERSION = 'admin-2026.mobile-compact-v4';
     const storedVersion = localStorage.getItem('admin_ui_version');
 
     // إذا النسخة مختلفة، امسح الكاش كلياً

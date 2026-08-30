@@ -14,7 +14,7 @@ const ImpactStyle = { Light: 'LIGHT', Medium: 'MEDIUM', Heavy: 'HEAVY' };
 // (capacitor.config.json بلا server.url ⇒ التطبيق يحمّل أصول public_html المحزومة)،
 // فيمثّل إصدار النسخة المثبَّتة على الجهاز. يجب أن يساوي دائماً versionName في
 // android/app/build.gradle و version في package.json — تحقّق بـ: npm run version:check
-window.APP_VERSION = '1.1.1';
+window.APP_VERSION = '1.2.2';
 
 // 🏷️ يملأ كل [data-app-version] في الصفحة من الرقم أعلاه.
 // كانت أرقام الإصدار مكتوبة يدوياً داخل HTML فانحرفت بصمت (1.4.1 و2.0.0 بينما
@@ -57,7 +57,7 @@ window.showSleekToast = function(msg, type = 'success') {
 
 const AppCore = {
     init: async () => {
-        console.log('📱 Initializing App Core...');
+        
 
         // ✅ إصلاح BUG-3: إعداد الـ API interceptor أولاً حتى يُعيَّن API_BASE_URL قبل checkForUpdates
         // 0. API Base URL Interceptor (For Native App)
@@ -101,7 +101,7 @@ const AppCore = {
             // Only intercept relative URLs starting with /api
             if (typeof resource === 'string' && resource.startsWith('/api')) {
                 resource = BASE_URL + resource;
-                console.log(`🔌 Intercepted: ${resource}`);
+                
             }
 
             // 🔒 منع التكرار للطلبات التي تُعدّل البيانات
@@ -135,7 +135,7 @@ const AppCore = {
         if (window.io) {
             const originalIo = window.io;
             window.io = (url, options) => {
-                const defaultOpts = { transports: ['polling', 'websocket'], ...options };
+                const defaultOpts = { transports: ['websocket', 'polling'], ...options };
                 if (!url || typeof url === 'string' && (url === '/' || url.startsWith('/'))) {
                     return originalIo(BASE_URL, defaultOpts || url);
                 }
@@ -276,7 +276,7 @@ const AppCore = {
     },
 
     handleNetworkChange: (status) => {
-        console.log('Network status:', status);
+        
         const offlineOverlay = document.getElementById('offline-overlay');
 
         if (!status.connected) {
@@ -560,8 +560,8 @@ const AppCore = {
             const data = await res.json();
             
             // Compare versions
-            const current = window.APP_VERSION || '1.0.6';
-            const latest = data.appVersion || '1.0.6';
+            const current = window.APP_VERSION || '1.2.1';
+            const latest = data.appVersion || '1.2.1';
             const minVersion = data.minVersion || latest;
             
             // Helper to compare versions
@@ -858,7 +858,7 @@ window.AppCoreHelper = (() => {
         try {
             const status = await withTimeout(Geolocation.requestPermissions(), 3000);
             granted = (status.location === 'granted' || status.coarseLocation === 'granted');
-            console.log('[Permissions] Native Geolocation result:', status);
+            
         } catch (nativeErr) {
             if (nativeErr.code === 'TIMEOUT_ERROR') {
                 console.warn('[Permissions] Geolocation.requestPermissions() timed out — falling back to Web API');
@@ -876,7 +876,7 @@ window.AppCoreHelper = (() => {
                 );
                 granted = true;
                 localStorage.setItem('web_loc_granted', 'true');
-                console.log('[Permissions] Web Geolocation fallback: granted');
+                
             } catch (webErr) {
                 granted = false;
                 console.warn('[Permissions] Web Geolocation fallback also failed:', webErr.message || webErr.code);
@@ -912,7 +912,7 @@ window.AppCoreHelper = (() => {
             try {
                 const status = await withTimeout(push.requestPermissions(), 3000);
                 granted = (status.receive === 'granted');
-                console.log('[Permissions] Native Push result:', status);
+                
                 if (granted) {
                     try { push.register(); } catch (_) {}
                 }
@@ -957,7 +957,7 @@ window.AppCoreHelper = (() => {
             if (!('Notification' in window)) {
                 // Browser/device doesn't support Notifications at all → bypass gracefully
                 localStorage.setItem('push_bypassed', 'true');
-                console.log('[Permissions] Notification API not available — bypassed');
+                
                 return true;
             }
 
@@ -966,7 +966,7 @@ window.AppCoreHelper = (() => {
                 5000
             );
             const isGranted = (perm === 'granted');
-            console.log('[Permissions] Web Notification fallback result:', perm);
+            
             return isGranted;
         } catch (e) {
             console.warn('[Permissions] Web Notification fallback failed:', e.message);

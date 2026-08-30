@@ -43,19 +43,19 @@ let _isOnline = navigator.onLine;
 
 window.addEventListener('online', () => {
     _isOnline = true;
-    console.log('🌐 Network restored — flushing GPS queue...');
+    
     CaptainService._flushOfflineQueue();
 });
 window.addEventListener('offline', () => {
     _isOnline = false;
-    console.log('📴 Network lost — buffering GPS locations...');
+    
 });
 
 const CaptainService = {
     init: async () => {
         const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
         if (!isNative) {
-            console.log('🌐 Web Mode: Using standard Geolocation API.');
+            
             return;
         }
 
@@ -65,14 +65,11 @@ const CaptainService = {
         if (CapApp) {
             CapApp.addListener('appStateChange', ({ isActive }) => {
                 _appInBackground = !isActive;
-                console.log(_appInBackground
-                    ? '📱 App went to background — switching to HTTP location updates'
-                    : '📱 App returned to foreground — resuming socket updates'
-                );
+                
             });
         }
 
-        console.log('🚀 Initializing Captain Service (Native)...');
+        
     },
 
     startTracking: async (userId) => {
@@ -84,7 +81,7 @@ const CaptainService = {
                 const KeepAwake = getKeepAwake();
                 if (KeepAwake) {
                     await KeepAwake.keepAwake();
-                    console.log('💡 KeepAwake Enabled');
+                    
                 }
             }
 
@@ -112,6 +109,13 @@ const CaptainService = {
                             CaptainService.sendLocationToServer(userId, location.latitude, location.longitude);
                         }
                     );
+                    
+                    // طلب إذن تخطي توفير طاقة البطارية للحفاظ على اتصال Socket في الخلفية
+                    if (window.AndroidDownloader && typeof window.AndroidDownloader.requestBatteryBypass === 'function') {
+                        setTimeout(() => {
+                            window.AndroidDownloader.requestBatteryBypass();
+                        }, 1000); // تأخير قليل لتجنب تداخل النوافذ المنبثقة
+                    }
                 } else {
                     console.warn('⚠️ BackgroundGeolocation plugin not available, using web fallback');
                     CaptainService._startWebTracking(userId);
@@ -120,7 +124,7 @@ const CaptainService = {
                 CaptainService._startWebTracking(userId);
             }
 
-            console.log("✅ Tracking Started");
+            
 
             // 💓 Heartbeat: يُرسل الموقع الأخير كل 10 ثوانٍ عند عدم الحركة
             CaptainService.startHeartbeat(userId);
@@ -161,7 +165,7 @@ const CaptainService = {
                 navigator.geolocation.clearWatch(watcherId);
             }
             watcherId = null;
-            console.log("🛑 Tracking Stopped");
+            
         } catch (e) {
             console.error("Stop Error:", e);
         }
@@ -178,7 +182,7 @@ const CaptainService = {
         CaptainService.heartbeatInterval = setInterval(() => {
             const now = Date.now();
             if (now - CaptainService.lastLocationTime > 8000 && CaptainService.lastLocation) {
-                console.log('💓 Heartbeat...');
+                
                 const { lat, lng } = CaptainService.lastLocation;
                 // الـ heartbeat يُجبر HTTP في الخلفية لضمان التحديث
                 CaptainService.sendLocationToServer(userId, lat, lng, true);
@@ -214,7 +218,7 @@ const CaptainService = {
                 // 📴 لا يوجد إنترنت — أضف الموقع لقائمة الانتظار
                 if (_offlineQueue.length < _MAX_QUEUE) {
                     _offlineQueue.push({ lat, lng, timestamp: now });
-                    console.log(`📦 GPS queued offline: ${_offlineQueue.length} points`);
+                    
                 }
                 return;
             }
@@ -256,7 +260,7 @@ const CaptainService = {
                 },
                 body: JSON.stringify({ lat: last.lat, lng: last.lng })
             });
-            console.log('✅ GPS queue flushed — last position sent to server');
+            
         } catch (e) {
             console.warn('Failed to flush GPS queue:', e);
         }
@@ -268,4 +272,7 @@ window.CaptainService = CaptainService;
 // ✅ تلقائياً نُهيئ الخدمة فور تحميل الملف لتسجيل الـ App State Listeners
 CaptainService.init().catch(console.error);
 
-export default CaptainService;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CaptainService;
+}
+

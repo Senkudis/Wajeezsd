@@ -122,6 +122,66 @@
         // تغيير الاتجاه أو تدوير الجهاز يعبر نقطة الكسر — والعناوين تبقى صالحة
         // في الحالتين، فيكفي إعادة الوسم بلا إعادة بناء
         window.addEventListener('resize', schedule);
+
+        // 📱 إدارة زر الرجوع في أندرويد (Hardware Back Button)
+        setupAndroidBackButton();
+
+        // 🌐 مراقبة حالة الاتصال بالإنترنت
+        setupNetworkListeners();
+    }
+
+    /**
+     * معالجة زر الرجوع في أندرويد عبر Capacitor
+     */
+    function setupAndroidBackButton() {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.addListener('backButton', function (e) {
+                // 1. إذا كانت لوحة الأوامر مفتوحة أغلقها أولاً
+                if (window.AdminPalette && document.getElementById('adminPaletteOverlay') && document.getElementById('adminPaletteOverlay').style.display === 'flex') {
+                    window.AdminPalette.close();
+                    return;
+                }
+                // 2. إذا كان هناك نافذة منبثقة أو SweetAlert مفتوح أغلقه
+                if (window.Swal && Swal.isVisible()) {
+                    Swal.close();
+                    return;
+                }
+                const activeModal = document.querySelector('.modal-overlay.active, .modal.show, #receiptLightbox.active');
+                if (activeModal) {
+                    activeModal.classList.remove('active');
+                    if (activeModal.classList.contains('show')) $(activeModal).modal('hide');
+                    return;
+                }
+                // 3. إذا كان في صفحة فرعية ارجع للرئيسية أو للخلف
+                const pathname = window.location.pathname;
+                if (!pathname.endsWith('admin.html') && !pathname.endsWith('admin-login.html')) {
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.location.href = 'admin.html';
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * إشعار عند انقطاع واستعادة الاتصال بالإنترنت
+     */
+    function setupNetworkListeners() {
+        window.addEventListener('offline', function () {
+            if (window.AdminAlerts) window.AdminAlerts.play('warning');
+            if (window.NativeDialogs && window.NativeDialogs.toast) {
+                window.NativeDialogs.toast('انقطع الاتصال بالإنترنت ⚠️');
+            }
+        });
+
+        window.addEventListener('online', function () {
+            if (window.AdminAlerts) window.AdminAlerts.play('success');
+            if (window.NativeDialogs && window.NativeDialogs.toast) {
+                window.NativeDialogs.toast('تمت استعادة الاتصال بالإنترنت 🟢');
+            }
+        });
     }
 
     if (document.readyState === 'loading') {
@@ -132,3 +192,4 @@
 
     window.AdminMobile = { stampAll: stampAll, isNarrow: isNarrow, BREAKPOINT: BREAKPOINT };
 })();
+

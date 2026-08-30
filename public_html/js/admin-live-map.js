@@ -24,9 +24,9 @@ if (typeof window.showToast !== 'function') {
                     title: msg, timer: 2200, showConfirmButton: false
                 });
             } else {
-                console.log('[toast]', msg);
+                
             }
-        } catch (e) { console.log('[toast]', msg); }
+        } catch (e) {  }
     };
 }
 
@@ -184,7 +184,7 @@ const socket = io(MAP_API, {
 });
 
 socket.on('connect', () => {
-    console.log('✅ Socket connected:', socket.id);
+    
     socket.emit('admin_join');
     updateStatus('متصل', 'green');
 });
@@ -267,7 +267,7 @@ function initMapLogic() {
         ]
     });
 
-    console.log('✅ Admin map created');
+    
 
     // Render any markers that arrived before map was ready
     Object.entries(loadedOnInit).forEach(([id, d]) => {
@@ -299,7 +299,7 @@ async function loadInitialCaptains() {
         }
 
         const captains = await res.json();
-        console.log(`📡 Loaded ${captains.length} captains from API`);
+        
 
         let placed = 0;
         captains.forEach(c => {
@@ -328,7 +328,7 @@ async function loadInitialCaptains() {
             placed++;
         });
 
-        console.log(`🗺️ Placed ${placed} captain markers`);
+        
         updateCounters();
 
         // Render search list immediately

@@ -49,12 +49,33 @@ const CityService = {
     setCity(city) {
         if (!this.VALID_CITIES.includes(city)) {
             console.warn('[CityService] Invalid city:', city, '— ignoring.');
-            return;
+            return Promise.resolve();
         }
         localStorage.setItem(this.STORAGE_KEY, city);
         // Emit a DOM event so any open page can react (e.g., admin panel city switch)
         window.dispatchEvent(new CustomEvent('city-changed', { detail: { city } }));
         console.log('🌍 City set to:', city);
+
+        // 🔑 CRITICAL FIX: sync city to the server's DB so new orders go to the right city's captains.
+        // Returns a Promise so callers (showCityPicker, chooseMapCity) can await server confirmation
+        // before reloading the page — prevents race condition where the page reloads before the
+        // DB is updated, causing the next order to still be stamped with the old city.
+        const token = localStorage.getItem('token');
+        if (!token) return Promise.resolve();
+
+        const apiBase = (typeof API_URL !== 'undefined' ? API_URL : '') ||
+                        (typeof window.API_URL !== 'undefined' ? window.API_URL : '');
+        return fetch(`${apiBase}/api/auth/city`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ city })
+        }).then(r => {
+            if (r.ok) console.log('[CityService] Server city updated to:', city);
+            else r.json().then(e => console.warn('[CityService] Server city update failed:', e.message)).catch(() => {});
+        }).catch(e => console.warn('[CityService] City sync network error:', e.message));
     },
 
     /**
@@ -191,8 +212,13 @@ const CityService = {
                         confirmWrap.innerHTML = `<button class="city-confirm-btn">تأكيد — ${CityService.CITY_LABELS[selectedCity]}</button>`;
                         cardsContainer.parentElement.insertBefore(confirmWrap, overlay.querySelector('.city-picker-note'));
 
-                        confirmWrap.querySelector('.city-confirm-btn').addEventListener('click', () => {
-                            CityService.setCity(selectedCity);
+                        confirmWrap.querySelector('.city-confirm-btn').addEventListener('click', async () => {
+                            // Disable button to prevent double-clicks during server sync
+                            const btn = confirmWrap.querySelector('.city-confirm-btn');
+                            btn.disabled = true;
+                            // 🔑 Await server sync BEFORE resolving — eliminates the race condition
+                            // where page reload happens before city is updated in DB
+                            await CityService.setCity(selectedCity);
                             overlay.style.animation = 'cityPickerFadeIn 0.3s ease-out reverse';
                             setTimeout(() => {
                                 overlay.remove();

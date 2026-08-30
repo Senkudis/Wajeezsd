@@ -100,7 +100,7 @@
     window.shareApp = function (source) {
         getShareUrl().then(function (url) {
             var title = 'وجيز — توصيل وتسوّق';
-            var text = 'جرّب تطبيق وجيز: توصيل سريع وتسوّق من محلات قريبة منك، وخدمة «اشترِ لي» تجيب ليك أي حاجة من أي محل.';
+            var text = 'جرّب تطبيق وجيز: توصيل سريع وتسوّق من محلات قريبة منك بكل سهولة.';
 
             if (navigator.share) {
                 navigator.share({ title: title, text: text, url: url })

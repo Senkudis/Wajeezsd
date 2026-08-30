@@ -12,12 +12,13 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=97af4497">
-    <script src="js/config.js?v=b84e6b6a"></script>
-    <script src="js/city-service.js?v=34b5af79"></script>
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
+    <script src="js/config.js?v=6706269c"></script>
+    <script src="js/city-service.js?v=40791ec5"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body class="bg-light">
@@ -26,7 +27,7 @@
         <div class="auth-box glass-card card-hover p-4 p-md-5">
             <div class="text-center mb-4">
                 <a href="index.html" class="d-inline-block transition-transform hover-scale">
-                    <img src="logo-mark-white.png" alt="???? ????" height="80" style="object-fit:contain; background:#04553A; border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
+                    <img src="logo-mark-white.png" alt="???? ????" height="80" style="object-fit:contain; background:var(--primary); border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
                 </a>
             </div>
 
@@ -146,7 +147,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius:20px; border:none; overflow:hidden;">
                 <div class="modal-header"
-                    style="background:linear-gradient(135deg,#04553A,#0d9d63); border:none; padding:20px 24px;">
+                    style="background:linear-gradient(135deg,var(--primary),#0d9d63); border:none; padding:20px 24px;">
                     <h5 class="modal-title text-white fw-bold" id="otpModalLabel">
                         <i class="bi bi-phone-fill ms-2"></i> التحقق من رقم الهاتف
                     </h5>
@@ -340,7 +341,7 @@
                         title: 'تم إرسال الكود!',
                         html: 'راجع <strong>الرسائل</strong> للحصول على كود التفعيل<br><small class="text-muted">الرقم: ' + normalizedPhone + '</small>',
                         icon: 'success',
-                        confirmButtonColor: '#04553A'
+                        confirmButtonColor: 'var(--primary)'
                     });
                     startTimer();
                 } else {
@@ -379,7 +380,7 @@
                         title: 'تم!',
                         text: 'تم إرسال كود جديد على sms.',
                         icon: 'success',
-                        confirmButtonColor: '#04553A'
+                        confirmButtonColor: 'var(--primary)'
                     });
                     startTimer(); // إعادة تشغيل العداد
                 } else {
@@ -507,7 +508,7 @@
                 // Existing user — sign in and redirect
                 window.Auth.setAuth(data.token, data.user);
                 Swal.fire({ title: 'تم تسجيل الدخول! 🎉', icon: 'success', timer: 1200, showConfirmButton: false })
-                    .then(() => window.location.replace('client-my-orders.html'));
+                    .then(() => window.location.replace('index.html'));
 
             } catch (err) {
                 // 🐛 DEBUG: Show raw error for Release APK debugging
@@ -626,7 +627,7 @@
                 bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide();
                 window.Auth.setAuth(data.token, data.user);
                 Swal.fire({ title: 'تم تسجيل الدخول! 🎉', icon: 'success', timer: 1200, showConfirmButton: false })
-                    .then(() => window.location.replace('client-my-orders.html'));
+                    .then(() => window.location.replace('index.html'));
 
             } catch (err) {
                 console.error('Verify OTP error:', err);
@@ -640,9 +641,9 @@
 
     <!-- Auth Helper already loaded in head -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=064b92a3"></script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script type="module" src="js/app-core.js?v=71670a72"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </body>
 
 </html>

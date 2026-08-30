@@ -12,13 +12,13 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.4">
     <!-- Mobile App Overrides -->
-    <link rel="stylesheet" href="css/mobile-overrides.css?v=e4fc5000">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/splash.css?v=83fac690">
     <!-- شاشة الإشعارات الموحّدة — بعد dark-mode.css عمداً (انظر رأس الملف) -->
-    <link rel="stylesheet" href="css/notifications-ui.css?v=eabd9895">
+    <link rel="stylesheet" href="css/notifications-ui.css?v=e0ebecde">
     <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
@@ -47,18 +47,21 @@
 
     <!-- Header Section -->
     <div class="app-header">
-        <div class="container pt-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="container pt-1">
+            <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="bg-transparent border-0 shadow-none p-0">
-                        <i class="bi bi-bell-fill text-white" style="font-size: 1.5rem;"></i>
+                    <div class="header-brand-badge">
+                        <i class="bi bi-bell-fill text-white" style="font-size: 1.4rem;"></i>
                     </div>
                     <div>
                         <h2 class="h5 fw-bold mb-0 text-white">الإشعارات</h2>
-                        <p class="small text-white-50 mb-0" id="headerSubtitle">كل جديدك هنا</p>
+                        <div class="live-status-pill">
+                            <span class="pulse-dot"></span>
+                            <span id="headerSubtitle">كل جديدك وتحديثاتك هنا</span>
+                        </div>
                     </div>
                 </div>
-                <img src="logo-mark-white.png" alt="وجيز" style="height:44px;width:auto;object-fit:contain;">
+                <img src="logo-mark-white.png" alt="وجيز" style="height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
             </div>
         </div>
     </div>
@@ -102,7 +105,7 @@
     </div>
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="js/notifications-ui.js?v=4a4a1297"></script>
+    <script src="js/notifications-ui.js?v=dd0a61e9"></script>
     <script>
         WajeezNotifications.init({
             loginUrl: 'client-login.html',
@@ -119,12 +122,12 @@
         }
     </script>
     <!-- Auth Helper & App Core -->
-    <script src="js/theme-manager.js?v=a33a528b"></script>
-    <script src="js/app-core.js?v=f1decda9"></script>
-    <script src="js/native-notifications.js?v=6b3a3771"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/app-core.js?v=71670a72"></script>
+    <script src="js/native-notifications.js?v=bf8be460"></script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="notification-toast.js"></script>
-    <script src="js/tour.js?v=5e17c2a4"></script>
+    <script src="js/tour.js?v=d6d632d6"></script>
     <script src="js/tour-pages.js?v=5e20479b"></script>
 </body>
 

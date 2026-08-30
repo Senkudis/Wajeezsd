@@ -3,7 +3,7 @@
     /* Brand Colors */
     --primary: #04553A;
     /* Signature Green */
-    --primary-gradient: linear-gradient(135deg, #04553A 0%, #065f3a 100%);
+    --primary-gradient: #065f3a;
     --secondary: #2c3e50;
     /* Deep Navy */
     --secondary-gradient: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
@@ -98,12 +98,12 @@ h6 {
 
 @media (max-width: 768px) {
     .glass-card {
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) ;
     }
 
     .container {
-        padding-left: 20px !important;
-        padding-right: 20px !important;
+        padding-left: 20px ;
+        padding-right: 20px ;
     }
 }
 
@@ -123,7 +123,7 @@ h6 {
 }
 
 .btn-primary {
-    background: var(--primary-gradient);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-gradient) 100%);
     box-shadow: 0 4px 15px rgba(10, 135, 84, 0.3);
 }
 
@@ -383,7 +383,7 @@ h6 {
 }
 
 /* Hide Google Maps default attribution in fullscreen map to reduce clutter */
-#static-map-container .gm-style-cc { display: none !important; }
+#static-map-container .gm-style-cc { display: none ; }
 
 /* Invert map tiles robustly for dark mode (bypasses Google Maps styles bug) */
 #static-map-container.map-night #map {
@@ -413,7 +413,7 @@ h6 {
 #route-info-card.is-loading #route-distance,
 #route-info-card.is-loading #route-duration,
 #route-info-card.is-loading #route-price {
-    color: transparent !important;
+    color: transparent ;
     background: linear-gradient(90deg, #e0e0e0 25%, #f5f5f5 50%, #e0e0e0 75%);
     background-size: 200% 100%;
     animation: routeShimmer 1.2s infinite linear;
@@ -464,8 +464,8 @@ h6 {
 /* Disabled Confirm Button style */
 button#map-confirm-btn:disabled, 
 button#map-confirm-btn.disabled {
-    background: #8b8b8b !important;
-    box-shadow: none !important;
+    background: #8b8b8b ;
+    box-shadow: none ;
     cursor: not-allowed;
     opacity: 0.8;
 }
@@ -473,5 +473,5 @@ button#map-confirm-btn.disabled {
 .app-logo { background-color: #04553A; border-radius: 20px; filter: drop-shadow(0 4px 12px rgba(4, 85, 58, 0.2)); }
 
 
-.logo-onbrand { background-color: transparent !important; box-shadow: none !important; filter: none !important; }
+.logo-onbrand { background-color: transparent ; box-shadow: none ; filter: none ; }
 

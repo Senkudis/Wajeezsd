@@ -1,0 +1,1004 @@
+/*
+ * ================================================================
+ *  merchant-ui.css  —  نظام تصميم صفحات التاجر (Single Source of Truth)
+ *  وجيز — Merchant Design System v2.0
+ * ================================================================
+ */
+
+/* ── 1. المتغيرات الأساسية ── */
+:root {
+    /* Merchant Brand */
+    --m-dark:        #0f172a;
+    --m-dark2:       #1e293b;
+    --m-dark3:       #334155;
+    --m-amber:       #f59e0b;
+    --m-amber-dark:  #d97706;
+    --m-amber-glow:  rgba(245, 158, 11, 0.18);
+    --m-amber-soft:  rgba(245, 158, 11, 0.10);
+    --m-green:       #10b981;
+    --m-green-soft:  rgba(16, 185, 129, 0.12);
+    --m-red:         #ef4444;
+    --m-red-soft:    rgba(239, 68, 68, 0.10);
+    --m-blue:        #3b82f6;
+    --m-blue-soft:   rgba(59, 130, 246, 0.10);
+
+    /* Surfaces */
+    --m-surface:     #ffffff;
+    --m-bg:          #f1f5f9;
+    --m-bg2:         #f8fafc;
+    --m-border:      #e2e8f0;
+    --m-border2:     #f1f5f9;
+    --m-ink:         #0f172a;
+    --m-muted:       #64748b;
+    --m-muted:       #64748b;
+    --m-muted2:      #94a3b8;
+    --m-shadow-sm:   0 2px 8px rgba(15, 23, 42, 0.05);
+    --m-shadow-md:   0 4px 16px rgba(15, 23, 42, 0.08);
+    --m-shadow-lg:   0 8px 32px rgba(15, 23, 42, 0.12);
+    --m-shadow-glow: 0 6px 24px rgba(245, 158, 11, 0.30);
+    --m-r-sm:  8px;
+    --m-r-md:  14px;
+    --m-r-lg:  20px;
+    --m-r-xl:  26px;
+    --m-r-full: 999px;
+    --m-font: 'Cairo', sans-serif;
+}
+
+/* 🌙 Dark Mode Override for Merchant UI Variables */
+body.dark-mode {
+    --m-surface:     #1e293b;
+    --m-bg:          #0f172a;
+    --m-bg2:         #1e293b;
+    --m-border:      #334155;
+    --m-border2:     #334155;
+    --m-ink:         #f8fafc;
+    --m-muted:       #94a3b8;
+    --m-muted2:      #64748b;
+}
+
+/* ── 2. Base Reset ── */
+* {
+    font-family: var(--m-font);
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--m-bg);
+    min-height: 100vh;
+    padding-bottom: calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 72px);
+    overscroll-behavior-y: contain;
+}
+
+/* ── 3. هيدر الصفحة الرئيسي (الداشبورد) ── */
+.m-hero-header {
+    background: linear-gradient(160deg, #0f172a 0%, #1a2744 50%, #1e1060 100%);
+    color: #fff;
+    padding-top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 18px);
+    padding-right: 18px;
+    padding-bottom: 22px;
+    padding-left: 18px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    overflow: hidden;
+}
+
+.m-hero-header::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.m-hero-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30px;
+    right: -20px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ── 4. هيدر الصفحات الداخلية (بدون داشبورد) ── */
+.m-page-header {
+    background: var(--m-surface);
+    color: var(--m-ink);
+    padding-top: calc(var(--sat, env(safe-area-inset-top, 0px)) + 14px);
+    padding-right: 16px;
+    padding-bottom: 0;
+    padding-left: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    border-bottom: 1.5px solid var(--m-border2);
+    box-shadow: var(--m-shadow-sm);
+}
+
+.m-page-header .m-header-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--m-ink);
+    margin: 0;
+}
+
+.m-page-header .m-header-subtitle {
+    font-size: 11.5px;
+    color: var(--m-muted);
+    font-weight: 600;
+}
+
+.m-back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--m-bg2);
+    border: 1.5px solid var(--m-border);
+    color: var(--m-dark3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.m-back-btn:hover {
+    background: var(--m-amber-soft);
+    border-color: var(--m-amber);
+    color: var(--m-amber-dark);
+}
+
+/* ── 5. شريط التنقل السفلي ── */
+.merchant-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--m-surface);
+    border-top: 1.5px solid var(--m-border2);
+    display: flex;
+    z-index: 1000;
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+    padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px));
+}
+
+.merchant-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 4px 8px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--m-muted);
+    text-decoration: none;
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    gap: 3px;
+}
+
+.merchant-nav a i {
+    font-size: 1.35rem;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.merchant-nav a.active {
+    color: var(--m-amber);
+}
+
+.merchant-nav a.active i {
+    transform: translateY(-3px) scale(1.1);
+}
+
+.merchant-nav a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 3px;
+    border-radius: 2px 2px 0 0;
+    background: var(--m-amber);
+}
+
+.merchant-nav .nav-badge {
+    position: absolute;
+    top: 7px;
+    right: calc(50% - 18px);
+    background: var(--m-red);
+    color: #fff;
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: var(--m-r-full);
+    min-width: 16px;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* ── 6. بطاقة عامة ── */
+.m-card {
+    background: var(--m-surface);
+    border-radius: var(--m-r-lg);
+    box-shadow: var(--m-shadow-sm);
+    border: 1.5px solid var(--m-border2);
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.m-card:hover {
+    box-shadow: var(--m-shadow-md);
+}
+
+.m-card-body {
+    padding: 16px;
+}
+
+.m-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1.5px solid var(--m-border2);
+}
+
+.m-card-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--m-dark3);
+    margin: 0;
+}
+
+/* ── 7. بطاقات الإحصائيات في الهيدر ── */
+.m-hstat {
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--m-r-md);
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.m-hstat:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.m-hstat-num {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.m-hstat-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.m-hstat i {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.m-hstat.accent {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.40);
+}
+
+.m-hstat.accent .m-hstat-num {
+    color: #fbbf24;
+}
+
+.m-hstat.pulse-amber {
+    animation: m-hstat-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes m-hstat-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.40); }
+    50%       { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+}
+
+/* ── 8. الأزرار السريعة (Quick Actions Grid) ── */
+.m-quick-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--m-surface);
+    border-radius: var(--m-r-lg);
+    border: 1.5px solid var(--m-border2);
+    padding: 16px 8px;
+    text-decoration: none;
+    color: var(--m-dark3);
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-height: 80px;
+    box-shadow: var(--m-shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.m-quick-btn:hover,
+.m-quick-btn:active {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: var(--m-shadow-md);
+    border-color: var(--m-border);
+    color: var(--m-dark);
+}
+
+.m-quick-btn i {
+    font-size: 1.6rem;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.m-quick-btn:hover i {
+    transform: scale(1.12);
+}
+
+.m-quick-btn.special {
+    background: linear-gradient(135deg, var(--m-amber), var(--m-amber-dark));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: var(--m-shadow-glow);
+}
+
+.m-quick-btn.special:hover {
+    box-shadow: 0 8px 28px rgba(245, 158, 11, 0.45);
+}
+
+/* ── 9. بطاقة الطلب ── */
+.m-order-card {
+    background: var(--m-surface);
+    border-radius: var(--m-r-lg);
+    border: 1.5px solid var(--m-border2);
+    box-shadow: var(--m-shadow-sm);
+    overflow: hidden;
+    margin-bottom: 12px;
+    transition: box-shadow 0.2s;
+}
+
+.m-order-card.new-order {
+    border-color: var(--m-amber);
+    animation: m-order-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes m-order-glow {
+    0%, 100% { box-shadow: 0 2px 14px rgba(245, 158, 11, 0.15); }
+    50%       { box-shadow: 0 4px 28px rgba(245, 158, 11, 0.40); }
+}
+
+.m-order-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--m-bg2);
+    border-bottom: 1.5px solid var(--m-border2);
+    gap: 8px;
+}
+
+.m-order-body {
+    padding: 12px 14px;
+}
+
+.m-order-footer {
+    padding: 10px 14px;
+    border-top: 1.5px solid var(--m-border2);
+    display: flex;
+    gap: 8px;
+}
+
+.m-order-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--m-amber), var(--m-amber-dark));
+    color: #fff;
+    font-weight: 800;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ── 10. Pills / Badges ── */
+.m-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: var(--m-r-full);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.m-pill.amber  { background: var(--m-amber-soft); color: var(--m-amber-dark); }
+.m-pill.green  { background: var(--m-green-soft);  color: #059669; }
+.m-pill.red    { background: var(--m-red-soft);    color: #dc2626; }
+.m-pill.blue   { background: var(--m-blue-soft);   color: #1d4ed8; }
+.m-pill.dark   { background: rgba(15,23,42,0.08);  color: var(--m-dark3); }
+.m-pill.solid-amber  { background: var(--m-amber);  color: #fff; }
+.m-pill.solid-green  { background: var(--m-green);  color: #fff; }
+.m-pill.solid-red    { background: var(--m-red);    color: #fff; }
+.m-pill.solid-dark   { background: var(--m-dark2);  color: #fff; }
+
+/* ── 11. أزرار رئيسية ── */
+.m-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 11px 18px;
+    border-radius: var(--m-r-md);
+    font-family: var(--m-font);
+    font-size: 13px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.m-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.m-btn-primary {
+    background: linear-gradient(135deg, var(--m-amber), var(--m-amber-dark));
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(245,158,11,0.30);
+}
+
+.m-btn-primary:hover { box-shadow: 0 6px 20px rgba(245,158,11,0.45); }
+
+.m-btn-success {
+    background: linear-gradient(135deg, var(--m-green), #059669);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(16,185,129,0.30);
+}
+
+.m-btn-danger {
+    background: linear-gradient(135deg, var(--m-red), #dc2626);
+    color: #fff;
+}
+
+.m-btn-ghost {
+    background: var(--m-bg2);
+    color: var(--m-dark3);
+    border: 1.5px solid var(--m-border);
+}
+
+.m-btn-ghost:hover {
+    background: var(--m-bg);
+    border-color: var(--m-muted2);
+}
+
+.m-btn-block { width: 100%; }
+.m-btn-sm { padding: 7px 13px; font-size: 12px; border-radius: var(--m-r-sm); }
+.m-btn-lg { padding: 14px 22px; font-size: 15px; border-radius: var(--m-r-lg); }
+
+/* ── 12. مفتاح Toggle ── */
+.m-toggle {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.m-toggle input { opacity: 0; width: 0; height: 0; }
+
+.m-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: var(--m-r-full);
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.m-toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.20);
+}
+
+.m-toggle input:checked + .m-toggle-slider {
+    background: var(--m-green);
+}
+
+.m-toggle input:checked + .m-toggle-slider::before {
+    transform: translateX(20px);
+}
+
+/* ── 13. Floating Action Button ── */
+.m-fab {
+    position: fixed;
+    bottom: calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 80px);
+    left: 20px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--m-amber), var(--m-amber-dark));
+    color: #fff;
+    border: none;
+    font-size: 1.4rem;
+    box-shadow: var(--m-shadow-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 999;
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.m-fab:hover {
+    transform: scale(1.12) rotate(10deg);
+    box-shadow: 0 8px 30px rgba(245,158,11,0.50);
+}
+
+/* ── 14. Filter Tabs ── */
+.m-filter-tabs {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding: 12px 0 14px;
+    scrollbar-width: none;
+}
+
+.m-filter-tabs::-webkit-scrollbar { display: none; }
+
+.m-filter-tab {
+    white-space: nowrap;
+    padding: 7px 15px;
+    border-radius: var(--m-r-full);
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+    background: var(--m-surface);
+    border: 1.5px solid var(--m-border);
+    color: var(--m-muted);
+    transition: all 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.m-filter-tab .cnt {
+    background: var(--m-bg);
+    border-radius: 10px;
+    padding: 0 7px;
+    font-size: 10.5px;
+    color: var(--m-muted);
+    min-width: 20px;
+    text-align: center;
+}
+
+.m-filter-tab.active {
+    background: var(--m-dark);
+    border-color: var(--m-dark);
+    color: var(--m-amber);
+}
+
+.m-filter-tab.active .cnt {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+}
+
+.m-filter-tab.has-new {
+    border-color: var(--m-amber);
+    color: var(--m-amber-dark);
+}
+
+.m-filter-tab.has-new .cnt {
+    background: var(--m-amber);
+    color: #fff;
+}
+
+/* ── 15. Empty State ── */
+.m-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    gap: 14px;
+}
+
+.m-empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--m-bg2);
+    border: 2px dashed var(--m-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--m-muted2);
+}
+
+.m-empty-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--m-dark3);
+    margin: 0;
+}
+
+.m-empty-desc {
+    font-size: 13px;
+    color: var(--m-muted);
+    max-width: 240px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ── 16. Skeleton Loader ── */
+.m-sk {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: m-shimmer 1.5s infinite;
+    border-radius: var(--m-r-sm);
+}
+
+@keyframes m-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.m-sk-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--m-border2);
+}
+
+/* ── 17. Section Title ── */
+.m-section-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--m-dark3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.m-section-title i {
+    font-size: 15px;
+    color: var(--m-amber);
+}
+
+.m-section-link {
+    margin-right: auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--m-muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.m-section-link:hover { color: var(--m-amber-dark); }
+
+/* ── 18. Product Card ── */
+.m-product-card {
+    background: var(--m-surface);
+    border-radius: var(--m-r-lg);
+    border: 1.5px solid var(--m-border2);
+    box-shadow: var(--m-shadow-sm);
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+}
+
+.m-product-card:hover {
+    box-shadow: var(--m-shadow-md);
+    border-color: var(--m-border);
+}
+
+.m-product-card.unavailable {
+    opacity: 0.60;
+}
+
+.m-product-img {
+    width: 88px;
+    min-height: 88px;
+    object-fit: cover;
+    background: var(--m-bg2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--m-muted2);
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.m-product-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.m-product-info {
+    flex: 1;
+    padding: 12px 10px;
+    min-width: 0;
+}
+
+.m-product-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px;
+    gap: 6px;
+}
+
+/* ── 19. Icon Button ── */
+.m-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--m-r-sm);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 15px;
+}
+
+.m-icon-btn:hover { transform: scale(1.1); }
+.m-icon-btn.edit   { background: var(--m-blue-soft); color: var(--m-blue); }
+.m-icon-btn.danger { background: var(--m-red-soft);  color: var(--m-red); }
+.m-icon-btn.amber  { background: var(--m-amber-soft); color: var(--m-amber-dark); }
+.m-icon-btn.green  { background: var(--m-green-soft); color: var(--m-green); }
+
+/* ── 20. بطاقة المحفظة / الإيراد ── */
+.m-wallet-card {
+    border-radius: var(--m-r-xl);
+    padding: 20px;
+    color: var(--m-dark);
+    box-shadow: var(--m-shadow-glow);
+    position: relative;
+    overflow: hidden;
+}
+
+.m-wallet-card.amber {
+    background: linear-gradient(135deg, var(--m-amber), var(--m-amber-dark));
+}
+
+.m-wallet-card.dark {
+    background: linear-gradient(135deg, var(--m-dark), var(--m-dark2));
+    color: #fff;
+}
+
+.m-wallet-card::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 120px;
+    height: 120px;
+    background: rgba(255,255,255,0.10);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.m-wallet-card::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    left: -20px;
+    width: 140px;
+    height: 140px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.m-wallet-balance {
+    font-size: 2.2rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.m-mini-stat {
+    background: rgba(255,255,255,0.25);
+    border-radius: var(--m-r-md);
+    padding: 8px 10px;
+    flex: 1;
+    text-align: center;
+}
+
+.m-mini-stat .n { font-weight: 900; font-size: 14px; }
+.m-mini-stat .l { font-size: 10px; font-weight: 700; opacity: 0.75; }
+
+/* ── 21. Info Row (Profile) ── */
+.m-info-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1.5px solid var(--m-border2);
+    gap: 13px;
+}
+
+.m-info-row:last-child { border-bottom: none; }
+
+.m-info-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--m-r-sm);
+    background: var(--m-bg2);
+    color: var(--m-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 17px;
+}
+
+.m-info-label {
+    font-size: 11.5px;
+    color: var(--m-muted2);
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+
+.m-info-value {
+    font-weight: 700;
+    color: var(--m-dark3);
+    font-size: 14.5px;
+    word-break: break-word;
+}
+
+/* ── 22. حالة المتجر (مفتوح/مغلق) ── */
+.m-status-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.12);
+    padding: 6px 12px;
+    border-radius: var(--m-r-full);
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.15);
+    user-select: none;
+}
+
+.m-status-toggle:hover {
+    background: rgba(255,255,255,0.20);
+}
+
+.m-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.m-status-dot.open {
+    background: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34,197,94,0.5);
+    animation: m-status-ping 2s infinite;
+}
+
+.m-status-dot.closed {
+    background: #ef4444;
+}
+
+@keyframes m-status-ping {
+    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+/* ── 23. Toast / Alert ── */
+.m-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--m-r-md);
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1.5px solid transparent;
+}
+
+.m-alert.amber { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.m-alert.red   { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.m-alert.green { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+
+/* ── 24. Order Row في الداشبورد ── */
+.m-order-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1.5px solid var(--m-border2);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.m-order-row:last-child { border-bottom: none; }
+.m-order-row:hover { background: var(--m-bg2); }
+
+.m-ord-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--m-amber), var(--m-amber-dark));
+    color: #fff;
+    font-weight: 800;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ── 25. Responsive & Animations ── */
+@media (min-width: 480px) {
+    .m-hero-header,
+    .m-page-header {
+        max-width: 540px;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 0;
+    }
+
+    .merchant-nav {
+        max-width: 540px;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        width: 540px;
+    }
+}
+
+/* ── 26. Transitions globally ── */
+@media (prefers-reduced-motion: no-preference) {
+    .m-card,
+    .m-order-card,
+    .m-product-card,
+    .m-quick-btn {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+}

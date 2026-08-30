@@ -1036,25 +1036,93 @@ if (priceEl) priceEl.addEventListener('input', () => {
     priceEl.classList.remove('border-warning', 'border-2');
 }); // end priceEl listener
 
+// 💰 حساب حدود التسعير النسبية (الأرضية والسقف)
+function getPriceLimits() {
+    const pts = _orderedCoords();
+    const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
+    const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
+    const extraStopFee = (pricingConfig && pricingConfig.extraStopFee) || 0;
+    const extraStops = Math.max(0, pts.length - 2);
+    const minFloor = baseFare + (extraStopFee * extraStops);
+
+    let distanceKm = 0;
+    if (pts.length >= 2) {
+        for (let i = 1; i < pts.length; i++) {
+            distanceKm += calculateDistance(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng);
+        }
+    }
+
+    let estimated = baseFare + (distanceKm * perKm) + (extraStopFee * extraStops);
+    estimated = Math.ceil(estimated / 100) * 100;
+
+    const maxDiscountPercent = (pricingConfig && typeof pricingConfig.maxDiscountPercent === 'number')
+        ? pricingConfig.maxDiscountPercent : 10;
+    const maxPriceSurgePercent = (pricingConfig && typeof pricingConfig.maxPriceSurgePercent === 'number')
+        ? pricingConfig.maxPriceSurgePercent : 100;
+
+    const minAllowed = pts.length >= 2
+        ? Math.max(minFloor, Math.ceil((estimated * (1 - (maxDiscountPercent / 100))) / 100) * 100)
+        : minFloor;
+    const maxAllowed = pts.length >= 2
+        ? Math.ceil((estimated * (1 + (maxPriceSurgePercent / 100))) / 100) * 100
+        : 1000000;
+
+    return { estimated, distanceKm, minAllowed, maxAllowed, maxDiscountPercent, maxPriceSurgePercent };
+}
+
 // 💰 أزرار رفع/تنزيل السعر بمقدار 100 ج.س
 const PRICE_STEP = 100;
 function stepPrice(direction) {
     const priceInput = document.getElementById('price');
     const current = parseInt(priceInput.value, 10) || 0;
+    const limits = getPriceLimits();
+
     // ثبّت القيمة على أقرب مضاعف لـ 100 ثم زِد/أنقص خطوة كاملة
     const snapped = Math.round(current / PRICE_STEP) * PRICE_STEP;
     let next = snapped + (direction * PRICE_STEP);
+
+    // إذا حاول العميل خفض السعر دون الحد الأدنى المسموح
+    if (direction < 0 && limits.estimated > 0 && next < limits.minAllowed) {
+        next = limits.minAllowed;
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: `أقل سعر مسموح: ${limits.minAllowed.toLocaleString()} ج.س (تخفيض ${limits.maxDiscountPercent}% كحد أقصى)`,
+                showConfirmButton: false,
+                timer: 2500
+            });
+        }
+    }
+
+    // إذا حاول العميل تجاوز السقف
+    if (direction > 0 && limits.estimated > 0 && next > limits.maxAllowed) {
+        next = limits.maxAllowed;
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: `أعلى سعر مسموح: ${limits.maxAllowed.toLocaleString()} ج.س`,
+                showConfirmButton: false,
+                timer: 2500
+            });
+        }
+    }
+
     if (next < 0) next = 0; // لا سعر سالب
 
     priceInput.value = next;
     isPriceManuallyEdited = true; // الأزرار تُعتبر تعديلاً يدوياً (لا يُعاد حسابه تلقائياً)
     priceInput.classList.remove('border-warning', 'border-2');
 
-    // وميض بصري + تعطيل زر النقص عند الصفر
+    // وميض بصري + تعطيل زر النقص عند الحد الأدنى
     priceInput.classList.remove('bumped');
     void priceInput.offsetWidth; // إعادة تشغيل الأنيميشن
     priceInput.classList.add('bumped');
-    document.getElementById('price-minus').disabled = (next <= 0);
+    const minusBtn = document.getElementById('price-minus');
+    if (minusBtn) minusBtn.disabled = (next <= (limits.estimated > 0 ? limits.minAllowed : 0));
 }
 
 const _priceMinus = document.getElementById('price-minus');
@@ -1085,27 +1153,19 @@ function calculatePrice() {
     const pts = _orderedCoords();
     if (pts.length < 2) return; // الاستلام والتسليم على الأقل
 
-    // 3. إجمالي المسافة عبر كل المراحل المتتالية
-    let distanceKm = 0;
-    for (let i = 1; i < pts.length; i++) {
-        distanceKm += calculateDistance(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng);
-    }
+    const limits = getPriceLimits();
+    const finalPrice = limits.estimated;
 
-    // 4. السعر — نفس معادلة النقطتين + رسم النقطة الإضافية (يحدده الأدمن)
-    const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
-    const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
-    const extraStopFee = (pricingConfig && pricingConfig.extraStopFee) || 0;
-    const extraStops = Math.max(0, pts.length - 2);
-
-    let finalPrice = baseFare + (distanceKm * perKm) + (extraStopFee * extraStops);
-
-    // Round to nearest 100 for clean numbers
-    finalPrice = Math.ceil(finalPrice / 100) * 100;
-
-    // 5. Update UI
+    // 3. Update UI
     const priceInput = document.getElementById('price');
     priceInput.value = finalPrice;
     priceInput.classList.add('border-warning', 'border-2');
+
+    // 4. Update hint if present
+    const priceHint = document.getElementById('price-hint');
+    if (priceHint) {
+        priceHint.innerHTML = `<i class="bi bi-info-circle"></i> السعر التقديري: <b>${finalPrice.toLocaleString()} ج.س</b> (أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>)`;
+    }
 }
 
 function previewImage(input) {
@@ -1177,7 +1237,8 @@ function validateOrder() {
     const dLat = document.getElementById('dropoff-lat').value;
     const pPhone = document.getElementById('pickup-phone').value;
     const dPhone = document.getElementById('dropoff-phone').value;
-    const price = document.getElementById('price').value;
+    const priceVal = document.getElementById('price').value;
+    const price = parseFloat(priceVal);
 
     const warn = (msg) => {
         Swal.fire({ icon: 'warning', text: msg, confirmButtonText: 'حسناً', confirmButtonColor: '#04553A' });
@@ -1192,7 +1253,16 @@ function validateOrder() {
     if (!dLat) return warn('يرجى تحديد وجهة التسليم من الخريطة');
     if (!isErrand && (!pPhone || pPhone.length < 10)) return warn('رقم هاتف المرسل غير صحيح');
     if (!dPhone || dPhone.length < 10) return warn('رقم هاتف المستلم غير صحيح');
-    if (!price || price <= 0) return warn('يرجى تحديد سعر العرض');
+    if (!priceVal || isNaN(price) || price <= 0) return warn('يرجى تحديد سعر العرض');
+
+    // 🛡️ فحص حدود السعر النسبي (الأرضية والسقف)
+    const limits = getPriceLimits();
+    if (limits.estimated > 0 && price < limits.minAllowed) {
+        return warn(`أقل سعر مسموح به لهذا المشوار هو ${limits.minAllowed.toLocaleString()} ج.س (الحد الأقصى للتخفيض المسموح به هو ${limits.maxDiscountPercent}% من تسعيرة التطبيق المقدرة بـ ${limits.estimated.toLocaleString()} ج.س)`);
+    }
+    if (limits.estimated > 0 && price > limits.maxAllowed) {
+        return warn(`أعلى سعر مسموح به لهذا المشوار هو ${limits.maxAllowed.toLocaleString()} ج.س`);
+    }
 
     // 🧭 تحقق من النقاط الإضافية — كل نقطة تحتاج موقعاً محدداً
     const extras = Array.from(document.querySelectorAll('#extraStopsList [data-stopid]'));

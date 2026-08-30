@@ -19,17 +19,20 @@
 
 
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-    <link rel="stylesheet" href="css/admin-dashboard.css?v=eac322b9">
+    <link rel="stylesheet" href="css/admin-dashboard.css?v=1cc69353">
     <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <script src="js/config.js?v=6706269c"></script>
-    <script src="js/admin-cache-buster.js?v=e06570f2"></script>
+    <script src="js/admin-cache-buster.js?v=63ce8988"></script>
     <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
     <script src="js/safe-area.js?v=176d6050"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=c04e8b17">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=5dce3f40">
-    <script src="js/admin-mobile.js?v=6ad27bdf"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=528468ec">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=b64daf8b"></script>
 </head>
 
 <body>
@@ -44,8 +47,8 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
                 <div class="logo"><i class="fas fa-crown"></i></div>
-                <h2>وَصِّلِي</h2>
-                <p id="adminName">المدير العام</p>
+                <h2>وَجِـيـز</h2>
+                <p id="adminName">لوحة الإدارة</p>
             </div>
 
             <nav class="sidebar-nav">
@@ -53,22 +56,22 @@
                 <button class="nav-item" onclick="location.href='admin.html'">
                     <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
                 </button>
-                <button class="nav-item active" onclick="scrollToSection('places')">
+                <button class="nav-item active" onclick="loadPlacesData()">
                     <i class="fas fa-store"></i><span>المحلات والتصنيفات</span>
                 </button>
 
                 <div class="nav-label">روابط سريعة</div>
-                <button class="nav-item" onclick="location.href='admin-complaints.html'">
-                    <i class="fas fa-flag"></i><span>الشكاوى</span>
+                <button class="nav-item" onclick="location.href='admin-merchant-requests.html'">
+                    <i class="fas fa-user-clock"></i><span>طلبات التجار</span>
                 </button>
-                <button class="nav-item" onclick="location.href='admin-zone-builder.html'">
-                    <i class="fas fa-draw-polygon"></i><span>مناطق التوصيل</span>
+                <button class="nav-item" onclick="location.href='admin-merchants-list.html'">
+                    <i class="fas fa-store"></i><span>لائحة التجار</span>
                 </button>
-                <button class="nav-item" onclick="location.href='admin-settings.html'">
-                    <i class="fas fa-sliders-h"></i><span>إعدادات التسعير</span>
+                <button class="nav-item" onclick="location.href='admin-settlements.html'">
+                    <i class="fas fa-hand-holding-usd"></i><span>تسويات التجار</span>
                 </button>
-                <button class="nav-item" onclick="location.href='admin-finance.html'" style="background:linear-gradient(135deg,rgba(10,135,84,0.15),rgba(6,163,102,0.1));border-right:3px solid var(--primary);">
-                    <i class="fas fa-wallet" style="color:var(--primary);"></i><span style="color:var(--primary);font-weight:700;">الإدارة المالية 💳</span>
+                <button class="nav-item" onclick="location.href='admin-finance.html'">
+                    <i class="fas fa-wallet"></i><span>الإدارة المالية</span>
                 </button>
             </nav>
 
@@ -90,23 +93,13 @@
                     <h1>إدارة المحلات والتصنيفات 🏪</h1>
                     <p>أضف وعدّل فروع المحلات والأقسام التجارية</p>
                 </div>
-                <div class="header-actions">
-                    <div class="dropdown">
-                        <button class="btn btn-light rounded-circle p-2 position-relative shadow-sm" type="button"
-                            data-bs-toggle="dropdown">
-                            <i class="fas fa-bell text-secondary"></i>
-                            <span
-                                class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0"
-                            style="border-radius:15px; font-size:14px;">
-                            <li>
-                                <h6 class="dropdown-header">الإشعارات</h6>
-                            </li>
-                            <li><a class="dropdown-item" href="#" onclick="scrollToSection('pendingCaptains')">طلبات
-                                    كباتن جديدة</a></li>
-                        </ul>
-                    </div>
+                <div class="header-actions d-flex align-items-center gap-2">
+                    <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                        <i class="fas fa-moon"></i>
+                    </button>
                 </div>
             </header>
 
@@ -862,8 +855,8 @@
 
     <script src="js/admin-places.js?v=ec2b34e1"></script>
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script type="module" src="js/app-core.js?v=71670a72"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
 
 </body>
 

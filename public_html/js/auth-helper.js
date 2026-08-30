@@ -219,7 +219,7 @@ const Auth = {
                 const data = await res.json();
                 if (data.token) {
                     localStorage.setItem(Auth.TOKEN_KEY, data.token);
-                    console.log('🔄 Token refreshed silently');
+                    
                 }
             }
         } catch (e) { /* Silent fail */ }

@@ -12,15 +12,17 @@
     --nav-height: calc(72px + var(--sab, env(safe-area-inset-bottom, 0px)));
 }
 
-/* 1. منع تحديد النصوص والصور (تجربة App-like) */
+/* 1. منع تحديد النصوص والصور (تجربة App-like) مع السماح بالتمرير العمودي */
 body {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
 
-    /* منع سحب الصفحة في iOS */
-    overscroll-behavior-y: none;
+    /* تفعيل التمرير العمودي باللمس */
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 
     /* استخدام كامل المساحة */
     padding-top: var(--sat);
@@ -98,11 +100,24 @@ body.map-active {
     pointer-events: auto !important;
 }
 
-/* 5. شريط الحالة (Status Bar) */
-/* يمكننا تلوينه لاحقاً عبر Capacitor، لكن هنا نضمن عدم تداخل المحتوى */
+/* 5. شريط الحالة (Status Bar & Fixed/Sticky Headers) */
 .navbar.fixed-top,
-.navbar.sticky-top {
-    padding-top: max(8px, var(--sat));
+.navbar.sticky-top,
+.topbar,
+.gv-topbar,
+.merchant-header,
+.page-header,
+.app-header,
+.conv-header,
+.header-gradient,
+.chat-header,
+.notif-header,
+.od-header,
+.map-header,
+.header,
+.top-bar,
+#navbar {
+    padding-top: calc(14px + var(--sat, env(safe-area-inset-top, 0px)));
 }
 
 /* 6. تحسينات الـ PWA (standalone mode) */

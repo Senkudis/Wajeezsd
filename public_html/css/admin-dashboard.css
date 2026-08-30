@@ -3,22 +3,22 @@
    ============================================ */
 
 :root {
-    --primary: #4361ee;
-    --primary-dark: #3a0ca3;
-    --primary-light: #4895ef;
-    --accent: #4cc9f0;
-    --success: #06d6a0;
-    --warning: #ffd166;
-    --danger: #ef476f;
-    --dark: #2b2d42;
-    --dark-2: #8d99ae;
-    --light: #f8f9fa;
+    --primary: #048c5b;
+    --primary-dark: #036943;
+    --primary-light: #10b981;
+    --accent: #f59e0b;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark: #0f172a;
+    --dark-2: #64748b;
+    --light: #f8fafc;
     --white: #ffffff;
     --sidebar-w: 280px;
-    --radius: 20px;
-    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.12);
+    --radius: 16px;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
     --font-fam: 'Cairo', sans-serif;
 }
 
@@ -251,17 +251,24 @@ body {
     }
 
     .top-header {
-        padding: 15px 20px;
+        padding: 8px 12px;
     }
-}
 
-.content-body {
-    padding: 30px;
-}
-
-@media (max-width: 767.98px) {
     .content-body {
-        padding: 20px 15px;
+        padding: 8px 10px !important;
+    }
+
+    .stat-card {
+        padding: 10px 12px !important;
+        border-radius: 10px !important;
+        gap: 10px !important;
+    }
+
+    .stat-icon {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 15px !important;
+        border-radius: 8px !important;
     }
 }
 
@@ -826,3 +833,64 @@ textarea.form-control {
     font-weight: 700;
     color: var(--dark-2);
 }
+
+/* ════════════════════════════════════════════════════════════
+   🌙 admin-dashboard.css — Dark Mode Variable Overrides
+   إعادة تعريف متغيرات :root للوضع الداكن لتشمل كل العناصر
+   ════════════════════════════════════════════════════════════ */
+body.dark-mode {
+    --dark: #f9fafb;
+    --dark-2: #9ca3af;
+    --white: #1f2937;
+    --light: #111827;
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode {
+    background: #111827 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode .sidebar {
+    background: #0f172a !important;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.5) !important;
+}
+
+body.dark-mode .top-header {
+    background: #1f2937 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+    border-bottom: 1px solid #374151 !important;
+}
+
+body.dark-mode .modal-box {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6) !important;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode .target-pill {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+    border-color: #374151 !important;
+}
+
+body.dark-mode .captain-card {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+body.dark-mode table.dataTable thead th {
+    background-color: #111827 !important;
+    color: #9ca3af !important;
+    border-color: #374151 !important;
+}

@@ -199,4 +199,7 @@ const NativeDialogs = {
 // تصدير للاستخدام العام
 window.NativeDialogs = NativeDialogs;
 
-export default NativeDialogs;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = NativeDialogs;
+}
+

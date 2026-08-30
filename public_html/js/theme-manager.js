@@ -44,14 +44,49 @@ const ThemeManager = {
     },
 
     /**
-     * إنشاء زر التبديل
+     * تحديث أيقونات أزرار الثيم في الصفحة
+     */
+    updateButtonIcon: function () {
+        const isDark = document.body.classList.contains('dark-mode');
+
+        // ☀️ أيقونة الشمس (للوضع الليلي للتحويل إلى النهاري)
+        const sunSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="theme-svg theme-sun"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+
+        // 🌙 أيقونة القمر النصفي / الهلال (للوضع النهاري للتحويل إلى الليلي)
+        const moonSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="theme-svg theme-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+
+        const iconHtml = isDark ? sunSvg : moonSvg;
+        const title = isDark ? 'تبديل للوضع النهاري ☀️' : 'تبديل للوضع الليلي 🌙';
+
+        const buttons = document.querySelectorAll('.theme-toggle, .header-theme-toggle, .gv-theme-btn, [data-theme-toggle]');
+        buttons.forEach(btn => {
+            btn.innerHTML = iconHtml;
+            btn.setAttribute('title', title);
+            btn.setAttribute('aria-label', title);
+        });
+    },
+
+    /**
+     * إنشاء زر التبديل العائم إذا لم يوجد زر في الترويسة أو الصفحة
      */
     createToggleButton: function () {
-        const button = document.createElement('button');
-        button.className = 'theme-toggle';
-        button.onclick = () => this.toggle();
-        button.title = 'تبديل الوضع الليلي';
-        document.body.appendChild(button);
+        // إذا كان بالصفحة زر مخصص في الترويسة أو في بطاقة الدخول لا ننشئ العائم لتفادي التداخل
+        const customToggle = document.querySelector('.header-theme-toggle, .gv-theme-btn, [data-theme-toggle]');
+        const floatingBtn = document.querySelector('.theme-toggle');
+
+        if (customToggle) {
+            if (floatingBtn) floatingBtn.remove();
+            this.updateButtonIcon();
+            return;
+        }
+
+        let button = floatingBtn;
+        if (!button) {
+            button = document.createElement('button');
+            button.className = 'theme-toggle';
+            button.onclick = () => this.toggle();
+            document.body.appendChild(button);
+        }
         this.updateButtonIcon();
     },
 
@@ -93,19 +128,6 @@ const ThemeManager = {
     },
 
     /**
-     * تحديث أيقونة الزر
-     */
-    updateButtonIcon: function () {
-        const button = document.querySelector('.theme-toggle');
-        if (!button) return;
-        if (document.body.classList.contains('dark-mode')) {
-            button.innerHTML = '<i class="bi bi-sun-fill"></i>';
-        } else {
-            button.innerHTML = '<i class="bi bi-moon-fill"></i>';
-        }
-    },
-
-    /**
      * التحقق من الوضع الحالي
      */
     isDarkMode: function () {
@@ -116,9 +138,20 @@ const ThemeManager = {
 // تصدير للاستخدام العام
 window.ThemeManager = ThemeManager;
 
-// تهيئة تلقائية عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', () => {
+// تهيئة تلقائية عند تحميل الصفحة أو DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => ThemeManager.init());
+} else {
     ThemeManager.init();
+}
+
+// ربط أي أزرار ثيم في الترويسة ديناميكياً
+document.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.header-theme-toggle, .gv-theme-btn, [data-theme-toggle]');
+    if (toggleBtn) {
+        e.preventDefault();
+        ThemeManager.toggle();
+    }
 });
 
 // دالة للتبديل من القائمة الجانبية

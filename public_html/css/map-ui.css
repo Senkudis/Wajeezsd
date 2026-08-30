@@ -1,0 +1,264 @@
+/*
+ * ════════════════════════════════════════════════════════════════
+ *  map-ui.css — شاشة تحديد الموقع على الخريطة
+ * ════════════════════════════════════════════════════════════════
+ *
+ *  تُستعمل في موضعين يؤدّيان الوظيفة نفسها:
+ *    • index.html      — تحديد الاستلام/التسليم لطلب التوصيل
+ *    • shop-detail.html — تحديد موقع التوصيل عند الطلب من متجر
+ *
+ *  كانتا نسختين متباعدتين من الشاشة نفسها: دبوسان مختلفان، وشريطان
+ *  علويان بلغتين، وبطاقتان بترتيبين. وأيّ إصلاح في إحداهما لا يصل
+ *  الأخرى — ولهذا صار المصدر واحداً.
+ *
+ *  ملاحظة للتعديل: الأصناف تبدأ بـ wj- ولا تعتمد على أي صنف من
+ *  Bootstrap، فيمكن نقل الشاشة لأي صفحة بلا تبعيات.
+ * ════════════════════════════════════════════════════════════════
+ */
+
+/* ══════════════════════════════════════════════════════════════
+   🗺️ شاشة تحديد الموقع — أهمّ شاشة في التطبيق
+   ──────────────────────────────────────────────────────────────
+   ثلاث علل كانت تحكم شكلها:
+   1. الدبوس يطفو بلا نقطة ارتكاز، فلا يعرف العميل أيّ بكسل
+      اختاره بالضبط — وهذا كلّ ما تفعله الشاشة.
+   2. لا استجابة للحركة إطلاقاً: تسحب الخريطة فلا شيء يتحرّك،
+      فتبدو صورةً لا أداة.
+   3. أسفل الشاشة تدرّجٌ عارٍ يطفو فوقه نصّ 12.5px — وهو نصّ
+      التأكيد الذي يُبنى عليه الطلب كلّه.
+   والذهب (--gold) — «لمسة وجيز» بنصّ style.css — لم يكن له أثر
+   في الشاشة الأهمّ.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+    --wj-ease: cubic-bezier(.22, 1, .36, 1);
+    --wj-gold: #BF8B1F;
+    --wj-green: #04553A;
+}
+
+/* ── الدبوس: جسمٌ يرتفع + ظلٌّ وأثرٌ ذهبي على نقطة الاختيار ── */
+.wj-pin {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* الأثر الأرضي = النقطة المختارة بالضبط. وجوده وحده يحسم
+   السؤال «أين سيصل الكابتن؟» */
+.wj-pin-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--wj-gold);
+    box-shadow: 0 0 0 2.5px rgba(191, 139, 31, .3);
+    transition: transform .3s var(--wj-ease), box-shadow .3s var(--wj-ease);
+}
+
+.wj-pin-shadow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    width: 26px;
+    height: 9px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .22);
+    filter: blur(2px);
+    transition: transform .3s var(--wj-ease), opacity .3s var(--wj-ease);
+}
+
+.wj-pin-body {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    /* طرف الدبوس على النقطة تماماً وقت السكون */
+    transform: translate(-50%, 0);
+    transform-origin: 50% 100%;
+    transition: transform .3s var(--wj-ease);
+    filter: drop-shadow(0 4px 7px rgba(0, 0, 0, .28));
+}
+
+/* أثناء السحب: يرتفع الدبوس ويتقلّص ظلّه — إيحاء العمق نفسه
+   الذي تستعمله كل خرائط الاختيار، وهو ما يجعل الحركة «تُحسّ». */
+#static-map-container.is-dragging .wj-pin-body {
+    transform: translate(-50%, -20px);
+}
+
+#static-map-container.is-dragging .wj-pin-shadow {
+    transform: translate(-50%, -50%) scale(.6);
+    opacity: .45;
+}
+
+#static-map-container.is-dragging .wj-pin-dot {
+    transform: translate(-50%, -50%) scale(.75);
+    box-shadow: 0 0 0 5px rgba(191, 139, 31, .18);
+}
+
+/* ── شريط علوي موحّد: ارتفاع واحد ونصف قطر واحد وظلّ واحد ── */
+.wj-chip {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 15px;
+    border: none;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, .16);
+    font-family: 'Cairo', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--wj-green);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform .16s var(--wj-ease);
+}
+
+.wj-chip:active { transform: scale(.95); }
+
+.wj-chip-icon {
+    width: 42px;
+    padding: 0;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex: none;
+}
+
+/* ⚠️ على شاشة 320px كان الصفّ يفيض 7px خارجها: زرّ + «حدد موقع
+   الاستلام» + اسم مدينة طويل («الخرطوم (أم درمان)») لا تتّسع لها
+   288px المتاحة. الشريحتان النصّيتان تنكمشان الآن وتُقصّان بثلاث
+   نقاط بدل أن تدفع إحداهما الأخرى خارج الشاشة. */
+#map-mode-label,
+.wj-chip-city {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#map-mode-label,
+.wj-chip-city > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* نقطة ذهبية تسبق اسم المدينة — لمسة الهوية حيث تُقرأ */
+.wj-chip-city::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--wj-gold);
+    flex: none;
+}
+
+/* ── البطاقة السفلية: سطحٌ حقيقي بدل تدرّجٍ عارٍ ── */
+.wj-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -6px 28px rgba(0, 0, 0, .14);
+    padding: 14px 16px calc(14px + var(--sab, env(safe-area-inset-bottom, 0px)));
+    pointer-events: auto;
+}
+
+.wj-sheet-grip {
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    margin: 0 auto 12px;
+}
+
+.wj-addr {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+    min-height: 42px;
+}
+
+.wj-addr-ico {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(4, 85, 58, .09);
+    color: var(--wj-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex: none;
+}
+
+.wj-addr-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #94a3b8;
+    margin-bottom: 1px;
+}
+
+/* النصّ الذي يُبنى عليه الطلب — 14.5px لا 12.5px */
+#map-address-preview {
+    font-family: 'Cairo', sans-serif;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.55;
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+#map-address-preview i { color: var(--wj-green); }
+
+/* أثناء حلّ العنوان: وميضٌ خفيف بدل نصٍّ رماديّ ساكن */
+.wj-sheet.is-resolving #map-address-preview {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.wj-confirm {
+    width: 100%;
+    height: 56px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--wj-green), #0a8754);
+    color: #fff;
+    font-family: 'Cairo', sans-serif;
+    font-size: 16.5px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(4, 85, 58, .32);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform .16s var(--wj-ease), box-shadow .2s var(--wj-ease);
+}
+
+.wj-confirm:active {
+    transform: scale(.975);
+    box-shadow: 0 3px 10px rgba(4, 85, 58, .3);
+}
+
+/* ── حلقة تركيز خضراء لحقل البحث ── */
+#map-search-input {
+    transition: box-shadow .2s var(--wj-ease);
+}
+
+#map-search-input:focus {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .12), 0 0 0 2.5px rgba(4, 85, 58, .55);
+}

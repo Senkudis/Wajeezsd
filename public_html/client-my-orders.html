@@ -25,7 +25,7 @@
 
     <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=3dc00ed1">
-    <link rel="stylesheet" href="css/dark-mode.css?v=e5ed27be">
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/splash.css?v=83fac690">
 
@@ -37,93 +37,237 @@
     <style>
         :root {
             --primary: #048c5b;
-            --primary-gradient: #0A6E47;
+            --primary-dark: #02472d;
+            --primary-light: #e6f7f0;
+            --primary-gradient: linear-gradient(135deg, #023a27 0%, #048c5b 55%, #0ea5e9 100%);
             --accent: #f59e0b;
+            --accent-light: #fffbeb;
+            --bg-page: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --radius-lg: 20px;
+            --radius-md: 14px;
         }
 
-        /* ═══ 🗂️ شريط فلاتر الطلبات ═══════════════════════════
-           لاصقٌ أسفل الترويسة: مع عشرين طلباً كان الوصول لطلبٍ بعينه
-           يعني تمريراً بآلاف البكسلات، والشريط الثابت يُغني عن ذلك. */
-        .orders-filterbar {
-            position: sticky; top: 0; z-index: 20;
-            display: flex; gap: 7px; overflow-x: auto;
-            padding: 10px 14px; margin-bottom: 2px;
-            background: rgba(248, 250, 252, 0.96);
+        body {
+            background-color: var(--bg-page);
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+            color: var(--text-main);
+            padding-bottom: 90px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ═══ 🌟 الترويسة العلوية الفاخرة (App Header) ════════════════════ */
+        .app-header {
+            background: linear-gradient(135deg, #022c1e 0%, #04553A 55%, #048c5b 100%);
+            position: relative;
+            padding: 16px 0 20px;
+            border-radius: 0 0 24px 24px;
+            box-shadow: 0 12px 30px rgba(4, 85, 58, 0.22);
+            overflow: hidden;
+        }
+        .app-header::before {
+            content: '';
+            position: absolute;
+            top: -40px; right: -40px;
+            width: 140px; height: 140px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .app-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30px; left: 10%;
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .header-brand-badge {
+            width: 44px; height: 44px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
-            border-bottom: 1px solid #e9eef5;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .live-status-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            padding: 2px 9px; border-radius: 50px;
+            font-size: 10.5px; font-weight: 700; color: #e0f2fe;
+            margin-top: 3px;
+        }
+        .live-status-pill .pulse-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #38bdf8;
+            box-shadow: 0 0 8px #38bdf8;
+            animation: pulseDot 1.5s infinite;
+        }
+        @keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } }
+
+        /* ═══ 🗂️ شريط الفلاتر التفاعلي اللاصق (Orders Filterbar) ════════ */
+        .orders-filterbar {
+            position: sticky; top: 0; z-index: 30;
+            display: flex; gap: 8px; overflow-x: auto;
+            padding: 12px 16px; margin-bottom: 6px;
+            background: rgba(248, 250, 252, 0.92);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
             scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
         }
         .orders-filterbar::-webkit-scrollbar { display: none; }
         .of-tab {
-            flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
-            padding: 7px 14px; border-radius: 99px; cursor: pointer;
-            background: #fff; border: 1px solid #e2e8f0;
-            font-size: 12.5px; font-weight: 700; color: #64748b;
-            white-space: nowrap; transition: all .15s;
+            flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px;
+            padding: 8px 16px; border-radius: 50px; cursor: pointer;
+            background: #ffffff; border: 1.5px solid #e2e8f0;
+            font-size: 13px; font-weight: 700; color: #64748b;
+            white-space: nowrap; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
-        .of-tab:active { transform: scale(0.96); }
+        .of-tab i { font-size: 14px; opacity: 0.8; }
+        .of-tab:active { transform: scale(0.95); }
         .of-tab.active {
-            background: var(--primary); border-color: var(--primary); color: #fff;
-            box-shadow: 0 3px 10px rgba(4, 140, 91, 0.28);
+            background: var(--primary-gradient);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 6px 18px rgba(4, 140, 91, 0.32);
         }
+        .of-tab.active i { opacity: 1; }
         .of-tab .cnt {
-            background: #f1f5f9; color: #64748b; border-radius: 99px;
-            font-size: 10.5px; font-weight: 800; padding: 1px 7px; min-width: 20px; text-align: center;
+            background: #f1f5f9; color: #475569; border-radius: 50px;
+            font-size: 11px; font-weight: 800; padding: 2px 8px; min-width: 22px; text-align: center;
+            transition: all 0.2s;
         }
-        .of-tab.active .cnt { background: rgba(255,255,255,0.25); color: #fff; }
+        .of-tab.active .cnt { background: rgba(255,255,255,0.22); color: #ffffff; }
 
-        /* ═══ 📤 زر رفع الإشعار — بديل input[type=file] الخام ═══ */
-        .upload-receipt-btn {
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            width: 100%; padding: 11px 14px; margin-bottom: 8px;
-            border: 2px dashed var(--primary); border-radius: 12px;
-            background: rgba(4, 140, 91, 0.06); color: var(--primary);
-            font-weight: 800; font-size: 13.5px; cursor: pointer;
-            transition: background .15s, transform .12s;
+        /* ═══ 🚀 بطاقات الطلبات الحديثة (Compact & Luxurious Cards) ═══════ */
+        #orders-list { gap: 14px !important; }
+        .o-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.02);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            position: relative;
         }
-        .upload-receipt-btn:active { transform: scale(0.98); background: rgba(4, 140, 91, 0.12); }
-        .upload-receipt-btn i { font-size: 17px; }
-
-        /* ═══ 📱 ضغط البطاقات على الهاتف ═══════════════════════
-           بطاقةٌ واحدة كانت تبلغ ٨٤٢ بكسل — أطول من الشاشة كاملة، فلا يرى
-           العميل طلبين معاً أبداً. الصفحة كانت بلا أي @media إطلاقاً. */
-        @media (max-width: 576px) {
-            .container.pt-3 { padding-left: 12px !important; padding-right: 12px !important; }
-            #orders-list { gap: 10px !important; }
-            #orders-list .card { border-radius: 14px !important; }
-            #orders-list .card-body,
-            #orders-list .p-3 { padding: 11px !important; }
-            #orders-list .mb-3 { margin-bottom: 9px !important; }
-            #orders-list .fs-5 { font-size: 0.95rem !important; }
-            #orders-list .btn { font-size: 12.5px !important; padding: 8px 12px !important; }
-
-            /* لوحة البحث عن كابتن: أطول كتلة في البطاقة */
-            .searching-panel { padding: 11px 10px !important; }
-            .radar { width: 46px !important; height: 46px !important; margin-bottom: 6px !important; }
-            .radar .radar-core { width: 30px !important; height: 30px !important; font-size: 14px !important; }
-            @keyframes radarPulse {
-                0%   { width: 16px; height: 16px; opacity: 0.9; }
-                100% { width: 46px; height: 46px; opacity: 0; }
-            }
-            .searching-title { font-size: 13px !important; }
-            .searching-sub { font-size: 10.5px !important; line-height: 1.5 !important; }
+        .o-card:active { transform: scale(0.995); }
+        
+        .o-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 13px 16px 10px;
+            border-bottom: 1px dashed #f1f5f9;
         }
-        /* ───── 🔍 لوحة البحث عن كابتن (حالة الانتظار) ───── */
+        .o-status {
+            font-size: 12px; font-weight: 800; padding: 5px 13px; border-radius: 50px;
+            display: inline-flex; align-items: center; gap: 6px;
+            letter-spacing: 0.2px;
+        }
+        .o-status .status-dot {
+            width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+        }
+        .o-id {
+            font-size: 11.5px; font-weight: 800; color: #94a3b8;
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            padding: 3px 10px; border-radius: 50px;
+            direction: ltr; letter-spacing: 0.5px; font-family: monospace;
+        }
+        
+        .o-body { padding: 12px 16px 14px; }
+        
+        /* 📍 خريطة ومسار التوصيل (Route Container) */
+        .o-route {
+            background: #f8fafc; border: 1px solid #f1f5f9;
+            border-radius: var(--radius-md); padding: 12px 14px;
+            position: relative;
+        }
+        .o-route-row {
+            display: flex; align-items: center; gap: 10px; font-size: 13px; min-width: 0;
+            position: relative; z-index: 2;
+        }
+        .o-route-node {
+            width: 22px; height: 22px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; flex-shrink: 0; font-weight: 800;
+        }
+        .o-route-node.from { background: #e6f7f0; color: #048c5b; border: 2px solid #048c5b; }
+        .o-route-node.to { background: #fef2f2; color: #ef4444; border: 2px solid #ef4444; }
+        .o-route-lbl { color: #94a3b8; font-weight: 700; font-size: 11.5px; margin-left: 4px; }
+        .o-route-txt {
+            font-weight: 700; color: #1e293b;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+            flex: 1;
+        }
+        .o-route-connector {
+            width: 2px; height: 16px;
+            background: linear-gradient(180deg, #048c5b 0%, #ef4444 100%);
+            margin: 2px 0 2px 10px; border-radius: 2px; opacity: 0.7;
+        }
+
+        /* ⏱️ ETA + الخط الزمني المصغّر */
+        .o-eta {
+            display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;
+            background: linear-gradient(135deg, #048c5b, #0d9488); color: #ffffff;
+            border-radius: 12px; padding: 8px 14px; font-size: 13px; font-weight: 800;
+            box-shadow: 0 4px 14px rgba(4, 140, 91, 0.2);
+        }
+        .o-eta i { font-size: 15px; animation: spinClock 4s linear infinite; }
+        @keyframes spinClock { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .o-timeline { display: flex; margin-top: 12px; padding: 0 4px; }
+        .o-tl-step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .o-tl-step:not(:last-child)::after {
+            content: ''; position: absolute; top: 10px; left: calc(50% + 12px); right: calc(-50% + 12px);
+            height: 2.5px; background: #e2e8f0; border-radius: 2px;
+        }
+        .o-tl-step.done:not(:last-child)::after { background: #10b981; }
+        .o-tl-dot {
+            width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cbd5e1; background: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 11px; color: #94a3b8;
+            z-index: 1; transition: all 0.2s ease;
+        }
+        .o-tl-step.done .o-tl-dot { background: #10b981; border-color: #10b981; color: #ffffff; }
+        .o-tl-step.active .o-tl-dot { background: var(--primary); border-color: var(--primary); color: #ffffff; box-shadow: 0 0 10px rgba(4,140,91,0.5); }
+        .o-tl-step.cancelled .o-tl-dot { background: #ef4444; border-color: #ef4444; color: #ffffff; }
+        .o-tl-lbl { font-size: 10px; font-weight: 700; color: #64748b; margin-top: 4px; text-align: center; }
+        .o-tl-step.done .o-tl-lbl, .o-tl-step.active .o-tl-lbl { color: var(--primary); font-weight: 800; }
+        .o-tl-time { font-size: 9px; font-weight: 700; color: #94a3b8; margin-top: 1px; min-height: 11px; }
+
+        /* 💰 ملخص التكلفة والأسعار */
+        .o-cost { margin-top: 12px; border-top: 1px dashed #e2e8f0; padding-top: 10px; }
+        .o-cost-main { display: flex; justify-content: space-between; align-items: center; }
+        .o-cost-main > span:first-child { font-size: 13px; color: #64748b; font-weight: 700; }
+        .o-cost-total { font-size: 17px; font-weight: 900; color: var(--primary); }
+        .o-cost-sub { display: flex; justify-content: space-between; font-size: 11.5px; color: #94a3b8; margin-top: 4px; }
+        
+        .o-actions { margin-top: 12px; }
+        .o-actions .btn { font-size: 13px; border-radius: 50px; font-weight: 800; padding: 10px 16px; }
+
+        /* 🔍 لوحة الرادار المضيئة — "جاري البحث عن كابتن" */
         .searching-panel {
-            background: linear-gradient(135deg, #064e3b, var(--primary));
-            border-radius: 16px; padding: 15px 14px; color: #fff;
+            background: linear-gradient(135deg, #022c1e 0%, #048c5b 100%);
+            border-radius: var(--radius-md); padding: 18px 16px; color: #ffffff;
             text-align: center; position: relative; overflow: hidden;
+            box-shadow: 0 8px 24px rgba(4, 140, 91, 0.25);
         }
         .searching-panel::before {
             content: ''; position: absolute; inset: 0;
-            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.18), transparent 60%);
+            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.22), transparent 70%);
             pointer-events: none;
         }
-        /* 🏬 نسخة "بانتظار موافقة المتجر" — لون كهرماني لتمييزها عن بحث الكابتن */
-        .searching-panel--merchant { background: linear-gradient(135deg, #92400e, #b45309); }
-        .searching-panel--merchant .radar-core { color: #b45309; }
+        .searching-panel--merchant { background: linear-gradient(135deg, #78350f 0%, #d97706 100%); box-shadow: 0 8px 24px rgba(217, 119, 6, 0.25); }
+        
         .radar {
-            position: relative; width: 64px; height: 64px; margin: 2px auto 10px;
+            position: relative; width: 60px; height: 60px; margin: 2px auto 12px;
             display: flex; align-items: center; justify-content: center;
         }
         .radar .ring {
@@ -134,146 +278,98 @@
         .radar .ring:nth-child(2) { animation-delay: 0.7s; }
         .radar .ring:nth-child(3) { animation-delay: 1.4s; }
         @keyframes radarPulse {
-            0%   { width: 20px; height: 20px; opacity: 0.9; }
-            100% { width: 64px; height: 64px; opacity: 0; }
+            0%   { width: 18px; height: 18px; opacity: 0.9; }
+            100% { width: 60px; height: 60px; opacity: 0; }
         }
         .radar .radar-core {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: rgba(255,255,255,0.95); color: var(--primary);
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #ffffff; color: var(--primary);
             display: flex; align-items: center; justify-content: center;
-            font-size: 17px; z-index: 2; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            font-size: 18px; z-index: 2; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
         }
-        .searching-title { font-weight: 800; font-size: 14.5px; margin-bottom: 3px; }
-        .searching-sub { font-size: 11.5px; opacity: 0.92; line-height: 1.6; }
-        .typing-dots span {
-            display: inline-block; width: 6px; height: 6px; margin: 0 2px;
-            background: #fff; border-radius: 50%; opacity: 0.5;
-            animation: typingDot 1.2s infinite;
-        }
-        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typingDot { 0%,60%,100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-4px); } }
-        .searching-progress {
-            height: 4px; border-radius: 99px; background: rgba(255,255,255,0.25);
-            overflow: hidden; margin: 10px 8px 2px;
-        }
-        .searching-progress::after {
-            content: ''; display: block; height: 100%; width: 40%;
-            background: rgba(255,255,255,0.95); border-radius: 99px;
-            animation: progressSlide 1.6s ease-in-out infinite;
-        }
-        @keyframes progressSlide {
-            0% { transform: translateX(-120%); }
-            100% { transform: translateX(320%); }
-        }
+        .searching-panel--merchant .radar-core { color: #d97706; }
+        .searching-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
+        .searching-sub { font-size: 12px; opacity: 0.92; line-height: 1.6; }
 
-        /* ───── 💬 بطاقات عروض الكباتن ───── */
+        /* 💬 بطاقات عروض التفاوض (Captain Offers) */
         .offers-header {
-            font-weight: 800; font-size: 14px; color: var(--primary);
-            display: flex; align-items: center; gap: 6px; margin: 4px 2px 10px;
+            font-weight: 800; font-size: 13.5px; color: var(--primary);
+            display: flex; align-items: center; gap: 7px; margin: 6px 2px 12px;
         }
         .offers-header .badge-count {
-            background: var(--primary); color: #fff; border-radius: 99px;
+            background: var(--primary); color: #ffffff; border-radius: 50px;
             font-size: 11px; padding: 2px 9px; font-weight: 800;
         }
         .offer-card {
-            background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
-            padding: 12px; margin-bottom: 10px; box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+            background: #ffffff; border: 1.5px solid rgba(4, 140, 91, 0.22);
+            border-radius: 16px; padding: 14px; margin-bottom: 10px;
+            box-shadow: 0 6px 18px rgba(4, 140, 91, 0.08);
             animation: offerIn 0.35s ease both;
         }
-        @keyframes offerIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .offer-top { display: flex; align-items: center; gap: 10px; }
+        @keyframes offerIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .offer-top { display: flex; align-items: center; gap: 12px; }
         .offer-avatar {
-            width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
-            background: linear-gradient(135deg, var(--primary), #25d366); color: #fff;
+            width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--primary), #10b981); color: #ffffff;
             display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 18px; background-size: cover; background-position: center;
+            font-weight: 800; font-size: 19px; background-size: cover; background-position: center;
+            box-shadow: 0 4px 10px rgba(4,140,91,0.25);
+            border: 2px solid #ffffff;
         }
-        .offer-name { font-weight: 800; font-size: 14px; color: #1f2937; line-height: 1.2; }
-        .offer-meta { font-size: 11.5px; color: #6b7280; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+        .offer-name { font-weight: 800; font-size: 14.5px; color: #0f172a; line-height: 1.2; }
+        .offer-meta { font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-top: 3px; }
         .offer-meta .star { color: #f59e0b; }
-        .offer-price-box { text-align: center; flex-shrink: 0; }
-        .offer-price-box .lbl { font-size: 10px; color: #9ca3af; font-weight: 700; }
-        .offer-price-box .val { font-size: 18px; font-weight: 800; color: var(--primary); line-height: 1; }
-        .offer-countdown {
-            font-size: 11px; font-weight: 700; color: #b45309;
-            background: #fffbeb; border-radius: 99px; padding: 2px 9px;
-            display: inline-flex; align-items: center; gap: 4px;
+        .offer-price-box {
+            text-align: center; flex-shrink: 0;
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            padding: 6px 12px; border-radius: 12px;
         }
-        .offer-actions { display: flex; gap: 8px; margin-top: 11px; }
-        .offer-actions .btn { border-radius: 99px; font-weight: 800; font-size: 13px; padding: 7px; }
+        .offer-price-box .lbl { font-size: 10px; color: #166534; font-weight: 700; }
+        .offer-price-box .val { font-size: 19px; font-weight: 900; color: #16a34a; line-height: 1; }
 
-        /* ───── بطاقة الطلب المدمجة (تصميم أنظف وأصغر) ───── */
-        #orders-list { gap: 12px !important; }
-        .o-card {
-            background: #fff; border: 1px solid #eef1f4; border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(15,23,42,0.05); overflow: hidden;
+        /* 📤 زر رفع صورة إشعار الدفع الفاخر */
+        .upload-receipt-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 12px 16px; margin-bottom: 8px;
+            border: 2px dashed var(--primary); border-radius: var(--radius-md);
+            background: rgba(4, 140, 91, 0.05); color: var(--primary);
+            font-weight: 800; font-size: 13.5px; cursor: pointer;
+            transition: all 0.2s ease;
         }
-        body.dark-mode .o-card { background: #1e293b; border-color: #334155; }
-        .o-head {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 11px 14px 8px;
+        .upload-receipt-btn:active { transform: scale(0.98); background: rgba(4, 140, 91, 0.12); }
+        .upload-receipt-btn i { font-size: 18px; }
+
+        /* 🌙 Dark Mode Override Styles ═════════════════════════════════════ */
+        body.dark-mode {
+            background-color: #0b1329;
+            color: #f8fafc;
         }
-        .o-status { font-size: 11.5px; font-weight: 800; padding: 5px 11px; border-radius: 99px; }
-        .o-id { font-size: 11px; font-weight: 700; color: #94a3b8; direction: ltr; letter-spacing: .4px; }
-        .o-body { padding: 0 14px 12px; }
-        .o-route {
-            background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 9px 11px;
+        body.dark-mode .orders-filterbar {
+            background: rgba(15, 23, 42, 0.92);
+            border-bottom-color: rgba(51, 65, 85, 0.8);
         }
+        body.dark-mode .of-tab {
+            background: #1e293b; border-color: #334155; color: #94a3b8;
+        }
+        body.dark-mode .of-tab.active {
+            background: var(--primary-gradient); color: #ffffff;
+        }
+        body.dark-mode .of-tab .cnt { background: #0f172a; color: #94a3b8; }
+        body.dark-mode .o-card {
+            background: #1e293b; border-color: #334155;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        body.dark-mode .o-head { border-bottom-color: #334155; }
+        body.dark-mode .o-id { background: #0f172a; border-color: #334155; color: #94a3b8; }
         body.dark-mode .o-route { background: #0f172a; border-color: #334155; }
-
-        /* ⏱️ ETA + الخط الزمني المصغّر داخل بطاقة الطلب */
-        .o-eta {
-            display: flex; align-items: center; gap: 6px; margin-top: 8px;
-            background: linear-gradient(135deg,var(--primary),#0a7a54); color: #fff;
-            border-radius: 10px; padding: 7px 11px; font-size: 12.5px; font-weight: 800;
-        }
-        .o-timeline { display: flex; margin-top: 10px; }
-        .o-tl-step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .o-tl-step:not(:last-child)::after {
-            content: ''; position: absolute; top: 9px; left: calc(50% + 10px); right: calc(-50% + 10px);
-            height: 2px; background: #e2e8f0;
-        }
-        .o-tl-step.done:not(:last-child)::after { background: #22c55e; }
-        .o-tl-dot {
-            width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e2e8f0; background: #fff;
-            display: flex; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8;
-            z-index: 1;
-        }
-        .o-tl-step.done .o-tl-dot { background: #22c55e; border-color: #22c55e; color: #fff; }
-        .o-tl-step.active .o-tl-dot { background: var(--primary); border-color: var(--primary); color: #fff; }
-        .o-tl-step.cancelled .o-tl-dot { background: #ef4444; border-color: #ef4444; color: #fff; }
-        .o-tl-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; margin-top: 3px; text-align: center; }
-        .o-tl-step.done .o-tl-lbl, .o-tl-step.active .o-tl-lbl { color: var(--primary); }
-        .o-tl-time { font-size: 8.5px; font-weight: 700; color: #94a3b8; min-height: 10px; }
-        body.dark-mode .o-tl-lbl, body.dark-mode .o-tl-time { color: #64748b; }
-        .o-route-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; min-width: 0; }
-        .o-route-row i { font-size: 13px; flex-shrink: 0; }
-        .o-ic-from { color: var(--primary); }
-        .o-ic-to { color: #ef4444; }
-        .o-route-lbl { color: #94a3b8; font-weight: 700; margin-left: 3px; }
-        .o-route-txt {
-            font-weight: 700; color: #1f2937;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
-        }
-        body.dark-mode .o-route-txt { color: #e2e8f0; }
-        .o-route-connector { width: 1.5px; height: 11px; background: #cbd5e1; margin: 2px 0 2px 6px; }
-        .o-detail {
-            font-size: 12.5px; color: #334155; margin-top: 8px; line-height: 1.5;
-            background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 8px 11px;
-        }
-        body.dark-mode .o-detail { background: #0f172a; border-color: #334155; color: #cbd5e1; }
-        .o-detail-lbl { color: #94a3b8; font-weight: 700; }
-        .o-cost { margin-top: 9px; border-top: 1px dashed #e2e8f0; padding-top: 9px; }
-        body.dark-mode .o-cost { border-color: #334155; }
-        .o-cost-main { display: flex; justify-content: space-between; align-items: center; }
-        .o-cost-main > span:first-child { font-size: 12.5px; color: #64748b; font-weight: 700; }
-        .o-cost-total { font-size: 16px; font-weight: 800; color: var(--primary); }
+        body.dark-mode .o-route-txt { color: #f1f5f9; }
+        body.dark-mode .o-cost { border-top-color: #334155; }
         body.dark-mode .o-cost-total { color: #34d399; }
-        .o-cost-sub { display: flex; justify-content: space-between; font-size: 11.5px; color: #94a3b8; margin-top: 4px; }
-        .o-actions { margin-top: 10px; }
-        .o-actions .btn { font-size: 13px; }
-        .o-actions:empty { display: none; margin-top: 0; }
+        body.dark-mode .offer-card { background: #1e293b; border-color: #334155; }
+        body.dark-mode .offer-name { color: #f8fafc; }
+        body.dark-mode .offer-price-box { background: #064e3b; border-color: #047857; }
+        body.dark-mode .offer-price-box .lbl { color: #a7f3d0; }
+        body.dark-mode .offer-price-box .val { color: #34d399; }
     </style>
     <script src="js/safe-area.js?v=176d6050"></script>
 </head>
@@ -296,44 +392,56 @@
     <script>window.addEventListener('DOMContentLoaded', () => { const s = document.getElementById('appSplash'); if (s) { setTimeout(() => { s.classList.add('loaded'); sessionStorage.setItem('splashShown', '1') }, 800) } });</script>
 
     <div class="app-header">
-        <div class="container pt-2">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="container pt-1">
+            <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="bg-transparent border-0 shadow-none p-0">
-                        <i class="bi bi-box2-fill text-white" style="font-size: 1.5rem;"></i>
+                    <div class="header-brand-badge">
+                        <i class="bi bi-box-seam-fill text-white" style="font-size: 1.4rem;"></i>
                     </div>
                     <div>
                         <h2 class="h5 fw-bold mb-0 text-white">سجل طلباتي</h2>
-                        <p class="small text-white-50 mb-0">متابعة حالة الطلبات</p>
+                        <div class="live-status-pill">
+                            <span class="pulse-dot"></span>
+                            <span>متابعة حالة الطلبات مباشرة</span>
+                        </div>
                     </div>
                 </div>
-                <img src="logo-mark-white.png" alt="وجيز" style="height:44px;width:auto;object-fit:contain;">
+                <img src="logo-mark-white.png" alt="وجيز" style="height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
             </div>
         </div>
     </div>
 
-    <!-- 🗂️ فلاتر الطلبات — ٥ طلبات كانت تعني ٢٣٧٩ بكسل تمرير بلا أي وسيلة
-         للوصول إلى طلبٍ بعينه. الشريط لاصق فيبقى في المتناول أثناء التمرير. -->
+    <!-- 🗂️ فلاتر الطلبات التفاعلية -->
     <div class="orders-filterbar" id="ordersFilterBar"></div>
 
     <div class="container pt-3">
         <div id="orders-list" class="d-flex flex-column gap-3">
-            <div class="skeleton-card skeleton">
-                <div class="skeleton-avatar skeleton"></div>
-                <div class="skeleton-card-body">
-                    <div class="skeleton-title skeleton"></div>
-                    <div class="skeleton-text skeleton"></div>
-                    <div class="skeleton-text skeleton" style="width: 80%"></div>
-                    <div class="skeleton-btn skeleton mt-2"></div>
+            <div class="o-card p-3 border-0 mb-2" style="background:#fff;border-radius:20px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="skeleton-text skeleton" style="width:100px;height:24px;border-radius:50px;"></div>
+                    <div class="skeleton-text skeleton" style="width:65px;height:20px;border-radius:50px;"></div>
+                </div>
+                <div class="p-3 mb-3" style="background:#f8fafc;border-radius:14px;">
+                    <div class="skeleton-text skeleton mb-2" style="width:70%;height:16px;"></div>
+                    <div class="skeleton-text skeleton" style="width:85%;height:16px;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="skeleton-text skeleton" style="width:80px;height:18px;"></div>
+                    <div class="skeleton-text skeleton" style="width:70px;height:22px;"></div>
                 </div>
             </div>
-            <div class="skeleton-card skeleton">
-                <div class="skeleton-avatar skeleton"></div>
-                <div class="skeleton-card-body">
-                    <div class="skeleton-title skeleton"></div>
-                    <div class="skeleton-text skeleton"></div>
-                    <div class="skeleton-text skeleton" style="width: 80%"></div>
-                    <div class="skeleton-btn skeleton mt-2"></div>
+            <div class="o-card p-3 border-0 mb-2" style="background:#fff;border-radius:20px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="skeleton-text skeleton" style="width:100px;height:24px;border-radius:50px;"></div>
+                    <div class="skeleton-text skeleton" style="width:65px;height:20px;border-radius:50px;"></div>
+                </div>
+                <div class="p-3 mb-3" style="background:#f8fafc;border-radius:14px;">
+                    <div class="skeleton-text skeleton mb-2" style="width:70%;height:16px;"></div>
+                    <div class="skeleton-text skeleton" style="width:85%;height:16px;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="skeleton-text skeleton" style="width:80px;height:18px;"></div>
+                    <div class="skeleton-text skeleton" style="width:70px;height:22px;"></div>
                 </div>
             </div>
         </div>
@@ -546,15 +654,25 @@
             }[s] || s);
 
             const getStatusBadge = (s) => ({
-                'chat_initiated': 'bg-info text-dark',
-                'pending': 'bg-warning text-dark',
-                'scheduled': 'bg-primary',
-                'negotiating': 'bg-info text-dark',
-                'accepted': 'bg-primary',
-                'picked_up': 'bg-info text-dark',
-                'delivered': 'bg-success',
-                'cancelled': 'bg-danger'
-            }[s] || 'bg-secondary');
+                'chat_initiated': 'style="background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;"',
+                'pending': 'style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;"',
+                'scheduled': 'style="background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;"',
+                'negotiating': 'style="background:#e0f2fe;color:#0284c7;border:1px solid #bae6fd;"',
+                'accepted': 'style="background:#e6f7f0;color:#048c5b;border:1px solid #a7f3d0;"',
+                'picked_up': 'style="background:#e0e7ff;color:#4338ca;border:1px solid #c7d2fe;"',
+                'delivered': 'style="background:#dcfce7;color:#15803d;border:1px solid #86efac;"',
+                'cancelled': 'style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;"'
+            }[s] || 'style="background:#f1f5f9;color:#64748b;"');
+
+            const getStatusDotColor = (s) => ({
+                'pending': '#f59e0b',
+                'scheduled': '#0284c7',
+                'negotiating': '#0284c7',
+                'accepted': '#048c5b',
+                'picked_up': '#4338ca',
+                'delivered': '#16a34a',
+                'cancelled': '#ef4444'
+            }[s] || '#64748b');
 
             // اسم الحالة المعروض — واعٍ بطلبات المتجر عبر realShopStatus
             // حتى لا يظهر "في الانتظار" العام بينما الطلب فعلياً عند المتجر.
@@ -610,33 +728,33 @@
             let currentTotalPages = 1;
 
             // ═══ 🗂️ فلاتر الطلبات ═══════════════════════════════════
-            // مسنَدة للمعنى لا لنصّ الحالة: طلب المتجر يمرّ بحالات مختلفة تماماً
-            // عن طلب التوصيل، والعميل لا يعرف الفرق ولا يعنيه — يعنيه «جارٍ» أو
-            // «انتهى». لذلك تجمع كل مجموعة حالات النوعين معاً.
             let _ordersSeen = [];
             let _activeFilter = 'active';
 
             const ORDER_TABS = [
-                { key: 'active', label: 'جارية', match: s =>
+                { key: 'active', label: 'جارية', icon: 'bi-lightning-charge-fill', match: s =>
                     ['pending','scheduled','accepted','picked_up',
                      'shop_pending','shop_preparing','ready_for_pickup','captain_assigned'].includes(s) },
-                { key: 'waiting', label: 'بانتظار كابتن', match: s =>
+                { key: 'waiting', label: 'بانتظار كابتن', icon: 'bi-hourglass-split', match: s =>
                     ['pending','ready_for_pickup'].includes(s) },
-                { key: 'delivered', label: 'مكتملة', match: s => s === 'delivered' },
-                { key: 'cancelled', label: 'ملغاة', match: s => s === 'cancelled' },
-                { key: 'all', label: 'الكل', match: () => true }
+                { key: 'delivered', label: 'مكتملة', icon: 'bi-check-circle-fill', match: s => s === 'delivered' },
+                { key: 'cancelled', label: 'ملغاة', icon: 'bi-x-circle-fill', match: s => s === 'cancelled' },
+                { key: 'all', label: 'الكل', icon: 'bi-grid-fill', match: () => true }
             ];
 
             function renderOrderTabs() {
                 const bar = document.getElementById('ordersFilterBar');
                 if (!bar) return;
-                // شريطٌ بلا طلبات ضوضاء — يُخفى حتى تصل البيانات
                 if (!_ordersSeen.length) { bar.style.display = 'none'; return; }
                 bar.style.display = 'flex';
                 bar.innerHTML = ORDER_TABS.map(t => {
                     const n = _ordersSeen.filter(o => t.match(o.fstatus)).length;
                     return `<div class="of-tab ${_activeFilter === t.key ? 'active' : ''}"
-                        onclick="applyOrderFilter('${t.key}')">${t.label}<span class="cnt">${n}</span></div>`;
+                        onclick="applyOrderFilter('${t.key}')">
+                        <i class="bi ${t.icon}"></i>
+                        <span>${t.label}</span>
+                        <span class="cnt">${n}</span>
+                    </div>`;
                 }).join('');
             }
 
@@ -895,9 +1013,38 @@
                             }
                         }
 
-                        const breakdown = (order.orderType === 'shop' && order.deliveryFee) ? `
-                                    <div class="o-cost-sub"><span>المنتجات (للمتجر)</span><span>${order.itemsTotal} ج.س</span></div>
-                                    <div class="o-cost-sub"><span>التوصيل (للكابتن)</span><span class="text-danger">${order.deliveryFee} ج.س</span></div>` : '';
+                        // 💰 حساب الإجمالي المعروض للعميل بناءً على حالة الدفع
+                        let displayTotal = order.price;
+                        let displayTotalLabel = 'الإجمالي';
+                        let breakdown = '';
+
+                        if (order.orderType === 'shop' && order.deliveryFee) {
+                            if (order.paymentStatus === 'confirmed') {
+                                // العميل دفع قيمة المنتجات والتاجر أكد الدفع
+                                displayTotal = order.deliveryFee;
+                                displayTotalLabel = 'المتبقي (للكابتن)';
+                                breakdown = `
+                                    <div class="o-cost-sub text-muted" style="text-decoration: line-through;">
+                                        <span>المنتجات (مدفوعة)</span>
+                                        <span>${order.itemsTotal} ج.س</span>
+                                    </div>
+                                    <div class="o-cost-sub">
+                                        <span>التوصيل (يُدفع للكابتن)</span>
+                                        <span class="text-danger fw-bold">${order.deliveryFee} ج.س</span>
+                                    </div>`;
+                            } else {
+                                // العميل لم يدفع أو الدفع قيد المراجعة
+                                breakdown = `
+                                    <div class="o-cost-sub">
+                                        <span>المنتجات (للمتجر)</span>
+                                        <span>${order.itemsTotal} ج.س</span>
+                                    </div>
+                                    <div class="o-cost-sub">
+                                        <span>التوصيل (للكابتن)</span>
+                                        <span class="text-danger">${order.deliveryFee} ج.س</span>
+                                    </div>`;
+                            }
+                        }
 
                         // 🗂️ وسمُ الحالة على البطاقة نفسها: الفلترة تُخفي وتُظهر بلا
                         // إعادة رسم — فلا يُمسّ منطق البناء أعلاه ولا تُفقد حالة
@@ -906,32 +1053,37 @@
                         const html = `
                         <div class="o-card" id="order-${order._id}" data-fstatus="${_fstatus}">
                             <div class="o-head">
-                                <span class="badge ${badgeClass} o-status">${getDisplayStatusName(order)}</span>
+                                <span class="o-status" ${badgeClass}>
+                                    <span class="status-dot" style="background:${getStatusDotColor(order.status)};"></span>
+                                    <span>${getDisplayStatusName(order)}</span>
+                                </span>
                                 <span class="o-id">#${order._id.slice(-6)}</span>
                             </div>
                             <div class="o-body">
                                 ${(order.isMultiStop && Array.isArray(order.stops) && order.stops.length >= 2) ? `
                                 <div class="o-route">
-                                    <div style="margin-bottom:6px;">
-                                        <span style="font-size:11px;font-weight:800;color:#0ea5e9;background:#e0f2fe;border-radius:99px;padding:3px 10px;">
+                                    <div style="margin-bottom:8px;">
+                                        <span style="font-size:11.5px;font-weight:800;color:#0284c7;background:#e0f2fe;border-radius:50px;padding:3px 12px;display:inline-flex;align-items:center;gap:4px;">
                                             <i class="bi bi-signpost-split-fill"></i> رحلة متعددة النقاط — ${order.stops.filter(s=>s.done).length}/${order.stops.length} اكتملت
                                         </span>
                                     </div>
                                     ${order.stops.map((s, i) => `
                                     <div class="o-route-row" style="${s.done ? 'opacity:0.6;' : ''}">
-                                        <i class="bi ${s.done ? 'bi-check-circle-fill' : (s.type === 'pickup' ? 'bi-geo-alt-fill' : 'bi-flag-fill')} ${s.type === 'pickup' ? 'o-ic-from' : 'o-ic-to'}"></i>
-                                        <span class="o-route-txt"><span class="o-route-lbl">${s.type === 'pickup' ? 'استلام' : 'تسليم'} ${i + 1}</span>${escapeHtml(s.address || '')}</span>
+                                        <div class="o-route-node ${s.type === 'pickup' ? 'from' : 'to'}">
+                                            <i class="bi ${s.done ? 'bi-check' : (s.type === 'pickup' ? 'bi-geo-alt-fill' : 'bi-flag-fill')}"></i>
+                                        </div>
+                                        <span class="o-route-txt"><span class="o-route-lbl">${s.type === 'pickup' ? 'استلام' : 'تسليم'} ${i + 1}:</span> ${escapeHtml(s.address || '')}</span>
                                     </div>${i < order.stops.length - 1 ? '<div class="o-route-connector"></div>' : ''}`).join('')}
                                 </div>` : `
                                 <div class="o-route">
                                     <div class="o-route-row">
-                                        <i class="bi bi-geo-alt-fill o-ic-from"></i>
-                                        <span class="o-route-txt"><span class="o-route-lbl">من</span>${escapeHtml(order.pickup?.address || 'غير محدد')}</span>
+                                        <div class="o-route-node from"><i class="bi bi-geo-alt-fill"></i></div>
+                                        <span class="o-route-txt"><span class="o-route-lbl">من:</span> ${escapeHtml(order.pickup?.address || 'غير محدد')}</span>
                                     </div>
                                     <div class="o-route-connector"></div>
                                     <div class="o-route-row">
-                                        <i class="bi bi-flag-fill o-ic-to"></i>
-                                        <span class="o-route-txt"><span class="o-route-lbl">إلى</span>${escapeHtml(order.dropoff?.address || 'غير محدد')}</span>
+                                        <div class="o-route-node to"><i class="bi bi-flag-fill"></i></div>
+                                        <span class="o-route-txt"><span class="o-route-lbl">إلى:</span> ${escapeHtml(order.dropoff?.address || 'غير محدد')}</span>
                                     </div>
                                 </div>`}
 
@@ -942,8 +1094,8 @@
 
                                 <div class="o-cost">
                                     <div class="o-cost-main">
-                                        <span>الإجمالي</span>
-                                        <span class="o-cost-total">${order.price} ج.س</span>
+                                        <span>${displayTotalLabel}</span>
+                                        <span class="o-cost-total">${displayTotal} ج.س</span>
                                     </div>
                                     ${breakdown}
                                 </div>
@@ -1235,20 +1387,12 @@
                     if (window.__DEV__) console.warn('[Socket] connect_error', err.message);
                 });
 
-                socket.on('new_notification', (notification) => {
-                    showToast(notification.title, notification.message, notification.type);
+                socket.on('new_notification', () => {
+                    loadOrders();
                 });
 
                 socket.on('order_status_updated', (data) => {
                     const { orderId, status } = data;
-                    const statusMap = {
-                        'accepted': 'تم قبول طلبك! الكابتن في الطريق.',
-                        'picked_up': 'تم استلام طلبك بنجاح.',
-                        'delivered': 'تم توصيل طلبك، شكراً لك!',
-                        'cancelled': 'تم إلغاء الطلب.'
-                    };
-                    showToast('تحديث الطلب', statusMap[status] || 'تغيرت حالة طلبك', 'order_update');
-
                     if (status === 'accepted') {
                         Swal.fire({
                             title: 'تم قبول طلبك! 🛕',
@@ -1655,11 +1799,11 @@
 
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
     <!-- Auth Helper already loaded in head -->
     <script src="js/geo.js?v=3f3df042"></script>
-    <script type="module" src="js/app-core.js?v=f1decda9"></script>
-    <script type="module" src="js/native-notifications.js?v=6b3a3771"></script>
+    <script type="module" src="js/app-core.js?v=71670a72"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
     <script src="js/tour.js?v=d6d632d6"></script>
     <script src="js/coach.js?v=c0090731"></script>
     <script src="js/tour-pages.js?v=5e20479b"></script>

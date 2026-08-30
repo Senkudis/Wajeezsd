@@ -1,23 +1,221 @@
 /* ════════════════════════════════════════════════════════════════
-   admin-mobile.css — طبقة الهاتف الموحّدة للوحة الإدارة
+   admin-mobile.css — تصميم الهاتف الموحد فائق الضغط والأناقة للوحة الأدمن
    ════════════════════════════════════════════════════════════════
-
-   لماذا ملفّ واحد مشترك: أربع عشرة صفحة من عشرين تحمل <style> خاصاً بها
-   ولا تشترك في أي ملفّ تنسيق. فلم يكن ثمّة موضعٌ واحد يُصلَح فيه شيء —
-   وأيّ تحسين للهاتف كان يعني تكراره أربع عشرة مرّة ثم مطاردته كلما
-   أُضيفت صفحة. هذا الملفّ هو ذلك الموضع.
-
-   لا يمسّ شاشة الحاسوب إطلاقاً: كل ما فيه داخل @media حتى 768px.
+   يضمن تصغير جميع العناصر الضخمة (البطاقات، الأيقونات، الجداول، الهوامش،
+   الخرائط، حقول الإدخال) على الشاشات الصغرى (< 768px).
    ════════════════════════════════════════════════════════════════ */
 
-@media (max-width: 768px) {
+@media (max-width: 991px) {
 
-    /* ── ١) الجداول: بطاقات بدل تمرير أفقي ─────────────────────
-       أعرض جداول اللوحة تُقاس بين ٤٨٦ و٧٦٠ بكسل على شاشة ٣٧٥.
-       الحاوية الأفقية تجعل الأدمن يسحب يميناً ليرى العمود التالي وقد
-       نسي الأول؛ وما لا حاوية له يُقصّ ببساطة. البطاقة تُبقي الصفّ
-       كاملاً أمام العين. (data-adm-cards يضعه js/admin-mobile.js) */
+    /* ── ١) قواعد الشاشة الكلية والحاويات ─────────────────────── */
+    html, body {
+        background: #f8fafc !important;
+    }
 
+    /* 🌙 Dark Mode overrides — يجب أن تأتي هنا داخل نفس الـ media query
+       حتى تتفوق على القواعد الفاتحة أعلاه (الخصوصية متساوية فيتغلب الترتيب) */
+    body.dark-mode,
+    body.dark-mode html {
+        background: #111827 !important;
+    }
+
+    /* حقول الإدخال لتقليل الحجم مع الحفاظ على حماية زوم iOS */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+
+    /* ضغط الهوامش الخارجية للمحتوى */
+    .gv-content, .main-content, .content-wrapper, .container-fluid, .content-body {
+        padding: 8px 10px !important;
+    }
+
+    /* ── ٢) الشريط العلوي الفائق الأناقة (Compact Topbar) ──────── */
+    .gv-topbar, .navbar, .top-header, .page-header, .admin-topbar, .topbar, .header {
+        padding: 8px 12px !important;
+        padding-top: calc(8px + var(--sat, env(safe-area-inset-top, 0px))) !important;
+        min-height: 48px !important;
+        height: auto !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    body.dark-mode .gv-topbar,
+    body.dark-mode .navbar,
+    body.dark-mode .top-header,
+    body.dark-mode .page-header,
+    body.dark-mode .admin-topbar,
+    body.dark-mode .topbar,
+    body.dark-mode .header {
+        background: rgba(17, 24, 39, 0.96) !important;
+        border-bottom-color: #374151 !important;
+    }
+
+    .gv-topbar-right .page-title, .page-title, h1.page-title, h2.page-title, .header-title h1, .admin-topbar-title, .topbar-brand, .header h4 {
+        font-size: 14.5px !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+    }
+
+    body.dark-mode .gv-topbar-right .page-title,
+    body.dark-mode .page-title,
+    body.dark-mode h1.page-title,
+    body.dark-mode h2.page-title,
+    body.dark-mode .header-title h1,
+    body.dark-mode .admin-topbar-title,
+    body.dark-mode .topbar-brand,
+    body.dark-mode .header h4 {
+        color: #f9fafb !important;
+    }
+
+    .gv-topbar-btn, .header-btn, .admin-icon-btn, .header-theme-toggle, .admin-search-btn, .menu-toggle {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 9px !important;
+        font-size: 13px !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #334155 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .gv-topbar-btn i, .header-btn i, .admin-icon-btn i, .header-theme-toggle i, .admin-search-btn i, .menu-toggle i {
+        color: #334155 !important;
+        font-size: 14px !important;
+    }
+
+    body.dark-mode .gv-topbar-btn,
+    body.dark-mode .header-btn,
+    body.dark-mode .admin-icon-btn,
+    body.dark-mode .header-theme-toggle,
+    body.dark-mode .admin-search-btn,
+    body.dark-mode .menu-toggle {
+        background: #1f2937 !important;
+        border-color: #374151 !important;
+        color: #e2e8f0 !important;
+    }
+
+    body.dark-mode .gv-topbar-btn i,
+    body.dark-mode .header-btn i,
+    body.dark-mode .admin-icon-btn i,
+    body.dark-mode .header-theme-toggle i,
+    body.dark-mode .admin-search-btn i,
+    body.dark-mode .menu-toggle i {
+        color: #e2e8f0 !important;
+    }
+
+    body.dark-mode .header-theme-toggle i {
+        color: #f59e0b !important;
+    }
+
+    .admin-back-btn, .topbar-back, .back-btn {
+        padding: 5px 12px !important;
+        font-size: 12px !important;
+        border-radius: 20px !important;
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #334155 !important;
+    }
+
+    body.dark-mode .admin-back-btn,
+    body.dark-mode .topbar-back,
+    body.dark-mode .back-btn {
+        background: #1f2937 !important;
+        border-color: #374151 !important;
+        color: #d1d5db !important;
+    }
+
+    /* ── ٣) بطاقات الإحصائيات الفائقة الضغط (Compact 2-Col Stats) ── */
+    .gv-stats-grid, .stat-grid, .stats-grid, .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .gv-stat-card, .stat-card, .kpi-card {
+        padding: 8px 10px !important;
+        border-radius: 10px !important;
+        min-height: unset !important;
+        gap: 8px !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03) !important;
+    }
+
+    body.dark-mode .gv-stat-card,
+    body.dark-mode .stat-card,
+    body.dark-mode .kpi-card {
+        background: #1f2937 !important;
+        border-color: #374151 !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .gv-stat-card:active, .stat-card:active {
+        transform: scale(0.97) !important;
+    }
+
+    .gv-stat-icon, .stat-icon, .kpi-icon, .icon-box {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .gv-stat-info h4, .stat-card h6, .stat-title, .kpi-label {
+        font-size: 10.5px !important;
+        font-weight: 700 !important;
+        margin-bottom: 1px !important;
+        line-height: 1.2 !important;
+        color: #64748b !important;
+    }
+
+    .gv-stat-info h2, .stat-card h3, .stat-value, .kpi-value {
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        line-height: 1.1 !important;
+        color: #0f172a !important;
+    }
+
+    /* ── ٤) الألواح والبطاقات العامة (Compact Panels) ───────────── */
+    .gv-panel, .card, .panel {
+        border-radius: 10px !important;
+        margin-bottom: 8px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02) !important;
+        overflow: hidden !important;
+    }
+
+    .gv-panel-header, .card-header, .panel-header {
+        padding: 8px 10px !important;
+        background: #f8fafc !important;
+        border-bottom: 1px solid #edf2f7 !important;
+    }
+
+    .gv-panel-title, .card-title {
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        gap: 6px !important;
+    }
+
+    .gv-panel-title i {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+    }
+
+    .gv-panel-body, .card-body, .panel-body {
+        padding: 8px 10px !important;
+    }
+
+    /* ── ٥) الجداول المحولة لبطاقات مدمجة ────────────────────── */
     table[data-adm-cards="yes"] { width: 100% !important; min-width: 0 !important; display: block; }
     table[data-adm-cards="yes"] thead { display: none; }
     table[data-adm-cards="yes"] tbody { display: block; width: 100%; }
@@ -25,151 +223,366 @@
     table[data-adm-cards="yes"] tbody tr {
         display: block;
         width: 100%;
-        background: var(--adm-card-bg, #fff);
-        border: 1px solid var(--adm-card-border, #e9edf3);
-        border-radius: 14px;
-        padding: 10px 12px;
-        margin-bottom: 10px;
-        box-shadow: 0 1px 6px rgba(15, 23, 42, 0.05);
+        background: #ffffff;
+        border: 1px solid #e9edf3;
+        border-radius: 10px;
+        padding: 6px 8px;
+        margin-bottom: 6px;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
     }
 
     table[data-adm-cards="yes"] tbody td {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 6px;
         width: auto !important;
-        padding: 7px 0 !important;
+        padding: 4px 0 !important;
         border: 0 !important;
-        border-bottom: 1px dashed var(--adm-row-sep, #eef2f7) !important;
+        border-bottom: 1px dashed #f1f5f9 !important;
         text-align: left;
         white-space: normal !important;
         word-break: break-word;
-        font-size: 13px;
+        font-size: 12px;
+        min-height: 24px;
     }
     table[data-adm-cards="yes"] tbody td:last-child { border-bottom: 0 !important; }
 
-    /* العنوان من رأس الجدول — يسبق القيمة في الاتجاه العربي */
     table[data-adm-cards="yes"] tbody td::before {
         content: attr(data-label);
         flex: 0 0 auto;
-        max-width: 45%;
-        color: var(--adm-label, #6b7280);
+        max-width: 36%;
+        color: #64748b;
         font-weight: 700;
-        font-size: 11.5px;
+        font-size: 10.5px;
         text-align: right;
     }
-    /* خلية بلا عنوان (عمود بلا رأس) لا تترك فراغاً */
+
     table[data-adm-cards="yes"] tbody td[data-label=""]::before { content: none; }
 
-    /* خلية الإجراءات: الأزرار تحتاج العرض كاملاً لا نصفه */
     table[data-adm-cards="yes"] tbody td:has(button),
     table[data-adm-cards="yes"] tbody td:has(.btn),
     table[data-adm-cards="yes"] tbody td:has(a.btn) {
         flex-wrap: wrap;
         justify-content: flex-start;
-        gap: 6px;
-    }
-    table[data-adm-cards="yes"] tbody td button,
-    table[data-adm-cards="yes"] tbody td .btn {
-        min-height: 36px;
+        gap: 4px;
     }
 
-    /* صفّ "لا توجد بيانات" ليس بطاقة */
+    table[data-adm-cards="yes"] tbody td button,
+    table[data-adm-cards="yes"] tbody td .btn {
+        min-height: 28px !important;
+        height: 28px !important;
+        padding: 2px 8px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+    }
+
     table[data-adm-cards="yes"] tbody tr[data-adm-empty] {
-        background: transparent; border: 0; box-shadow: none; padding: 18px 0;
+        background: transparent; border: 0; box-shadow: none; padding: 10px 0;
     }
     table[data-adm-cards="yes"] tbody tr[data-adm-empty] td {
         display: block; text-align: center; border: 0 !important;
     }
     table[data-adm-cards="yes"] tbody tr[data-adm-empty] td::before { content: none; }
 
-    /* جدول بلا رأس لا يصلح للبطاقات ⇒ يبقى تمريراً أفقياً لكن محصوراً
-       في حاويته فلا يدفع الصفحة كلها جانباً */
     table[data-adm-cards="no"] { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    /* ── ٢) قواعد عامة للشاشة الضيّقة ───────────────────────── */
-
-    /* 🔒 لا تمرير أفقي للصفحة مهما فعل محتوى بداخلها */
-    html, body { max-width: 100%; overflow-x: hidden; }
-
-    /* ⚠️ 16px حدّ أدنى لحقول الإدخال: أقلّ منه يجعل iOS يُقرّب الشاشة
-       تلقائياً عند اللمس، فتخرج الصفحة عن إطارها ولا تعود إلا يدوياً */
-    input, select, textarea { font-size: 16px !important; }
-
-    /* أشرطة الأدوات تلتفّ بدل أن تتزاحم أو تُقصّ */
-    .section-header, .page-header, .toolbar, .filters, .btn-group { flex-wrap: wrap !important; }
-    .section-header > *, .page-header > * { min-width: 0; }
-
-    /* أزرار الإجراءات: عرضٌ كافٍ للمس (٤٤ بكسل توصية إمكانية الوصول) */
-    .btn-custom, .btn-primary-custom, .btn-success-custom, .btn-danger-custom {
-        min-height: 42px;
+    /* ── ٦) أشرطة الأدوات والفلترة المدمجة ────────────────────── */
+    .section-header, .page-header, .toolbar, .filters, .btn-group, .gv-toolbar {
+        flex-wrap: wrap !important;
+        gap: 4px !important;
     }
 
-    /* بطاقات الإحصاء تنزل عموداً واحداً بدل ثلاثة مضغوطة */
-    .stat-card { min-width: 0; }
-    .stat-card h3, .stat-card h6 { word-break: break-word; }
+    .form-control, .form-select, input.form-control, select.form-control, .gv-toolbar-select, .gv-toolbar-search {
+        height: 34px !important;
+        padding: 4px 8px !important;
+        border-radius: 6px !important;
+        font-size: 12.5px !important;
+    }
 
-    /* النوافذ الحوارية تملأ الشاشة بدل هوامش تسرق نصف العرض */
-    .modal-box { max-width: 100% !important; width: 100% !important; border-radius: 18px 18px 0 0; }
-    .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+    .btn-custom, .btn-primary-custom, .btn-success-custom, .btn-danger-custom,
+    .btn-primary, .btn-secondary, .btn-success, .btn-danger, .gv-btn {
+        min-height: 32px !important;
+        padding: 4px 10px !important;
+        font-size: 12px !important;
+        border-radius: 6px !important;
+    }
 
-    /* العناوين الطويلة لا تدفع الصفحة */
-    h1, h2, h3, .section-title { word-break: break-word; }
+    /* ── ٧) الخرائط المصغرة وتوزيع المدن ─────────────────────── */
+    .gv-minimap {
+        height: 180px !important;
+        border-radius: 8px !important;
+    }
+
+    #cityBreakdownContainer {
+        gap: 6px !important;
+    }
+
+    .gv-status-bar {
+        gap: 8px !important;
+    }
+
+    .gv-status-bar-row {
+        gap: 6px !important;
+        font-size: 11px !important;
+    }
+
+    .gv-status-bar-label {
+        width: 85px !important;
+        font-size: 10.5px !important;
+    }
+
+    .gv-status-bar-progress {
+        height: 6px !important;
+        border-radius: 4px !important;
+    }
+
+    .gv-status-bar-count {
+        min-width: 35px !important;
+        font-size: 12px !important;
+    }
+
+    /* ── ٨) النوافذ المنبثقة بحجم مدمج (Bottom Sheet) ──────────── */
+    .modal-box, .modal-content {
+        max-width: 100% !important;
+        width: 100% !important;
+        border-radius: 14px 14px 0 0 !important;
+        max-height: 85vh !important;
+        overflow-y: auto !important;
+    }
+
+    .modal-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+
+    .modal-header {
+        padding: 10px 12px !important;
+    }
+
+    .modal-title {
+        font-size: 14px !important;
+        font-weight: 800 !important;
+    }
+
+    .modal-body {
+        padding: 10px 12px !important;
+    }
+
+    .modal-footer {
+        padding: 8px 12px !important;
+        gap: 6px !important;
+    }
 }
 
-/* ── ٣) تصحيحات خاصة بصفحات بعينها ─────────────────────────
-   تُجمع هنا لا في كل صفحة: هذا الملفّ هو موضع سلوك الهاتف كله، ومن يبحث
-   عن سبب انكسارٍ على الجوّال يجده في مكان واحد. */
-@media (max-width: 768px) {
-    /* 🗺️ الخريطة المباشرة: شريط البحث كان يحجز ٣٨٠ بكسل للوحة الجانبية
-       عبر calc(100vw - 380px). على شاشة ٣٧٥ يصير الناتج سالباً فينهار
-       العرض إلى صفر، ويخرج حقل البحث من إطار الصفحة (قِيس: ٣٩٣ بكسل
-       عرضَ مستند على شاشة ٣٧٥). لا لوحة جانبية على الهاتف أصلاً. */
+/* ── ٩) تصحيحات خاصة ومحددة لصفحات اللوحة ──────────────────── */
+@media (max-width: 991px) {
     #searchBar {
-        left: 12px !important;
-        right: 12px !important;
+        left: 10px !important;
+        right: 10px !important;
         width: auto !important;
         transform: none !important;
     }
 
-    /* 💰 الإدارة المالية: مؤشّراتها الأربعة كانت تنهار إلى عمود واحد
-       (minmax أعرض من الشاشة)، فتصير ٤×١٠٨ بكسل — شاشةٌ كاملة تُمرَّر
-       لأجل أربعة أرقام قبل الوصول إلى أي محتوى. عمودان يعرضانها دفعةً. */
     .kpi-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+    }
+    .kpi-card { padding: 8px 10px !important; }
+    .kpi-card .kpi-value { font-size: 15px !important; }
+    .kpi-card .kpi-label { font-size: 10.5px !important; line-height: 1.2; }
+
+    .gv-grid-2, .gv-grid-3 {
+        display: flex !important;
+        flex-direction: column !important;
         gap: 8px !important;
     }
-    .kpi-card { padding: 12px !important; }
-    .kpi-card .kpi-value { font-size: 17px !important; }
-    .kpi-card .kpi-label { font-size: 11px !important; line-height: 1.5; }
 
-    /* 📊 لوحة التحكم الرئيسية: بطاقات الإحصاء الخمس تنهار إلى عمود واحد
-       دون 576px (قاعدة في admin-panel.css)، فتصير خمس بطاقات فوق بعضها
-       قبل أي محتوى. عمودان — نفس علاج مؤشّرات المالية. */
-    .gv-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-
-    /* 🗂️ شريط تبويبات المالية: أربعة أزرار بعرض أدنى ١٤٠ بكسل في صفٍّ
-       واحد قابل للتمرير — فيبقى تبويبان خارج الشاشة بلا أي إشارة إلى
-       وجودهما. الالتفاف صفّين يُظهر الأربعة معاً. */
-    .nav-tabs-wrapper {
+    .nav-tabs-wrapper, .nav-pills {
         flex-wrap: wrap !important;
-        overflow-x: visible !important;
+        gap: 4px !important;
     }
-    .nav-tabs-wrapper .tab-btn {
-        flex: 1 1 calc(50% - 6px) !important;
+    .nav-tabs-wrapper .tab-btn, .nav-pills .nav-link {
+        flex: 1 1 calc(50% - 4px) !important;
         min-width: 0 !important;
-        font-size: 12.5px !important;
-        padding-inline: 8px !important;
+        font-size: 11.5px !important;
+        padding: 6px 4px !important;
+        text-align: center !important;
     }
 }
 
-/* الوضع الليلي: البطاقات تتبع ألوان الصفحة لا تُبيّضها */
-@media (max-width: 768px) {
+/* ── ١٠) قواعد الشاشات الصغرى (< 480px) ─────────────────────── */
+@media (max-width: 480px) {
+    .gv-content, .main-content {
+        padding: 6px 8px !important;
+    }
+    .gv-stat-card, .stat-card, .kpi-card {
+        padding: 6px 8px !important;
+    }
+    .gv-stat-info h2, .stat-card h3, .stat-value, .kpi-value {
+        font-size: 14.5px !important;
+    }
+    .gv-stat-info h4, .stat-card h6, .stat-title, .kpi-label {
+        font-size: 10px !important;
+    }
+    .gv-stat-icon, .stat-icon, .kpi-icon {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* ── ١١) شريط التنقل السفلي الفاخر (Mobile Bottom Nav) ──────────── */
+.gv-mobile-bottom-nav { display: none; }
+
+@media (max-width: 991px) {
+    .gv-mobile-bottom-nav {
+        display: flex !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: calc(56px + var(--sab, env(safe-area-inset-bottom, 0px))) !important;
+        padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px)) !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border-top: 1px solid #e2e8f0 !important;
+        z-index: 1040 !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .gv-bottom-nav-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+        background: transparent !important;
+        border: none !important;
+        color: #64748b !important;
+        font-family: inherit !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        padding: 4px 6px !important;
+        border-radius: 8px !important;
+        cursor: pointer !important;
+        flex: 1 !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+    }
+
+    .gv-bottom-nav-item i {
+        font-size: 16px !important;
+        transition: transform 0.2s ease !important;
+    }
+
+    .gv-bottom-nav-item.active {
+        color: #6366f1 !important;
+    }
+
+    .gv-bottom-nav-item.active i {
+        transform: translateY(-2px) scale(1.1) !important;
+    }
+
+    .gv-bottom-nav-item.active::after {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        width: 20px !important;
+        height: 3px !important;
+        background: linear-gradient(90deg, #6366f1, #06b6d4) !important;
+        border-radius: 0 0 4px 4px !important;
+    }
+
+    .gv-main {
+        padding-bottom: calc(60px + var(--sab, env(safe-area-inset-bottom, 0px))) !important;
+    }
+}
+
+/* ── ١٢) القائمة الجانبية والـ Overlay ───────────────────────── */
+@media (max-width: 991px) {
+    #menuToggle {
+        display: flex !important;
+    }
+
+    .gv-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        right: 0 !important;
+        height: 100vh !important;
+        width: 260px !important;
+        transform: translateX(100%) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: -10px 0 30px rgba(0,0,0,0.15) !important;
+        z-index: 1060 !important;
+        background: #ffffff !important;
+    }
+
+    .gv-sidebar.mobile-open {
+        transform: translateX(0) !important;
+    }
+
+    .gv-sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 1055;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .gv-sidebar-overlay.show {
+        display: block !important;
+        opacity: 1 !important;
+    }
+}
+
+/* ── ١٣) لمسات جمالية وألوان غنية ──────────────────────────── */
+@media (max-width: 991px) {
+    .gv-stat-icon.blue {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05)) !important;
+        color: #6366f1 !important;
+    }
+    .gv-stat-icon.amber {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)) !important;
+        color: #d97706 !important;
+    }
+    .gv-stat-icon.green {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)) !important;
+        color: #10b981 !important;
+    }
+    .gv-stat-icon.red {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05)) !important;
+        color: #ef4444 !important;
+    }
+    .gv-stat-icon.cyan {
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 0.05)) !important;
+        color: #06b6d4 !important;
+    }
+
     body.dark-mode table[data-adm-cards="yes"] tbody tr {
         --adm-card-bg: #1e293b;
         --adm-card-border: #263449;
         --adm-row-sep: #263449;
     }
     body.dark-mode table[data-adm-cards="yes"] tbody td::before { --adm-label: #94a3b8; }
+    body.dark-mode .gv-mobile-bottom-nav {
+        background: rgba(15, 23, 42, 0.95) !important;
+        border-top-color: #1e293b !important;
+    }
+    body.dark-mode .gv-bottom-nav-item {
+        color: #94a3b8 !important;
+    }
+    body.dark-mode .gv-bottom-nav-item.active {
+        color: #818cf8 !important;
+    }
+    body.dark-mode .gv-sidebar {
+        background: #0f172a !important;
+    }
 }

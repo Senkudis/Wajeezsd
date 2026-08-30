@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <link rel="stylesheet" href="css/merchant-ui.css?v=fca49c8f">
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
 
@@ -23,7 +24,10 @@
         .merchant-header {
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             color: white;
-            padding: 16px 16px 20px;
+            padding-top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));
+            padding-right: 16px;
+            padding-bottom: 16px;
+            padding-left: 20px;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -184,24 +188,7 @@
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
         /* ===== BOTTOM NAV ===== */
-        .merchant-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: white;
-            border-top: 1px solid #e5e7eb;
-            display: flex; justify-content: space-around; align-items: center;
-            padding: 8px 0 12px;
-            z-index: 200;
-            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
-        }
-        .merchant-nav a {
-            display: flex; flex-direction: column; align-items: center;
-            color: #9ca3af; text-decoration: none;
-            font-size: 0.65rem; font-weight: 600; gap: 2px;
-            transition: color 0.2s;
-        }
-        .merchant-nav a i { font-size: 1.3rem; }
-        .merchant-nav a.active { color: #f59e0b; }
-        .merchant-nav a:hover { color: #f59e0b; }
+        /* Nav handled by merchant-ui.css?v=v3_1785875711038 */
 
         /* Nav badge */
         .nav-badge {
@@ -217,8 +204,8 @@
             display: none;
         }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 
 <body>
@@ -282,26 +269,26 @@
     <!-- Bottom Nav -->
     <nav class="merchant-nav">
         <a href="merchant-dashboard.html">
-            <i class="bi bi-house-door"></i>
-            الرئيسية
+            <i class="bi bi-house-door-fill"></i>
+            <span>الرئيسية</span>
         </a>
         <a href="merchant-orders.html">
-            <i class="bi bi-bag-check"></i>
-            الطلبات
+            <i class="bi bi-bag-check-fill"></i>
+            <span>الطلبات</span>
         </a>
         <a href="merchant-conversations.html" class="active" style="position:relative;">
             <i class="bi bi-chat-dots-fill"></i>
-            رسائل
+            <span>رسائل</span>
             <span class="nav-badge" id="navUnreadBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
         </a>
         <a href="merchant-notifications.html" style="position:relative;">
-            <i class="bi bi-bell"></i>
-            إشعارات
+            <i class="bi bi-bell-fill"></i>
+            <span>إشعارات</span>
             <span id="navNotifBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
         </a>
         <a href="client-login.html" onclick="event.preventDefault(); doLogout();">
             <i class="bi bi-box-arrow-right"></i>
-            خروج
+            <span>خروج</span>
         </a>
     </nav>
 
@@ -462,7 +449,7 @@
         function initSocket() {
             socket = io(apiBase, {
                 reconnection: true,
-                transports: ['polling', 'websocket'],
+                transports: ['websocket', 'polling'],
                 auth: { token: localStorage.getItem('token') }
             });
 
@@ -531,7 +518,7 @@
         // Fallback polling every 8 seconds (socket is primary, this is backup)
         setInterval(loadConversations, 8000);
     </script>
-    <script type="module" src="js/native-notifications.js?v=76150d71"></script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script type="module" src="js/native-notifications.js?v=bf8be460"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </body>
 </html>

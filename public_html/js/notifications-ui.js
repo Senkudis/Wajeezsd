@@ -21,15 +21,15 @@ window.WajeezNotifications = (function () {
     // بلا هذا التصنيف يصبح كل إشعار جرساً رمادياً واحداً — إشعار
     // إلغاء وإشعار ترحيب بالمظهر نفسه.
     const FAMILY = {
-        success: { fg: '#0a8754', bg: '#e7f5ef' },
-        active:  { fg: '#2563eb', bg: '#dbeafe' },
-        warn:    { fg: '#b45309', bg: '#fef3c7' },
-        danger:  { fg: '#dc2626', bg: '#fee2e2' },
-        chat:    { fg: '#7c3aed', bg: '#ede9fe' },
-        money:   { fg: '#0f766e', bg: '#ccfbf1' },
-        voice:   { fg: '#be185d', bg: '#fce7f3' },
-        shop:    { fg: '#4338ca', bg: '#e0e7ff' },
-        system:  { fg: '#475569', bg: '#e8ebef' }
+        success: { fg: '#ffffff', bg: 'linear-gradient(135deg, #048c5b, #10b981)' },
+        active:  { fg: '#ffffff', bg: 'linear-gradient(135deg, #0ea5e9, #0284c7)' },
+        warn:    { fg: '#ffffff', bg: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+        danger:  { fg: '#ffffff', bg: 'linear-gradient(135deg, #ef4444, #dc2626)' },
+        chat:    { fg: '#ffffff', bg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' },
+        money:   { fg: '#ffffff', bg: 'linear-gradient(135deg, #0d9488, #0f766e)' },
+        voice:   { fg: '#ffffff', bg: 'linear-gradient(135deg, #ec4899, #be185d)' },
+        shop:    { fg: '#ffffff', bg: 'linear-gradient(135deg, #6366f1, #4338ca)' },
+        system:  { fg: '#ffffff', bg: 'linear-gradient(135deg, #64748b, #475569)' }
     };
 
     const TYPES = {

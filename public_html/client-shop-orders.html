@@ -7,14 +7,19 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <script src="js/config.js?v=b84e6b6a"></script>
+    <script src="js/config.js?v=6706269c"></script>
     <script src="js/fetch-retry.js?v=069d96ba"></script>
-    <script src="js/auth-helper.js?v=849c502f"></script>
+    <script src="js/auth-helper.js?v=bf5c4a16"></script>
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
         body { background: #f8fafc; min-height: 100vh; padding-bottom: 20px; }
         .page-header {
-            background: linear-gradient(135deg, #04553A, #0d9d63);
+            background: linear-gradient(135deg, var(--primary), #0d9d63);
             color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
         }
         .order-card {
@@ -64,8 +69,8 @@
         .step.done .step-dot { background: #22c55e; color: white; }
         .step.active .step-dot { background: #f59e0b; color: white; box-shadow: 0 0 0 3px rgba(245,158,11,0.25); }
     </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=f21a3ab5">
-    <script src="js/safe-area.js?v=58b4c12a"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=c977d598">
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 <body>
 
@@ -334,7 +339,7 @@
 
     // 🔴 Real-time: update order status without full reload
     const socket = io(API_URL, {
-        transports: ['polling', 'websocket'],
+        transports: ['websocket', 'polling'],
         auth: { token: localStorage.getItem('token') }
     });
     const userId = (window.Auth?.getUser()?._id) || localStorage.getItem('userId');
@@ -346,6 +351,6 @@
         loadOrders();
     });
 </script>
-    <script src="js/theme-manager.js?v=a33a528b"></script>
+    <script src="js/theme-manager.js?v=286ae5ac"></script>
 </body>
 </html>

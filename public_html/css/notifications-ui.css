@@ -1,51 +1,91 @@
 /*
  * ════════════════════════════════════════════════════════════════
- *  notifications-ui.css — شاشة الإشعارات الموحّدة (عميل/كابتن/تاجر)
- * ════════════════════════════════════════════════════════════════
- *
- *  لماذا ملف مشترك لا ثلاث نسخ؟ الأدوار الثلاثة تقرأ الإشعار نفسه
- *  من المجموعة نفسها. الاختلاف بينها في الترويسة والتنقّل السفلي —
- *  وهي هوية كل دور — لا في بطاقة الإشعار. نسخ التصميم ثلاث مرّات
- *  يعني أن أي نوع إشعار جديد يحتاج ثلاثة تعديلات ويُنسى في اثنين.
- *
- *  البادئة wn- ليست تجميلاً: dark-mode.css يحمل 548 قاعدة !important
- *  تستهدف أصناف بوتستراب العامة (.card، .text-muted). أي تصميم مبني
- *  عليها يُهزَم في الوضع الليلي، فنملك أصنافنا ونعرّف الوضعين بأنفسنا.
- *  يجب تحميل هذا الملف بعد dark-mode.css.
- *
- *  مبدأ الشاشة: الإشعار سجلّ لا زينة. المستخدم يفتحها ليعرف
- *  "ما الذي فاتني؟" فالأولوية للفرز الزمني وتمييز غير المقروء
- *  والوصول للسجلّ بنقرة — لا للبطاقات المزخرفة.
+ *  notifications-ui.css — شاشة الإشعارات الموحّدة (تصميم فاخر حديث)
  * ════════════════════════════════════════════════════════════════
  */
 
 :root {
-    --wn-bg: #f6f7f9;
+    --wn-bg: #f8fafc;
     --wn-surface: #ffffff;
-    --wn-border: #e8ebef;
+    --wn-border: rgba(226, 232, 240, 0.9);
     --wn-ink: #0f172a;
     --wn-ink-2: #475569;
     --wn-ink-3: #94a3b8;
-    --wn-unread-tint: #f0f9f5;
-    --wn-unread-edge: #0a8754;
-    --wn-chip-bg: #eef1f5;
-    --wn-chip-ink: #475569;
-    --wn-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 1px 3px rgba(15, 23, 42, .04);
+    --wn-unread-tint: #f0fdf4;
+    --wn-unread-edge: linear-gradient(180deg, #10b981 0%, #048c5b 100%);
+    --wn-chip-bg: #ffffff;
+    --wn-chip-ink: #64748b;
+    --wn-shadow: 0 4px 20px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.02);
+    --radius-lg: 20px;
+    --radius-md: 14px;
 }
 
 body.dark-mode {
-    --wn-bg: #0b1220;
-    --wn-surface: #151d2c;
-    --wn-border: #253247;
-    --wn-ink: #f1f5f9;
-    --wn-ink-2: #b6c2d4;
-    --wn-ink-3: #7c8ba1;
-    --wn-unread-tint: #10241c;
-    --wn-unread-edge: #10b981;
+    --wn-bg: #0b1329;
+    --wn-surface: #1e293b;
+    --wn-border: #334155;
+    --wn-ink: #f8fafc;
+    --wn-ink-2: #cbd5e1;
+    --wn-ink-3: #64748b;
+    --wn-unread-tint: #064e3b;
+    --wn-unread-edge: linear-gradient(180deg, #34d399 0%, #10b981 100%);
     --wn-chip-bg: #1e293b;
-    --wn-chip-ink: #cbd5e1;
-    --wn-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+    --wn-chip-ink: #94a3b8;
+    --wn-shadow: 0 6px 20px rgba(0, 0, 0, .3);
 }
+
+/* ═══ 🌟 الترويسة العلوية الفاخرة (App Header) ════════════════════ */
+.app-header {
+    background: linear-gradient(135deg, #022c1e 0%, #04553A 55%, #048c5b 100%);
+    position: relative;
+    padding: 16px 0 20px;
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 12px 30px rgba(4, 85, 58, 0.22);
+    overflow: hidden;
+}
+.app-header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+.app-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: 10%;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+.header-brand-badge {
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.live-status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    padding: 2px 9px; border-radius: 50px;
+    font-size: 10.5px; font-weight: 700; color: #e0f2fe;
+    margin-top: 3px;
+}
+.live-status-pill .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    animation: pulseDot 1.5s infinite;
+}
+@keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } }
 
 .wn-wrap {
     max-width: 680px;
@@ -53,117 +93,140 @@ body.dark-mode {
     padding: 14px 14px 96px;
 }
 
-/* ── شريط الفرز ─────────────────────────────────────────────── */
+/* ── شريط الفرز اللاصق الزجاجي ───────────────────────────────────────── */
 .wn-toolbar {
+    position: sticky; top: 0; z-index: 30;
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 14px;
+    padding: 10px 4px 12px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
+    background: rgba(248, 250, 252, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+body.dark-mode .wn-toolbar {
+    background: rgba(11, 19, 41, 0.92);
+    border-bottom-color: rgba(51, 65, 85, 0.8);
 }
 
 .wn-chip {
-    border: 1px solid transparent;
+    border: 1.5px solid var(--wn-border);
     background: var(--wn-chip-bg);
     color: var(--wn-chip-ink);
-    border-radius: 999px;
-    padding: 7px 15px;
+    border-radius: 50px;
+    padding: 8px 16px;
     font-size: 13px;
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
-    transition: background .15s, color .15s;
-    /* هدف لمس مريح دون تضخيم الشارة بصرياً */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 38px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.wn-chip:active {
+    transform: scale(0.95);
 }
 
 .wn-chip[aria-pressed="true"] {
-    background: var(--wn-unread-edge);
-    color: #fff;
+    background: linear-gradient(135deg, #023a27 0%, #048c5b 55%, #0ea5e9 100%);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(4, 140, 91, 0.32);
 }
 
 .wn-chip .wn-chip-count {
     display: inline-block;
     min-width: 20px;
-    padding: 0 5px;
-    margin-inline-start: 5px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .25);
-    font-size: 11.5px;
-    line-height: 18px;
+    padding: 2px 7px;
+    margin-inline-start: 6px;
+    border-radius: 50px;
+    background: #f1f5f9;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 16px;
 }
 
-.wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
-    background: rgba(15, 23, 42, .1);
-}
-
-body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
-    background: rgba(255, 255, 255, .12);
+.wn-chip[aria-pressed="true"] .wn-chip-count {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
 }
 
 .wn-mark-all {
     margin-inline-start: auto;
-    border: 1px solid var(--wn-border);
+    border: 1.5px solid var(--wn-border);
     background: var(--wn-surface);
     color: var(--wn-ink-2);
-    border-radius: 999px;
-    padding: 7px 14px;
+    border-radius: 50px;
+    padding: 7px 16px;
     font-size: 12.5px;
-    font-weight: 700;
+    font-weight: 800;
     font-family: inherit;
     cursor: pointer;
     min-height: 38px;
     white-space: nowrap;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.wn-mark-all:active {
+    transform: scale(0.96);
+    background: rgba(4, 140, 91, 0.08);
+    color: #048c5b;
 }
 
 .wn-mark-all:disabled {
-    opacity: .55;
+    opacity: .5;
     cursor: default;
 }
 
-/* على الشاشات الضيّقة لا تتّسع الثلاثة في سطر، فيسقط الزر وحده
-   محاذىً لليسار ويبدو كخطأ تخطيط. نجعله سطراً كامل العرض فيقرأ مقصوداً. */
 @media (max-width: 430px) {
     .wn-mark-all {
         width: 100%;
         margin-inline-start: 0;
-        margin-top: 2px;
+        margin-top: 4px;
+        text-align: center;
     }
 }
 
 /* ── عنوان المجموعة الزمنية ─────────────────────────────────── */
-/* ⚠️ محدّدات مركّبة عمداً في كل قاعدة لون نص أدناه.
-   dark-mode.css يحمل `body.dark-mode span/div/p { color: … }`
-   بوزن (0,1,2)، وهو يهزم أي صنف مفرد (0,1,0) فيصبح العنوان
-   والنص الثانوي بلون واحد وتضيع الهرمية. صنفان يكفيان للفوز. */
 .wn-wrap .wn-group-title {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 800;
-    color: var(--wn-ink-3);
-    letter-spacing: .2px;
-    margin: 18px 4px 8px;
+    color: var(--wn-ink-2);
+    background: #e2e8f0;
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 50px;
+    margin: 18px 4px 10px;
+}
+body.dark-mode .wn-wrap .wn-group-title {
+    background: #334155;
+    color: #cbd5e1;
 }
 
 .wn-wrap .wn-group-title:first-child {
     margin-top: 0;
 }
 
-/* ── بطاقة الإشعار ──────────────────────────────────────────── */
+/* ── بطاقة الإشعار (Notification Card) ──────────────────────────── */
 .wn-item {
     position: relative;
     display: flex;
-    gap: 12px;
+    gap: 13px;
     align-items: flex-start;
     width: 100%;
     text-align: start;
     background: var(--wn-surface);
     border: 1px solid var(--wn-border);
-    border-radius: 16px;
-    padding: 13px 14px;
-    margin-bottom: 8px;
+    border-radius: 18px;
+    padding: 14px 15px;
+    margin-bottom: 10px;
     box-shadow: var(--wn-shadow);
     font-family: inherit;
-    transition: transform .12s ease, background .2s ease;
+    transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
     overflow: hidden;
 }
 
@@ -172,11 +235,10 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
 }
 
 .wn-item.is-tappable:active {
-    transform: scale(.988);
+    transform: scale(0.99);
 }
 
-/* غير المقروء: خلفية خفيفة + حافّة ملوّنة.
-   الحافّة على الجانب المبدئي فتنقلب تلقائياً مع RTL. */
+/* غير المقروء: شريط مضيء جانبياً + خلفية خفيفة */
 .wn-item.is-unread {
     background: var(--wn-unread-tint);
 }
@@ -187,19 +249,21 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
     inset-inline-start: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 4.5px;
     background: var(--wn-unread-edge);
 }
 
+/* الأيقونة الملونة المتدرجة بحسب العائلة */
 .wn-icon {
     flex-shrink: 0;
-    width: 42px;
-    height: 42px;
-    border-radius: 13px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 19px;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .wn-body {
@@ -209,9 +273,10 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
 
 .wn-head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
 }
 
 .wn-item .wn-title {
@@ -226,10 +291,17 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
 
 .wn-item .wn-time {
     flex-shrink: 0;
-    font-size: 11.5px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 800;
     color: var(--wn-ink-3);
+    background: #f1f5f9;
+    padding: 2px 9px;
+    border-radius: 50px;
     white-space: nowrap;
+}
+body.dark-mode .wn-item .wn-time {
+    background: #0f172a;
+    color: #94a3b8;
 }
 
 .wn-item .wn-msg {
@@ -237,8 +309,6 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
     color: var(--wn-ink-2);
     line-height: 1.6;
     margin: 0;
-    /* الرسائل الطويلة تُقصّ لسطرين — القائمة للمسح السريع،
-       والنقر يفتح التفاصيل الكاملة في صفحتها */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -254,18 +324,28 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
     flex-shrink: 0;
     align-self: center;
     color: var(--wn-ink-3);
-    font-size: 15px;
+    font-size: 14px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #f8fafc;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #e2e8f0;
+}
+body.dark-mode .wn-item .wn-go {
+    background: #0f172a;
+    border-color: #334155;
+    color: #94a3b8;
 }
 
-/* ── هيكل التحميل ───────────────────────────────────────────── */
+/* ── هيكل التحميل Skeleton ───────────────────────────────────── */
 .wn-skel {
     display: flex;
-    gap: 12px;
+    gap: 13px;
     background: var(--wn-surface);
     border: 1px solid var(--wn-border);
-    border-radius: 16px;
-    padding: 13px 14px;
-    margin-bottom: 8px;
+    border-radius: 18px;
+    padding: 14px 15px;
+    margin-bottom: 10px;
 }
 
 .wn-skel span {
@@ -281,32 +361,33 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
     100% { background-position: -100% 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .wn-skel span { animation: none; }
-    .wn-item.is-tappable:active { transform: none; }
-}
-
-/* ── الحالات الفارغة ────────────────────────────────────────── */
+/* ── الحالات الفارغة Empty State ──────────────────────────────── */
 .wn-empty {
     text-align: center;
-    padding: 54px 20px;
+    padding: 50px 20px;
+    background: var(--wn-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--wn-border);
+    box-shadow: var(--wn-shadow);
+    margin-top: 10px;
 }
 
 .wn-wrap .wn-empty-icon {
-    width: 78px;
-    height: 78px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     margin: 0 auto 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px;
-    background: var(--wn-chip-bg);
-    color: var(--wn-ink-3);
+    font-size: 34px;
+    background: linear-gradient(135deg, rgba(4,140,91,0.08), rgba(14,165,233,0.08));
+    color: #048c5b;
+    border: 1.5px dashed rgba(4,140,91,0.3);
 }
 
 .wn-wrap .wn-empty h5 {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 800;
     color: var(--wn-ink);
     margin-bottom: 6px;
@@ -315,22 +396,27 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
 .wn-wrap .wn-empty p {
     font-size: 13.5px;
     color: var(--wn-ink-2);
-    margin-bottom: 18px;
+    margin-bottom: 20px;
+    line-height: 1.6;
 }
 
 .wn-more {
     display: block;
     width: 100%;
-    border: 1px solid var(--wn-border);
+    border: 1.5px solid var(--wn-border);
     background: var(--wn-surface);
-    color: var(--wn-ink-2);
-    border-radius: 14px;
+    color: var(--wn-ink);
+    border-radius: 50px;
     padding: 12px;
     font-size: 13.5px;
-    font-weight: 700;
+    font-weight: 800;
     font-family: inherit;
     cursor: pointer;
-    margin-top: 4px;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+}
+.wn-more:active {
+    transform: scale(0.98);
 }
 
 .wn-toast {
@@ -340,20 +426,23 @@ body.dark-mode .wn-toolbar .wn-chip[aria-pressed="false"] .wn-chip-count {
     margin: 0 auto;
     width: max-content;
     max-width: 88%;
-    background: var(--wn-ink);
+    background: linear-gradient(135deg, #0f172a, #1e293b);
     color: #fff;
     font-size: 13px;
-    font-weight: 700;
-    padding: 10px 18px;
-    border-radius: 999px;
+    font-weight: 800;
+    padding: 11px 22px;
+    border-radius: 50px;
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
     transition: opacity .2s, transform .2s;
     pointer-events: none;
     z-index: 60;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.15);
 }
 
 .wn-toast.show {
     opacity: 1;
     transform: translateY(0);
 }
+

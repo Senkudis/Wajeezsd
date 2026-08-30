@@ -14,6 +14,11 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
+        :root {
+            --primary: #048c5b;
+            --primary-gradient: #0A6E47;
+            --accent: #f59e0b;
+        }
         html, body {
             margin: 0; padding: 0;
             background: #04070f;
@@ -295,7 +300,7 @@
             border: 1px solid #2e2e34;
             flex: none;
         }
-        .gp-shot .sh-head { height: 32px; background: linear-gradient(135deg, #04553A, #0a8f62); }
+        .gp-shot .sh-head { height: 32px; background: linear-gradient(135deg, var(--primary), #0a8f62); }
         .gp-shot .sh-body { padding: 7px; display: flex; flex-direction: column; gap: 5px; }
         .gp-shot .sh-line { height: 7px; border-radius: 4px; background: #3a3a41; }
         .gp-shot .sh-line.short { width: 60%; }
@@ -318,40 +323,40 @@
 
         /* ─── Login Screen ─── */
         .login-screen { background: #f8fafc; }
-        .login-header { background: linear-gradient(135deg,#04553A,#077a54); padding:52px 18px 22px; text-align:center; }
+        .login-header { background: linear-gradient(135deg,var(--primary),#077a54); padding:52px 18px 22px; text-align:center; }
         .login-logo { width:64px;height:64px;background:white;border-radius:20px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center; }
         .login-logo img { width:46px;object-fit:contain; }
         .login-title { color:white;font-weight:800;font-size:18px; }
         .login-body { padding:20px 16px; }
         .login-field { background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:12px;padding:11px 14px;margin-bottom:12px;font-size:14px;color:#94a3b8;display:flex;align-items:center;gap:8px; }
         .login-field i { color:#94a3b8; }
-        .login-btn { background:linear-gradient(135deg,#04553A,#077a54);color:white;border:none;width:100%;padding:13px;border-radius:12px;font-weight:800;font-size:15px;font-family:inherit; }
+        .login-btn { background:linear-gradient(135deg,var(--primary),#077a54);color:white;border:none;width:100%;padding:13px;border-radius:12px;font-weight:800;font-size:15px;font-family:inherit; }
 
         /* ─── Order Screen ─── */
         .order-screen { background:#f8fafc; }
-        .order-header { background:linear-gradient(135deg,#04553A,#077a54);color:white;padding:52px 16px 14px;display:flex;align-items:center;gap:8px; }
+        .order-header { background:linear-gradient(135deg,var(--primary),#077a54);color:white;padding:52px 16px 14px;display:flex;align-items:center;gap:8px; }
         .order-header .title { font-weight:800;font-size:15px; }
         .order-body { padding:14px; }
         .route-card { background:white;border-radius:16px;padding:14px;box-shadow:0 3px 12px rgba(0,0,0,0.07);margin-bottom:12px; }
         .route-row { display:flex;align-items:flex-start;gap:10px;margin-bottom:10px; }
         .route-dot { width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px; }
-        .route-dot.green { background:#04553A; }
+        .route-dot.green { background:var(--primary); }
         .route-dot.red { background:#ef4444; }
         .route-line { width:1.5px;height:18px;background:#e2e8f0;margin:2px 0 2px 5px; }
         .route-label { font-size:11px;color:#64748b;font-weight:700;margin-bottom:3px; }
         .route-input { background:#f1f5f9;border-radius:8px;padding:8px 10px;font-size:12px;color:#94a3b8; }
-        .map-btn { background:#04553A;color:white;border:none;width:100%;padding:10px;border-radius:10px;font-weight:800;font-size:13px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px; }
+        .map-btn { background:var(--primary);color:white;border:none;width:100%;padding:10px;border-radius:10px;font-weight:800;font-size:13px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px; }
 
         /* ─── Tracking Screen ─── */
         .tracking-screen { background:#f8fafc; }
         .track-map { height:220px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);position:relative;overflow:hidden; }
         .map-grid { position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,0.3) 1px,transparent 1px);background-size:40px 40px; }
         .captain-pin { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;animation:pinBounce 1.5s ease-in-out infinite; }
-        .captain-pin-circle { width:36px;height:36px;background:#04553A;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25);display:flex;align-items:center;justify-content:center;color:white;font-size:16px; }
+        .captain-pin-circle { width:36px;height:36px;background:var(--primary);border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25);display:flex;align-items:center;justify-content:center;color:white;font-size:16px; }
         @keyframes pinBounce { 0%,100%{transform:translate(-50%,-50%)} 50%{transform:translate(-50%,-58%)} }
         .track-info { padding:14px;background:white; }
         .captain-row { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
-        .captain-avatar { width:44px;height:44px;background:#04553A;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:800; }
+        .captain-avatar { width:44px;height:44px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:800; }
         .captain-name { font-weight:800;font-size:14px;color:#0f172a; }
         .captain-status { font-size:11px;color:#16a34a;font-weight:700; }
         .eta-pill { background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 12px;font-size:12px;color:#166534;font-weight:700;margin-right:auto; }
@@ -365,7 +370,7 @@
             opacity: 0; visibility: hidden;
         }
         .end-logo-card {
-    background: linear-gradient(135deg, #04553A, #077a54);
+    background: linear-gradient(135deg, var(--primary), #077a54);
     border-radius: 34px;
     padding: 54px 74px;
     box-shadow: 0 40px 100px rgba(0,0,0,0.55);
@@ -403,7 +408,7 @@
             padding: 9px 24px; font-family: inherit; font-weight: 700; font-size: 14px;
             cursor: pointer;
         }
-        .mode-btn.active { background: #04553A; border-color: #04553A; color: white; }
+        .mode-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
         #btnSound {
             background: transparent; color: #64748b;
             border: 2px solid #26333f; border-radius: 13px;
@@ -412,7 +417,7 @@
         }
         #btnSound.sound-on { color: #F5A623; border-color: rgba(245,166,35,0.5); }
         #btnPlay {
-            background: linear-gradient(135deg, #077a54, #04553A);
+            background: linear-gradient(135deg, #077a54, var(--primary));
             color: white; border: none;
             width: 92px; height: 92px; border-radius: 50%;
             font-size: 36px; cursor: pointer;
@@ -480,6 +485,7 @@
             #rotateHint { font-size: 12px; padding: 9px 14px; }
         }
     </style>
+    <script src="js/safe-area.js?v=176d6050"></script>
 </head>
 <body>
 
@@ -498,7 +504,7 @@
         <div id="flashLayer" style="position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:300;"></div>
 
         <div id="cinemaProgress" style="position:absolute;bottom:0;left:0;right:0;height:4px;z-index:200;opacity:0;">
-            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,#04553A,#0e9f6e,#F5A623);box-shadow:0 0 12px rgba(245,166,35,0.7);border-radius:0 2px 2px 0;transition:none;"></div>
+            <div id="cinemaBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--primary),#0e9f6e,#F5A623);box-shadow:0 0 12px rgba(245,166,35,0.7);border-radius:0 2px 2px 0;transition:none;"></div>
             <div id="cinemaPulse" style="position:absolute;right:0;top:-3px;width:10px;height:10px;background:#F5A623;border-radius:50%;box-shadow:0 0 8px #F5A623;display:none;"></div>
         </div>
 
@@ -549,7 +555,7 @@
                     <div id="scene0" class="screen active" style="background:#f8fafc;justify-content:center;align-items:center;padding:0 20px;">
                         <div style="width:100%;background:#fff;border-radius:24px;padding:28px 22px;box-shadow:0 12px 40px rgba(2,10,25,0.10);">
                             <div style="text-align:center;margin-bottom:18px;">
-                                <img src="logo-mark-white.png" alt="وجيز" style="width:72px;height:72px;object-fit:contain;background:#04553A;border-radius:22px;padding:12px;box-shadow:0 6px 20px rgba(4,85,58,0.25);">
+                                <img src="logo-mark-white.png" alt="وجيز" style="width:72px;height:72px;object-fit:contain;background:var(--primary);border-radius:22px;padding:12px;box-shadow:0 6px 20px rgba(4,85,58,0.25);">
                             </div>
                             <h3 style="text-align:center;font-weight:800;color:#1f2937;font-size:20px;margin:0 0 6px;">أهلاً بك!</h3>
                             <p style="text-align:center;font-size:12px;color:#94a3b8;margin-bottom:18px;">
@@ -564,19 +570,19 @@
                             </div>
                             <div style="background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:12px;padding:13px 14px;font-size:16px;color:#0f172a;margin-bottom:8px;letter-spacing:3px;">••••••••</div>
                             <div style="text-align:left;margin-bottom:18px;">
-                                <span style="font-size:11px;color:#04553A;font-weight:700;">نسيت كلمة المرور؟</span>
+                                <span style="font-size:11px;color:var(--primary);font-weight:700;">نسيت كلمة المرور؟</span>
                             </div>
-                            <button id="btnLoginAction" style="width:100%;background:linear-gradient(135deg,#04553A,#065f3a);color:#fff;border:none;padding:14px;border-radius:12px;font-weight:800;font-size:15px;font-family:inherit;box-shadow:0 6px 18px rgba(10,135,84,0.3);display:flex;align-items:center;justify-content:center;gap:8px;">
+                            <button id="btnLoginAction" style="width:100%;background:linear-gradient(135deg,var(--primary),var(--primary-gradient));color:#fff;border:none;padding:14px;border-radius:12px;font-weight:800;font-size:15px;font-family:inherit;box-shadow:0 6px 18px rgba(10,135,84,0.3);display:flex;align-items:center;justify-content:center;gap:8px;">
                                 <i class="bi bi-box-arrow-in-right"></i> تسجيل الدخول
                             </button>
-                            <div style="text-align:center;margin-top:16px;font-size:12.5px;color:#94a3b8;">ليس لديك حساب؟ <span style="color:#04553A;font-weight:800;">إنشاء حساب جديد</span></div>
+                            <div style="text-align:center;margin-top:16px;font-size:12.5px;color:#94a3b8;">ليس لديك حساب؟ <span style="color:var(--primary);font-weight:800;">إنشاء حساب جديد</span></div>
                         </div>
                     </div>
 
                     <!-- مشهد 1: الصفحة الرئيسية مع التصنيفات -->
                     <div id="scene1" class="screen" style="background:#f0f4f8;">
                         <!-- Hero Section -->
-                        <div style="background:linear-gradient(160deg,#0a1628 0%,#0d3b2e 45%,#04553A 100%);padding:48px 16px 50px;position:relative;">
+                        <div style="background:linear-gradient(160deg,#0a1628 0%,#0d3b2e 45%,var(--primary) 100%);padding:48px 16px 50px;position:relative;">
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
                                 <div>
                                     <div style="font-size:12px;color:rgba(255,255,255,0.6);font-weight:600;">مرحباً</div>
@@ -631,7 +637,7 @@
                                         <span>•</span>
                                         <span>مطاعم</span>
                                     </div>
-                                    <button style="width:100%;background:linear-gradient(135deg,#04553A,#059669);color:white;border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;">
+                                    <button style="width:100%;background:linear-gradient(135deg,var(--primary),#059669);color:white;border:none;border-radius:8px;padding:6px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px;">
                                         <i class="bi bi-arrow-left-short"></i> اطلب الآن
                                     </button>
                                 </div>
@@ -639,7 +645,7 @@
                         </div>
                         <!-- Bottom Nav -->
                         <div style="position:absolute;bottom:0;left:0;right:0;background:white;border-top:1px solid #f0f0f0;display:flex;padding:8px 0 12px;z-index:10;">
-                            <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:#04553A;">
+                            <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:var(--primary);">
                                 <i class="bi bi-house-door-fill" style="font-size:18px;display:block;margin-bottom:1px;"></i> الرئيسية
                             </div>
                             <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:#888;">
@@ -679,7 +685,7 @@
                                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 32px 8px 10px;font-size:11px;color:#9ca3af;">ابحث في منتجات هذا المتجر...</div>
                             </div>
                             <div style="display:flex;gap:8px;">
-                                <div style="padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#04553A;color:white;">الكل</div>
+                                <div style="padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;background:var(--primary);color:white;">الكل</div>
                                 <div style="padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#f1f5f9;color:#475569;">وجبات</div>
                                 <div style="padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;background:#f1f5f9;color:#475569;">مشروبات</div>
                             </div>
@@ -690,23 +696,23 @@
                                 <div style="height:100px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;font-size:40px;">🍔</div>
                                 <div style="padding:10px;">
                                     <div style="font-size:12px;font-weight:700;color:#0f172a;">برجر كلاسيك</div>
-                                    <div style="font-size:13px;font-weight:800;color:#04553A;margin:4px 0;">5,000 ج.س</div>
-                                    <button style="width:100%;background:#04553A;color:white;border:none;padding:6px;border-radius:8px;font-weight:700;font-size:10px;font-family:inherit;">أضف للسلة</button>
+                                    <div style="font-size:13px;font-weight:800;color:var(--primary);margin:4px 0;">5,000 ج.س</div>
+                                    <button style="width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:8px;font-weight:700;font-size:10px;font-family:inherit;">أضف للسلة</button>
                                 </div>
                             </div>
                             <div style="background:white;border-radius:14px;border:1px solid #eaeef2;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.04);">
                                 <div style="height:100px;background:linear-gradient(135deg,#dcfce7,#bbf7d0);display:flex;align-items:center;justify-content:center;font-size:40px;">🥗</div>
                                 <div style="padding:10px;">
                                     <div style="font-size:12px;font-weight:700;color:#0f172a;">سلطة طازجة</div>
-                                    <div style="font-size:13px;font-weight:800;color:#04553A;margin:4px 0;">3,500 ج.س</div>
-                                    <button style="width:100%;background:#04553A;color:white;border:none;padding:6px;border-radius:8px;font-weight:700;font-size:10px;font-family:inherit;">أضف للسلة</button>
+                                    <div style="font-size:13px;font-weight:800;color:var(--primary);margin:4px 0;">3,500 ج.س</div>
+                                    <button style="width:100%;background:var(--primary);color:white;border:none;padding:6px;border-radius:8px;font-weight:700;font-size:10px;font-family:inherit;">أضف للسلة</button>
                                 </div>
                             </div>
                         </div>
                         <!-- Floating Cart -->
-                        <div id="floatingCartBtn" style="position:absolute;bottom:16px;left:14px;right:14px;background:#04553A;color:white;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 20px rgba(4,85,58,0.42);z-index:150;">
+                        <div id="floatingCartBtn" style="position:absolute;bottom:16px;left:14px;right:14px;background:var(--primary);color:white;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 20px rgba(4,85,58,0.42);z-index:150;">
                             <div>
-                                <div style="font-weight:700;font-size:12px;"><span style="background:white;color:#04553A;border-radius:50%;padding:1px 7px;margin-left:5px;">2</span> عناصر</div>
+                                <div style="font-weight:700;font-size:12px;"><span style="background:white;color:var(--primary);border-radius:50%;padding:1px 7px;margin-left:5px;">2</span> عناصر</div>
                                 <div style="font-size:14px;font-weight:800;margin-top:2px;">8,500 ج.س</div>
                             </div>
                             <div style="font-weight:800;font-size:13px;display:flex;align-items:center;gap:4px;">
@@ -722,19 +728,19 @@
                             <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,0.3) 1px,transparent 1px);background-size:40px 40px;"></div>
                             <div style="position:absolute;top:44px;left:14px;right:14px;z-index:10;">
                                 <div style="background:white;border-radius:14px;padding:10px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.1);display:flex;align-items:center;gap:10px;">
-                                    <div style="width:36px;height:36px;border-radius:10px;background:#04553A;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;">
+                                    <div style="width:36px;height:36px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:14px;">
                                         <i class="bi bi-arrow-right"></i>
                                     </div>
                                     <div style="flex:1;">
                                         <div style="font-weight:800;font-size:13px;color:#1e293b;">تتبع الطلب</div>
                                         <div style="font-size:10px;color:#64748b;">رقم الطلب #5217</div>
                                     </div>
-                                    <div style="background:#ecfdf5;border:1px solid #d1fae5;border-radius:8px;padding:4px 10px;font-size:10px;color:#04553A;font-weight:700;">~8 دقائق</div>
+                                    <div style="background:#ecfdf5;border:1px solid #d1fae5;border-radius:8px;padding:4px 10px;font-size:10px;color:var(--primary);font-weight:700;">~8 دقائق</div>
                                 </div>
                             </div>
                             <!-- Captain Pin -->
                             <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;">
-                                <div style="width:44px;height:44px;background:#04553A;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25),0 4px 12px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;animation:pinBounce 1.5s ease-in-out infinite;">
+                                <div style="width:44px;height:44px;background:var(--primary);border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(4,85,58,0.25),0 4px 12px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;animation:pinBounce 1.5s ease-in-out infinite;">
                                     <i class="bi bi-bicycle"></i>
                                 </div>
                                 <div style="background:white;border-radius:8px;padding:4px 8px;margin-top:6px;font-size:10px;font-weight:700;color:#0f172a;box-shadow:0 2px 8px rgba(0,0,0,0.1);">محمد إبراهيم</div>
@@ -744,7 +750,7 @@
                         <div style="background:white;border-radius:20px 20px 0 0;padding:18px 16px;margin-top:-16px;position:relative;z-index:10;box-shadow:0 -4px 20px rgba(0,0,0,0.08);">
                             <div style="width:36px;height:4px;border-radius:2px;background:#e2e8f0;margin:0 auto 14px;"></div>
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                                <div style="width:44px;height:44px;background:#04553A;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;">م</div>
+                                <div style="width:44px;height:44px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:16px;">م</div>
                                 <div style="flex:1;">
                                     <div style="font-weight:800;font-size:14px;color:#0f172a;">محمد إبراهيم</div>
                                     <div style="font-size:11px;color:#16a34a;font-weight:700;display:flex;align-items:center;gap:4px;">
@@ -752,10 +758,10 @@
                                     </div>
                                 </div>
                                 <div style="display:flex;gap:6px;">
-                                    <div style="width:36px;height:36px;border-radius:50%;background:#f0fdf4;border:1px solid #d1fae5;display:flex;align-items:center;justify-content:center;color:#04553A;font-size:14px;">
+                                    <div style="width:36px;height:36px;border-radius:50%;background:#f0fdf4;border:1px solid #d1fae5;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:14px;">
                                         <i class="bi bi-telephone-fill"></i>
                                     </div>
-                                    <div style="width:36px;height:36px;border-radius:50%;background:#f0fdf4;border:1px solid #d1fae5;display:flex;align-items:center;justify-content:center;color:#04553A;font-size:14px;">
+                                    <div style="width:36px;height:36px;border-radius:50%;background:#f0fdf4;border:1px solid #d1fae5;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:14px;">
                                         <i class="bi bi-chat-dots-fill"></i>
                                     </div>
                                 </div>
@@ -771,7 +777,7 @@
                                 </div>
                                 <div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px;text-align:center;">
                                     <div style="font-size:10px;color:#64748b;font-weight:600;">السعر</div>
-                                    <div style="font-weight:800;font-size:16px;color:#04553A;">2,500</div>
+                                    <div style="font-weight:800;font-size:16px;color:var(--primary);">2,500</div>
                                 </div>
                             </div>
                         </div>
@@ -1035,7 +1041,7 @@
         gsap.fromTo(fl, { opacity: 0.75 }, { opacity: 0, duration: dur, ease: 'power2.out' });
     };
 
-    const burstParticles = (count = 18, colors = ['#04553A','#F5A623','#22c55e','#fff']) => {
+    const burstParticles = (count = 18, colors = ['var(--primary)','#F5A623','#22c55e','#fff']) => {
         const pc = document.getElementById('particleContainer');
         const cx = gsap.getProperty(cursor, 'x');
         const cy = gsap.getProperty(cursor, 'y');
@@ -1153,7 +1159,7 @@
         tl.add(showText('#mt1'), '-=1.2');
         tl.add(moveCursor('btnLoginAction', 1.1), '+=0.7')
           .add(clickCursor('btnLoginAction'));
-        tl.call(() => { flashScreen('#04553A', 0.18); burstParticles(20, ['#04553A','#22c55e','#F5A623','#fff']); vibrate([10, 20, 50]); sfx.success(); });
+        tl.call(() => { flashScreen('var(--primary)', 0.18); burstParticles(20, ['var(--primary)','#22c55e','#F5A623','#fff']); vibrate([10, 20, 50]); sfx.success(); });
 
         // ── مشهد 1: الصفحة الرئيسية مع التصنيفات ──
         tl.add(hideText('#mt1'));
@@ -1180,13 +1186,13 @@
             sfx.cashier();
             vibrate([100, 50, 200]);
             flashScreen('#F5A623', 0.25);
-            burstParticles(24, ['#04553A','#F5A623','#22c55e','#fff']);
+            burstParticles(24, ['var(--primary)','#F5A623','#22c55e','#fff']);
             Swal.fire({
                 icon: 'success',
                 title: 'تم إرسال الطلب!',
                 html: `جاري تعيين كابتن لطلبك...<br><small class="text-muted mt-2 d-block">رقم الطلب: #5217</small>`,
                 confirmButtonText: 'تتبع الطلب',
-                confirmButtonColor: '#04553A',
+                confirmButtonColor: 'var(--primary)',
                 allowOutsideClick: false,
                 backdrop: 'rgba(0,0,0,0.5)',
                 target: '#deviceFrame',
@@ -1197,7 +1203,7 @@
             const rect = document.getElementById('deviceFrame').getBoundingClientRect();
             const cx = (rect.left + rect.width / 2) / window.innerWidth;
             const cy = (rect.top + rect.height / 2) / window.innerHeight;
-            confetti({ particleCount: 220, spread: 80, origin: { x: cx, y: cy }, colors: ['#04553A', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
+            confetti({ particleCount: 220, spread: 80, origin: { x: cx, y: cy }, colors: ['var(--primary)', '#F5A623', '#22c55e', '#ffffff'], zIndex: 3000, disableForReducedMotion: true });
         });
 
         tl.to([], { duration: 1.5 });
