@@ -645,14 +645,12 @@
         let _pollInterval = null;
         let _timerInterval = null;
         let _pendingRequestId = null;
-        let _pendingToken = null;
-        let _pendingUser = null;
         let _timeLeft = 300; // 5 دقائق
 
-        function showWaitingScreen(requestId, token, user) {
+        // 🔒 لا يُخزَّن أي توكن هنا. الخادم لم يعد يرسله مع رد 202؛ يُستلَم
+        //    من /session-requests/:id/claim بعد موافقة المدير الرئيسي فقط.
+        function showWaitingScreen(requestId) {
             _pendingRequestId = requestId;
-            _pendingToken = token;
-            _pendingUser = user;
             _timeLeft = 300;
 
             document.getElementById('loginBox') && (document.getElementById('loginBox').style.display = 'none');
@@ -675,14 +673,20 @@
 
         async function checkApprovalStatus(requestId) {
             try {
-                const res = await fetch(`${API_URL}/api/admin/session-requests/${requestId}`);
+                // المسار يتطلب إثبات أننا الجهاز نفسه صاحب الطلب، ويسلّم التوكن
+                // مرة واحدة عند الموافقة.
+                const res = await fetch(`${API_URL}/api/admin/session-requests/${requestId}/claim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: getDeviceId() })
+                });
                 if (!res.ok) return;
                 const data = await res.json();
 
-                if (data.status === 'approved') {
+                if (data.status === 'approved' && data.token) {
                     clearInterval(_pollInterval);
                     clearInterval(_timerInterval);
-                    completeLogin(_pendingToken, _pendingUser);
+                    completeLogin(data.token, data.user);
                 } else if (data.status === 'rejected') {
                     clearInterval(_pollInterval);
                     clearInterval(_timerInterval);
@@ -767,16 +771,18 @@
                 const data = await res.json();
 
                 if (res.ok) {
+                    // ✅ جهاز جديد بانتظار الموافقة: يُفحَص أولاً لأن رد 202 لم يعد
+                    //    يحمل بيانات المستخدم (ولا التوكن) — فحص الدور قبله كان
+                    //    سيسقط على رسالة "ليس حساب مسؤول".
+                    if (data.requiresApproval && data.requestId) {
+                        loginBtn.classList.remove('loading');
+                        loginBtn.disabled = false;
+                        showWaitingScreen(data.requestId);
+                        return;
+                    }
+
                     const role = data.user?.role;
                     if (role === 'admin' || role === 'sub_admin') {
-
-                        // ✅ تحقق: هل يحتاج موافقة؟
-                        if (data.requiresApproval && data.requestId) {
-                            loginBtn.classList.remove('loading');
-                            loginBtn.disabled = false;
-                            showWaitingScreen(data.requestId, data.token, data.user);
-                            return;
-                        }
 
                         // دخول مباشر (جهاز موثوق)
                         completeLogin(data.token, data.user);

@@ -38,6 +38,17 @@ const adminLoginLimiter = rateLimit({
     }
 });
 
+// 🛡️ الاستطلاع يجري كل 4 ثوانٍ لخمس دقائق = 75 نداءً شرعياً. السقف 120
+//    يترك هامشاً مريحاً ويمنع تجريب معرّفات/أجهزة بالجملة.
+const sessionClaimLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false },
+    handler: (req, res) => res.status(429).json({ message: 'محاولات كثيرة. يرجى الانتظار.' })
+});
+
 router.post('/login', adminLoginLimiter, async (req, res) => {
     try {
         const { email, phone, password, deviceId, deviceInfo } = req.body;
@@ -128,13 +139,14 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
 
         logger.info(`🔐 New device login request from ${user.name} — device: ${deviceInfo}`);
 
+        // 🔒 لا يُرسَل التوكن هنا إطلاقاً. كان يُرسَل مع الرد 202 فيتجاهل المهاجم
+        //    شاشة الانتظار ويستعمله مباشرةً — أي أن بوابة الأجهزة الموثوقة كانت
+        //    واجهة فقط. التوكن محفوظ في sessionReq.tempToken ولا يُسلَّم إلا عبر
+        //    /session-requests/:id/claim بعد موافقة المدير، ومرة واحدة.
         return res.status(202).json({
             requiresApproval: true,
             requestId: sessionReq._id,
-            message: 'جهاز جديد — في انتظار موافقة المدير الرئيسي',
-            // نُرسل البيانات للفرونت-إند ليخزنها مؤقتاً
-            token,
-            user: userPayload
+            message: 'جهاز جديد — في انتظار موافقة المدير الرئيسي'
         });
 
     } catch (err) {
@@ -168,15 +180,58 @@ router.get('/session-requests', protect, superAdminOnly, async (req, res) => {
     }
 });
 
-// @route   GET /api/admin/session-requests/:id
-// @desc    حالة طلب معين (عام — يستخدمه الفرونت-إند للـ polling)
-
-router.get('/session-requests/:id', async (req, res) => {
+// @route   POST /api/admin/session-requests/:id/claim
+// @desc    استطلاع حالة الطلب، وتسليم التوكن مرة واحدة بعد الموافقة
+//
+// 🔒 حلّ محل `GET /session-requests/:id` العام الذي كان يكشف حالة أي طلب
+//    لمن يعرف المعرّف وحده. الآن يجب أن يُثبت المُستدعي أنه الجهاز نفسه صاحب
+//    الطلب. والتوكن يُسلَّم من هنا فقط، بعد الموافقة، ثم يُمحى من السجل فلا
+//    يُسلَّم مرتين.
+router.post('/session-requests/:id/claim', sessionClaimLimiter, async (req, res) => {
     try {
-        const req_ = await SessionRequest.findById(req.params.id).select('status expiresAt').lean();
-        if (!req_) return res.status(404).json({ message: 'الطلب غير موجود' });
-        res.json({ status: req_.status, expiresAt: req_.expiresAt });
+        const { deviceId } = req.body || {};
+        if (!deviceId) return res.status(400).json({ message: 'معرّف الجهاز مطلوب' });
+
+        const sessionReq = await SessionRequest.findById(req.params.id);
+        // نفس الرد للطلب غير الموجود وللجهاز غير المطابق — كي لا يكشف أيهما
+        // وقع لمن يجرّب معرّفات.
+        if (!sessionReq || sessionReq.deviceId !== deviceId) {
+            return res.status(404).json({ message: 'الطلب غير موجود' });
+        }
+
+        if (sessionReq.status !== 'approved') {
+            return res.json({ status: sessionReq.status, expiresAt: sessionReq.expiresAt });
+        }
+
+        // ✅ موافَق عليه: سلّم التوكن مرة واحدة ثم امحه من السجل ذرّياً.
+        const claimed = await SessionRequest.findOneAndUpdate(
+            { _id: sessionReq._id, tempToken: { $exists: true, $ne: null } },
+            { $unset: { tempToken: '' } },
+            { new: false }
+        );
+        if (!claimed || !claimed.tempToken) {
+            return res.status(410).json({ message: 'تم استخدام هذا الطلب مسبقاً — يرجى تسجيل الدخول من جديد' });
+        }
+
+        const user = await User.findById(sessionReq.admin).select('-password').lean();
+        if (!user) return res.status(404).json({ message: 'الحساب غير موجود' });
+
+        return res.json({
+            status: 'approved',
+            token: claimed.tempToken,
+            user: {
+                _id: user._id,
+                name: user.name,
+                role: user.role,
+                adminRole: user.adminRole || 'super_admin',
+                email: user.email,
+                phone: user.phone,
+                permissions: user.permissions || [],
+                city: user.city
+            }
+        });
     } catch (err) {
+        logger.error('Session Request Claim Error:', err.message);
         res.status(500).json({ message: 'Server Error' });
     }
 });
