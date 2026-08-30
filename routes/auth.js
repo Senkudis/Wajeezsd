@@ -18,6 +18,18 @@ const rateLimit = require('express-rate-limit'); // 🛡️ Rate Limiting
 const { OAuth2Client } = require('google-auth-library'); // ✅ Google Auth
 const logger = require('../utils/logger');
 const { generateOtpCode } = require('../utils/otp');
+const { signUserToken } = require('../utils/authToken');
+
+// 🔒 هوية Google بلا بريد مؤكَّد لا تُقبل إطلاقاً.
+//    البريد هنا هو مفتاح مطابقة الحساب الموجود (User.findOne({ email }))،
+//    فهوية غير مؤكَّدة البريد تُطابق حساب شخص آخر بنفس العنوان ⇒ استيلاء عليه.
+//    جوجل تُصدر رموزاً صالحة التوقيع لحسابات لم يُؤكَّد بريدها (حسابات Workspace
+//    المُنشأة إدارياً مثلاً)، فصحّة التوقيع وحدها ليست دليلاً على ملكية البريد.
+function isVerifiedGoogleEmail(payload) {
+    return !!(payload && payload.email && payload.email_verified === true);
+}
+
+const GOOGLE_UNVERIFIED_MESSAGE = 'بريد حساب Google غير مؤكَّد — لا يمكن استخدامه للدخول';
 
 // ==========================================
 // 🛡️ Strict Rate Limiters (Clients & Captains)
@@ -223,11 +235,11 @@ router.post('/register-captain', otpLimiter, async (req, res) => {
         // ✅ FIX #16: Issue a limited upload-only token (not a full login token)
         // Full login is blocked by approvalStatus check in /login until admin approves
         // This token is valid for 1 hour only — just enough to upload documents
-        const uploadToken = jwt.sign(
-            { userId: user._id, role: 'captain', scope: 'upload_only' },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
+        const uploadToken = signUserToken(user, {
+            role: 'captain',
+            expiresIn: '1h',
+            claims: { scope: 'upload_only' }
+        });
 
         res.status(201).json({
             message: 'تم التسجيل! قم بتفعيل حسابك ورفع الوثائق. سيتم مراجعة طلبك من الإدارة.',
@@ -310,7 +322,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
             return res.status(403).json({ message: 'تم رفض طلبك. تواصل مع الإدارة لمزيد من التفاصيل.' });
         }
 
-        const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const token = signUserToken(user);
 
         res.json({
             message: 'تم تسجيل الدخول بنجاح!',
@@ -523,7 +535,7 @@ router.post('/verify-email', otpLimiter, async (req, res) => {
             });
         }
 
-        const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const token = signUserToken(user);
 
         res.json({
             message: 'تم تفعيل الحساب بنجاح!',
@@ -742,6 +754,9 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
         user.password = newPassword;
         user.resetCode = undefined;
         user.resetCodeExpires = undefined;
+        // 🔒 يُسقط كل الجلسات القائمة. الاستعادة كثيراً ما تكون بعد اختراق،
+        //    وبدون هذا يبقى توكن المهاجم صالحاً سبعة أيام رغم تغيير كلمة المرور.
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
         await user.save();
 
         res.json({ message: 'تم تغيير كلمة المرور بنجاح! يمكنك تسجيل الدخول الآن.' });
@@ -753,16 +768,34 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
 });
 
 // ==========================================
+// 🚪 تسجيل الخروج من كل الأجهزة
+// ==========================================
+// يرفع tokenVersion فيسقط كل توكن صادر قبل هذه اللحظة — بما فيها توكن
+// الجهاز الحالي. الواجهة تمسح تخزينها المحلي وتعيد التوجيه للدخول.
+router.post('/logout-all', protect, async (req, res) => {
+    try {
+        const updated = await User.findByIdAndUpdate(
+            req.user._id,
+            { $inc: { tokenVersion: 1 } },
+            { new: true, select: 'tokenVersion' }
+        );
+        if (!updated) return res.status(404).json({ message: 'المستخدم غير موجود' });
+
+        logger.info({ userId: String(req.user._id) }, '🚪 Logout from all devices');
+        res.json({ message: 'تم تسجيل الخروج من كل الأجهزة. يرجى الدخول من جديد.' });
+    } catch (err) {
+        logger.error('Logout-all error:', err.message);
+        res.status(500).json({ message: 'حدث خطأ في السيرفر' });
+    }
+});
+
+// ==========================================
 // 🔄 Refresh Token — تجديد التوكن تلقائياً
 // ==========================================
 router.post('/refresh', protect, async (req, res) => {
     try {
         // req.user is already verified by `protect` middleware
-        const newToken = jwt.sign(
-            { userId: req.user._id, role: req.user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        const newToken = signUserToken(req.user);
         res.json({ token: newToken });
     } catch (err) {
         res.status(401).json({ message: 'فشل تجديد الجلسة' });
@@ -789,6 +822,9 @@ router.post('/google', async (req, res) => {
             audience: process.env.GOOGLE_CLIENT_ID
         });
         const payload = ticket.getPayload();
+        if (!isVerifiedGoogleEmail(payload)) {
+            return res.status(403).json({ message: GOOGLE_UNVERIFIED_MESSAGE });
+        }
         const { email, name, picture } = payload;
 
         // 2. Look up user by email
@@ -803,11 +839,7 @@ router.post('/google', async (req, res) => {
             }
             // ✅ Existing user — sign in directly
             logger.info(`✅ Google login (existing user): ${email}`);
-            const token = jwt.sign(
-                { userId: existingUser._id, role: existingUser.role },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
+            const token = signUserToken(existingUser);
             return res.json({
                 token,
                 user: {
@@ -855,6 +887,9 @@ router.post('/google/complete', async (req, res) => {
             audience: process.env.GOOGLE_CLIENT_ID
         });
         const payload = ticket.getPayload();
+        if (!isVerifiedGoogleEmail(payload)) {
+            return res.status(403).json({ message: GOOGLE_UNVERIFIED_MESSAGE });
+        }
         const { email, name, picture } = payload;
 
         // 2. Normalize phone
@@ -870,11 +905,7 @@ router.post('/google/complete', async (req, res) => {
         let user = await User.findOne({ email });
         if (user) {
             logger.info(`✅ Google complete — email already exists (race), signing in: ${email}`);
-            const token = jwt.sign(
-                { userId: user._id, role: user.role },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
+            const token = signUserToken(user);
             return res.json({
                 token,
                 user: {
@@ -908,11 +939,7 @@ router.post('/google/complete', async (req, res) => {
         logger.info(`🎉 Google new user created: ${email} (${phone})`);
 
         // 6. Return JWT
-        const token = jwt.sign(
-            { userId: user._id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        const token = signUserToken(user);
 
         return res.status(201).json({
             token,
@@ -1017,6 +1044,9 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
             const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
             const ticket = await googleClient.verifyIdToken({ idToken: googleData.idToken, audience: process.env.GOOGLE_CLIENT_ID });
             const payload = ticket.getPayload();
+            if (!isVerifiedGoogleEmail(payload)) {
+                return res.status(403).json({ message: GOOGLE_UNVERIFIED_MESSAGE });
+            }
             const { email, name, picture } = payload;
 
             // Check if email somehow exists first
@@ -1090,11 +1120,7 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
         }
 
         // 4. Generate JWT & Return
-        const token = jwt.sign(
-            { userId: user._id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        const token = signUserToken(user);
 
         return res.json({
             token,
@@ -1261,6 +1287,8 @@ router.delete('/me', protect, async (req, res) => {
                     documents: {},
                     deletedAt: new Date()
                 },
+                // 🔒 يُسقط أي توكن ما زال في يد الجهاز بعد الحذف
+                $inc: { tokenVersion: 1 },
                 $unset: {
                     email: '', fcmToken: '', currentLocation: '',
                     resetCode: '', resetCodeExpires: '',

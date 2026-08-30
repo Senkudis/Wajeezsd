@@ -22,6 +22,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('../../utils/logger');
 
 const SessionRequest = require('../../models/SessionRequest');
+const { signUserToken } = require('../../utils/authToken');
 
 const adminLoginLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 دقائق
@@ -74,11 +75,9 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'بيانات الدخول غير صحيحة' });
 
         // ── توليد التوكن ────────────────────────────────────
-        const token = jwt.sign(
-            { userId: user._id, role: user.role, adminRole: user.adminRole || 'super_admin' },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        const token = signUserToken(user, {
+            claims: { adminRole: user.adminRole || 'super_admin' }
+        });
 
         const userPayload = {
             _id: user._id,

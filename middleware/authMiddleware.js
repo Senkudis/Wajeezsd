@@ -54,6 +54,16 @@ const protect = async (req, res, next) => {
             return res.status(403).json({ message: 'حسابك موقوف. يرجى التواصل مع الإدارة.' });
         }
 
+        // 🔒 إبطال الجلسات: أي توكن صدر قبل آخر رفع لـ tokenVersion يسقط هنا.
+        //    بدون هذا الفحص كان تغيير كلمة المرور لا يُنهي الجلسات القائمة،
+        //    فيبقى التوكن المسروق صالحاً حتى انتهاء مدته (سبعة أيام).
+        //    التوكنات القديمة لا تحمل `tv` فتُعامَل كـ 0 — تبقى صالحة حتى أول
+        //    رفع للنسخة، وإلا خرج كل المستخدمين لحظة النشر.
+        const tokenVersion = typeof decoded.tv === 'number' ? decoded.tv : 0;
+        if ((req.user.tokenVersion || 0) !== tokenVersion) {
+            return res.status(401).json({ message: 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول من جديد.' });
+        }
+
         // 🔒 Security: Log role mismatch but ALLOW the request to proceed.
         // Hard-blocking here would prevent /me from working when admin changes a user's role
         // (e.g., client→merchant), since the JWT still contains the old role.

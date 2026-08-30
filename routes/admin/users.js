@@ -514,6 +514,9 @@ router.put('/users/:id', protect, requireAnyPermission(['manage_captains', 'mana
         // ✅ FIX: Set password directly — the pre('save') hook in User.js will hash it
         if (req.body.password) {
             user.password = req.body.password;
+            // 🔒 تغيير كلمة المرور من الإدارة يُسقط جلسات المستخدم القائمة —
+            //    وإلا بقي من يملك توكناً قديماً داخلاً رغم تغييرها.
+            user.tokenVersion = (user.tokenVersion || 0) + 1;
         }
 
         await user.save();
