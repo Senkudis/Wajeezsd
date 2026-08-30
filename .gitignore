@@ -57,3 +57,11 @@ cairo.css
 
 # مخرجات بناء موقع الفريق (يُعاد توليدها بـ npm run build)
 team-site/tsconfig.tsbuildinfo
+
+# لقطات graphify المؤرَّخة (39 ميجا) — مولَّدة بالكامل عبر `graphify update .`
+graphify-out/20*/
+graphify-out/graph.html
+
+# سكربتات إصلاح لمرة واحدة (نفس نمط fix_*.js أعلاه)
+fix_finance.py
+fix_orders_race.py
