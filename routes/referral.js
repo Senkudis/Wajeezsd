@@ -6,6 +6,7 @@ router.param('id', validateObjectId);
 const Marketer = require('../models/Marketer');
 const Referral = require('../models/Referral');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { generateReferralCode } = require('../utils/otp');
 
 // ─────────────────────────────────────────────
 // PUBLIC ROUTES (بدون توثيق)
@@ -46,9 +47,7 @@ router.post('/register', async (req, res) => {
         let referralCode;
         let attempts = 0;
         do {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            referralCode = 'WJZ-';
-            for (let i = 0; i < 4; i++) referralCode += chars[Math.floor(Math.random() * chars.length)];
+            referralCode = generateReferralCode();
             attempts++;
         } while (await Marketer.findOne({ referralCode }) && attempts < 10);
 
@@ -152,9 +151,7 @@ router.post('/marketers', protect, adminOnly, async (req, res) => {
         let referralCode;
         let attempts = 0;
         do {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            referralCode = 'WJZ-';
-            for (let i = 0; i < 4; i++) referralCode += chars[Math.floor(Math.random() * chars.length)];
+            referralCode = generateReferralCode();
             attempts++;
         } while (await Marketer.findOne({ referralCode }) && attempts < 10);
 

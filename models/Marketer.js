@@ -1,14 +1,7 @@
 const mongoose = require('mongoose');
 
-// توليد كود فريد بصيغة WJZ-XXXX
-function generateReferralCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = 'WJZ-';
-    for (let i = 0; i < 4; i++) {
-        code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return code;
-}
+// توليد كود فريد بصيغة WJZ-XXXX — من مصدر عشوائي مشفَّر (utils/otp.js)
+const { generateReferralCode } = require('../utils/otp');
 
 const marketerSchema = new mongoose.Schema({
     name: {

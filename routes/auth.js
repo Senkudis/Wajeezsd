@@ -17,6 +17,7 @@ const axios = require('axios'); // ✅ Import Axios for proxy requests
 const rateLimit = require('express-rate-limit'); // 🛡️ Rate Limiting
 const { OAuth2Client } = require('google-auth-library'); // ✅ Google Auth
 const logger = require('../utils/logger');
+const { generateOtpCode } = require('../utils/otp');
 
 // ==========================================
 // 🛡️ Strict Rate Limiters (Clients & Captains)
@@ -108,7 +109,7 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
         if (user) return res.status(400).json({ message: 'رقم الهاتف مسجل مسبقاً' });
 
         // إنشاء كود تحقق عشوائي وصلاحية 10 دقائق
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationCode = generateOtpCode();
         const verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
         // ⚠️ هام: نرسل الباسورد كما هو (password) ونعتمد على User.js لتشفيره
@@ -182,7 +183,7 @@ router.post('/register-captain', otpLimiter, async (req, res) => {
         user = await User.findOne({ phone });
         if (user) return res.status(400).json({ message: 'رقم الهاتف مسجل مسبقاً' });
 
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationCode = generateOtpCode();
 
         // 🌍 Validate city
         const VALID_CITIES_CAP = ['Khartoum', 'PortSudan'];
@@ -273,7 +274,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
 
         // ✅ OTP Auto-Redirect: لو الحساب غير مفعّل، ابعت كود جديد وأعد توجيه الفرونت
         if (!user.isVerified) {
-            const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+            const newCode = generateOtpCode();
             const newExpiry = Date.now() + 10 * 60 * 1000; // 10 دقائق
             user.verificationCode = newCode;
             user.verificationCodeExpires = newExpiry;
@@ -564,7 +565,7 @@ router.post('/resend-code', otpLimiter, async (req, res) => {
         if (!user) return res.status(400).json({ message: 'المستخدم غير موجود' });
         if (user.isVerified) return res.status(400).json({ message: 'الحساب مفعل بالفعل!' });
 
-        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const newCode = generateOtpCode();
         const newExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
         user.verificationCode = newCode;
         user.verificationCodeExpires = newExpiry;
@@ -621,7 +622,7 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
         }
 
         // إنشاء كود استعادة
-        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const resetCode = generateOtpCode();
         user.resetCode = resetCode;
         user.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
         await user.save();
@@ -939,7 +940,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         if (!phoneNumber) return res.status(400).json({ message: 'رقم الهاتف مطلوب' });
 
         const phone = normalizePhone(phoneNumber);
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpCode = generateOtpCode();
 
         // Save to DB (expires in 5 mins automatically via TTL index)
         const Otp = require('../models/Otp');
