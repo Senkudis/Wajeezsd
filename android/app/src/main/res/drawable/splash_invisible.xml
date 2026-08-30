@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- خلفية شفافة تمامًا — تجعل Native Splash مجرد شاشة خضراء نقية
+     بدون أي لوجو أو أيقونة، حتى لا يرى المستخدم "سبلاشين" مختلفتين -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#04553A" />
+</shape>

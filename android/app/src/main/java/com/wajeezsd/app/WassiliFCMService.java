@@ -119,6 +119,12 @@ public class WassiliFCMService extends FirebaseMessagingService {
                 .setContentIntent(pendingIntent)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
+        // إيقاظ الشاشة وعرض التنبيه بقوة للكباتن (Data-only Push)
+        if ("new_order".equals(type) || "shop_order".equals(type) || "errand".equals(type)) {
+            builder.setFullScreenIntent(pendingIntent, true);
+            builder.setCategory(NotificationCompat.CATEGORY_CALL);
+        }
+
         // ── Deliver the notification ─────────────────────────────────────────────────
         NotificationManager nm =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

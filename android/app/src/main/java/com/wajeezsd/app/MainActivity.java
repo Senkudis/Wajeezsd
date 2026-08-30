@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.widget.Toast;
@@ -45,6 +46,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // 🛠️ FIX: إخفاء شريط العنوان النيتف برمجياً قبل أي شيء آخر.
+        // هذا الاستدعاء يضمن إخفاء الـ Toolbar الذي كان يظهر "وجيز" + اللوجو المشوه
+        // في أعلى كل الصفحات. يجب أن يكون قبل super.onCreate() بشكل قاطع.
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+
         // 📐 edge-to-edge صراحةً، قبل super.onCreate.
         // أندرويد 15 يفعّلها تلقائياً لتطبيقات targetSdk 35+، لكن الأجهزة الأقدم —
         // وهي أغلب مستخدمينا — لا تفعّلها إلا بطلب صريح. النتيجة كانت سلوكين مختلفين
@@ -231,6 +237,22 @@ public class MainActivity extends BridgeActivity {
                 return false;
             } catch (Exception e) {
                 return false;
+            }
+        }
+
+        /**
+         * يُطلب من الكابتن استثناء التطبيق من موفر طاقة البطارية لضمان بقاء الـ WebSocket
+         * و Background Geolocation متصلين عند إغلاق الشاشة.
+         */
+        @JavascriptInterface
+        public void requestBatteryBypass() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                    Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                }
             }
         }
     }

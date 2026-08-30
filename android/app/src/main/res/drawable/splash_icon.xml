@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    🎨 Splash Screen Icon — اللوجو المرئي في منتصف شاشة البداية
+    يُستخدم مع windowSplashScreenAnimatedIcon في Theme.SplashScreen
+    الخلفية الخضراء تأتي من windowSplashScreenBackground في styles.xml
+    الحجم المثالي لـ Android SplashScreen API: 240dp × 240dp مع icon في 160dp وسط
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- خلفية دائرية خضراء خفيفة لإطار اللوجو -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#1AFFFFFF" />
+            <size
+                android:width="200dp"
+                android:height="200dp" />
+        </shape>
+    </item>
+    <!-- أيقونة التطبيق في المنتصف -->
+    <item
+        android:drawable="@mipmap/ic_launcher_foreground"
+        android:gravity="center" />
+</layer-list>
