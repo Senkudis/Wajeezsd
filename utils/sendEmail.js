@@ -9,14 +9,18 @@ const sendEmail = async (email, subject, content, isVerification = false) => {
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
-            port: process.env.EMAIL_PORT || 465,
+            port: Number(process.env.EMAIL_PORT) || 465,
             secure: process.env.EMAIL_SECURE === 'true',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
             tls: {
-                rejectUnauthorized: false
+                // 🔒 التحقق من شهادة الخادم مُفعَّل افتراضياً. كان معطَّلاً دائماً،
+                //    ومعه يستطيع من يعترض الاتصال انتحال خادم البريد والتقاط
+                //    EMAIL_USER/EMAIL_PASS. يُعطَّل فقط بضبط صريح لخوادم داخلية
+                //    بشهادة موقَّعة ذاتياً.
+                rejectUnauthorized: process.env.EMAIL_TLS_INSECURE !== 'true'
             },
             connectionTimeout: 10000 
         });
