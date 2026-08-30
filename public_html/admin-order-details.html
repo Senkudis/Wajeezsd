@@ -191,6 +191,13 @@ async function loadOrder() {
 }
 
 // ⏱️ بطاقة الخط الزمني — من o.timeline الذي يبنيه السيرفر (طوابع الانتقالات)
+// 🔒 كل حقل يكتبه العميل أو الكابتن (عناوين، أسماء جهات الاتصال، الملاحظات،
+//    نصّ الشكوى) يُعرَض في جلسة الأدمن ومعها adminToken في localStorage.
+//    حقنه خاماً = استيلاء كامل على اللوحة بطلب واحد.
+//    مُعرَّفة في نطاق الملف لا داخل renderOrder: renderTimelineCard تستعملها أيضاً.
+const esc = (v) => window.escapeHtml ? window.escapeHtml(v == null ? '' : v)
+                                     : String(v == null ? '' : v);
+
 function renderTimelineCard(o) {
     const tl = o.timeline;
     if (!tl || !Array.isArray(tl.steps) || !tl.steps.length) return '';
@@ -202,7 +209,7 @@ function renderTimelineCard(o) {
     const items = tl.steps.map(s => {
         const cls = s.cancelled ? 'cancelled' : (s.done ? (s.key === tl.current ? 'active done' : 'done') : '');
         return `<li class="${cls}">
-            <div class="tl-title">${s.label}</div>
+            <div class="tl-title">${esc(s.label)}</div>
             <div class="tl-time">${fmt(s.at)}</div>
         </li>`;
     }).join('');
@@ -308,33 +315,33 @@ function renderOrder(o) {
             <!-- Client Info -->
             <div class="od-card">
                 <div class="od-card-title"><i class="fas fa-user"></i> بيانات العميل</div>
-                <div class="od-field"><label>الاسم</label><span>${o.client?.name || '—'}</span></div>
-                <div class="od-field"><label>الهاتف</label><span dir="ltr">${o.client?.phone || '—'}</span></div>
+                <div class="od-field"><label>الاسم</label><span>${esc(o.client?.name) || '—'}</span></div>
+                <div class="od-field"><label>الهاتف</label><span dir="ltr">${esc(o.client?.phone) || '—'}</span></div>
             </div>
 
             <!-- Captain Info -->
             <div class="od-card">
                 <div class="od-card-title"><i class="fas fa-motorcycle"></i> بيانات الكابتن</div>
                 ${o.captain ? `
-                    <div class="od-field"><label>الاسم</label><span>${o.captain.name}</span></div>
-                    <div class="od-field"><label>الهاتف</label><span dir="ltr">${o.captain.phone || '—'}</span></div>
+                    <div class="od-field"><label>الاسم</label><span>${esc(o.captain.name)}</span></div>
+                    <div class="od-field"><label>الهاتف</label><span dir="ltr">${esc(o.captain.phone) || '—'}</span></div>
                 ` : '<p style="color:#94a3b8;font-size:13px;">لم يتم تعيين كابتن بعد</p>'}
             </div>
 
             <!-- Pickup -->
             <div class="od-card">
                 <div class="od-card-title"><i class="fas fa-map-pin" style="color:#10b981;"></i> نقطة الاستلام</div>
-                <div class="od-field"><label>العنوان</label><span>${o.pickup?.address || '—'}</span></div>
-                <div class="od-field"><label>اسم جهة الاتصال</label><span>${o.pickup?.contactName || '—'}</span></div>
-                <div class="od-field"><label>هاتف جهة الاتصال</label><span dir="ltr">${o.pickup?.contactPhone || '—'}</span></div>
+                <div class="od-field"><label>العنوان</label><span>${esc(o.pickup?.address) || '—'}</span></div>
+                <div class="od-field"><label>اسم جهة الاتصال</label><span>${esc(o.pickup?.contactName) || '—'}</span></div>
+                <div class="od-field"><label>هاتف جهة الاتصال</label><span dir="ltr">${esc(o.pickup?.contactPhone) || '—'}</span></div>
             </div>
 
             <!-- Dropoff -->
             <div class="od-card">
                 <div class="od-card-title"><i class="fas fa-flag-checkered" style="color:#ef4444;"></i> نقطة التسليم</div>
-                <div class="od-field"><label>العنوان</label><span>${o.dropoff?.address || '—'}</span></div>
-                <div class="od-field"><label>اسم المستلم</label><span>${o.dropoff?.receiverName || '—'}</span></div>
-                <div class="od-field"><label>هاتف المستلم</label><span dir="ltr">${o.dropoff?.receiverPhone || '—'}</span></div>
+                <div class="od-field"><label>العنوان</label><span>${esc(o.dropoff?.address) || '—'}</span></div>
+                <div class="od-field"><label>اسم المستلم</label><span>${esc(o.dropoff?.receiverName) || '—'}</span></div>
+                <div class="od-field"><label>هاتف المستلم</label><span dir="ltr">${esc(o.dropoff?.receiverPhone) || '—'}</span></div>
             </div>
         </div>
 
@@ -354,8 +361,8 @@ function renderOrder(o) {
                     ${s.done ? '<i class="fas fa-check"></i>' : (i + 1)}
                 </span>
                 <div style="min-width:0;flex:1;">
-                    <div style="font-size:11px;color:#94a3b8;font-weight:700;">${s.type === 'pickup' ? 'استلام' : 'تسليم'}${s.contactName ? ' — ' + s.contactName : ''}${s.contactPhone ? ' — ' + s.contactPhone : ''}</div>
-                    <div style="font-size:13.5px;font-weight:700;color:#1e293b;">${s.address || '—'}</div>
+                    <div style="font-size:11px;color:#94a3b8;font-weight:700;">${s.type === 'pickup' ? 'استلام' : 'تسليم'}${s.contactName ? ' — ' + esc(s.contactName) : ''}${s.contactPhone ? ' — ' + esc(s.contactPhone) : ''}</div>
+                    <div style="font-size:13.5px;font-weight:700;color:#1e293b;">${esc(s.address) || '—'}</div>
                 </div>
                 <span style="font-size:10.5px;font-weight:800;border-radius:99px;padding:2px 9px;
                     background:${s.done ? '#dcfce7' : '#fef3c7'};color:${s.done ? '#166534' : '#b45309'};">
@@ -398,12 +405,12 @@ function renderOrder(o) {
 
             <div class="od-card">
                 <div class="od-card-title"><i class="fas fa-info-circle"></i> تفاصيل إضافية</div>
-                <div class="od-field"><label>ملاحظات</label><span>${o.details || 'لا توجد'}</span></div>
-                ${o.shopName ? `<div class="od-field"><label>المحل</label><span>${o.shopName}</span></div>` : ''}
-                ${o.items && o.items.length ? `<div class="od-field"><label>العناصر</label><span>${o.items.join('، ')}</span></div>` : ''}
+                <div class="od-field"><label>ملاحظات</label><span>${esc(o.details) || 'لا توجد'}</span></div>
+                ${o.shopName ? `<div class="od-field"><label>المحل</label><span>${esc(o.shopName)}</span></div>` : ''}
+                ${o.items && o.items.length ? `<div class="od-field"><label>العناصر</label><span>${esc(o.items.join('، '))}</span></div>` : ''}
                 ${o.scheduledAt ? `<div class="od-field"><label>موعد التسليم</label><span>${new Date(o.scheduledAt).toLocaleString('ar-SA')}</span></div>` : ''}
-                ${o.rating?.score ? `<div class="od-field"><label>التقييم</label><span>⭐ ${o.rating.score}/5 ${o.rating.comment ? '— ' + o.rating.comment : ''}</span></div>` : ''}
-                ${o.complaint?.text ? `<div class="od-field"><label>شكوى</label><span style="color:#ef4444;">${o.complaint.text} (${o.complaint.status})</span></div>` : ''}
+                ${o.rating?.score ? `<div class="od-field"><label>التقييم</label><span>⭐ ${o.rating.score}/5 ${o.rating.comment ? '— ' + esc(o.rating.comment) : ''}</span></div>` : ''}
+                ${o.complaint?.text ? `<div class="od-field"><label>شكوى</label><span style="color:#ef4444;">${esc(o.complaint.text)} (${esc(o.complaint.status)})</span></div>` : ''}
             </div>
         </div>
 
@@ -412,8 +419,8 @@ function renderOrder(o) {
         <div class="od-card" style="margin-bottom:20px;">
             <div class="od-card-title"><i class="fas fa-image"></i> الصور المرفقة</div>
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                ${o.parcelImage ? `<img src="${getFullImageUrl(o.parcelImage)}" class="od-img-preview" onclick="window.open(this.src)" alt="صورة الطرد" onerror="this.style.display='none'">` : ''}
-                ${o.receiptImage ? `<img src="${getFullImageUrl(o.receiptImage)}" class="od-img-preview" onclick="window.open(this.src)" alt="إيصال الدفع" onerror="this.style.display='none'">` : ''}
+                ${o.parcelImage ? `<img src="${esc(getFullImageUrl(o.parcelImage))}" class="od-img-preview" onclick="window.open(this.src)" alt="صورة الطرد" onerror="this.style.display='none'">` : ''}
+                ${o.receiptImage ? `<img src="${esc(getFullImageUrl(o.receiptImage))}" class="od-img-preview" onclick="window.open(this.src)" alt="إيصال الدفع" onerror="this.style.display='none'">` : ''}
             </div>
         </div>` : ''}
 

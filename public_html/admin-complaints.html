@@ -278,7 +278,9 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
             const thread=document.getElementById('chatThread');
             const init=document.createElement('div');
             init.className='chat-msg client';
-            init.innerHTML=`${c.description}<div class="msg-meta">${new Date(c.createdAt).toLocaleString('ar-EG')} · العميل</div>`;
+            // 🔒 نصّ الشكوى يكتبه العميل ويُعرَض في جلسة الأدمن ومعها adminToken.
+            //    كان يُحقن خاماً — `<img src=x onerror=...>` في شكوى = استيلاء على اللوحة.
+            init.innerHTML=`${esc(c.description)}<div class="msg-meta">${new Date(c.createdAt).toLocaleString('ar-EG')} · العميل</div>`;
             thread.appendChild(init);
             (c.replies||[]).forEach(r=>{
                 const div=document.createElement('div');

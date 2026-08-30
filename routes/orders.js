@@ -2610,12 +2610,17 @@ router.get('/:id', protect, async (req, res) => {
         // طلب المتجر الذي لم يُنشأ له طلب توصيل بعد ليس مطروحاً لأحد، وحالته
         // الاصطناعية 'pending' بلا كابتن كانت تُفعّل الاستثناء وتكشف اسم العميل
         // ورقم هاتفه لأي كابتن في النظام.
+        // 🌍 ونطاق المدينة: قائمة الطلبات المعروضة (GET /) محميّة بـ requireCity
+        //    فيرى الكابتن طلبات مدينته وحدها، لكن هذا المسار كان بلا نطاق —
+        //    فأي كابتن في أي مدينة يقرأ اسم العميل وهاتفه وعنوانه لأي طلب معلّق
+        //    بمجرد معرفة معرّفه. الشرط هنا يُطابق ما تفرضه القائمة.
         const isPendingAndUserIsCaptain = (
             !isSyntheticShopOrder &&
             order.status === 'pending' &&
             !order.captain &&
             req.user.role === 'captain' &&
-            !req.user.is_blocked
+            !req.user.is_blocked &&
+            !!order.city && String(order.city) === String(req.user.city)
         );
 
         // 🏪 تاجر المتجر صاحب الطلب يمكنه تتبع توصيل طلبات متجره
