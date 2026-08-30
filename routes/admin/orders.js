@@ -369,13 +369,37 @@ router.get('/orders/:id', protect, requirePermission('view_orders'), async (req,
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(404).json({ message: 'Not found' });
         }
-        const order = await Order.findById(req.params.id)
+        let order = await Order.findById(req.params.id)
             .populate('client', 'name phone')
             .populate('captain', 'name phone')
             .lean();
+        if (!order) {
+            const ShopOrder = require('../../models/ShopOrder');
+            const shopOrder = await ShopOrder.findById(req.params.id)
+                .populate('client', 'name phone')
+                .populate('captain', 'name phone')
+                .populate('place', 'name phone address lat lng')
+                .lean();
+            if (shopOrder) {
+                order = {
+                    ...shopOrder,
+                    orderType: 'shop',
+                    shopName: shopOrder.place?.name || 'متجر',
+                    price: shopOrder.totalAmount,
+                    pickup: {
+                        address: shopOrder.place?.address || 'المتجر',
+                        contactName: shopOrder.place?.name || 'المتجر',
+                        contactPhone: shopOrder.place?.phone || '',
+                        lat: shopOrder.place?.lat,
+                        lng: shopOrder.place?.lng
+                    },
+                    items: (shopOrder.items || []).map(i => `${i.name} (×${i.quantity || 1}) - ${i.price} ج.س`)
+                };
+            }
+        }
         if (!order) return res.status(404).json({ message: 'Not found' });
         // 🌍 sub_admin لا يرى طلباً خارج مدينته
-        if (req.user.adminRole === 'sub_admin' && order.city !== req.user.city) {
+        if (req.user.adminRole === 'sub_admin' && order.city && order.city !== req.user.city) {
             return res.status(403).json({ message: 'غير مصرح — هذا الطلب خارج مدينتك' });
         }
         // 📊 إثراء بالخط الزمني و ETA — مصدر مشترك مع بقية المسارات

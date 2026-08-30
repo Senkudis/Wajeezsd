@@ -81,7 +81,10 @@ router.get('/pricing', protect, async (req, res) => {
             longDistance: settings.longDistance || 6000,
             costPerKm: settings.costPerKm || 200,
             costPerMinute: settings.costPerMinute || 0,
+            extraStopFee: settings.extraStopFee || 0,
             commissionRate: settings.commissionRate ?? 0.15, // ✅ نسبة العمولة الرسمية
+            maxDiscountPercent: settings.maxDiscountPercent ?? 10, // 📉 أقصى نسبة تخفيض مسموحة للعميل
+            maxPriceSurgePercent: settings.maxPriceSurgePercent ?? 100 // 📈 أقصى نسبة زيادة / سقف السعر
         });
     } catch (error) {
         logger.error("Pricing Error:", error);
@@ -102,7 +105,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
         const allowedFields = [
             'baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee',
             'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin',
-            'commissionRate', 'adminPhone',
+            'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'adminPhone',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
             'appVersion', 'minVersion', 'playStoreLink', 'forceUpdate'
@@ -115,7 +118,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             }
         }
 
-        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'defaultCreditLimit'];
+        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'defaultCreditLimit'];
         for (const field of numericFields) {
             if (updates[field] !== undefined) {
                 let rawVal = updates[field];
@@ -133,6 +136,10 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
                 if (field === 'defaultCreditLimit') {
                     if (val > 0) return res.status(400).json({ message: `الحد الائتماني يجب أن يكون صفراً أو سالباً (مثال: -5000)` });
                     if (val < -1000000) return res.status(400).json({ message: `القيمة المدخلة في ${field} مبالغ فيها` });
+                } else if (field === 'maxDiscountPercent') {
+                    if (val < 0 || val > 90) return res.status(400).json({ message: `أقصى نسبة تخفيض مسموحة يجب أن تكون بين 0% و 90%` });
+                } else if (field === 'maxPriceSurgePercent') {
+                    if (val < 0 || val > 500) return res.status(400).json({ message: `سقف السعر (نسبة الزيادة المسموحة) يجب أن يكون بين 0% و 500%` });
                 } else {
                     if (val < 0) return res.status(400).json({ message: `القيمة المدخلة في ${field} غير صالحة (يجب أن تكون موجبة)` });
                     if (field !== 'commissionRate' && val > 1000000) return res.status(400).json({ message: `القيمة المدخلة في ${field} مبالغ فيها` });

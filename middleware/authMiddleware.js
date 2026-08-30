@@ -13,10 +13,6 @@ const protect = async (req, res, next) => {
     else if (req.cookies && req.cookies.token) {
         token = req.cookies.token;
     }
-    // 3. Try to get token from request body (used by navigator.sendBeacon which cannot set headers)
-    else if (req.body && req.body._token) {
-        token = req.body._token;
-    }
 
     // Validation: Missing token
     if (!token) {

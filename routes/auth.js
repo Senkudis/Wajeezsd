@@ -57,7 +57,7 @@ const otpLimiter = rateLimit({
 // ==========================================
 // 🔒 0️⃣ Check WhatsApp Subscription (Proxy)
 // ==========================================
-router.get('/check-subscription/:phone', async (req, res) => {
+router.get('/check-subscription/:phone', otpLimiter, async (req, res) => {
     try {
         // 🔒 المسار غير محمي ويُمرَّر لخدمة داخلية — لولا التحقق أمكن حقن مسار
         //    (مثل ../admin) لفحص نقاط داخلية على البوت. نطبّع ونتحقق بصرامة ونُرمّز.
@@ -445,8 +445,8 @@ router.get('/app-config', async (req, res) => {
         const Settings = require('../models/Settings');
         const settings = await Settings.getSettings();
         res.json({
-            appVersion:   settings.appVersion  || '1.1.2',
-            minVersion:   settings.minVersion  || settings.appVersion || '1.1.2',
+            appVersion:   settings.appVersion  || '1.2.1',
+            minVersion:   settings.minVersion  || settings.appVersion || '1.2.1',
             playStoreLink: settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app',
             forceUpdate:  settings.forceUpdate || false,
             // 💬 مدة صلاحية عرض المفاوضة — تُقرأ في واجهة الكابتن بدل رقم مكتوب
@@ -896,8 +896,10 @@ router.post('/google/complete', async (req, res) => {
             phone,
             password: randomPassword, // hashed by pre-save hook; never used for login
             role: 'client',
+            wallet_balance: 0, // BL-S1 FIX: صراحة لضمان وجود القيمة وتفادي TOCTOU
             isVerified: true, // Google already verified the email
             approvalStatus: 'approved',
+            authProvider: 'google',
             documents: { profilePhoto: picture || '' }
         });
 
@@ -1057,7 +1059,8 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
 
             // إنشاء حساب عميل جديد عبر OTP المستقل
             const randomPassword = require('crypto').randomBytes(32).toString('hex');
-            const fallbackEmail = `otp_${phone}_${Date.now()}@wajeezsd.local`;
+            const randomString = require('crypto').randomBytes(8).toString('hex');
+            const fallbackEmail = `otp_${randomString}_${Date.now()}@wajeezsd.local`;
             user = new User({
                 name: 'مستخدم جديد',
                 email: fallbackEmail,

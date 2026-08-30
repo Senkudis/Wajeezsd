@@ -26,8 +26,9 @@ describe('resolvePushUrl', () => {
         expect(resolvePushUrl('captain', 'chat', 'O')).toBe('/chat.html?orderId=O');
     });
 
-    it('العميل: تحديث الطلب يفتح التتبّع بالطلب المحدّد', () => {
-        expect(resolvePushUrl('client', 'order_update', 'O')).toBe('/tracking.html?orderId=O');
+    it('العميل: تحديث الطلب يفتح طلباتي بالتحديد المطلوب', () => {
+        expect(resolvePushUrl('client', 'order_update', 'O')).toBe('/client-my-orders.html?highlight=O');
+        expect(resolvePushUrl('client', 'order_searching', 'O')).toBe('/tracking.html?orderId=O');
         expect(resolvePushUrl('client', 'order_completed', 'O')).toBe('/client-my-orders.html?rateOrder=O');
     });
 

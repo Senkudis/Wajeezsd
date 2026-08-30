@@ -64,6 +64,22 @@ const settingsSchema = new mongoose.Schema({
         max: 1
     },
 
+    // 📉 الحد الأقصى لنسبة تخفيض السعر المسموحة للعميل من تسعيرة التطبيق (0% - 90%)
+    maxDiscountPercent: {
+        type: Number,
+        default: 10,
+        min: 0,
+        max: 90
+    },
+
+    // 📈 الحد الأقصى لنسبة زيادة السعر / سقف السعر التقديري (0% - 500%)
+    maxPriceSurgePercent: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 500
+    },
+
     // Profit Percentage (for backward compatibility with old Setting.js)
     profitPercentage: {
         type: Number,
@@ -107,11 +123,11 @@ const settingsSchema = new mongoose.Schema({
     // 📱 App Update System
     appVersion: {
         type: String,
-        default: '1.1.2'  // أحدث إصدار للتطبيق
+        default: '1.2.2'  // أحدث إصدار للتطبيق
     },
     minVersion: {
         type: String,
-        default: '1.1.2'  // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
+        default: '1.2.2'  // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
     },
     playStoreLink: {
         type: String,

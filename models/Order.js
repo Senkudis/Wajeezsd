@@ -115,7 +115,7 @@ const OrderSchema = new mongoose.Schema(
             lng: { type: Number }
         },
         rating: {
-            score: { type: Number, min: 1, max: 10 },
+            score: { type: Number, min: 1, max: 5 }, // BUG-L8 FIX: مقياس موحّد 1-5 (كان 1-10)
             comment: { type: String }
         },
         isRated: { type: Boolean, default: false }, // Prevent repeated rating prompts
@@ -244,27 +244,7 @@ OrderSchema.post('save', async function(doc) {
                     shopOrder.status = 'delivered';
                     shopOrder.deliveredAt = new Date();
                     changed = true;
-
-                    // 💼 ERP: قيد دخل البيع في دفتر أستاذ المتجر (مسار التعديل الإداري).
-                    // محمي من الازدواج مع مسار توصيل الكابتن بفهرس فريد على (refId + sale_income).
-                    try {
-                        const goodsAmount = shopOrder.promoAppliesTo === 'products'
-                            ? Math.max(0, shopOrder.itemsTotal - (shopOrder.discountAmount || 0))
-                            : shopOrder.itemsTotal;
-                        if (goodsAmount > 0 && shopOrder.place) {
-                            const { recordLedgerEntry } = require('../utils/erpHelpers');
-                            await recordLedgerEntry({
-                                placeId: shopOrder.place,
-                                type: 'sale_income',
-                                amount: goodsAmount,
-                                refModel: 'ShopOrder',
-                                refId: shopOrder._id,
-                                note: 'دخل بيع — توصيل طلب متجر (مزامنة إدارية)'
-                            });
-                        }
-                    } catch (ledgerErr) {
-                        logger.error({ err: ledgerErr }, 'Ledger sync (admin path) failed');
-                    }
+                    // تم إزالة القيد المالي المكرر من هنا لحل مشكلة BL-2. القيد يُضاف في مسار التوصيل (routes/orders.js).
                 } else if (doc.status === 'cancelled' && shopOrder.status !== 'cancelled') {
                     shopOrder.status = 'cancelled';
                     shopOrder.cancelledBy = shopOrder.cancelledBy || 'admin';

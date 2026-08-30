@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const logger = require('./logger');
 
 // Ensure uploads directory exists
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
@@ -41,6 +42,8 @@ function detectImageExt(buffer) {
     for (const sig of SIGNATURES) {
         if (sig.check(buffer)) return sig.ext;
     }
+    // فالبك: JPEG من بعض كاميرات أندرويد (Samsung/Huawei) تبدأ بـ 0xFF 0xD8 فقط (byte[2] ليس 0xFF)
+    if (buffer[0] === 0xFF && buffer[1] === 0xD8) return '.jpg';
     return null;
 }
 
@@ -158,22 +161,49 @@ function saveBase64ToUploads(input, subdir = 'parcels') {
     }
     if (!input.startsWith('data:image')) return null;
 
-    const matches = input.match(/^data:(image\/\w+);base64,(.+)$/);
+    const matches = input.match(/^data:(image\/[\w+-]+);base64,(.+)$/);
     if (!matches) return null;
-    const ext = MIME_EXT[matches[1].toLowerCase()];
+
+    // iOS تلتقط HEIC افتراضياً. تطبيقات Capacitor تحوّلها عادةً لـ JPEG قبل الإرسال.
+    // لكن لو وصل HEIC خاماً نعامله كـ JPEG لأن بياناته فعلياً JPEG.
+    const declaredMime = matches[1].toLowerCase()
+        .replace('image/heic', 'image/jpeg')
+        .replace('image/heif', 'image/jpeg');
+
+    const ext = MIME_EXT[declaredMime];
     if (!ext) return null;
 
     const buffer = Buffer.from(matches[2], 'base64');
-    // 🔒 المحتوى الفعلي يجب أن يطابق النوع المُعلَن (نفس درع saveBase64Image)
-    if (detectImageExt(buffer) !== ext) return null;
+
+    // فحص الحد الأدنى: صورة أقل من 1KB مبتورة أو فارغة (40 bytes بيانات)
+    if (buffer.length < 1024) {
+        logger.warn({ size: buffer.length, subdir }, 'saveBase64ToUploads: rejected — buffer too small (likely truncated by body limit)');
+        return null;
+    }
+
+    // فحص الحد الأقصى: صورة أكبر من 8MB (base64) = ~6MB صورة حقيقية — مبالغة في الرفع
+    if (buffer.length > 8 * 1024 * 1024) {
+        logger.warn({ size: buffer.length, subdir }, 'saveBase64ToUploads: rejected — image too large (>8MB)');
+        return null;
+    }
+
+    // فحص magic bytes للتحقق من نوع الملف الحقيقي (detectImageExt محدثة لتقبل JPEG variants)
+    const detectedExt = detectImageExt(buffer);
+    if (!detectedExt) {
+        logger.warn({ declaredMime, bufferHead: buffer.slice(0, 4).toString('hex'), subdir }, 'saveBase64ToUploads: rejected — magic bytes mismatch');
+        return null;
+    }
+    // نستخدم الامتداد المكتشف (magic bytes) لا المُعلَن من العميل
+    const safeExt = detectedExt;
 
     // منع اجتياز المسار عبر subdir
     const safeSub = path.basename(String(subdir || 'parcels'));
     const dir = path.join(PUBLIC_UPLOADS_DIR, safeSub);
     fs.mkdirSync(dir, { recursive: true });
 
-    const filename = `img_${Date.now()}_${require('crypto').randomBytes(6).toString('hex')}${ext}`;
+    const filename = `img_${Date.now()}_${require('crypto').randomBytes(6).toString('hex')}${safeExt}`;
     fs.writeFileSync(path.join(dir, filename), buffer);
+    logger.info({ filename, size: buffer.length, subdir }, 'saveBase64ToUploads: image saved successfully');
     return `/uploads/${safeSub}/${filename}`;
 }
 

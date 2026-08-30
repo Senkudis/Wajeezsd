@@ -61,6 +61,15 @@ router.put('/captains/:id/adjust-debt', protect, requirePermission('manage_finan
             pipelineUpdate.push({ $set: { wallet_balance: { $min: [0, { $add: ['$wallet_balance', amount] }] } } });
             adjustedAmount = amount;
         } else { // add
+            // BUG-L10 FIX: منع إضافة دين يتجاوز ضعف حد الائتمان (سقف أمان للأدمن)
+            // المعيار: الرصيد بعد الخصم لا يتجاوز credit_limit × 2
+            const effectiveCreditLimit = captain.credit_limit ?? -5000;
+            const projectedBalance = previousBalance - amount;
+            if (projectedBalance < effectiveCreditLimit * 2) {
+                return res.status(400).json({
+                    message: `المبلغ المدخل سيُنتج رصيداً (${projectedBalance.toFixed(2)}) يتجاوز ضعف الحد الائتماني (${effectiveCreditLimit * 2}). استخدم قيمة أصغر أو تواصل مع المدير العام.`
+                });
+            }
             pipelineUpdate.push({ $set: { wallet_balance: { $subtract: ['$wallet_balance', amount] } } });
             adjustedAmount = amount;
         }
