@@ -16,6 +16,48 @@ mongoose.set('bufferCommands', false);
 const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
+describe('متطلّبات Google Play — مستوى واجهة البرمجة المستهدَف', () => {
+    // اعتباراً من 1 نوفمبر 2026 يرفض Play أي تحديث لتطبيق لا يستهدف مستوى
+    // واجهة برمجة صدر خلال سنة من أحدث إصدار أندرويد. أندرويد 16 = API 36.
+    //
+    // ⚠️ سبب وجود هذا الاختبار: تاريخ android/variables.gradle يُظهر أن القيمة
+    //    رُجّعت من 36 إلى 35 مرة ثم أُعيدت. لا شيء كان يمنع تكرار ذلك، والعطل
+    //    لا يظهر إلا في رفض Play للحزمة — بعد البناء والرفع والانتظار.
+    const MIN_TARGET_SDK = 36;
+    const gradle = read('android/variables.gradle');
+
+    const num = (re) => {
+        const m = gradle.match(re);
+        return m ? Number(m[1]) : null;
+    };
+    const targetSdk = () => num(/targetSdkVersion\s*=\s*(\d+)/);
+    const compileSdk = () => num(/compileSdkVersion\s*=\s*(\d+)/);
+
+    it('القيمتان مقروءتان فعلاً من الملف — لا اختبار يمرّ على null', () => {
+        expect(targetSdk()).toBeTypeOf('number');
+        expect(compileSdk()).toBeTypeOf('number');
+    });
+
+    it('targetSdkVersion لا يقلّ عن 36 (أندرويد 16)', () => {
+        expect(targetSdk()).toBeGreaterThanOrEqual(MIN_TARGET_SDK);
+    });
+
+    it('compileSdkVersion لا يقلّ عن targetSdkVersion', () => {
+        expect(compileSdk()).toBeGreaterThanOrEqual(targetSdk());
+    });
+
+    it('app/build.gradle يقرأ القيم من variables.gradle ولا يتجاوزها برقم ثابت', () => {
+        const app = read('android/app/build.gradle');
+        expect(app).toMatch(/targetSdkVersion\s+rootProject\.ext\.targetSdkVersion/);
+        expect(app).toMatch(/compileSdk\s*=\s*rootProject\.ext\.compileSdkVersion/);
+    });
+
+    it('لا opt-out من edge-to-edge — يتجاهله أندرويد 16 فوجوده يعني توقّعاً خاطئاً', () => {
+        expect(read('android/app/src/main/res/values/styles.xml'))
+            .not.toMatch(/OptOutEdgeToEdgeEnforcement/);
+    });
+});
+
 describe('حذف الحساب (App Store 5.1.1(v))', () => {
     const app = express();
     app.use(express.json());
