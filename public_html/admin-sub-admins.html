@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script src="js/admin-guard.js?v=b336cfda" data-perm="__super__"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>إدارة الأدمن المساعد | وجيز</title>
@@ -281,14 +282,16 @@ body.dark-mode .req-name { color: #f9fafb !important; }
             { id: 'manage_users', label: 'إدارة المستخدمين (العملاء)' },
             { id: 'view_stores', label: 'مشاهدة المتاجر' },
             { id: 'manage_stores', label: 'إدارة المتاجر' },
-            { id: 'view_categories', label: 'مشاهدة الأقسام' },
-            { id: 'manage_categories', label: 'إدارة الأقسام' },
+            // view_categories أُزيلت عمداً: قائمة الأقسام عامة (GET /api/places/categories
+            // بلا protect) لأن تطبيق العميل يحتاجها، فلا يوجد مسار خادمي تحرسه.
+            // عرضها كان يوهم بمنح حماية غير موجودة.
+            { id: 'manage_categories', label: 'إضافة وتعديل وحذف الأقسام' },
             { id: 'view_finance', label: 'مشاهدة المالية (السجل والديون)' },
             { id: 'manage_finance', label: 'إدارة المالية (الدفعات والديون)' },
             { id: 'view_revenue', label: 'لوحة الأرباح الكاملة' },
             { id: 'send_notifications', label: 'إرسال الإشعارات والبث' },
             { id: 'manage_banners', label: 'إدارة البانرات الإعلانية' },
-            { id: 'view_stats', label: 'الإحصائيات المبسطة' },
+            { id: 'view_stats', label: 'إحصائيات البحث والمهام' },
             { id: 'view_map', label: 'الخريطة الحية' },
             { id: 'view_complaints', label: 'الشكاوى' },
             { id: 'view_chats', label: 'قراءة محادثات العملاء والكباتن' },
