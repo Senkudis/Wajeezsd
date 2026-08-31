@@ -1,13 +1,25 @@
-﻿name: iOS Build & TestFlight Release
+name: iOS Build & TestFlight Release
+
+# يعمل على وضعين حسب ما هو مضبوط من أسرار:
+#
+#   بلا أسرار توقيع  → بناء غير موقَّع (CODE_SIGNING_ALLOWED=NO).
+#                      لا يُنتج IPA قابلاً للتثبيت، لكنه يُثبت أن مشروع iOS
+#                      يتولّد ويُصرَّف — وهو كل ما يمكن التحقق منه قبل شراء
+#                      حساب المطوّر. شغّله اليوم.
+#
+#   بأسرار التوقيع   → أرشفة موقَّعة + تصدير IPA + رفع اختياري لـ TestFlight.
+#
+# ملاحظة: ios/ غير مُودَع في المستودع عمداً — يُولَّد هنا في كل تشغيل من
+# capacitor.config.json، فلا ينحرف عن الويب أبداً.
 
 on:
   workflow_dispatch:
     inputs:
       upload_to_testflight:
-        description: 'Upload to TestFlight / App Store Connect'
+        description: 'رفع إلى TestFlight بعد البناء (يتطلب أسرار App Store Connect)'
         required: true
         type: boolean
-        default: true
+        default: false
 
 jobs:
   build-ios:
@@ -28,52 +40,147 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run verification tests
+      - name: Verify version sync
+        run: npm run version:check
+
+      - name: Run tests
         run: npm test
 
+      # ─────────────────────────────────────────────────────────────
+      # تحديد الوضع. يُحسب في خطوة ويُقرأ عبر steps.*.outputs بدل وضع
+      # `secrets` مباشرةً في `if` — أوضح، ويعمل على كل إصدارات الرَنَّار.
+      # ─────────────────────────────────────────────────────────────
+      - name: Detect signing mode
+        id: mode
+        env:
+          CERT: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          FIREBASE: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
+        run: |
+          if [ -n "$CERT" ] && [ -n "$TEAM" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::وضع البناء الموقَّع — سيُنتَج IPA."
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::لا أسرار توقيع (BUILD_CERTIFICATE_BASE64 / APPLE_TEAM_ID) — بناء غير موقَّع للتحقق فقط."
+          fi
+          if [ -n "$FIREBASE" ]; then
+            echo "firebase=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "firebase=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GoogleService-Info.plist غائب — التطبيق سيُبنى بلا إشعارات."
+          fi
+          if [ -n "$KEY_ID" ]; then
+            echo "can_upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_upload=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Decode GoogleService-Info.plist
-        if: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 != '' }}
+        if: steps.mode.outputs.firebase == 'true'
         env:
           GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
         run: |
           mkdir -p resources/ios
           echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > resources/ios/GoogleService-Info.plist
 
-      - name: Generate iOS Platform
+      # ─────────────────────────────────────────────────────────────
+      # توليد المنصة. الترتيب مقصود: cap add يُنتج Info.plist نظيفاً بلا
+      # أي وصف أذونات، فيأتي السكربت بعده مباشرةً وقبل sync.
+      # ─────────────────────────────────────────────────────────────
+      - name: Generate iOS platform
         run: |
+          set -euo pipefail
           npx cap add ios
           node scripts/patch-ios-plist.js
-          npx @capacitor/assets generate --ios --assetPath resources/ios || true
+          # بلا `|| true`: فشل توليد الأصول يعني أيقونة كاباسيتور الافتراضية،
+          # وApp Store يرفضها. الفشل هنا أرخص من رفض بعد الرفع.
+          npx capacitor-assets generate --ios --assetPath resources/ios
           cp resources/ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
           if [ -f resources/ios/GoogleService-Info.plist ]; then
             cp resources/ios/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
           fi
           npx cap sync ios
 
-      - name: Install Apple Certificate and Provisioning Profile
-        if: ${{ secrets.BUILD_CERTIFICATE_BASE64 != '' }}
+      - name: Verify Info.plist keys
+        run: |
+          set -euo pipefail
+          PLIST=ios/App/App/Info.plist
+          for KEY in NSLocationWhenInUseUsageDescription \
+                     NSLocationAlwaysAndWhenInUseUsageDescription \
+                     NSCameraUsageDescription \
+                     NSPhotoLibraryUsageDescription \
+                     UIBackgroundModes \
+                     ITSAppUsesNonExemptEncryption; do
+            /usr/libexec/PlistBuddy -c "Print :$KEY" "$PLIST" > /dev/null \
+              || { echo "❌ مفتاح مفقود في Info.plist: $KEY"; exit 1; }
+          done
+          echo "✅ كل مفاتيح Info.plist موجودة."
+
+      # ─────────────────────────────────────────────────────────────
+      # المسار الموقَّع
+      # ─────────────────────────────────────────────────────────────
+      - name: Install Apple certificate and provisioning profile
+        if: steps.mode.outputs.signed == 'true'
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary-build-password-123' }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'ci-temporary-keychain-password' }}
         run: |
+          set -euo pipefail
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
-          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          PROVISION_PROFILE_PATH=~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
-          echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$PROVISION_PROFILE_PATH"
+          if [ -n "${BUILD_PROVISION_PROFILE_BASE64:-}" ]; then
+            mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+            echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode \
+              > "$HOME/Library/MobileDevice/Provisioning Profiles/build.mobileprovision"
+          fi
+
+      - name: Archive (signed)
+        if: steps.mode.outputs.signed == 'true'
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -destination "generic/platform=iOS" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            -allowProvisioningUpdates
+
+      # ─────────────────────────────────────────────────────────────
+      # المسار غير الموقَّع — ما يمكن تشغيله اليوم
+      # ─────────────────────────────────────────────────────────────
+      - name: Archive (unsigned — compile check only)
+        if: steps.mode.outputs.signed != 'true'
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS=""
+          echo "::notice::تمّت الأرشفة بلا توقيع. لا IPA — التوقيع يتطلب حساب مطوّر Apple."
 
       - name: Create ExportOptions.plist
+        if: steps.mode.outputs.signed == 'true'
         run: |
           cat << 'EOF' > ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
@@ -81,60 +188,63 @@ jobs:
           <plist version="1.0">
           <dict>
               <key>method</key>
-              <string>app-store</string>
+              <string>app-store-connect</string>
               <key>destination</key>
               <string>export</string>
               <key>signingStyle</key>
               <string>automatic</string>
               <key>stripSwiftSymbols</key>
               <true/>
-              <key>compileBitcode</key>
-              <false/>
               <key>manageAppVersionAndBuildNumber</key>
               <true/>
           </dict>
           </plist>
           EOF
 
-      - name: Build and Archive iOS App
-        run: |
-          xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            -destination "generic/platform=iOS" \
-            CODE_SIGNING_ALLOWED=YES \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            -allowProvisioningUpdates
-
       - name: Export IPA
+        if: steps.mode.outputs.signed == 'true'
         run: |
+          set -euo pipefail
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -exportOptionsPlist ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/build \
+            -exportPath "$RUNNER_TEMP/build" \
             -allowProvisioningUpdates
 
-      - name: Upload IPA Artifact
+      - name: Upload IPA artifact
+        if: steps.mode.outputs.signed == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: Wajeez-iOS-Release
+          name: Wajeez-iOS-IPA
           path: ${{ runner.temp }}/build/*.ipa
           retention-days: 14
 
-      - name: Upload to TestFlight / App Store Connect
-        if: ${{ inputs.upload_to_testflight && secrets.APP_STORE_KEY_ID != '' }}
+      - name: Upload archive artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wajeez-iOS-Archive
+          path: ${{ runner.temp }}/App.xcarchive
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload to TestFlight
+        if: >-
+          inputs.upload_to_testflight &&
+          steps.mode.outputs.signed == 'true' &&
+          steps.mode.outputs.can_upload == 'true'
         env:
           APP_STORE_KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
           APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
           APP_STORE_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_PRIVATE_KEY_BASE64 }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_PRIVATE_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8
+          echo "$APP_STORE_PRIVATE_KEY_BASE64" | base64 --decode \
+            > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_KEY_ID}.p8
 
-          IPA_PATH=$(find $RUNNER_TEMP/build -name "*.ipa" | head -n 1)
-          echo "Uploading $IPA_PATH to App Store Connect..."
+          IPA_PATH=$(find "$RUNNER_TEMP/build" -name "*.ipa" | head -n 1)
+          [ -n "$IPA_PATH" ] || { echo "❌ لم يُعثر على IPA"; exit 1; }
 
           xcrun altool --upload-app \
             --type ios \
