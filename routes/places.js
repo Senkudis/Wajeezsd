@@ -10,7 +10,15 @@ const PlaceCategory = require('../models/PlaceCategory');
 const Product = require('../models/Product');
 const Rating = require('../models/Rating');
 const User = require('../models/User');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, superAdminOnly, requirePermission } = require('../middleware/authMiddleware');
+
+// 🔑 ملاحظة على الحراسة في هذا الملف:
+//    كانت كل المسارات الإدارية أدناه محروسة بـ `protect` وحده، ويُفحص الدور
+//    داخل المعالج بـ `if (req.user.role !== 'admin')`. ذلك يمنع غير الأدمن،
+//    لكنه يتجاوز نظام الصلاحيات كلياً: أي أدمن مساعد كان يُنشئ ويعدّل ويحذف
+//    المتاجر والأقسام والمنتجات ولو كانت قائمة صلاحياته فارغة.
+//    الحراسة الآن بـ requirePermission في تعريف المسار. الفحوص الداخلية
+//    تُركت كطبقة ثانية (دفاع في العمق) — لا تضرّ، وتحمي لو أُزيل وسيط سهواً.
 const { logAdminAction } = require('../utils/adminLogger');
 const { normalizePhone } = require('../utils/phoneNormalizer');
 const logger = require('../utils/logger');
@@ -258,7 +266,7 @@ router.get('/errand-featured', async (req, res) => {
 
 // @route   GET /api/places/errand-stats?city=&days=30
 // @desc    📊 أدمن فقط: هل تعمل طبقات خفض التكلفة؟ وما الذي يبحث عنه العملاء ولا يجدونه؟
-router.get('/errand-stats', protect, async (req, res) => {
+router.get('/errand-stats', protect, requirePermission('view_stats'), async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
     try {
         const PlaceSearchStat = require('../models/PlaceSearchStat');
@@ -312,7 +320,7 @@ router.get('/errand-stats', protect, async (req, res) => {
 
 // @route   GET /api/places/errand-diagnose
 // @desc    🩺 أدمن فقط: أيّ مفتاح مستعمل وما رسالة جوجل الحقيقية — بلا كشف المفتاح
-router.get('/errand-diagnose', protect, async (req, res) => {
+router.get('/errand-diagnose', protect, requirePermission('view_stats'), async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
     try {
         const { diagnose } = require('../utils/placesSearch');
@@ -484,7 +492,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/places/categories
 // @desc    Admin: Create a category
 // ============================================================
-router.post('/categories', protect, async (req, res) => {
+router.post('/categories', protect, requirePermission('manage_categories'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         const { name, icon, sortOrder, notes } = req.body;
@@ -498,7 +506,7 @@ router.post('/categories', protect, async (req, res) => {
 });
 
 // @route   PUT /api/places/categories/:id
-router.put('/categories/:id', protect, async (req, res) => {
+router.put('/categories/:id', protect, requirePermission('manage_categories'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         const cat = await PlaceCategory.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -511,7 +519,7 @@ router.put('/categories/:id', protect, async (req, res) => {
 });
 
 // @route   DELETE /api/places/categories/:id
-router.delete('/categories/:id', protect, async (req, res) => {
+router.delete('/categories/:id', protect, requirePermission('manage_categories'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         const cat = await PlaceCategory.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
@@ -526,7 +534,7 @@ router.delete('/categories/:id', protect, async (req, res) => {
 // @route   POST /api/places
 // @desc    Admin: Create a place (optionally with a new merchant account)
 // ============================================================
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
 
@@ -658,7 +666,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/places/:id
 // @desc    Admin: Update a place
 // ============================================================
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
 
@@ -692,7 +700,7 @@ router.put('/:id', protect, async (req, res) => {
 // @route   DELETE /api/places/:id
 // @desc    Admin: Delete/deactivate a place
 // ============================================================
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         
@@ -731,7 +739,7 @@ router.delete('/:id', protect, async (req, res) => {
 // @route   POST /api/places/seed-demo
 // @desc    Admin: Seed demo categories & places for testing
 // ============================================================
-router.post('/seed-demo', protect, async (req, res) => {
+router.post('/seed-demo', protect, superAdminOnly, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
 
@@ -974,7 +982,7 @@ router.post('/:placeId/products/:productId/rate', protect, async (req, res) => {
 // ============================================================
 
 // @route   GET /api/places/:placeId/products/admin  (admin: list all products of a store)
-router.get('/:placeId/products/admin', protect, async (req, res) => {
+router.get('/:placeId/products/admin', protect, requirePermission('view_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         const products = await Product.find({ placeId: req.params.placeId })
@@ -987,7 +995,7 @@ router.get('/:placeId/products/admin', protect, async (req, res) => {
 });
 
 // @route   POST /api/places/:placeId/products  (admin: add product to a store)
-router.post('/:placeId/products', protect, async (req, res) => {
+router.post('/:placeId/products', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         const place = await Place.findById(req.params.placeId);
@@ -1018,7 +1026,7 @@ router.post('/:placeId/products', protect, async (req, res) => {
 });
 
 // @route   PUT /api/places/:placeId/products/:productId  (admin: edit product)
-router.put('/:placeId/products/:productId', protect, async (req, res) => {
+router.put('/:placeId/products/:productId', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         const updateData = { ...req.body };
@@ -1042,7 +1050,7 @@ router.put('/:placeId/products/:productId', protect, async (req, res) => {
 });
 
 // @route   DELETE /api/places/:placeId/products/:productId  (admin: delete product)
-router.delete('/:placeId/products/:productId', protect, async (req, res) => {
+router.delete('/:placeId/products/:productId', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         const product = await Product.findOneAndDelete({ _id: req.params.productId, placeId: req.params.placeId });
