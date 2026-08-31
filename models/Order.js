@@ -119,6 +119,18 @@ const OrderSchema = new mongoose.Schema(
             comment: { type: String }
         },
         isRated: { type: Boolean, default: false }, // Prevent repeated rating prompts
+
+        // 📍 أثر إثبات التسليم وقت إعلانه — يُكتب في كل الأوضاع عدا 'off'،
+        //    فحتى في وضع المراقبة يبقى سجلّ يُراجَع عند أي نزاع على تسليم.
+        deliveryProof: {
+            verified:       { type: Boolean },
+            reason:         { type: String },
+            distanceM:      { type: Number },
+            locationAgeSec: { type: Number },
+            lat:            { type: Number },
+            lng:            { type: Number },
+            at:             { type: Date }
+        },
         complaint: {
             text: { type: String },
             status: { type: String, enum: ['none', 'pending', 'resolved'], default: 'none' },

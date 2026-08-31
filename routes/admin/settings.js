@@ -84,7 +84,11 @@ router.get('/pricing', protect, async (req, res) => {
             extraStopFee: settings.extraStopFee || 0,
             commissionRate: settings.commissionRate ?? 0.15, // ✅ نسبة العمولة الرسمية
             maxDiscountPercent: settings.maxDiscountPercent ?? 10, // 📉 أقصى نسبة تخفيض مسموحة للعميل
-            maxPriceSurgePercent: settings.maxPriceSurgePercent ?? 100 // 📈 أقصى نسبة زيادة / سقف السعر
+            maxPriceSurgePercent: settings.maxPriceSurgePercent ?? 100, // 📈 أقصى نسبة زيادة / سقف السعر
+            // 📍 إثبات التسليم
+            deliveryProofMode: settings.deliveryProofMode || 'observe',
+            deliveryProofRadiusMeters: settings.deliveryProofRadiusMeters ?? 500,
+            deliveryProofMaxLocationAgeMin: settings.deliveryProofMaxLocationAgeMin ?? 10
         });
     } catch (error) {
         logger.error("Pricing Error:", error);
@@ -106,6 +110,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             'baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee',
             'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin',
             'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'adminPhone',
+            'deliveryProofMode', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
             'appVersion', 'minVersion', 'playStoreLink', 'forceUpdate'
@@ -118,7 +123,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             }
         }
 
-        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'defaultCreditLimit'];
+        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin', 'defaultCreditLimit'];
         for (const field of numericFields) {
             if (updates[field] !== undefined) {
                 let rawVal = updates[field];
@@ -136,6 +141,10 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
                 if (field === 'defaultCreditLimit') {
                     if (val > 0) return res.status(400).json({ message: `الحد الائتماني يجب أن يكون صفراً أو سالباً (مثال: -5000)` });
                     if (val < -1000000) return res.status(400).json({ message: `القيمة المدخلة في ${field} مبالغ فيها` });
+                } else if (field === 'deliveryProofRadiusMeters') {
+                    if (val < 50 || val > 5000) return res.status(400).json({ message: `نصف قطر إثبات التسليم يجب أن يكون بين 50 و 5000 متر` });
+                } else if (field === 'deliveryProofMaxLocationAgeMin') {
+                    if (val < 1 || val > 120) return res.status(400).json({ message: `أقصى عمر مقبول لموقع الكابتن يجب أن يكون بين دقيقة و 120 دقيقة` });
                 } else if (field === 'maxDiscountPercent') {
                     if (val < 0 || val > 90) return res.status(400).json({ message: `أقصى نسبة تخفيض مسموحة يجب أن تكون بين 0% و 90%` });
                 } else if (field === 'maxPriceSurgePercent') {
@@ -145,6 +154,17 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
                     if (field !== 'commissionRate' && val > 1000000) return res.status(400).json({ message: `القيمة المدخلة في ${field} مبالغ فيها` });
                     if (field === 'commissionRate' && val > 1) return res.status(400).json({ message: `نسبة العمولة يجب أن تكون بين 0 و 1` });
                 }
+            }
+        }
+
+        // 📍 وضع إثبات التسليم — نصّي لا رقمي، فيُتحقَّق صراحةً هنا كي تعود
+        //    رسالة عربية بدل خطأ enum من mongoose بصيغة 500.
+        if (updates.deliveryProofMode !== undefined) {
+            const { MODES } = require('../../utils/deliveryProof');
+            if (!MODES.includes(updates.deliveryProofMode)) {
+                return res.status(400).json({
+                    message: `وضع إثبات التسليم يجب أن يكون أحد: ${MODES.join('، ')}`
+                });
             }
         }
 

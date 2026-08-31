@@ -18,6 +18,7 @@ const { sendWhatsAppIfSubscribed, OrderMessages } = require('../utils/whatsappNo
 const rateLimit = require('express-rate-limit');
 const { saveBase64Image } = require('../utils/imageUpload');
 const { validateOrderLocations } = require('../utils/geofence');
+const { evaluateDeliveryProof } = require('../utils/deliveryProof');
 const { NEGOTIATION_TTL_MS } = require('../utils/negotiation');
 const logger = require('../utils/logger');
 
@@ -1965,7 +1966,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
         // 🧭 توصيل متعدد النقاط: لا يُسمح بالتسليم النهائي إلا بعد إكمال كل النقاط الأخرى.
         // (النقطة الأخيرة المتبقية هي التي يؤكّدها هذا الـ endpoint.)
         const multiCheck = await Order.findOne({ _id: req.params.id, captain: req.user.id })
-            .select('isMultiStop stops status');
+            .select('isMultiStop stops status dropoff city');
         if (multiCheck && multiCheck.isMultiStop && Array.isArray(multiCheck.stops)) {
             const undone = multiCheck.stops.filter(s => !s.done).length;
             if (undone > 1) {
@@ -1973,10 +1974,62 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
             }
         }
 
+        // 📍 إثبات التسليم — يُقيَّم قبل أي تغيير حالة، وإلا خُصمت العمولة ثم مُنع.
+        //    المصدر هو الموقع المحفوظ خادمياً (سوكت كل ثلاث ثوانٍ + update-location)
+        //    عمداً لا إحداثيات من جسم الطلب: قبولها يجعل الالتفاف تعديل سطر واحد
+        //    بدل الحاجة إلى تطبيق تزييف موقع، بلا أي مكسب — الموقع طازج أصلاً.
+        let deliveryProof = null;
+        if (multiCheck) {
+            const proofSettings = await getCachedSettings(multiCheck.city || 'Khartoum');
+            const mode = proofSettings?.deliveryProofMode || 'observe';
+
+            if (mode !== 'off') {
+                const evaluated = evaluateDeliveryProof({
+                    captainLocation: req.user.currentLocation,
+                    dropoff: multiCheck.dropoff,
+                    mode,
+                    radiusMeters: proofSettings?.deliveryProofRadiusMeters ?? 500,
+                    maxLocationAgeSec: (proofSettings?.deliveryProofMaxLocationAgeMin ?? 10) * 60
+                });
+
+                deliveryProof = {
+                    verified: evaluated.verified,
+                    reason: evaluated.reason,
+                    distanceM: evaluated.distanceM,
+                    locationAgeSec: evaluated.locationAgeSec,
+                    lat: evaluated.lat,
+                    lng: evaluated.lng,
+                    at: new Date()
+                };
+
+                if (evaluated.blocked) {
+                    logger.warn({
+                        orderId: String(req.params.id), captainId: String(req.user.id),
+                        reason: evaluated.reason, distanceM: evaluated.distanceM
+                    }, 'Delivery blocked by proof check');
+                    return res.status(409).json({
+                        message: evaluated.message,
+                        code: `delivery_proof_${evaluated.reason}`,
+                        distanceM: evaluated.distanceM
+                    });
+                }
+
+                if (!evaluated.verified) {
+                    // وضع المراقبة: يمرّ لكن يُسجَّل — هذه السجلات هي ما يُبنى
+                    // عليه قرار رفع الوضع إلى 'enforce'.
+                    logger.warn({
+                        orderId: String(req.params.id), captainId: String(req.user.id),
+                        reason: evaluated.reason, distanceM: evaluated.distanceM, mode
+                    }, 'Delivery proof not verified (observe mode — allowed)');
+                }
+            }
+        }
+
         // 🛡️ CRITICAL FIX: Idempotent & Atomic Delivery State Update
         let order = await Order.findOneAndUpdate(
             { _id: req.params.id, captain: req.user.id, status: 'picked_up' },
-            { $set: { status: 'delivered', deliveredAt: new Date() } },
+            { $set: { status: 'delivered', deliveredAt: new Date(),
+                      ...(deliveryProof ? { deliveryProof } : {}) } },
             { new: true }
         );
 

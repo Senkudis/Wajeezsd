@@ -80,6 +80,27 @@ const settingsSchema = new mongoose.Schema({
         max: 500
     },
 
+    // 📍 إثبات التسليم — فحص قرب الكابتن من نقطة التسليم قبل إغلاق الطلب.
+    //    'observe' افتراضاً: يحسب ويُسجّل على الطلب ولا يمنع أحداً، فيتيح رؤية
+    //    التوزيع الحقيقي للمسافات قبل قرار المنع. يُرفع إلى 'enforce' بعد ذلك.
+    deliveryProofMode: {
+        type: String,
+        enum: ['off', 'observe', 'enforce'],
+        default: 'observe'
+    },
+    deliveryProofRadiusMeters: {
+        type: Number,
+        default: 500,
+        min: 50,
+        max: 5000
+    },
+    deliveryProofMaxLocationAgeMin: {
+        type: Number,
+        default: 10,
+        min: 1,
+        max: 120
+    },
+
     // Profit Percentage (for backward compatibility with old Setting.js)
     profitPercentage: {
         type: Number,
