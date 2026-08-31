@@ -22,6 +22,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.getcapacitor.BridgeActivity;
+import com.google.firebase.FirebaseApp;
 import com.getcapacitor.WebViewListener;
 
 import org.json.JSONObject;
@@ -57,6 +58,23 @@ public class MainActivity extends BridgeActivity {
         // لنفس النسخة: الشريط شفاف على 15 ومصمت على ما دونه (بلاغ Play: قد لا تكون
         // مفعّلة لدى جميع المستخدمين). هذه توحّدهما على كل الإصدارات.
         EdgeToEdge.enable(this);
+
+        // 🔥 تهيئة Firebase صراحةً قبل أي شيء يلمسها.
+        //    السبب: إضافة الإشعارات تستدعي FirebaseMessaging.getInstance() بلا حماية،
+        //    وهي تستدعي FirebaseApp.getInstance() التي ترمي IllegalStateException إن لم
+        //    يكن التطبيق الافتراضي مُهيّأً. التهيئة تجري عادةً عبر FirebaseInitProvider
+        //    (مزوّد محتوى في بيان Firebase)، لكن المزوّدات لا تعمل دائماً قبل إنشاء
+        //    العملية — خصوصاً عند إيقاظ العملية والجهاز ما زال مقفلاً بعد الإقلاع، وعلى
+        //    بعض أنظمة المصنّعين. كان ذلك عنقود الأعطال الأكبر في Play (100% من المتأثرين).
+        //
+        //    الاستدعاء خامل إن كانت التهيئة تمّت: يُرجع النسخة القائمة ولا يُعيد بناءها.
+        //    ومحاط بـ try لأن فشل التهيئة نفسه (إعداد ناقص) يجب أن يُعطّل الإشعارات
+        //    لا أن يُسقط التطبيق كله.
+        try {
+            FirebaseApp.initializeApp(this);
+        } catch (Exception e) {
+            android.util.Log.w("Wajeez", "Firebase init failed — push disabled: " + e.getMessage());
+        }
 
         // BridgeActivity.onCreate() builds the Bridge and immediately calls
         // this.onNewIntent(getIntent()) internally, so the launch intent's extras are

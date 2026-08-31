@@ -187,7 +187,14 @@ const NativeNotifications = {
             return;
         }
 
-        await PushNotifications.register();
+        // فشل التسجيل لا يجوز أن يُسقط تدفّق الإقلاع: على جهاز بلا خدمات Google،
+        // أو إن تعذّرت تهيئة Firebase، يرفض النداء الأصلي ويصير وعداً مرفوضاً بلا
+        // معالج. الإشعارات تتعطّل وحدها، وبقيّة التطبيق تعمل.
+        try {
+            await PushNotifications.register();
+        } catch (err) {
+            console.warn('🔕 تعذّر تسجيل الإشعارات — التطبيق يعمل بدونها:', err?.message || err);
+        }
     },
 
     addListeners: async () => {
