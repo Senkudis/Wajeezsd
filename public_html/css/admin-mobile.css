@@ -586,3 +586,70 @@
         background: #0f172a !important;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   الشريط العلوي: منع التجاوز الأفقي على الشاشات الضيّقة
+   ──────────────────────────────────────────────────────────────────────
+   العطل المقيس على 375 بكسل: عرض المستند 408 بكسل — تجاوز 33 بكسل يدفع
+   .topbar-actions إلى left:-33 فيُقطع زرّ "لوحة التحكم" خارج الشاشة،
+   وتنزلق الصفحة كلها أفقياً.
+
+   السبب: .topbar شبكة flex بـ justify-content:space-between، وطرفاها
+   (العنوان والأزرار) لا ينكمشان — العنصر flex لا ينكمش دون محتواه ما لم
+   يُضبط min-width:0 عليه صراحةً. فمجموع العرضين يتجاوز الشاشة بدل أن
+   يقتطع العنوان.
+
+   الحل: العنوان وحده يمتصّ الضغط ويُقطع بثلاث نقاط، والأزرار تحتفظ بحجمها
+   لأنها هدف لمس. مطبَّق على كل تسميات الشريط المستعملة في اللوحة.
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 991px) {
+    .gv-topbar, .navbar, .top-header, .page-header, .admin-topbar, .topbar, .header {
+        gap: 8px !important;
+        /* حزام أمان: لو أفلت عنصر من القواعد أدناه لا تنزلق الصفحة كلها */
+        overflow-x: clip;
+    }
+
+    /* الطرف المرن: ينكمش ويُقطع بثلاث نقاط.
+       display:block مقصود: العنوان في هذه الصفحات عقدة نصّية عارية داخل
+       حاوية flex، والعقدة العارية تصير عنصر flex مجهولاً لا يمكن استهدافه
+       بمُحدِّد — فـ text-overflow لا يطاله ما دامت الحاوية flex. بجعلها
+       كتلة يعود النص محتوىً عادياً فتنطبق عليه النقاط الثلاث. */
+    .topbar-brand, .admin-topbar-title, .header-title, .gv-topbar-right {
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+        display: block !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    /* الشعار داخل العنوان: inline-flex ليبقى في سطر النص بعد تحويل
+       الحاوية إلى كتلة، و flex-shrink صفر كي لا ينضغط إلى شريحة رفيعة. */
+    .topbar-brand .brand-badge, .admin-topbar-title .brand-badge {
+        display: inline-flex !important;
+        vertical-align: middle !important;
+        flex: 0 0 auto !important;
+        margin-inline-end: 8px !important;
+    }
+
+    /* الطرف الثابت: أهداف لمس لا يجوز تصغيرها */
+    .topbar-actions, .admin-topbar-end, .header-actions {
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+    }
+
+    /* زر الرجوع: يبقى كاملاً لكن بحشو أضيق يوفّر المساحة الناقصة */
+    .topbar-back, .admin-back-btn, .back-btn {
+        padding: 7px 12px !important;
+        font-size: 12.5px !important;
+        white-space: nowrap !important;
+        flex: 0 0 auto !important;
+    }
+}
+
+/* تحت 400 بكسل تختفي كلمة الزر ويبقى السهم — لا مساحة لكليهما */
+@media (max-width: 400px) {
+    .topbar-back .btn-label, .admin-back-btn .btn-label, .back-btn .btn-label {
+        display: none !important;
+    }
+}
