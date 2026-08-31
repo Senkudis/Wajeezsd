@@ -18,7 +18,6 @@ public_html/uploads/*
 
 # ملفات مؤقتة ونسخ احتياطية يجب ألا تُرفع للمستودع
 *.zip
-!android/gradle/wrapper/*.zip
 * - Copy.*
 scripts/archive/
 desktop.ini
