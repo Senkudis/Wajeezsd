@@ -33,8 +33,10 @@ async function loadSettings() {
         
         // App Settings
         if (document.getElementById('appVersion')) {
-            document.getElementById('appVersion').value = settings.appVersion || '1.2.1';
-            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '1.2.1';
+            // بلا احتياطي برقم مكتوب: حقل فارغ يقول للأدمن "لم يُضبط بعد"،
+            // بينما رقم مخترَع يوهمه بأن الإعداد سليم فيحفظه كما هو.
+            document.getElementById('appVersion').value = settings.appVersion || '';
+            document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '';
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }

@@ -142,13 +142,17 @@ const settingsSchema = new mongoose.Schema({
     },
 
     // 📱 App Update System
+    // 📱 المصدر الوحيد لرقم الإصدار هو package.json — تضبطه
+    //    `node scripts/check-version.js --set x.y.z` مع build.gradle و app-core.js.
+    //    كتابته حرفياً هنا كانت تُنتج انحرافاً صامتاً: بقي 1.2.1 في ثلاثة ملفات
+    //    بينما التطبيق 1.2.2، فرأى المستخدمون "تحديث متاح" لنسخة مثبّتة أصلاً.
     appVersion: {
         type: String,
-        default: '1.2.2'  // أحدث إصدار للتطبيق
+        default: () => require('../package.json').version   // أحدث إصدار للتطبيق
     },
     minVersion: {
         type: String,
-        default: '1.2.2'  // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
+        default: () => require('../package.json').version   // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
     },
     playStoreLink: {
         type: String,

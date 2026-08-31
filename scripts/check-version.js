@@ -59,6 +59,36 @@ function hardcodedInHtml() {
     return hits;
 }
 
+/**
+ * 🔎 أرقام إصدار مكتوبة يدوياً داخل JS والخادم (احتياطيات مثل || '1.2.1').
+ * لماذا أُضيفت: عند إصدار 1.2.2 انحرفت مواضع لم يكن الفاحص يقرأها —
+ * routes/auth.js و public_html/js/app-core.js و js/admin-settings.js بقيت على
+ * 1.2.1. والاحتياطي المكتوب أسوأ من غيابه: لو غاب APP_VERSION زعم التطبيق أنه
+ * إصدار قديم فأظهر "تحديث متاح" لمن هو محدَّث أصلاً.
+ * القاعدة الآن: لا رقم إصدار حرفي خارج المواضع التي يضبطها --set.
+ */
+function hardcodedInSource() {
+    const SCAN = [
+        'routes/auth.js',
+        'models/Settings.js',
+        'public_html/js/app-core.js',
+        'public_html/js/admin-settings.js'
+    ];
+    const hits = [];
+    for (const rel of SCAN) {
+        const full = path.join(ROOT, rel);
+        if (!fs.existsSync(full)) continue;
+        read(full).split('\n').forEach((text, i) => {
+            // APP_VERSION هو المصدر المقصود — يضبطه --set فلا يُعدّ انحرافاً
+            if (/APP_VERSION\s*=/.test(text)) return;
+            if (/^\s*(\/\/|\*|\/\*)/.test(text)) return;
+            const m = text.match(/['"](\d+\.\d+\.\d+)['"]/);
+            if (m) hits.push({ file: rel, line: i + 1, version: m[1] });
+        });
+    }
+    return hits;
+}
+
 const setTo = process.argv.includes('--set')
     ? process.argv[process.argv.indexOf('--set') + 1]
     : null;
@@ -105,5 +135,13 @@ if (hard.length) {
     process.exit(1);
 }
 
+const inSource = hardcodedInSource();
+if (inSource.length) {
+    console.error('\n❌ أرقام إصدار مكتوبة يدوياً في الكود (لن تتحدّث مع --set):');
+    for (const h of inSource) console.error('   ' + h.file + ':' + h.line + '  →  ' + h.version);
+    console.error('   احذف الاحتياطي: الغياب خطأ بناء لا إصدار قديم — اصمت بدل التخمين.');
+    process.exit(1);
+}
+
 console.log(`\n✓ الإصدار متزامن: ${values[0]}`);
-console.log('✓ لا أرقام إصدار مكتوبة يدوياً في HTML');
+console.log('✓ لا أرقام إصدار مكتوبة يدوياً في HTML ولا في الكود');

@@ -458,8 +458,10 @@ router.get('/app-config', async (req, res) => {
         const Settings = require('../models/Settings');
         const settings = await Settings.getSettings();
         res.json({
-            appVersion:   settings.appVersion  || '1.2.1',
-            minVersion:   settings.minVersion  || settings.appVersion || '1.2.1',
+            // بلا احتياطي حرفي: للحقلين افتراض في مخطّط Settings مصدره
+            // package.json، فالاحتياطي هنا كان شفرة ميتة تنحرف بصمت (بقي 1.2.1).
+            appVersion:   settings.appVersion,
+            minVersion:   settings.minVersion || settings.appVersion,
             playStoreLink: settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app',
             forceUpdate:  settings.forceUpdate || false,
             // 💬 مدة صلاحية عرض المفاوضة — تُقرأ في واجهة الكابتن بدل رقم مكتوب
