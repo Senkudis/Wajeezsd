@@ -210,11 +210,10 @@ jobs:
             PP_PATH="$RUNNER_TEMP/build.mobileprovision"
             echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$PP_PATH"
 
-            # استخراج UUID و Name من الـ provisioning profile
-            PP_UUID=$(security cms -D -i "$PP_PATH" 2>/dev/null | \
-              /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin)
-            PP_NAME=$(security cms -D -i "$PP_PATH" 2>/dev/null | \
-              /usr/libexec/PlistBuddy -c "Print Name" /dev/stdin)
+            # استخراج UUID و Name من الـ provisioning profile عبر ملف مؤقت
+            security cms -D -i "$PP_PATH" > "$RUNNER_TEMP/profile.plist"
+            PP_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$RUNNER_TEMP/profile.plist")
+            PP_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$RUNNER_TEMP/profile.plist")
             echo "📋 Provisioning Profile: $PP_NAME ($PP_UUID)"
 
             # نسخ الملف باسم UUID وباسم build
