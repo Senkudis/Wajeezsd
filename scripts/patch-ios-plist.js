@@ -77,8 +77,8 @@ function main() {
         }
         // الإدراج قبل </dict></plist> الختامية
         plist = plist.replace(
-            /\n?<\/dict>\s*<\/plist>\s*$/,
-            `\n\t<key>${key}</key>\n\t${value}\n</dict>\n</plist>\n`
+            /<\/dict>\s*<\/plist>[\s\S]*$/,
+            `\t<key>${key}</key>\n\t${value}\n</dict>\n</plist>\n`
         );
         added.push(key);
     }

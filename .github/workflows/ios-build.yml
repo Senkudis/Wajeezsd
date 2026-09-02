@@ -1,4 +1,4 @@
-﻿name: iOS Build & TestFlight Release
+name: iOS Build & TestFlight Release
 
 on:
   workflow_dispatch:
@@ -80,11 +80,15 @@ jobs:
             cp resources/ios/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
           fi
           npx cap sync ios
+          node scripts/patch-ios-plist.js
 
       - name: Verify Info.plist keys
         run: |
           set -euo pipefail
           PLIST=ios/App/App/Info.plist
+          echo "=== Info.plist Content ==="
+          cat "$PLIST"
+          echo "========================="
           for KEY in NSLocationWhenInUseUsageDescription \
                      NSLocationAlwaysAndWhenInUseUsageDescription \
                      NSCameraUsageDescription \
