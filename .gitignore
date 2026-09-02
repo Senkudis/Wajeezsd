@@ -8,6 +8,8 @@ env wassili
 !.env.example
 *.p8
 *.p12
+*.key
+*.csr
 *.mobileprovision
 *GoogleService-Info*.plist
 *firebase-adminsdk*.json
