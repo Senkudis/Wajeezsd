@@ -9,6 +9,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const Settings = require('../models/Settings');
 const PromoCode = require('../models/PromoCode');
+const Rating = require('../models/Rating');
 const { protect, captainOnly, clientOnly } = require('../middleware/authMiddleware');
 const { requireCity } = require('../middleware/cityMiddleware');
 const { validateOrder } = require('../middleware/validateMiddleware');
@@ -76,6 +77,27 @@ const ratingLimiter = rateLimit({
     legacyHeaders: false,
     validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
 });
+
+// Rate Limiter للإكرامية — تعديلٌ متكرّر على مبلغٍ نقدي يستحقّ حدّاً
+const tipLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: { message: 'يرجى الانتظار قليلاً قبل تعديل الإكرامية مجدداً.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
+});
+
+// 💵 إجمالي ما يدفعه العميل نقداً: الأجرة بعد الخصم زائد الإكرامية.
+// دالةٌ واحدة لا حسابٌ مكرّر في كل معالج — اختلافُ نسختين من هذه المعادلة
+// يعني رقمين مختلفين على شاشة العميل وشاشة الكابتن لنفس الطلب.
+function totalDueFromClient(order) {
+    const price = Number(order?.price) || 0;
+    const discount = Number(order?.discountAmount) || 0;
+    const tip = Number(order?.tip?.amount) || 0;
+    return Math.max(0, price - discount) + tip;
+}
+module.exports.totalDueFromClient = totalDueFromClient;
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -558,6 +580,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                 scheduledAt: order.scheduledAt,
                 promoCode: order.promoCode,
                 paymentMethod: order.paymentMethod,
+                tip: order.tip?.amount || 0,
                 createdAt: order.createdAt
             }
         });
@@ -1270,7 +1293,8 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                         acceptedAt: new Date(),   // ⏱️ للخط الزمني
                         negotiation: { isActive: false, status: 'none' },
                         appFee: newAppFee,
-                        netRevenue: newNetRevenue
+                        // ➕ الإكرامية جزء من صافي الكابتن ولا تمسّها المفاوضة
+                        netRevenue: newNetRevenue + (Number(order.tip?.amount) || 0)
                     }
                 },
                 { new: true }
@@ -2474,6 +2498,100 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
 
 
 // @route   POST /api/orders/:id/complain
+// ============================================================
+// @route   PUT /api/orders/:id/tip
+// @desc    العميل يحدّد إكرامية الكابتن (تُدفع نقداً مع الأجرة عند التسليم)
+//
+// 🔑 قرارات التصميم:
+//  • قبل التسليم فقط — الدفع نقديٌّ، وما بعد مفارقة الباب لا يُحصَّل.
+//  • مبلغٌ مطلق لا تراكمي: الطلب يحمل إكراميةً واحدة، وإرسال 500 مرّتين
+//    يعني 500 لا 1000. التراكم يجعل كل إعادةِ إرسالٍ من الشبكة هديّةً
+//    مضاعفة لا يقصدها أحد.
+//  • صفر مسموح — تراجعُ العميل عن الإكرامية قبل التسليم حقّه.
+//  • لا تمسّ appFee ولا العمولة: تصل الكابتن كاملة (انظر models/Order.js).
+// ============================================================
+router.put('/:id/tip', protect, tipLimiter, async (req, res) => {
+    try {
+        const raw = Number(req.body.amount);
+        if (!Number.isFinite(raw) || raw < 0) {
+            return res.status(400).json({ message: 'مبلغ الإكرامية غير صالح' });
+        }
+        // 🔢 أعدادٌ صحيحة: لا كسور في العملة المتداولة نقداً
+        const amount = Math.round(raw);
+
+        const order = await Order.findOne({ _id: req.params.id, client: req.user._id });
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        const OPEN_STATES = ['pending', 'scheduled', 'accepted', 'picked_up'];
+        if (!OPEN_STATES.includes(order.status)) {
+            return res.status(400).json({
+                message: order.status === 'delivered'
+                    ? 'لا يمكن إضافة إكرامية بعد التسليم — الدفع نقدي ويُسلَّم مع الأجرة'
+                    : 'لا يمكن تعديل الإكرامية على طلب مُلغى'
+            });
+        }
+
+        const settings = await getCachedSettings(order.city || 'Khartoum');
+        const maxTip = Number(settings?.maxTipAmount ?? 20000);
+        if (maxTip <= 0) {
+            return res.status(400).json({ message: 'خدمة الإكرامية غير مفعّلة حالياً' });
+        }
+        if (amount > maxTip) {
+            return res.status(400).json({ message: `أقصى إكرامية مسموحة ${maxTip.toLocaleString('en-US')} ج.س` });
+        }
+
+        const previous = Number(order.tip?.amount) || 0;
+        if (previous === amount) {
+            return res.json({ message: 'لا تغيير', tip: amount, total: totalDueFromClient(order) });
+        }
+
+        order.tip = { amount, addedAt: amount > 0 ? new Date() : null };
+        // 💰 `netRevenue` هو ما يخرج به الكابتن من الطلب، وكل شاشات أرباحه
+        //    (اليوم، السجل، التحليلات) تجمعه وحده. لو تُركت الإكرامية خارجه
+        //    لوصلت الكابتن نقداً ولم تظهر في أي رقمٍ يراه — فيبدو أنها ضاعت.
+        order.netRevenue = Math.max(0, (Number(order.price) || 0) - (Number(order.appFee) || 0)) + amount;
+        await order.save();
+
+        const io = req.app.get('io');
+
+        // 📣 الكابتن يرى المبلغ الجديد فوراً: الإكرامية حافزٌ إن وصلت وقتها،
+        //    ومفاجأةٌ بلا أثر إن وصلت بعد أن سلّم.
+        if (order.captain) {
+            if (io) {
+                io.to(order.captain.toString()).emit('order_tip_updated', {
+                    orderId: order._id, tip: amount, total: totalDueFromClient(order)
+                });
+            }
+            if (amount > previous) {
+                sendNotification(req.app, {
+                    userId: order.captain,
+                    title: '💚 إكرامية من العميل',
+                    message: `أضاف العميل إكرامية ${amount.toLocaleString('en-US')} ج.س لهذا الطلب — تُستلم كاملة بلا عمولة.`,
+                    type: 'order_tip',
+                    relatedId: order._id
+                }).catch(e => logger.warn({ err: e.message }, 'tip notification failed'));
+            }
+        } else if (io) {
+            // 🔎 طلبٌ ما زال معروضاً: تحديث البطاقة في قوائم الكباتن يجعل
+            //    الإكرامية حافزَ قبولٍ فعلياً لا رقماً يُكتشف بعد الارتباط.
+            io.to(`room_${order.city || 'Khartoum'}`).emit('order_tip_updated', {
+                orderId: order._id, tip: amount, total: totalDueFromClient(order)
+            });
+        }
+
+        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, tip: amount, city: order.city });
+
+        res.json({
+            message: amount > 0 ? 'تمت إضافة الإكرامية' : 'تم إلغاء الإكرامية',
+            tip: amount,
+            total: totalDueFromClient(order)
+        });
+    } catch (error) {
+        logger.error({ err: error }, 'Set tip error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 router.post('/:id/complain', protect, async (req, res) => {
     try {
         const { text } = req.body;
@@ -2512,6 +2630,14 @@ router.post('/:id/rate', protect, ratingLimiter, async (req, res) => {
         if (!rating || rating < 1 || rating > 5) {
             return res.status(400).json({ message: 'التقييم يجب أن يكون بين 1 و 5 نجوم' });
         }
+
+        // 🏷️ وسوم + تعليق. الوسوم تُنقّى مركزياً (utils/ratingTags) فلا يدخل
+        //    رمزٌ مجهول إلى الإحصاء، والتعليق يُقصّ عند حدّ مخطّط Rating.
+        const { sanitizeTags } = require('../utils/ratingTags');
+        const tags = sanitizeTags(req.body.tags);
+        const comment = typeof req.body.comment === 'string'
+            ? req.body.comment.trim().slice(0, 500)
+            : '';
 
         let order = await Order.findOne({ _id: orderId, client: req.user._id });
         let captainId = null;
@@ -2559,15 +2685,43 @@ router.post('/:id/rate', protect, ratingLimiter, async (req, res) => {
         await captain.save();
 
         // ✅ Save rating in order (as object with score)
-        order.rating = { score: rating, comment: '' };
+        order.rating = { score: rating, comment, tags };
         order.isRated = true;
         await order.save();
 
+        // 📋 سجلّ التقييم المستقل — قبل هذا كان تقييم الكابتن يعيش في مستند
+        //    الطلب وحده: لا يظهر في لوحة تقييمات الإدارة (targetType: 'captain'
+        //    لم يُنشأ قطّ)، ولا يمكن إخفاؤه إن كان مسيئاً، ولا تُجمَّع وسومه.
+        //    تقييمات المتاجر والمنتجات كانت تُسجَّل هكذا أصلاً — الكابتن وحده
+        //    كان خارج السجل. لا نُفشل الطلب إن فشل الحفظ: النجوم وصلت الكابتن
+        //    بالفعل، وفهرسٌ فريدٌ يمنع تكراراً هو نجاحٌ لا خطأ.
+        try {
+            await Rating.create({
+                client: req.user._id,
+                targetType: 'captain',
+                targetId: captainId,
+                captain: captainId,
+                order: order._id,
+                orderModel: order.constructor?.modelName === 'ShopOrder' ? 'ShopOrder' : 'Order',
+                score: rating,
+                comment,
+                tags
+            });
+        } catch (ratingDocErr) {
+            if (ratingDocErr.code !== 11000) {
+                logger.warn({ err: ratingDocErr.message, orderId }, 'Captain Rating doc create failed');
+            }
+        }
+
         // ✅ Send notification to captain with rating
+        // 🏷️ الوسوم في نصّ الإشعار: "٣ من ٥" لا يقول للكابتن ما الذي يُصلحه،
+        //    و"تأخّر كثيراً" يقوله في كلمتين.
+        const { TAG_LABELS } = require('../utils/ratingTags');
+        const tagText = tags.length ? ` — ${tags.map(t => TAG_LABELS[t]).filter(Boolean).join('، ')}` : '';
         await sendNotification(req.app, {
             userId: captainId,
             title: rating >= 4 ? '⭐ تقييم ممتاز!' : rating >= 3 ? '⭐ تقييم جيد' : '⚠️ تقييم منخفض',
-            message: `حصلت على تقييم ${rating}/5 من العميل ${req.user.name || 'أحد العملاء'}`,
+            message: `حصلت على تقييم ${rating}/5 من العميل ${req.user.name || 'أحد العملاء'}${tagText}`,
             type: 'system',
             relatedId: order._id
         });
@@ -2578,6 +2732,22 @@ router.post('/:id/rate', protect, ratingLimiter, async (req, res) => {
         logger.error({ err: error }, 'Rate order error');
         res.status(500).json({ message: 'Server error' });
     }
+});
+
+// ============================================================
+// @route   GET /api/orders/rating-tags
+// @desc    قائمة وسوم التقييم المعروضة للعميل — مصدرها utils/ratingTags
+//
+// لماذا من الخادم لا ثابتةً في الواجهة: نسخ التطبيق المثبّتة على الأجهزة
+// تتأخّر أشهراً. لو كانت القائمة في الحزمة لبقيت وسومٌ ألغيناها تُرسَل من
+// أجهزةٍ قديمة، ولما ظهر وسمٌ جديد إلا بعد تحديث المتجر.
+// ⚠️ يجب أن يبقى فوق GET /:id وإلا التقطه كمعرّف.
+// ============================================================
+router.get('/rating-tags', (req, res) => {
+    const { POSITIVE_TAGS, NEGATIVE_TAGS, MAX_TAGS_PER_RATING } = require('../utils/ratingTags');
+    // 🗓️ ثابتة فعلياً — التخزين يوماً يوفّر طلباً في كل فتحِ نافذة تقييم
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.json({ positive: POSITIVE_TAGS, negative: NEGATIVE_TAGS, maxTags: MAX_TAGS_PER_RATING });
 });
 
 // @route   GET /api/orders/price-config
@@ -2595,7 +2765,8 @@ router.get('/price-config', protect, requireCity, async (req, res) => {
             costPerMinute: settings.costPerMinute ?? 25,
             extraStopFee: settings.extraStopFee ?? 0,   // 🧭 رسم النقطة الإضافية للتوصيل متعدد النقاط
             maxDiscountPercent: settings.maxDiscountPercent ?? 10, // 📉 أقصى نسبة تخفيض مسموحة للعميل
-            maxPriceSurgePercent: settings.maxPriceSurgePercent ?? 100 // 📈 أقصى نسبة زيادة / سقف السعر
+            maxPriceSurgePercent: settings.maxPriceSurgePercent ?? 100, // 📈 أقصى نسبة زيادة / سقف السعر
+            maxTipAmount: settings.maxTipAmount ?? 20000 // 💚 سقف إكرامية الكابتن (0 = معطّلة)
         });
     } catch (error) {
         logger.error({ err: error }, 'Price Config Error');

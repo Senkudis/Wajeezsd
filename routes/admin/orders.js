@@ -733,7 +733,9 @@ router.put('/orders/:id', protect, requirePermission('manage_orders'), async (re
                 const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
                 const commissionRate = liveSettings.commissionRate ?? 0.15;
                 order.appFee = order.price * commissionRate;
-                order.netRevenue = order.price - order.appFee;
+                // ➕ الإكرامية تُضاف بعد العمولة ولا تُحسب عليها — إعادةُ حسابٍ
+                //    تُسقطها كانت ستمحو مالاً وعده العميلُ للكابتن.
+                order.netRevenue = (order.price - order.appFee) + (Number(order.tip?.amount) || 0);
             } catch (settingsErr) {
                 logger.warn('Could not load settings for fee recalculation, keeping existing fees');
             }

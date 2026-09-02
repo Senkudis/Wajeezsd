@@ -63,6 +63,20 @@ const OrderSchema = new mongoose.Schema(
         discountAmount:  { type: Number, default: 0 },     // قيمة الخصم بالجنيه
         originalPrice:   { type: Number, default: null },  // السعر قبل الخصم
 
+        // 💚 إكرامية الكابتن — يضيفها العميل قبل التسليم فيدفعها نقداً مع الأجرة.
+        //
+        // لماذا حقلٌ منفصل لا زيادةٌ على `price`: العمولة تُحسب على `price`
+        // (انظر معالج التسليم)، فإضافة الإكرامية إليه تعني أن المنصّة تقتطع
+        // نسبتها من هديّةِ العميل للكابتن — وهذا يفرغ الميزة من معناها.
+        // الإكرامية تصل الكابتن كاملةً بلا اقتطاع.
+        //
+        // ولماذا قبل التسليم لا بعده: الدفع نقديٌّ كلّه. إكراميةٌ تُضاف بعد أن
+        // فارق الكابتنُ البابَ لا سبيل لتحصيلها — تصير وعداً لا مالاً.
+        tip: {
+            amount:  { type: Number, default: 0, min: 0 },
+            addedAt: { type: Date, default: null }
+        },
+
         parcelImage: { type: String }, // 📷 صورة الطرد (اختياري من العميل)
         proofOfPickupImage: { type: String }, // 📸 صورة إثبات الاستلام (إلزامية من الكابتن)
 
@@ -116,7 +130,11 @@ const OrderSchema = new mongoose.Schema(
         },
         rating: {
             score: { type: Number, min: 1, max: 5 }, // BUG-L8 FIX: مقياس موحّد 1-5 (كان 1-10)
-            comment: { type: String }
+            comment: { type: String },
+            // 🏷️ رموز ثابتة من utils/ratingTags — لا نصّ حر. مكرّرة هنا وفي
+            // مستند Rating عن قصد: هذه لقطةٌ مع الطلب تُعرض في تفاصيله فوراً،
+            // وتلك السجلّ القابل للتجميع والإشراف والإخفاء.
+            tags: { type: [String], default: [] }
         },
         isRated: { type: Boolean, default: false }, // Prevent repeated rating prompts
 

@@ -85,6 +85,7 @@ router.get('/pricing', protect, async (req, res) => {
             commissionRate: settings.commissionRate ?? 0.15, // ✅ نسبة العمولة الرسمية
             maxDiscountPercent: settings.maxDiscountPercent ?? 10, // 📉 أقصى نسبة تخفيض مسموحة للعميل
             maxPriceSurgePercent: settings.maxPriceSurgePercent ?? 100, // 📈 أقصى نسبة زيادة / سقف السعر
+            maxTipAmount: settings.maxTipAmount ?? 20000, // 💚 سقف إكرامية الكابتن
             // 📍 إثبات التسليم
             deliveryProofMode: settings.deliveryProofMode || 'observe',
             deliveryProofRadiusMeters: settings.deliveryProofRadiusMeters ?? 500,
@@ -109,7 +110,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
         const allowedFields = [
             'baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee',
             'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin',
-            'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'adminPhone',
+            'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'maxTipAmount', 'adminPhone',
             'deliveryProofMode', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
@@ -123,7 +124,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             }
         }
 
-        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin', 'defaultCreditLimit'];
+        const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'maxTipAmount', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin', 'defaultCreditLimit'];
         for (const field of numericFields) {
             if (updates[field] !== undefined) {
                 let rawVal = updates[field];
@@ -147,6 +148,8 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
                     if (val < 1 || val > 120) return res.status(400).json({ message: `أقصى عمر مقبول لموقع الكابتن يجب أن يكون بين دقيقة و 120 دقيقة` });
                 } else if (field === 'maxDiscountPercent') {
                     if (val < 0 || val > 90) return res.status(400).json({ message: `أقصى نسبة تخفيض مسموحة يجب أن تكون بين 0% و 90%` });
+                } else if (field === 'maxTipAmount') {
+                    if (val < 0 || val > 1000000) return res.status(400).json({ message: `سقف الإكرامية يجب أن يكون بين 0 و 1,000,000` });
                 } else if (field === 'maxPriceSurgePercent') {
                     if (val < 0 || val > 500) return res.status(400).json({ message: `سقف السعر (نسبة الزيادة المسموحة) يجب أن يكون بين 0% و 500%` });
                 } else {

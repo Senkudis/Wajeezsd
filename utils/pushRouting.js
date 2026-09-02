@@ -63,6 +63,7 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'negotiation_accepted':
                 case 'order_accepted':
                 case 'order_update':
+                case 'order_tip':   // 💚 إكرامية على طلبٍ بيده الآن — مكانها شاشة المهمة
                     return '/captain-missions.html';
                 case 'order_cancelled':
                 case 'order_delivered':

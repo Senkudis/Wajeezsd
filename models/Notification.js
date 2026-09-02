@@ -39,6 +39,8 @@ const NotificationSchema = new mongoose.Schema({
             'low_stock', 'tier_change',
             // 🚚 عروض الكابتن
             'offer_expired', 'offer_expiry_reminder', 'negotiation_accepted',
+            // 💚 إكرامية أضافها العميل على طلبٍ جارٍ
+            'order_tip',
             // 🚨 Emergency SOS
             'emergency',
             // 🛡️ تنبيهات الإدارة — يرسلها utils/notificationHelper.notifyAdmins.

@@ -472,6 +472,102 @@ router.get('/resolve-product/:id', async (req, res) => {
 });
 
 // ============================================================
+// ⭐ المتاجر المفضّلة
+//
+// ⚠️ كل مسارات هذا القسم يجب أن تبقى فوق GET /:id — وإلا التقط
+//    'favorites' كمعرّف متجر ووقعت على validateObjectId فردّ 404.
+// ============================================================
+
+// 🔒 سقف المفضّلة. ليس شحّاً: بلا سقف يصير الحقل مصفوفةً بلا نهاية داخل
+//    مستند المستخدم، فيتضخّم كل قراءةٍ للحساب — ومستند المستخدم يُقرأ في
+//    كل طلبٍ محميّ (middleware/authMiddleware).
+const MAX_FAVORITE_PLACES = 60;
+
+// @route   GET /api/places/favorites
+// @desc    متاجر العميل المفضّلة (المتاح منها فقط)
+router.get('/favorites', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('favoritePlaces').lean();
+        const ids = user?.favoritePlaces || [];
+        if (!ids.length) return res.json([]);
+
+        // 🧹 التنظيف الكسول: متجرٌ حُذف أو عُطِّل لا يُعرض، ولا نُعدّل مستند
+        //    المستخدم لأجله — قد يعود المتجر غداً وتعود المفضّلة معه.
+        const places = await Place.find({ _id: { $in: ids }, isActive: true })
+            .select(PLACE_CLIENT_EXCLUDE)
+            .populate('category', 'name icon');
+
+        // ↕️ ترتيب العرض = ترتيب الإضافة معكوساً (الأحدث أولاً). $in لا يضمن
+        //    ترتيباً، وترتيبٌ يتبدّل في كل تحميلٍ يُربك العين.
+        const order = new Map(ids.map((id, i) => [String(id), i]));
+        places.sort((a, b) => (order.get(String(b._id)) ?? 0) - (order.get(String(a._id)) ?? 0));
+
+        res.json(places.map(p => {
+            const obj = stripPlaceClientFields(p.toJSON());
+            if (p.ownerId) obj.ownerId = p.ownerId;
+            obj.isFavorite = true;
+            return obj;
+        }));
+    } catch (err) {
+        logger.error({ err }, 'Favorites list error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   GET /api/places/favorites/ids
+// @desc    المعرّفات وحدها — لتلوين القلوب في الشبكات بلا جلب المتاجر كاملة
+router.get('/favorites/ids', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('favoritePlaces').lean();
+        res.json({ ids: (user?.favoritePlaces || []).map(String) });
+    } catch (err) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   POST /api/places/:id/favorite
+// @desc    إضافة متجر للمفضّلة (فكرة idempotent — التكرار لا يُضاعف ولا يُخطئ)
+router.post('/:id/favorite', protect, async (req, res) => {
+    try {
+        const place = await Place.findById(req.params.id).select('_id isActive name').lean();
+        if (!place || !place.isActive) return res.status(404).json({ message: 'المتجر غير موجود' });
+
+        // 🔢 الفحص قبل الإضافة: $addToSet لا يعرف سقفاً، وفحصٌ بعد الكتابة
+        //    يعني أن السقف يُتجاوز أولاً ثم يُشتكى منه.
+        const current = await User.findById(req.user._id).select('favoritePlaces').lean();
+        const ids = (current?.favoritePlaces || []).map(String);
+        if (ids.includes(String(place._id))) {
+            return res.json({ message: 'المتجر في مفضّلتك', isFavorite: true, count: ids.length });
+        }
+        if (ids.length >= MAX_FAVORITE_PLACES) {
+            return res.status(400).json({
+                message: `بلغت الحد الأقصى للمفضّلة (${MAX_FAVORITE_PLACES} متجراً). احذف متجراً لإضافة آخر.`
+            });
+        }
+
+        await User.updateOne({ _id: req.user._id }, { $addToSet: { favoritePlaces: place._id } });
+        res.json({ message: `أُضيف ${place.name} إلى المفضّلة`, isFavorite: true, count: ids.length + 1 });
+    } catch (err) {
+        logger.error({ err }, 'Add favorite error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   DELETE /api/places/:id/favorite
+// @desc    إزالة متجر من المفضّلة
+router.delete('/:id/favorite', protect, async (req, res) => {
+    try {
+        // 🗑️ لا نتحقّق من وجود المتجر: إزالةُ معرّفٍ لمتجرٍ حُذف هي بالضبط
+        //    ما يحتاجه المستخدم العالق ببطاقةٍ ميتة في قائمته.
+        await User.updateOne({ _id: req.user._id }, { $pull: { favoritePlaces: req.params.id } });
+        res.json({ message: 'أُزيل من المفضّلة', isFavorite: false });
+    } catch (err) {
+        logger.error({ err }, 'Remove favorite error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// ============================================================
 // @route   GET /api/places/:id
 // @desc    Get a single place by ID
 // ============================================================

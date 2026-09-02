@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { TAG_CODES } = require('../utils/ratingTags');
 
 // 📋 نموذج موحّد للتقييمات — يدعم الكباتن والمتاجر والمنتجات
 const ratingSchema = new mongoose.Schema({
@@ -67,6 +68,15 @@ const ratingSchema = new mongoose.Schema({
         maxlength: 500
     },
 
+    // ── وسوم سريعة (رموز ثابتة من utils/ratingTags) ──
+    // النجوم تقول "كم"، والوسم يقول "لماذا". بلا الوسم يبقى كل تقييمٍ منخفض
+    // سؤالاً مفتوحاً لا تُجاب إلا بالاتصال بالعميل.
+    tags: {
+        type: [String],
+        default: [],
+        enum: TAG_CODES
+    },
+
     // ── للإشراف ──
     isHidden: { type: Boolean, default: false }, // الأدمن يخفي تقييم مسيء
 
@@ -75,5 +85,7 @@ const ratingSchema = new mongoose.Schema({
 // منع تقييم مزدوج لنفس الطلب + نفس النوع
 ratingSchema.index({ client: 1, order: 1, targetType: 1 }, { unique: true, sparse: true });
 ratingSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
+// 🏷️ تجميع الوسوم لهدفٍ واحد (بطاقة الكابتن، لوحة الإدارة) بلا مسحٍ كامل
+ratingSchema.index({ targetType: 1, targetId: 1, tags: 1 });
 
 module.exports = mongoose.model('Rating', ratingSchema);

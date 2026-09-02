@@ -116,6 +116,22 @@ const UserSchema = new mongoose.Schema(
             createdAt:    { type: Date, default: Date.now }
         }],
 
+        // ⭐ المتاجر المفضّلة — اختصارُ العميل إلى ما يطلبه فعلاً.
+        //
+        // مصفوفة معرّفات على المستخدم لا مجموعة مستقلة: العدد صغير بطبعه
+        // (عشرات لا آلاف)، والقراءة الوحيدة المطلوبة هي "مفضّلات هذا العميل"
+        // — وهي مجانية هنا وتحتاج استعلاماً وفهرساً هناك. السقف مفروض في
+        // المسار (routes/places.js) لا في المخطّط، كي تعود رسالة عربية
+        // مفهومة بدل خطأ تحقّقٍ من mongoose.
+        //
+        // ⚠️ متجرٌ مُزال أو مُعطَّل قد يبقى معرّفه هنا. لا ننظّف بخطّاف حذف:
+        // مسار القراءة يفلتر بـ isActive أصلاً، والتنظيف الكسول أرخص من
+        // تعقّب كل حذفٍ عبر مستندات كل المستخدمين.
+        favoritePlaces: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Place'
+        }],
+
         // 🌍 Multi-City Isolation — determines which city's socket room,
         // orders, captains, and pricing this user belongs to.
         city: {
