@@ -28,7 +28,12 @@ const ROOT = path.join(__dirname, '..', 'public_html');
 const SW_PATH = path.join(ROOT, 'service-worker.js');
 const CHECK_ONLY = process.argv.includes('--check');
 
-const shortHash = (buf) => crypto.createHash('md5').update(buf).digest('hex').slice(0, 8);
+const shortHash = (buf) => {
+    // توحيد نهايات الأسطر (LF) لضمان تطابق البصمة عبر جميع أنظمة التشغيل والـ CI
+    const content = Buffer.isBuffer(buf) ? buf.toString('utf8') : String(buf);
+    const normalized = content.replace(/\r\n/g, '\n');
+    return crypto.createHash('md5').update(normalized).digest('hex').slice(0, 8);
+};
 
 // 1) بصمة كل ملف JS/CSS محلي (المسار كما يُكتب في HTML → البصمة)
 function hashAssets() {

@@ -1,16 +1,16 @@
 # Graph Report - wajeezsd  (2026-09-02)
 
 ## Corpus Check
-- 402 files · ~1,551,031 words
+- 401 files · ~1,415,437 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 6270 nodes · 13693 edges · 336 communities (247 shown, 89 thin omitted)
+- 6249 nodes · 13673 edges · 336 communities (251 shown, 85 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 1263 edges (avg confidence: 0.56)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8b9852cb`
+- Built from commit: `090a9669`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -306,7 +306,6 @@
 - querySanitizer.js
 - ls
 - ft
-- share.js
 
 ## God Nodes (most connected - your core abstractions)
 1. `n()` - 61 edges
@@ -322,11 +321,11 @@
 
 ## Surprising Connections (you probably didn't know these)
 - `renderStatusBar()` --indirect_call--> `count()`  [INFERRED]
+  android/app/src/main/assets/public/js/admin-panel.js → utils/errorTracker.js
+- `renderStatusBar()` --indirect_call--> `count()`  [INFERRED]
   public_html/js/admin-panel.js → utils/errorTracker.js
 - `loadUsers()` --indirect_call--> `user()`  [INFERRED]
   android/app/src/main/assets/public/js/admin-dashboard.js → tests/teamProfile.test.js
-- `renderStatusBar()` --indirect_call--> `count()`  [INFERRED]
-  android/app/src/main/assets/public/js/admin-panel.js → utils/errorTracker.js
 - `fetchWithRetry()` --indirect_call--> `resolve()`  [INFERRED]
   android/app/src/main/assets/public/js/fetch-retry.js → android/app/src/main/assets/public/js/tour.js
 - `loadHomeBanners()` --indirect_call--> `banner()`  [INFERRED]
@@ -335,47 +334,47 @@
 ## Import Cycles
 - None detected.
 
-## Communities (336 total, 89 thin omitted)
+## Communities (336 total, 85 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.07
-Nodes (15): bt, color(), Ft(), It(), jt(), kt(), qt(), _t() (+7 more)
+Cohesion: 0.08
+Nodes (12): bt, color(), Ft(), It(), kt(), qt(), _t(), te() (+4 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.03
-Nodes (39): As(), be(), buildTicks(), d(), destroy(), Di(), es(), fe() (+31 more)
+Nodes (48): Ae(), ai(), average(), be(), beforeDraw(), beforeLayout(), d(), dataset() (+40 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.03
-Nodes (54): Ae(), As(), average(), be(), beforeDatasetDraw(), beforeDatasetsDraw(), Bi(), _calculateBarIndexPixels() (+46 more)
+Nodes (52): Ae(), As(), average(), be(), beforeDatasetDraw(), beforeDatasetsDraw(), Bi(), d() (+44 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.14
-Nodes (21): Af(), An(), as(), De(), Dn(), ds(), ea(), El() (+13 more)
+Cohesion: 0.11
+Nodes (26): Af(), An(), as(), De(), Dn(), ds(), ea(), El() (+18 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.06
 Nodes (21): Bi(), ca(), _calculateBarIndexPixels(), _calculateBarValuePixels(), Ci(), Do(), eo(), Fi() (+13 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.07
-Nodes (39): M(), S(), at(), b(), bo, e(), ei(), et() (+31 more)
+Cohesion: 0.12
+Nodes (6): determineDataLimits(), getValueForPixel(), j(), ko, pt(), xo
 
 ### Community 6 - "Community 6"
 Cohesion: 0.07
 Nodes (26): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+18 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.23
-Nodes (3): determineDataLimits(), ko, pt()
+Cohesion: 0.16
+Nodes (19): Fl(), Fo(), hs(), ip(), jn(), jp(), jt(), Lo() (+11 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.06
-Nodes (9): beforeUpdate(), bn, initialize(), labelColor(), labelPointStyle(), ns(), pn(), rt() (+1 more)
+Cohesion: 0.04
+Nodes (15): beforeUpdate(), bn, buildTicks(), dn(), go(), ii(), initialize(), labelColor() (+7 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.06
-Nodes (17): addBox(), afterDatasetsUpdate(), an(), dt(), fs(), generateLabels(), ke(), kn() (+9 more)
+Cohesion: 0.05
+Nodes (21): addBox(), afterDatasetsUpdate(), an(), configure(), dataset(), dt(), generateLabels(), index() (+13 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.05
@@ -383,19 +382,19 @@ Nodes (39): adminOnly(), mongoose, NotificationSchema, AdminLog, Banner, bcrypt,
 
 ### Community 11 - "Community 11"
 Cohesion: 0.04
-Nodes (22): at(), beforeUpdate(), bn, Ci(), ei(), go(), ii(), initialize() (+14 more)
+Nodes (24): beforeUpdate(), bn, buildTicks(), Ci(), ei(), Fn(), go(), ii() (+16 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.04
-Nodes (58): aa(), ah(), bc(), ch(), co(), dh, Ef(), eo() (+50 more)
+Nodes (59): aa(), ah(), bc(), ch(), co(), dh, Ef(), eo() (+51 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.06
-Nodes (68): addNotification(), allCaptains, allOrders, allUsers, applyAdminPermissionsUI(), approveCaptain(), assignCaptainManually(), canAccessPage() (+60 more)
+Nodes (67): addNotification(), allCaptains, allOrders, allUsers, applyAdminPermissionsUI(), approveCaptain(), assignCaptainManually(), canAccessPage() (+59 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.06
-Nodes (16): addBox(), an(), configure(), fs(), generateLabels(), ke(), Mn(), onClick() (+8 more)
+Nodes (18): addBox(), an(), configure(), dt(), f(), generateLabels(), ke(), kn() (+10 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.06
@@ -406,8 +405,8 @@ Cohesion: 0.16
 Nodes (14): { estimateEtaMinutes, formatEta, DEFAULTS }, { haversineKm }, { enrichOrder }, KH, KH2, DEFAULTS, estimateEtaMinutes(), formatEta() (+6 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.08
-Nodes (32): Bp(), cs(), eh(), fh(), fr(), gc(), gh(), _h() (+24 more)
+Cohesion: 0.14
+Nodes (22): Bp(), cs(), fh(), fr(), gc(), gh(), _h(), hh() (+14 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.09
@@ -431,11 +430,11 @@ Nodes (12): assetHashes, bumpServiceWorker(), CHECK_ONLY, crypto, fs, hashAssets
 
 ### Community 23 - "Community 23"
 Cohesion: 0.07
-Nodes (21): Ae(), afterDatasetsUpdate(), afterDraw(), afterEvent(), afterUpdate(), Ee(), f(), gs() (+13 more)
+Nodes (25): M(), S(), afterDraw(), afterEvent(), afterUpdate(), Ee(), g(), H() (+17 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.03
-Nodes (86): clientOnly(), getAdminCityFilter(), jwt, logger, merchantOnly(), requireAnyPermission(), requirePermission(), resolveCreationCity() (+78 more)
+Cohesion: 0.04
+Nodes (60): clientOnly(), getAdminCityFilter(), jwt, logger, merchantOnly(), requireAnyPermission(), requirePermission(), resolveCreationCity() (+52 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.06
@@ -447,7 +446,7 @@ Nodes (44): addErr(), approximateBelowMaximumCanvasSizeOfBrowser(), canvasToFile
 
 ### Community 27 - "Community 27"
 Cohesion: 0.12
-Nodes (28): { clampToCity, centerFor, textSearchBody, nearbySearchBody, CITY_CENTERS }, { isInsidePolygon }, ZONE, isInsidePolygon(), apiKey(), cacheGet(), cacheSet(), callGoogle() (+20 more)
+Nodes (29): { clampToCity, centerFor, textSearchBody, nearbySearchBody, CITY_CENTERS }, { isInsidePolygon }, ZONE, isInsidePolygon(), apiKey(), cacheGet(), cacheSet(), callGoogle() (+21 more)
 
 ### Community 29 - "remove"
 Cohesion: 0.26
@@ -458,8 +457,8 @@ Cohesion: 0.17
 Nodes (11): اللقطات, سكربت التعليق الصوتي الكامل (للتسجيل — 38 ثانية تقريباً), سيناريو إعلان وجيز — 40 ثانية، 7 لقطات, لقطة 1 — الخطّاف (5 ث), لقطة 2 — الحاجة (5 ث), لقطة 3 — التطبيق (5 ث), لقطة 4 — المتجر (5 ث), لقطة 5 — المندوب (5 ث) ⭐ لقطة الاختبار الأولى (+3 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.05
-Nodes (40): ExternalPlaceSchema, mongoose, mongoose, Place, PLACE_CLIENT_EXCLUDE, PLACE_CONTACT_FIELDS, PLACE_PRIVATE_FIELDS, PLACE_PUBLIC_EXCLUDE (+32 more)
+Cohesion: 0.03
+Nodes (62): ExternalPlaceSchema, mongoose, merchantRequestSchema, mongoose, mongoose, Place, PLACE_CLIENT_EXCLUDE, PLACE_CONTACT_FIELDS (+54 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.04
@@ -471,11 +470,11 @@ Nodes (43): ae(), Be(), Bt(), Ce(), D(), ee(), F(), Fe() (+35 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.09
-Nodes (43): ae(), Be(), Bt(), Ce(), D(), ee(), F(), Fe() (+35 more)
+Nodes (41): ae(), Be(), Bt(), Ce(), D(), ee(), F(), Fe() (+33 more)
 
 ### Community 35 - "Community 35"
 Cohesion: 0.09
-Nodes (37): Ae(), Be(), c(), $e(), ee(), F(), fe(), Ge() (+29 more)
+Nodes (38): Ae(), Be(), c(), $e(), ee(), F(), fe(), Ge() (+30 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.09
@@ -486,8 +485,8 @@ Cohesion: 0.18
 Nodes (10): إعدادات موحّدة, برومبتات Higgsfield — إعلان وجيز, خطة الصرف (الرصيد الحالي: 160 كريدت), لقطة 1 — الخطّاف, لقطة 2 — الحاجة, لقطة 3 — التطبيق (image-to-video), لقطة 4 — المتجر, لقطة 5 — المندوب ⭐ (لقطة الاختبار الأولى) (+2 more)
 
 ### Community 38 - "Community 38"
-Cohesion: 0.06
-Nodes (59): _(), M(), a(), aa(), ai(), ao(), b(), beforeDraw() (+51 more)
+Cohesion: 0.07
+Nodes (62): _(), M(), a(), aa(), ai(), ao(), at(), b() (+54 more)
 
 ### Community 39 - "Community 39"
 Cohesion: 0.08
@@ -514,20 +513,20 @@ Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.04
-Nodes (21): beforeLayout(), buildLookupTable(), determineDataLimits(), En, Fo(), _generate(), getDecimalForValue(), _getTimestampsForTable() (+13 more)
+Cohesion: 0.06
+Nodes (17): buildLookupTable(), ei(), En, Fo(), _generate(), getDecimalForValue(), _getTimestampsForTable(), init() (+9 more)
 
 ### Community 48 - "Community 48"
 Cohesion: 0.10
 Nodes (39): a(), at(), bt(), C(), ce(), ct(), E(), et() (+31 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.05
-Nodes (39): protect(), { generateReferralCode }, marketerSchema, mongoose, merchantRequestSchema, mongoose, mongoose, PlaceCategorySchema (+31 more)
+Cohesion: 0.08
+Nodes (25): protect(), { generateReferralCode }, marketerSchema, mongoose, express, Feedback, feedbackLimiter, logger (+17 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.11
-Nodes (9): ce(), ct(), de, dt(), ge(), ms(), qs(), ws (+1 more)
+Cohesion: 0.16
+Nodes (5): b(), ce(), de, he(), qs()
 
 ### Community 51 - "Community 51"
 Cohesion: 0.25
@@ -538,24 +537,24 @@ Cohesion: 0.04
 Nodes (40): apiRoutes, app, approvedOrigins, captainRoutes, chatRooms, complaintsRoutes, connectDB, cors (+32 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.07
-Nodes (4): Ni, Nn, remove(), zi
+Cohesion: 0.09
+Nodes (3): Ni, remove(), zi
 
 ### Community 54 - "Community 54"
-Cohesion: 0.08
-Nodes (12): bt, color(), Ft(), It(), kt(), qt(), _t(), te() (+4 more)
+Cohesion: 0.07
+Nodes (17): bt, color(), Ft(), Gt(), It(), jt(), kt(), mt() (+9 more)
 
 ### Community 55 - "Community 55"
-Cohesion: 0.09
-Nodes (40): he(), a(), at(), bt(), C(), ce(), ct(), E() (+32 more)
+Cohesion: 0.10
+Nodes (35): a(), ae(), at(), bt(), C(), ce(), E(), et() (+27 more)
 
 ### Community 56 - "Community 56"
 Cohesion: 0.26
 Nodes (20): avoidSkipCollision(), build(), centerCard(), ensureCardVisible(), ensureSpotVisible(), esc(), finish(), go() (+12 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.06
-Nodes (16): io, beforeLayout(), buildLookupTable(), En, Fo(), _generate(), getDecimalForValue(), _getTimestampsForTable() (+8 more)
+Cohesion: 0.04
+Nodes (20): beforeLayout(), buildLookupTable(), determineDataLimits(), En, Fo(), _generate(), getDecimalForValue(), _getTimestampsForTable() (+12 more)
 
 ### Community 58 - "Community 58"
 Cohesion: 0.04
@@ -569,6 +568,10 @@ Nodes (32): ac(), Cr(), Dt(), ei(), En(), Ga(), gi(), gp() (+24 more)
 Cohesion: 0.15
 Nodes (14): cron, escalateStaleShopOrders(), logger, nodemailer, Order, { planNudge }, sendOfferExpiryReminder(), startScheduler() (+6 more)
 
+### Community 61 - "Community 61"
+Cohesion: 0.09
+Nodes (3): ci, W, Ge()
+
 ### Community 62 - "Community 62"
 Cohesion: 0.33
 Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
@@ -579,7 +582,7 @@ Nodes (31): _(), _a(), Bd(), Ca(), d(), Da(), Du(), Ft() (+23 more)
 
 ### Community 64 - "Community 64"
 Cohesion: 0.08
-Nodes (20): captainPhotoStorage, captainPhotoUpload, dirs, express, fs, jimpModule, logger, { MIME_EXT, detectImageExtOfFile, safeUnlink, safeUploadName } (+12 more)
+Nodes (23): captainPhotoStorage, captainPhotoUpload, dirs, express, fs, jimpModule, logger, { MIME_EXT, detectImageExtOfFile, safeUnlink, safeUploadName } (+15 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.50
@@ -603,15 +606,15 @@ Nodes (19): Api, ApiError, TeamListResponse, TeamMember, App(), Avatar(), base, 
 
 ### Community 70 - "Community 70"
 Cohesion: 0.10
-Nodes (19): dt(), e(), emit(), En, Ft(), _getHandlersByEventName(), _main(), mt() (+11 more)
+Nodes (18): dt(), e(), emit(), En, Ft(), _getHandlersByEventName(), _main(), mt() (+10 more)
 
 ### Community 71 - "Community 71"
 Cohesion: 0.05
-Nodes (34): ExpenseSchema, mongoose, mongoose, PosSaleSchema, mongoose, SettlementRequestSchema, mongoose, ShopLedgerSchema (+26 more)
+Nodes (30): ExpenseSchema, mongoose, mongoose, PosSaleSchema, mongoose, SettlementRequestSchema, mongoose, ShopLedgerSchema (+22 more)
 
 ### Community 72 - "Community 72"
-Cohesion: 0.10
-Nodes (18): dt(), e(), emit(), En, Ft(), _getHandlersByEventName(), _main(), mt() (+10 more)
+Cohesion: 0.09
+Nodes (20): dt(), e(), emit(), En, Ft(), _getHandlersByEventName(), _main(), mt() (+12 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.09
@@ -634,8 +637,8 @@ Cohesion: 0.10
 Nodes (19): dependencies, react, react-dom, react-router-dom, description, devDependencies, @types/react, @types/react-dom (+11 more)
 
 ### Community 81 - "Community 81"
-Cohesion: 0.08
-Nodes (18): afterDraw(), afterEvent(), afterUpdate(), Ee(), f(), gs(), ki(), Le() (+10 more)
+Cohesion: 0.09
+Nodes (17): afterDraw(), afterEvent(), afterUpdate(), Ee(), f(), ki(), Le(), oa() (+9 more)
 
 ### Community 82 - "Community 82"
 Cohesion: 0.08
@@ -643,7 +646,7 @@ Nodes (20): loadHomeBanners(), resolveBannerHref(), loadHomeBanners(), resolveBa
 
 ### Community 83 - "Community 83"
 Cohesion: 0.08
-Nodes (4): remove(), Ui, W, $
+Nodes (3): Ui, W, $
 
 ### Community 86 - "Community 86"
 Cohesion: 0.11
@@ -658,16 +661,12 @@ Cohesion: 0.09
 Nodes (33): calculateDistance(), calculatePrice(), _darkMapStyles, dropoffAddrEl, _escAddr(), fetchPricingConfig(), getPriceLimits(), getToken() (+25 more)
 
 ### Community 94 - "Ni"
-Cohesion: 0.06
-Nodes (28): ComplaintSchema, mongoose, replySchema, MessageSchema, mongoose, mongoose, ShopOrderSchema, { authorizeChatMessage } (+20 more)
+Cohesion: 0.07
+Nodes (23): MessageSchema, mongoose, bcrypt, mongoose, UserSchema, { VEHICLE_VALUES }, { authorizeChatMessage }, express (+15 more)
 
 ### Community 95 - "User.js"
-Cohesion: 0.06
-Nodes (56): a(), aa(), ai(), ao(), average(), beforeDatasetDraw(), beforeDatasetsDraw(), beforeDraw() (+48 more)
-
-### Community 96 - "vi"
-Cohesion: 0.12
-Nodes (15): Age Rating, App Name (حد 30 محرفاً), App Review Information, Category, Description (حد 4000 محرف), Keywords (حد 100 محرف، بفواصل بلا مسافات), Notes (انسخها كما هي), Promotional Text (حد 170 محرفاً — قابل للتغيير بلا تحديث نسخة) (+7 more)
+Cohesion: 0.04
+Nodes (71): a(), aa(), afterDatasetsUpdate(), ao(), As(), at(), beforeDatasetDraw(), beforeDatasetsDraw() (+63 more)
 
 ### Community 98 - "geo.js"
 Cohesion: 0.09
@@ -698,8 +697,8 @@ Nodes (15): {
 }, { visibilityFilter }, CITY_LABELS, compareTeamOrder(), crypto, deriveDepartment(), deriveDisplayName(), deriveJobTitles() (+7 more)
 
 ### Community 104 - "settings.js"
-Cohesion: 0.06
-Nodes (30): emergencyAlertSchema, mongoose, bcrypt, mongoose, UserSchema, { VEHICLE_VALUES }, EmergencyAlert, express (+22 more)
+Cohesion: 0.05
+Nodes (38): emergencyAlertSchema, mongoose, EmergencyAlert, express, logger, { protect }, rateLimit, router (+30 more)
 
 ### Community 105 - "complaints.js"
 Cohesion: 0.30
@@ -726,28 +725,32 @@ Cohesion: 0.13
 Nodes (19): clearSearch(), closeDropdown(), focusEmergencyFromUrl(), highlight(), highlightCaptain(), initMapLogic(), loadedOnInit, loadInitialCaptains() (+11 more)
 
 ### Community 112 - "Community 112"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (4): Cs, nn(), os(), sn
 
 ### Community 113 - "zi"
-Cohesion: 0.07
-Nodes (27): AdminLog, Banner, bcrypt, express, jwt, { logAdminAction }, logger, mongoose (+19 more)
+Cohesion: 0.06
+Nodes (30): AdminLog, Banner, bcrypt, express, jwt, { logAdminAction }, logger, mongoose (+22 more)
 
 ### Community 114 - "Community 114"
 Cohesion: 0.09
 Nodes (22): dependencies, axios, bcryptjs, canvas, cors, dotenv, express, express-mongo-sanitize (+14 more)
+
+### Community 115 - "Community 115"
+Cohesion: 0.15
+Nodes (3): addElements(), qs(), tn
 
 ### Community 116 - "saveBase64ToUploads.test.js"
 Cohesion: 0.17
 Nodes (9): created, fs, JPG, JPG_ANDROID, path, PHP, PNG, PUBLIC_UPLOADS (+1 more)
 
 ### Community 117 - "saveBase64ToUploads"
-Cohesion: 0.24
-Nodes (13): at(), Cl(), di(), _e(), ii(), li(), Lt(), Qu() (+5 more)
+Cohesion: 0.20
+Nodes (15): at(), Cl(), di(), _e(), ii(), li(), Lt(), Pr() (+7 more)
 
 ### Community 118 - "geo.js"
-Cohesion: 0.03
-Nodes (66): mongoose, PromoCodeSchema, mongoose, SessionRequestSchema, AdminLog, Banner, bcrypt, express (+58 more)
+Cohesion: 0.02
+Nodes (92): adminLogSchema, mongoose, BannerSchema, mongoose, mongoose, PromoCodeSchema, mongoose, SessionRequestSchema (+84 more)
 
 ### Community 119 - "Community 119"
 Cohesion: 0.19
@@ -755,7 +758,7 @@ Nodes (25): apiBase(), bindErrandCards(), buildOverlay(), clearRecent(), close()
 
 ### Community 120 - "Community 120"
 Cohesion: 0.10
-Nodes (21): devDependencies, @capacitor/android, @capacitor/app, @capacitor/assets, @capacitor/cli, @capacitor-community/background-geolocation, @capacitor-community/keep-awake, @capacitor/core (+13 more)
+Nodes (20): devDependencies, @capacitor/android, @capacitor/app, @capacitor/assets, @capacitor/cli, @capacitor-community/keep-awake, @capacitor/core, @capacitor/geolocation (+12 more)
 
 ### Community 121 - "Community 121"
 Cohesion: 0.19
@@ -766,11 +769,11 @@ Cohesion: 0.38
 Nodes (8): boot(), headerLabels(), isManaged(), schedule(), setupAndroidBackButton(), setupNetworkListeners(), stampAll(), stampTable()
 
 ### Community 125 - "errorTracker.js"
-Cohesion: 0.16
-Nodes (8): errorHandler(), errorTracker, logger, notFound(), tracker, fingerprintOf(), persist(), record()
+Cohesion: 0.15
+Nodes (9): errorHandler(), errorTracker, logger, notFound(), tracker, count(), fingerprintOf(), persist() (+1 more)
 
 ### Community 126 - "Community 126"
-Cohesion: 0.14
+Cohesion: 0.12
 Nodes (11): bind(), calculateHaversineDistance(), CAT_COLORS, fetchCategories(), getUserLocation(), loadPlaces(), _openDeepLinkedCategory(), PH_HUES (+3 more)
 
 ### Community 127 - "Community 127"
@@ -818,19 +821,19 @@ Cohesion: 0.22
 Nodes (10): BRAND_GREEN, fs, { Jimp }, OUT_DIR, path, recolorWhiteToGreen(), renderSquare(), ROOT (+2 more)
 
 ### Community 138 - "رفع وجيز على App Store — الدليل التنفيذي"
-Cohesion: 0.20
-Nodes (9): 0. قبل الـ Mac (منجَز في المستودع), 1. إنشاء المنصة (على الـ Mac), 2. داخل Xcode, 3. Firebase و Google, 4. متغيّر بيئة على السيرفر, 5. App Store Connect, 6. نقاط مخاطرة متبقية, رفع وجيز على App Store — الدليل التنفيذي (+1 more)
+Cohesion: 0.22
+Nodes (9): { safeUploadName, MIME_EXT }, fs, logger, MIME_EXT, path, PUBLIC_UPLOADS_DIR, safeUploadName(), SIGNATURES (+1 more)
 
 ### Community 139 - "Community 139"
-Cohesion: 0.08
-Nodes (3): dn, getSelectorFromElement(), ln
+Cohesion: 0.07
+Nodes (3): ft, getSelectorFromElement(), ln
 
 ### Community 140 - "Message.js"
 Cohesion: 0.16
 Nodes (12): far, mid, near, noLoc, PICKUP, { planDispatch }, calculateLimits(), { haversineKm } (+4 more)
 
 ### Community 141 - ".getUserBounds"
-Cohesion: 0.18
+Cohesion: 0.22
 Nodes (4): fn(), N(), parents(), trigger()
 
 ### Community 142 - "notificationTypes.test.js"
@@ -838,12 +841,12 @@ Cohesion: 0.27
 Nodes (11): hint(), isDone(), markDone(), modalOpen(), progressKey(), readProgress(), reset(), start() (+3 more)
 
 ### Community 143 - "Community 143"
-Cohesion: 0.07
-Nodes (47): Bi(), $c(), dl(), Dp(), Dr(), er(), es(), Fe() (+39 more)
+Cohesion: 0.11
+Nodes (26): Bi(), $c(), dl(), Dp(), Dr(), er(), es(), Fe() (+18 more)
 
 ### Community 144 - "Community 144"
-Cohesion: 0.08
-Nodes (13): buildTicks(), ca(), Do(), eo(), Fn(), getBasePixel(), getLabelAndValue(), getLabelForValue() (+5 more)
+Cohesion: 0.07
+Nodes (18): ca(), _calculateBarIndexPixels(), _calculateBarValuePixels(), Do(), eo(), getBasePixel(), getLabelAndValue(), getLabelForValue() (+10 more)
 
 ### Community 145 - "appStoreReadiness.test.js"
 Cohesion: 0.22
@@ -894,8 +897,8 @@ Cohesion: 0.14
 Nodes (8): Auth, copyToClipboard(), exportCSV(), showToast(), el(), GUARD_SRC, ROOT, runGuard()
 
 ### Community 166 - "searchStats.js"
-Cohesion: 0.09
-Nodes (23): express, logger, Place, { PLACE_CLIENT_EXCLUDE, stripPlaceClientFields }, Product, PromoCode, { protect, merchantOnly, adminOnly }, router (+15 more)
+Cohesion: 0.08
+Nodes (27): logger, mongoose, OrderSchema, StockMovement, express, logger, Place, { PLACE_CLIENT_EXCLUDE, stripPlaceClientFields } (+19 more)
 
 ### Community 167 - "Community 167"
 Cohesion: 0.32
@@ -918,11 +921,11 @@ Cohesion: 0.11
 Nodes (22): Bi(), $c(), dl(), Dp(), Dr(), es(), hc(), It() (+14 more)
 
 ### Community 174 - "imageUpload.js"
-Cohesion: 0.10
-Nodes (24): rejectNonImages(), fs, HTML, JPG, path, PHP, PNG, {
+Cohesion: 0.15
+Nodes (12): fs, HTML, JPG, path, PHP, PNG, {
     saveBase64Image, deleteImage,
     MIME_EXT, detectImageExt, detectImageExtOfFile
-} (+16 more)
+}, SVG (+4 more)
 
 ### Community 175 - "fe"
 Cohesion: 0.17
@@ -1013,8 +1016,8 @@ Cohesion: 0.73
 Nodes (5): closePalette(), createPaletteModal(), highlightItem(), openPalette(), renderResults()
 
 ### Community 204 - "$e"
-Cohesion: 0.17
-Nodes (23): ae(), d(), de(), ee(), Ft(), gt(), ht(), it() (+15 more)
+Cohesion: 0.19
+Nodes (22): d(), de(), ee(), Ft(), gt(), ht(), it(), jt() (+14 more)
 
 ### Community 205 - "coach.js"
 Cohesion: 0.83
@@ -1046,7 +1049,7 @@ Nodes (15): copyDir(), copyFile(), DIRS, dirSize(), { execFileSync }, fs, main()
 
 ### Community 219 - "querySanitizer.js"
 Cohesion: 0.05
-Nodes (43): express, logger, Message, Notification, Order, { protect }, router, { sanitizeChatImageUrl } (+35 more)
+Nodes (49): ComplaintSchema, mongoose, replySchema, mongoose, ShopOrderSchema, express, logger, Message (+41 more)
 
 ### Community 220 - "notifications-ui.js"
 Cohesion: 0.38
@@ -1069,8 +1072,8 @@ Cohesion: 0.47
 Nodes (3): getCoarse(), getPrecise(), isFresh()
 
 ### Community 247 - "geo.js"
-Cohesion: 0.15
-Nodes (8): ce(), ct(), de, ge(), he(), ms(), ws, ys()
+Cohesion: 0.12
+Nodes (12): ce(), ct(), de, fs(), ge(), gs(), he(), ms() (+4 more)
 
 ### Community 250 - "vi"
 Cohesion: 0.16
@@ -1081,7 +1084,7 @@ Cohesion: 0.07
 Nodes (27): foldersToCompress, fs, jimpModule, path, processImage(), run(), uploadsDir, AdminLog (+19 more)
 
 ### Community 260 - "socketAuth.test.js"
-Cohesion: 0.18
+Cohesion: 0.19
 Nodes (4): fn(), N(), parents(), trigger()
 
 ### Community 284 - "teamHost.js"
@@ -1106,16 +1109,12 @@ Cohesion: 0.47
 Nodes (4): app(), claim(), login(), PASSWORD_HASH
 
 ### Community 289 - "chatImage.js"
-Cohesion: 0.12
-Nodes (14): logger, mongoose, OrderSchema, express, Feedback, feedbackLimiter, logger, mongoose (+6 more)
+Cohesion: 0.25
+Nodes (4): eh(), kh, Lh(), sh()
 
 ### Community 290 - "querySanitizer.js"
 Cohesion: 0.20
 Nodes (15): aa(), at(), Cl(), di(), _e(), ii(), li(), Lt() (+7 more)
-
-### Community 292 - "db.js"
-Cohesion: 0.13
-Nodes (19): dataset(), ho(), Hs, _i(), index(), inRange(), inXRange(), inYRange() (+11 more)
 
 ### Community 294 - "zi"
 Cohesion: 0.12
@@ -1124,6 +1123,10 @@ Nodes (11): mongoose, ProductSchema, express, fs, logger, path, Place, Product (
 ### Community 295 - "Pe"
 Cohesion: 0.21
 Nodes (12): ac(), ei(), Ga(), ic(), kl(), nc(), $o(), oc() (+4 more)
+
+### Community 316 - "Pe"
+Cohesion: 0.07
+Nodes (4): ft, getSelectorFromElement(), ln, remove()
 
 ### Community 318 - "start"
 Cohesion: 0.27
@@ -1136,6 +1139,10 @@ Nodes (8): AppCore, ImpactStyle, PageTransition, requestLocation(), requestPush(
 ### Community 320 - "eh"
 Cohesion: 0.25
 Nodes (4): eh(), kh, Lh(), sh()
+
+### Community 321 - "eh"
+Cohesion: 0.18
+Nodes (3): jn, ne(), numeric()
 
 ### Community 322 - "placesSearch.test.js"
 Cohesion: 0.24
@@ -1151,7 +1158,7 @@ Nodes (3): getCoarse(), getPrecise(), isFresh()
 
 ### Community 329 - "C"
 Cohesion: 0.67
-Nodes (3): p(), p(), C
+Nodes (3): L(), p(), C
 
 ### Community 331 - "chatImage.js"
 Cohesion: 0.60
@@ -1166,29 +1173,33 @@ Nodes (3): {
 Cohesion: 0.50
 Nodes (3): { parseSafeQuery }, parseSafeQuery(), querystring
 
-### Community 335 - "share.js"
-Cohesion: 0.18
-Nodes (7): express, fs, logger, path, Place, router, TEMPLATE_PATH
+### Community 333 - "ls"
+Cohesion: 0.12
+Nodes (4): bo, jn, ne(), numeric()
+
+### Community 334 - "ft"
+Cohesion: 0.40
+Nodes (5): ct(), f(), oe(), re(), wt()
 
 ## Knowledge Gaps
-- **1305 isolated node(s):** `adminName`, `adminNameEl`, `token`, `MarkerPool`, `loadedOnInit` (+1300 more)
+- **1285 isolated node(s):** `adminName`, `adminNameEl`, `token`, `MarkerPool`, `loadedOnInit` (+1280 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **89 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **85 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `os` connect `Community 23` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 8`, `Community 9`, `Community 11`, `Community 14`, `Community 144`, `db.js`, `Community 38`, `Community 40`, `imageUpload.js`, `Community 47`, `Community 50`, `Community 54`, `Community 57`, `Community 81`, `User.js`, `Community 112`, `geo.js`?**
-  _High betweenness centrality (0.198) - this node is a cross-community bridge._
-- **Why does `io` connect `Community 57` to `Community 52`, `Community 47`?**
-  _High betweenness centrality (0.133) - this node is a cross-community bridge._
-- **Why does `vo()` connect `Community 47` to `Community 1`, `Community 57`?**
-  _High betweenness centrality (0.069) - this node is a cross-community bridge._
+- **Why does `os` connect `Community 81` to `Community 0`, `Community 1`, `Community 4`, `Community 8`, `Community 9`, `Community 11`, `Community 14`, `Community 144`, `Community 23`, `Community 38`, `Community 40`, `imageUpload.js`, `Community 47`, `Community 50`, `Community 54`, `Community 57`, `User.js`, `Community 112`, `geo.js`?**
+  _High betweenness centrality (0.212) - this node is a cross-community bridge._
+- **Why does `io` connect `Community 47` to `Community 57`, `Community 2`, `Community 52`?**
+  _High betweenness centrality (0.128) - this node is a cross-community bridge._
+- **Why does `vo()` connect `Community 47` to `Community 1`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
 - **Are the 26 inferred relationships involving `n()` (e.g. with `ai()` and `cn()`) actually correct?**
   _`n()` has 26 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 26 inferred relationships involving `n()` (e.g. with `_()` and `ai()`) actually correct?**
   _`n()` has 26 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `adminName`, `adminNameEl`, `token` to the rest of the system?**
-  _1306 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1286 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.07087486157253599 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08097165991902834 - nodes in this community are weakly interconnected._
