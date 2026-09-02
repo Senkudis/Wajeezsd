@@ -69,19 +69,35 @@ jobs:
           mkdir -p resources/ios
           echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > resources/ios/GoogleService-Info.plist
 
-      - name: Generate iOS platform
+      - name: Prepare webDir for Capacitor
+        run: |
+          mkdir -p public_html
+          echo "✅ public_html created"
+          ls -la public_html
+
+      - name: Add iOS platform
         run: |
           set -euo pipefail
-          # capacitor.config.json يشير إلى webDir=public_html
-          # يجب أن يكون المجلد موجوداً قبل تشغيل cap
-          mkdir -p public_html
-          npx cap add ios
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Capacitor CLI version:"
+          npx cap --version
+          echo "capacitor.config.json:"
+          cat capacitor.config.json
+          echo "--- Running cap add ios ---"
+          npx cap add ios 2>&1
+          echo "✅ cap add ios succeeded"
+
+      - name: Generate iOS assets
+        run: |
+          set -euo pipefail
           npx @capacitor/assets generate --ios --assetPath resources/ios || true
           cp resources/ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
           if [ -f resources/ios/GoogleService-Info.plist ]; then
             cp resources/ios/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
           fi
           npx cap sync ios
+          echo "✅ cap sync ios succeeded"
 
       - name: Patch Info.plist with required keys
         run: |
