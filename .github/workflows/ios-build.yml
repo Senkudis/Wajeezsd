@@ -102,10 +102,19 @@ jobs:
       - name: Install CocoaPods dependencies
         run: |
           set -euo pipefail
-          cd ios/App
+          echo "=== iOS directory structure ==="
+          find ios -maxdepth 4 -name "Podfile" -o -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || true
+          echo "================================"
+          PODFILE_DIR=$(find ios -maxdepth 4 -name "Podfile" -exec dirname {} \; | head -1)
+          if [ -z "$PODFILE_DIR" ]; then
+            echo "❌ لم يُعثر على Podfile — تشغيل pod install من ios/App"
+            PODFILE_DIR="ios/App"
+          fi
+          echo "📦 تشغيل pod install في: $PODFILE_DIR"
+          cd "$PODFILE_DIR"
           pod install --repo-update
           echo "✅ pod install succeeded"
-          ls -la App.xcworkspace/ || echo "⚠️ xcworkspace not found after pod install"
+          ls -la ./ | grep -E "xcworkspace|xcodeproj|Podfile" || true
 
       - name: Patch Info.plist with required keys
         run: |
@@ -206,6 +215,20 @@ jobs:
             echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode \
               > "$HOME/Library/MobileDevice/Provisioning Profiles/build.mobileprovision"
           fi
+
+      - name: Verify xcworkspace exists
+        run: |
+          set -euo pipefail
+          echo "=== iOS directory after pod install ==="
+          find ios -maxdepth 4 \( -name "*.xcworkspace" -o -name "Podfile" -o -name "*.xcodeproj" \) 2>/dev/null || true
+          echo "======================================="
+          if [ ! -d "ios/App/App.xcworkspace" ]; then
+            echo "❌ ios/App/App.xcworkspace غير موجود!"
+            echo "محتوى ios/App/:"
+            ls -la ios/App/ 2>/dev/null || echo "المجلد غير موجود"
+            exit 1
+          fi
+          echo "✅ ios/App/App.xcworkspace موجود وجاهز للبناء"
 
       - name: Archive (signed)
         if: steps.mode.outputs.signed == 'true'
