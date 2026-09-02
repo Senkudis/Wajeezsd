@@ -78,8 +78,26 @@ function bumpServiceWorker(assetHashes) {
     if (!fs.existsSync(SW_PATH)) return { changed: false };
     let sw = fs.readFileSync(SW_PATH, 'utf8');
 
-    // نجمع بصمات كل الأصول (js/css) لتكوين بصمة إصدار واحدة للـ SW
-    const combined = shortHash(Object.keys(assetHashes).sort().map(k => k + ':' + assetHashes[k]).join('|'));
+    // 📄 بصمات صفحات HTML أيضاً — لا بصمات js/css وحدها.
+    //
+    // العطل الذي يُغلقه هذا: كان CACHE_NAME مشتقاً من js/ و css/ فقط، بينما
+    // العامل الخدمي يخزّن صفحات HTML كذلك (precache + تخزين كل استجابة HTML
+    // ناجحة). فتعديلٌ داخل سكربتٍ مضمَّن في صفحة — وهو نمط شائع هنا، إذ أغلب
+    // منطق الصفحات مكتوب داخلها — لا يغيّر الاسم إطلاقاً، فتبقى النسخة القديمة
+    // في ذاكرة الجهاز إلى الأبد.
+    //
+    // الأثر محدود بالوضع دون اتصال (استراتيجية HTML هي Network-First، فالمتصل
+    // يحصل على الجديد دائماً)، لكن «محدود» ليس «معدوماً»: مستخدمٌ فتح التطبيق
+    // بلا شبكة كان يرى صفحةً من إصدارٍ مضى.
+    const htmlHashes = {};
+    for (const name of fs.readdirSync(ROOT)) {
+        if (!name.endsWith('.html')) continue;
+        htmlHashes[name] = shortHash(fs.readFileSync(path.join(ROOT, name)));
+    }
+
+    // نجمع بصمات كل الأصول (js/css/html) لتكوين بصمة إصدار واحدة للـ SW
+    const all = { ...assetHashes, ...htmlHashes };
+    const combined = shortHash(Object.keys(all).sort().map(k => k + ':' + all[k]).join('|'));
     const newName = `wajeez-static-${combined}`;
 
     const m = sw.match(/const CACHE_NAME = '([^']+)'/);

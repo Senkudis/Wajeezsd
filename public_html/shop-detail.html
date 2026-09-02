@@ -87,8 +87,40 @@
         .product-card-img img { width: 100%; height: 100%; object-fit: cover; }
         .product-card-body { padding: 10px; }
         .product-name { font-weight: 800; font-size: 14px; line-height: 1.3; margin-bottom: 4px; }
-        .product-desc { font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;
+        /* الوصف في البطاقة يبقى مقصوصاً بسطرين — شبكةٌ ببطاقاتٍ متفاوتة
+           الطول تصير سُلّماً، ووصفُ فقرةٍ كاملة يدفن السعر وزر السلة تحت
+           الطيّة. الكامل يُقرأ في ورقة التفاصيل (زر «التفاصيل» أدناه). */
+        .product-desc { font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 4px;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        /* ⓘ يظهر بـ JS للأوصاف المقصوصة فعلاً وحدها (قياسٌ لا تخمينٌ بعدد
+           الأحرف: عرض البطاقة يتغيّر بحجم الشاشة، فالحرف ليس مقياساً). */
+        .product-more {
+            display: none; background: none; border: none; padding: 0 0 8px;
+            font-size: 11px; font-weight: 800; color: var(--primary);
+            cursor: pointer; font-family: inherit;
+        }
+        .product-more.show { display: inline-block; }
+        .product-tap { cursor: pointer; }
+
+        /* 📄 ورقة تفاصيل المنتج — تُعيد استعمال شكل درج السلة نفسه */
+        .pd-img {
+            width: 100%; height: 200px; object-fit: cover;
+            border-radius: 16px; background: #f1f5f9; margin-bottom: 14px;
+        }
+        .pd-img-ph {
+            width: 100%; height: 160px; display: flex; align-items: center; justify-content: center;
+            border-radius: 16px; background: #f1f5f9; color: #cbd5e1; font-size: 46px; margin-bottom: 14px;
+        }
+        .pd-name { font-size: 18px; font-weight: 900; color: #0f172a; margin-bottom: 6px; }
+        .pd-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+        .pd-price { font-size: 20px; font-weight: 900; color: var(--primary); }
+        /* 🔑 الوصف كاملاً: بلا line-clamp وبـ pre-wrap كي تبقى أسطر التاجر
+           كما كتبها — قائمةُ مقاساتٍ أو مكوّناتٍ تنهار إلى فقرةٍ واحدة بدونه. */
+        .pd-desc {
+            font-size: 14px; line-height: 1.9; color: #334155;
+            white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 4px;
+        }
+        .pd-label { font-size: 11.5px; font-weight: 800; color: #94a3b8; margin-bottom: 4px; }
         .product-price { font-size: 15px; font-weight: 900; color: var(--primary); }
         .add-to-cart-btn {
             width: 100%; border: none; border-radius: 10px; padding: 8px;
@@ -276,6 +308,19 @@
 
 <!-- Cart Overlay -->
 <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
+<!-- 📄 تفاصيل المنتج -->
+<div class="cart-overlay" id="productOverlay" onclick="closeProductDetails()"></div>
+<div class="cart-drawer" id="productDrawer" role="dialog" aria-modal="true" aria-label="تفاصيل المنتج">
+    <div class="cart-drawer-handle"></div>
+    <div class="cart-drawer-header d-flex justify-content-between align-items-center">
+        <strong>تفاصيل المنتج</strong>
+        <button class="btn btn-sm btn-light rounded-circle" onclick="closeProductDetails()" aria-label="إغلاق">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="cart-drawer-body" id="productDetailBody"></div>
+    <div class="cart-drawer-footer" id="productDetailFooter"></div>
+</div>
 
 <!-- Cart FAB (Floating Checkout Bar) -->
 <button class="cart-fab hidden" id="cartFab" onclick="openCart()">
@@ -683,6 +728,25 @@
             return;
         }
         grid.innerHTML = products.map(p => buildProductCard(p)).join('');
+        markClampedDescriptions();
+    }
+
+    // 🔍 يُظهر زر «التفاصيل» على البطاقات التي قُصّ وصفها فعلاً.
+    //
+    // القياس بعد الرسم لا التخمين بطول النص: عرض البطاقة يتغيّر بعرض الشاشة
+    // وبحجم خطّ الجهاز، فوصفٌ يتّسع في سطرين على جهازٍ يُقَصّ على آخر. مقارنة
+    // scrollHeight بـ clientHeight هي السؤال ذاته الذي يجيبه المتصفّح.
+    //
+    // ⚠️ requestAnimationFrame ضروري: القياس مباشرةً بعد إسناد innerHTML قد
+    // يسبق حساب التخطيط، فتعود الأصفار ولا يظهر الزر على أي بطاقة.
+    function markClampedDescriptions() {
+        requestAnimationFrame(() => {
+            document.querySelectorAll('#productsGrid .product-desc').forEach(el => {
+                const clamped = el.scrollHeight > el.clientHeight + 1;
+                const btn = el.parentElement?.querySelector('.product-more');
+                if (btn) btn.classList.toggle('show', clamped);
+            });
+        });
     }
 
     // 🔦 يمرّر إلى المنتج المحدّد في الرابط ويُبرزه (قادم من بحث "تسوق" أو رابط المشاركة القصير)
@@ -702,6 +766,103 @@
                 setTimeout(() => card.classList.remove('product-highlight'), 2600);
             }
         }, 350);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 📄 ورقة تفاصيل المنتج
+    //
+    // سبب وجودها: وصف المنتج في البطاقة مقصوصٌ بسطرين، ولم يكن للعميل أي
+    // طريق لقراءة بقيّته — لا البطاقة قابلة للنقر ولا صفحة للمنتج. التاجر
+    // يكتب المقاسات والمكوّنات وشروط الطلب في الوصف، فكان أكثرها لا يصل.
+    // ════════════════════════════════════════════════════════════
+    let _detailProductId = null;
+
+    window.openProductDetails = function (productId, event) {
+        if (event) event.stopPropagation();
+        const p = allProducts.find(x => x._id === productId);
+        if (!p) return;
+        _detailProductId = productId;
+
+        const imgSrc = getFullImageUrl(p.image);
+        const stockLine = (p.stock !== null && p.stock !== undefined)
+            ? (p.stock === 0
+                ? `<span style="font-size:12px;color:#ef4444;font-weight:800;"><i class="bi bi-x-circle-fill me-1"></i>نفدت الكمية</span>`
+                : `<span style="font-size:12px;color:#f59e0b;font-weight:700;"><i class="bi bi-boxes me-1"></i>${p.stock} متبقية</span>`)
+            : '';
+
+        document.getElementById('productDetailBody').innerHTML = `
+            ${imgSrc
+                ? `<img src="${imgSrc}" class="pd-img" alt="${escapeHtml(p.name)}" style="cursor:zoom-in"
+                        onclick="openProductImage('${imgSrc}', event)"
+                        onerror="pdImageFallback(this)">`
+                : `<div class="pd-img-ph"><i class="bi bi-box-seam-fill"></i></div>`}
+            <div class="pd-name">${escapeHtml(p.name)}</div>
+            <div class="pd-meta">
+                <span class="pd-price">${p.price} ج.س</span>
+                <span style="display:flex;align-items:center;gap:3px;">
+                    <i class="bi bi-star-fill" style="color:#f59e0b;font-size:12px;"></i>
+                    <span style="font-size:12px;font-weight:800;color:#374151;">${p.ratingAvg > 0 ? p.ratingAvg : 'جديد'}</span>
+                    <span style="font-size:11px;color:#94a3b8;">(${p.ratingCount || 0})</span>
+                </span>
+                ${stockLine}
+            </div>
+            ${p.description
+                ? `<div class="pd-label">الوصف</div><div class="pd-desc">${escapeHtml(p.description)}</div>`
+                : `<div class="pd-desc" style="color:#94a3b8;">لا يوجد وصف لهذا المنتج</div>`}
+            <button type="button" class="btn btn-sm btn-light rounded-pill mt-3"
+                    onclick="shareProduct('${p._id}', event)">
+                <i class="bi bi-share-fill text-primary me-1"></i> مشاركة المنتج
+            </button>`;
+
+        renderProductDetailFooter();
+        document.getElementById('productDrawer').classList.add('open');
+        document.getElementById('productOverlay').classList.add('show');
+    };
+
+    // 🖼️ بديل الصورة المكسورة — دالّة مُسمّاة لا كوداً مضمّناً في السمة.
+    //    الكود المضمّن هنا يمرّ بثلاث طبقات اقتباس (قالب JS ← سمة HTML ←
+    //    نصّ JS داخل السمة)، فابتلعت طبقةٌ منها الشرطات المائلة وخرجت السمة
+    //    باقتباساتٍ مختلّة: لا تُنفَّذ ولا تُصدر خطأً، وتبقى أيقونة الصورة
+    //    المكسورة مكانها. الدالّة المسمّاة تُنهي طبقات الاقتباس كلها.
+    window.pdImageFallback = function (img) {
+        const ph = document.createElement('div');
+        ph.className = 'pd-img-ph';
+        ph.innerHTML = '<i class="bi bi-box-seam-fill"></i>';
+        img.replaceWith(ph);
+    };
+
+    window.closeProductDetails = function () {
+        _detailProductId = null;
+        document.getElementById('productDrawer').classList.remove('open');
+        document.getElementById('productOverlay').classList.remove('show');
+    };
+
+    // 🛒 صفّ الإجراء في الورقة يعكس السلة لحظياً. مفصولٌ عن بناء الجسم كي
+    //    يُعاد رسمه وحده عند تغيّر الكمية — إعادة بناء الجسم كلّه تُعيد تحميل
+    //    الصورة وتقفز بموضع القراءة إلى الأعلى عند كل ضغطة (+).
+    function renderProductDetailFooter() {
+        const footer = document.getElementById('productDetailFooter');
+        if (!footer || !_detailProductId) return;
+        const p = allProducts.find(x => x._id === _detailProductId);
+        if (!p) return;
+
+        const inCart = cart[p._id];
+        const outOfStock = p.stock !== null && p.stock !== undefined && p.stock === 0;
+
+        if (outOfStock) {
+            footer.innerHTML = `<button class="add-to-cart-btn" disabled
+                style="background:#94a3b8;cursor:not-allowed;opacity:.7;">
+                <i class="bi bi-slash-circle me-1"></i>نفد من المخزون</button>`;
+        } else if (inCart) {
+            footer.innerHTML = `<div class="qty-control" style="margin:0;">
+                <button class="qty-btn" onclick="changeQty('${p._id}', -1, event)">−</button>
+                <span class="qty-num">${inCart.qty}</span>
+                <button class="qty-btn" onclick="changeQty('${p._id}', 1, event)">+</button>
+               </div>`;
+        } else {
+            footer.innerHTML = `<button class="add-to-cart-btn" onclick="addToCart('${p._id}', event)">
+                <i class="bi bi-cart-plus-fill me-1"></i>أضف للسلة</button>`;
+        }
     }
 
     function openProductImage(src, event) {
@@ -793,8 +954,10 @@
                 ${shareBtnHtml}
             </div>
             <div class="product-card-body">
-                <div class="product-name">${escapeHtml(p.name)}</div>
-                ${p.description ? `<div class="product-desc">${escapeHtml(p.description)}</div>` : ''}
+                <div class="product-name product-tap" onclick="openProductDetails('${p._id}', event)">${escapeHtml(p.name)}</div>
+                ${p.description ? `<div class="product-desc product-tap" onclick="openProductDetails('${p._id}', event)">${escapeHtml(p.description)}</div>
+                <button type="button" class="product-more" data-more-for="${p._id}"
+                        onclick="openProductDetails('${p._id}', event)">التفاصيل والوصف كاملاً</button>` : ''}
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
                     <div class="product-price">${p.price} ج.س</div>
                     <div style="display:flex;align-items:center;gap:3px;">
@@ -885,6 +1048,10 @@
         const currentCat = document.querySelector('.cat-tab.active')?.dataset.cat || 'all';
         const filtered = currentCat === 'all' ? allProducts : allProducts.filter(p => (p.category || 'عام') === currentCat);
         renderProducts(filtered);
+
+        // 📄 ورقة التفاصيل مفتوحة ⇒ حدّث صفّ إجرائها هي أيضاً، وإلا بقي زر
+        //    «أضف للسلة» فيها بعد الإضافة بينما تبدّل على البطاقة خلفها.
+        if (_detailProductId) renderProductDetailFooter();
 
         // Update cart body
         renderCartBody();
