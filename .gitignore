@@ -6,6 +6,10 @@ env wassili
 # استثناء: القالب لا يحوي أي سر — قيم فارغة وتعليقات فقط، وهو المرجع
 # الوحيد لما يحتاجه المشروع من إعدادات.
 !.env.example
+*.p8
+*.p12
+*.mobileprovision
+*GoogleService-Info*.plist
 *firebase-adminsdk*.json
 uploads/
 # استثناء: ملف حماية مجلد الرفع يجب أن يُرفع ويصل للإنتاج (يمنع تنفيذ ما يُرفع)
