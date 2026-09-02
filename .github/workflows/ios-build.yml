@@ -99,6 +99,14 @@ jobs:
           npx cap sync ios
           echo "✅ cap sync ios succeeded"
 
+      - name: Install CocoaPods dependencies
+        run: |
+          set -euo pipefail
+          cd ios/App
+          pod install --repo-update
+          echo "✅ pod install succeeded"
+          ls -la App.xcworkspace/ || echo "⚠️ xcworkspace not found after pod install"
+
       - name: Patch Info.plist with required keys
         run: |
           set -euo pipefail
