@@ -6,6 +6,8 @@ router.param('id', validateObjectId);
 const { protect, merchantOnly, adminOnly } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Place = require('../models/Place');
+// 🔒 مرشّح حقول المتجر لواجهة العميل (بيانات بنكية + أرقام اتصال) — انظر models/Place.js
+const { PLACE_CLIENT_EXCLUDE, stripPlaceClientFields } = require('../models/Place');
 const Product = require('../models/Product');
 const ShopOrder = require('../models/ShopOrder');
 const PromoCode = require('../models/PromoCode');
@@ -753,11 +755,23 @@ router.put('/profile/status', protect, merchantOnly, async (req, res) => {
 // GET /api/merchant/shop/:placeId/products — public product listing
 router.get('/shop/:placeId/products', async (req, res) => {
     try {
-        const place = await Place.findById(req.params.placeId).populate('category', 'name icon');
+        // 🔒 مسارٌ عامّ بلا مصادقة — يجب أن يمرّ بمرشّح العميل.
+        //
+        // بلا select كان يُرجع اسم صاحب الحساب البنكي ورقمَه ورصيدَ محفظة
+        // المتجر وهاتفه لأي شخص يفتح صفحة المتجر أو يستدعي المسار مباشرةً.
+        // هذا هو المسار الذي تستدعيه صفحة المتجر نفسها لكل زائر، فالتسريب
+        // كان يقع في كل فتحة صفحة. (نظيره في routes/places.js كان مُصلَحاً
+        // منذ مدّة — انظر التعليق في models/Place.js — وفات هذا وحده.)
+        //
+        // stripPlaceClientFields شبكة أمان ثانية: لو أُزيل الـ select يوماً
+        // لا يعود التسريب.
+        const place = await Place.findById(req.params.placeId)
+            .select(PLACE_CLIENT_EXCLUDE)
+            .populate('category', 'name icon');
         if (!place || !place.isActive) return res.status(404).json({ message: 'المتجر غير موجود' });
         const products = await Product.find({ placeId: place._id, isAvailable: true })
             .sort({ category: 1, sortOrder: 1 });
-        res.json({ place: place.toJSON(), products });
+        res.json({ place: stripPlaceClientFields(place.toJSON()), products });
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
     }

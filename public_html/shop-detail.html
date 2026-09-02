@@ -220,6 +220,19 @@
         .price-stepper .input-group-text { border-left: none; border-right: none; }
         @keyframes priceBump { 0% { background-color: #d1fae5; } 100% { background-color: #fff; } }
         .price-input.bumped { animation: priceBump .35s ease; }
+
+        /* 🔘 أزرار إجراءات رأس المتجر (المفضّلة، المشاركة) */
+        .shop-hero-action {
+            width: 34px; height: 34px; padding: 0;
+            display: none; align-items: center; justify-content: center;
+            border: none; border-radius: 50%;
+            background: rgba(255,255,255,0.18); color: #fff;
+            font-size: 15px; cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: transform .15s, color .15s;
+        }
+        .shop-hero-action.visible { display: flex; }
+        .shop-hero-action:active { transform: scale(0.88); }
     </style>
 </head>
 <body>
@@ -234,12 +247,17 @@
                 <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></span> مفتوح
             </span>
             <!-- ❤️ المفضّلة — يُظهره JS للمسجَّلين وحدهم -->
-            <button type="button" id="shopFavBtn" onclick="toggleShopFavorite()"
-                    aria-label="إضافة للمفضّلة" title="المفضّلة"
-                    style="display:none;margin-inline-start:auto;width:34px;height:34px;padding:0;
-                           align-items:center;justify-content:center;border:none;border-radius:50%;
-                           background:rgba(255,255,255,0.18);color:#fff;font-size:15px;cursor:pointer;
-                           backdrop-filter:blur(4px);transition:transform .15s,color .15s;">
+            <!-- 🔗 مشاركة المتجر — يراه الجميع بمن فيهم الزائر غير المسجَّل:
+                 المشاركة هي بالضبط ما يجلب زائراً جديداً، فاشتراطُ حسابٍ لها
+                 يغلق الباب على الغرض منها. (المفضّلة تحتاج حساباً لأنها تُحفظ
+                 عليه؛ المشاركة لا تحفظ شيئاً.) -->
+            <button type="button" id="shopShareBtn" class="shop-hero-action visible"
+                    onclick="shareShop()" style="margin-inline-start:auto;"
+                    aria-label="مشاركة المتجر" title="مشاركة المتجر">
+                <i class="bi bi-share-fill"></i>
+            </button>
+            <button type="button" id="shopFavBtn" class="shop-hero-action" onclick="toggleShopFavorite()"
+                    aria-label="إضافة للمفضّلة" title="المفضّلة">
                 <i class="bi bi-heart"></i>
             </button>
         </div>
@@ -577,7 +595,7 @@
         const btn = document.getElementById('shopFavBtn');
         const token = localStorage.getItem('token') || localStorage.getItem('clientToken');
         if (!btn || !token) return;   // زائر: لا قلب أصلاً
-        btn.style.display = 'flex';
+        btn.classList.add('visible');
         try {
             const res = await fetch(`${API_URL}/api/places/favorites/ids`, { headers: _shopAuthHeaders() });
             if (res.ok) {
@@ -587,6 +605,58 @@
         } catch (e) { /* القلب يبقى فارغاً — والنقر يصحّحه */ }
         paintShopFav();
     }
+
+    // ════════════════════════════════════════════════════════════
+    // 🔗 مشاركة المتجر
+    //
+    // كان زر المشاركة موجوداً للتاجر (لوحته وملفّه) وللإدارة، ومشاركةُ
+    // المنتج الواحد موجودة للعميل — أما مشاركة المتجر نفسه من صفحته فلا.
+    // وهي أكثر ما يُشارَك فعلياً: من يوصي صديقاً يوصيه بالمتجر لا بصنفٍ منه.
+    //
+    // نُفضّل الرابط القصير /s/<code> لأن الخادم يحقن فيه وسوم Open Graph
+    // (اسم المتجر وصورته ووصفه) فتظهر معاينة غنية في واتساب — والرابط الطويل
+    // لا معاينة له. المتاجر القديمة قد لا تحمل كوداً بعد (يُولَّد كسولاً عند
+    // أول دخول للتاجر إلى لوحته)، فنسقط إلى الرابط الطويل بدل تعطيل الزر:
+    // رابطٌ بلا معاينة خيرٌ من زرٍّ لا يفعل شيئاً.
+    // ════════════════════════════════════════════════════════════
+    function shopShareUrl() {
+        const base = window.API_URL || 'https://wajeezsd.com';
+        if (shopData && shopData.shareCode) return `${base}/s/${shopData.shareCode}`;
+        return `${base}/shop-detail.html?placeId=${placeId}`;
+    }
+
+    window.shareShop = async function (event) {
+        if (event) event.stopPropagation();
+        const name = (shopData && shopData.name) || 'متجر';
+        const url = shopShareUrl();
+        const payload = {
+            title: `${name} على وجيز`,
+            text: `تسوّق من ${name} واطلب توصيلاً عبر تطبيق وجيز`,
+            url
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(payload);
+                return;
+            } catch (e) {
+                // إلغاء المستخدم للورقة ليس خطأً — لا نُظهر شيئاً ولا ننسخ خلفه
+                if (e && e.name === 'AbortError') return;
+                // أي فشلٍ آخر (متصفّح يعلن دعمه ثم يرفض) يسقط إلى النسخ أدناه
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(url);
+            Swal.fire({ toast: true, position: 'top', icon: 'success',
+                        title: 'تم نسخ رابط المتجر', showConfirmButton: false, timer: 2000 });
+        } catch (e) {
+            // 📋 الحافظة محجوبة (سياق غير آمن أو رفض المستخدم) ⇒ اعرض الرابط
+            //    ليُنسخ يدوياً بدل أن تفشل المشاركة بصمت
+            Swal.fire({ title: 'رابط المتجر', input: 'text', inputValue: url,
+                        confirmButtonText: 'تم', confirmButtonColor: 'var(--primary)' });
+        }
+    };
 
     window.toggleShopFavorite = async function () {
         const was = _isShopFav;

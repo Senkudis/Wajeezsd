@@ -166,3 +166,63 @@ describe('حقن أسماء المستخدمين في لوحة الإدارة', 
         expect(html).toContain('esc(conv.lastMessage)');
     });
 });
+
+/**
+ * ⚠️ الثغرة التي فاتت الجولة الأولى.
+ *
+ * الاختبارات أعلاه تحرس routes/places.js وحده، بينما المسار الذي تستدعيه صفحة
+ * المتجر فعلياً لكل زائر يعيش في routes/merchant.js:
+ *     GET /api/merchant/shop/:placeId/products
+ * وكان يُرجع place.toJSON() كاملاً بلا select — أي اسم صاحب الحساب البنكي
+ * ورقمه ورصيد محفظة المتجر وهاتفه، لأي شخص بلا تسجيل دخول. أُكِّد ذلك حيّاً
+ * على بيانات الإنتاج قبل الإصلاح.
+ *
+ * الدرس المعمّم في هذه الاختبارات: الحراسة تكون على *كل* مسارٍ عام يُرجع
+ * مستند متجر، لا على ملفٍ واحد اتُّفق أنه محلّ المشكلة يومها.
+ */
+describe('مسار منتجات المتجر العام (routes/merchant.js)', () => {
+    const src = read('routes/merchant.js');
+
+    it('يستورد مرشّح حقول العميل', () => {
+        expect(src).toContain('PLACE_CLIENT_EXCLUDE');
+        expect(src).toContain('stripPlaceClientFields');
+    });
+
+    it('استعلام المتجر في المسار العام مُقيَّد بالاستبعاد', () => {
+        // نلتقط الاستعلام الذي يخدم /shop/:placeId/products تحديداً
+        const idx = src.indexOf("router.get('/shop/:placeId/products'");
+        expect(idx).toBeGreaterThan(-1);
+        const handler = src.slice(idx, idx + 1600);
+        expect(handler).toContain('PLACE_CLIENT_EXCLUDE');
+    });
+
+    it('الاستجابة تمرّ بشبكة الأمان لا بـ toJSON خاماً', () => {
+        const idx = src.indexOf("router.get('/shop/:placeId/products'");
+        const handler = src.slice(idx, idx + 1600);
+        expect(handler).toContain('stripPlaceClientFields(place.toJSON())');
+        // النمط القديم الذي سرّب: res.json({ place: place.toJSON(), ... })
+        expect(handler).not.toMatch(/place:\s*place\.toJSON\(\)/);
+    });
+});
+
+describe('زر مشاركة المتجر في صفحة المتجر', () => {
+    const html = read('public_html/shop-detail.html');
+
+    it('الزر موجود ويستدعي دالة المشاركة', () => {
+        expect(html).toContain('id="shopShareBtn"');
+        expect(html).toContain('window.shareShop');
+    });
+
+    it('يظهر للزائر غير المسجَّل — لا يُشترط له حساب', () => {
+        // المفضّلة تُظهَر بـ JS بعد التحقّق من التوكن؛ المشاركة تولد ظاهرة.
+        // لو فُقد الصنف visible من الترميز عاد الزر مخفياً بلا أن يلاحظ أحد.
+        expect(html).toMatch(/id="shopShareBtn"[\s\S]{0,200}class="shop-hero-action visible"|class="shop-hero-action visible"[\s\S]{0,200}id="shopShareBtn"/);
+    });
+
+    it('يُفضّل الرابط القصير ويسقط إلى الطويل عند غياب الكود', () => {
+        // الرابط القصير وحده يحمل وسوم Open Graph (routes/share.js)،
+        // والمتاجر القديمة بلا كود يجب أن تبقى قابلة للمشاركة لا معطّلة.
+        expect(html).toContain('/s/${shopData.shareCode}');
+        expect(html).toContain('shop-detail.html?placeId=${placeId}');
+    });
+});
