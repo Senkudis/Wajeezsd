@@ -72,6 +72,9 @@ jobs:
       - name: Generate iOS platform
         run: |
           set -euo pipefail
+          # capacitor.config.json يشير إلى webDir=public_html
+          # يجب أن يكون المجلد موجوداً قبل تشغيل cap
+          mkdir -p public_html
           npx cap add ios
           npx @capacitor/assets generate --ios --assetPath resources/ios || true
           cp resources/ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
