@@ -99,22 +99,12 @@ jobs:
           npx cap sync ios
           echo "✅ cap sync ios succeeded"
 
-      - name: Install CocoaPods dependencies
+      - name: Verify iOS project structure
         run: |
-          set -euo pipefail
-          echo "=== iOS directory structure ==="
-          find ios -maxdepth 4 -name "Podfile" -o -name "*.xcworkspace" -o -name "*.xcodeproj" 2>/dev/null || true
-          echo "================================"
-          PODFILE_DIR=$(find ios -maxdepth 4 -name "Podfile" -exec dirname {} \; | head -1)
-          if [ -z "$PODFILE_DIR" ]; then
-            echo "❌ لم يُعثر على Podfile — تشغيل pod install من ios/App"
-            PODFILE_DIR="ios/App"
-          fi
-          echo "📦 تشغيل pod install في: $PODFILE_DIR"
-          cd "$PODFILE_DIR"
-          pod install --repo-update
-          echo "✅ pod install succeeded"
-          ls -la ./ | grep -E "xcworkspace|xcodeproj|Podfile" || true
+          echo "=== iOS project structure ==="
+          find ios -maxdepth 5 \( -name "*.xcworkspace" -o -name "*.xcodeproj" -o -name "Podfile" -o -name "Package.swift" \) 2>/dev/null || true
+          echo "Capacitor 8 uses SPM — no CocoaPods/Podfile needed"
+          echo "============================="
 
       - name: Patch Info.plist with required keys
         run: |
@@ -216,26 +206,23 @@ jobs:
               > "$HOME/Library/MobileDevice/Provisioning Profiles/build.mobileprovision"
           fi
 
-      - name: Verify xcworkspace exists
+      - name: Verify iOS project exists
         run: |
           set -euo pipefail
-          echo "=== iOS directory after pod install ==="
-          find ios -maxdepth 4 \( -name "*.xcworkspace" -o -name "Podfile" -o -name "*.xcodeproj" \) 2>/dev/null || true
-          echo "======================================="
-          if [ ! -d "ios/App/App.xcworkspace" ]; then
-            echo "❌ ios/App/App.xcworkspace غير موجود!"
-            echo "محتوى ios/App/:"
+          if [ ! -f "ios/App/App.xcodeproj/project.pbxproj" ]; then
+            echo "❌ ios/App/App.xcodeproj غير موجود!"
             ls -la ios/App/ 2>/dev/null || echo "المجلد غير موجود"
             exit 1
           fi
-          echo "✅ ios/App/App.xcworkspace موجود وجاهز للبناء"
+          echo "✅ ios/App/App.xcodeproj موجود وجاهز للبناء"
+          ls -la ios/App/
 
       - name: Archive (signed)
         if: steps.mode.outputs.signed == 'true'
         run: |
           set -euo pipefail
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
@@ -248,7 +235,7 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
