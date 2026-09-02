@@ -123,6 +123,7 @@
                 socket.on('order_status_updated', () => fetchMissions());
                 socket.on('new_order_available', () => fetchMissions());
                 socket.on('errand_quote_confirmed', () => fetchMissions());
+                socket.on('order_tip_updated', () => fetchMissions());   // 💚 إكرامية أُضيفت لمهمّة جارية
             }
         }
 
@@ -327,7 +328,15 @@
                             <div class="card-body p-0">
                                 <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
                                     <span class="badge bg-primary rounded-pill">#${order._id.slice(-4)}</span>
-                                    <span class="text-success fw-bold">${order.price} ج.س</span>
+                                    <span class="text-success fw-bold">
+                                        ${order.price} ج.س
+                                        ${(Number(order.tip?.amount) || 0) > 0 ? `
+                                        <!-- 💚 إكرامية: تُحصَّل نقداً مع الأجرة، فلا بدّ أن يعرف الكابتن
+                                             المبلغ الكامل الذي يطلبه من العميل عند التسليم -->
+                                        <span class="badge bg-success-subtle text-success rounded-pill ms-1" style="font-size:0.68rem;">
+                                            <i class="bi bi-heart-fill"></i> + ${Number(order.tip.amount).toLocaleString('en-US')} إكرامية
+                                        </span>` : ''}
+                                    </span>
                                 </div>
                                 
                                 <div class="p-3">

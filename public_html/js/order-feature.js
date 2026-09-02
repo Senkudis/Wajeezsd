@@ -585,6 +585,138 @@ window.placeCoverPlaceholder = function (p) {
     return `<div class="place-card-ph" style="--ph-h:${PH_HUES[h % PH_HUES.length]}"><i class="bi ${icon}"></i></div>`;
 };
 
+// ==========================================
+// ⭐ المتاجر المفضّلة
+//
+// المعرّفات تُحفظ في مجموعة واحدة في الذاكرة تخدم كل شبكات البطاقات على
+// الصفحة: القريبة، ونتائج التصنيف، والبحث. بلا مصدرٍ واحد كان كل شبكة
+// ستطلب حالتها بنفسها، فيظهر القلب ممتلئاً في شبكة وفارغاً في أخرى
+// للمتجر ذاته.
+//
+// النقر يقلب الشكل فوراً ثم يُرسل للخادم (تفاؤلي): زمن الشبكة على هاتف
+// في السودان يجعل انتظارَ الردّ قبل تلوين القلب نقرةً تبدو مكسورة.
+// الفشل يُرجع الشكل ويُعلن السبب.
+// ==========================================
+window.favoritePlaceIds = new Set();
+let _favLoaded = false;
+
+// 🔑 محلّية لا عامّة: اسمٌ عام بهذا العموم يُغري وحدةً أخرى بإعادة تعريفه
+//    بدلالةٍ مختلفة (دور، صلاحية، انتهاء توكن)، فينكسر القلب بلا أثرٍ ظاهر.
+function _favIsLoggedIn() {
+    return !!(localStorage.getItem('token') || localStorage.getItem('clientToken'));
+}
+
+function _favAuthHeaders() {
+    const t = localStorage.getItem('token') || localStorage.getItem('clientToken') || '';
+    return t ? { 'Authorization': `Bearer ${t}` } : {};
+}
+
+window.loadFavoriteIds = async function (force = false) {
+    if (_favLoaded && !force) return window.favoritePlaceIds;
+    if (!_favIsLoggedIn()) { _favLoaded = true; return window.favoritePlaceIds; }
+    try {
+        const res = await fetch(`${API_URL}/api/places/favorites/ids`, { headers: _favAuthHeaders() });
+        if (res.ok) {
+            const data = await res.json();
+            window.favoritePlaceIds = new Set((data.ids || []).map(String));
+        }
+    } catch (e) {
+        // زائرٌ بلا شبكة يتصفّح بقلوبٍ فارغة — أهون من شاشة خطأ
+    }
+    _favLoaded = true;
+    return window.favoritePlaceIds;
+};
+
+// 🤍/❤️ زر القلب داخل غلاف البطاقة. يُخفى كلياً للزائر غير المسجَّل:
+//     قلبٌ يقود إلى شاشة تسجيل دخولٍ عند كل نقرة إغراءٌ لا ميزة.
+window.favBtnHtml = function (placeId) {
+    if (!_favIsLoggedIn()) return '';
+    const on = window.favoritePlaceIds.has(String(placeId));
+    return `<button type="button" class="place-fav-btn ${on ? 'on' : ''}"
+                data-fav-id="${escapeHtml(placeId)}"
+                aria-label="${on ? 'إزالة من المفضّلة' : 'إضافة للمفضّلة'}"
+                onclick="event.stopPropagation(); window.toggleFavoritePlace('${escapeHtml(placeId)}', this)">
+                <i class="bi ${on ? 'bi-heart-fill' : 'bi-heart'}"></i>
+            </button>`;
+};
+
+window.toggleFavoritePlace = async function (placeId, btn) {
+    if (!_favIsLoggedIn()) return;
+    const id = String(placeId);
+    const wasOn = window.favoritePlaceIds.has(id);
+
+    // ⚡ تفاؤلي: اقلب كل قلوب هذا المتجر على الصفحة قبل الشبكة
+    const paint = (on) => {
+        document.querySelectorAll(`[data-fav-id="${CSS.escape(id)}"]`).forEach(el => {
+            el.classList.toggle('on', on);
+            el.setAttribute('aria-label', on ? 'إزالة من المفضّلة' : 'إضافة للمفضّلة');
+            const icon = el.querySelector('i');
+            if (icon) icon.className = `bi ${on ? 'bi-heart-fill' : 'bi-heart'}`;
+        });
+    };
+    if (wasOn) window.favoritePlaceIds.delete(id); else window.favoritePlaceIds.add(id);
+    paint(!wasOn);
+
+    try {
+        const res = await fetch(`${API_URL}/api/places/${id}/favorite`, {
+            method: wasOn ? 'DELETE' : 'POST',
+            headers: _favAuthHeaders()
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'تعذّر تحديث المفضّلة');
+
+        // 🔄 قسم المفضّلة معروضٌ الآن ⇒ أعِد بناءه ليعكس التغيير فوراً
+        if (document.getElementById('favorites-section')) window.loadFavoritePlaces();
+    } catch (e) {
+        // ↩️ تراجع: أعِد الحالة والشكل معاً
+        if (wasOn) window.favoritePlaceIds.add(id); else window.favoritePlaceIds.delete(id);
+        paint(wasOn);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ toast: true, position: 'top', icon: 'error', title: e.message,
+                        showConfirmButton: false, timer: 2600 });
+        }
+    }
+};
+
+// 📋 صفّ "متاجرك المفضّلة" — يُعرض فوق المحلات القريبة، ويختفي كلياً
+//    متى كانت القائمة فارغة: قسمٌ فارغ بعنوانٍ دائم يشغل نصف الشاشة الأولى
+//    بلا أن يقدّم شيئاً.
+window.loadFavoritePlaces = async function () {
+    const section = document.getElementById('favorites-section');
+    if (!section) return;
+    if (!_favIsLoggedIn()) { section.innerHTML = ''; return; }
+
+    try {
+        const res = await fetch(`${API_URL}/api/places/favorites`, { headers: _favAuthHeaders() });
+        if (!res.ok) { section.innerHTML = ''; return; }
+        const places = await res.json();
+        if (!Array.isArray(places) || !places.length) { section.innerHTML = ''; return; }
+
+        window.favoritePlaceIds = new Set(places.map(p => String(p._id)));
+        _favLoaded = true;
+
+        // 📍 المسافة تُحسب هنا كما في المحلات القريبة، وإلا ظهرت البطاقات
+        //    بمؤشّر تحميلٍ لا ينتهي (renderPlacesList ينتظر distanceKm)
+        const loc = window.userLocation;
+        if (loc && loc.lat != null) {
+            places.forEach(p => {
+                p.distanceKm = calculateHaversineDistance(loc.lat, loc.lng, p.location?.lat ?? 0, p.location?.lng ?? 0);
+            });
+        }
+
+        // 🔗 يجب أن تكون البطاقات قابلة للفتح: openPlaceDetails يبحث في
+        //    المصادر المعروضة، فنضمّ المفضّلة إليها.
+        window._allPlacesCache = [...(window._allPlacesCache || []), ...places]
+            .filter((p, i, arr) => arr.findIndex(x => x._id === p._id) === i);
+
+        section.innerHTML = `<div class="featured-head"><i class="bi bi-heart-fill"></i> متاجرك المفضّلة</div>
+                             <div class="featured-grid" id="favorites-grid"></div>`;
+        renderPlacesList(places, document.getElementById('favorites-grid'), '', { showCategory: true });
+    } catch (e) {
+        section.innerHTML = '';
+    }
+};
+
 window.renderPlacesList = function(places, container, prependHtml = '', opts = {}) {
     const html = places.map((p, idx) => {
         const isOpen = p.is_open;
@@ -623,6 +755,7 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
                 <div class="place-card-status ${isOpen ? 'open' : 'closed'}">
                     <span class="status-dot"></span>${isOpen ? 'مفتوح' : 'مغلق'}
                 </div>
+                ${window.favBtnHtml(p._id)}
             </div>
             <div class="place-card-body">
                 <div class="place-card-name">${escapeHtml(p.name)}</div>

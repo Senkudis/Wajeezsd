@@ -201,6 +201,15 @@
             <span id="shopBadge" class="open-badge" style="background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.5);color:#86efac;">
                 <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></span> مفتوح
             </span>
+            <!-- ❤️ المفضّلة — يُظهره JS للمسجَّلين وحدهم -->
+            <button type="button" id="shopFavBtn" onclick="toggleShopFavorite()"
+                    aria-label="إضافة للمفضّلة" title="المفضّلة"
+                    style="display:none;margin-inline-start:auto;width:34px;height:34px;padding:0;
+                           align-items:center;justify-content:center;border:none;border-radius:50%;
+                           background:rgba(255,255,255,0.18);color:#fff;font-size:15px;cursor:pointer;
+                           backdrop-filter:blur(4px);transition:transform .15s,color .15s;">
+                <i class="bi bi-heart"></i>
+            </button>
         </div>
         <h2 class="fw-bold mb-0" id="shopName" style="font-size:1.4rem;">جاري التحميل...</h2>
         <div class="text-white-50 small" id="shopAddress"></div>
@@ -497,6 +506,65 @@
     loadSettings();
 
     // ─── Load Shop & Products ───────────────────────────────
+    // ============================================================
+    // ❤️ مفضّلة هذا المتجر
+    //
+    // الحالة تُقرأ من قائمة المعرّفات لا من مسارٍ خاص بمتجر واحد: نفس
+    // الطلب يخدم صفحة التسوّق كاملة، والعميل يصل إلى هنا منها غالباً
+    // فتكون النتيجة محفوظة أصلاً.
+    // ============================================================
+    let _isShopFav = false;
+
+    function _shopAuthHeaders() {
+        const t = localStorage.getItem('token') || localStorage.getItem('clientToken') || '';
+        return t ? { 'Authorization': `Bearer ${t}` } : {};
+    }
+
+    function paintShopFav() {
+        const btn = document.getElementById('shopFavBtn');
+        if (!btn) return;
+        btn.querySelector('i').className = `bi ${_isShopFav ? 'bi-heart-fill' : 'bi-heart'}`;
+        btn.style.color = _isShopFav ? '#fb7185' : '#fff';
+        btn.setAttribute('aria-label', _isShopFav ? 'إزالة من المفضّلة' : 'إضافة للمفضّلة');
+    }
+
+    async function initShopFavorite() {
+        const btn = document.getElementById('shopFavBtn');
+        const token = localStorage.getItem('token') || localStorage.getItem('clientToken');
+        if (!btn || !token) return;   // زائر: لا قلب أصلاً
+        btn.style.display = 'flex';
+        try {
+            const res = await fetch(`${API_URL}/api/places/favorites/ids`, { headers: _shopAuthHeaders() });
+            if (res.ok) {
+                const data = await res.json();
+                _isShopFav = (data.ids || []).map(String).includes(String(placeId));
+            }
+        } catch (e) { /* القلب يبقى فارغاً — والنقر يصحّحه */ }
+        paintShopFav();
+    }
+
+    window.toggleShopFavorite = async function () {
+        const was = _isShopFav;
+        _isShopFav = !was;      // ⚡ تفاؤلي
+        paintShopFav();
+        try {
+            const res = await fetch(`${API_URL}/api/places/${placeId}/favorite`, {
+                method: was ? 'DELETE' : 'POST',
+                headers: _shopAuthHeaders()
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || 'تعذّر تحديث المفضّلة');
+            Swal.fire({ toast: true, position: 'top', icon: 'success',
+                        title: was ? 'أُزيل من المفضّلة' : 'أُضيف إلى المفضّلة',
+                        showConfirmButton: false, timer: 1800 });
+        } catch (e) {
+            _isShopFav = was;   // ↩️ تراجع
+            paintShopFav();
+            Swal.fire({ toast: true, position: 'top', icon: 'error', title: e.message,
+                        showConfirmButton: false, timer: 2600 });
+        }
+    };
+
     async function loadShop() {
         try {
             const res = await fetch(`${API_URL}/api/merchant/shop/${placeId}/products`);
@@ -511,6 +579,8 @@
             }
             document.getElementById('shopName').textContent = shopData.name;
             document.getElementById('shopAddress').textContent = shopData.address || '';
+
+            initShopFavorite();   // ❤️
 
             // 📞 رقم المتجر محجوب عن العميل بقرار عمل: الطلب والتواصل داخل التطبيق
             // فقط، فلا يخرج الطلب من وجيز ويبقى للطرفين سجلٌّ وضمان. السيرفر لم

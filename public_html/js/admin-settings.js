@@ -29,6 +29,7 @@ async function loadSettings() {
         document.getElementById('commissionRate').value = settings.commissionRate || 0.15;
         if (document.getElementById('maxDiscountPercent')) document.getElementById('maxDiscountPercent').value = settings.maxDiscountPercent ?? 10;
         if (document.getElementById('maxPriceSurgePercent')) document.getElementById('maxPriceSurgePercent').value = settings.maxPriceSurgePercent ?? 100;
+        if (document.getElementById('maxTipAmount')) document.getElementById('maxTipAmount').value = settings.maxTipAmount ?? 20000;
         document.getElementById('adminPhone').value = settings.adminPhone || '249112046348';
         
         // App Settings
@@ -91,6 +92,7 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         commissionRate: parseFloat(document.getElementById('commissionRate').value),
         maxDiscountPercent: parseFloat(document.getElementById('maxDiscountPercent')?.value ?? 10),
         maxPriceSurgePercent: parseFloat(document.getElementById('maxPriceSurgePercent')?.value ?? 100),
+        maxTipAmount: parseFloat(document.getElementById('maxTipAmount')?.value ?? 20000),
         adminPhone: document.getElementById('adminPhone').value.trim(),
         city: document.getElementById('citySelector').value
     };

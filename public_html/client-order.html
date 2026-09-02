@@ -393,6 +393,22 @@
         }
         .place-card-status.open { background: rgba(10,135,84,0.92); }
         .place-card-status.closed { background: rgba(220,38,38,0.9); }
+        /* ❤️ زر المفضّلة — أسفل الغلاف كي لا يزاحم شارتَي الحالة والقسم أعلاه */
+        .place-fav-btn {
+            position: absolute; bottom: 8px; inset-inline-start: 8px;
+            width: 30px; height: 30px; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            border: none; border-radius: 50%;
+            background: rgba(255,255,255,0.92);
+            color: #94a3b8; font-size: 14px; cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+            backdrop-filter: blur(4px);
+            transition: transform .15s, color .15s;
+        }
+        .place-fav-btn:active { transform: scale(0.85); }
+        .place-fav-btn.on { color: #e11d48; }
+        body.dark-mode .place-fav-btn { background: rgba(30,41,59,0.92); color: #64748b; }
+        body.dark-mode .place-fav-btn.on { color: #fb7185; }
         /* 🏷️ شارة القسم — الزاوية العلوية المقابلة لشارة الحالة */
         .place-card-cat {
             position: absolute; top: 8px; inset-inline-start: 8px;
@@ -879,6 +895,12 @@
                 <div class="skeleton skeleton-chip"></div>
             </div>
 
+            <!-- ⭐ متاجرك المفضّلة — فوق المحلات القريبة لأن العميل العائد
+                 يقصد متجراً بعينه غالباً، فوضعُه خلف شبكةِ اكتشافٍ كاملة
+                 يجعل الطلب المتكرّر أطول من الطلب الأول. يبقى فارغاً
+                 (بلا عنوان) حتى تُضاف أول مفضّلة. -->
+            <div id="favorites-section" class="mt-3"></div>
+
             <!-- Featured / All Places below categories when no category selected -->
             <div id="featured-section" class="mt-3">
                 <!-- Populated by JS when no filter active -->
@@ -1136,7 +1158,7 @@
     <script type="module" src="js/app-core.js?v=eabc83fd"></script>
     <script type="module" src="js/native-notifications.js?v=c076999e"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/order-feature.js?v=9f7d4809"></script>
+    <script src="js/order-feature.js?v=fe4bcfc0"></script>
     <!-- 🛍️ منتقي "اشترِ لي" — بعد order-feature.js لاعتماده على getUserLocation/getFullImageUrl -->
     <script src="js/errand-context.js?v=f33a33bc"></script>
     <script src="js/errand-picker.js?v=9504d357"></script>
@@ -1174,8 +1196,15 @@
                     </div>`;
             } else {
                 fetchCategories();
-                // 🏬 اعرض المحلات القريبة فوراً أسفل التصنيفات (بلا اختيار تصنيف أولاً)
-                if (typeof loadFeaturedShops === 'function') loadFeaturedShops();
+                // ⭐ المعرّفات أولاً ثم الشبكات: بلا هذا تُرسم البطاقات بقلوبٍ
+                //    فارغة ثم تمتلئ بعد لحظة — وميضٌ يبدو خللاً.
+                const favIds = (typeof loadFavoriteIds === 'function')
+                    ? loadFavoriteIds() : Promise.resolve();
+                favIds.finally(() => {
+                    // 🏬 اعرض المحلات القريبة فوراً أسفل التصنيفات (بلا اختيار تصنيف أولاً)
+                    if (typeof loadFeaturedShops === 'function') loadFeaturedShops();
+                    if (typeof loadFavoritePlaces === 'function') loadFavoritePlaces();
+                });
             }
         });
 

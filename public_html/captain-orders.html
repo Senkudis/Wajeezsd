@@ -288,6 +288,16 @@
                 // ✅ Use live commission rate from Settings (not hardcoded 10%)
                 const netProfit = Number(order.netRevenue ?? (order.price * (1 - commissionRate))) || 0;
 
+                // 💚 إكرامية العميل — تصل الكابتن كاملة بلا عمولة (مطويّة في netRevenue
+                //    أصلاً). تُعرض كشارة مستقلة لأنها حافز القبول: رقمٌ مذابٌ في
+                //    "صافي ربحك" لا يُلاحَظ، وشارةٌ خضراء تُلاحَظ.
+                const tipAmount = Number(order.tip?.amount) || 0;
+                const tipBadge = tipAmount > 0
+                    ? `<span class="badge bg-success-subtle text-success fw-bold rounded-pill px-2 py-1 ms-1" style="font-size:0.68rem;">
+                         <i class="bi bi-heart-fill"></i> إكرامية ${tipAmount.toLocaleString('en-US')}
+                       </span>`
+                    : '';
+
                 // ✅ استخدام الإحداثيات إذا متوفرة، وإلا العنوان النصي
                 const pickupCoords = hasCoord(order.pickup?.lat, order.pickup?.lng)
                     ? `${order.pickup.lat},${order.pickup.lng}`
@@ -412,7 +422,7 @@
                             <div class="card-header ${headerClass} pt-3 px-3 d-flex justify-content-between align-items-center">
                                 ${badgeHtml}
                                 <div class="text-end">
-                                    <h5 class="fw-bold text-primary mb-0">${order.price} ج.س</h5>
+                                    <h5 class="fw-bold text-primary mb-0">${order.price} ج.س ${tipBadge}</h5>
                                     <small class="text-success fw-bold" style="font-size: 0.75rem;">صافي ربحك: ${netProfit.toFixed(0)} ج.س</small>
                                 </div>
                             </div>
@@ -818,6 +828,15 @@
         onSocket('order_taken', () => {
             clearTimeout(orderTakenTimer);
             orderTakenTimer = setTimeout(fetchOrders, 400);
+        });
+
+        // 💚 العميل عدّل الإكرامية على طلبٍ معروض → أعِد الرسم بصمت.
+        //    بلا هذا يبقى الكابتن ينظر إلى بطاقةٍ تقول "بلا إكرامية" بينما
+        //    العميل أضافها للتوّ ليُسرّع القبول — فيفوت الحافزُ غرضَه.
+        let tipRefreshTimer = null;
+        onSocket('order_tip_updated', () => {
+            clearTimeout(tipRefreshTimer);
+            tipRefreshTimer = setTimeout(fetchOrders, 400);
         });
 
         onSocket('shop_order_available', (data) => {

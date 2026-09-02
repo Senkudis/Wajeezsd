@@ -1487,7 +1487,27 @@
                 });
             }
 
-            function showRatingModal(orderId, placeId) {
+            // 🏷️ وسوم التقييم — تُجلب من الخادم مرّة واحدة وتُحفظ في الذاكرة.
+            //    مصدرها utils/ratingTags، فإضافة وسمٍ أو حذفه لا تنتظر تحديث
+            //    التطبيق على أجهزة المستخدمين.
+            let _ratingTagsCache = null;
+            async function loadRatingTags() {
+                if (_ratingTagsCache) return _ratingTagsCache;
+                try {
+                    const res = await fetchWithRetry(`${SERVER_URL}/api/orders/rating-tags`, { headers: authHeaders });
+                    _ratingTagsCache = res.ok ? await res.json() : { positive: [], negative: [], maxTags: 4 };
+                } catch (e) {
+                    // 🛟 فشل الجلب ⇒ نجومٌ بلا وسوم. التقييم نفسه هو القيمة،
+                    //    ولا يصحّ أن يمنعه تعذُّرُ تحميل قائمةٍ تكميلية.
+                    _ratingTagsCache = { positive: [], negative: [], maxTags: 4 };
+                }
+                return _ratingTagsCache;
+            }
+
+            async function showRatingModal(orderId, placeId) {
+                const tagSets = await loadRatingTags();
+                const maxTags = tagSets.maxTags || 4;
+
                 const starHtml = `
                     <div id="starRating" style="display:flex;justify-content:center;gap:10px;margin:16px 0;">
                         ${[1,2,3,4,5].map(i => `
@@ -1497,6 +1517,15 @@
                         `).join('')}
                     </div>
                     <div id="starLabel" style="font-size:1rem;color:#64748b;min-height:24px;"></div>
+                    <!-- 🏷️ الوسوم مخفية حتى تُختار النجوم: مجموعة الوسوم نفسها
+                         تتبع التقييم (ثناء عند 4-5، شكوى عند 1-3)، وعرضُ الاثنين
+                         معاً يُنتج تقييماً متناقضاً مثل "سريع" و"تأخّر كثيراً". -->
+                    <div id="ratingTagsWrap" style="display:none;margin-top:6px;">
+                        <div id="ratingTagsHint" style="font-size:11.5px;color:#94a3b8;font-weight:600;margin-bottom:7px;"></div>
+                        <div id="ratingTags" style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;"></div>
+                    </div>
+                    <textarea id="captainComment" class="form-control mt-3" rows="2"
+                              maxlength="500" placeholder="أضف تعليقاً (اختياري)..."></textarea>
                     <input type="hidden" id="selectedStar" value="0">`;
 
                 Swal.fire({
@@ -1507,6 +1536,41 @@
                     showCancelButton: true,
                     cancelButtonText: 'تخطّي',
                     didOpen: () => {
+                        let selectedTags = [];
+
+                        const renderTags = (stars) => {
+                            const wrap = document.getElementById('ratingTagsWrap');
+                            const list = stars >= 4 ? (tagSets.positive || []) : (tagSets.negative || []);
+                            if (!list.length) { wrap.style.display = 'none'; return; }
+                            wrap.style.display = 'block';
+                            document.getElementById('ratingTagsHint').textContent =
+                                stars >= 4 ? 'ما الذي أعجبك؟ (اختياري)' : 'ما الذي حدث؟ (اختياري)';
+                            document.getElementById('ratingTags').innerHTML = list.map(t => `
+                                <button type="button" class="rate-tag" data-code="${escapeHtml(t.code)}"
+                                    style="border:1.5px solid #e2e8f0;background:#fff;color:#475569;
+                                           font-size:12px;font-weight:700;border-radius:99px;
+                                           padding:5px 12px;cursor:pointer;font-family:inherit;">
+                                    ${escapeHtml(t.label)}
+                                </button>`).join('');
+
+                            document.querySelectorAll('#ratingTags .rate-tag').forEach(btn => {
+                                btn.onclick = () => {
+                                    const code = btn.dataset.code;
+                                    const wasOn = selectedTags.includes(code);
+                                    if (wasOn) {
+                                        selectedTags = selectedTags.filter(c => c !== code);
+                                    } else {
+                                        if (selectedTags.length >= maxTags) return;
+                                        selectedTags.push(code);
+                                    }
+                                    const active = !wasOn;
+                                    btn.style.background  = active ? 'var(--primary)' : '#fff';
+                                    btn.style.color       = active ? '#fff' : '#475569';
+                                    btn.style.borderColor = active ? 'var(--primary)' : '#e2e8f0';
+                                };
+                            });
+                        };
+
                         window.hoverStars = (val) => {
                             document.querySelectorAll('#starRating i').forEach((el, i) =>
                                 el.style.color = i < val ? '#f59e0b' : '#d1d5db');
@@ -1518,14 +1582,24 @@
                             hoverStars(sel);
                         };
                         window.selectStar = (val) => {
+                            const prev = parseInt(document.getElementById('selectedStar').value) || 0;
                             document.getElementById('selectedStar').value = val;
                             resetStars();
+                            // 🔄 العبور بين مجموعتَي الوسوم يُفرغ الاختيار: وسمُ ثناءٍ
+                            //    بقي محدَّداً تحت تقييمٍ منخفض تناقضٌ لا يقصده أحد.
+                            if (!prev || ((prev >= 4) !== (val >= 4))) selectedTags = [];
+                            renderTags(val);
                         };
+                        window.__getRatingTags = () => selectedTags.slice();
                     },
                     preConfirm: () => {
                         const val = parseInt(document.getElementById('selectedStar').value);
                         if (!val) { Swal.showValidationMessage('يرجى اختيار عدد النجوم'); return false; }
-                        return val;
+                        return {
+                            val,
+                            tags: (window.__getRatingTags ? window.__getRatingTags() : []),
+                            comment: (document.getElementById('captainComment')?.value || '').trim()
+                        };
                     }
                 }).then(async (result) => {
                     if (result.isConfirmed) {
@@ -1533,7 +1607,11 @@
                             await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/rate`, {
                                 method: 'POST',
                                 headers: authHeaders,
-                                body: JSON.stringify({ rating: result.value })
+                                body: JSON.stringify({
+                                    rating: result.value.val,
+                                    tags: result.value.tags,
+                                    comment: result.value.comment
+                                })
                             });
                             // ✅ إخفاء زر التقييم فوراً بدون انتظار إعادة التحميل
                             ratedOrders.add(orderId);

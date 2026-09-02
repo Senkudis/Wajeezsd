@@ -46,7 +46,7 @@ function invalidateSettingsCache(city) {
         _settingsCache.clear(); // مسح كل المدن إذا لم تُحدَّد مدينة
     }
 }
-module.exports.invalidateSettingsCache = invalidateSettingsCache;
+// (يُصدَّر في نهاية الملف — انظر الملاحظة هناك)
 
 // Rate Limiter للطلبات الجديدة
 const createOrderLimiter = rateLimit({
@@ -97,7 +97,6 @@ function totalDueFromClient(order) {
     const tip = Number(order?.tip?.amount) || 0;
     return Math.max(0, price - discount) + tip;
 }
-module.exports.totalDueFromClient = totalDueFromClient;
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -2961,3 +2960,12 @@ router.get('/:id/image', protect, async (req, res) => {
 });
 
 module.exports = router;
+
+// ⚠️ يجب أن تأتي هذه الإسنادات **بعد** `module.exports = router` لا قبله.
+//    كانت `invalidateSettingsCache` تُسنَد أعلى الملف على كائن الوحدة الأصلي،
+//    ثم يستبدله السطر أعلاه بالراوتر — فتُمحى الدالة ولا تصل إلى أي مستورد.
+//    (اختبار deliverRoute كان يحمل احتياطاً `|| ordersRouter.…` يخفي ذلك.)
+//    النتيجة العملية: مسح كاش الإعدادات من لوحة الإدارة لم يكن ممكناً أصلاً،
+//    فكان تغيير التسعيرة ينتظر انتهاء مهلة الدقيقة.
+module.exports.invalidateSettingsCache = invalidateSettingsCache;
+module.exports.totalDueFromClient = totalDueFromClient;

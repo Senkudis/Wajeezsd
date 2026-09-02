@@ -275,6 +275,31 @@
         .eta-bar .eta-label { font-size: 11px; opacity: 0.8; }
         .eta-bar .eta-value { font-size: 15px; font-weight: 800; }
         .eta-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.3); }
+
+        /* 💚 إكرامية الكابتن */
+        .tip-box {
+            margin-top: 12px; padding: 12px 14px;
+            background: #f0fdf4; border: 1.5px solid #bbf7d0;
+            border-radius: 12px;
+        }
+        .tip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        .tip-title { font-size: 13px; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 6px; }
+        .tip-sub   { font-size: 10.5px; color: #16a34a; font-weight: 600; margin-top: 2px; }
+        .tip-current {
+            font-size: 13px; font-weight: 800; color: #065f46; white-space: nowrap;
+            background: #dcfce7; border-radius: 99px; padding: 3px 10px;
+        }
+        .tip-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+        .tip-chip {
+            border: 1.5px solid #bbf7d0; background: #fff; color: #065f46;
+            font-size: 12px; font-weight: 700; border-radius: 99px;
+            padding: 6px 13px; cursor: pointer; transition: all .15s;
+            font-family: 'Cairo', sans-serif;
+        }
+        .tip-chip:active { transform: scale(.95); }
+        .tip-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .tip-chip.clear  { border-color: #fecaca; color: #b91c1c; }
+        .tip-chip[disabled] { opacity: .55; pointer-events: none; }
     </style>
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css?v=baddc97b">
@@ -395,6 +420,18 @@
                     <div class="eta-label">💰 السعر</div>
                     <div class="eta-value" id="order-price">—</div>
                 </div>
+            </div>
+
+            <!-- 💚 إكرامية الكابتن — تظهر للعميل صاحب الطلب قبل التسليم فقط -->
+            <div class="tip-box" id="tipBox" style="display:none;">
+                <div class="tip-head">
+                    <div>
+                        <div class="tip-title"><i class="bi bi-heart-fill"></i> إكرامية للكابتن</div>
+                        <div class="tip-sub">تصل الكابتن كاملة بلا خصم، وتُدفع نقداً مع الأجرة</div>
+                    </div>
+                    <div class="tip-current" id="tipCurrent" style="display:none;"></div>
+                </div>
+                <div class="tip-chips" id="tipChips"></div>
             </div>
         </div>
     </div>
@@ -760,6 +797,115 @@
             }
         }
 
+        // ============================================================
+        // 💚 إكرامية الكابتن
+        //
+        // تُعرض قبل التسليم وحده: الدفع نقديٌّ، وإكراميةٌ تُطلب بعد أن فارق
+        // الكابتنُ البابَ لا سبيل لتحصيلها. الحدّ الأقصى يأتي من إعدادات
+        // المدينة (price-config) لا ثابتاً في الصفحة، وصفرٌ منه = الميزة
+        // معطّلة في هذه المدينة فلا يظهر الصندوق أصلاً.
+        // ============================================================
+        const TIP_PRESETS = [500, 1000, 2000];
+        let _maxTip = null;        // null = لم يُحمّل بعد
+        let _tipBusy = false;
+
+        async function loadTipConfig() {
+            if (_maxTip !== null) return _maxTip;
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/orders/price-config`, { headers: window.Auth.getAuthHeader() });
+                const cfg = res.ok ? await res.json() : {};
+                _maxTip = Number(cfg.maxTipAmount ?? 20000);
+            } catch (e) {
+                // 🛟 تعذّر جلب الإعداد ⇒ سقفٌ افتراضي لا تعطيلٌ للميزة: الخادم
+                //    يرفض التجاوز على أي حال، والعميل لا يُحرم لعطبٍ في الشبكة.
+                _maxTip = 20000;
+            }
+            return _maxTip;
+        }
+
+        function renderTipBox(order) {
+            const box = document.getElementById('tipBox');
+            if (!box) return;
+
+            // 👤 العميل صاحب الطلب وحده — الصفحة نفسها تخدم التاجر والكابتن
+            const clientId = order.client && (order.client._id || order.client);
+            const isOwner = userId && clientId && String(clientId) === String(userId);
+            const OPEN = ['pending', 'scheduled', 'accepted', 'picked_up'];
+
+            if (!isOwner || !OPEN.includes(order.status) || !_maxTip) {
+                box.style.display = 'none';
+                return;
+            }
+
+            const current = Number(order.tip?.amount) || 0;
+            box.style.display = 'block';
+
+            const badge = document.getElementById('tipCurrent');
+            badge.style.display = current > 0 ? 'block' : 'none';
+            badge.textContent = current > 0 ? `${current.toLocaleString('en-US')} ج.س` : '';
+
+            const options = TIP_PRESETS.filter(v => v <= _maxTip);
+            let html = options.map(v => `
+                <button type="button" class="tip-chip ${current === v ? 'active' : ''}"
+                        onclick="setTip(${v})">${v.toLocaleString('en-US')}</button>`).join('');
+            html += `<button type="button" class="tip-chip" onclick="promptCustomTip()">مبلغ آخر</button>`;
+            if (current > 0) {
+                html += `<button type="button" class="tip-chip clear" onclick="setTip(0)">إلغاء</button>`;
+            }
+            document.getElementById('tipChips').innerHTML = html;
+        }
+
+        window.setTip = async function (amount) {
+            if (_tipBusy) return;
+            _tipBusy = true;
+            document.querySelectorAll('#tipChips .tip-chip').forEach(b => b.setAttribute('disabled', 'disabled'));
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/orders/${orderId}/tip`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', ...window.Auth.getAuthHeader() },
+                    body: JSON.stringify({ amount })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || 'تعذّر تحديث الإكرامية');
+
+                // ✍️ نُحدّث النسخة المحلية بدل إعادة جلب الطلب كاملاً — الصندوق
+                //    يُعاد رسمه فوراً فلا يرى العميل حالةً قديمة لثانية.
+                if (currentOrder) currentOrder.tip = { amount: data.tip };
+                renderTipBox(currentOrder || {});
+
+                if (amount > 0) {
+                    Swal.fire({ icon: 'success', title: 'شكراً لك', text: data.message,
+                                timer: 1800, showConfirmButton: false });
+                }
+            } catch (e) {
+                Swal.fire('تعذّر', e.message || 'حاول مجدداً', 'error');
+                renderTipBox(currentOrder || {});
+            } finally {
+                _tipBusy = false;
+            }
+        };
+
+        window.promptCustomTip = async function () {
+            const { value } = await Swal.fire({
+                title: 'إكرامية الكابتن',
+                input: 'number',
+                inputLabel: `من 0 إلى ${Number(_maxTip).toLocaleString('en-US')} ج.س`,
+                inputAttributes: { min: 0, max: _maxTip, step: 100, inputmode: 'numeric' },
+                inputValue: Number(currentOrder?.tip?.amount) || '',
+                showCancelButton: true,
+                confirmButtonText: 'تأكيد',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: 'var(--primary)',
+                inputValidator: (v) => {
+                    const n = Number(v);
+                    if (!Number.isFinite(n) || n < 0) return 'أدخل مبلغاً صحيحاً';
+                    if (n > _maxTip) return `أقصى إكرامية ${Number(_maxTip).toLocaleString('en-US')} ج.س`;
+                    return null;
+                }
+            });
+            if (value !== undefined && value !== '') setTip(Math.round(Number(value)));
+        };
+
         function updateUI(order) {
             // Update status steps
             updateStatusSteps(order.status);
@@ -783,8 +929,15 @@
                 }
             }
 
-            // Price
-            if (order.price) document.getElementById('order-price').textContent = `${order.price} ج.س`;
+            // Price — الإجمالي المستحق نقداً يشمل الإكرامية، فالعميل يرى ما سيدفعه فعلاً
+            const _tipAmt = Number(order.tip?.amount) || 0;
+            if (order.price) {
+                const due = Math.max(0, (Number(order.price) || 0) - (Number(order.discountAmount) || 0)) + _tipAmt;
+                document.getElementById('order-price').textContent = `${due.toLocaleString('en-US')} ج.س`;
+            }
+
+            // 💚 صندوق الإكرامية
+            loadTipConfig().then(() => renderTipBox(order));
 
             document.getElementById('pickup-txt').textContent = order.pickup?.address || '—';
             document.getElementById('dropoff-txt').textContent = order.dropoff?.address || '—';
