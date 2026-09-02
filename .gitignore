@@ -10,6 +10,9 @@ env wassili
 *.p12
 *.key
 *.csr
+*.cer
+*.pem
+*_base64.txt
 *.mobileprovision
 *GoogleService-Info*.plist
 *firebase-adminsdk*.json
