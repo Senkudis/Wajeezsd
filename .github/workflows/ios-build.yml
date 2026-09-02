@@ -73,22 +73,75 @@ jobs:
         run: |
           set -euo pipefail
           npx cap add ios
-          node scripts/patch-ios-plist.js
           npx @capacitor/assets generate --ios --assetPath resources/ios || true
           cp resources/ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
           if [ -f resources/ios/GoogleService-Info.plist ]; then
             cp resources/ios/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
           fi
           npx cap sync ios
-          node scripts/patch-ios-plist.js
+
+      - name: Patch Info.plist with required keys
+        run: |
+          set -euo pipefail
+          PLIST=ios/App/App/Info.plist
+
+          patch_key() {
+            local key="$1" type="$2" value="$3"
+            if /usr/libexec/PlistBuddy -c "Print :${key}" "$PLIST" > /dev/null 2>&1; then
+              echo "↩️  موجود مسبقاً: $key"
+            else
+              /usr/libexec/PlistBuddy -c "Add :${key} ${type} ${value}" "$PLIST"
+              echo "✅ أُضيف: $key"
+            fi
+          }
+
+          # تصحيح منطقة التطوير إلى عربي
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDevelopmentRegion ar" "$PLIST" || \
+            /usr/libexec/PlistBuddy -c "Add :CFBundleDevelopmentRegion string ar" "$PLIST"
+
+          patch_key "NSLocationWhenInUseUsageDescription" "string" \
+            "نستخدم موقعك لتحديد نقطة الاستلام والتسليم بدقة وحساب سعر التوصيل."
+
+          patch_key "NSLocationAlwaysAndWhenInUseUsageDescription" "string" \
+            "يستخدم تطبيق الكابتن موقعك أثناء المهمة النشطة فقط لعرض موقعه للعميل ومتابعة الطلب حتى التسليم."
+
+          patch_key "NSLocationAlwaysUsageDescription" "string" \
+            "يستخدم تطبيق الكابتن موقعك أثناء المهمة النشطة فقط لعرض موقعه للعميل ومتابعة الطلب حتى التسليم."
+
+          patch_key "NSCameraUsageDescription" "string" \
+            "لتصوير الطرد أو إشعار الدفع أو وثائق الكابتن ورفعها مع الطلب."
+
+          patch_key "NSPhotoLibraryUsageDescription" "string" \
+            "لاختيار صورة الطرد أو إشعار الدفع أو الوثائق من معرض الصور."
+
+          patch_key "NSPhotoLibraryAddUsageDescription" "string" \
+            "لحفظ صورة إيصال الطلب في معرض صورك عند طلبك ذلك."
+
+          patch_key "ITSAppUsesNonExemptEncryption" "bool" "false"
+
+          # UIBackgroundModes — array تحتاج معالجة خاصة
+          if ! /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$PLIST" > /dev/null 2>&1; then
+            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
+            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
+            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string remote-notification" "$PLIST"
+            echo "✅ أُضيف: UIBackgroundModes"
+          fi
+
+          # CFBundleLocalizations
+          if ! /usr/libexec/PlistBuddy -c "Print :CFBundleLocalizations" "$PLIST" > /dev/null 2>&1; then
+            /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" "$PLIST"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string ar" "$PLIST"
+            echo "✅ أُضيف: CFBundleLocalizations"
+          fi
+
+          echo "=== Info.plist المُرقَّع ==="
+          cat "$PLIST"
+          echo "============================"
 
       - name: Verify Info.plist keys
         run: |
           set -euo pipefail
           PLIST=ios/App/App/Info.plist
-          echo "=== Info.plist Content ==="
-          cat "$PLIST"
-          echo "========================="
           for KEY in NSLocationWhenInUseUsageDescription \
                      NSLocationAlwaysAndWhenInUseUsageDescription \
                      NSCameraUsageDescription \
