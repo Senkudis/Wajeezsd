@@ -123,12 +123,22 @@ jobs:
           xcrun agvtool new-version -all "$BUILD_NUM"
           cd - >/dev/null
 
-          # ✅ تحقّق أن الضبط وقع فعلاً — agvtool يُرجع 0 حتى حين لا يجد ما يعدّله
-          PBX=ios/App/App.xcodeproj/project.pbxproj
-          grep -q "MARKETING_VERSION = $MARKETING;" "$PBX" \
-            || { echo "::error::تعذّر ضبط MARKETING_VERSION"; exit 1; }
-          grep -q "CURRENT_PROJECT_VERSION = $BUILD_NUM;" "$PBX" \
-            || { echo "::error::تعذّر ضبط CURRENT_PROJECT_VERSION"; exit 1; }
+          # ✅ تحقّق أن الضبط وقع فعلاً — agvtool يُرجع 0 حتى حين لا يجد ما يعدّله.
+          #
+          # ⚠️ الفحص على Info.plist لا على project.pbxproj: قالب Capacitor يكتب
+          #    الرقمين حرفياً في Info.plist ولا يستعمل $(MARKETING_VERSION)، وهذا
+          #    ما يعدّله agvtool فعلاً (ولذلك فشلت أول محاولة هنا رغم نجاح الضبط).
+          #    وInfo.plist هو ما يُحزَم في التطبيق على أي حال، فهو الموضع الذي
+          #    يهمّ التحقّق منه.
+          PLIST=ios/App/App/Info.plist
+          GOT_VER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST")
+          GOT_BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")
+          echo "Info.plist → $GOT_VER ($GOT_BUILD)"
+
+          [ "$GOT_VER" = "$MARKETING" ] \
+            || { echo "::error::CFBundleShortVersionString = '$GOT_VER' والمتوقّع '$MARKETING'"; exit 1; }
+          [ "$GOT_BUILD" = "$BUILD_NUM" ] \
+            || { echo "::error::CFBundleVersion = '$GOT_BUILD' والمتوقّع '$BUILD_NUM'"; exit 1; }
           echo "✅ الإصدار $MARKETING ($BUILD_NUM)"
 
       - name: Verify iOS project structure
