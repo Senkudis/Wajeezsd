@@ -141,6 +141,28 @@ jobs:
             || { echo "::error::CFBundleVersion = '$GOT_BUILD' والمتوقّع '$BUILD_NUM'"; exit 1; }
           echo "✅ الإصدار $MARKETING ($BUILD_NUM)"
 
+      - name: Restrict to iPhone (drop iPad support)
+        run: |
+          set -euo pipefail
+          # 📱 Capacitor يولّد المشروع بـ TARGETED_DEVICE_FAMILY = "1,2" أي
+          #    آيفون وآيباد معاً. وهذا يجعل App Store Connect يطالب بلقطات
+          #    آيباد 13 بوصة ويمنع الإرسال للمراجعة بدونها.
+          #
+          #    التطبيق مصمَّم للهاتف: الواجهات كلها بعرض عمود واحد، والخريطة
+          #    والتتبّع مبنيان على شاشة تُمسك بيد. ادّعاء دعم الآيباد بلا تصميم
+          #    له لا يجلب مستخدمين بل يجلب رفضاً — Apple تفتح التطبيق على آيباد
+          #    وترفضه لواجهة ممطوطة.
+          #
+          #    "1" = آيفون فقط. لو أُريد دعم الآيباد يوماً فالقرار يبدأ من
+          #    التصميم لا من هذا السطر.
+          PBX=ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2";/TARGETED_DEVICE_FAMILY = "1";/g' "$PBX"
+
+          if grep -q 'TARGETED_DEVICE_FAMILY = "1,2";' "$PBX"; then
+            echo "::error::ما زال المشروع يعلن دعم الآيباد"; exit 1
+          fi
+          echo "✅ آيفون فقط — $(grep -c 'TARGETED_DEVICE_FAMILY = \"1\";' "$PBX") هدف"
+
       - name: Verify iOS project structure
         run: |
           echo "=== iOS project structure ==="
