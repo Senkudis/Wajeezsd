@@ -107,3 +107,86 @@ describe('computeDiscount', () => {
         expect(computeDiscount(basePromo, { fullOrderValue: 0 }).discount).toBe(0);
     });
 });
+
+/**
+ * 🏪 حصر الكوبون بمتاجر بعينها.
+ *
+ * القاعدة: `places` فارغة = كل المتاجر (السلوك القديم، فالكوبونات القائمة
+ * تبقى عاملة بلا ترحيل). غير فارغة = قائمة بيضاء صارمة، ويسقط معها الكوبون
+ * عن طلبات التوصيل العادية لأنها بلا متجر تُطابَق به.
+ *
+ * الفحص يعيش في validatePromo وحدها لا في المسارات الثلاثة، فنسخةٌ تُنسى في
+ * أحدها تعني كوبوناً «محصوراً» يمرّ من الباب الخلفي.
+ */
+const PLACE_A = '507f1f77bcf86cd799439011';
+const PLACE_B = '507f1f77bcf86cd799439012';
+
+describe('validatePromo — حصر المتاجر', () => {
+    const ctx = { userId: USER, userCity: 'Khartoum', fullOrderValue: 1000 };
+
+    it('بلا حصر: يعمل في أي متجر وبلا متجر إطلاقاً', () => {
+        expect(validatePromo(basePromo, ctx).ok).toBe(true);
+        expect(validatePromo(basePromo, { ...ctx, placeId: PLACE_A }).ok).toBe(true);
+        expect(validatePromo({ ...basePromo, places: [] }, ctx).ok).toBe(true);
+    });
+
+    it('محصور: يقبل المتجر المدرَج', () => {
+        const promo = { ...basePromo, places: [PLACE_A, PLACE_B] };
+        expect(validatePromo(promo, { ...ctx, placeId: PLACE_A }).ok).toBe(true);
+        expect(validatePromo(promo, { ...ctx, placeId: PLACE_B }).ok).toBe(true);
+    });
+
+    it('🔒 محصور: يرفض متجراً غير مدرَج', () => {
+        const r = validatePromo({ ...basePromo, places: [PLACE_A] }, { ...ctx, placeId: PLACE_B });
+        expect(r.ok).toBe(false);
+        expect(r.error).toContain('هذا المتجر');
+    });
+
+    it('🔒 محصور: يرفض طلباً بلا متجر (توصيل عادي)', () => {
+        const r = validatePromo({ ...basePromo, places: [PLACE_A] }, ctx);
+        expect(r.ok).toBe(false);
+        expect(r.error).toContain('متاجر محدّدة');
+    });
+
+    it('يطابق المعرّف نصّاً — ObjectId مقابل string لا يكسر المقارنة', () => {
+        const asObjectIdLike = { _id: PLACE_A, toString: () => PLACE_A };
+        const promo = { ...basePromo, places: [asObjectIdLike] };
+        expect(validatePromo(promo, { ...ctx, placeId: PLACE_A }).ok).toBe(true);
+    });
+
+    it('يقبل المتاجر المُعبّأة (populate) لا المعرّفات وحدها', () => {
+        // لوحة الإدارة تجلب الكوبونات بـ populate('places','name')، فقد يصل
+        // المستند كاملاً بدل المعرّف
+        const promo = { ...basePromo, places: [{ _id: PLACE_A, name: 'متجر' }] };
+        expect(validatePromo(promo, { ...ctx, placeId: PLACE_A }).ok).toBe(true);
+        expect(validatePromo(promo, { ...ctx, placeId: PLACE_B }).ok).toBe(false);
+    });
+
+    it('places بقيمة غير مصفوفة تُعامَل كـ«بلا حصر» لا كخطأ', () => {
+        for (const bad of [null, undefined, 'x', 5, {}]) {
+            expect(validatePromo({ ...basePromo, places: bad }, ctx).ok).toBe(true);
+        }
+    });
+});
+
+describe('🔗 المسارات الثلاثة تمرّر placeId', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+
+    it('طلب المتجر يمرّر معرّف المتجر', () => {
+        expect(read('routes/merchant.js')).toContain('placeId: place._id');
+    });
+
+    it('إنشاء الطلب يمرّر shopId', () => {
+        expect(read('routes/orders.js')).toContain('placeId: shopId || null');
+    });
+
+    it('المعاينة تمرّره أيضاً — وإلا أخبرنا العميل بصلاحية ثم رفضناها عند الإتمام', () => {
+        expect(read('routes/orders.js')).toContain('placeId: placeId || null');
+    });
+
+    it('واجهة المتجر ترسل placeId مع طلب المعاينة', () => {
+        expect(read('public_html/shop-detail.html')).toContain('deliveryFee, placeId');
+    });
+});

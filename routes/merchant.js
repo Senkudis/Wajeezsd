@@ -988,7 +988,11 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
                 validUntil: { $gte: now }
             });
             const check = promoDoc
-                ? validatePromo(promoDoc, { userId: req.user._id, userCity: place.city, fullOrderValue: originalTotal })
+                ? validatePromo(promoDoc, {
+                    userId: req.user._id, userCity: place.city,
+                    fullOrderValue: originalTotal,
+                    placeId: place._id            // 🏪 حصر المتاجر
+                  })
                 : { ok: false };
             if (check.ok) {
                 const { discount, scope } = computeDiscount(promoDoc, {

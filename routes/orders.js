@@ -257,7 +257,13 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             // عند الإنشاء. البضاعة تُخصم في مسار المتجر المنفصل عبر ShopOrder.
             const fullOrderValue = Number(price) || 0;
             const check = promoDoc
-                ? validatePromo(promoDoc, { userId: req.user._id, userCity: req.userCity, fullOrderValue })
+                ? validatePromo(promoDoc, {
+                    userId: req.user._id, userCity: req.userCity, fullOrderValue,
+                    // 🏪 حصر المتاجر — shopId من الجسم لكنه يُتحقَّق منه أدناه
+                    //    قبل استعماله في الطلب. الكوبون المحصور يُرفض هنا على
+                    //    طلب التوصيل العادي (بلا shopId) وهو المقصود.
+                    placeId: shopId || null
+                  })
                 : { ok: false };
 
             if (check.ok) {
@@ -2880,7 +2886,7 @@ router.get('/:id', protect, async (req, res) => {
 // @access Client
 router.post('/apply-promo', protect, async (req, res) => {
     try {
-        const { code, orderValue, productsTotal, deliveryFee, city } = req.body;
+        const { code, orderValue, productsTotal, deliveryFee, city, placeId } = req.body;
         // قيمة الطلب الكاملة (بضاعة + توصيل) — تُحسب من المُرسَل أو من المجموع
         const fullOrderValue = Number(orderValue) ||
             ((Number(productsTotal) || 0) + (Number(deliveryFee) || 0));
@@ -2902,7 +2908,11 @@ router.post('/apply-promo', protect, async (req, res) => {
         const check = validatePromo(promo, {
             userId: req.user._id,
             userCity: req.user.city,
-            fullOrderValue
+            fullOrderValue,
+            // 🏪 حصر المتاجر. المعاينة تُطابق قرار الإنشاء تماماً — ولو تُرك
+            //    هذا فارغاً هنا لأخبرنا العميلَ أن الكوبون صالح ثم رفضناه عند
+            //    إتمام الطلب، وهو أسوأ من رفضه من البداية.
+            placeId: placeId || null
         });
         if (!check.ok) {
             const status = check.error.includes('غير صحيح') ? 404 : 400;

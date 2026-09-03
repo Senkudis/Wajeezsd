@@ -67,6 +67,17 @@
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .hint { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
         .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        /* 🏪 منتقي المتاجر */
+        .places-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; }
+        .places-list { max-height: 190px; overflow-y: auto; margin-top: 8px; }
+        .place-opt { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; cursor: pointer; }
+        .place-opt:hover { background: #f1f5f9; }
+        .place-opt input { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+        .place-opt span { font-size: 13px; font-weight: 600; color: #334155; }
+        .places-hint { font-size: 11.5px; color: #94a3b8; font-weight: 600; }
+        body.dark-mode .places-box { border-color: #374151; }
+        body.dark-mode .place-opt:hover { background: #374151; }
+        body.dark-mode .place-opt span { color: #e5e7eb; }
         .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
         .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
 body.dark-mode { background: #111827 !important; color: #f9fafb !important; }
@@ -191,6 +202,21 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
                 </select>
             </div>
         </div>
+        <!-- 🏪 حصر الكوبون بمتاجر بعينها -->
+        <div class="form-group">
+            <label>المتاجر المتاح فيها الخصم</label>
+            <div class="places-box">
+                <div class="places-hint" id="placesHint">
+                    لم تُحدَّد متاجر — الكوبون يعمل في كل المتاجر وفي التوصيل العادي
+                </div>
+                <input type="text" class="form-control" id="fPlaceSearch" placeholder="ابحث عن متجر..."
+                       style="margin-top:8px;font-size:13px;" oninput="filterPlaceOptions(this.value)">
+                <div class="places-list" id="placesList">
+                    <div class="places-hint" style="padding:8px;">جارٍ تحميل المتاجر…</div>
+                </div>
+            </div>
+        </div>
+
         <div class="form-group">
             <label>وصف داخلي (للأدمن فقط)</label>
             <input type="text" class="form-control" id="fDesc" placeholder="مثال: كوبون رمضان 2025">
@@ -258,6 +284,13 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
                     <div class="meta-item"><div class="mlbl">الحد الأدنى</div><div class="mval">${p.minOrderValue} ج.س</div></div>
                     <div class="meta-item"><div class="mlbl">ينتهي في</div><div class="mval" style="font-size:0.78rem;">${new Date(p.validUntil).toLocaleDateString('ar-EG')}</div></div>
                     <div class="meta-item"><div class="mlbl">المدينة</div><div class="mval">${cityLbl[p.city]||p.city}</div></div>
+                    <div class="meta-item"><div class="mlbl">المتاجر</div><div class="mval">${
+                        (p.places && p.places.length)
+                            ? (p.places.length <= 2
+                                ? p.places.map(x => esc(x.name || '')).join('، ')
+                                : `${p.places.length} متاجر`)
+                            : 'الكل'
+                    }</div></div>
                 </div>
                 ${p.usageLimit ? `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>90?'#ef4444':accentC};"></div></div>` : ''}
                 ${p.description ? `<div style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">${p.description}</div>` : ''}
@@ -277,6 +310,73 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
         }).join('');
     }
 
+    // ════════════════════════════════════════════════════════════
+    // 🏪 منتقي المتاجر
+    //
+    // القائمة تُجلب مرّة واحدة وتُحفظ: نافذة الكوبون تُفتح وتُغلق كثيراً،
+    // وجلبُ كل المتاجر في كل فتحة طلبٌ مكرّر بلا داعٍ.
+    //
+    // فارغة = كل المتاجر. هذا هو السلوك القديم، فالكوبونات المنشأة قبل هذه
+    // الميزة تبقى عاملة كما هي بلا ترحيل.
+    // ════════════════════════════════════════════════════════════
+    let _allPlaces = null;
+
+    async function loadPlacesForPicker() {
+        if (_allPlaces) return _allPlaces;
+        try {
+            // city=all: الكوبون قد يُحصر بمتجر في أي مدينة، وفلترة المدينة
+            // يقوم بها حقل «المدينة» أعلاه لا هذه القائمة
+            const res = await fetch(`${BASE}/api/places?city=all`);
+            _allPlaces = res.ok ? await res.json() : [];
+        } catch (e) {
+            _allPlaces = [];
+        }
+        _allPlaces.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'));
+        return _allPlaces;
+    }
+
+    function esc(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    async function renderPlacePicker(selectedIds = []) {
+        const list = document.getElementById('placesList');
+        const places = await loadPlacesForPicker();
+        if (!places.length) {
+            list.innerHTML = '<div class="places-hint" style="padding:8px;">لا توجد متاجر</div>';
+            return;
+        }
+        const sel = new Set((selectedIds || []).map(p => String(p && p._id ? p._id : p)));
+        list.innerHTML = places.map(p => `
+            <label class="place-opt" data-name="${esc(p.name)}">
+                <input type="checkbox" value="${esc(p._id)}" ${sel.has(String(p._id)) ? 'checked' : ''}
+                       onchange="updatePlacesHint()">
+                <span>${esc(p.name)}</span>
+            </label>`).join('');
+        updatePlacesHint();
+    }
+
+    window.filterPlaceOptions = function (q) {
+        const needle = String(q || '').trim().toLowerCase();
+        document.querySelectorAll('#placesList .place-opt').forEach(el => {
+            const hit = !needle || String(el.dataset.name || '').toLowerCase().includes(needle);
+            el.style.display = hit ? 'flex' : 'none';
+        });
+    };
+
+    window.updatePlacesHint = function () {
+        const n = getSelectedPlaceIds().length;
+        document.getElementById('placesHint').textContent = n === 0
+            ? 'لم تُحدَّد متاجر — الكوبون يعمل في كل المتاجر وفي التوصيل العادي'
+            : `محصور بـ ${n} ${n === 1 ? 'متجر' : 'متاجر'} — لن يعمل خارجها ولا في التوصيل العادي`;
+    };
+
+    function getSelectedPlaceIds() {
+        return [...document.querySelectorAll('#placesList input[type=checkbox]:checked')].map(el => el.value);
+    }
+
     function openModal(promo=null) {
         document.getElementById('editingId').value  = promo?._id || '';
         document.getElementById('modalTitle').textContent = promo ? 'تعديل الكوبون' : 'إنشاء كوبون جديد';
@@ -292,6 +392,8 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
         document.getElementById('fUntil').value      = promo?.validUntil ? promo.validUntil.substring(0,10) : '';
         document.getElementById('fCity').value       = promo?.city        || 'all';
         document.getElementById('fDesc').value       = promo?.description || '';
+        document.getElementById('fPlaceSearch').value = '';
+        renderPlacePicker(promo?.places || []);   // 🏪
         updateValueLabel();
         document.getElementById('modalOverlay').classList.add('active');
     }
@@ -317,7 +419,8 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
             validFrom:      document.getElementById('fFrom').value || new Date().toISOString(),
             validUntil:     until,
             city:           document.getElementById('fCity').value,
-            description:    document.getElementById('fDesc').value.trim()
+            description:    document.getElementById('fDesc').value.trim(),
+            places:         getSelectedPlaceIds()   // 🏪 فارغة = كل المتاجر
         };
         const saveBtn = document.getElementById('saveBtn');
         saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';

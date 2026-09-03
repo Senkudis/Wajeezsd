@@ -1212,7 +1212,8 @@
             const res  = await fetch(`${API_URL}/api/orders/apply-promo`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, productsTotal, deliveryFee })
+                // 🏪 placeId يسمح للخادم بفحص الكوبونات المحصورة بمتاجر بعينها
+                body: JSON.stringify({ code, productsTotal, deliveryFee, placeId })
             });
             const data = await res.json();
 

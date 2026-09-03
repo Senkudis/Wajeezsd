@@ -507,10 +507,21 @@ router.put('/payment-requests/:id/reject', protect, requirePermission('manage_fi
 // @route   GET /api/admin/users/search?q=...
 // @desc    البحث عن مستخدم بالاسم أو الهاتف (للإشعار المحدد)
 
+// 🏪 تنقية معرّفات المتاجر القادمة من نموذج الإدارة.
+// تُرجع مصفوفة دائماً: الفارغة = الكوبون يعمل في كل المتاجر (السلوك القديم).
+const mongooseLib = require('mongoose');
+function sanitizePlaceIds(input) {
+    if (!Array.isArray(input)) return [];
+    return [...new Set(
+        input.filter(id => typeof id === 'string' && mongooseLib.Types.ObjectId.isValid(id))
+    )];
+}
+
 router.get('/promo-codes', protect, superAdminOnly, async (req, res) => {
     try {
         const codes = await PromoCode.find()
             .populate('createdBy', 'name')
+            .populate('places', 'name')   // 🏪 أسماء المتاجر المحصور بها
             .sort({ createdAt: -1 });
         res.json(codes);
     } catch (e) {
@@ -522,7 +533,7 @@ router.get('/promo-codes', protect, superAdminOnly, async (req, res) => {
 
 router.post('/promo-codes', protect, superAdminOnly, async (req, res) => {
     try {
-        const { code, type, value, appliesTo, maxDiscount, minOrderValue, usageLimit, userUsageLimit, validFrom, validUntil, city, description } = req.body;
+        const { code, type, value, appliesTo, maxDiscount, minOrderValue, usageLimit, userUsageLimit, validFrom, validUntil, city, description, places } = req.body;
         if (!code || !type || value === undefined || !validUntil) {
             return res.status(400).json({ message: 'الكود، النوع، القيمة، وتاريخ الانتهاء مطلوبة' });
         }
@@ -541,6 +552,8 @@ router.post('/promo-codes', protect, superAdminOnly, async (req, res) => {
             validUntil,
             city:        city        || 'all',
             description: description || '',
+            // 🏪 حصر المتاجر — تُنقّى المعرّفات، والفارغة تعني «كل المتاجر»
+            places:      sanitizePlaceIds(places),
             createdBy:   req.user._id
         });
 
@@ -561,6 +574,9 @@ router.put('/promo-codes/:id', protect, superAdminOnly, async (req, res) => {
 
         const fields = ['type','value','appliesTo','maxDiscount','minOrderValue','usageLimit','userUsageLimit','validFrom','validUntil','city','description','isActive'];
         fields.forEach(f => { if (req.body[f] !== undefined) promo[f] = req.body[f]; });
+        // 🏪 المتاجر تمرّ بالمنقّي لا بالإسناد المباشر: معرّف غير صالح من
+        //    النموذج كان سيرمي خطأ cast بصيغة 500 بدل رسالة مفهومة.
+        if (req.body.places !== undefined) promo.places = sanitizePlaceIds(req.body.places);
         await promo.save();
         res.json(promo);
     } catch (e) {

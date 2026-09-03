@@ -12,10 +12,10 @@
 /**
  * يتحقق من صلاحية الكوبون لهذا المستخدم وقيمة الطلب.
  * @param {object} promo    مستند PromoCode (أو lean)
- * @param {object} ctx      { userId, userCity, fullOrderValue }
+ * @param {object} ctx      { userId, userCity, fullOrderValue, placeId }
  * @returns {{ok:boolean, error?:string}}
  */
-function validatePromo(promo, { userId, userCity, fullOrderValue }) {
+function validatePromo(promo, { userId, userCity, fullOrderValue, placeId }) {
     if (!promo) return { ok: false, error: 'كود الخصم غير صحيح أو منتهي الصلاحية' };
 
     // الحد الإجمالي للاستخدام
@@ -40,6 +40,22 @@ function validatePromo(promo, { userId, userCity, fullOrderValue }) {
     // userCity فارغ ⇒ يُتخطّى الفحص (متجر قديم بلا مدينة — تساهلٌ مقصود).
     if (userCity && promo.city && promo.city !== 'all' && promo.city !== userCity) {
         return { ok: false, error: 'هذا الكود غير متاح في مدينتك' };
+    }
+
+    // 🏪 حصر المتاجر — قائمة بيضاء صارمة متى كانت غير فارغة.
+    //
+    // نفحصه هنا لا في كل مسار على حدة: المسارات الثلاثة (إنشاء الطلب، طلب
+    // المتجر، ومعاينة /apply-promo) كانت ستحتاج نسخة من المنطق نفسه، ونسخةٌ
+    // تُنسى في أحدها تعني كوبوناً «محصوراً» يمرّ من الباب الخلفي.
+    const limitedTo = Array.isArray(promo.places) ? promo.places : [];
+    if (limitedTo.length > 0) {
+        if (!placeId) {
+            return { ok: false, error: 'هذا الكود يُستخدم في متاجر محدّدة فقط' };
+        }
+        const allowed = limitedTo.some(p => String(p && p._id ? p._id : p) === String(placeId));
+        if (!allowed) {
+            return { ok: false, error: 'هذا الكود غير متاح في هذا المتجر' };
+        }
     }
 
     return { ok: true };
