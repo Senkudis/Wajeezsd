@@ -2,355 +2,44 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>طلباتي من المتاجر | وجيز</title>
-    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
-    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
-    <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <script src="js/config.js?v=977449f7"></script>
-    <script src="js/fetch-retry.js?v=dfd06a9d"></script>
-    <script src="js/auth-helper.js?v=c97361b3"></script>
-    <style>
-        :root {
-            --primary: #048c5b;
-            --primary-gradient: #0A6E47;
-            --accent: #f59e0b;
-        }
-        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
-        body { background: #f8fafc; min-height: 100vh; padding-bottom: 20px; }
-        .page-header {
-            background: linear-gradient(135deg, var(--primary), #0d9d63);
-            color: white; padding: 16px; position: sticky; top: 0; z-index: 100;
-        }
-        .order-card {
-            background: white; border-radius: 16px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-            margin-bottom: 14px; overflow: hidden;
-        }
-        .order-status-bar {
-            height: 4px; width: 100%;
-        }
-        .order-body { padding: 14px 16px; }
-        .status-badge {
-            font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 700;
-        }
-        .product-line { font-size: 13px; color: #475569; }
-        .upload-btn {
-            border: 2px dashed #f59e0b; border-radius: 12px;
-            padding: 10px; text-align: center; cursor: pointer;
-            color: #f59e0b; font-weight: 700; font-size: 13px;
-            transition: all 0.2s; background: #fffbeb;
-        }
-        .upload-btn:hover { background: #fef3c7; }
-        .receipt-preview {
-            border-radius: 10px; border: 2px solid #f59e0b;
-            max-height: 80px; width: 80px; object-fit: cover; cursor: pointer;
-        }
-        .payment-section {
-            background: #fffbeb; border-radius: 12px;
-            border: 1px solid #fcd34d; padding: 12px;
-            margin-top: 10px;
-        }
-        .status-track {
-            display: flex; justify-content: space-between; margin-top: 10px;
-        }
-        .step {
-            display: flex; flex-direction: column; align-items: center; flex: 1;
-            font-size: 10px; color: #94a3b8; font-weight: 600;
-        }
-        .step.done { color: #22c55e; }
-        .step.active { color: #f59e0b; }
-        .step-dot {
-            width: 20px; height: 20px; border-radius: 50%;
-            background: #e2e8f0; margin-bottom: 4px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: 900;
-        }
-        .step.done .step-dot { background: #22c55e; color: white; }
-        .step.active .step-dot { background: #f59e0b; color: white; box-shadow: 0 0 0 3px rgba(245,158,11,0.25); }
-    </style>
-    <link rel="stylesheet" href="css/dark-mode.css?v=afc716b6">
-    <script src="js/safe-area.js?v=176d6050"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>طلباتي | وجيز</title>
+
+    <!--
+        📦 هذه الصفحة تقاعدت — دُمجت طلبات المتاجر في «طلباتي».
+
+        السبب: client-my-orders.html كانت تعرض طلبات المتاجر أصلاً وبكامل
+        إجراءاتها (المحادثة، إعادة الطلب، رفع إيصال الدفع)، لأن
+        GET /api/orders/my-orders يدمج Order و ShopOrder في قائمة واحدة
+        مرتّبة. فكان للعميل مكانان لطلب واحد، ولا سبيل لمعرفة أيّهما
+        يحمل طلبه إلا بفتح الاثنين.
+
+        ولماذا تحويلٌ لا حذف: الإشعارات المُرسَلة قبل هذا التحديث تحمل هذا
+        الرابط داخل أجهزة المستخدمين، والعامل الخدمي المُخزَّن على أجهزتهم
+        يوجّه إليه كذلك حتى يُحدَّث. حذف الملف كان سيحوّل كل نقرة على إشعارٍ
+        قديم إلى صفحة 404.
+
+        ⏳ يمكن حذفها بعد أن تنقضي دورة تحديث كاملة (شهر تقريباً بعد نشر
+        1.4.0)، حين لا يبقى جهازٌ يحمل الوجهة القديمة.
+    -->
+    <link rel="canonical" href="/client-my-orders.html">
+    <meta name="robots" content="noindex">
+
+    <script>
+        // ↪️ التحويل قبل أي رسم: نقل معامل highlight كما هو — بطاقة طلب
+        //    المتجر في «طلباتي» تحمل المعرّف نفسه (id="order-<shopOrderId>")
+        //    فيُبرَز الطلب المقصود تماماً كما كان.
+        //
+        //    replace لا assign: لو بقيت الصفحة في سجلّ التصفّح لعاد زرّ
+        //    الرجوع بالمستخدم إليها فحوّلته من جديد — حلقةٌ لا مخرج منها.
+        (function () {
+            var qs = window.location.search || '';
+            window.location.replace('client-my-orders.html' + qs);
+        })();
+    </script>
 </head>
-<body>
-
-<div class="page-header">
-    <div class="d-flex align-items-center gap-3">
-        <a href="index.html" class="text-white text-decoration-none fs-5"><i class="bi bi-arrow-right"></i></a>
-        <div>
-            <h5 class="fw-bold mb-0">طلباتي من المتاجر</h5>
-            <small class="text-white-50" id="orderCount"></small>
-        </div>
-        <button class="btn btn-sm ms-auto" style="background:rgba(255,255,255,0.2);color:white;border:none;" onclick="loadOrders()">
-            <i class="bi bi-arrow-clockwise"></i>
-        </button>
-    </div>
-</div>
-
-<input type="file" id="receiptInput" accept="image/*" class="d-none" onchange="uploadReceipt(event)">
-
-<div class="container-fluid px-3 pt-3" id="ordersContainer">
-    <div class="text-center py-5"><div class="spinner-border text-success"></div></div>
-</div>
-
-<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
-<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-<script src="vendor/socket.io/socket.io.min.js"></script>
-    <script src="notification-toast.js"></script>
-<script>
-    // ── Auth ──────────────────────────────────────────────────
-    const token = window.Auth?.getToken() || localStorage.getItem('token');
-    if (!token) {
-        // Save current page as return URL then redirect to login
-        localStorage.setItem('returnUrl', 'client-shop-orders.html');
-        window.location.href = 'client-login.html';
-    }
-
-    let pendingReceiptOrderId = null;
-
-    const statusMeta = {
-        shop_pending:     { label: '⏳ ينتظر موافقة المتجر', color: '#f59e0b', barColor: '#fcd34d', step: 0 },
-        shop_preparing:   { label: '👨‍🍳 المتجر يجهز طلبك', color: '#3b82f6', barColor: '#93c5fd', step: 1 },
-        ready_for_pickup: { label: '✅ جاهز — ينتظر الكابتن', color: '#22c55e', barColor: '#86efac', step: 2 },
-        captain_assigned: { label: '🏍️ الكابتن في الطريق للمتجر', color: '#06b6d4', barColor: '#67e8f9', step: 3 },
-        picked_up:        { label: '🚀 الكابتن في طريقه إليك', color: '#8b5cf6', barColor: '#c4b5fd', step: 4 },
-        delivered:        { label: '🎉 تم التوصيل بنجاح!', color: '#22c55e', barColor: '#86efac', step: 5 },
-        cancelled:        { label: '❌ ملغي', color: '#ef4444', barColor: '#fca5a5', step: -1 }
-    };
-
-    const steps = ['موافقة المتجر', 'قيد التجهيز', 'جاهز', 'مع الكابتن', 'في الطريق', 'تم التوصيل'];
-
-    // 🛡️ Helper for escaping HTML to prevent XSS
-    function escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe.toString()
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    async function loadOrders() {
-        try {
-            const res = await fetchWithRetry(`${API_URL}/api/merchant/client/orders`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.status === 401) {
-                // Token expired — re-login
-                localStorage.removeItem('token');
-                localStorage.setItem('returnUrl', 'client-shop-orders.html');
-                window.location.href = 'client-login.html';
-                return;
-            }
-            if (!res.ok) throw new Error(`Server error: ${res.status}`);
-            
-            const responseData = await res.json();
-            const ordersList = Array.isArray(responseData) ? responseData : responseData.orders;
-            if (!Array.isArray(ordersList)) {
-                document.getElementById('ordersContainer').innerHTML =
-                    `<div class="alert alert-warning m-3">⚠️ ${responseData.message || 'خطأ في تحميل الطلبات'}</div>`;
-                return;
-            }
-            document.getElementById('orderCount').textContent = `${ordersList.length} طلب`;
-            renderOrders(ordersList);
-
-            // ✅ Highlight order if opened from a push notification
-            const highlightId = new URLSearchParams(window.location.search).get('highlight');
-            if (highlightId) {
-                setTimeout(() => {
-                    const card = document.getElementById(`order-${highlightId}`);
-                    if (card) {
-                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        card.style.transition = 'box-shadow 0.4s, transform 0.4s';
-                        card.style.boxShadow = '0 0 0 4px rgba(10,135,84,0.5), 0 10px 30px rgba(10,135,84,0.3)';
-                        card.style.transform = 'scale(1.02)';
-                        setTimeout(() => {
-                            card.style.boxShadow = '';
-                            card.style.transform = '';
-                        }, 3000);
-                    }
-                }, 400);
-            }
-        } catch (err) {
-            document.getElementById('ordersContainer').innerHTML =
-                '<div class="alert alert-danger m-3">فشل تحميل الطلبات — تحقق من الاتصال</div>';
-        }
-    }
-
-    let _ordersById = {}; // لإعادة الطلب
-
-    function renderOrders(orders) {
-        const container = document.getElementById('ordersContainer');
-        (orders || []).forEach(o => { _ordersById[o._id] = o; });
-        if (!orders.length) {
-            container.innerHTML = `<div class="text-center py-5 text-muted">
-                <i class="bi bi-bag-x-fill" style="font-size:4rem;"></i>
-                <div class="fw-bold fs-5 mt-3">لا توجد طلبات بعد</div>
-                <div class="mb-3">تصفح المتاجر واطلب الآن</div>
-                <a href="index.html" class="btn btn-success rounded-pill px-4">تصفح المتاجر</a>
-            </div>`;
-            return;
-        }
-        container.innerHTML = orders.map(o => buildOrderCard(o)).join('');
-    }
-
-    function buildOrderCard(o) {
-        const meta = statusMeta[o.status] || statusMeta.shop_pending;
-        const currentStep = meta.step;
-
-        const stepTrack = o.status !== 'cancelled' ? `
-        <div class="status-track mt-2">
-            ${steps.map((s, i) => `
-                <div class="step ${i < currentStep ? 'done' : i === currentStep ? 'active' : ''}">
-                    <div class="step-dot">${i < currentStep ? '✓' : i + 1}</div>
-                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px;">${s}</span>
-                </div>
-                ${i < steps.length - 1 ? '<div style="flex:1;height:2px;background:'+(i < currentStep ? '#22c55e' : '#e2e8f0')+';margin:10px 0 auto;"></div>' : ''}
-            `).join('')}
-        </div>` : '';
-
-        const itemsList = (o.items || []).map(item =>
-            `<span class="product-line">${parseInt(item.quantity || 0)}× ${escapeHtml(item.name)}</span>`
-        ).join(' &nbsp;·&nbsp; ');
-
-        // Payment section — show only for active non-delivered orders
-        let paymentSection = '';
-        if (!['delivered', 'cancelled'].includes(o.status)) {
-            if (o.paymentStatus === 'confirmed') {
-                paymentSection = `<div class="payment-section">
-                    <span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>الدفع مؤكد من المتجر</span>
-                </div>`;
-            } else if (o.paymentReceiptImage) {
-                paymentSection = `<div class="payment-section">
-                    <div class="d-flex align-items-center gap-2">
-                        <img src="${getFullImageUrl(o.paymentReceiptImage)}" class="receipt-preview"
-                            onclick="viewImg('${getFullImageUrl(o.paymentReceiptImage)}')">
-                        <div>
-                            <div class="fw-bold small">إشعار الدفع</div>
-                            <span class="badge bg-warning text-dark small">في انتظار تأكيد المتجر</span>
-                        </div>
-                    </div>
-                </div>`;
-            } else {
-                paymentSection = `<div class="payment-section">
-                    <div class="fw-bold small mb-2"><i class="bi bi-cash-coin text-warning me-1"></i>إرسال إشعار الدفع</div>
-                    <p class="text-muted" style="font-size:12px;">بعد التحويل للمتجر، أرسل لهم صورة الإشعار هنا ليؤكدوا دفعك.</p>
-                    <div class="upload-btn" onclick="selectReceipt('${o._id}')">
-                        <i class="bi bi-camera-fill me-1"></i>رفع إشعار الدفع
-                    </div>
-                </div>`;
-            }
-        }
-
-        return `
-        <div class="order-card" id="order-${o._id}">
-            <div class="order-status-bar" style="background:${meta.barColor};"></div>
-            <div class="order-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <span class="fw-bold">${escapeHtml(o.place?.name || 'متجر')}</span>
-                        <span class="text-muted small ms-2">#${o._id.slice(-4)}</span>
-                    </div>
-                    <span class="status-badge" style="background:${meta.color}22;color:${meta.color};">${meta.label}</span>
-                </div>
-                <div class="mb-2">${itemsList}</div>
-                <div class="d-flex justify-content-between small text-muted">
-                    <span>الإجمالي</span>
-                    <span class="fw-bold text-success">${o.totalAmount} ج.س</span>
-                </div>
-                ${stepTrack}
-                ${paymentSection}
-                ${['delivered', 'cancelled'].includes(o.status) ? `
-                <button class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2" onclick="reorderShop('${o._id}')">
-                    <i class="bi bi-arrow-repeat me-1"></i> اطلب مرة أخرى
-                </button>` : ''}
-            </div>
-        </div>`;
-    }
-
-    // 🔄 إعادة طلب من متجر — يملأ سلة المتجر بنفس المنتجات ويفتح صفحة المتجر
-    window.reorderShop = function (orderId) {
-        const o = _ordersById[orderId];
-        if (!o) { Swal.fire('تنبيه', 'تعذّر العثور على الطلب', 'info'); return; }
-        const placeId = (o.place && o.place._id) ? o.place._id : o.place;
-        if (!placeId) { Swal.fire('تنبيه', 'هذا المتجر لم يعد متاحاً', 'info'); return; }
-
-        const items = (o.items || [])
-            .filter(it => it.productId)
-            .map(it => ({ id: String(it.productId), qty: parseInt(it.quantity) || 1, name: it.name, price: it.price, image: null }));
-        if (!items.length) { Swal.fire('تنبيه', 'لا يمكن إعادة طلب هذه المنتجات', 'info'); return; }
-
-        try {
-            localStorage.setItem(`wajeez_cart_${placeId}`, JSON.stringify({ items, savedAt: Date.now(), placeId }));
-        } catch (e) {}
-        // reorder=1 → صفحة المتجر تعبّئ السلة تلقائياً وتتحقق من التوفّر الحالي
-        window.location.href = `shop-detail.html?placeId=${placeId}&reorder=1`;
-    };
-
-    function selectReceipt(orderId) {
-        pendingReceiptOrderId = orderId;
-        document.getElementById('receiptInput').click();
-    }
-
-    async function uploadReceipt(event) {
-        const file = event.target.files[0];
-        if (!file || !pendingReceiptOrderId) return;
-        event.target.value = '';
-
-        const formData = new FormData();
-        formData.append('image', file);
-
-        try {
-            Swal.fire({ title: 'جاري الرفع...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            // Upload image first
-            const uploadRes = await fetch(`${API_URL}/api/upload/merchant-proof`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-            const uploadData = await uploadRes.json();
-            if (!uploadRes.ok) { Swal.fire('خطأ', uploadData.message || 'فشل رفع الصورة', 'error'); return; }
-
-            // Send receipt URL to order
-            const res = await fetch(`${API_URL}/api/merchant/client/orders/${pendingReceiptOrderId}/payment-receipt`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ receiptImage: uploadData.url })
-            });
-            if (res.ok) {
-                Swal.fire({ icon: 'success', title: 'تم الإرسال', text: 'تم إرسال إشعار الدفع للمتجر. سيتم التأكيد قريباً.', timer: 2500, showConfirmButton: false });
-                loadOrders();
-            } else {
-                const err = await res.json();
-                Swal.fire('خطأ', err.message, 'error');
-            }
-        } catch (err) {
-            Swal.fire('خطأ', 'فشل الاتصال', 'error');
-        }
-        pendingReceiptOrderId = null;
-    }
-
-    function viewImg(src) {
-        Swal.fire({ imageUrl: src, imageWidth: '100%', showCloseButton: true, showConfirmButton: false });
-    }
-
-    loadOrders();
-
-    // 🔴 Real-time: update order status without full reload
-    const socket = io(API_URL, {
-        transports: ['websocket', 'polling'],
-        auth: { token: localStorage.getItem('token') }
-    });
-    const userId = (window.Auth?.getUser()?._id) || localStorage.getItem('userId');
-    socket.on('connect', () => {
-        if (userId) socket.emit('user_join', userId);
-    });
-    socket.on('shop_order_updated', (data) => {
-        // Flash the order card then reload
-        loadOrders();
-    });
-</script>
-    <script src="js/theme-manager.js?v=0daaeecd"></script>
+<body style="font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#64748b;">
+    <!-- يظهر لحظةً واحدة فقط إن تأخّر التحويل، أو لمن عطّل الجافاسكربت -->
+    <p>جارٍ فتح <a href="client-my-orders.html">طلباتي</a>…</p>
 </body>
 </html>

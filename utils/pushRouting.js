@@ -29,7 +29,12 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'payment_reminder':
                 case 'shop_order':
                 case 'new_shop_order':
-                    return `/client-shop-orders.html${r ? `?highlight=${r}` : ''}`;
+                    // 📦 طلبات المتاجر تعيش مع بقية الطلبات في «طلباتي».
+                    //    كانت لها صفحة منفصلة (client-shop-orders.html) بينما
+                    //    client-my-orders تعرضها أصلاً وبكامل إجراءاتها —
+                    //    فكان العميل يبحث عن طلبه في مكانين. الصفحة القديمة
+                    //    صارت تحويلاً، وهذا السطر يقصّ القفزة.
+                    return `/client-my-orders.html${r ? `?highlight=${r}` : ''}`;
                 case 'errand_quote':   // 🛒 سعر البضاعة بانتظار تأكيد العميل — يفتح التتبّع للتأكيد
                 case 'order_searching':// 🔍 استلمنا طلبك ونبحث عن كابتن
                 case 'order_delayed':  // ⏳ تأخّر القبول — التتبّع يتيح رفع السعر أو الإلغاء

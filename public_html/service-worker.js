@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-d957ed53';
+const CACHE_NAME = 'wajeez-static-e2cb10a7';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -239,7 +239,8 @@ self.addEventListener('notificationclick', (event) => {
     }
     // 📦 Client — shop order status change (accepted/ready/rejected/payment) → shop orders
     else if (data.type === 'shop_order_update' || data.type === 'payment_confirmed' || data.type === 'payment_reminder') {
-        targetUrl = '/client-shop-orders.html' + (recordId ? `?highlight=${recordId}` : '');
+        // 📦 دُمجت طلبات المتاجر في «طلباتي» — انظر utils/pushRouting.js
+        targetUrl = '/client-my-orders.html' + (recordId ? `?highlight=${recordId}` : '');
     }
     // 🌟 Client — rate a completed order
     else if (data.type === 'order_completed') {

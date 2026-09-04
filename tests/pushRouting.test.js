@@ -66,3 +66,70 @@ describe('resolvePushUrl', () => {
         expect(resolvePushUrl('admin', 'some_unknown', 'X')).toBe('/admin.html');
     });
 });
+
+/**
+ * 📦 دمج طلبات المتاجر في «طلباتي».
+ *
+ * كان للعميل مكانان لطلبٍ واحد: client-shop-orders.html وclient-my-orders.html
+ * — بينما الثانية تعرض طلبات المتاجر أصلاً وبكامل إجراءاتها (المحادثة،
+ * إعادة الطلب، رفع إيصال الدفع)، لأن GET /api/orders/my-orders يدمج
+ * Order و ShopOrder في قائمة واحدة مرتّبة. فكان العميل يفتح الاثنين ليعرف
+ * أين طلبه.
+ *
+ * الحراسة هنا على المداخل الثلاثة معاً: الخادم (pushRouting) والعامل الخدمي
+ * والإشعارات الأصلية. مدخلٌ يُنسى يعني إشعاراً يهبط بالمستخدم في صفحةٍ
+ * متقاعدة.
+ */
+describe('طلبات المتاجر تهبط في «طلباتي»', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+    const ID = '507f1f77bcf86cd799439011';
+
+    const SHOP_TYPES = [
+        'shop_order_update', 'payment_confirmed', 'payment_reminder',
+        'shop_order', 'new_shop_order'
+    ];
+
+    it('كل أنواع إشعارات المتاجر تقود العميل إلى client-my-orders', () => {
+        for (const t of SHOP_TYPES) {
+            expect(resolvePushUrl('client', t, ID)).toBe(`/client-my-orders.html?highlight=${ID}`);
+        }
+    });
+
+    it('معامل highlight يُمرَّر — وإلا هبط العميل على قائمة بلا معرفة أيّ طلب قُصد', () => {
+        expect(resolvePushUrl('client', 'shop_order_update', ID)).toContain(`highlight=${ID}`);
+        // وبلا معرّف: الصفحة نفسها بلا معامل
+        expect(resolvePushUrl('client', 'shop_order_update', null)).toBe('/client-my-orders.html');
+    });
+
+    it('🔑 لا مدخل باقٍ يوجّه إلى الصفحة المتقاعدة', () => {
+        // ⚠️ نمنع التوجيه لا الذِّكر: التعليقات تسمّي الصفحة القديمة عمداً
+        //    ليعرف قارئٌ لاحق لماذا تقاعدت، فمنعُ الاسم نصّاً يُفشل الاختبار
+        //    على توثيقٍ صحيح. المُلاحَق هو الاسم داخل نصٍّ برمجي (رابط).
+        const URL_LITERAL = /['"`]\/?client-shop-orders\.html/;
+        for (const f of ['utils/pushRouting.js',
+                         'public_html/service-worker.js',
+                         'public_html/js/native-notifications.js']) {
+            expect(read(f)).not.toMatch(URL_LITERAL);
+        }
+    });
+
+    it('الصفحة القديمة تُحوِّل ولا تُحذف — إشعارات قديمة في أجهزة المستخدمين تحملها', () => {
+        const stub = read('public_html/client-shop-orders.html');
+        expect(stub).toContain("window.location.replace('client-my-orders.html'");
+        // ✅ تمرير الاستعلام: بدونه يضيع highlight ويهبط العميل على قائمة عمياء
+        expect(stub).toContain('window.location.search');
+        // ⚠️ replace لا assign: assign تُبقي الصفحة في السجل فيعيدها زرّ
+        //    الرجوع فتُحوّل من جديد — حلقة لا مخرج منها
+        expect(stub).not.toMatch(/location\.href\s*=\s*['"`]client-my-orders/);
+    });
+
+    it('«طلباتي» تُبرز البطاقة بالمعرّف القادم من الإشعار', () => {
+        const page = read('public_html/client-my-orders.html');
+        // معرّف بطاقة طلب المتجر هو _id وهو نفسه shopOrderId في استجابة
+        // my-orders، وهو ما يحمله relatedId في الإشعار
+        expect(page).toContain('id="order-${order._id}"');
+        expect(page).toContain("urlParams.get('highlight')");
+    });
+});

@@ -77,7 +77,8 @@ function routeNotificationTap(data) {
 
         // 📦 Client — shop order status change (accepted/ready/rejected/payment) → shop orders
         if (role === 'client' && (data.type === 'shop_order_update' || data.type === 'payment_confirmed' || data.type === 'payment_reminder')) {
-            window.location.href = `client-shop-orders.html${recordId ? `?highlight=${recordId}` : ''}`;
+            // 📦 دُمجت طلبات المتاجر في «طلباتي» — انظر utils/pushRouting.js
+            window.location.href = `client-my-orders.html${recordId ? `?highlight=${recordId}` : ''}`;
             return;
         }
 
