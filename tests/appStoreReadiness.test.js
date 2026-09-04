@@ -91,6 +91,36 @@ describe('سياسة الخصوصية', () => {
     });
 });
 
+describe('المنطقة الآمنة على iOS — مصدر واحد لا مصدران', () => {
+    /**
+     * العطل الذي يحرسه هذا: كانت `contentInset: "always"` تجعل WKWebView
+     * يُزيح المحتوى تحت شريط الحالة بنفسه، بينما الـ CSS يضيف
+     * `padding-top: calc(var(--sat) + …)` فوق ذلك — فتُطبَّق الإزاحة مرّتين
+     * وتنزل أزرار الشريط العلوي إلى منتصف الخريطة على الآيفون وحده.
+     *
+     * أندرويد لم يكن يعاني لأن مصدره واحد: MainActivity يحقن --sat
+     * والويب‑فيو حافّة‑إلى‑حافّة. و"never" تُطابق iOS بأندرويد، وتُطابق
+     * أيضاً `viewport-fit=cover` المعلَن في وسوم الصفحات — وهو إعلانٌ
+     * صريح بأن المحتوى يمتدّ تحت المناطق الآمنة وأن الـ CSS يتولّاها.
+     */
+    const cfg = JSON.parse(read('capacitor.config.json'));
+
+    it('contentInset = never — الإزاحة من الـ CSS وحده', () => {
+        expect(cfg.ios.contentInset).toBe('never');
+    });
+
+    it('viewport-fit=cover معلَن — وإلا عاد env() صفراً ولم يُزَح شيء', () => {
+        expect(read('public_html/index.html')).toContain('viewport-fit=cover');
+    });
+
+    it('الشريط العلوي للخريطة يُزاح بـ --sat لا بـ env() خاماً', () => {
+        // env() الخام يعود صفراً على WebView أندرويد — لذلك المتغيّر أولاً
+        // ثم env() احتياطاً، وهو النمط المتّبع في المشروع كلّه.
+        const html = read('public_html/index.html');
+        expect(html).toContain('var(--sat, env(safe-area-inset-top, 0px))');
+    });
+});
+
 describe('تهيئة iOS', () => {
     it('أصل WebView الخاص بالآيفون مسموح في CORS', () => {
         const cfg = JSON.parse(read('capacitor.config.json'));
