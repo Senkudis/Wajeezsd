@@ -311,6 +311,8 @@ apiRoutes.use('/captain', captainRoutes);
 apiRoutes.use('/emergency', require('./routes/emergency'));
 apiRoutes.use('/upload', require('./routes/upload'));
 apiRoutes.use('/places', require('./routes/places'));
+// 🚩 الإبلاغ عن محتوى مسيء وحظر المستخدمين (App Store Guideline 1.2)
+apiRoutes.use('/reports', require('./routes/reports'));
 apiRoutes.use('/beacon', require('./routes/beacon'));
 apiRoutes.use('/merchant', require('./routes/merchant'));
 // 💼 ERP Mini للتاجر — تقارير، أرباح، مخزون متقدم، محاسبة، تسويات، نقطة بيع

@@ -644,6 +644,13 @@
         <a id="track-order-btn" href="#" style="background:rgba(255,255,255,0.15);border-radius:99px;padding:6px 12px;color:white;font-size:11px;font-weight:700;text-decoration:none;display:none;align-items:center;gap:5px;white-space:nowrap;">
             <i class="bi bi-map-fill"></i> تتبع
         </a>
+        <!-- 🚩 إجراءات السلامة: إبلاغ وحظر (App Store Guideline 1.2) -->
+        <button type="button" id="safetyBtn" onclick="openSafetyMenu()" aria-label="خيارات السلامة"
+                style="background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:32px;height:32px;
+                       color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
+                       flex-shrink:0;margin-inline-start:6px;">
+            <i class="bi bi-three-dots-vertical"></i>
+        </button>
     </div>
 
     <!-- Connection Status Banner -->
@@ -1836,6 +1843,53 @@
     <script type="module" src="js/app-core.js?v=eabc83fd"></script>
     <script type="module" src="js/native-notifications.js?v=c076999e"></script>
     <script src="js/theme-manager.js?v=0daaeecd"></script>
+    <script src="js/report-block.js?v=7f330204"></script>
+    <script>
+        // 🚩 قائمة السلامة في المحادثة.
+        //
+        // الإبلاغ والحظر معاً في مكان واحد: من يريد أحدهما يريد الآخر غالباً،
+        // وتفريقهما على زرّين في رأسٍ ضيّق يزاحم زرّ التتبّع بلا فائدة.
+        window.openSafetyMenu = async function () {
+            // receiverId قد يُستنتج متأخّراً من تفاصيل الطلب (انظر أعلاه)،
+            // فنقرأه لحظة الفتح لا عند تحميل الصفحة.
+            const otherId   = (typeof receiverId !== 'undefined' && receiverId) ? String(receiverId) : '';
+            const otherName = document.getElementById('receiverName')?.textContent?.trim() || 'المستخدم';
+
+            if (!otherId) {
+                Swal.fire({ icon: 'info', title: 'لحظة', text: 'ما زالت بيانات المحادثة تُحمَّل — حاول بعد قليل.',
+                            confirmButtonColor: '#04553A' });
+                return;
+            }
+
+            const { value } = await Swal.fire({
+                title: 'خيارات السلامة',
+                html: `<div style="font-size:13px;color:#64748b;">
+                          إن وصلك محتوى مسيء من <b>${otherName.replace(/[<>&"]/g, '')}</b> يمكنك الإبلاغ عنه أو حظره.
+                       </div>`,
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'الإبلاغ عن إساءة',
+                denyButtonText: 'حظر المستخدم',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#f59e0b',
+                denyButtonColor: '#dc2626'
+            }).then(r => ({ value: r.isConfirmed ? 'report' : (r.isDenied ? 'block' : null) }));
+
+            if (value === 'report') {
+                // نُبلّغ عن المستخدم لا عن رسالة بعينها: الشكوى في المحادثة
+                // تكون على السلوك عادةً لا على جملة واحدة، واللقطة تصل الأدمن
+                // مع سجلّ المحادثة الذي يملك صلاحية قراءته.
+                window.reportContent('user', otherId);
+            } else if (value === 'block') {
+                window.blockUser(otherId, otherName, () => {
+                    const input = document.getElementById('messageInput');
+                    const send  = document.getElementById('sendBtn');
+                    if (input) { input.disabled = true; input.placeholder = 'حظرتَ هذا المستخدم'; }
+                    if (send)  { send.disabled = true; }
+                });
+            }
+        };
+    </script>
 </body>
 
 </html>

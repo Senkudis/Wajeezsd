@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <!-- 🔒 حارس الإدارة أولاً قبل أي سكربت — يمنع وميض المحتوى قبل فحص الصلاحية -->
+    <script src="js/admin-guard.js?v=b336cfda" data-perm="view_complaints"></script>
+    <title>بلاغات المحتوى | إدارة وجيز</title>
+
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/dark-mode.css?v=afc716b6">
+
+    <style>
+        :root { --primary: #04553A; }
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f1f5f9; margin: 0; padding: 16px; }
+
+        .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+        .page-head h1 { font-size: 1.2rem; font-weight: 900; color: #1e293b; margin: 0; }
+        .back-link { color: #64748b; text-decoration: none; font-weight: 700; font-size: 14px; }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .tab {
+            border: 1.5px solid #e2e8f0; background: #fff; color: #475569;
+            font-size: 13px; font-weight: 800; border-radius: 99px;
+            padding: 7px 16px; cursor: pointer; font-family: inherit;
+        }
+        .tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .tab .count {
+            background: #ef4444; color: #fff; border-radius: 99px;
+            padding: 1px 7px; font-size: 11px; margin-inline-start: 5px;
+        }
+
+        .report-card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+            padding: 16px; margin-bottom: 12px;
+        }
+        .rc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .rc-reason {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #fef2f2; color: #b91c1c; border-radius: 99px;
+            padding: 3px 11px; font-size: 12px; font-weight: 800;
+        }
+        .rc-type { font-size: 11.5px; color: #94a3b8; font-weight: 700; }
+        .rc-snapshot {
+            background: #f8fafc; border-inline-start: 3px solid #cbd5e1;
+            border-radius: 8px; padding: 10px 12px; margin: 10px 0;
+            font-size: 13px; color: #334155; white-space: pre-wrap; overflow-wrap: anywhere;
+        }
+        .rc-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #64748b; }
+        .rc-meta b { color: #334155; }
+        .rc-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .rc-status { font-size: 12px; font-weight: 800; }
+        .rc-status.actioned  { color: #16a34a; }
+        .rc-status.dismissed { color: #94a3b8; }
+
+        .empty { text-align: center; padding: 48px 16px; color: #94a3b8; }
+        .empty i { font-size: 2.6rem; display: block; margin-bottom: 10px; }
+
+        body.dark-mode { background: #0f172a; }
+        body.dark-mode .report-card { background: #1f2937; border-color: #374151; }
+        body.dark-mode .page-head h1 { color: #f9fafb; }
+        body.dark-mode .rc-snapshot { background: #111827; color: #e5e7eb; }
+        body.dark-mode .tab { background: #1f2937; border-color: #374151; color: #e5e7eb; }
+    </style>
+</head>
+<body>
+
+<div class="page-head">
+    <h1><i class="bi bi-flag-fill" style="color:#dc2626;"></i> بلاغات المحتوى</h1>
+    <a href="admin.html" class="back-link"><i class="bi bi-arrow-left"></i> لوحة الإدارة</a>
+</div>
+
+<div class="tabs">
+    <button class="tab active" data-status="pending"   onclick="switchTab('pending', this)">
+        قيد المراجعة<span class="count" id="pendingCount" style="display:none;">0</span>
+    </button>
+    <button class="tab" data-status="actioned"  onclick="switchTab('actioned', this)">تمّ التصرّف</button>
+    <button class="tab" data-status="dismissed" onclick="switchTab('dismissed', this)">صُرف النظر</button>
+</div>
+
+<div id="list"><div class="empty"><div class="spinner-border text-secondary"></div></div></div>
+
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="js/config.js?v=977449f7"></script>
+<script>
+    const BASE = window.API_URL || '';
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    if (!token) location.href = 'admin-login.html';
+    const hdr = () => ({ 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' });
+
+    let currentStatus = 'pending';
+
+    const esc = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+    const REASON_AR = {
+        offensive: 'لغة مسيئة', harassment: 'تحرّش أو تهديد', spam: 'إزعاج',
+        false_info: 'معلومات كاذبة', inappropriate: 'محتوى غير لائق', other: 'سبب آخر'
+    };
+    const TYPE_AR = { rating: 'تقييم', message: 'رسالة', user: 'مستخدم' };
+
+    function switchTab(status, btn) {
+        currentStatus = status;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        load();
+    }
+
+    async function load() {
+        const list = document.getElementById('list');
+        list.innerHTML = '<div class="empty"><div class="spinner-border text-secondary"></div></div>';
+        try {
+            const res = await fetch(`${BASE}/api/admin/reports?status=${currentStatus}&limit=50`, { headers: hdr() });
+            if (res.status === 401 || res.status === 403) { location.href = 'admin-login.html'; return; }
+            const d = await res.json();
+
+            // 🔴 عدّاد المعلّقة يبقى ظاهراً على التبويب أياً كان المعروض:
+            //    الأدمن يحتاج أن يعرف أن هناك ما ينتظره وهو يتصفّح المؤرشَف.
+            const badge = document.getElementById('pendingCount');
+            badge.textContent = d.pendingCount || 0;
+            badge.style.display = (d.pendingCount > 0) ? 'inline-block' : 'none';
+
+            const rows = d.reports || [];
+            if (!rows.length) {
+                list.innerHTML = `<div class="empty"><i class="bi bi-shield-check"></i>
+                    ${currentStatus === 'pending' ? 'لا بلاغات تنتظر المراجعة' : 'لا شيء هنا'}</div>`;
+                return;
+            }
+
+            list.innerHTML = rows.map(r => {
+                const when = new Date(r.createdAt).toLocaleString('ar-SD',
+                    { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const canHide = r.targetType === 'rating' && r.status === 'pending';
+                return `
+                <div class="report-card">
+                    <div class="rc-top">
+                        <span class="rc-reason"><i class="bi bi-flag-fill"></i> ${esc(REASON_AR[r.reason] || r.reason)}</span>
+                        <span class="rc-type">${esc(TYPE_AR[r.targetType] || r.targetType)} · ${esc(when)}</span>
+                    </div>
+
+                    ${r.snapshot ? `<div class="rc-snapshot">${esc(r.snapshot)}</div>` : ''}
+                    ${r.note ? `<div style="font-size:12.5px;color:#64748b;margin-bottom:8px;">
+                                  <b>ملاحظة المُبلِغ:</b> ${esc(r.note)}</div>` : ''}
+
+                    <div class="rc-meta">
+                        <span>المُبلِغ: <b>${esc(r.reporter?.name || '—')}</b> ${esc(r.reporter?.phone || '')}</span>
+                        <span>صاحب المحتوى: <b>${esc(r.targetOwner?.name || '—')}</b> ${esc(r.targetOwner?.phone || '')}</span>
+                    </div>
+
+                    ${r.status === 'pending' ? `
+                    <div class="rc-actions">
+                        ${canHide ? `<button class="btn btn-sm btn-danger" onclick="act('${esc(r._id)}','hide')">
+                            <i class="bi bi-eye-slash"></i> إخفاء المحتوى</button>` : ''}
+                        <button class="btn btn-sm btn-outline-secondary" onclick="act('${esc(r._id)}','dismiss')">
+                            <i class="bi bi-check2"></i> صرف النظر</button>
+                        ${r.targetOwner?._id ? `<a class="btn btn-sm btn-outline-dark"
+                            href="admin.html?user=${esc(r.targetOwner._id)}">
+                            <i class="bi bi-person-x"></i> إدارة الحساب</a>` : ''}
+                    </div>` : `
+                    <div class="rc-status ${esc(r.status)}" style="margin-top:10px;">
+                        ${r.status === 'actioned' ? '✔ أُخفي المحتوى' : '— صُرف النظر'}
+                        ${r.adminNote ? ` · ${esc(r.adminNote)}` : ''}
+                    </div>`}
+                </div>`;
+            }).join('');
+        } catch (e) {
+            list.innerHTML = '<div class="empty">تعذّر تحميل البلاغات</div>';
+        }
+    }
+
+    async function act(id, action) {
+        const isHide = action === 'hide';
+        const { isConfirmed, value } = await Swal.fire({
+            icon: isHide ? 'warning' : 'question',
+            title: isHide ? 'إخفاء المحتوى؟' : 'صرف النظر عن البلاغ؟',
+            text: isHide ? 'لن يظهر هذا التقييم للعملاء بعد الآن.' : 'يُغلق البلاغ بلا إجراء على المحتوى.',
+            input: 'text',
+            inputPlaceholder: 'ملاحظة للسجلّ (اختياري)',
+            showCancelButton: true,
+            confirmButtonText: isHide ? 'نعم، أخفِه' : 'صرف النظر',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: isHide ? '#dc2626' : '#04553A'
+        });
+        if (!isConfirmed) return;
+
+        try {
+            const res = await fetch(`${BASE}/api/admin/reports/${id}`, {
+                method: 'PUT', headers: hdr(),
+                body: JSON.stringify({ action, adminNote: value || '' })
+            });
+            const d = await res.json();
+            if (!res.ok) throw new Error(d.message);
+            Swal.fire({ icon: 'success', title: d.message, timer: 1600, showConfirmButton: false });
+            load();
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'خطأ', text: e.message, confirmButtonColor: '#dc2626' });
+        }
+    }
+
+    load();
+</script>
+<script src="js/theme-manager.js?v=0daaeecd"></script>
+</body>
+</html>

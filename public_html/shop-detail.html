@@ -2162,7 +2162,15 @@
                         <span style="color:#f59e0b;font-size:13px;">${stars(r.score)}</span>
                     </div>
                     <div style="font-size:13px;color:#475569;margin-top:4px;">${escapeHtml(r.comment)}</div>
-                    <div class="text-muted" style="font-size:11px;margin-top:3px;">${when}</div>
+                    <div class="d-flex justify-content-between align-items-center" style="margin-top:3px;">
+                        <span class="text-muted" style="font-size:11px;">${when}</span>
+                        <!-- 🚩 الإبلاغ عن رأي مسيء (App Store Guideline 1.2) -->
+                        <button type="button" onclick="reportContent('rating','${escapeHtml(r._id)}',event)"
+                                style="background:none;border:none;padding:2px 4px;cursor:pointer;
+                                       font-size:11px;font-weight:700;color:#94a3b8;font-family:inherit;">
+                            <i class="bi bi-flag"></i> إبلاغ
+                        </button>
+                    </div>
                 </div>`;
             }).join('');
             body.innerHTML = header + list;
@@ -2278,5 +2286,6 @@
 <script src="js/map-markers.js?v=f66d1f1b"></script>
 <script src="js/theme-manager.js?v=0daaeecd"></script>
 <script>loadGoogleMaps({ libraries: 'places,geometry', need: ['routes'], callback: '__googleMapsReady' });</script>
+    <script src="js/report-block.js?v=7f330204"></script>
 </body>
 </html>

@@ -144,9 +144,39 @@ router.post('/', protect, async (req, res) => {
 
         // 🚫 Block suspended captains from chatting
         const SenderUser = require('../models/User');
-        const senderDoc = await SenderUser.findById(sender).select('is_blocked').lean();
+        const senderDoc = await SenderUser.findById(sender).select('is_blocked blockedUsers').lean();
         if (senderDoc?.is_blocked) {
             return res.status(403).json({ message: 'حسابك موقوف بسبب تجاوز الحد الائتماني. يرجى السداد أولاً.' });
+        }
+
+        // 🚫 الحظر بين المستخدمين (App Store Guideline 1.2).
+        //
+        // ⚠️ يُفحص في الاتجاهين: التخزين أحاديّ (كلٌّ يحفظ من حظرهم) لكن
+        //    المنع متبادل. لو فُحص اتجاهٌ واحد لبقي المسيءُ قادراً على
+        //    الوصول لمن حظره بمجرّد أن يبدأ هو الرسالة — وهو بالضبط ما
+        //    يهرب منه الحظر.
+        //
+        // ⚠️ ولا يُخلَط مع is_blocked أعلاه: ذاك حجبٌ مالي إداري، وهذا
+        //    اجتماعيٌّ بين طرفين. الاسمان متقاربان والمعنيان لا يلتقيان.
+        const iBlockedThem = (senderDoc?.blockedUsers || [])
+            .some(id => String(id) === String(receiver));
+        if (iBlockedThem) {
+            return res.status(403).json({
+                message: 'لقد حظرت هذا المستخدم. ارفع الحظر أولاً لتتمكّن من مراسلته.',
+                code: 'you_blocked_them'
+            });
+        }
+
+        const receiverDoc = await SenderUser.findById(receiver).select('blockedUsers').lean();
+        const theyBlockedMe = (receiverDoc?.blockedUsers || [])
+            .some(id => String(id) === String(sender));
+        if (theyBlockedMe) {
+            // 🤫 لا نكشف أن الحظر هو السبب: إخبار المُرسِل يحوّل الحظر إلى
+            //    إشارةٍ تستفزّ، وقد تدفعه لحسابٍ آخر. الرسالة محايدة.
+            return res.status(403).json({
+                message: 'تعذّر إرسال الرسالة إلى هذا المستخدم',
+                code: 'delivery_blocked'
+            });
         }
 
         // Security Check: Verify order and participants — try Order first, then ShopOrder

@@ -132,6 +132,23 @@ const UserSchema = new mongoose.Schema(
             ref: 'Place'
         }],
 
+        // 🚫 المستخدمون المحظورون من قِبل هذا المستخدم.
+        //
+        // شرط App Store Review Guideline 1.2 مع آلية الإبلاغ: من يتلقّى إساءةً
+        // يجب أن يملك إيقافها بنفسه لا أن ينتظر قرار إدارة.
+        //
+        // ⚠️ لا يُخلَط مع `is_blocked` أعلاه: ذاك حجبٌ مالي تفرضه الإدارة على
+        // الكابتن عند تجاوز حدّه الائتماني، وهذا حجبٌ اجتماعي يفرضه المستخدم
+        // على مستخدمٍ آخر. الاسمان متقاربان والمعنيان لا يلتقيان.
+        //
+        // الحظر أحاديّ الاتجاه في التخزين لكنه يُطبَّق في الاتجاهين عند
+        // الإرسال (routes/chat.js): من حظرتَه لا يراسلك ولا تراسله — وإلا
+        // بقي الطرف المسيء قادراً على الوصول بمجرّد أن يبدأ هو المحادثة.
+        blockedUsers: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }],
+
         // 🌍 Multi-City Isolation — determines which city's socket room,
         // orders, captains, and pricing this user belongs to.
         city: {

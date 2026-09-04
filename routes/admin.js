@@ -15,5 +15,6 @@ router.use(require('./admin/notifications'));
 router.use(require('./admin/subadmins'));
 router.use(require('./admin/ratings'));
 router.use(require('./admin/chats'));
+router.use(require('./admin/reports'));   // 🚩 بلاغات المحتوى المسيء
 
 module.exports = router;

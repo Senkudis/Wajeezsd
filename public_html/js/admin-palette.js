@@ -17,6 +17,7 @@
         { title: 'منسق مناطق التوصيل (Geofence)', icon: 'fas fa-draw-polygon', url: 'admin-zone-builder.html', tags: 'zone builder مناطق ترسيم حدود' },
         { title: 'سجل المديونيات والتحصيل', icon: 'fas fa-file-invoice-dollar', url: 'admin-debt-history.html', tags: 'debt history ديون سداد' },
         { title: 'الدعم الفني والشكاوى', icon: 'fas fa-headset', url: 'admin-complaints.html', tags: 'complaints support تذاكر بلاغات' },
+        { title: 'بلاغات المحتوى المسيء', icon: 'fas fa-flag', url: 'admin-reports.html', tags: 'reports abuse بلاغ إساءة تقييم حظر' },
         { title: 'المحادثات المباشرة', icon: 'fas fa-comments', url: 'admin-chats.html', tags: 'chats messages شات دردشة' },
         { title: 'صوت العميل والملاحظات', icon: 'fas fa-comment-dots', url: 'admin-feedback.html', tags: 'feedback review تقييمات ملاحظات' },
         { title: 'البانرات الإعلانية', icon: 'fas fa-images', url: 'admin-banners.html', tags: 'banners ads إعلانات صور' },
