@@ -190,6 +190,55 @@
         return new google.maps.Marker(opts);
     }
 
+    // ════════════════════════════════════════════════════════════
+    // 🔑 فشل مصادقة مفتاح الخرائط — كان صامتاً تماماً.
+    //
+    // العطل الذي يُغلقه هذا: حين يرفض Google المفتاح (أصل غير مسموح، فوترة
+    // موقوفة، مفتاح مُبطَل) لا يرمي السكربت خطأً ولا يفشل تحميله — بل يرسم
+    // خريطةً رماديةً صامتة ويكتب سطراً في وحدة تحكّم لا يراها أحد على الهاتف.
+    // فيبدو العطل «الخريطة ما شغالة» بلا سبب، وهو أسوأ أشكال الفشل: يستهلك
+    // ساعات تخمين بينما السبب سطرٌ واحد في إعدادات المفتاح.
+    //
+    // gm_authFailure هو الخطّاف الرسمي الذي يستدعيه Google في هذه الحالة
+    // وحدها. نعرض الأصل الفعلي للصفحة لأنه بالضبط ما يجب لصقه في قيود
+    // المفتاح — وهو يختلف بين المنصّات في تطبيقات Capacitor:
+    //     المتصفّح : https://wajeezsd.com
+    //     أندرويد  : https://wajeezsd.secure.local   (androidScheme: https)
+    //     آيفون    : capacitor://wajeezsd.secure.local (iosScheme: capacitor)
+    // فمفتاحٌ مقيَّد بأصلَي الأول والثاني يعمل فيهما ويفشل في الثالث وحده.
+    // ════════════════════════════════════════════════════════════
+    window.gm_authFailure = function () {
+        var origin = (window.location && window.location.origin) || 'unknown';
+        console.error('[maps-loader] Google رفض مفتاح الخرائط. أصل هذه الصفحة: ' + origin);
+
+        var msg = 'تعذّر تحميل الخريطة — مفتاح الخرائط غير مصرَّح لهذا التطبيق.';
+        var detail = 'الأصل: ' + origin;
+
+        // نضع اللافتة داخل كل حاوية خريطة ظاهرة بدل نافذة واحدة: الصفحة قد
+        // تحمل أكثر من خريطة، والمستخدم ينظر إلى المستطيل الرمادي لا إلى
+        // أعلى الشاشة.
+        var boxes = document.querySelectorAll('#map, #shopOrderMapActual, [data-map-container]');
+        for (var i = 0; i < boxes.length; i++) {
+            var el = boxes[i];
+            if (el.getAttribute('data-map-auth-failed')) continue;
+            el.setAttribute('data-map-auth-failed', '1');
+            var b = document.createElement('div');
+            b.setAttribute('dir', 'rtl');
+            b.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;' +
+                'align-items:center;justify-content:center;gap:6px;padding:20px;text-align:center;' +
+                'background:#f8fafc;color:#475569;font-family:inherit;';
+            b.innerHTML = '<div style="font-size:28px;">🗺️</div>' +
+                '<div style="font-weight:800;font-size:14px;">' + msg + '</div>' +
+                '<div style="font-size:11px;color:#94a3b8;direction:ltr;">' + detail + '</div>';
+            if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+            el.appendChild(b);
+        }
+
+        // لا نُظهر نافذة منبثقة للمستخدم العادي — الخريطة المعطّلة واضحة
+        // بذاتها، والنافذة تُقاطع بلا أن تُصلح. التفصيل في وحدة التحكّم
+        // وفي اللافتة، وكلاهما يكفي من يُصلح.
+    };
+
     window.getMapsApiKey = getMapsApiKey;
     window.loadGoogleMaps = loadGoogleMaps;
     window.ensureMapsLibraries = ensureLibraries;
