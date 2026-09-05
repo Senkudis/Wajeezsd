@@ -1313,9 +1313,28 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الإرسال...';
 
         try {
+            // 📍 إحداثيات التسليم — يملؤها confirmShopMap عند تثبيت الدبوس.
+            //
+            // ⚠️ العطل الذي يُغلقه هذا: الحقلان كانا يُملآن ولا يُرسلان، فيصل
+            //    كل طلب متجر إلى الخادم بلا موقع فيُحفظ lat/lng = null. النتيجة:
+            //    لوحة الإدارة تقول «لا توجد إحداثيات محفوظة للتسليم» ولا ترسم
+            //    مساراً، والكابتن يقود بعنوانٍ نصّي قد يكون Plus Code، وإثبات
+            //    التسليم لا يجد نقطةً يقيس المسافة إليها. والعميل كان يثبّت
+            //    الدبوس فعلاً — الاختيار يقع ثم يُرمى عند الإرسال.
+            const _latRaw = document.getElementById('deliveryLat').value;
+            const _lngRaw = document.getElementById('deliveryLng').value;
+            const _lat = parseFloat(_latRaw);
+            const _lng = parseFloat(_lngRaw);
+            // 🔢 نرسل الرقمين معاً أو لا نرسل شيئاً: نصفُ موقعٍ أسوأ من لا موقع،
+            //    والخادم يعقّمهما مجدداً (isUsableCoord في routes/merchant.js).
+            const _hasPin = Number.isFinite(_lat) && Number.isFinite(_lng);
+
             const body = {
                 items,
-                dropoff: { address, receiverName, receiverPhone },
+                dropoff: {
+                    address, receiverName, receiverPhone,
+                    ...(_hasPin ? { lat: _lat, lng: _lng } : {})
+                },
                 deliveryFee: deliveryFeeVal,
                 notes
             };
@@ -1982,6 +2001,25 @@
 
         closeShopMap();
     }
+
+    // 📍 إحداثيات الدبوس المثبَّت — مصدرها الحقلان المخفيّان اللذان يملؤهما
+    //    confirmShopMap.
+    //
+    // ⚠️ كان الكود يقرأ `_chosenCoords` في أربعة مواضع وهي **غير معرّفة في أي
+    //    ملف** — فأول قراءة ترمي ReferenceError وتُسقط الدالة التي تحويها
+    //    (حاسبة حدود سعر التوصيل، وأزرار ±100). عطلٌ صامت لأنه يقع داخل
+    //    معالج حدث فلا يُسقط الصفحة، ويظهر كزرٍّ لا يستجيب.
+    function _chosenCoordsFromInputs() {
+        const la = parseFloat(document.getElementById('deliveryLat')?.value);
+        const ln = parseFloat(document.getElementById('deliveryLng')?.value);
+        return (Number.isFinite(la) && Number.isFinite(ln)) ? { lat: la, lng: ln } : null;
+    }
+    // اسمٌ عام بنفس اسم القراءات القديمة كي تعمل بلا تعديل كلٍّ منها،
+    // ومُعرَّف بـ Object.defineProperty ليُقرأ حيّاً لا مرّةً واحدة عند التحميل.
+    Object.defineProperty(window, '_chosenCoords', {
+        get: _chosenCoordsFromInputs,
+        configurable: true
+    });
 
     // 💰 أزرار رفع/تنزيل سعر التوصيل بمقدار 100 ج.س
     (function setupPriceStepper() {

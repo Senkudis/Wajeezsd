@@ -1604,7 +1604,7 @@
                 }).then(async (result) => {
                     if (result.isConfirmed) {
                         try {
-                            await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/rate`, {
+                            const res = await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/rate`, {
                                 method: 'POST',
                                 headers: authHeaders,
                                 body: JSON.stringify({
@@ -1613,14 +1613,39 @@
                                     comment: result.value.comment
                                 })
                             });
-                            // ✅ إخفاء زر التقييم فوراً بدون انتظار إعادة التحميل
-                            ratedOrders.add(orderId);
-                            document.querySelectorAll(`[data-rate-id="${orderId}"]`).forEach(btn => btn.remove());
-                            // إذا كان طلب متجر نعرض تقييم المتجر بعد ذلك
+                            // ⚠️ fetchWithRetry لا ترمي على استجابة غير ناجحة —
+                            //    توثّق صراحةً أن المستدعي يفحص res.ok بنفسه. ولم
+                            //    يكن يُفحص هنا إطلاقاً، فكان تقييمٌ يفشل (طلب متجر
+                            //    بلا كابتن مُسنَد ⇒ 404، أو طلب سبق تقييمه ⇒ 400)
+                            //    يُخفي الزر ويقول «شكراً لك». التقييم يضيع، والعميل
+                            //    يظنّه وصل، ولا سبيل لإعادة المحاولة لأن الزر رُفع.
+                            const _rateData = await res.json().catch(() => ({}));
+                            const _captainRated = res.ok;
+
+                            if (_captainRated) {
+                                // ✅ إخفاء زر التقييم فوراً بدون انتظار إعادة التحميل
+                                ratedOrders.add(orderId);
+                                document.querySelectorAll(`[data-rate-id="${orderId}"]`).forEach(btn => btn.remove());
+                            }
+
+                            // 🏪 تقييم المتجر مستقلٌّ عن تقييم الكابتن.
+                            //    كان مشروطاً بنجاح الأول، فطلبُ متجرٍ سُلّم بلا كابتن
+                            //    مُسنَد لم يكن يُقيَّم متجره أبداً — والمتجر هو ما
+                            //    يهمّ العميل تقييمه في طلب متجر.
                             if (placeId) {
-                                setTimeout(() => showPlaceRatingModal(orderId, placeId), 600);
-                            } else {
+                                if (!_captainRated) {
+                                    // نُعلم العميل بهدوء ثم نمضي إلى ما يمكن تقييمه
+                                    Swal.fire({
+                                        toast: true, position: 'top', icon: 'info',
+                                        title: _rateData.message || 'تعذّر تقييم الكابتن',
+                                        showConfirmButton: false, timer: 2600
+                                    });
+                                }
+                                setTimeout(() => showPlaceRatingModal(orderId, placeId), 700);
+                            } else if (_captainRated) {
                                 Swal.fire({ icon: 'success', title: 'شكراً لك!', text: 'تم إرسال تقييمك', confirmButtonColor: 'var(--primary)', timer: 2000, showConfirmButton: false });
+                            } else {
+                                Swal.fire('تعذّر التقييم', _rateData.message || 'حاول مجدداً', 'error');
                             }
                             loadOrders();
                         } catch (e) { Swal.fire('خطأ', 'فشل في الإرسال', 'error'); }
