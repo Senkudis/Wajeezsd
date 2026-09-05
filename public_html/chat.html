@@ -68,7 +68,14 @@
             margin: 0;
             padding: 0;
             height: 100vh;
-            height: 100dvh;
+            /* ⌨️ يُطرح ارتفاع لوحة المفاتيح (js/keyboard-inset.js) من الغلاف.
+               dvh وحدها لا تكفي: هي تتعامل مع أشرطة المتصفّح المتحرّكة لا مع
+               الكيبورد — فالكيبورد يُقلّص «نافذة العرض المرئية» بينما نافذة
+               التخطيط تبقى كما هي، فيظلّ شريط الإدخال أسفل التخطيط أي خلف
+               الكيبورد. بتقليص الغلاف يرتفع الشريط بحكم تخطيط flex، وتنكمش
+               قائمة الرسائل معه فتبقى قابلة للتمرير على ما بقي من الشاشة. */
+            height: calc(100dvh - var(--kb, 0px));
+            transition: height .18s ease-out;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -1843,6 +1850,7 @@
     <script type="module" src="js/app-core.js?v=b00fecf0"></script>
     <script type="module" src="js/native-notifications.js?v=de0f6a44"></script>
     <script src="js/theme-manager.js?v=0daaeecd"></script>
+    <script src="js/keyboard-inset.js?v=b62ef74b"></script>
     <script src="js/report-block.js?v=7f330204"></script>
     <script>
         // 🚩 قائمة السلامة في المحادثة.
