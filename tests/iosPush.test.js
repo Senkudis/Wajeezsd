@@ -51,6 +51,29 @@ describe('١ — استحقاق الإشعارات في بناء iOS', () => {
     });
 });
 
+describe('🔏 التوقيع لا يُمرَّر في سطر الأوامر', () => {
+    const wf = read('.github/workflows/ios-build.yml');
+    const archive = wf.slice(wf.indexOf('- name: Archive (signed)'), wf.indexOf('- name: Archive (unsigned'));
+
+    it('🔑 أمر الأرشفة بلا إعدادات توقيع — تُطبَّق على أهداف SPM أيضاً فتفشل', () => {
+        // "Firebase_FirebaseCore does not support provisioning profiles"
+        expect(archive).not.toContain('PROVISIONING_PROFILE_SPECIFIER');
+        expect(archive).not.toContain('CODE_SIGN_IDENTITY');
+        expect(archive).not.toContain('DEVELOPMENT_TEAM');
+    });
+
+    it('الإعدادات تُكتب في هدف التطبيق بمرساةٍ لا ترد في أهداف الحزم', () => {
+        const step = wf.slice(wf.indexOf('- name: Configure Manual Signing'), wf.indexOf('- name: Archive (signed)'));
+        expect(step).toContain('PROVISIONING_PROFILE_SPECIFIER = $PP_UUID');
+        expect(step).toContain('PRODUCT_BUNDLE_IDENTIFIER = com.wajeezsd.app;');
+    });
+
+    it('🔒 يفشل البناء إن لم تُكتب', () => {
+        const step = wf.slice(wf.indexOf('- name: Configure Manual Signing'), wf.indexOf('- name: Archive (signed)'));
+        expect(step).toMatch(/::error::تعذّر كتابة إعدادات التوقيع/);
+    });
+});
+
 describe('٢ — توكن APNs لا يُقبل بوصفه FCM', () => {
     const auth = read('routes/auth.js');
 

@@ -360,22 +360,42 @@ jobs:
           # تحويل المشروع للتوقيع اليدوي لمنع Xcode من طلب حسابات Apple ID مطوّرين تلقائية
           sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' "$PBXPROJ"
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
-          echo "✅ Configured Manual Signing in $PBXPROJ"
+
+          # 🔏 إعدادات التوقيع تُكتب في **هدف التطبيق وحده**، لا تُمرَّر لـ xcodebuild.
+          #
+          # ⚠️ العطل الذي يُغلقه هذا: أي إعداد يُمرَّر في سطر أوامر xcodebuild
+          #    يُطبَّق على **كل أهداف البناء** — ومنها أهداف حزم SPM. وحزم
+          #    Swift لا تُوقَّع بملفات توفير، فتفشل الأرشفة بـ:
+          #      "Firebase_FirebaseCore does not support provisioning profiles"
+          #    مضروبةً في كل وحدة من Firebase و GoogleUtilities و nanopb و
+          #    Promises و GoogleDataTransport.
+          #
+          #    لم يظهر قبل اليوم لأن المشروع لم يكن فيه حزم SPM خارجية — ظهر
+          #    مع أوّل اعتماد على firebase-ios-sdk.
+          #
+          #    المرساة PRODUCT_BUNDLE_IDENTIFIER = com.wajeezsd.app لا ترد إلا
+          #    في تهيئات هدف التطبيق، فتبقى أهداف الحزم بلا مساس.
+          sed -i '' "s|PRODUCT_BUNDLE_IDENTIFIER = com.wajeezsd.app;|CODE_SIGN_STYLE = Manual; DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}; PROVISIONING_PROFILE_SPECIFIER = $PP_UUID; CODE_SIGN_IDENTITY = \"Apple Distribution\"; PRODUCT_BUNDLE_IDENTIFIER = com.wajeezsd.app;|g" "$PBXPROJ"
+
+          N=$(grep -c 'PROVISIONING_PROFILE_SPECIFIER = ' "$PBXPROJ" || true)
+          if [ "$N" -lt 1 ]; then
+            echo "::error::تعذّر كتابة إعدادات التوقيع في هدف التطبيق"; exit 1
+          fi
+          echo "✅ توقيع يدوي في $N تهيئة — وأهداف SPM بلا إعدادات توقيع"
 
       - name: Archive (signed)
         if: steps.mode.outputs.signed == 'true'
         run: |
           set -euo pipefail
+          # ⚠️ بلا أي إعداد توقيع هنا: إعدادات سطر الأوامر تُطبَّق على كل
+          #    الأهداف ومنها حزم SPM التي لا تقبل ملفات توفير. كُتبت في
+          #    هدف التطبيق وحده في الخطوة السابقة.
           xcodebuild archive \
             -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -destination "generic/platform=iOS" \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PP_UUID"
+            -destination "generic/platform=iOS"
 
       - name: Archive (unsigned — compile check only)
         if: steps.mode.outputs.signed != 'true'
