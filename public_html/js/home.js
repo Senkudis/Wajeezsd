@@ -302,6 +302,14 @@ function initMap() {
                 zoneCoords = DEFAULT_ZONE_COORDS;
             }
 
+            // ♻️ أزل المضلّع السابق قبل رسم آخر: هذه الدالة تُستدعى مجدّداً عند
+            //    تبديل المدينة، وبلا إزالة يبقى نطاق الخرطوم مرسوماً على خريطة
+            //    بورتسودان — ويظلّ هو المرجع في فحص «داخل النطاق».
+            if (deliveryZonePolygon) {
+                deliveryZonePolygon.setMap(null);
+                deliveryZonePolygon = null;
+            }
+
             if (zoneCoords) {
                 deliveryZonePolygon = new google.maps.Polygon({
                     paths: zoneCoords,
@@ -324,7 +332,19 @@ function initMap() {
             const MIN_ZOOM_LEVEL = 14;
         
             window.checkDeliveryZone = function() {
-                if (!google.maps.geometry || !google.maps.geometry.poly || !deliveryZonePolygon) return;
+                if (!google.maps.geometry || !google.maps.geometry.poly) return;
+
+                // 🌍 مدينةٌ بلا نطاق مُعرّف (بورتسودان حالياً) = لا تقييد.
+                //    الخروج الصامت هنا كان يترك لافتة «خارج منطقة التوصيل»
+                //    معلّقة من فحص المدينة السابقة وزرَّ التأكيد معطّلاً، فيبقى
+                //    العميل محبوساً في تحذيرٍ لا شيء يرفعه. نُنظّف صراحةً.
+                if (!deliveryZonePolygon) {
+                    const b = document.getElementById('geofence-warning-banner');
+                    if (b) b.style.display = 'none';
+                    const cb = document.getElementById('map-confirm-btn');
+                    if (cb) { cb.disabled = false; cb.classList.remove('disabled'); }
+                    return;
+                }
                 const center = map.getCenter();
                 const currentZoom = map.getZoom();
                 const isInside = google.maps.geometry.poly.containsLocation(center, deliveryZonePolygon);
@@ -362,23 +382,32 @@ function initMap() {
                 }
             };
 
-            map.addListener('dragend', window.checkDeliveryZone);
-            map.addListener('zoom_changed', window.checkDeliveryZone);
-            
+            // 🔒 مرّة واحدة: الدالة تُستدعى مجدّداً عند تبديل المدينة، وتسجيلُ
+            //    المستمعين في كل مرّة يعني نسخةً إضافية من الفحص على كل سحبة.
+            if (!window._zoneListenersBound) {
+                window._zoneListenersBound = true;
+                map.addListener('dragend', window.checkDeliveryZone);
+                map.addListener('zoom_changed', window.checkDeliveryZone);
+
+                // Listen for real-time zone updates from admin
+                if (window.socket) {
+                    window.socket.on('delivery_zone_updated', (data) => {
+                        if (data.deliveryZone && deliveryZonePolygon) {
+                            deliveryZonePolygon.setPaths(data.deliveryZone);
+                            console.log('🔄 Delivery zone updated in real-time');
+                            setTimeout(window.checkDeliveryZone, 100);
+                        }
+                    });
+                }
+            }
+
             // Initial check on load
             setTimeout(window.checkDeliveryZone, 500);
-
-            // Listen for real-time zone updates from admin
-            if (window.socket) {
-                window.socket.on('delivery_zone_updated', (data) => {
-                    if (data.deliveryZone && deliveryZonePolygon) {
-                        deliveryZonePolygon.setPaths(data.deliveryZone);
-                        console.log('🔄 Delivery zone updated in real-time');
-                        setTimeout(window.checkDeliveryZone, 100);
-                    }
-                });
-            }
         }
+
+        // 🌍 يُستدعى عند تبديل المدينة — النطاق يخصّ مدينةً بعينها، فتغييرُها
+        //    بلا إعادة تحميله يترك الفحص يقيس على نطاق المدينة السابقة.
+        window.reloadDeliveryZone = initDeliveryZone;
 
         initDeliveryZone();
 
@@ -1695,6 +1724,18 @@ window.addEventListener('city-changed', (e) => {
         const newLng = newCity === 'PortSudan' ? 37.2164 : 32.4777;
         map.panTo({ lat: newLat, lng: newLng });
         map.setZoom(14);
+    }
+    // 🔑 أصل العطل: كانت الخريطة تنتقل إلى المدينة الجديدة بينما مضلّع النطاق
+    //    يبقى مضلّع المدينة القديمة — النطاق يُحمَّل مرّة عند بناء الخريطة ولا
+    //    شيء يُعيد تحميله. فيسافر العميل إلى بورتسودان على الخريطة ويُقال له
+    //    «خارج منطقة التوصيل»، لأن الفحص يقيس موقعه على نطاق الخرطوم.
+    //
+    //    ولهذا كان يبدو متقطّعاً: فتحُ التطبيق من جديد يُعيد البناء بالمدينة
+    //    المحفوظة فيعمل، والتبديل داخل الجلسة لا يعمل.
+    if (typeof window.reloadDeliveryZone === 'function') {
+        window.reloadDeliveryZone().then(() => {
+            if (typeof window.checkDeliveryZone === 'function') window.checkDeliveryZone();
+        }).catch(() => {});
     }
     // ⚡ AJAX Soft Re-fetch for Banners & Dynamic Content
     if (window.HomeBanners && typeof window.HomeBanners.loadBanners === 'function') {
