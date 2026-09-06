@@ -724,6 +724,11 @@
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('orderId') ? urlParams.get('orderId').trim() : null;
         let receiverId = urlParams.get('receiverId');
+        // 🧭 مع من هذه المحادثة؟ يُمرَّر صراحةً حين لا نعرف معرّف الطرف.
+        //    'merchant' يعني: لا تسأل /api/orders/:id إطلاقاً — فذاك المسار
+        //    يترجم معرّف ShopOrder إلى طلب التوصيل المرتبط به، فيُعيد الكابتن
+        //    بدل التاجر. الاستدلال هنا كان يُرسل العميل إلى الطرف الخطأ.
+        const chatPeer = urlParams.get('peer');
         const userStored = localStorage.getItem('user');
 
         if (!userStored) { window.location.href = 'client-login.html'; throw new Error("No Auth"); }
@@ -1384,7 +1389,10 @@
                     ? window.Auth.getAuthHeader()
                     : { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
 
-                const res = await fetch(`${apiBase}/api/orders/${orderId}`, { headers });
+                // محادثة التاجر تُحسم من مصدرها وحده
+                const res = chatPeer === 'merchant'
+                    ? { ok: false }
+                    : await fetch(`${apiBase}/api/orders/${orderId}`, { headers });
                 if (res.ok) {
                     const order = await res.json();
                     if (order) {
@@ -1431,6 +1439,11 @@
                     if (info.clientId === userId) {
                         document.getElementById('receiverName').textContent = info.merchantName || 'التاجر';
                         if (!receiverId) receiverId = info.merchantId;
+                        if (!receiverId && typeof Swal !== 'undefined') {
+                            // متجرٌ بلا حساب مالك — نقولها بدل ترك زرّ إرسالٍ يفشل بصمت
+                            Swal.fire({ icon: 'info', title: 'المحادثة غير متاحة',
+                                text: 'هذا المتجر لا يملك حساباً للمراسلة. تواصل مع الدعم إن احتجت مساعدة.' });
+                        }
                     } else {
                         document.getElementById('receiverName').textContent = info.clientName || 'العميل';
                         if (!receiverId) receiverId = info.clientId;

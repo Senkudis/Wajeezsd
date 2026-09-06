@@ -1343,6 +1343,14 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                         captain: updatedOrder.captain,
                         captainAssignedAt: new Date()   // ⏱️ للخط الزمني
                     });
+                    // 🏪 التاجر كان يُترك خارج الخبر هنا: يُسنَد كابتن لطلبه ولا
+                    //    يعلم، فلا يعرف متى يُخرج الطلب للتسليم.
+                    const { notifyMerchantOfShopOrder } = require('../utils/shopOrderNotify');
+                    notifyMerchantOfShopOrder(req.app, {
+                        shopOrderId: updatedOrder.shopOrderId,
+                        title: 'تم إسناد كابتن للطلب',
+                        message: 'قَبِل كابتن توصيل الطلب وهو في طريقه لاستلامه من المتجر.'
+                    });
                 } catch (err) { logger.error('Error syncing ShopOrder negotiate', err); }
             }
 
@@ -1554,6 +1562,12 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
                     status: 'captain_assigned',
                     captain: order.captain,
                     captainAssignedAt: new Date()
+                });
+                const { notifyMerchantOfShopOrder } = require('../utils/shopOrderNotify');
+                notifyMerchantOfShopOrder(req.app, {
+                    shopOrderId: order.shopOrderId,
+                    title: 'تم إسناد كابتن للطلب',
+                    message: `الكابتن ${req.user.name || ''} في طريقه لاستلام الطلب من المتجر.`.trim()
                 });
             } catch (err) { logger.error('Error syncing ShopOrder on accept', err); }
         }
@@ -1780,6 +1794,13 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
             try {
                 const ShopOrder = require('../models/ShopOrder');
                 await ShopOrder.findByIdAndUpdate(order.shopOrderId, { status: 'picked_up', pickedUpAt: new Date() });
+                // 🏪 لحظةُ خروج البضاعة من المتجر — أهمّ خبرٍ للتاجر، ولم يكن يصله
+                const { notifyMerchantOfShopOrder } = require('../utils/shopOrderNotify');
+                notifyMerchantOfShopOrder(req.app, {
+                    shopOrderId: order.shopOrderId,
+                    title: 'الكابتن استلم الطلب',
+                    message: `استلم الكابتن ${req.user.name || ''} الطلب من المتجر وهو في طريقه للعميل.`.trim()
+                });
             } catch (err) { logger.error('Error syncing ShopOrder pickup', err); }
         }
 
@@ -2102,6 +2123,20 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                     deliveredAt: new Date()
                 }, { new: true }).select('itemsTotal discountAmount promoAppliesTo place');
 
+                // 🏪 خبر التسليم للتاجر — غير مشروط.
+                //    كان الإشعار الوحيد للتاجر عند التسليم مدفوناً داخل شرطين:
+                //    نجاح قيد المحفظة **و** أن تكون قيمة البضاعة > 0. فطلبٌ
+                //    خصمُه غطّى البضاعة، أو قيدٌ فشل، يعني تاجراً لا يعلم أن
+                //    طلبه سُلّم أصلاً. الخبر التشغيلي لا يجوز أن يعلّق على قيد
+                //    محاسبي.
+                const { notifyMerchantOfShopOrder } = require('../utils/shopOrderNotify');
+                notifyMerchantOfShopOrder(req.app, {
+                    shopOrderId: order.shopOrderId,
+                    title: 'تم توصيل الطلب',
+                    message: 'وصل الطلب إلى العميل واكتملت الرحلة.',
+                    type: 'shop_order_update'
+                });
+
                 if (shopOrder && shopOrder.place) {
                     const goodsAmount = shopOrder.promoAppliesTo === 'products'
                         ? Math.max(0, shopOrder.itemsTotal - (shopOrder.discountAmount || 0))
@@ -2128,8 +2163,8 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                                     const { sendNotification } = require('../utils/notificationHelper');
                                     await sendNotification(req.app, {
                                         userId: placeDoc.ownerId,
-                                        title: 'تم توصيل الطلب بنجاح',
-                                        message: `تم توصيل الطلب بنجاح. قيمة البضاعة ${goodsAmount} ج.س تم دفعها عبر التحويل البنكي.`,
+                                        title: 'قيد مبيعات جديد',
+                                        message: `سُجّلت مبيعات بقيمة ${goodsAmount} ج.س — مدفوعة عبر التحويل البنكي.`,
                                         type: 'shop_ledger',
                                         relatedId: shopOrder._id
                                     });

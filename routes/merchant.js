@@ -882,7 +882,11 @@ router.get('/shop-order/:orderId/chat-info', protect, async (req, res) => {
         res.json({
             clientId: order.client ? String(order.client._id || order.client) : null,
             clientName: (order.client && order.client.name) || 'العميل',
-            merchantId: order.place ? String(order.place.ownerId || order.place._id || order.place) : null,
+            // ⚠️ معرّف التاجر هو **مالك المتجر**، لا المتجر نفسه.
+            //    الرجوع إلى place._id هنا كان يُسلّم للواجهة معرّف مكانٍ في
+            //    موضع معرّف مستخدم: تُرسَل الرسالة إلى مستخدمٍ لا وجود له
+            //    فتفشل بخطأٍ غامض. متجرٌ بلا مالك = لا محادثة، ونقولها صراحةً.
+            merchantId: (order.place && order.place.ownerId) ? String(order.place.ownerId) : null,
             merchantName: (merchantUser && merchantUser.name) || (order.place && order.place.name) || 'التاجر'
         });
     } catch (err) {

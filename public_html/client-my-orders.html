@@ -723,7 +723,14 @@
                 return html;
             };
 
+            // ✅ طلباتٌ قُيّمت فعلاً — يُخفى زرّ التقييم عنها.
             const ratedOrders = new Set();
+            // 🔔 طلباتٌ عُرض عليها سؤال «هل استلمت؟» في هذه الجلسة.
+            //    مفصولةٌ عن ratedOrders عن قصد: خلطُ الاثنين كان يعني أن مجرّد
+            //    الردّ على سؤال الاستلام يُسقط زرّ التقييم نهائياً — فمن أغلق
+            //    نافذة النجوم أو فشل إرسالها لم يعد يجد سبيلاً للتقييم أبداً،
+            //    ولا حتى بإعادة فتح الصفحة ما دامت الجلسة قائمة.
+            const promptedOrders = new Set();
             let currentPage = 1;
             let currentTotalPages = 1;
 
@@ -907,7 +914,7 @@
                             activeBtns = `
                             <button class="btn w-100 rounded-pill fw-bold shadow-sm" 
                                 style="background:linear-gradient(135deg,#075e54,#25d366);color:white;"
-                                onclick="chat('${order._id}', '')">
+                                onclick="chat('${order._id}', '', 'merchant')">
                                 <i class="bi bi-chat-dots-fill me-1"></i> فتح المحادثة مع التاجر
                             </button>`;
                         } else if (['accepted', 'picked_up'].includes(order.status) && order.captain) {
@@ -929,11 +936,15 @@
                             // ✅ لا يُسمح للعميل بإلغاء الطلب بعد قبول الكابتن
                         }
 
-                        if (order.orderType === 'shop' && order.status !== 'chat_initiated' && order.status !== 'cancelled') {
+                        // 🏪 محادثة التاجر — للطلبات الجارية وحدها.
+                        //    كانت تظهر بعد التسليم أيضاً، وهي بلا معنى حينها:
+                        //    الطلب انتهى ولا شيء يُناقَش فيه.
+                        if (order.orderType === 'shop'
+                            && !['chat_initiated', 'cancelled', 'delivered'].includes(order.status)) {
                             activeBtns = `
                             <button class="btn w-100 rounded-pill fw-bold shadow-sm mb-2 mt-2"
                                 style="background:linear-gradient(135deg,#075e54,#25d366);color:white;"
-                                onclick="chat('${order.shopOrderId || order._id}', '')">
+                                onclick="chat('${order.shopOrderId || order._id}', '', 'merchant')">
                                 <i class="bi bi-shop me-1"></i> محادثة التاجر
                             </button>` + activeBtns;
                         }
@@ -1004,10 +1015,14 @@
                                 </div>
                                 `;
                             } else if (order.paymentStatus === 'confirmed') {
+                                // «جاري التجهيز» تصف المتجر وهو يُحضّر الطلب، فتصير
+                                // كذباً بمجرّد أن يستلمه الكابتن — وكانت تبقى ظاهرة
+                                // حتى بعد وصول الطلب إلى يد العميل.
+                                const stillPreparing = !['picked_up', 'delivered'].includes(order.status);
                                 paymentHtml = `
                                 <div class="p-2 rounded-3 mb-3 border border-success d-flex align-items-center gap-2 shadow-sm" style="background:rgba(22,163,74,0.1);">
                                     <i class="bi bi-check-circle-fill text-success fs-4"></i>
-                                    <strong>تم تأكيد الدفع وجاري التجهيز!</strong>
+                                    <strong>${stillPreparing ? 'تم تأكيد الدفع وجاري التجهيز!' : 'تم دفع قيمة المنتجات للمتجر'}</strong>
                                 </div>
                                 `;
                             }
@@ -1181,7 +1196,14 @@
             }
             window.viewParcelImage = viewParcelImage;
 
-            window.chat = function (oid, cid) { window.location.href = `chat.html?orderId=${oid}&receiverId=${cid}`; }
+            // 🧭 `peer` يحسم **مع من** المحادثة حين لا نعرف معرّف الطرف.
+            //    بدونه كانت صفحة المحادثة تسأل /api/orders/:id أوّلاً، وهذا
+            //    المسار يترجم معرّف ShopOrder إلى طلب التوصيل المرتبط به —
+            //    فينتهي زرّ «محادثة التاجر» عند **الكابتن**، ثم يفشل الإرسال.
+            window.chat = function (oid, cid, peer) {
+                const q = `chat.html?orderId=${oid}&receiverId=${cid || ''}`;
+                window.location.href = peer ? `${q}&peer=${peer}` : q;
+            }
 
             // 🔄 إعادة طلب توصيل — نخزّن البيانات ونوجّه للصفحة الرئيسية لتعبئتها مسبقاً
             window.reorderDelivery = function (data) {
@@ -1435,7 +1457,9 @@
             }
 
             function confirmDelivery(orderId, placeId) {
-                if (ratedOrders.has(orderId) || Swal.isVisible()) return;
+                // نمنع تكرار السؤال، لا التقييم
+                if (ratedOrders.has(orderId) || promptedOrders.has(orderId) || Swal.isVisible()) return;
+                promptedOrders.add(orderId);
 
                 Swal.fire({
                     title: '📦 هل استلمت طلبك؟',
@@ -1449,10 +1473,10 @@
                     allowOutsideClick: false
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        ratedOrders.add(orderId);
+                        // ⚠️ لا نضع الطلب في ratedOrders هنا: لم يُقيَّم بعد.
+                        //    الوسم يتمّ بعد نجاح الإرسال فقط.
                         showRatingModal(orderId, placeId);
                     } else if (result.dismiss === Swal.DismissReason.cancel) {
-                        ratedOrders.add(orderId);
                         showComplaintDialog(orderId);
                     }
                 });
@@ -1695,13 +1719,27 @@
                 }).then(async (result) => {
                     if (!result.isConfirmed) return;
                     try {
-                        await fetchWithRetry(`${SERVER_URL}/api/places/${placeId}/rate`, {
+                        const res = await fetchWithRetry(`${SERVER_URL}/api/places/${placeId}/rate`, {
                             method: 'POST',
                             headers: authHeaders,
                             body: JSON.stringify({ score: result.value.val, comment: result.value.comment, orderId })
                         });
+                        // ⚠️ fetchWithRetry لا ترمي على استجابة غير ناجحة، وكان
+                        //    الـ catch هنا صامتاً تماماً: تقييمٌ يُرفض (متجر محذوف،
+                        //    تقييمٌ سابق، خطأ خادم) يختفي بلا نجاح ولا رسالة —
+                        //    يضغط العميل «إرسال» فلا يحدث شيء إطلاقاً.
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                            Swal.fire('تعذّر التقييم', data.message || 'حاول مجدداً لاحقاً', 'error');
+                            return;
+                        }
+                        // ✅ التقييم وصل — الآن فقط يُخفى الزرّ
+                        ratedOrders.add(orderId);
+                        document.querySelectorAll(`[data-rate-id="${orderId}"]`).forEach(btn => btn.remove());
                         Swal.fire({ icon: 'success', title: 'شكراً!', text: 'تم تقييم المتجر بنجاح', confirmButtonColor: 'var(--primary)', timer: 2000, showConfirmButton: false });
-                    } catch (e) { /* silent fail */ }
+                    } catch (e) {
+                        Swal.fire('تعذّر التقييم', 'تحقّق من اتصالك وحاول مجدداً', 'error');
+                    }
                 });
             }
 
@@ -1882,7 +1920,7 @@
                 } else {
                     checkPendingFeedback();
                 }
-                if (rateOrderId && !ratedOrders.has(rateOrderId)) {
+                if (rateOrderId && !ratedOrders.has(rateOrderId) && !promptedOrders.has(rateOrderId)) {
                     // Try to find the button we just rendered
                     const rateBtn = document.getElementById(`orders-list`).querySelector(`button[onclick*="confirmDelivery('${rateOrderId}'"]`);
                     if (rateBtn) {
