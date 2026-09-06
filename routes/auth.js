@@ -482,6 +482,26 @@ router.put('/update-fcm', protect, async (req, res) => {
         const { fcmToken } = req.body;
         if (!fcmToken) return res.status(400).json({ message: 'Token required' });
 
+        // 🍏 توكن APNs ليس توكن FCM.
+        //
+        //    إضافة @capacitor/push-notifications على iOS تُسجّل مع APNs مباشرة
+        //    وتُعيد **توكن الجهاز من آبل**: 64 حرفاً ست‑عشرياً. أما الخادم
+        //    فيرسل عبر firebase-admin وحده، وFCM يرفض هذا التوكن بـ
+        //    invalid-argument — ثم ينظّفه كودُ التنظيف من قاعدة البيانات
+        //    بوصفه «توكناً ميتاً». فلا إشعار يصل، ولا خطأ يُرى، ولا حتى أثرٌ
+        //    يبقى في السجلّ يشير إلى ما جرى.
+        //
+        //    نكشفه هنا بدل ابتلاعه: توكن FCM يتجاوز 140 محرفاً ويحوي ':' —
+        //    فلا يمكن أن يُخطئ أحدهما بالآخر.
+        if (/^[0-9a-fA-F]{64}$/.test(fcmToken)) {
+            logger.error({ userId: String(req.user._id), len: fcmToken.length },
+                '[Push] توكن APNs وصل بدل توكن FCM — جهاز iOS بلا Firebase SDK. الإشعارات لن تعمل على هذا الجهاز.');
+            return res.status(400).json({
+                message: 'صيغة التوكن غير مدعومة',
+                code: 'apns_token_not_fcm'
+            });
+        }
+
         const user = await User.findById(req.user._id);
         if (!user) return res.status(403).json({ message: 'User not found or banned' });
 

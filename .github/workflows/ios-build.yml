@@ -163,6 +163,51 @@ jobs:
           fi
           echo "✅ آيفون فقط — $(grep -c 'TARGETED_DEVICE_FAMILY = \"1\";' "$PBX") هدف"
 
+      - name: Enable Push Notifications capability (aps-environment)
+        run: |
+          set -euo pipefail
+          # 🔔 بلا هذا الاستحقاق يرفض iOS التسجيل للإشعارات من أساسه:
+          #    registerForRemoteNotifications() يفشل بـ
+          #    "no valid aps-environment entitlement string found" ويصل الخطأ
+          #    إلى حدث registrationError. أي أن الجهاز لا يحصل على توكنٍ
+          #    إطلاقاً — لا توكن ⇒ لا إشعار، مهما صحّت مفاتيح الخادم.
+          #
+          #    ولا يكفي أن تُفعَّل الميزة في حساب المطوّر: مجلد ios/ مُولَّد في
+          #    كل بناء بـ `cap add ios`، فأي شيء يُضبط في Xcode يدوياً يضيع.
+          #    لذلك يُكتب هنا.
+          #
+          #    'production' هي بيئة APNs الصحيحة لبناء App Store وTestFlight.
+          #    ('development' للبناء المباشر من Xcode على جهاز مطوّر.)
+          ENT=ios/App/App/App.entitlements
+          cat > "$ENT" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>aps-environment</key>
+              <string>production</string>
+          </dict>
+          </plist>
+          PLIST
+          /usr/libexec/PlistBuddy -c "Print :aps-environment" "$ENT"
+
+          # ربط الملف بإعدادات البناء — نضعه بجوار معرّف الحزمة في كل تهيئة
+          PBX=ios/App/App.xcodeproj/project.pbxproj
+          # ⚠️ مسافة عادية لا 	: sed على macOS (BSD) لا يفسّر 	 في نصّ
+          #    الاستبدال بل يكتب حرف t — فينقلب المفتاح إلى
+          #    ttttPRODUCT_BUNDLE_IDENTIFIER ويضيع معرّف الحزمة.
+          if grep -q 'CODE_SIGN_ENTITLEMENTS' "$PBX"; then
+            echo "ℹ️ CODE_SIGN_ENTITLEMENTS موجود مسبقاً — لا تعديل"
+          else
+            sed -i '' 's|PRODUCT_BUNDLE_IDENTIFIER = com.wajeezsd.app;|CODE_SIGN_ENTITLEMENTS = App/App.entitlements; PRODUCT_BUNDLE_IDENTIFIER = com.wajeezsd.app;|g' "$PBX"
+          fi
+
+          COUNT=$(grep -c 'CODE_SIGN_ENTITLEMENTS = App/App.entitlements;' "$PBX" || true)
+          if [ "$COUNT" -lt 1 ]; then
+            echo "::error::تعذّر ربط App.entitlements بالمشروع — الإشعارات لن تعمل على iOS"; exit 1
+          fi
+          echo "✅ Push entitlement مربوط في $COUNT تهيئة"
+
       - name: Verify iOS project structure
         run: |
           echo "=== iOS project structure ==="
