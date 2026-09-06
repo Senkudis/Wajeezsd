@@ -900,35 +900,46 @@ router.get('/my-orders', protect, async (req, res) => {
         const total = realOrderCount + realShopOrderCount;
         const skip = (page - 1) * limit;
 
-        // تحديد كمية الجلب من كل collection بشكل ذكي: نجلب slice مناسباً فقط
-        // بدلاً من MAX_FETCH=200 الثابت الذي يفشل مع أكثر من 200 طلب
-        const orderSkip      = Math.min(skip, realOrderCount);
-        const orderLimit     = Math.max(0, Math.min(limit, realOrderCount - orderSkip));
-        const shopSkip       = Math.max(0, skip - realOrderCount);
-        const shopLimitBound = Math.max(0, limit - orderLimit);
+        // ⚠️ العطل الذي كان هنا: الترقيم كان يُقسَّم **حسب المصدر** لا حسب التاريخ.
+        //    orderSkip/orderLimit كانا يستنفدان مجموعة Order أولاً، ثم يبدأ
+        //    ShopOrder بما تبقّى. أي أن الترتيب الفعلي للقائمة كان:
+        //    «كل طلبات التوصيل، ثم كل طلبات المتاجر» — والفرز الزمني يُطبَّق
+        //    داخل الصفحة الواحدة فقط، فلا يُصلح شيئاً.
+        //
+        //    النتيجة: عميلٌ له 10 طلبات توصيل أو أكثر خلال ستة أشهر لا يرى في
+        //    الصفحة الأولى ولا طلب متجرٍ واحد — ولو أنشأه قبل ثانية. يُدفن خلف
+        //    كل طلبات التوصيل مهما كان حديثاً، ويظنّ العميل أن طلبه لم يُسجَّل.
+        //
+        //    الصواب: نجلب من كلا المصدرين حتى نقطة القطع (skip + limit)، ثم
+        //    نفرز زمنياً ونقتطع الصفحة من القائمة المدموجة. الكلفة محدودة
+        //    بـ skip+limit من كل مصدر، ومقيّدة أصلاً بسقف الستة أشهر.
+        const fetchCount = skip + limit;
 
-        // إذا كانت الصفحة المطلوبة تمتد عبر النوعين — نجلب بعضاً من كل واحد
-        // (الدمج في الذاكرة ضروري هنا لكنه محدود بـ limit فقط لا 200)
-        const ordersPage = orderLimit > 0
-            ? await Order.find({ client: req.user.id, orderType: { $ne: 'shop' }, ...dateFilter })
+        const [ordersRaw, shopOrdersRaw] = await Promise.all([
+            Order.find({ client: req.user.id, orderType: { $ne: 'shop' }, ...dateFilter })
                 .select('-parcelImage')
                 .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
                 .sort({ createdAt: -1 })
-                .skip(orderSkip)
-                .limit(orderLimit)
-                .lean()
-            : [];
-
-        const shopOrdersPage = shopLimitBound > 0
-            ? await ShopOrder.find({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
+                .limit(fetchCount)
+                .lean(),
+            ShopOrder.find({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
                 .select('-paymentReceiptImage')
                 .populate('place', 'name address bankAccountName bankAccountNumber bankName')
                 .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
                 .sort({ createdAt: -1 })
-                .skip(shopSkip)
-                .limit(shopLimitBound)
+                .limit(fetchCount)
                 .lean()
-            : [];
+        ]);
+
+        // 🔀 الفرز الزمني قبل الاقتطاع — هنا مربط الفرس: القطع بعد الدمج لا قبله
+        const { slicePageByDate } = require('../utils/mergeTimeline');
+        const pageSlice = slicePageByDate([
+            ...ordersRaw.map(doc => ({ kind: 'delivery', doc })),
+            ...shopOrdersRaw.map(doc => ({ kind: 'shop', doc }))
+        ], skip, limit);
+
+        const ordersPage     = pageSlice.filter(x => x.kind === 'delivery').map(x => x.doc);
+        const shopOrdersPage = pageSlice.filter(x => x.kind === 'shop').map(x => x.doc);
 
         // لا نزال بحاجة لـ hasImage marks لـ ordersPage
         const pageOrderIds = ordersPage.map(o => o._id);
