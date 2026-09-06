@@ -78,6 +78,39 @@
             </intent-filter>
         </service>
 
+        <!--
+            🧹 خدمة FCM واحدة لا غير.
+
+            كل إضافة رسائل تُعلن خدمتها بنفس مُرشِّح MESSAGING_EVENT، وFCM
+            يستعلم عن الخدمات المطابقة ويُشغّل **الأولى** التي يُعيدها مدير
+            الحزم. وترتيبها اليوم يضع خدمة التطبيق أولاً لأن مدمج البيان يضع
+            عناصر بيان التطبيق قبل عناصر المكتبات — فيعمل كل شيء، لكن بسببٍ
+            عرضيّ لا بضمان.
+
+            وإضافةُ مكتبةٍ ثالثة تُراهن على بقاء ذلك الترتيب. فنحذف خدمات
+            المكتبات صراحةً وقت الدمج: يبقى WassiliFCMService وحده، وهو مَن
+            يبني إشعار BigText و PendingIntent الحامل لـ orderId/type الذي
+            يعتمد عليه توجيه النقر في MainActivity.
+
+            ⚠️ الحذف لا يمسّ جلب التوكن: التوكن يأتي من
+            FirebaseMessaging.getToken() لا من هذه الخدمات.
+
+            للتحقّق بعد أي بناء — يجب ألا تظهر أيٌّ من الخدمتين المحذوفتين:
+              grep -c 'pushnotifications.MessagingService\|capawesome'                 android/app/build/intermediates/merged_manifest/release/*/AndroidManifest.xml
+
+            (عدّ MESSAGING_EVENT في البيان المدموج يُعطي 2 لا 1: الثانية هي
+             خدمة FCM الأساسية com.google.firebase.messaging.FirebaseMessagingService
+             التي تُعلنها مكتبة firebase-messaging نفسها في كل تطبيق. ليست
+             منافساً — الـSDK لا يُسندها إلا حين لا تُطالب خدمةُ التطبيق
+             بالرسالة.)
+        -->
+        <service
+            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+            tools:node="remove" />
+        <service
+            android:name="io.capawesome.capacitorjs.plugins.firebase.messaging.MessagingService"
+            tools:node="remove" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

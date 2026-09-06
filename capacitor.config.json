@@ -32,6 +32,13 @@
       ],
       "serverClientId": "168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com",
       "forceCodeForRefreshToken": true
+    },
+    "FirebaseMessaging": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     }
   }
 }

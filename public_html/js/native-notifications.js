@@ -12,6 +12,26 @@ function getPushNotifications() {
     return null;
 }
 
+/**
+ * 🔥 FirebaseMessaging — مصدر التوكن الوحيد على المنصّتين.
+ *
+ * لماذا لا @capacitor/push-notifications: على iOS تلك الإضافة تُسجّل مع APNs
+ * مباشرة وتُعيد **توكن جهاز آبل** (٦٤ حرفاً ست‑عشرياً — انظر
+ * PushNotificationsPlugin.swift)، لا توكن FCM. والخادم يرسل عبر firebase-admin
+ * وحده، فيرفضه FCM ثم يحذفه منظّف التوكنات الميتة. أي أن iOS لم يكن ليعمل
+ * أبداً مهما صحّت المفاتيح.
+ *
+ * وعلى أندرويد getToken() تُعيد نفس التوكن الذي كان يصل عبر حدث registration —
+ * لكن كاستدعاءٍ يُنتظر بدل حدثٍ يُطلق مرّة واحدة عند الإقلاع (قبل تسجيل
+ * الدخول) ثم لا يتكرّر. ذلك الحدث هو سبب حِيَل إعادة المزامنة أدناه.
+ */
+function getFirebaseMessaging() {
+    if (window.Capacitor && window.Capacitor.Plugins) {
+        return window.Capacitor.Plugins.FirebaseMessaging;
+    }
+    return null;
+}
+
 function getToast() {
     if (window.Capacitor && window.Capacitor.Plugins) {
         return window.Capacitor.Plugins.Toast;
@@ -158,8 +178,24 @@ const NativeNotifications = {
         const storedToken = localStorage.getItem('fcmToken');
         if (storedToken) {
             NativeNotifications.updateServerToken(storedToken);
-        } else {
-            // لا توكن مخزّن بعد → أعد طلب التسجيل (لو الإذن ممنوح) لإطلاق registration
+        }
+
+        // 🔑 اسحب التوكن الحقيقي من Firebase — لا تنتظر حدثاً قد لا يأتي.
+        await NativeNotifications.pullToken();
+    },
+
+    /**
+     * يجلب توكن FCM ويُزامنه. آمنٌ للاستدعاء المتكرّر.
+     *
+     * يُفضَّل على انتظار حدث registration لثلاثة أسباب: يُعيد قيمةً يمكن
+     * انتظارها، ويعمل بعد تسجيل الدخول لا قبله فقط، ويُعطي **توكن FCM على
+     * iOS** بدل توكن APNs الذي يرفضه الخادم.
+     */
+    pullToken: async () => {
+        const FM = getFirebaseMessaging();
+        if (!FM) {
+            // 🛟 نسخةٌ قديمة مثبّتة بلا الإضافة — نُبقي المسار السابق عاملاً
+            //    على أندرويد بدل أن نُسقط الإشعارات عن مستخدميها.
             try {
                 const PN = getPushNotifications();
                 if (PN) {
@@ -167,12 +203,29 @@ const NativeNotifications = {
                     if (st.receive === 'granted') await PN.register();
                 }
             } catch (_) {}
+            return null;
+        }
+
+        try {
+            const { token } = await FM.getToken();
+            if (!token) return null;
+            localStorage.setItem('fcmToken', token);
+            NativeNotifications.updateServerToken(token);
+            return token;
+        } catch (err) {
+            // جهاز بلا خدمات Google، أو Firebase غير مهيّأ — الإشعارات وحدها
+            // تتعطّل وبقيّة التطبيق يعمل.
+            console.warn('🔕 تعذّر جلب توكن FCM:', err?.message || err);
+            return null;
         }
     },
     _initialized: false,
 
     requestPermissions: async () => {
-        const PushNotifications = getPushNotifications();
+        // 🔔 نُفضّل إضافة Firebase حين تتوفّر: طلبُ الإذن عبرها يُهيّئ
+        //    FirebaseApp ويُسجّل مع APNs ويربط مندوب Messaging في خطوة
+        //    واحدة — وهي السلسلة التي يحتاجها iOS ليُصدر توكن FCM أصلاً.
+        const PushNotifications = getFirebaseMessaging() || getPushNotifications();
         if (!PushNotifications) return;
 
         let permStatus = await PushNotifications.checkPermissions();
@@ -192,7 +245,13 @@ const NativeNotifications = {
         // أو إن تعذّرت تهيئة Firebase، يرفض النداء الأصلي ويصير وعداً مرفوضاً بلا
         // معالج. الإشعارات تتعطّل وحدها، وبقيّة التطبيق تعمل.
         try {
-            await PushNotifications.register();
+            // إضافة Firebase لا تملك register(): getToken() هي التي تُسجّل
+            // وتُعيد التوكن معاً.
+            if (typeof PushNotifications.register === 'function') {
+                await PushNotifications.register();
+            } else {
+                await NativeNotifications.pullToken();
+            }
         } catch (err) {
             console.warn('🔕 تعذّر تسجيل الإشعارات — التطبيق يعمل بدونها:', err?.message || err);
         }
@@ -203,14 +262,38 @@ const NativeNotifications = {
         const Toast = getToast();
         if (!PushNotifications) return;
 
-        // 1. عند نجاح التسجيل والحصول على التوكن
+        // 1. تجدُّد التوكن — FCM يُدوّره من تلقائه (إعادة تثبيت، مسح بيانات،
+        //    استعادة نسخة احتياطية). بلا هذا يبقى الخادم على توكنٍ ميت.
+        const FM = getFirebaseMessaging();
+        if (FM) {
+            FM.addListener('tokenReceived', ({ token }) => {
+                if (!token) return;
+                console.log('🔄 FCM token rotated');
+                localStorage.setItem('fcmToken', token);
+                NativeNotifications.updateServerToken(token);
+            });
+        }
+
+        // 2. حدث registration من إضافة Capacitor — احتياطيّ لأندرويد وحده.
         PushNotifications.addListener('registration', token => {
-            console.log('📍 FCM Token:', token.value);
-            // ✅ FIX: احفظ التوكن في localStorage فوراً
-            // لأن التسجيل يحصل قبل تسجيل الدخول، والـ registration event
-            // لا يُعاد إطلاقه بعد التنقل بين الصفحات إذا لم يتغير التوكن
-            localStorage.setItem('fcmToken', token.value);
-            NativeNotifications.updateServerToken(token.value);
+            const value = token && token.value;
+            if (!value) return;
+
+            // ⚠️ على iOS هذا **توكن APNs** لا FCM: ٦٤ حرفاً ست‑عشرياً تُعيدها
+            //    الإضافة من آبل مباشرة. تخزينه كان يُفسد الحالة — يُرسَل
+            //    للخادم فيرفضه FCM ثم يُحذف، ويظنّ التطبيق أن لديه توكناً.
+            //    نُسقطه هنا: مصدر التوكن الحقيقي هو FirebaseMessaging.getToken().
+            if (/^[0-9a-fA-F]{64}$/.test(value)) {
+                console.log('🍏 تجاهُل توكن APNs — التوكن يأتي من Firebase');
+                return;
+            }
+
+            // لو كانت الإضافة حاضرة فهي المصدر، ولا حاجة لهذا المسار
+            if (getFirebaseMessaging()) return;
+
+            console.log('📍 FCM Token (fallback):', value);
+            localStorage.setItem('fcmToken', value);
+            NativeNotifications.updateServerToken(value);
         });
 
         // 2. عند حدوث خطأ في التسجيل
