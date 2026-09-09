@@ -74,6 +74,38 @@ describe('🔏 التوقيع لا يُمرَّر في سطر الأوامر', (
     });
 });
 
+describe('🔥 GoogleService-Info.plist داخل الحزمة فعلاً', () => {
+    const wf = read('.github/workflows/ios-build.yml');
+
+    it('🔑 يُضاف إلى موارد هدف التطبيق — النسخ إلى المجلد لا يحزمه', () => {
+        // 1.4.1 بُني ورُفع بنجاح تام ثم تعطّل عند الإقلاع على كل جهاز:
+        // حزم Firebase داخل الـIPA والملف ليس فيها
+        expect(wf).toContain('Bundle GoogleService-Info.plist into the app target');
+        expect(wf).toContain('target.add_resources([ref])');
+    });
+
+    it('🔒 يُفحص الناتج نفسه بعد الأرشفة لا النيّة', () => {
+        const step = wf.slice(wf.indexOf('Verify Firebase config is inside the built app'));
+        expect(step.slice(0, 1800)).toContain('"$APP/GoogleService-Info.plist"');
+        expect(step.slice(0, 1800)).toMatch(/::error::GoogleService-Info\.plist ليس داخل الحزمة/);
+    });
+
+    it('والاستحقاق يُفحص على الحزمة الموقَّعة', () => {
+        const step = wf.slice(wf.indexOf('Verify Firebase config is inside the built app'));
+        expect(step.slice(0, 1800)).toContain('codesign -d --entitlements');
+    });
+
+    it('🔑 غياب السرّ يُفشل البناء الموقَّع بدل إنتاج تطبيق لا يفتح', () => {
+        const step = wf.slice(wf.indexOf('- name: Detect signing mode'), wf.indexOf('- name: Decode GoogleService-Info.plist'));
+        expect(step).toMatch(/::error::GOOGLE_SERVICE_INFO_PLIST_BASE64 غائب/);
+        expect(step).toMatch(/exit 1/);
+    });
+
+    it('يُنبّه إن كان الملف لتطبيقٍ آخر', () => {
+        expect(wf).toContain('Print :BUNDLE_ID');
+    });
+});
+
 describe('٢ — توكن APNs لا يُقبل بوصفه FCM', () => {
     const auth = read('routes/auth.js');
 

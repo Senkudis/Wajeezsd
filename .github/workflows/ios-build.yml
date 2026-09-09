@@ -53,7 +53,15 @@ jobs:
             echo "firebase=true" >> "$GITHUB_OUTPUT"
           else
             echo "firebase=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::GoogleService-Info.plist غائب — التطبيق سيُبنى بلا إشعارات."
+            # ⚠️ تغيّر المعنى منذ ربط firebase-ios-sdk: غياب هذا الملف لم يعد
+            #    يعني «بلا إشعارات» بل **تطبيقاً لا يفتح**. إضافة Firebase
+            #    تستدعي FirebaseApp.configure() في load() أي عند الإقلاع، وهي
+            #    تُنهي العملية فوراً إن لم تجد الملف في الحزمة.
+            if [ -n "$CERT" ] && [ -n "$TEAM" ]; then
+              echo "::error::GOOGLE_SERVICE_INFO_PLIST_BASE64 غائب — البناء الموقَّع سيُنتج تطبيقاً يتعطّل عند الإقلاع."
+              exit 1
+            fi
+            echo "::warning::GoogleService-Info.plist غائب — بناء تحقّقٍ فقط؛ الناتج يتعطّل عند الإقلاع."
           fi
           if [ -n "$KEY_ID" ]; then
             echo "can_upload=true" >> "$GITHUB_OUTPUT"
@@ -98,6 +106,53 @@ jobs:
           fi
           npx cap sync ios
           echo "✅ cap sync ios succeeded"
+
+      - name: Bundle GoogleService-Info.plist into the app target
+        if: steps.mode.outputs.firebase == 'true'
+        run: |
+          set -euo pipefail
+          # 🔥 نسخُ الملف إلى مجلد المشروع **لا يضعه في الحزمة**.
+          #
+          #    Xcode لا يحزم إلا ما كان عضواً في هدفٍ ضمن مرحلة
+          #    Copy Bundle Resources، ومجموعة App في مشروع Capacitor مجموعةٌ
+          #    لا مرجعُ مجلد — فالملفات المُلقاة في الدليل تبقى خارج البناء.
+          #    و`cap sync ios` لا يضيف ملفات عشوائية إلى pbxproj.
+          #
+          # ⚠️ العطل الذي يُغلقه هذا: 1.4.1 بُني ورُفع بنجاح تام ثم كان
+          #    يتعطّل عند الإقلاع على كل جهاز. السبب أن حزم Firebase كانت
+          #    داخل الـIPA بينما GoogleService-Info.plist ليس فيها، فتصل
+          #    FirebaseApp.configure() في load() إلى بحثٍ فاشل وتُنهي العملية
+          #    قبل ظهور أي واجهة. بناءٌ «ناجح» ينتج تطبيقاً لا يفتح.
+          test -f ios/App/App/GoogleService-Info.plist             || { echo "::error::ios/App/App/GoogleService-Info.plist غير موجود"; exit 1; }
+
+          BID=$(/usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" ios/App/App/GoogleService-Info.plist 2>/dev/null || echo "")
+          if [ "$BID" != "com.wajeezsd.app" ]; then
+            echo "::warning::BUNDLE_ID في GoogleService-Info.plist = '$BID' لا 'com.wajeezsd.app' — قد يكون ملف تطبيقٍ آخر فلا تصل الإشعارات."
+          fi
+
+          sudo gem install xcodeproj --no-document
+
+          ruby - <<'RUBY'
+          require 'xcodeproj'
+
+          plist   = File.expand_path('ios/App/App/GoogleService-Info.plist')
+          project = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+
+          target = project.targets.find { |t| t.name == 'App' }
+          abort('::error::هدف App غير موجود في المشروع') unless target
+
+          group = project.main_group.find_subpath('App', true)
+          ref   = group.files.find { |f| f.real_path.to_s == plist } || group.new_reference(plist)
+
+          unless target.resources_build_phase.files_references.include?(ref)
+            target.add_resources([ref])
+          end
+
+          project.save
+          puts '✅ أُضيف GoogleService-Info.plist إلى Copy Bundle Resources'
+          RUBY
+
+          grep -q 'GoogleService-Info.plist' ios/App/App.xcodeproj/project.pbxproj             || { echo "::error::لم يُكتب مرجع الملف في project.pbxproj"; exit 1; }
 
       - name: Set iOS version and build number
         run: |
@@ -412,6 +467,30 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGN_ENTITLEMENTS=""
           echo "::notice::تمّت الأرشفة بلا توقيع. لا IPA — التوقيع يتطلب حساب مطوّر Apple."
+
+      - name: Verify Firebase config is inside the built app
+        if: steps.mode.outputs.signed == 'true'
+        run: |
+          set -euo pipefail
+          # 🔍 الفحص على الناتج لا على النيّة.
+          #
+          #    البناء السابق مرّ بكل خطواته خضراء — نسخ الملف، ربط الحزم،
+          #    التوقيع، الرفع لـ TestFlight — ثم كان التطبيق يتعطّل عند
+          #    الإقلاع على كل جهاز، لأن الملف لم يدخل الحزمة قطّ. لا شيء في
+          #    السلسلة كان ينظر إلى ما بُني فعلاً.
+          APP="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          test -d "$APP" || { echo "::error::لم يُعثر على App.app في الأرشيف"; exit 1; }
+
+          if [ ! -f "$APP/GoogleService-Info.plist" ]; then
+            echo "::error::GoogleService-Info.plist ليس داخل الحزمة — FirebaseApp.configure() تُسقط التطبيق عند الإقلاع."
+            echo "محتوى الحزمة:"; ls -1 "$APP" | head -40
+            exit 1
+          fi
+
+          # الاستحقاق أيضاً: بلا aps-environment لا يُصدر الجهاز توكناً أصلاً
+          codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q 'aps-environment'             || { echo "::error::الحزمة الموقَّعة بلا aps-environment"; exit 1; }
+
+          echo "✅ GoogleService-Info.plist داخل الحزمة، والاستحقاق موقَّع معها"
 
       - name: Create ExportOptions.plist
         if: steps.mode.outputs.signed == 'true'
