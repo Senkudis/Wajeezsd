@@ -65,6 +65,16 @@ router.put('/reports/:id', protect, requirePermission('view_complaints'), async 
                 });
             }
             await Rating.updateOne({ _id: report.targetId }, { $set: { isHidden: true } });
+
+            // ⭐ الإخفاء وحده كان يترك أثر التقييم في نجوم المتجر إلى الأبد:
+            //    المتوسط لا يُحسب إلا عند إضافة تقييم جديد. فمن يُبلّغ عن
+            //    تقييمٍ مسيء يراه يختفي من الآراء بينما نجوم متجره لم تتحرّك —
+            //    وهو نصفُ إزالةٍ لا إزالة، ويخالف ما نَعِد به في الإرشاد 1.2.
+            const _hidden = await Rating.findById(report.targetId).select('targetType targetId').lean();
+            if (_hidden && _hidden.targetType === 'place') {
+                const { recalcPlaceRating } = require('../../utils/recalcPlaceRating');
+                await recalcPlaceRating(_hidden.targetId);
+            }
         }
 
         report.status     = action === 'hide' ? 'actioned' : 'dismissed';

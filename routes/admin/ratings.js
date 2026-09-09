@@ -55,6 +55,14 @@ router.delete('/ratings/:id', protect, superAdminOnly, async (req, res) => {
             { new: true }
         );
         if (!rating) return res.status(404).json({ message: 'التقييم غير موجود' });
+
+        // ⭐ نفس السبب أعلاه: بلا إعادة الحساب يبقى أثر التقييم المُخفى في
+        //    متوسط المتجر — إخفاءٌ في العرض لا في الأثر.
+        if (rating.targetType === 'place') {
+            const { recalcPlaceRating } = require('../../utils/recalcPlaceRating');
+            await recalcPlaceRating(rating.targetId);
+        }
+
         res.json({ message: 'تم إخفاء التقييم بنجاح' });
     } catch (e) {
         res.status(500).json({ message: 'Server Error' });
