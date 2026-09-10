@@ -26,6 +26,8 @@ const logger = require('../utils/logger');
 // 🔤 Arabic-aware search regex ⇐ utils/arabicSearch
 // (نُقل ليتشاركه بحث المتاجر وبحث "اشترِ لي" فلا يفترق تطبيعهما)
 const { arabicFlexibleRegex } = require('../utils/arabicSearch');
+// 🏷️ السعر الفعّال بعد العرض الظاهر — نفس الدالة التي يحسب بها الطلب
+const { effectivePrice } = require('../utils/productPricing');
 
 // ============================================================
 // @route   GET /api/places/categories
@@ -146,7 +148,7 @@ router.get('/search', async (req, res) => {
             isAvailable: true,
             $or: [{ name: rx }, { description: rx }, { category: rx }]
         })
-            .select('name price image placeId category ratingAvg')
+            .select('name price salePrice saleStartsAt saleEndsAt image placeId category ratingAvg')
             .limit(40)
             .lean();
 
@@ -190,8 +192,13 @@ router.get('/search', async (req, res) => {
             .filter(pr => placeMap[String(pr.placeId)])
             .map(pr => {
                 const pl = placeMap[String(pr.placeId)];
+                // 🏷️ نتائج البحث تعرض السعر الفعّال أيضاً — لولا ذلك ظهر
+                //    المنتج بسعره الأصلي هنا وبسعر العرض داخل المتجر.
+                const pricing = effectivePrice(pr);
                 const out = {
-                    _id: pr._id, name: pr.name, price: pr.price,
+                    _id: pr._id, name: pr.name, price: pricing.price,
+                    listPrice: pricing.listPrice, onSale: pricing.onSale,
+                    discountPercent: pricing.percent,
                     image: pr.image, category: pr.category, ratingAvg: pr.ratingAvg,
                     place: { _id: pl._id, name: pl.name, image_url: pl.image_url, location: pl.location }
                 };

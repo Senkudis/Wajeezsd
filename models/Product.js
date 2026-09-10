@@ -11,6 +11,18 @@ const ProductSchema = new mongoose.Schema({
     description: { type: String, default: '' },
     price: { type: Number, required: true },
 
+    // ── 🏷️ عرض ظاهر على المنتج ──
+    // يختلف عن الكوبون جوهرياً: الكوبون سرّي يُدخله من يملكه، وهذا سعرٌ
+    // معروضٌ للجميع يجذب من يتصفّح. price يبقى السعر الأصلي دائماً — يُعرض
+    // مشطوباً — و salePrice هو المُحصَّل. null = لا عرض.
+    //
+    // ⚠️ لا يُخزَّن «السعر الفعّال» في حقل: النافذة الزمنية تجعل أي قيمة
+    // مخزَّنة خاطئة بمرور الوقت. utils/productPricing يحسبه عند الطلب.
+    salePrice: { type: Number, default: null, min: 0 },
+    // نافذة العرض — كلاهما اختياري: بلا بداية يبدأ فوراً، وبلا نهاية يستمرّ
+    saleStartsAt: { type: Date, default: null },
+    saleEndsAt: { type: Date, default: null },
+
     // 💼 ERP: سعر التكلفة/الشراء — الربح للقطعة = price - cost
     cost: { type: Number, default: 0, min: 0 },
     // 💼 ERP: حد التنبيه للمخزون المنخفض (null = بلا تنبيه)

@@ -83,9 +83,15 @@ router.post('/products', protect, merchantOnly, async (req, res) => {
             return res.status(400).json({ message: 'الكمية يجب أن تكون رقماً موجباً أو فارغة (غير محدودة)' });
         }
 
+        // 🏷️ حقول العرض الظاهر — نفس المُحقِّق الذي يستعمله التعديل
+        const { validateSaleFields } = require('../utils/productPricing');
+        const sale = validateSaleFields(req.body, numericPrice);
+        if (!sale.ok) return res.status(400).json({ message: sale.error });
+
         const product = await Product.create({
             placeId: place._id,
             name, description, price, image, category, sortOrder,
+            ...sale.values,
             cost: numericCost,
             lowStockThreshold: thresholdValue,
             sku: (typeof sku === 'string' ? sku.trim().slice(0, 50) : ''),
@@ -118,13 +124,24 @@ router.put('/products/:id', protect, merchantOnly, async (req, res) => {
         const place = await Place.findOne({ ownerId: req.user._id });
         if (!place) return res.status(403).json({ message: 'غير مصرح' });
 
-        // معالجة حقل stock بشكل صريح قبل التحديث
-        const updateData = { ...req.body };
-        
-        // 🛡️ CRITICAL FIX: Prevent Mass Assignment of protected fields
-        delete updateData._id;
-        delete updateData.placeId;
-        
+        // 🛡️ قائمة بيضاء صريحة بدل نسخ req.body وحذف حقلين منه.
+        //
+        // القائمة السوداء كانت تسرّب كل حقل لم يُذكر فيها: ratingAvg و
+        // ratingCount و viewsCount حقولٌ في المخطّط، فكان التاجر يستطيع
+        // PUT { ratingAvg: 5, ratingCount: 900 } على منتجه ويصطنع تقييماً
+        // كاملاً — والنجوم تُعرض للعملاء وتُرتَّب بها نتائج البحث.
+        // القائمة البيضاء تنعكس افتراضياً: أي حقل جديد في المخطّط يبقى
+        // محميّاً حتى يُضاف هنا عمداً.
+        const MERCHANT_EDITABLE = [
+            'name', 'description', 'price', 'image', 'category', 'sortOrder',
+            'stock', 'cost', 'lowStockThreshold', 'sku', 'isAvailable',
+            'salePrice', 'saleStartsAt', 'saleEndsAt'
+        ];
+        const updateData = {};
+        for (const key of MERCHANT_EDITABLE) {
+            if (key in req.body) updateData[key] = req.body[key];
+        }
+
         // 🛡️ CRITICAL FIX: Validate price if it's being updated
         if ('price' in updateData) {
             const numericPrice = Number(updateData.price);
@@ -162,6 +179,21 @@ router.put('/products/:id', protect, merchantOnly, async (req, res) => {
 
         if ('sku' in updateData) {
             updateData.sku = (typeof updateData.sku === 'string') ? updateData.sku.trim().slice(0, 50) : '';
+        }
+
+        // 🏷️ حقول العرض. تُقارَن بالسعر الجديد إن كان يُعدَّل في نفس الطلب،
+        //    وإلا بالسعر المحفوظ — وإلا لأمكن تمرير عرضٍ أعلى من السعر
+        //    بإرساله وحده في طلب منفصل.
+        if ('salePrice' in updateData || 'saleStartsAt' in updateData || 'saleEndsAt' in updateData) {
+            const { validateSaleFields } = require('../utils/productPricing');
+            let basePrice = updateData.price;
+            if (!Number.isFinite(basePrice)) {
+                const current = await Product.findOne({ _id: req.params.id, placeId: place._id }).select('price').lean();
+                basePrice = current ? current.price : NaN;
+            }
+            const saleUpd = validateSaleFields(updateData, basePrice);
+            if (!saleUpd.ok) return res.status(400).json({ message: saleUpd.error });
+            Object.assign(updateData, saleUpd.values);
         }
 
         if ('stock' in updateData) {
@@ -771,7 +803,15 @@ router.get('/shop/:placeId/products', async (req, res) => {
         if (!place || !place.isActive) return res.status(404).json({ message: 'المتجر غير موجود' });
         const products = await Product.find({ placeId: place._id, isAvailable: true })
             .sort({ category: 1, sortOrder: 1 });
-        res.json({ place: stripPlaceClientFields(place.toJSON()), products });
+        // 🏷️ السعر الفعّال يُحسب هنا لا في المتصفّح: نافذة العرض تُقيَّم بساعة
+        //    الخادم — وهي الساعة نفسها التي سيُحسب بها الطلب — فلا يرى العميل
+        //    عرضاً انتهى لأن ساعة جهازه متأخّرة.
+        const { decorateProduct } = require('../utils/productPricing');
+        const now = new Date();
+        res.json({
+            place: stripPlaceClientFields(place.toJSON()),
+            products: products.map(p => decorateProduct(p, now))
+        });
     } catch (err) {
         res.status(500).json({ message: 'Server Error' });
     }
@@ -961,10 +1001,22 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
                 }
             }
 
-            const subtotal = product.price * qty;
+            // 🏷️ السعر المُحصَّل يقرّره الخادم من المنتج ونافذة عرضه — لا من
+            //    العميل. تخفيضٌ انتهى بين فتح الصفحة والضغط على «أرسل» لا
+            //    يُحصَّل، وهو الفرق بين عرضٍ صادق وثغرة تسعير.
+            const { effectivePrice } = require('../utils/productPricing');
+            const pricing = effectivePrice(product);
+
+            const subtotal = pricing.price * qty;
             itemsTotal += subtotal;
             // 💼 ERP: تثبيت التكلفة (snapshot) وقت الطلب — لدقة تقارير الأرباح تاريخياً
-            validatedItems.push({ productId: product._id, name: product.name, price: product.price, cost: product.cost || 0, quantity: qty, subtotal });
+            //    listPrice يُثبَّت أيضاً: بدونه لا يعرف تقرير التاجر لاحقاً كم
+            //    تنازل فعلاً، لأن salePrice على المنتج يتغيّر بعد الطلب.
+            validatedItems.push({
+                productId: product._id, name: product.name,
+                price: pricing.price, listPrice: pricing.listPrice,
+                cost: product.cost || 0, quantity: qty, subtotal
+            });
         }
 
         // 🚚 سعر التوصيل: يحدّده العميل (قابل للتفاوض) — مع حدود منطقية، وإلا الافتراضي للمتجر

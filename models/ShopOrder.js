@@ -13,7 +13,11 @@ const ShopOrderSchema = new mongoose.Schema({
     items: [{
         productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         name: { type: String, required: true },
-        price: { type: Number, required: true },
+        price: { type: Number, required: true },   // المُحصَّل فعلاً (بعد عرض المنتج)
+        // 🏷️ السعر الأصلي وقت الطلب. لقطةٌ مثل cost تماماً: salePrice على
+        // المنتج يتغيّر بعد الطلب، فبدون تثبيته هنا لا يعرف أي تقرير لاحق كم
+        // تنازل التاجر فعلاً. null = لم يكن على المنتج عرضٌ حينها.
+        listPrice: { type: Number, default: null },
         // 💼 ERP: لقطة (snapshot) لتكلفة المنتج وقت الطلب — تبقى تقارير الأرباح
         // دقيقة تاريخياً حتى لو عدّل التاجر سعر التكلفة لاحقاً
         cost: { type: Number, default: 0 },

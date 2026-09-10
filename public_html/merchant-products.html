@@ -158,6 +158,33 @@
                     </div>
                 </div>
                 <div id="marginPreview" class="mb-3 d-none" style="font-size:12px;font-weight:700;padding:8px 12px;border-radius:10px;background:#f0fdf4;color:#166534;"></div>
+
+                <!-- 🏷️ العرض الظاهر — يختلف عن كود الخصم: يراه كل من يتصفّح
+                     المتجر بلا كود، ويظهر بشارة حمراء والسعر القديم مشطوباً. -->
+                <div class="mb-3" style="border:1px dashed #fca5a5;border-radius:12px;padding:12px;background:#fff7f7;">
+                    <div class="fw-bold mb-2" style="font-size:13px;color:#b91c1c;">
+                        <i class="bi bi-tag-fill me-1"></i>عرض ظاهر على المنتج (اختياري)
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label" style="font-size:12px;">سعر العرض (ج.س)</label>
+                            <input type="number" id="pSalePrice" class="form-control" placeholder="اتركه فارغاً = لا عرض"
+                                   min="0" step="0.5" oninput="updateSalePreview()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-size:12px;">يبدأ (اختياري)</label>
+                            <input type="datetime-local" id="pSaleStart" class="form-control" style="font-size:12px;">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" style="font-size:12px;">ينتهي (اختياري)</label>
+                            <input type="datetime-local" id="pSaleEnd" class="form-control" style="font-size:12px;">
+                        </div>
+                    </div>
+                    <div id="salePreview" class="mt-2 d-none" style="font-size:12px;font-weight:700;"></div>
+                    <div class="form-text text-muted" style="font-size:11px;">
+                        <i class="bi bi-info-circle me-1"></i>بلا تاريخ بداية يبدأ فوراً، وبلا نهاية يستمرّ حتى تحذفه.
+                    </div>
+                </div>
                 <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label"><i class="bi bi-grid-3x3-gap-fill text-info me-1"></i>التصنيف</label>
@@ -255,6 +282,17 @@
     // ينفَّذ ما فيهما من وسوم، وعلامة تنصيص واحدة كانت تكسر أزرار البطاقة.
     const esc = window.escapeHtml || ((v) => String(v ?? '').replace(/[&<>"']/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+
+    // 🏷️ هل العرض ساري الآن؟ نفس شروط utils/productPricing على الخادم.
+    //    التاجر يحتاج التمييز بين ثلاث حالات لا اثنتين: لا عرض، وعرضٌ سارٍ،
+    //    وعرضٌ مضبوطٌ لكنه مجدول أو منتهٍ — الأخيرة تبدو كعطل بدون تمييزها.
+    function _saleOn(p, now = Date.now()) {
+        if (p.salePrice === null || p.salePrice === undefined || p.salePrice === '') return false;
+        if (!(p.salePrice < p.price)) return false;
+        if (p.saleStartsAt && now < new Date(p.saleStartsAt).getTime()) return false;
+        if (p.saleEndsAt && now > new Date(p.saleEndsAt).getTime()) return false;
+        return true;
+    }
 
     let products = [];
     let _productFilter = '';
@@ -364,10 +402,17 @@
                 <div class="fw-bold" style="font-size:15px;">${esc(p.name)}</div>
                 ${p.description ? `<div class="text-muted small product-desc-2l" title="${esc(p.description)}">${esc(p.description)}</div>` : ''}
                 <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                    <span class="fw-bold text-success">${p.price} ج.س</span>
+                    ${_saleOn(p)
+                        ? `<span class="fw-bold text-danger">${p.salePrice} ج.س</span>
+                           <s class="text-muted" style="font-size:12px;">${p.price} ج.س</s>
+                           <span class="badge bg-danger" style="font-size:10px;">عرض -${Math.round((1 - p.salePrice / p.price) * 100)}%</span>`
+                        : `<span class="fw-bold text-success">${p.price} ج.س</span>`}
                     <span class="badge ${p.isAvailable ? 'bg-success' : 'bg-secondary'}" style="font-size:10px;">
                         ${p.isAvailable ? 'متاح' : 'غير متاح'}
                     </span>
+                    ${(p.salePrice !== null && p.salePrice !== undefined && !_saleOn(p))
+                        ? '<span class="badge bg-warning text-dark" style="font-size:10px;" title="خارج نافذة العرض">عرض مجدول/منتهٍ</span>'
+                        : ''}
                     ${p.stock !== null && p.stock !== undefined
                         ? (p.stock === 0 
                             ? `<span class="badge bg-danger" style="font-size:10px;"><i class="bi bi-x-circle-fill"></i> نفدت الكمية</span>` 
@@ -414,6 +459,31 @@
         }
     };
 
+    // 🏷️ معاينة العرض أثناء الإدخال — نفس قواعد الخادم (validateSaleFields)
+    //     معروضةً فوراً بدل رحلة ذهاب وإياب تنتهي برسالة خطأ.
+    window.updateSalePreview = function() {
+        const price = parseFloat(document.getElementById('pPrice').value) || 0;
+        const raw   = document.getElementById('pSalePrice').value.trim();
+        const box   = document.getElementById('salePreview');
+        if (raw === '') { box.classList.add('d-none'); return; }
+        const sale = parseFloat(raw);
+        box.classList.remove('d-none');
+        if (!isFinite(sale) || sale < 0) {
+            box.style.color = '#991b1b';
+            box.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>سعر العرض يجب أن يكون رقماً موجباً';
+        } else if (price > 0 && sale >= price) {
+            box.style.color = '#991b1b';
+            box.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>سعر العرض يجب أن يكون أقل من السعر الأصلي';
+        } else if (price > 0) {
+            const pct = Math.round((1 - sale / price) * 100);
+            box.style.color = '#b91c1c';
+            box.innerHTML = `<i class="bi bi-tag-fill me-1"></i>سيظهر للعميل: <b>${sale.toLocaleString('en-US')} ج.س</b>
+                <s class="text-muted">${price.toLocaleString('en-US')} ج.س</s> بشارة <b>-${pct}%</b>`;
+        } else {
+            box.classList.add('d-none');
+        }
+    };
+
     function openAddModal() {
         document.getElementById('editProductId').value = '';
         document.getElementById('modalTitle').innerHTML = '<i class="bi bi-plus-circle-fill me-2"></i>إضافة منتج جديد';
@@ -421,6 +491,10 @@
         document.getElementById('pDesc').value = '';
         document.getElementById('pPrice').value = '';
         document.getElementById('pCost').value = '';
+        document.getElementById('pSalePrice').value = '';
+        document.getElementById('pSaleStart').value = '';
+        document.getElementById('pSaleEnd').value = '';
+        document.getElementById('salePreview').classList.add('d-none');
         document.getElementById('pSku').value = '';
         document.getElementById('pLowStock').value = '';
         document.getElementById('marginPreview').classList.add('d-none');
@@ -442,6 +516,19 @@
         document.getElementById('pDesc').value = p.description || '';
         document.getElementById('pPrice').value = p.price;
         document.getElementById('pCost').value = p.cost || '';
+        // datetime-local يريد YYYY-MM-DDTHH:mm بالتوقيت المحلي، وتاريخ ISO
+        // من الخادم بتوقيت UTC — التحويل بلا إزاحة يعرض ساعةً خاطئة للتاجر.
+        const _toLocalInput = (iso) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '';
+            const off = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - off).toISOString().slice(0, 16);
+        };
+        document.getElementById('pSalePrice').value = (p.salePrice !== null && p.salePrice !== undefined) ? p.salePrice : '';
+        document.getElementById('pSaleStart').value = _toLocalInput(p.saleStartsAt);
+        document.getElementById('pSaleEnd').value = _toLocalInput(p.saleEndsAt);
+        updateSalePreview();
         document.getElementById('pSku').value = p.sku || '';
         document.getElementById('pLowStock').value = (p.lowStockThreshold !== null && p.lowStockThreshold !== undefined) ? p.lowStockThreshold : '';
         updateMarginPreview();
@@ -546,7 +633,13 @@
             category: document.getElementById('pCategory').value.trim() || 'عام',
             image: document.getElementById('pImage').value.trim(),
             isAvailable: document.getElementById('pAvailable').checked,
-            stock: stockVal
+            stock: stockVal,
+            // 🏷️ العرض الظاهر. الفراغ يُرسَل null صراحةً لا يُحذف من الجسم:
+            //    الحذف يعني «لا تغيّر» عند التعديل، فما كان يُحذف عرضٌ قائم.
+            salePrice: document.getElementById('pSalePrice').value.trim() === ''
+                ? null : parseFloat(document.getElementById('pSalePrice').value),
+            saleStartsAt: document.getElementById('pSaleStart').value || null,
+            saleEndsAt: document.getElementById('pSaleEnd').value || null
         };
         // إذا الكمية وصلت 0، نوقف المنتج تلقائياً
         if (stockVal !== null && stockVal === 0) {
