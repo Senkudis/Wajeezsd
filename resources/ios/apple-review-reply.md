@@ -5,7 +5,14 @@
 > 2. في **App Review Information → Notes** — Apple طلبت ذلك صراحةً
 >    («also add this information to the Notes field … for reference on future submissions»).
 >
-> استبدل ما بين `[ ]` ببياناتك قبل الإرسال. البند ١ (الفيديو) تُرفقه أنت.
+> استبدل ما بين `[ ]` ببياناتك قبل الإرسال.
+>
+> **الفيديو — موضعان لا واحد:**
+> 1. **مرفقاً** في رسالة Messages (زرّ المشبك). هذا الموضع الوحيد الذي يقبل ملفاً.
+> 2. **رابطاً** في `[VIDEO_LINK]` أعلاه. ضروريّ لأن حقل *Notes* لا يقبل مرفقات
+>    إطلاقاً — والرابط وحده هو ما يبقى مع التطبيق للمراجعات القادمة، وهو ما
+>    طلبته Apple صراحةً. ارفعه على YouTube غير مُدرَج (unlisted) أو Drive
+>    برابطٍ يفتحه أي شخص، وتأكّد أن الرابط يعمل في نافذة تصفّح خفيّة.
 
 ---
 
@@ -16,7 +23,11 @@ Thank you for the review. Below is the information requested.
 ### 1. Screen recording
 
 A screen recording captured on a physical iPhone running the latest iOS is
-attached. It begins with launching the app from the home screen and shows:
+attached to this message, and is also available here:
+
+**[VIDEO_LINK]**
+
+It begins with launching the app from the home screen and shows:
 account registration and login, creating and tracking a delivery order,
 the content **reporting** flow on a store review, the **report and block**
 controls inside the in-app chat, and the in-app **account deletion** flow.
