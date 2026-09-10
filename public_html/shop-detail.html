@@ -1263,7 +1263,13 @@
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 // 🏪 placeId يسمح للخادم بفحص الكوبونات المحصورة بمتاجر بعينها
-                body: JSON.stringify({ code, productsTotal, deliveryFee, placeId })
+                // 📦 والأسطر تسمح له بفحص المحصورة بمنتجات، وشرط الكمية،
+                //    وعروض «اشترِ N خذ M». المعرّف والكمية فقط — الأسعار
+                //    يقرؤها الخادم من القاعدة ولا يثق بما نرسله.
+                body: JSON.stringify({
+                    code, productsTotal, deliveryFee, placeId,
+                    items: Object.entries(cart).map(([id, { qty }]) => ({ productId: id, quantity: qty }))
+                })
             });
             const data = await res.json();
 

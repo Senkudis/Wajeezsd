@@ -1047,14 +1047,19 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
                 ? validatePromo(promoDoc, {
                     userId: req.user._id, userCity: place.city,
                     fullOrderValue: originalTotal,
-                    placeId: place._id            // 🏪 حصر المتاجر
+                    placeId: place._id,           // 🏪 حصر المتاجر
+                    // 📦 الأسطر المُتحقَّق منها خادمياً (بأسعار القاعدة بعد
+                    //    العروض) لا الأسطر التي أرسلها العميل — حصر المنتجات
+                    //    وشرط الكمية و«اشترِ N خذ M» كلها تُحسب منها.
+                    items: validatedItems
                   })
                 : { ok: false };
             if (check.ok) {
                 const { discount, scope } = computeDiscount(promoDoc, {
                     productsTotal: itemsTotal,
                     deliveryFee,
-                    fullOrderValue: originalTotal
+                    fullOrderValue: originalTotal,
+                    items: validatedItems
                 });
                 if (discount > 0) {
                     discountAmount = Math.round(discount); // مبالغ صحيحة كما كان

@@ -2948,6 +2948,31 @@ router.post('/apply-promo', protect, async (req, res) => {
             validUntil: { $gte: now }
         });
 
+        // 📦 أسطر السلة للمعاينة. العميل يرسل المعرّفات والكميات فقط —
+        //    **الأسعار تُقرأ من القاعدة** (بعد العروض) كما يفعل مسار إنشاء
+        //    الطلب بالضبط. لو صدّقنا أسعار العميل هنا لأظهرت المعاينة خصماً
+        //    لا يُحصَّل، وهذا أسوأ من رفض الكود من البداية.
+        let items;
+        if (Array.isArray(req.body.items) && req.body.items.length && placeId) {
+            const Product = require('../models/Product');
+            const { effectivePrice } = require('../utils/productPricing');
+            const wanted = req.body.items
+                .filter(i => i && i.productId)
+                .slice(0, 100);   // سقفٌ يمنع استعلاماً ضخماً من جسم مُصطنع
+            const docs = await Product.find({
+                _id: { $in: wanted.map(i => i.productId) },
+                placeId
+            }).select('price salePrice saleStartsAt saleEndsAt').lean();
+            const byId = Object.fromEntries(docs.map(d => [String(d._id), d]));
+            items = wanted
+                .filter(i => byId[String(i.productId)])
+                .map(i => ({
+                    productId: String(i.productId),
+                    price: effectivePrice(byId[String(i.productId)], now).price,
+                    quantity: Math.max(1, parseInt(i.quantity, 10) || 1)
+                }));
+        }
+
         // 🔒 نفس المنطق المشترك المستخدم في إنشاء الطلب — مصدر واحد يمنع تباين المسارين.
         // ✅ BUG-006: المدينة تُقارن بمدينة المستخدم المصادق عليه لا بما يرسله العميل.
         const { validatePromo, computeDiscount } = require('../utils/promo');
@@ -2955,6 +2980,7 @@ router.post('/apply-promo', protect, async (req, res) => {
             userId: req.user._id,
             userCity: req.user.city,
             fullOrderValue,
+            items,
             // 🏪 حصر المتاجر. المعاينة تُطابق قرار الإنشاء تماماً — ولو تُرك
             //    هذا فارغاً هنا لأخبرنا العميلَ أن الكوبون صالح ثم رفضناه عند
             //    إتمام الطلب، وهو أسوأ من رفضه من البداية.
@@ -2968,7 +2994,8 @@ router.post('/apply-promo', protect, async (req, res) => {
         const calc = computeDiscount(promo, {
             productsTotal: Number(productsTotal) || 0,
             deliveryFee: Number(deliveryFee) || 0,
-            fullOrderValue
+            fullOrderValue,
+            items
         });
         if (calc.error) {
             return res.status(400).json({ message: calc.error });
