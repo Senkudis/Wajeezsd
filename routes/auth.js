@@ -68,6 +68,36 @@ const otpLimiter = rateLimit({
 });
 
 // ==========================================
+// 🔒 حدّ المحاولات لكل حساب (لا لكل IP)
+// ==========================================
+// otpLimiter و loginLimiter يحدّان الـ IP وحده. مهاجم يوزّع المحاولات على
+// عناوين كثيرة يستطيع تجريب كل الاحتمالات على حساب واحد. هذا العدّاد يعيش
+// على المستخدم نفسه فيُبطل الكود بعد 5 محاولات خاطئة أياً كان مصدرها،
+// ويُجبر المهاجم على طلب كود جديد — وذلك محدود بالـ IP أصلاً.
+const MAX_OTP_ATTEMPTS = 5;
+
+/**
+ * يسجّل محاولة خاطئة على كود المستخدم، ويُبطل الكود عند بلوغ الحدّ.
+ * @returns {Promise<boolean>} true إذا استُنفد الحدّ وأُبطل الكود.
+ */
+async function registerFailedCodeAttempt(user, field) {
+    const attempts = (user.otpAttempts || 0) + 1;
+    const exhausted = attempts >= MAX_OTP_ATTEMPTS;
+
+    const update = { $set: { otpAttempts: exhausted ? 0 : attempts } };
+    if (exhausted) {
+        // إبطال الكود نفسه، لا مجرّد تصفير العدّاد — وإلا كان الحدّ بلا أثر.
+        // $unset لا $set:undefined — Mongoose يُسقط المفاتيح غير المعرّفة صامتاً.
+        update.$unset = field === 'reset'
+            ? { resetCode: '', resetCodeExpires: '' }
+            : { verificationCode: '', verificationCodeExpires: '', otpCode: '', otpExpires: '' };
+    }
+
+    await User.updateOne({ _id: user._id }, update);
+    return exhausted;
+}
+
+// ==========================================
 // 🔒 0️⃣ Check WhatsApp Subscription (Proxy)
 // ==========================================
 router.get('/check-subscription/:phone', otpLimiter, async (req, res) => {
@@ -292,6 +322,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
             user.verificationCodeExpires = newExpiry;
             user.otpCode = newCode;
             user.otpExpires = newExpiry;
+            user.otpAttempts = 0; // كود جديد ⇒ عدّاد جديد
             await user.save();
 
             // إرسال SMS
@@ -541,13 +572,21 @@ router.post('/verify-email', otpLimiter, async (req, res) => {
 
         // Allow BOTH old code AND new `otpCode`
         const isValid = user.verificationCode === code || user.otpCode === code;
-        if (!isValid) return res.status(400).json({ message: 'كود التفعيل غير صحيح' });
+        if (!isValid) {
+            const exhausted = await registerFailedCodeAttempt(user, 'verification');
+            return res.status(400).json({
+                message: exhausted
+                    ? 'محاولات كثيرة خاطئة. أُبطل الكود، اطلب كود تفعيل جديد.'
+                    : 'كود التفعيل غير صحيح'
+            });
+        }
 
         user.isVerified = true;
         user.verificationCode = undefined;
         user.verificationCodeExpires = undefined;
         user.otpCode = undefined;
         user.otpExpires = undefined;
+        user.otpAttempts = 0;
         await user.save();
 
         if (user.role === 'captain' && user.approvalStatus !== 'approved') {
@@ -605,6 +644,7 @@ router.post('/resend-code', otpLimiter, async (req, res) => {
         user.verificationCodeExpires = newExpiry;
         user.otpCode = newCode;
         user.otpExpires = newExpiry;
+        user.otpAttempts = 0; // كود جديد ⇒ عدّاد جديد
         await user.save();
 
         // 🔒 SECURITY FIX: Only log OTP in development
@@ -659,6 +699,7 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
         const resetCode = generateOtpCode();
         user.resetCode = resetCode;
         user.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
+        user.otpAttempts = 0; // كود جديد ⇒ عدّاد جديد
         await user.save();
 
         // 📧 تحديد طريقة الإرسال بناءً على ما أدخله المستخدم
@@ -756,19 +797,28 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
             ]
         });
 
+        // 🔒 رد موحّد لكل حالات الفشل: حساب غير موجود، كود منتهٍ، كود خاطئ.
+        //    التمييز بينها يجعل هذا المسار أداة تعداد حسابات — يكفي إرسال
+        //    كود عشوائي لأي بريد لمعرفة إن كان مسجّلاً. `forgot-password`
+        //    محصّن بالفعل بنفس المبدأ، فتركُ هذا مميِّزاً يُبطل ذاك.
+        const RESET_FAILED = 'كود الاستعادة غير صحيح أو انتهت صلاحيته، أعد طلب كود جديد';
+
         if (!user) {
-            return res.status(404).json({ message: 'الحساب غير موجود' });
+            return res.status(400).json({ message: RESET_FAILED });
         }
 
         // ✅ FIX #8: فحص الانتهاء أولاً ثم مقارنة الكود
         // لو عكسنا الترتيب، سيتحقق السيرفر من صحة الكود أولاً ويُفصح للمهاجم أن الكود صحيح قبل إبلاغه بالانتهاء
         if (!user.resetCodeExpires || Date.now() > new Date(user.resetCodeExpires).getTime()) {
-            return res.status(400).json({ message: 'انتهت صلاحية كود الاستعادة، أعد المحاولة' });
+            return res.status(400).json({ message: RESET_FAILED });
         }
 
         // التحقق من صحة الكود (بعد التحقق من الانتهاء)
         if (user.resetCode !== code) {
-            return res.status(400).json({ message: 'كود الاستعادة غير صحيح' });
+            await registerFailedCodeAttempt(user, 'reset');
+            // نفس الرد سواء استُنفد الحدّ أم لا — التمييز يخبر المهاجم
+            // أنه يستهدف حساباً قائماً.
+            return res.status(400).json({ message: RESET_FAILED });
         }
 
 
@@ -776,6 +826,7 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
         user.password = newPassword;
         user.resetCode = undefined;
         user.resetCodeExpires = undefined;
+        user.otpAttempts = 0;
         // 🔒 يُسقط كل الجلسات القائمة. الاستعادة كثيراً ما تكون بعد اختراق،
         //    وبدون هذا يبقى توكن المهاجم صالحاً سبعة أيام رغم تغيير كلمة المرور.
         user.tokenVersion = (user.tokenVersion || 0) + 1;

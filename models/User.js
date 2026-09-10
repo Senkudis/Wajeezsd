@@ -74,6 +74,13 @@ const UserSchema = new mongoose.Schema(
         otpCode: { type: String }, // ✅ For SMS/WhatsApp OTP
         otpExpires: { type: Date },
 
+        // 🔒 عدّاد المحاولات الخاطئة على الكود الحالي (تفعيل أو استعادة).
+        //    الحدّ الموجود (otpLimiter/loginLimiter) على الـ IP فقط، فمهاجم
+        //    يملك مجموعة عناوين يستطيع استنفاد 10⁶ احتمالاً على حساب واحد.
+        //    هذا العدّاد يُبطل الكود بعد 5 محاولات مهما كان مصدرها.
+        //    يُصفَّر عند إصدار كود جديد وعند نجاح التحقق.
+        otpAttempts: { type: Number, default: 0 },
+
         // 🌟 Rating System
         ratingSum: { type: Number, default: 0 },
         ratingCount: { type: Number, default: 0 },
