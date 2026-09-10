@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>أكواد الخصم | وجيز</title>
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=fca49c8f">
+    <script src="js/config.js?v=977449f7"></script>
+    <script src="js/safe-area.js?v=176d6050"></script>
+    <script src="js/fetch-retry.js?v=dfd06a9d"></script>
+    <script src="js/auth-helper.js?v=c97361b3"></script>
+    <style>
+        :root { --primary: #048c5b; --accent: #f59e0b; }
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+
+        .promo-card {
+            background: #fff; border-radius: 16px; padding: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.07); margin-bottom: 12px;
+            border-inline-start: 5px solid var(--primary);
+        }
+        .promo-card.is-off { border-inline-start-color: #cbd5e1; opacity: .72; }
+        /* 🔤 عزل ثنائي الاتجاه إجباري هنا: الكود لاتيني (LTR) والشارة تخلط
+           أرقاماً لاتينية بنصّ عربي («500 ج.س») داخل صفحة RTL. بلا isolate
+           يعيد المحرّك ترتيب المقاطع فتنزلق الشارة فوق الكود — يظهر جلياً
+           في كود مثل OLDCODE مع شارة مبلغ ثابت. */
+        .promo-code {
+            font-family: ui-monospace, monospace; font-weight: 900; font-size: 17px;
+            letter-spacing: 1.5px; color: #0f172a;
+            display: inline-block; direction: ltr; unicode-bidi: isolate;
+        }
+        .promo-value {
+            background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff;
+            font-weight: 900; font-size: 12px; padding: 3px 10px; border-radius: 999px;
+            display: inline-block; unicode-bidi: isolate; white-space: nowrap;
+        }
+        .promo-meta { font-size: 11.5px; color: #64748b; font-weight: 600; }
+        .chip {
+            display: inline-block; background: #f1f5f9; color: #475569;
+            font-size: 11px; font-weight: 700; padding: 2px 8px;
+            border-radius: 8px; margin: 2px 2px 0 0;
+        }
+        .merchant-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+            border-top: 1px solid #f0f0f0; display: flex; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,.08);
+        }
+        .merchant-nav a {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            padding: 10px 0; font-size: 11px; font-weight: 600; color: #888;
+            text-decoration: none;
+        }
+        .merchant-nav a.active { color: var(--accent); }
+        .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
+        .form-label { font-weight: 700; font-size: 13px; color: #374151; }
+        .modal-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; }
+
+        body.dark-mode { background: #0f172a; }
+        body.dark-mode .promo-card { background: #1e293b; color: #f8fafc; }
+        body.dark-mode .promo-code { color: #f8fafc; }
+        body.dark-mode .chip { background: #0f172a; color: #94a3b8; }
+    </style>
+    <link rel="stylesheet" href="css/dark-mode.css?v=afc716b6">
+</head>
+<body>
+
+<div class="m-page-header">
+    <div class="d-flex align-items-center gap-3 pb-2">
+        <a href="merchant-dashboard.html" class="m-back-btn"><i class="bi bi-arrow-right"></i></a>
+        <div>
+            <h5 class="m-header-title">أكواد الخصم</h5>
+            <div class="m-header-subtitle" id="promoCount">جاري التحميل...</div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-3 pt-3">
+    <div class="alert alert-info py-2 px-3 small mb-3" style="border-radius:12px;">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        أكوادك تُخصم من <b>قيمة بضاعتك</b> وحدها ولا تمسّ رسوم التوصيل.
+        وزّعها لمن تشاء — لا تظهر في صفحة متجرك.
+        <div class="mt-1" style="font-size:11px;">
+            تريد خصماً يراه كل زائر؟ استخدم <a href="merchant-products.html" class="fw-bold">العرض الظاهر على المنتج</a>.
+        </div>
+    </div>
+    <div id="promosContainer">
+        <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
+    </div>
+</div>
+
+<button class="m-fab" onclick="openAddModal()"><i class="bi bi-plus-lg"></i></button>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="promoModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-header p-3">
+                <h6 class="modal-title" id="modalTitle"><i class="bi bi-ticket-perforated-fill me-2"></i>كود خصم جديد</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editPromoId">
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-upc text-warning me-1"></i>الكود *</label>
+                    <input type="text" id="fCode" class="form-control" maxlength="30"
+                           placeholder="مثال: RAMADAN20" style="text-transform:uppercase;letter-spacing:1px;font-weight:800;">
+                    <div class="form-text" style="font-size:11px;">حروف إنجليزية وأرقام فقط، ٣-٣٠ محرفاً. لا يمكن تغييره بعد الإنشاء.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-percent text-danger me-1"></i>نوع الخصم *</label>
+                    <select id="fType" class="form-select" onchange="onTypeChange()">
+                        <option value="percentage">نسبة مئوية (٪)</option>
+                        <option value="fixed">مبلغ ثابت (ج.س)</option>
+                        <option value="bogo">اشترِ N واحصل على M مجاناً</option>
+                    </select>
+                </div>
+
+                <div id="valueBox" class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label" id="valueLabel">قيمة الخصم *</label>
+                        <input type="number" id="fValue" class="form-control" min="0" step="0.5" placeholder="0">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">أقصى خصم (ج.س)</label>
+                        <input type="number" id="fMaxDiscount" class="form-control" min="0" step="0.5" placeholder="بلا حد">
+                    </div>
+                </div>
+
+                <div id="bogoBox" class="row g-2 mb-3 d-none">
+                    <div class="col-6">
+                        <label class="form-label">اشترِ (قطعة) *</label>
+                        <input type="number" id="fBuyQty" class="form-control" min="1" step="1" value="2" oninput="updateBogoHint()">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">واحصل مجاناً *</label>
+                        <input type="number" id="fFreeQty" class="form-control" min="1" step="1" value="1" oninput="updateBogoHint()">
+                    </div>
+                    <div class="col-12">
+                        <div id="bogoHint" class="form-text" style="font-size:11.5px;"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-box-seam text-info me-1"></i>المنتجات المشمولة</label>
+                    <select id="fProducts" class="form-select" multiple size="5" style="font-size:13px;"></select>
+                    <div class="form-text" style="font-size:11px;">
+                        اتركه فارغاً ليشمل كل منتجاتك. عند التحديد يُحسب الخصم من أسعار هذه المنتجات وحدها.
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">أقل كمية (قطعة)</label>
+                        <input type="number" id="fMinQty" class="form-control" min="0" step="1" placeholder="بلا شرط">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">أقل قيمة طلب (ج.س)</label>
+                        <input type="number" id="fMinOrder" class="form-control" min="0" step="1" placeholder="بلا شرط">
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">عدد الاستخدامات الكلي</label>
+                        <input type="number" id="fUsageLimit" class="form-control" min="1" step="1" placeholder="غير محدود">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">لكل عميل</label>
+                        <input type="number" id="fUserLimit" class="form-control" min="1" step="1" value="1">
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">يبدأ (اختياري)</label>
+                        <input type="datetime-local" id="fFrom" class="form-control" style="font-size:12px;">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">ينتهي *</label>
+                        <input type="datetime-local" id="fUntil" class="form-control" style="font-size:12px;">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">وصف داخلي</label>
+                    <input type="text" id="fDesc" class="form-control" maxlength="200" placeholder="لتذكّر سبب الكود لاحقاً">
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="fActive" checked>
+                    <label class="form-check-label fw-bold" for="fActive">الكود فعّال</label>
+                </div>
+
+                <button class="btn btn-warning w-100 fw-bold py-2" onclick="savePromo()">
+                    <i class="bi bi-check-circle-fill me-1"></i> حفظ الكود
+                </button>
+                <button class="btn btn-light w-100 mt-2" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="merchant-nav">
+    <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i><span>الرئيسية</span></a>
+    <a href="merchant-products.html"><i class="bi bi-box-seam-fill"></i><span>المنتجات</span></a>
+    <a href="merchant-promos.html" class="active"><i class="bi bi-ticket-perforated-fill"></i><span>الأكواد</span></a>
+    <a href="merchant-orders.html"><i class="bi bi-bag-check-fill"></i><span>الطلبات</span></a>
+    <a href="merchant-notifications.html"><i class="bi bi-bell-fill"></i><span>إشعارات</span></a>
+</nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="js/theme-manager.js?v=0daaeecd"></script>
+<script>
+    const token = window.Auth?.getToken() || localStorage.getItem('token');
+    if (!token) window.location.href = 'client-login.html';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role && user.role !== 'merchant') window.location.href = 'index.html';
+
+    const esc = window.escapeHtml || ((v) => String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+    const H = () => ({ 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' });
+
+    let promos = [];
+    let myProducts = [];
+
+    // datetime-local محلي والخادم يرسل UTC — بلا تحويل الإزاحة يرى التاجر ساعة خاطئة
+    const toLocalInput = (iso) => {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    };
+    const fmtDate = (iso) => {
+        if (!iso) return '—';
+        try { return new Date(iso).toLocaleDateString('ar-SD', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+        catch { return '—'; }
+    };
+
+    function valueLabelOf(p) {
+        if (p.type === 'bogo') {
+            const b = p.bogo || {};
+            return `اشترِ ${b.buyQuantity || 1} خذ ${b.freeQuantity || 1}`;
+        }
+        return p.type === 'percentage' ? `${p.value}٪` : `${p.value} ج.س`;
+    }
+
+    function isExpired(p) { return new Date(p.validUntil).getTime() < Date.now(); }
+
+    function render() {
+        const box = document.getElementById('promosContainer');
+        document.getElementById('promoCount').textContent =
+            promos.length ? `${promos.length} كود` : 'لا أكواد بعد';
+
+        if (!promos.length) {
+            box.innerHTML = `<div class="text-center text-muted py-5">
+                <i class="bi bi-ticket-perforated" style="font-size:3rem;"></i>
+                <div class="fw-bold mt-2">لم تُنشئ أي كود بعد</div>
+                <div style="font-size:12.5px;">اضغط + لإنشاء أول كود خصم على بضاعتك</div>
+            </div>`;
+            return;
+        }
+
+        box.innerHTML = promos.map(p => {
+            const off = !p.isActive || isExpired(p);
+            const names = (p.products || []).map(x => x && x.name).filter(Boolean);
+            return `
+            <div class="promo-card ${off ? 'is-off' : ''}">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div>
+                        <span class="promo-code">${esc(p.code)}</span>
+                        <span class="promo-value ms-1">${esc(valueLabelOf(p))}</span>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="openEditModal('${p._id}')" title="تعديل">
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removePromo('${p._id}','${esc(p.code)}')" title="حذف">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="promo-meta">
+                    ${off ? `<span class="text-danger fw-bold">${isExpired(p) ? 'منتهٍ' : 'موقوف'}</span> · ` : ''}
+                    استُخدم ${p.usedCount || 0}${p.usageLimit ? ' من ' + p.usageLimit : ''} مرة
+                    · ينتهي ${esc(fmtDate(p.validUntil))}
+                </div>
+                <div class="mt-1">
+                    ${names.length
+                        ? names.slice(0, 4).map(n => `<span class="chip">${esc(n)}</span>`).join('') +
+                          (names.length > 4 ? `<span class="chip">+${names.length - 4}</span>` : '')
+                        : '<span class="chip">كل المنتجات</span>'}
+                    ${p.minQuantity ? `<span class="chip">أقل كمية ${p.minQuantity}</span>` : ''}
+                    ${p.minOrderValue ? `<span class="chip">أقل طلب ${p.minOrderValue} ج.س</span>` : ''}
+                </div>
+                ${p.description ? `<div class="promo-meta mt-1">${esc(p.description)}</div>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    window.onTypeChange = function () {
+        const t = document.getElementById('fType').value;
+        document.getElementById('valueBox').classList.toggle('d-none', t === 'bogo');
+        document.getElementById('bogoBox').classList.toggle('d-none', t !== 'bogo');
+        document.getElementById('valueLabel').textContent =
+            t === 'percentage' ? 'نسبة الخصم (٪) *' : 'مبلغ الخصم (ج.س) *';
+        if (t === 'bogo') updateBogoHint();
+    };
+
+    window.updateBogoHint = function () {
+        const buy = parseInt(document.getElementById('fBuyQty').value, 10) || 0;
+        const free = parseInt(document.getElementById('fFreeQty').value, 10) || 0;
+        const hint = document.getElementById('bogoHint');
+        if (buy < 1 || free < 1) { hint.textContent = ''; return; }
+        // النصّ يقول الحقيقة صراحةً: العميل يحمل buy+free قطعة ويدفع ثمن buy
+        hint.innerHTML = `العميل يضع <b>${buy + free}</b> قطعة في السلة ويدفع ثمن <b>${buy}</b> —
+            المجانية هي <b>الأرخص</b> بين المشمولة.`;
+    };
+
+    function fillProductOptions(selected = []) {
+        const sel = document.getElementById('fProducts');
+        const chosen = selected.map(x => String(x && x._id ? x._id : x));
+        sel.innerHTML = myProducts.map(p =>
+            `<option value="${p._id}" ${chosen.includes(String(p._id)) ? 'selected' : ''}>${esc(p.name)}</option>`
+        ).join('');
+    }
+
+    window.openAddModal = function () {
+        document.getElementById('editPromoId').value = '';
+        document.getElementById('modalTitle').innerHTML = '<i class="bi bi-ticket-perforated-fill me-2"></i>كود خصم جديد';
+        document.getElementById('fCode').value = '';
+        document.getElementById('fCode').disabled = false;
+        document.getElementById('fType').value = 'percentage';
+        document.getElementById('fValue').value = '';
+        document.getElementById('fMaxDiscount').value = '';
+        document.getElementById('fBuyQty').value = 2;
+        document.getElementById('fFreeQty').value = 1;
+        document.getElementById('fMinQty').value = '';
+        document.getElementById('fMinOrder').value = '';
+        document.getElementById('fUsageLimit').value = '';
+        document.getElementById('fUserLimit').value = 1;
+        document.getElementById('fFrom').value = '';
+        document.getElementById('fUntil').value = '';
+        document.getElementById('fDesc').value = '';
+        document.getElementById('fActive').checked = true;
+        fillProductOptions([]);
+        onTypeChange();
+        new bootstrap.Modal(document.getElementById('promoModal')).show();
+    };
+
+    window.openEditModal = function (id) {
+        const p = promos.find(x => x._id === id);
+        if (!p) return;
+        document.getElementById('editPromoId').value = id;
+        document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil-fill me-2"></i>تعديل الكود';
+        document.getElementById('fCode').value = p.code;
+        // الكود قد يكون وُزّع بالفعل — تغييره يُبطل ما في أيدي العملاء بلا علمهم
+        document.getElementById('fCode').disabled = true;
+        document.getElementById('fType').value = p.type;
+        document.getElementById('fValue').value = p.value ?? '';
+        document.getElementById('fMaxDiscount').value = p.maxDiscount ?? '';
+        document.getElementById('fBuyQty').value = (p.bogo && p.bogo.buyQuantity) || 2;
+        document.getElementById('fFreeQty').value = (p.bogo && p.bogo.freeQuantity) || 1;
+        document.getElementById('fMinQty').value = p.minQuantity || '';
+        document.getElementById('fMinOrder').value = p.minOrderValue || '';
+        document.getElementById('fUsageLimit').value = p.usageLimit ?? '';
+        document.getElementById('fUserLimit').value = p.userUsageLimit ?? 1;
+        document.getElementById('fFrom').value = toLocalInput(p.validFrom);
+        document.getElementById('fUntil').value = toLocalInput(p.validUntil);
+        document.getElementById('fDesc').value = p.description || '';
+        document.getElementById('fActive').checked = !!p.isActive;
+        fillProductOptions(p.products || []);
+        onTypeChange();
+        new bootstrap.Modal(document.getElementById('promoModal')).show();
+    };
+
+    window.savePromo = async function () {
+        const id = document.getElementById('editPromoId').value;
+        const type = document.getElementById('fType').value;
+        const body = {
+            code: document.getElementById('fCode').value.trim().toUpperCase(),
+            type,
+            value: parseFloat(document.getElementById('fValue').value),
+            maxDiscount: document.getElementById('fMaxDiscount').value.trim() === ''
+                ? null : parseFloat(document.getElementById('fMaxDiscount').value),
+            buyQuantity: parseInt(document.getElementById('fBuyQty').value, 10),
+            freeQuantity: parseInt(document.getElementById('fFreeQty').value, 10),
+            products: Array.from(document.getElementById('fProducts').selectedOptions).map(o => o.value),
+            minQuantity: parseInt(document.getElementById('fMinQty').value, 10) || 0,
+            minOrderValue: parseFloat(document.getElementById('fMinOrder').value) || 0,
+            usageLimit: document.getElementById('fUsageLimit').value.trim() === ''
+                ? null : parseInt(document.getElementById('fUsageLimit').value, 10),
+            userUsageLimit: parseInt(document.getElementById('fUserLimit').value, 10) || 1,
+            validFrom: document.getElementById('fFrom').value || null,
+            validUntil: document.getElementById('fUntil').value || null,
+            description: document.getElementById('fDesc').value.trim(),
+            isActive: document.getElementById('fActive').checked
+        };
+
+        if (!id && !/^[A-Z0-9_-]{3,30}$/.test(body.code)) {
+            Swal.fire('تنبيه', 'الكود يجب أن يكون ٣-٣٠ محرفاً إنجليزياً أو رقماً', 'warning'); return;
+        }
+        if (!body.validUntil) {
+            Swal.fire('تنبيه', 'تاريخ الانتهاء مطلوب', 'warning'); return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/promo-codes${id ? '/' + id : ''}`, {
+                method: id ? 'PUT' : 'POST',
+                headers: H(),
+                body: JSON.stringify(body)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { Swal.fire('تعذّر الحفظ', data.message || 'حاول مجدداً', 'error'); return; }
+            bootstrap.Modal.getInstance(document.getElementById('promoModal')).hide();
+            await load();
+            Swal.fire({ icon: 'success', title: id ? 'تم التعديل' : 'تم إنشاء الكود', timer: 1300, showConfirmButton: false });
+        } catch (e) {
+            console.error('Save promo error:', e);
+            Swal.fire('خطأ', 'تعذّر الاتصال بالسيرفر', 'error');
+        }
+    };
+
+    window.removePromo = async function (id, code) {
+        const ok = await Swal.fire({
+            icon: 'warning', title: 'حذف الكود؟',
+            html: `سيتوقّف <b>${esc(code)}</b> عن العمل فوراً لكل من يملكه.`,
+            showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#dc2626'
+        });
+        if (!ok.isConfirmed) return;
+        try {
+            const res = await fetch(`${API_URL}/api/merchant/promo-codes/${id}`, { method: 'DELETE', headers: H() });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            await load();
+        } catch (e) {
+            console.error('Delete promo error:', e);
+            Swal.fire('خطأ', 'تعذّر حذف الكود', 'error');
+        }
+    };
+
+    async function load() {
+        try {
+            const [pRes, prodRes] = await Promise.all([
+                fetch(`${API_URL}/api/merchant/promo-codes`, { headers: H() }),
+                fetch(`${API_URL}/api/merchant/products`, { headers: H() })
+            ]);
+            if (!pRes.ok) throw new Error('HTTP ' + pRes.status);
+            promos = await pRes.json();
+            myProducts = prodRes.ok ? await prodRes.json() : [];
+            render();
+        } catch (e) {
+            console.error('Load promos error:', e);
+            document.getElementById('promosContainer').innerHTML =
+                '<div class="text-center text-muted py-5">تعذّر تحميل الأكواد. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="load()">أعد المحاولة</button></div>';
+        }
+    }
+    window.load = load;
+
+    load();
+</script>
+</body>
+</html>

@@ -315,6 +315,214 @@ router.patch('/products/:id/stock', protect, merchantOnly, async (req, res) => {
 
 
 // ──────────────────────────────────────────────
+// 🎟️ PROMO CODES (أكواد خصم يُنشئها التاجر على بضاعته)
+// ──────────────────────────────────────────────
+//
+// 🔒 الضابط الأساسي هنا محاسبيٌّ لا تجميلي:
+//    إيراد التاجر يُخصم منه الكوبون **فقط** حين appliesTo === 'products'
+//    (routes/merchant-erp.js — APP_GOODS_REVENUE_EXPR). فكودٌ على التوصيل
+//    أو الإجمالي ينفق من عمولة المنصّة وأجرة الكابتن لا من جيب التاجر —
+//    أي أن التاجر يوزّع مال غيره.
+//
+//    لذلك appliesTo و places و merchantPlace و city **تُفرض خادمياً ولا
+//    تُقرأ من الجسم إطلاقاً**. لا يكفي التحقّق منها: الحقل الذي لا يُقرأ
+//    لا يمكن تزويره.
+
+const MERCHANT_PROMO_MAX_ACTIVE = 20;
+
+/** يجلب متجر التاجر أو يردّ 404 — مكرّر في كل مسار أدناه. */
+async function merchantPlaceOr404(req, res) {
+    const place = await Place.findOne({ ownerId: req.user._id }).select('_id city name');
+    if (!place) { res.status(404).json({ message: 'لا يوجد متجر مرتبط بحسابك' }); return null; }
+    return place;
+}
+
+/**
+ * يتحقّق من الحقول التي يملك التاجر ضبطها ويطبّعها.
+ * الحقول المفروضة خادمياً ليست هنا أصلاً — فلا سبيل لتمريرها.
+ */
+async function buildMerchantPromoFields(body, place) {
+    const type = body.type;
+    if (!['percentage', 'fixed', 'bogo'].includes(type)) {
+        return { error: 'نوع الخصم غير صالح' };
+    }
+
+    const out = { type };
+
+    if (type === 'bogo') {
+        const buy  = parseInt(body.buyQuantity, 10);
+        const free = parseInt(body.freeQuantity, 10);
+        if (!Number.isFinite(buy) || buy < 1 || !Number.isFinite(free) || free < 1) {
+            return { error: 'حدّد عدد القطع المشتراة والمجانية (١ على الأقل لكلٍّ منهما)' };
+        }
+        if (buy + free > 100) return { error: 'عدد القطع كبير جداً' };
+        out.bogo = { buyQuantity: buy, freeQuantity: free };
+        out.value = 0;          // لا معنى لها في bogo لكنها مطلوبة في المخطّط
+        out.maxDiscount = null;
+    } else {
+        const value = Number(body.value);
+        if (!Number.isFinite(value) || value <= 0) {
+            return { error: 'قيمة الخصم يجب أن تكون رقماً أكبر من صفر' };
+        }
+        if (type === 'percentage' && value > 100) {
+            return { error: 'نسبة الخصم لا تتجاوز ١٠٠٪' };
+        }
+        out.value = value;
+        const maxD = body.maxDiscount;
+        out.maxDiscount = (maxD === null || maxD === undefined || maxD === '')
+            ? null
+            : (Number.isFinite(Number(maxD)) && Number(maxD) >= 0 ? Number(maxD) : null);
+    }
+
+    // 📦 المنتجات المشمولة — يجب أن تكون من متجره هو. منتجُ متجرٍ آخر لا
+    //    يُمكن أن يظهر في طلبٍ على هذا المتجر، فقبوله يُنتج كوداً لا يعمل أبداً.
+    const rawProducts = Array.isArray(body.products) ? body.products.slice(0, 50) : [];
+    if (rawProducts.length) {
+        const owned = await Product.find({ _id: { $in: rawProducts }, placeId: place._id })
+            .select('_id').lean();
+        if (owned.length !== rawProducts.length) {
+            return { error: 'بعض المنتجات المحدّدة ليست من متجرك' };
+        }
+        out.products = owned.map(p => p._id);
+    } else {
+        out.products = [];
+    }
+
+    const minQty = parseInt(body.minQuantity, 10);
+    out.minQuantity = (Number.isFinite(minQty) && minQty > 0) ? minQty : 0;
+
+    const minOrder = Number(body.minOrderValue);
+    out.minOrderValue = (Number.isFinite(minOrder) && minOrder > 0) ? minOrder : 0;
+
+    const usageLimit = parseInt(body.usageLimit, 10);
+    out.usageLimit = (Number.isFinite(usageLimit) && usageLimit > 0) ? usageLimit : null;
+
+    const perUser = parseInt(body.userUsageLimit, 10);
+    out.userUsageLimit = (Number.isFinite(perUser) && perUser > 0) ? perUser : 1;
+
+    const until = new Date(body.validUntil);
+    if (isNaN(until.getTime())) return { error: 'تاريخ انتهاء الكود مطلوب' };
+    if (until.getTime() <= Date.now()) return { error: 'تاريخ الانتهاء يجب أن يكون في المستقبل' };
+    out.validUntil = until;
+
+    if (body.validFrom) {
+        const from = new Date(body.validFrom);
+        if (isNaN(from.getTime())) return { error: 'تاريخ بداية غير صالح' };
+        if (from >= until) return { error: 'تاريخ البداية يجب أن يسبق الانتهاء' };
+        out.validFrom = from;
+    }
+
+    out.description = (typeof body.description === 'string') ? body.description.trim().slice(0, 200) : '';
+    return { values: out };
+}
+
+// GET /api/merchant/promo-codes — أكواد هذا المتجر وحدها
+router.get('/promo-codes', protect, merchantOnly, async (req, res) => {
+    try {
+        const place = await merchantPlaceOr404(req, res);
+        if (!place) return;
+        const codes = await PromoCode.find({ merchantPlace: place._id })
+            .sort({ createdAt: -1 })
+            .populate('products', 'name')
+            // 🔒 usedBy سجلٌّ بمعرّفات العملاء — التاجر يحتاج العدد لا القائمة
+            .select('-usedBy')
+            .lean();
+        res.json(codes);
+    } catch (err) {
+        logger.error({ err: err.message }, 'merchant promo list error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// POST /api/merchant/promo-codes — إنشاء كود على بضاعته
+router.post('/promo-codes', protect, merchantOnly, async (req, res) => {
+    try {
+        const place = await merchantPlaceOr404(req, res);
+        if (!place) return;
+
+        const code = String(req.body.code || '').toUpperCase().trim();
+        if (!/^[A-Z0-9_-]{3,30}$/.test(code)) {
+            return res.status(400).json({ message: 'الكود يجب أن يكون ٣-٣٠ محرفاً إنجليزياً أو رقماً' });
+        }
+
+        const activeCount = await PromoCode.countDocuments({
+            merchantPlace: place._id, isActive: true, validUntil: { $gte: new Date() }
+        });
+        if (activeCount >= MERCHANT_PROMO_MAX_ACTIVE) {
+            return res.status(400).json({
+                message: `لا يمكن تجاوز ${MERCHANT_PROMO_MAX_ACTIVE} كوداً فعّالاً — أوقف كوداً قديماً أولاً`
+            });
+        }
+
+        const built = await buildMerchantPromoFields(req.body, place);
+        if (built.error) return res.status(400).json({ message: built.error });
+
+        const promo = await PromoCode.create({
+            ...built.values,
+            code,
+            // 🔒 مفروضة خادمياً — انظر التعليق أعلى القسم
+            appliesTo: 'products',
+            places: [place._id],
+            merchantPlace: place._id,
+            city: place.city || 'all',
+            createdBy: req.user._id,
+            isActive: true
+        });
+
+        res.status(201).json(promo);
+    } catch (err) {
+        // الكود فريد عالمياً — التصادم بين متجرين وارد ويجب أن يُشرح
+        if (err && err.code === 11000) {
+            return res.status(409).json({ message: 'هذا الكود مستخدم بالفعل، اختر كوداً آخر' });
+        }
+        logger.error({ err: err.message }, 'merchant promo create error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// PUT /api/merchant/promo-codes/:id — تعديل كوده هو
+router.put('/promo-codes/:id', protect, merchantOnly, async (req, res) => {
+    try {
+        const place = await merchantPlaceOr404(req, res);
+        if (!place) return;
+
+        // 🔒 merchantPlace في المرشّح لا في الفحص بعد الجلب: كود الإدارة
+        //    المحصور بهذا المتجر لا يُطابَق أصلاً فلا يمكن تعديله.
+        const existing = await PromoCode.findOne({ _id: req.params.id, merchantPlace: place._id });
+        if (!existing) return res.status(404).json({ message: 'الكود غير موجود' });
+
+        const built = await buildMerchantPromoFields(req.body, place);
+        if (built.error) return res.status(400).json({ message: built.error });
+
+        Object.assign(existing, built.values);
+        // الكود نفسه لا يُعدَّل بعد الإنشاء: قد يكون وُزّع بالفعل، وتغييره
+        // يُبطل ما في أيدي العملاء بلا أن يعلموا. الإيقاف هو الطريق الصحيح.
+        if (typeof req.body.isActive === 'boolean') existing.isActive = req.body.isActive;
+        await existing.save();
+
+        res.json(existing);
+    } catch (err) {
+        logger.error({ err: err.message }, 'merchant promo update error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// DELETE /api/merchant/promo-codes/:id — حذف كوده هو
+router.delete('/promo-codes/:id', protect, merchantOnly, async (req, res) => {
+    try {
+        const place = await merchantPlaceOr404(req, res);
+        if (!place) return;
+        const gone = await PromoCode.findOneAndDelete({ _id: req.params.id, merchantPlace: place._id });
+        if (!gone) return res.status(404).json({ message: 'الكود غير موجود' });
+        res.json({ message: 'تم حذف الكود' });
+    } catch (err) {
+        logger.error({ err: err.message }, 'merchant promo delete error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+
+// ──────────────────────────────────────────────
 // 🛒 ORDERS (Merchant receives & manages orders)
 // ──────────────────────────────────────────────
 
