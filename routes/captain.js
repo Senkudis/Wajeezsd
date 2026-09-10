@@ -139,6 +139,66 @@ router.get('/profile-details', protect, captainOnly, async (req, res) => {
 });
 
 // ==========================================
+// 🏷️ 2.5 ملخّص وسوم تقييمي — "لماذا" لا "كم"
+// ==========================================
+// النجوم وحدها تقول للكابتن رقماً لا يعرف كيف يحرّكه. الوسوم مخزّنة منذ
+// البداية (models/Rating.tags، رموز ثابتة من utils/ratingTags) ولها فهرس
+// مخصّص للتجميع — لكن لم يقرأها أحد قطّ. هذا المسار يجمعها لصاحبها وحده.
+//
+// isHidden: false إجباري — التقييم الذي أخفته الإدارة كمسيء لا يصحّ أن
+// يعود للظهور من باب آخر (نفس مبدأ إصلاح نجوم المتجر).
+router.get('/rating-summary', protect, captainOnly, async (req, res) => {
+    try {
+        const Rating = require('../models/Rating');
+        const { POSITIVE_TAGS, NEGATIVE_TAGS, summarizeTags } = require('../utils/ratingTags');
+
+        const days = Math.min(Math.max(parseInt(req.query.days, 10) || 90, 1), 365);
+        const since = new Date(Date.now() - days * 86400000);
+
+        const match = {
+            targetType: 'captain',
+            targetId: req.user._id,
+            isHidden: false,
+            createdAt: { $gte: since }
+        };
+
+        const [tagRows, scoreRows] = await Promise.all([
+            Rating.aggregate([
+                { $match: match },
+                { $unwind: '$tags' },
+                { $group: { _id: '$tags', count: { $sum: 1 } } }
+            ]),
+            Rating.aggregate([
+                { $match: match },
+                { $group: { _id: '$score', count: { $sum: 1 }, sum: { $sum: '$score' } } }
+            ])
+        ]);
+
+        const counts = Object.fromEntries(tagRows.map(r => [r._id, r.count]));
+
+        const totalRated = scoreRows.reduce((a, r) => a + r.count, 0);
+        const scoreSum   = scoreRows.reduce((a, r) => a + r.sum, 0);
+        const scores = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        for (const r of scoreRows) scores[r._id] = r.count;
+
+        res.json({
+            days,
+            totalRated,
+            // متوسط الفترة وحدها — يختلف عن averageRating (مدى الحياة) عمداً:
+            // الكابتن يريد أن يعرف هل تحسّن مؤخّراً، لا معدّله التاريخي.
+            average: totalRated ? Number((scoreSum / totalRated).toFixed(2)) : null,
+            scores,
+            positive: summarizeTags(POSITIVE_TAGS, counts),
+            negative: summarizeTags(NEGATIVE_TAGS, counts)
+        });
+
+    } catch (error) {
+        logger.error({ err: error.message }, 'Captain rating summary error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ==========================================
 // 📍 3. جلب الكباتن المتاحين (للخريطة - LIVE)
 // ==========================================
 // ✅ FIX #11: Added protect — captain locations & phone numbers were exposed without a token

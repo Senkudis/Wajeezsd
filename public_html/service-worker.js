@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-3bcaaace';
+const CACHE_NAME = 'wajeez-static-fdf296b8';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',

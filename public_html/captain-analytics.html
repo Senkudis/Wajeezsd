@@ -176,6 +176,23 @@
             <canvas id="earningsChart" height="160"></canvas>
         </div>
 
+        <!-- 🏷️ ملخّص وسوم التقييم — "لماذا" لا "كم".
+             النجوم رقمٌ لا يعرف الكابتن كيف يحرّكه؛ الوسم يقول ما الذي يتكرّر.
+             الفترة هنا ثابتة (٩٠ يوماً) ولا تتبع مُبدّل الأعلى: عيّنة اليوم
+             الواحد أصغر من أن تُقرأ كنمط. -->
+        <div class="chart-card mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-chat-square-heart me-1"></i> ماذا قال العملاء</h6>
+                <small class="text-muted" id="tags-period">آخر ٩٠ يوماً</small>
+            </div>
+            <div id="tags-summary">
+                <div class="text-center text-muted py-3">
+                    <div class="spinner-border spinner-border-sm"></div>
+                    <span class="ms-2">جاري التحميل...</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Recent Trips -->
         <div class="chart-card mb-3">
             <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-1"></i> آخر الرحلات</h6>
@@ -321,6 +338,66 @@
         `).join('');
         }
 
+        // 🏷️ ملخّص الوسوم
+        function renderTagSummary(d) {
+            const el = document.getElementById('tags-summary');
+            const pos = d.positive || [];
+            const neg = d.negative || [];
+
+            document.getElementById('tags-period').textContent =
+                `آخر ${d.days} يوماً · ${d.totalRated} تقييماً`;
+
+            if (!d.totalRated) {
+                el.innerHTML = '<p class="text-center text-muted py-3 mb-0">لا تقييمات في هذه الفترة بعد.</p>';
+                return;
+            }
+            if (!pos.length && !neg.length) {
+                // قُيّم لكن بلا وسوم — حالة حقيقية، ورسالتها ليست "لا يوجد تقييم"
+                el.innerHTML = '<p class="text-center text-muted py-3 mb-0">لم يُضِف العملاء ملاحظات محدّدة على تقييماتك.</p>';
+                return;
+            }
+
+            // شريط نسبي داخل كل مجموعة: المقارنة المفيدة هي بين الوسوم لا مع رقم مطلق
+            const maxCount = Math.max(...[...pos, ...neg].map(t => t.count), 1);
+            const row = (t, color) => `
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="flex-shrink-0" style="width:38%;font-size:12.5px;">${esc(t.label)}</div>
+                    <div class="flex-grow-1 rounded" style="background:#f0f0f0;height:8px;overflow:hidden;">
+                        <div style="width:${Math.round(t.count / maxCount * 100)}%;height:100%;background:${color};"></div>
+                    </div>
+                    <div class="flex-shrink-0 fw-bold" style="width:26px;font-size:12px;">${esc(t.count)}</div>
+                </div>`;
+
+            const group = (title, icon, list, color) => list.length ? `
+                <div class="mb-3">
+                    <div class="fw-bold mb-2" style="font-size:12.5px;color:${color};">
+                        <i class="bi ${icon} me-1"></i>${esc(title)}
+                    </div>
+                    ${list.map(t => row(t, color)).join('')}
+                </div>` : '';
+
+            el.innerHTML =
+                group('ما أُشيد به', 'bi-hand-thumbs-up-fill', pos, '#0a8754') +
+                group('ما تكرّرت الشكوى منه', 'bi-exclamation-triangle-fill', neg, '#dc3545') +
+                (neg.length ? `<div class="text-muted" style="font-size:11.5px;">
+                    معالجة أكثر بندٍ تكراراً أعلاه هي أسرع طريق لرفع تقييمك.
+                </div>` : '');
+        }
+
+        async function loadTagSummary() {
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/captain/rating-summary?days=90`, {
+                    headers: Auth.getAuthHeader()
+                });
+                if (!res.ok) throw new Error('rating-summary ' + res.status);
+                renderTagSummary(await res.json());
+            } catch (e) {
+                console.error('Rating summary error:', e);
+                document.getElementById('tags-summary').innerHTML =
+                    '<p class="text-center text-muted py-3 mb-0">تعذّر تحميل ملاحظات العملاء.</p>';
+            }
+        }
+
         async function loadData() {
             try {
                 // Load stats
@@ -359,6 +436,8 @@
         }
 
         loadData();
+        // مستقلّ عن loadData: فشل أحدهما يجب ألا يُفرغ الآخر
+        loadTagSummary();
     </script>
 
     <script src="js/theme-manager.js?v=0daaeecd"></script>

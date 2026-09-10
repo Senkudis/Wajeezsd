@@ -65,6 +65,26 @@ function sanitizeTags(input) {
     return out;
 }
 
+/**
+ * يحوّل عدّادات خامّة { code: count } إلى قائمة معروضة لمجموعةٍ من الوسوم.
+ *
+ * القاعدتان هنا هما ما يجعل الملخّص مقروءاً:
+ *   • الترتيب بالتكرار تنازلياً — أكثر ما يتكرّر أوّلاً، فهو ما يستحقّ الانتباه.
+ *   • حذف ما عدّاده صفر — اثنا عشر وسماً أغلبها صفر ضجيجٌ يُخفي الوسم الوحيد
+ *     الذي يهمّ. الغياب نفسه معلومة: ما لا يُذكر لم يحدث.
+ *
+ * @param {Array<{code:string,label:string}>} list مجموعة الوسوم (ثناء أو شكوى)
+ * @param {Object<string,number>} counts عدّادات مفتاحها رمز الوسم
+ * @returns {Array<{code:string,label:string,count:number}>}
+ */
+function summarizeTags(list, counts) {
+    const c = counts || {};
+    return (list || [])
+        .map(t => ({ code: t.code, label: TAG_LABELS[t.code] || t.code, count: c[t.code] || 0 }))
+        .filter(t => t.count > 0)
+        .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+}
+
 module.exports = {
     POSITIVE_TAGS,
     NEGATIVE_TAGS,
@@ -72,5 +92,6 @@ module.exports = {
     TAG_CODES,
     TAG_LABELS,
     MAX_TAGS_PER_RATING,
-    sanitizeTags
+    sanitizeTags,
+    summarizeTags
 };
