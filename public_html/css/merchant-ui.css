@@ -544,7 +544,14 @@ body {
 /* ── 13. Floating Action Button ── */
 .m-fab {
     position: fixed;
-    bottom: calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 80px);
+    /* 📏 فوق الشريط السفلي بارتفاعه **المقيس** لا برقمٍ مخمَّن.
+       80px كانت صحيحة على جهاز المطوّر وحده: ارتفاع الشريط محكوم بمحتواه،
+       وأندرويد يسمح بتكبير خط النظام وحجم العرض (DPI). عند التكبير يتجاوز
+       الشريط 80px فيقع الزر خلفه ويختفي؛ وعلى شاشة صغيرة يبقى معلّقاً بعيداً.
+       --wj-nav-h يضبطه js/safe-area.js بالقياس، ويتضمّن --sab أصلاً (الشريط
+       يحمل padding-bottom: var(--sab)) فلا يُضاف مرة أخرى.
+       الاحتياطي داخل var() يعيد السلوك القديم حرفياً لو تعذّر القياس. */
+    bottom: calc(var(--wj-nav-h, calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 80px)) + 14px);
     left: 20px;
     width: 54px;
     height: 54px;
@@ -558,7 +565,10 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 999;
+    /* أعلى من الشريط (1000) عمداً: لو فشل القياس لأي سبب فالأسوأ أن يتراكب
+       الزر مع الشريط — وهو مرئيٌّ وقابل للضغط. بـ 999 كان الفشل يعني اختفاءً
+       تامّاً، وهو ما شكا منه التجّار. */
+    z-index: 1001;
     transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

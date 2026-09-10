@@ -823,14 +823,17 @@ body.cap-body {
 /* خلوص أسفل المحتوى للصفحات التي تحمل الشريط بلا .cap-body (فذاك يوفّره
    بنفسه). الشريط ثابت فوق المحتوى، فبدون هذا الخلوص يختفي آخر عنصر تحته. */
 .cap-nav-clearance {
-    padding-bottom: calc(84px + var(--sab, 0px)) !important;
+    /* 📏 مقيس لا مخمَّن — نفس علّة .m-fab: ارتفاع الشريط يكبر بتكبير خط
+       النظام أو حجم العرض (DPI)، فيختفي آخر المحتوى خلفه.
+       --wj-nav-h يضبطه js/safe-area.js بالقياس ويتضمّن --sab أصلاً. */
+    padding-bottom: calc(var(--wj-nav-h, calc(84px + var(--sab, 0px))) + 12px) !important;
 }
 
 /* ── 15. زر النجدة ─────────────────────────────────────────── */
 /* فوق شريط التنقل، على اليسار الفعلي لمنع أي تداخل مع زر الوضع الليلي أو إبهام اليد */
 .cap-sos {
     position: fixed !important;
-    bottom: calc(78px + var(--sab, 0px)) !important;
+    bottom: calc(var(--wj-nav-h, calc(78px + var(--sab, 0px))) + 10px) !important;
     /* ⚠️ لا تُضِف inset-inline-* هنا: الخصائص المنطقية تُكتب بعد الفيزيائية
        فتهزمها في نفس الكتلة، وهي في RTL معكوسة (inset-inline-start = right).
        كان السطران `inset-inline-start/end: unset` يُلغيان left وright أعلاه
@@ -1356,6 +1359,6 @@ body:has(.captain-nav) .theme-toggle {
        كانت تُصفّرها فيلتصق الزر بحافة اليمين فوق زر النجدة. */
     right: 16px !important;
     left: auto !important;
-    bottom: calc(78px + var(--sab, 0px)) !important;
+    bottom: calc(var(--wj-nav-h, calc(78px + var(--sab, 0px))) + 10px) !important;
     z-index: 999 !important;
 }

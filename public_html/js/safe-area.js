@@ -76,6 +76,41 @@
         }
     }
 
+    // ══════════════════════════════════════════════════════════════
+    // 📏 ارتفاع الشريط السفلي — يُقاس ولا يُخمَّن
+    //
+    // كان الارتفاع مكتوباً رقماً في ثلاثة مواضع (80px في .m-fab وفي حشوة
+    // body، و84px في .cap-nav-clearance). والرقم تخمينٌ صحيح على جهاز
+    // المطوّر فقط: ارتفاع الشريط محكومٌ بمحتواه (أيقونة 1.4rem + نصّ
+    // 10.5px + حشوة)، وأندرويد يسمح للمستخدم بتكبير حجم الخط وحجم العرض
+    // (DPI) من إعدادات النظام. عند التكبير يتجاوز الشريط 80px فيقع زر
+    // الإضافة **خلفه** (z-index الشريط 1000 والزر 999) ⇒ يختفي تماماً.
+    // وعلى شاشة صغيرة يبقى الزر معلّقاً بعيداً عن الشريط.
+    //
+    // القياس يجعل الموضع صحيحاً على كل جهاز بلا استثناء. ولاحظ أن الشريط
+    // يحمل padding-bottom: var(--sab) في CSS، فارتفاعه المقيس **يتضمّن**
+    // منطقة الأمان — لذلك لا يُضاف --sab فوقه مرة أخرى.
+    // ══════════════════════════════════════════════════════════════
+    var NAV_SELECTOR = '.merchant-nav, .captain-nav, .bottom-nav-bar';
+    var _navObserver = null;
+
+    function measureBottomNav() {
+        var nav = document.querySelector(NAV_SELECTOR);
+        if (!nav) return 0;
+        var h = Math.round(nav.getBoundingClientRect().height);
+        if (h > 0) {
+            document.documentElement.style.setProperty('--wj-nav-h', h + 'px');
+        }
+
+        // الشريط يتغيّر ارتفاعه بتغيّر مقياس خط النظام أو الدوران أو تبدّل
+        // الوضع الليلي — والمراقب يعيد القياس بلا انتظار حدثٍ نعرفه مسبقاً.
+        if (!_navObserver && typeof ResizeObserver !== 'undefined') {
+            _navObserver = new ResizeObserver(function () { measureBottomNav(); });
+            _navObserver.observe(nav);
+        }
+        return h;
+    }
+
     function setup() {
         injectVars();
         if (!document.body) return;
@@ -103,11 +138,16 @@
         }
 
         // 2) خلوص أسفل body — الأشرطة السفلية نفسها تُبطَّن من CSS (انظر الأعلى)
+        var navH = measureBottomNav();
         if (document.querySelector('.merchant-nav')) {
             if (!document.getElementById('wj-safe-area-merchant')) {
                 var s = document.createElement('style');
                 s.id = 'wj-safe-area-merchant';
-                s.textContent = 'body { padding-bottom: calc(80px + var(--sab, env(safe-area-inset-bottom, 0px))) !important; }';
+                // --wj-nav-h مقيسٌ ويتضمّن --sab أصلاً. الاحتياطي يعيد
+                // السلوك القديم حرفياً لو تعذّر القياس.
+                s.textContent = 'body { padding-bottom: calc(' +
+                    'var(--wj-nav-h, calc(80px + var(--sab, env(safe-area-inset-bottom, 0px))))' +
+                    ' + 12px) !important; }';
                 document.head.appendChild(s);
             }
         } else if (insets.bottom > 0 && !document.querySelector('link[href*="mobile-overrides"]')) {

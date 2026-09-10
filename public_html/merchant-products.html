@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/merchant-ui.css?v=fca49c8f">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=77d14bdd">
     <script src="js/config.js?v=977449f7"></script>
-    <script src="js/safe-area.js?v=176d6050"></script>
+    <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <style>
@@ -56,9 +56,10 @@
         }
         .merchant-nav a.active, .merchant-nav a:hover { color: #f59e0b; }
         .merchant-nav a i { font-size: 1.4rem; margin-bottom: 2px; }
-        .fab {
-            position: fixed; bottom: 80px; left: 20px;
-            width: 56px; height: 56px; border-radius: 50%;
+        /* ⚠️ كانت هنا قاعدة `.fab` بلا قوس إغلاق، فيبتلعها المحلّل مع
+           `.category-badge` كاملةً — أي أن شارات التصنيف كانت بلا أنماط
+           إطلاقاً في هذه الصفحة. والقاعدة نفسها ميتة: الزرّ يستعمل
+           `.m-fab` من merchant-ui.css. حُذفت وبقيت الشارة. */
         .category-badge {
             font-size: 11px; padding: 2px 10px; border-radius: 20px;
             background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 600;
