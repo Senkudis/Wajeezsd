@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit'); // 🛡️ Rate Limiting
 const router = express.Router();
 const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -7,6 +8,35 @@ const Marketer = require('../models/Marketer');
 const Referral = require('../models/Referral');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const { generateReferralCode } = require('../utils/otp');
+const logger = require('../utils/logger');
+
+// ─────────────────────────────────────────────
+// 🛡️ حدود المعدّل — المسارات العامة أدناه بلا كلمة مرور، فالتخمين الآلي
+// هو التهديد الحقيقي: كود المسوّق قصير، ودخوله يكشف أسماء وهواتف المتاجر.
+// ─────────────────────────────────────────────
+const marketerLoginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 دقيقة
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false },
+    handler: (req, res) => {
+        const retryAfter = Math.ceil((res.getHeader('Retry-After') || 900));
+        res.status(429).json({ message: 'محاولات دخول كثيرة. يرجى الانتظار.', retryAfter });
+    }
+});
+
+const marketerRegisterLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // ساعة
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false },
+    handler: (req, res) => {
+        const retryAfter = Math.ceil((res.getHeader('Retry-After') || 3600));
+        res.status(429).json({ message: 'طلبات تسجيل كثيرة. يرجى الانتظار.', retryAfter });
+    }
+});
 
 // ─────────────────────────────────────────────
 // PUBLIC ROUTES (بدون توثيق)
@@ -30,7 +60,7 @@ router.get('/validate/:code', async (req, res) => {
 });
 
 // تسجيل مسوق جديد ذاتياً
-router.post('/register', async (req, res) => {
+router.post('/register', marketerRegisterLimiter, async (req, res) => {
     try {
         const { name, phone, notes } = req.body;
         if (!name || !phone) {
@@ -63,12 +93,13 @@ router.post('/register', async (req, res) => {
         await marketer.save();
         res.status(201).json({ message: 'تم استلام طلبك بنجاح، سيتم التواصل معك قريباً' });
     } catch (err) {
-        res.status(500).json({ message: 'خطأ في الخادم', error: err.message });
+        logger.error({ err: err.message }, 'Referral route error');
+        res.status(500).json({ message: 'خطأ في الخادم' });
     }
 });
 
 // دخول المسوق بكوده ورقم هاتفه
-router.post('/marketer-login', async (req, res) => {
+router.post('/marketer-login', marketerLoginLimiter, async (req, res) => {
     try {
         const { phone, referralCode } = req.body;
         const marketer = await Marketer.findOne({
@@ -167,7 +198,8 @@ router.post('/marketers', protect, adminOnly, async (req, res) => {
         await marketer.save();
         res.status(201).json(marketer);
     } catch (err) {
-        res.status(500).json({ message: 'خطأ في الخادم', error: err.message });
+        logger.error({ err: err.message }, 'Referral route error');
+        res.status(500).json({ message: 'خطأ في الخادم' });
     }
 });
 
@@ -215,7 +247,8 @@ router.patch('/marketers/:id', protect, adminOnly, async (req, res) => {
         if (!marketer) return res.status(404).json({ message: 'المسوق غير موجود' });
         res.json({ message: 'تم التحديث بنجاح', marketer });
     } catch (err) {
-        res.status(500).json({ message: 'خطأ في الخادم', error: err.message });
+        logger.error({ err: err.message }, 'Referral route error');
+        res.status(500).json({ message: 'خطأ في الخادم' });
     }
 });
 
@@ -264,7 +297,8 @@ router.patch('/referrals/:id', protect, adminOnly, async (req, res) => {
         if (!referral) return res.status(404).json({ message: 'الإحالة غير موجودة' });
         res.json({ message: 'تم التحديث', referral });
     } catch (err) {
-        res.status(500).json({ message: 'خطأ في الخادم', error: err.message });
+        logger.error({ err: err.message }, 'Referral route error');
+        res.status(500).json({ message: 'خطأ في الخادم' });
     }
 });
 
@@ -276,7 +310,8 @@ router.get('/referrals', protect, adminOnly, async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(referrals);
     } catch (err) {
-        res.status(500).json({ message: 'خطأ في الخادم', error: err.message });
+        logger.error({ err: err.message }, 'Referral route error');
+        res.status(500).json({ message: 'خطأ في الخادم' });
     }
 });
 
@@ -333,7 +368,8 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
             recentReferrals
         });
     } catch (err) {
-        res.status(500).json({ message: 'خطأ في الخادم', error: err.message });
+        logger.error({ err: err.message }, 'Referral route error');
+        res.status(500).json({ message: 'خطأ في الخادم' });
     }
 });
 
