@@ -24,6 +24,8 @@ const adminLogSchema = new mongoose.Schema({
             // المتاجر والأقسام
             'approve_store', 'reject_store', 'delete_store',
             'create_category', 'update_category', 'delete_category',
+            // 🎯 متابعة فرص التسجيل من كلمات البحث الفاشلة
+            'search_lead_status',
             // المالية
             'debt_zero', 'debt_partial', 'debt_add',
             'approve_payment', 'reject_payment',

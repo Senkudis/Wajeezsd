@@ -278,16 +278,29 @@ router.get('/errand-stats', protect, requirePermission('view_stats'), async (req
         const since = new Date(Date.now() + 3 * 60 * 60 * 1000 - days * 86400000)
             .toISOString().slice(0, 10);
 
-        const [daily, topQueries, failedQueries, learnedCount, topPlaces] = await Promise.all([
+        const [daily, topQueries, failedQueries, learnedCount, topPlaces, leadsClosed] = await Promise.all([
             PlaceSearchStat.find({ city, day: { $gte: since } }).sort({ day: 1 }).lean(),
             PlaceSearchQuery.find({ city }).sort({ searches: -1 }).limit(10)
                 .select('query searches emptyCount lastResultCount lastAt').lean(),
-            // الأثمن: ما يطلبه العملاء ولا نجده — قائمة تسجيل متاجر جاهزة
-            PlaceSearchQuery.find({ city, emptyCount: { $gt: 0 } }).sort({ emptyCount: -1 }).limit(15)
+            // الأثمن: ما يطلبه العملاء ولا نجده — قائمة تسجيل متاجر جاهزة.
+            // المعالَج والمتجاهَل يخرجان: القائمة عملٌ منتظر لا تقرير ساكن.
+            // $nin لا { leadStatus: 'open' } — الكلمات المسجَّلة قبل إضافة
+            // الحقل لا تحمله، و$nin يطابق الغياب.
+            PlaceSearchQuery.find({
+                city,
+                emptyCount: { $gt: 0 },
+                leadStatus: { $nin: ['handled', 'ignored'] }
+            }).sort({ emptyCount: -1 }).limit(15)
                 .select('query searches emptyCount lastAt').lean(),
             ExternalPlace.countDocuments({ city }),
             ExternalPlace.find({ city }).sort({ usageCount: -1 }).limit(10)
-                .select('name usageCount address').lean()
+                .select('name usageCount address').lean(),
+            // عدّاد ما عولج — بدونه تبدو القائمة وكأنها تنكمش بلا سبب
+            PlaceSearchQuery.countDocuments({
+                city,
+                emptyCount: { $gt: 0 },
+                leadStatus: { $in: ['handled', 'ignored'] }
+            })
         ]);
 
         const sum = (k) => daily.reduce((a, d) => a + (d[k] || 0), 0);
@@ -310,10 +323,56 @@ router.get('/errand-stats', protect, requirePermission('view_stats'), async (req
                 day: d.day, searches: d.searches, googleCalls: d.googleCalls,
                 cacheHits: d.cacheHits, localOnly: d.localOnly, emptyResults: d.emptyResults
             })),
-            topQueries, failedQueries, learnedCount, topPlaces
+            topQueries, failedQueries, learnedCount, topPlaces, leadsClosed
         });
     } catch (err) {
         logger.error({ err: err.message }, 'errand stats error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   PATCH /api/places/errand-stats/lead
+// @desc    🎯 أدمن: علّم كلمة بحث فاشلة كمُعالَجة أو متجاهَلة
+// ============================================================
+// لماذا صلاحية manage_stores لا view_stats: القراءة تقرير، وهذا فعلٌ يغيّر
+// قائمة عمل فريق التسجيل. من يملك الاطّلاع على الإحصاءات وحدها لا يقرّر
+// ما عولج منها.
+router.patch('/errand-stats/lead', protect, requirePermission('manage_stores'), async (req, res) => {
+    try {
+        const PlaceSearchQuery = require('../models/PlaceSearchQuery');
+
+        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const city = VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum';
+        const query = String(req.body.query || '').trim().slice(0, 120);
+        const status = req.body.status;
+
+        if (!query) return res.status(400).json({ message: 'الكلمة مطلوبة' });
+        // 'open' مقبول عمداً: التراجع عن تعليمٍ خاطئ يجب أن يكون ممكناً
+        if (!['open', 'handled', 'ignored'].includes(status)) {
+            return res.status(400).json({ message: 'حالة غير صالحة' });
+        }
+
+        // بلا upsert: الكلمة يجب أن تكون مسجَّلة فعلاً من بحثٍ حقيقي.
+        // الإدراج هنا كان يسمح بحشو السجلّ بكلمات لم يبحث عنها أحد.
+        const updated = await PlaceSearchQuery.findOneAndUpdate(
+            { city, query },
+            {
+                $set: {
+                    leadStatus: status,
+                    leadNote: String(req.body.note || '').trim().slice(0, 300),
+                    leadAt: status === 'open' ? null : new Date(),
+                    leadBy: status === 'open' ? null : req.user._id
+                }
+            },
+            { new: true }
+        ).select('query leadStatus leadNote leadAt').lean();
+
+        if (!updated) return res.status(404).json({ message: 'الكلمة غير موجودة في السجل' });
+
+        logAdminAction(req, 'search_lead_status', `${city}: "${query}" ⇐ ${status}`).catch(() => {});
+        res.json(updated);
+    } catch (err) {
+        logger.error({ err: err.message }, 'search lead update error');
         res.status(500).json({ message: 'Server Error' });
     }
 });

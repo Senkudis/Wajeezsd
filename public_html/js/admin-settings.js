@@ -317,8 +317,13 @@ if (compressBtn) {
             </div>
         </div>`;
 
-    const queryTable = (title, rows, countKey, countLabel, emptyMsg) => {
+    // 🎯 لا فحص صلاحية هنا: الصفحة كلها محروسة بـ data-perm="__super__"
+    //    (admin-settings.html) فمن يبلغ هذا الكود مسؤول رئيسي حتماً. الضابط
+    //    الحقيقي على الخادم — requirePermission('manage_stores') على المسار.
+
+    const queryTable = (title, rows, countKey, countLabel, emptyMsg, withActions) => {
         if (!rows || !rows.length) return `<div class="text-muted mb-3" style="font-size:12px;">${esc(title)}: ${esc(emptyMsg)}</div>`;
+        const showActions = !!withActions;
         return `
         <div class="mb-3">
             <div class="fw-bold mb-1" style="font-size:12.5px;">${esc(title)}</div>
@@ -326,11 +331,20 @@ if (compressBtn) {
                 <table class="table table-sm mb-0" style="font-size:12px;">
                     <thead><tr>
                         <th>الكلمة</th><th>${esc(countLabel)}</th><th>آخر مرة</th>
+                        ${showActions ? '<th class="text-nowrap">الإجراء</th>' : ''}
                     </tr></thead>
                     <tbody>${rows.map(r => `<tr>
                         <td>${esc(r.query)}</td>
                         <td>${esc(r[countKey])}</td>
                         <td class="text-muted">${esc(fmtDate(r.lastAt))}</td>
+                        ${showActions ? `<td class="text-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-success py-0 px-1 js-lead"
+                                data-q="${esc(r.query)}" data-status="handled"
+                                title="سُجّل المتجر أو تُوبع الطلب">تمّت المعالجة</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 js-lead"
+                                data-q="${esc(r.query)}" data-status="ignored"
+                                title="ليست فرصة — خطأ إملائي أو خارج نطاقنا">تجاهل</button>
+                        </td>` : ''}
                     </tr>`).join('')}</tbody>
                 </table>
             </div>
@@ -360,9 +374,14 @@ if (compressBtn) {
                 <i class="bi bi-lightbulb-fill"></i>
                 <b>فرصة:</b> الكلمات أدناه بحث عنها عملاء ولم يجدوا شيئاً — هذه قائمة متاجر جاهزة لفريق التسجيل،
                 أو دليل على أن منطقة التوصيل أضيق من الطلب الحقيقي.
+                علّم ما عالجته ليخرج من القائمة.
             </div>` : ''}
 
-            ${queryTable('بحث لم يجد شيئاً', failed, 'emptyCount', 'مرات الفشل', 'لا يوجد — كل عمليات البحث وجدت نتائج')}
+            ${queryTable('بحث لم يجد شيئاً', failed, 'emptyCount', 'مرات الفشل',
+                d.leadsClosed ? 'لا فرص مفتوحة — عولجت كلها' : 'لا يوجد — كل عمليات البحث وجدت نتائج', true)}
+            ${d.leadsClosed ? `<div class="text-muted mb-3" style="font-size:11.5px;">
+                <i class="bi bi-check2-circle"></i> ${esc(d.leadsClosed)} كلمة عولجت أو تُجوهلت سابقاً — مُستبعَدة من القائمة أعلاه.
+            </div>` : ''}
             ${queryTable('الأكثر بحثاً', d.topQueries, 'searches', 'مرات البحث', 'لا توجد بيانات بعد')}
 
             ${(d.topPlaces && d.topPlaces.length) ? `
@@ -390,9 +409,44 @@ if (compressBtn) {
             if (!res.ok) throw new Error('تعذّر تحميل الإحصاءات');
             render(await res.json());
         } catch (err) {
-            body.innerHTML = `<span class="text-danger">${err.message || 'تعذّر الاتصال بالسيرفر'}</span>`;
+            console.error('Search stats load error:', err);
+            body.innerHTML = '<span class="text-danger">تعذّر الاتصال بالسيرفر. حاول مجدداً.</span>';
         }
     }
+
+    // 🎯 تعليم حالة الفرصة. مفوَّض على الحاوية لا على كل زر: الجدول يُعاد
+    //    بناؤه بالكامل عند كل تحميل، فالمستمعات المربوطة بالأزرار تموت معه.
+    body.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.js-lead');
+        if (!btn) return;
+
+        const query  = btn.dataset.q;
+        const status = btn.dataset.status;
+        const city   = document.getElementById('citySelector')?.value || 'Khartoum';
+
+        // منع النقر المزدوج: الطلب في الطريق والصفّ ما زال ظاهراً
+        const row = btn.closest('tr');
+        row.querySelectorAll('.js-lead').forEach(b => { b.disabled = true; });
+
+        try {
+            const res = await fetch(`${API_URL}/api/places/errand-stats/lead`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ city, query, status })
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || 'HTTP ' + res.status);
+            }
+            // إعادة تحميل: العدّادات والقائمة معاً — الصفّ وحده لا يكفي
+            load();
+        } catch (err) {
+            console.error('Lead status update failed:', err);
+            row.querySelectorAll('.js-lead').forEach(b => { b.disabled = false; });
+            row.insertAdjacentHTML('beforeend',
+                '<td class="text-danger" style="font-size:11px;">تعذّر الحفظ</td>');
+        }
+    });
 
     document.getElementById('reloadSearchStatsBtn')?.addEventListener('click', load);
     // الإحصاءات تخصّ المدينة المختارة — تتبع نفس المُبدّل كبقية الصفحة
@@ -480,7 +534,8 @@ if (compressBtn) {
             if (!res.ok) throw new Error('تعذّر تحميل الأخطاء');
             render(await res.json());
         } catch (err) {
-            body.innerHTML = `<span class="text-danger">${err.message || 'تعذّر الاتصال بالسيرفر'}</span>`;
+            console.error('Error log load error:', err);
+            body.innerHTML = '<span class="text-danger">تعذّر الاتصال بالسيرفر. حاول مجدداً.</span>';
         }
     }
 

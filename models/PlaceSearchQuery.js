@@ -18,12 +18,26 @@ const PlaceSearchQuerySchema = new mongoose.Schema({
     searches:         { type: Number, default: 0 },
     emptyCount:       { type: Number, default: 0 },   // مرات لم تُرجع أي نتيجة
     lastResultCount:  { type: Number, default: 0 },
-    lastAt:           { type: Date, default: Date.now }
+    lastAt:           { type: Date, default: Date.now },
+
+    // ── 🎯 متابعة الفرصة ──
+    // قائمة "بحث لم يجد شيئاً" كانت تقريراً ساكناً: نفس الخمس عشرة كلمة كل
+    // مرة، بلا أثرٍ لما عالجه الفريق. الحقول أدناه تحوّلها إلى قائمة عمل —
+    // ما عولج يخرج من القائمة، وما بقي هو ما ينتظر فعلاً.
+    //
+    // 'open' ليس افتراضاً مكتوباً على المستندات القديمة (الكلمات المسجَّلة
+    // قبل هذا الحقل لا تحمله)، فالقراءة تستعمل $nin لا { leadStatus: 'open' }.
+    leadStatus: { type: String, enum: ['open', 'handled', 'ignored'], default: 'open' },
+    leadNote:   { type: String, default: '', maxlength: 300 },
+    leadAt:     { type: Date, default: null },
+    leadBy:     { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true });
 
 PlaceSearchQuerySchema.index({ city: 1, query: 1 }, { unique: true });
 // المسار الساخن في اللوحة: الأكثر بحثاً، والأكثر فشلاً
 PlaceSearchQuerySchema.index({ city: 1, searches: -1 });
 PlaceSearchQuerySchema.index({ city: 1, emptyCount: -1 });
+// قائمة العمل: الفرص المفتوحة في مدينة، مرتّبة بالأكثر فشلاً
+PlaceSearchQuerySchema.index({ city: 1, leadStatus: 1, emptyCount: -1 });
 
 module.exports = mongoose.model('PlaceSearchQuery', PlaceSearchQuerySchema);
