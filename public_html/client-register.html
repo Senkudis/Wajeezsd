@@ -511,8 +511,9 @@
                     .then(() => window.location.replace('index.html'));
 
             } catch (err) {
-                // 🐛 DEBUG: Show raw error for Release APK debugging
-                alert('[Google Auth Debug]\nCode: ' + (err?.code || 'N/A') + '\nMessage: ' + (err?.message || JSON.stringify(err)));
+                // تفاصيل الخطأ في الكونسول فقط. كان هنا alert تشخيصي
+                // بالإنجليزية يظهر للمستخدم قبل الرسالة العربية — ويظهر حتى
+                // عند مجرّد إغلاق نافذة جوجل، وهي حالة يُفترض أن تمرّ صامتة.
                 console.error('Google sign-in error:', err);
                 if (err.message && (err.message.toLowerCase().includes('cancel') || err.message.toLowerCase().includes('dismiss'))) {
                     // silent — user just closed the picker
