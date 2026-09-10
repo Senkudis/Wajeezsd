@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { VEHICLE_VALUES } = require('../utils/vehicleTypes');
 
 // مخططات التحقق من مسارات المصادقة (auth).
 // رسائل الأخطاء بالعربية لتظهر مباشرة للمستخدم.
@@ -18,4 +19,11 @@ const loginSchema = z.object({
     password: z.string().min(1, 'يرجى إدخال كلمة المرور'),
 }).passthrough();
 
-module.exports = { registerSchema, loginSchema };
+// تسجيل الكابتن. كان المسار الوحيد بلا مخطّط رغم أنه يُنشئ حساباً كاملاً.
+// vehicleType خصوصاً: قيمة خارج القائمة كانت تصل إلى Mongoose فيرفضها enum
+// ويسقط الطلب في catch العام ⇒ 500 بدل 400 برسالة مفهومة.
+const captainRegisterSchema = registerSchema.extend({
+    vehicleType: z.enum(VEHICLE_VALUES, { message: 'وسيلة التوصيل غير صالحة' }),
+});
+
+module.exports = { registerSchema, loginSchema, captainRegisterSchema };

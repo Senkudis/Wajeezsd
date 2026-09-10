@@ -7,7 +7,7 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const { validateAuth } = require('../middleware/validateMiddleware');
 const { validate } = require('../middleware/validate');
-const { registerSchema, loginSchema } = require('../schemas/authSchema');
+const { registerSchema, loginSchema, captainRegisterSchema } = require('../schemas/authSchema');
 const { protect } = require('../middleware/authMiddleware'); // Auto-im= ported
 const { sendWhatsAppOTP } = require('../services/whatsappService');
 const { sendSmsOTP } = require('../services/smsService');
@@ -209,7 +209,7 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
 // ==========================================
 // 🚀 تسجيل كابتن جديد (Captain Self-Signup)
 // ==========================================
-router.post('/register-captain', otpLimiter, async (req, res) => {
+router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), async (req, res) => {
     try {
         let { name, email, phone, password, vehicleType } = req.body;
 
