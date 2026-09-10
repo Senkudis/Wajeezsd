@@ -250,7 +250,9 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
             promos = data;
             renderPromos();
         } catch(e) {
-            document.getElementById('promoGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-exclamation-circle" style="color:#ef4444;font-size:2rem;"></i><p>${e.message}</p></div>`;
+            // data.message قد يكون undefined فيُعرض حرفياً "undefined".
+            console.error('Load promo codes error:', e);
+            document.getElementById('promoGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-exclamation-circle" style="color:#ef4444;font-size:2rem;"></i><p>تعذّر تحميل الكوبونات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="loadPromos()">أعد المحاولة</button></p></div>';
         }
     }
 

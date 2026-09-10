@@ -282,7 +282,9 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                 requests = await res.json();
                 renderTable();
             } catch (err) {
-                document.getElementById('requestsTable').innerHTML = `<tr><td colspan="6" class="text-danger text-center">خطأ في التحميل: ${err.message}</td></tr>`;
+                // كان الخطأ يُبتلع بلا تسجيل، ونصّه الخام يُحقن في DOM.
+                console.error('Load merchant requests error:', err);
+                document.getElementById('requestsTable').innerHTML = '<tr><td colspan="6" class="text-danger text-center">تعذّر تحميل الطلبات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="loadRequests()">أعد المحاولة</button></td></tr>';
             }
         }
 

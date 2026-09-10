@@ -453,7 +453,9 @@ async function applyFilters() {
         filterClientSide();
     } catch (err) {
         console.error('Load history error:', err);
-        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="fas fa-exclamation-circle"></i> حدث خطأ في تحميل البيانات: ${err.message}</td></tr>`;
+        // نص الخطأ الخام (رسالة المتصفح أو رد السيرفر) لا يُحقن في DOM —
+        // غير مفهوم للمستخدم، وقد يكون undefined، والحقن عبر innerHTML خطر.
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><i class="fas fa-exclamation-circle"></i> تعذّر تحميل البيانات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="applyFilters()">أعد المحاولة</button></td></tr>';
     }
 }
 
