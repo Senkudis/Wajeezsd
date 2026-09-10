@@ -3,8 +3,9 @@ const User = require('../models/User');
 const axios = require('axios');
 const logger = require('./logger');
 
-// مسار البوت المحلي (للتطوير) أو من متغير البيئة (للإنتاج)
-const BOT_API_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3000';
+// مسار البوت من متغير البيئة. لا افتراضي إلى localhost:3000 — هذا هو
+// السيرفر نفسه في الإنتاج، فالفحص كان طلباً ذاتياً ينتهي بـ 404 دائماً.
+const BOT_API_URL = (process.env.WHATSAPP_BOT_URL || '').trim();
 // 🔒 لا مفتاح مكتوب حرفياً — يُضبط عبر لوحة البيئة (نفس سياسة .htaccess).
 const BOT_API_KEY = process.env.WHATSAPP_API_KEY || '';
 
@@ -12,6 +13,7 @@ const BOT_API_KEY = process.env.WHATSAPP_API_KEY || '';
  * التحقق من اشتراك المستخدم في البوت
  */
 async function checkBotSubscription(phone) {
+    if (!BOT_API_URL) return false; // الخدمة معطّلة ⇒ لا اشتراك
     try {
         const response = await axios.get(`${BOT_API_URL}/check-subscription/${phone}`, {
             headers: { 'x-api-key': BOT_API_KEY }

@@ -2,7 +2,14 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 
 // ✅ يقرأ من .env — غيّر WHATSAPP_BOT_URL في السيرفر لرابط Render
-const BOT_API_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3000';
+// ⚠️ لا افتراضي إلى localhost:3000: هذا هو السيرفر نفسه في الإنتاج، فكل
+//    إرسال كان طلباً ذاتياً ينتهي بـ 404 بعد مهلة 15 ثانية ويملأ اللوج
+//    بأخطاء تبدو كعطل في البوت. الغياب يعني "الخدمة معطّلة" لا "جرّب محلياً".
+const BOT_API_URL = (process.env.WHATSAPP_BOT_URL || '').trim();
+const WHATSAPP_ENABLED = !!BOT_API_URL;
+if (!WHATSAPP_ENABLED) {
+    logger.warn('WHATSAPP_BOT_URL غير مضبوط — إرسال واتساب معطّل (لا محاولات شبكة)');
+}
 // 🔒 لا مفتاح مكتوب حرفياً — يُضبط عبر لوحة البيئة (نفس سياسة .htaccess).
 const BOT_API_KEY = process.env.WHATSAPP_API_KEY || '';
 if (!BOT_API_KEY) {
@@ -25,6 +32,7 @@ const botApi = axios.create({
  * @param {string} message - The message content (containing the OTP)
  */
 const sendWhatsAppOTP = async (phone, message) => {
+    if (!WHATSAPP_ENABLED) return null;
     try {
         const response = await botApi.post('/send-message', {
             number: phone,
@@ -48,6 +56,7 @@ const mongoose = require('mongoose');
  * @param {string} message - The notification content
  */
 const sendWhatsAppNotification = async (phone, message) => {
+    if (!WHATSAPP_ENABLED) return null;
     try {
         let targetId = phone; // Default fallback
 
@@ -79,5 +88,6 @@ const sendWhatsAppNotification = async (phone, message) => {
 
 module.exports = {
     sendWhatsAppOTP,
-    sendWhatsAppNotification
+    sendWhatsAppNotification,
+    WHATSAPP_ENABLED
 };

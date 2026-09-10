@@ -108,7 +108,12 @@ router.get('/check-subscription/:phone', otpLimiter, async (req, res) => {
         if (!phone || !/^\d{6,15}$/.test(phone)) {
             return res.status(400).json({ subscribed: false, error: 'رقم غير صالح' });
         }
-        const BOT_API_URL = process.env.BOT_API_URL || 'http://localhost:3000'; // Local Bot Service
+        // لا افتراضي إلى localhost:3000 — هذا هو السيرفر نفسه، فالوكيل كان
+        // يستدعي ذاته على مسار غير موجود وينتظر المهلة ثم يردّ 404.
+        const BOT_API_URL = (process.env.BOT_API_URL || process.env.WHATSAPP_BOT_URL || '').trim();
+        if (!BOT_API_URL) {
+            return res.status(200).json({ subscribed: false, error: 'Service Disabled' });
+        }
         const BOT_API_KEY = process.env.WHATSAPP_API_KEY || '';
 
         const response = await axios.get(
