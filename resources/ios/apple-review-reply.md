@@ -7,6 +7,13 @@
 >
 > استبدل ما بين `[ ]` ببياناتك قبل الإرسال.
 >
+> ⚠️ **حقل Notes محدود بـ 4000 محرف** — والنصّ الكامل أطول منه. للصقه في
+> Notes استعمل النسخة المقتضبة: `resources/ios/apple-review-notes.txt`.
+> النصّ الكامل هنا للصقه في **Messages** حيث لا حدّ.
+>
+> ⚠️ **لا حساب تاجر:** `create-review-accounts.js` يُنشئ عميلاً وكابتناً فقط.
+> حُذف ذكر حساب التاجر من هنا — الوعد بحساب لا تُعطيه سببُ رفضٍ مستقلّ.
+>
 > **الفيديو — موضعان لا واحد:**
 > 1. **مرفقاً** في رسالة Messages (زرّ المشبك). هذا الموضع الوحيد الذي يقبل ملفاً.
 > 2. **رابطاً** في `[VIDEO_LINK]` أعلاه. ضروريّ لأن حقل *Notes* لا يقبل مرفقات
@@ -71,8 +78,6 @@ account used to sign in.
   live tracking.
 - **Captain (courier) account** — `[CAPTAIN_PHONE]` / `[CAPTAIN_PASSWORD]`
   Shows the courier side: available orders, accepting a job, and delivery.
-- **Merchant account** — `[MERCHANT_PHONE]` / `[MERCHANT_PASSWORD]`
-  Shows the store owner side: products, incoming orders, and reports.
 
 No sample files are required. All features are reachable without payment.
 

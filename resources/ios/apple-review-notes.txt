@@ -1,0 +1,71 @@
+1. SCREEN RECORDING
+Captured on a physical iPhone, latest iOS: [VIDEO_LINK]
+It begins with launching the app and shows: registration and login, creating
+and tracking a delivery order, reporting a store review, report and block in
+the in-app chat, and in-app account deletion. There is no paid content and no
+in-app purchases.
+
+2. PURPOSE AND TARGET AUDIENCE
+Wajeez is a local delivery service in Sudan (Khartoum and Port Sudan). Today
+deliveries are arranged by phone with individual couriers: prices are haggled
+verbally, the customer cannot see where the parcel is, and no record survives
+if something goes wrong. Wajeez replaces that. A customer marks pickup
+and drop-off on a map and says what they need; nearby couriers ("captains")
+accept the listed price or propose another; the customer chooses, follows the
+captain live on the map, and pays cash on delivery. Customers can also browse
+local stores, order products, and chat with the captain or store.
+Audience: adults in Sudan needing parcels, groceries or restaurant orders
+delivered, and small merchants selling beyond walk-in customers. Rated 4+, no
+age-restricted content. A public consumer app, not an employee-only one.
+
+3. SETUP AND ACCESS
+One binary, three roles; the role comes from the account signed in. Sign in
+with phone number and password.
+- Customer: [CLIENT_PHONE] / [PASSWORD] - use this for the main review. From
+  the home screen set pickup and drop-off on the map, choose a price, submit.
+  The order appears under "My Orders" with live tracking.
+- Captain (courier): [CAPTAIN_PHONE] / [PASSWORD] - the courier side:
+  available orders, accepting a job, and delivery.
+No sample files needed; every feature works without payment.
+
+CONTENT REPORTING AND BLOCKING (Guideline 1.2). The app shows user-written
+store reviews, so both mechanisms exist:
+- Report a review: open a store, tap "Customer Reviews", tap the report
+  button under a review, pick a reason, submit.
+- Report or block a user: open a chat, tap the header menu, then report abuse
+  or block user. A blocked user can no longer exchange messages with the
+  person who blocked them.
+- Reports reach our moderation dashboard, where offending reviews are hidden
+  and abusive accounts suspended.
+
+ACCOUNT DELETION is in-app for every role: side menu > Delete Account for
+customers; Profile > Delete Account for captains and merchants.
+
+LOCATION. Background location is requested for the captain role only, and only
+during an active delivery, so the waiting customer sees the courier move. It
+stops when the delivery ends. Customers never request it.
+
+4. EXTERNAL SERVICES
+Google Maps SDK and Places API (maps, search, geocoding, routes); Google
+Sign-In (optional login); Firebase Cloud Messaging (push); BRQ SMS gateway
+(passcodes); WhatsApp Business API (opt-in notifications); SMTP email
+(password reset); MongoDB Atlas (database).
+No payment processor: payment is cash to the courier on delivery, and the app
+never collects card or bank details. No AI service, no ad network, and no SDK
+tracking users across apps or websites - matching our App Privacy answers,
+where tracking is declared "No".
+
+5. REGIONAL DIFFERENCES
+None. A single build, identical features and content everywhere. The service
+operates in two Sudanese cities, and a user's city decides which couriers and
+stores they see, but no feature, screen or content is enabled or disabled by
+region or App Store storefront.
+
+6. REGULATED INDUSTRY / THIRD-PARTY MATERIAL
+Not a regulated industry: a general courier and local-delivery service. No
+financial services, healthcare, gambling, or pharmaceuticals sold by us. Some
+listed stores are pharmacies, but the app only delivers for them; it does not
+sell, prescribe or describe medicines. All content is our own or uploaded by
+merchants through their own accounts, under terms granting us the right to
+display their store name, products and images. No protected third-party
+material is used.
