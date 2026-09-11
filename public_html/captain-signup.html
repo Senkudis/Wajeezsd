@@ -25,6 +25,7 @@
     <script src="js/city-service.js?v=61f2b7a7"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
+    <script src="js/image-compress.js?v=b4a6b0be"></script>
 
     <style>
         :root {
@@ -154,6 +155,49 @@
 
         .vehicle-option .vehicle-icon {
             font-size: 2rem;
+        }
+
+        /* بطاقة الإقرار: النصّ ثابت والفراغان حقلان — نفس شكل الورقة */
+        .pledge-card {
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            font-size: 13px;
+            line-height: 2.2;
+        }
+        body.dark-mode .pledge-card { background: #374151; border-color: #4b5563; }
+
+        .pledge-blank {
+            border: none;
+            border-bottom: 2px dotted var(--primary);
+            background: transparent;
+            font-weight: 800;
+            color: inherit;
+            padding: 0 6px;
+            min-width: 130px;
+            outline: none;
+            font-family: inherit;
+            font-size: 13px;
+        }
+        .pledge-blank:focus { border-bottom-style: solid; background: rgba(4,140,91,.06); }
+        .pledge-blank.is-invalid { border-bottom-color: #dc2626; }
+
+        /* رسالة الخطأ تحت الحقل نفسه — الشريط أعلى النموذج لا يُرى حين
+           يكون المستخدم أسفل خطوةٍ طويلة، فيبدو الخطأ صامتاً. */
+        .field-error {
+            display: none;
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .field-error.show { display: block; }
+
+        .form-control.is-invalid,
+        .form-select.is-invalid {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 .18rem rgba(220,38,38,.15);
         }
 
         .success-animation {
@@ -295,11 +339,13 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold small">الاسم الكامل</label>
                     <input type="text" id="name" class="form-control form-control-lg" placeholder="أحمد محمد">
+                    <div class="field-error" id="name-error"></div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">المدينة / المنطقة</label>
                     <select id="city" class="form-select form-control-lg" required>
+                    <div class="field-error" id="city-error"></div>
                         <option value="" disabled selected>— اختر المدينة —</option>
                         <option value="Khartoum">الخرطوم - أم درمان</option>
                         <option value="PortSudan">البحر الأحمر - بورتسودان</option>
@@ -310,18 +356,21 @@
                     <label class="form-label fw-bold small">البريد الإلكتروني</label>
                     <input type="email" id="email" class="form-control form-control-lg" placeholder="name@example.com"
                         dir="ltr">
+                    <div class="field-error" id="email-error"></div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">رقم الهاتف</label>
                     <input type="tel" id="phone" class="form-control form-control-lg" placeholder="0912345678"
                         dir="ltr">
+                    <div class="field-error" id="phone-error"></div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">كلمة المرور</label>
                     <input type="password" id="password" class="form-control form-control-lg"
                         placeholder="6 أحرف على الأقل">
+                    <div class="field-error" id="password-error"></div>
                 </div>
 
                 <button class="btn btn-success w-100 py-3 fw-bold" onclick="goToStep(2)">
@@ -337,37 +386,37 @@
                     <div class="col-4">
                         <div class="vehicle-option" data-vehicle="motorcycle"
                             onclick="selectVehicle(this, 'motorcycle')">
-                            <div class="vehicle-icon">🏍️</div>
+                            <div class="vehicle-icon"><i class="bi bi-scooter"></i></div>
                             <div class="small fw-bold mt-1">موتر</div>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="vehicle-option" data-vehicle="electric" onclick="selectVehicle(this, 'electric')">
-                            <div class="vehicle-icon">⚡</div>
+                            <div class="vehicle-icon"><i class="bi bi-ev-front-fill"></i></div>
                             <div class="small fw-bold mt-1">موتر كهربائي</div>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="vehicle-option" data-vehicle="bicycle" onclick="selectVehicle(this, 'bicycle')">
-                            <div class="vehicle-icon">🚲</div>
+                            <div class="vehicle-icon"><i class="bi bi-bicycle"></i></div>
                             <div class="small fw-bold mt-1">عجلة هوائية</div>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="vehicle-option" data-vehicle="rickshaw" onclick="selectVehicle(this, 'rickshaw')">
-                            <div class="vehicle-icon">🛺</div>
+                            <div class="vehicle-icon"><i class="bi bi-taxi-front-fill"></i></div>
                             <div class="small fw-bold mt-1">ركشة</div>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="vehicle-option" data-vehicle="car" onclick="selectVehicle(this, 'car')">
-                            <div class="vehicle-icon">🚗</div>
+                            <div class="vehicle-icon"><i class="bi bi-car-front-fill"></i></div>
                             <div class="small fw-bold mt-1">سيارة</div>
                         </div>
                     </div>
                     <div class="col-4">
                         <div class="vehicle-option" data-vehicle="van" onclick="selectVehicle(this, 'van')">
-                            <div class="vehicle-icon">🚐</div>
+                            <div class="vehicle-icon"><i class="bi bi-truck-front-fill"></i></div>
                             <div class="small fw-bold mt-1">عربة نقل</div>
                         </div>
                     </div>
@@ -409,17 +458,20 @@
                     <label class="form-label fw-bold small">الرقم الوطني *</label>
                     <input type="text" id="nationalId" class="form-control form-control-lg"
                         inputmode="numeric" maxlength="14" placeholder="11 رقماً">
+                    <div class="field-error" id="nationalId-error"></div>
                     <div class="form-text small">11 رقماً بالضبط كما في بطاقتك.</div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">المنطقة *</label>
                     <input type="text" id="address" class="form-control form-control-lg" placeholder="مثال: الرياض - مربع 5">
+                    <div class="field-error" id="address-error"></div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">رقم الواتساب *</label>
                     <input type="tel" id="whatsapp" class="form-control form-control-lg" placeholder="0912345678" dir="ltr">
+                    <div class="field-error" id="whatsapp-error"></div>
                 </div>
 
                 <hr>
@@ -427,15 +479,18 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold small">الاسم *</label>
                     <input type="text" id="emergencyContactName" class="form-control" placeholder="اسم من نتصل به">
+                    <div class="field-error" id="emergencyContactName-error"></div>
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label fw-bold small">رقمه *</label>
                         <input type="tel" id="emergencyPhone" class="form-control" placeholder="09xxxxxxxx" dir="ltr">
+                    <div class="field-error" id="emergencyPhone-error"></div>
                     </div>
                     <div class="col-6">
                         <label class="form-label fw-bold small">صلة القرابة *</label>
                         <input type="text" id="emergencyRelation" class="form-control" placeholder="أخ، والد...">
+                    <div class="field-error" id="emergencyRelation-error"></div>
                     </div>
                 </div>
 
@@ -466,7 +521,7 @@
                     <div>2. <b>التوقيت والسرعة:</b> الوقت هو معيارنا الأول. سيتم حساب «<b>متوسط زمن التوصيل</b>» لكل كابتن، ويؤثر هذا الزمن بشكل مباشر في تقييمك وحصولك على طلبات مستقبلية.</div>
                     <div>3. <b>إلغاء الطلبات:</b> يمنع منعاً باتاً إلغاء الطلب بعد قبوله إلا لظرف طارئ جداً وبالرجوع للإدارة. <b>كثرة الإلغاء تعرّض الحساب للتجميد</b>.</div>
 
-                    <div class="fw-bold mt-2">ثالثاً: التعامل مع العملاء والخصوصية (خط أحمر 🚫)</div>
+                    <div class="fw-bold mt-2" style="color:#b91c1c;">ثالثاً: التعامل مع العملاء والخصوصية (خط أحمر)</div>
                     <div>1. <b>الخصوصية:</b> يمنع منعاً باتاً التواصل مع العملاء (خاصة العنصر النسائي) لأي غرض خارج إطار التوصيل، أو حفظ أرقامهم بعد انتهاء الطلب. <b>أي مخالفة هنا تعرّض الكابتن للفصل الفوري والمساءلة القانونية</b>.</div>
                     <div>2. <b>تسليم الطلب:</b> الالتزام بتوصيل الطلب إلى «<b>باب العميل</b>» (Door-to-Door) طالما المنطقة آمنة، والتعامل بأسلوب مهذّب وراقٍ.</div>
                     <div>3. <b>سلامة الطرد:</b> الكابتن مسؤول مسؤولية كاملة عن <b>سلامة الطلب</b> من لحظة استلامه. في حال تلف الطلب بسبب الإهمال، يتحمّل الكابتن قيمته.</div>
@@ -494,15 +549,28 @@
 
                     <div class="text-muted text-center mt-2" style="font-size:11px;">© 2026 منصة وجيز — وثيقة رسمية</div>
                 </div>
+                <!-- الإقرار: النصّ جاهزٌ كما في البند السادس من الوثيقة، ولا
+                     يملأ الكابتن إلا اسمه ورقمه — كما كان يفعل على الورق.
+                     كتابة الفقرة كاملةً بالإبهام على هاتف احتكاكٌ بلا مقابل،
+                     وقيمة الإقرار في الموافقة الصريحة لا في إعادة النسخ. -->
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">الإقرار الخطي *</label>
-                    <!-- صيغة الإقرار هي نصّ البند السادس في الوثيقة حرفياً —
-                         هي ما كان الكابتن يوقّعه في الورقة، فلا تُصاغ من جديد. -->
-                    <textarea id="pledgeText" class="form-control" rows="4"
-                        placeholder="أقرّ أنا الكابتن/ (اسمك) بأنني قرأت جميع الشروط والضوابط المذكورة أعلاه، وأتعهّد بالالتزام بها تماماً، وأتحمّل كافة المسؤولية في حال مخالفتها."></textarea>
-                    <div class="form-text small">
-                        اكتب الإقرار بنفسك ويداً — يُحفظ مع طلبك كدليل موافقة على الوثيقة أعلاه.
+                    <label class="form-label fw-bold small">الإقرار والتعهّد *</label>
+                    <div class="pledge-card">
+                        <span>أقرّ أنا الكابتن/</span>
+                        <input type="text" id="pledgeName" class="pledge-blank" placeholder="اسمك الرباعي" autocomplete="name">
+                        <span>بأنني قرأت جميع الشروط والضوابط المذكورة أعلاه، وأتعهّد بالالتزام
+                              بها تماماً، وأتحمّل كافة المسؤولية في حال مخالفتها.</span>
+                        <span>رقم الهاتف:</span>
+                        <input type="tel" id="pledgePhone" class="pledge-blank" placeholder="09xxxxxxxx" dir="ltr" autocomplete="tel">
+                        <span>التاريخ: <b id="pledgeDate"></b></span>
                     </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="pledgeAgree">
+                        <label class="form-check-label fw-bold small" for="pledgeAgree">
+                            قرأت الوثيقة أعلاه وأوافق على كل ما فيها
+                        </label>
+                    </div>
+                    <div class="field-error" id="pledge-error"></div>
                 </div>
 
                 <div class="d-flex gap-2">
@@ -589,7 +657,7 @@
             <!-- Step 5: Success -->
             <div class="step-section" id="step-5">
                 <div class="success-animation">
-                    <div class="success-icon">✅</div>
+                    <div class="success-icon"><i class="bi bi-check-lg"></i></div>
                     <h4 class="fw-bold mb-2">تم إرسال طلبك!</h4>
                     <p class="text-muted">سيتم مراجعة بياناتك ووثائقك من قبل الإدارة. ستصلك رسالة عند القبول.</p>
                     <hr>
@@ -624,6 +692,71 @@
 
         function hideAlert() {
             document.getElementById('alert-box').classList.add('d-none');
+            clearFieldErrors();
+        }
+
+        // ── الخطأ عند الحقل، لا أعلى النموذج وحده ───────────────────────
+        // الشريط العلوي لا يُرى حين يكون المستخدم أسفل خطوةٍ طويلة، فيضغط
+        // «التالي» ولا يحدث شيء ظاهر — خطأٌ صامت. الآن: الحقل يُعلَّم بالأحمر،
+        // ورسالته تحته، والصفحة تمرّر إليه ويُركَّز عليه.
+        function clearFieldErrors() {
+            document.querySelectorAll('.is-invalid').forEach(function (el) {
+                el.classList.remove('is-invalid');
+            });
+            document.querySelectorAll('.field-error.show').forEach(function (el) {
+                el.classList.remove('show');
+                el.textContent = '';
+            });
+        }
+
+        /**
+         * @param {string} fieldId معرّف الحقل المخالف
+         * @param {string} msg     الرسالة بالعربية
+         * @param {string} [errorId] معرّف عنصر الرسالة (افتراضياً `${fieldId}-error`)
+         */
+        function showFieldError(fieldId, msg, errorId) {
+            clearFieldErrors();
+            var field = document.getElementById(fieldId);
+            var box = document.getElementById(errorId || (fieldId + '-error'));
+
+            if (field) field.classList.add('is-invalid');
+            if (box) { box.textContent = msg; box.classList.add('show'); }
+
+            // يبقى الشريط العلوي أيضاً — بعض الأخطاء عامة لا تخصّ حقلاً
+            showAlert(msg, 'error');
+
+            if (field) {
+                // block:'center' لا 'start': الترويسة اللاصقة تغطّي الحقل
+                try { field.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                catch (_) { field.scrollIntoView(); }
+                // التركيز بعد التمرير — التركيز الفوري يقفز بالصفحة ويُلغيه
+                setTimeout(function () { try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); } }, 320);
+            }
+        }
+
+        // ── الإقرار: يُركَّب من الحقلين بنصّ البند السادس حرفياً ──────────
+        // يُخزَّن نصّاً كاملاً لا حقولاً متفرّقة: هو الدليل القانوني على
+        // الموافقة، ويجب أن يُقرأ لاحقاً كما كان يُقرأ على الورق.
+        function buildPledgeText() {
+            const name = document.getElementById('pledgeName').value.trim();
+            const phone = document.getElementById('pledgePhone').value.trim();
+            const d = new Date();
+            const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            return `أقرّ أنا الكابتن/ ${name} بأنني قرأت جميع الشروط والضوابط المذكورة أعلاه، `
+                 + `وأتعهّد بالالتزام بها تماماً، وأتحمّل كافة المسؤولية في حال مخالفتها. `
+                 + `رقم الهاتف: ${phone} — التاريخ: ${date}`;
+        }
+
+        // الاسم والرقم مكتوبان في الخطوة الأولى — إعادة كتابتهما احتكاك بلا
+        // سبب. يُملآن تلقائياً ويبقيان قابلين للتعديل (قد يوقّع برقم آخر).
+        function prefillPledge() {
+            const n = document.getElementById('pledgeName');
+            const p = document.getElementById('pledgePhone');
+            if (n && !n.value.trim()) n.value = document.getElementById('name').value.trim();
+            if (p && !p.value.trim()) p.value = document.getElementById('phone').value.trim();
+            const d = new Date();
+            const el = document.getElementById('pledgeDate');
+            if (el) el.textContent = `${String(d.getDate()).padStart(2, '0')} / ${String(d.getMonth() + 1).padStart(2, '0')} / ${d.getFullYear()}`;
         }
 
         function selectVehicle(el, type) {
@@ -632,22 +765,45 @@
             selectedVehicle = type;
         }
 
-        function previewFile(input, fieldId) {
-            const file = input.files[0];
-            if (!file) return;
+        // الصور المضغوطة تُحفظ هنا بمعرّف الحقل — FormData يرفعها لا الأصل.
+        const compressedFiles = {};
+
+        async function previewFile(input, fieldId) {
+            const original = input.files[0];
+            if (!original) return;
 
             const preview = document.getElementById(`${fieldId}-preview`);
             const label = document.getElementById(`${fieldId}-label`);
             const zone = input.previousElementSibling || input.closest('.upload-zone') || label.closest('.upload-zone');
 
+            label.textContent = 'جاري تجهيز الصورة...';
+
+            // ⚠️ الضغط قبل الرفع لا بعده: حدّ الخادم 5MB للملف، وكاميرا الهاتف
+            //    تُنتج 3-8MB. وهذا النموذج يرفع خمس صور في طلبٍ واحد — صورةٌ
+            //    واحدة فوق الحدّ كانت تُفشل الطلب كلّه فيبقى الكابتن بحسابٍ
+            //    بلا وثائق ولا يعرف السبب.
+            let file = original;
+            try {
+                if (window.WajeezImage) file = await window.WajeezImage.compress(original);
+            } catch (_) { file = original; }
+            compressedFiles[fieldId] = file;
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 preview.src = e.target.result;
                 preview.classList.remove('d-none');
-                label.textContent = file.name;
+                const size = window.WajeezImage
+                    ? window.WajeezImage.humanSize(file.size)
+                    : Math.round(file.size / 1024) + ' ك.ب';
+                label.textContent = `تم الاختيار (${size})`;
                 if (zone) zone.classList.add('has-file');
             };
             reader.readAsDataURL(file);
+        }
+
+        /** الملف الجاهز للرفع: المضغوط إن وُجد، وإلا ما اختاره المستخدم. */
+        function pickedFile(fieldId) {
+            return compressedFiles[fieldId] || (document.getElementById(fieldId).files[0] || null);
         }
 
         function goToStep(step) {
@@ -661,19 +817,25 @@
                 const password = document.getElementById('password').value;
                 const city = document.getElementById('city').value;
 
-                if (!name || !email || !phone || !password || !city) {
-                    showAlert('يرجى ملء جميع الحقول واختيار المدينة', 'error');
-                    return;
+                // رسالة جامعة («املأ جميع الحقول») تترك المستخدم يبحث بنفسه
+                // عن الناقص. كلٌّ يُشار إليه بعينه.
+                if (!name)  { showFieldError('name',  'الاسم الكامل مطلوب'); return; }
+                if (!city)  { showFieldError('city',  'اختر مدينتك'); return; }
+                if (!email) { showFieldError('email', 'البريد الإلكتروني مطلوب'); return; }
+                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+                    showFieldError('email', 'صيغة البريد الإلكتروني غير صحيحة'); return;
                 }
+                if (!phone) { showFieldError('phone', 'رقم الهاتف مطلوب'); return; }
+                if (!password) { showFieldError('password', 'كلمة المرور مطلوبة'); return; }
                 if (password.length < 6) {
-                    showAlert('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-                    return;
+                    showFieldError('password', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return;
                 }
             }
 
             if (step === 3 && currentStep === 2) {
                 if (!selectedVehicle) {
                     showAlert('اختر نوع المركبة', 'error');
+                    document.getElementById('step-2').scrollIntoView({ behavior: 'smooth', block: 'start' });
                     return;
                 }
             }
@@ -682,28 +844,39 @@
             //    رحلة الشبكة فيرى الكابتن الخطأ عند الحقل لا بعد الإرسال.
             if (step === 4 && currentStep === 3) {
                 const nid = document.getElementById('nationalId').value.replace(/\s/g, '');
+                if (!nid) { showFieldError('nationalId', 'الرقم الوطني مطلوب'); return; }
                 if (!/^\d{11}$/.test(nid)) {
-                    showAlert('الرقم الوطني يجب أن يتكون من 11 رقماً بالضبط', 'error');
+                    showFieldError('nationalId',
+                        `الرقم الوطني 11 رقماً بالضبط — أدخلت ${nid.length}`);
                     return;
                 }
                 const required = [
-                    ['address', 'المنطقة'],
-                    ['whatsapp', 'رقم الواتساب'],
-                    ['emergencyContactName', 'اسم جهة الطوارئ'],
-                    ['emergencyPhone', 'رقم الطوارئ'],
-                    ['emergencyRelation', 'صلة القرابة']
+                    ['address', 'المنطقة مطلوبة'],
+                    ['whatsapp', 'رقم الواتساب مطلوب'],
+                    ['emergencyContactName', 'اسم جهة الطوارئ مطلوب'],
+                    ['emergencyPhone', 'رقم الطوارئ مطلوب'],
+                    ['emergencyRelation', 'صلة القرابة مطلوبة']
                 ];
-                for (const [id, label] of required) {
+                for (const [id, msg] of required) {
                     if (!document.getElementById(id).value.trim()) {
-                        showAlert(`${label} مطلوب`, 'error');
+                        showFieldError(id, msg);
                         return;
                     }
                 }
-                if (document.getElementById('pledgeText').value.trim().length < 10) {
-                    showAlert('اكتب الإقرار الخطي كاملاً للموافقة على الشروط', 'error');
+                if (!document.getElementById('pledgeName').value.trim()) {
+                    showFieldError('pledgeName', 'اكتب اسمك في الإقرار', 'pledge-error'); return;
+                }
+                if (!document.getElementById('pledgePhone').value.trim()) {
+                    showFieldError('pledgePhone', 'اكتب رقم هاتفك في الإقرار', 'pledge-error'); return;
+                }
+                if (!document.getElementById('pledgeAgree').checked) {
+                    showFieldError('pledgeAgree', 'ضع علامة الموافقة على الشروط للمتابعة', 'pledge-error');
                     return;
                 }
             }
+
+            // تعبئة الإقرار عند دخول خطوته — بعد أن صار الاسم والرقم معروفين
+            if (step === 3) prefillPledge();
 
             // Navigate
             document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
@@ -746,7 +919,7 @@
                         emergencyContactName: document.getElementById('emergencyContactName').value.trim(),
                         emergencyPhone:       document.getElementById('emergencyPhone').value.trim(),
                         emergencyRelation:    document.getElementById('emergencyRelation').value.trim(),
-                        pledgeText:           document.getElementById('pledgeText').value.trim()
+                        pledgeText:           buildPledgeText()
                     })
                 });
 
@@ -761,11 +934,11 @@
 
                 // Step 2: Upload documents (if any)
                 const token = data.token;
-                const driverLicense = document.getElementById('driverLicense').files[0];
-                const profilePhoto = document.getElementById('profilePhoto').files[0];
-                const vehiclePhoto = document.getElementById('vehiclePhoto').files[0];
-                const idImage = document.getElementById('idImage').files[0];
-                const selfieImage = document.getElementById('selfieImage').files[0];
+                const driverLicense = pickedFile('driverLicense');
+                const profilePhoto = pickedFile('profilePhoto');
+                const vehiclePhoto = pickedFile('vehiclePhoto');
+                const idImage = pickedFile('idImage');
+                const selfieImage = pickedFile('selfieImage');
 
                 let docsUploaded = true;
                 if (driverLicense || profilePhoto || vehiclePhoto || idImage || selfieImage) {

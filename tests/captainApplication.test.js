@@ -137,10 +137,15 @@ describe('الإرشاد 4 — لا خروج إلى المتصفّح', () => {
     it('صفحة التسجيل تجمع حقول الموقع كلها', () => {
         const page = read('public_html/captain-signup.html');
         for (const id of ['nationalId', 'address', 'whatsapp', 'emergencyContactName',
-                          'emergencyPhone', 'emergencyRelation', 'pledgeText',
+                          'emergencyPhone', 'emergencyRelation',
                           'idImage', 'selfieImage', 'plateNumber', 'hasCarrier']) {
             expect(page).toContain(`id="${id}"`);
         }
+        // الإقرار لم يعد مربّع نصّ حرّ: صار نصّاً جاهزاً بفراغَي الاسم والرقم
+        // (انظر tests/signupUx.test.js) ويُركَّب عند الإرسال.
+        expect(page).toContain('id="pledgeName"');
+        expect(page).toContain('id="pledgePhone"');
+        expect(page).toContain('pledgeText:           buildPledgeText()');
     });
 
     it('تعرض الوثيقة الرسمية حرفياً لا نصّاً مُعاد صوغه', () => {
