@@ -7,11 +7,12 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/merchant-ui.css?v=77d14bdd">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
+    <script src="js/merchant-badges.js?v=9b14c4fd"></script>
     <style>
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
         body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
@@ -129,7 +130,9 @@
 
 <nav class="merchant-nav">
     <a href="merchant-dashboard.html"><i class="bi bi-house-door-fill"></i><span>الرئيسية</span></a>
-    <a href="merchant-products.html"><i class="bi bi-box-seam-fill"></i><span>المنتجات</span></a>
+    <a href="merchant-products.html" style="position:relative;"><i class="bi bi-box-seam-fill"></i><span>المنتجات</span>
+        <span class="m-badge" data-badge="products" hidden></span>
+    </a>
     <a href="merchant-inventory.html" class="active"><i class="bi bi-boxes"></i><span>المخزون</span></a>
     <a href="merchant-reports.html"><i class="bi bi-graph-up-arrow"></i><span>تقارير</span></a>
     <a href="merchant-finance.html"><i class="bi bi-wallet2"></i><span>محاسبة</span></a>

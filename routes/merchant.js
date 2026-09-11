@@ -315,6 +315,51 @@ router.patch('/products/:id/stock', protect, merchantOnly, async (req, res) => {
 
 
 // ──────────────────────────────────────────────
+// 🔴 BADGES (عدّادات «ما لم يكتمل» لشارات الأزرار)
+// ──────────────────────────────────────────────
+//
+// مسارٌ واحد بدل أربعة: الشارات تُحدَّث بالاستطلاع كل ثوانٍ ومن أكثر من
+// صفحة، فأربعة طلبات في كل دورة تُثقل شبكة الهاتف بلا داعٍ. وكلها عدّاداتٌ
+// تستفيد من فهارس قائمة أصلاً (place+status، placeId+isAvailable).
+//
+// ما يُعدّ هنا هو **ما ينتظر فعلاً من التاجر** لا كل شيء: طلبٌ جديد لم
+// يُقبل بعد، وطلبٌ جُهِّز ولم يُسلَّم، ورسالةٌ لم تُقرأ، ومنتجٌ نفد فلا
+// يُباع. الرقم الذي لا يقابله فعلٌ يُنهيه يصير زينةً تُتجاهَل.
+router.get('/badges', protect, merchantOnly, async (req, res) => {
+    try {
+        const place = await Place.findOne({ ownerId: req.user._id }).select('_id').lean();
+        if (!place) return res.json({ orders: 0, messages: 0, notifications: 0, products: 0 });
+
+        const Message = require('../models/Message');
+        const Notification = require('../models/Notification');
+        const { totalReachableUnread } = require('../utils/chatUnread');
+
+        const [newOrders, preparing, messages, notifications, outOfStock] = await Promise.all([
+            ShopOrder.countDocuments({ place: place._id, status: 'shop_pending' }),
+            ShopOrder.countDocuments({ place: place._id, status: 'shop_preparing' }),
+            totalReachableUnread(Message, req.user._id),
+            Notification.countDocuments({ user: req.user._id, isRead: false }),
+            // stock: null = غير محدود ⇒ لا يُعدّ. الصفر وحده نفادٌ فعلي.
+            Product.countDocuments({ placeId: place._id, stock: 0 })
+        ]);
+
+        res.json({
+            // طلباتٌ تنتظر قراراً أو تجهيزاً — كلاهما فعلٌ على التاجر
+            orders: newOrders + preparing,
+            newOrders,
+            preparing,
+            messages,
+            notifications,
+            products: outOfStock
+        });
+    } catch (err) {
+        logger.error({ err: err.message }, 'merchant badges error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+
+// ──────────────────────────────────────────────
 // 🎟️ PROMO CODES (أكواد خصم يُنشئها التاجر على بضاعته)
 // ──────────────────────────────────────────────
 //

@@ -67,6 +67,25 @@ router.get('/conversations', protect, async (req, res) => {
 
         if (!conversations.length) return res.json([]);
 
+        // 🔔 عدّاد غير المقروء — على الطلب الذي تفتحه المحادثة فعلاً.
+        //
+        // العطل: التجميع أعلاه يجمع **بالطرف الآخر** (محادثة واحدة لكل عميل)
+        // فكان unreadCount يعدّ رسائل ذلك العميل عبر **كل طلباته**. لكن شاشة
+        // الدردشة تفتح طلباً واحداً (lastOrderId — انظر رابط
+        // merchant-conversations.html) و POST /api/chat/read يُعلّم ذلك الطلب
+        // وحده. فرسائل طلبٍ أقدم من نفس العميل تبقى isRead:false إلى الأبد،
+        // ولا تُعرض في أي شاشة، ولا سبيل لتعليمها ⇒ شارة حمراء عالقة لا
+        // تنطفئ مهما قرأ التاجر. وهذا يحدث حتماً مع كل عميل متكرّر: كل طلب
+        // جديد مستند ShopOrder جديد، فمحادثته منفصلة.
+        //
+        // الحلّ: نعدّ ما تفتحه المحادثة وتستطيع تعليمه، فيتطابق ما يُعرَض مع
+        // ما يُمكن إنهاؤه. الرسائل الأقدم تبقى في القاعدة كما هي (لا تُمسّ)،
+        // فلو عُرضت المحادثة كاملةً يوماً لم يضِع منها شيء.
+        // التعريف مشترك مع عدّاد الشارة (utils/chatUnread) — نسخةٌ تفترق
+        // بينهما تُعيد العطل نفسه من الباب الآخر.
+        const { unreadByPeerAndOrder } = require('../utils/chatUnread');
+        const { key: unreadKey, map: unreadMap } = await unreadByPeerAndOrder(Message, userObjectId);
+
         const User = require('../models/User');
 
         const otherUserIds = conversations.map(c => c._id).filter(Boolean);
@@ -101,7 +120,8 @@ router.get('/conversations', protect, async (req, res) => {
                     ),
                     lastSender:    conv.lastSender,
                     lastMessageAt: conv.lastMessageAt,
-                    unreadCount:   conv.unreadCount,
+                    // ما يفتحه هذا السطر ويستطيع تعليمه — لا مجموع الطرف الآخر
+                    unreadCount:   unreadMap.get(unreadKey(conv._id, conv.lastOrderId)) || 0,
                     orderStatus:   order ? order.status : 'unknown'
                 };
             })

@@ -210,6 +210,63 @@ body {
     background: var(--m-amber);
 }
 
+/* ── 🔴 شارة «ما لم يكتمل» ──────────────────────────────────
+   تظهر وتختفي بتلاشٍ لا بقطع. الإخفاء بـ [hidden] + غياب .is-on:
+   display لا يقبل الانتقال إطلاقاً، فالإخفاء به وحده يجعل الشارة تختفي
+   فجأةً — والاختفاء المفاجئ يبدو كعطل لا كإنجاز. */
+.m-badge {
+    position: absolute;
+    top: 4px;
+    inset-inline-end: 4px;
+    z-index: 2;
+    min-width: 17px;
+    padding: 1px 5px;
+    background: var(--m-red, #ef4444);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.5;
+    text-align: center;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, .45);
+    /* الأرقام لاتينية والصفحة RTL — العزل يمنع انزلاق الشارة داخل النص */
+    unicode-bidi: isolate;
+    /* الحالة المخفية: مصغّرة وشفّافة، فالظهور ينمو من مكانه */
+    opacity: 0;
+    transform: scale(.4);
+    transition: opacity .18s ease, transform .18s cubic-bezier(.34, 1.56, .64, 1);
+    pointer-events: none;
+}
+
+.m-badge.is-on {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* نبضة واحدة عند ازدياد الرقم فقط — لفت النظر لا إزعاج */
+.m-badge.is-bump {
+    animation: mBadgeBump .45s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+@keyframes mBadgeBump {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+}
+
+/* من يفضّل تقليل الحركة يرى الشارة تظهر وتختفي بلا قفز */
+@media (prefers-reduced-motion: reduce) {
+    .m-badge { transition: opacity .18s ease; transform: none; }
+    .m-badge.is-on { transform: none; }
+    .m-badge.is-bump { animation: none; }
+}
+
+/* داخل شريط التنقل: فوق الأيقونة لا في زاوية الرابط */
+.merchant-nav .m-badge {
+    top: 5px;
+    inset-inline-end: calc(50% - 18px);
+}
+
 .merchant-nav .nav-badge {
     position: absolute;
     top: 7px;

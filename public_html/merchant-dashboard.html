@@ -11,11 +11,12 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/merchant-ui.css?v=77d14bdd">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
+    <script src="js/merchant-badges.js?v=9b14c4fd"></script>
     <style>
         :root {
             --primary: #048c5b;
@@ -126,9 +127,10 @@
             </a>
         </div>
         <div class="col-3">
-            <a href="merchant-products.html" class="m-quick-btn">
+            <a href="merchant-products.html" class="m-quick-btn" style="position:relative;">
                 <i class="bi bi-box-seam-fill" style="color:var(--m-blue);"></i>
                 <span>المنتجات</span>
+                <span class="m-badge" data-badge="products" hidden></span>
             </a>
         </div>
         <div class="col-3">
@@ -138,16 +140,17 @@
             </a>
         </div>
         <div class="col-3">
-            <a href="merchant-orders.html" class="m-quick-btn">
+            <a href="merchant-orders.html" class="m-quick-btn" style="position:relative;">
                 <i class="bi bi-bag-check-fill" style="color:var(--m-amber);"></i>
                 <span>الطلبات</span>
+                <span class="m-badge" data-badge="orders" hidden></span>
             </a>
         </div>
         <div class="col-3">
             <a href="merchant-conversations.html" class="m-quick-btn" style="position:relative;">
                 <i class="bi bi-chat-dots-fill" style="color:var(--m-amber);"></i>
                 <span>الرسائل</span>
-                <span id="dashConvBadge" class="nav-badge" style="display:none;"></span>
+                <span class="m-badge" data-badge="messages" hidden></span>
             </a>
         </div>
     </div>
@@ -277,19 +280,20 @@
         <i class="bi bi-house-door-fill"></i>
         <span>الرئيسية</span>
     </a>
-    <a href="merchant-orders.html">
+    <a href="merchant-orders.html" style="position:relative;">
         <i class="bi bi-bag-check-fill"></i>
         <span>الطلبات</span>
+        <span class="m-badge" data-badge="orders" hidden></span>
     </a>
     <a href="merchant-conversations.html" style="position:relative;">
         <i class="bi bi-chat-dots-fill"></i>
         <span>رسائل</span>
-        <span id="navConvBadge" class="nav-badge" style="display:none;"></span>
+        <span class="m-badge" data-badge="messages" hidden></span>
     </a>
     <a href="merchant-notifications.html" style="position:relative;">
         <i class="bi bi-bell-fill"></i>
         <span>إشعارات</span>
-        <span id="navNotifBadge" class="nav-badge" style="display:none;"></span>
+        <span class="m-badge" data-badge="notifications" hidden></span>
     </a>
     <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');">
         <i class="bi bi-box-arrow-right"></i>
@@ -753,29 +757,10 @@
     loadDashboard();
 
 
-    // ===== Unread conversations badge =====
-    async function loadUnreadBadge() {
-        try {
-            const res = await fetch(`${API_URL}/api/chat/conversations`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) return;
-            const data = await res.json();
-            const total = data.reduce((s, c) => s + (c.unreadCount || 0), 0);
-
-            const dashBadge = document.getElementById('dashConvBadge');
-            const navBadge  = document.getElementById('navConvBadge');
-            if (total > 0) {
-                if (dashBadge) { dashBadge.textContent = total; dashBadge.style.display = 'inline-block'; }
-                if (navBadge)  { navBadge.textContent  = total; navBadge.style.display  = 'inline-block'; }
-            } else {
-                if (dashBadge) dashBadge.style.display = 'none';
-                if (navBadge)  navBadge.style.display  = 'none';
-            }
-        } catch (_) {}
-    }
-    loadUnreadBadge();
-    setInterval(loadUnreadBadge, 15000);
+    // ===== الشارات =====
+    // نُقلت إلى js/merchant-badges.js: كانت تجلب كل المحادثات لتجمع رقماً
+    // واحداً، وتخصّ الرسائل وحدها. الوحدة المشتركة تجلب الأرقام الأربعة
+    // بطلبٍ واحد (/api/merchant/badges) وتخدم كل صفحات التاجر.
 
     // 🔄 Auto-refresh dashboard stats periodically (socket 'new_shop_order' is primary).
     setInterval(loadDashboard, 30000);
@@ -784,7 +769,6 @@
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
             loadDashboard();
-            loadUnreadBadge();
         }
     });
 </script>
