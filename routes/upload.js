@@ -181,7 +181,11 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
     const uploadFields = upload.fields([
         { name: 'driverLicense', maxCount: 1 },
         { name: 'profilePhoto', maxCount: 1 },
-        { name: 'vehiclePhoto', maxCount: 1 }
+        { name: 'vehiclePhoto', maxCount: 1 },
+        // 🪪 الهوية والسيلفي — كانا يُرفعان في موقع التسجيل الخارجي وحده.
+        //    السيلفي تحديداً هو ما يُطابَق بصورة الهوية عند المراجعة.
+        { name: 'idImage', maxCount: 1 },
+        { name: 'selfieImage', maxCount: 1 }
     ]);
 
     uploadFields(req, res, async (err) => {
@@ -204,6 +208,12 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
         }
         if (req.files.vehiclePhoto) {
             updates['documents.vehiclePhoto'] = `/uploads/documents/${req.files.vehiclePhoto[0].filename}`;
+        }
+        if (req.files.idImage) {
+            updates['documents.idImage'] = `/uploads/documents/${req.files.idImage[0].filename}`;
+        }
+        if (req.files.selfieImage) {
+            updates['documents.selfieImage'] = `/uploads/documents/${req.files.selfieImage[0].filename}`;
         }
 
         if (Object.keys(updates).length > 0) {

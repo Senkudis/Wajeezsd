@@ -230,6 +230,17 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
         user = await User.findOne({ phone });
         if (user) return res.status(400).json({ message: 'رقم الهاتف مسجل مسبقاً' });
 
+        // 🪪 الرقم الوطني فريد — نفس حماية موقع التسجيل المعتمد. بدونها يُسجّل
+        //    الشخص نفسه مرّات ببريد وهاتف مختلفين فيتكرّر الملف على المراجعة.
+        const nationalId = String(req.body.nationalId || '').replace(/\s/g, '');
+        const dupId = await User.findOne({ 'captainApplication.nationalId': nationalId })
+            .select('approvalStatus').lean();
+        if (dupId) {
+            const st = dupId.approvalStatus === 'approved' ? 'مقبول'
+                     : dupId.approvalStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
+            return res.status(409).json({ message: `هذا الرقم الوطني مسجل مسبقاً. حالة طلبك: ${st}.` });
+        }
+
         const verificationCode = generateOtpCode();
 
         // 🌍 Validate city
@@ -245,6 +256,20 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
             role: 'captain',
             city: captainCity,  // 🌍 City assignment
             approvalStatus: 'pending',
+            // 🪪 ملفّ الانتساب كما كان يجمعه الموقع الخارجي — يراه الأدمن في
+            //    شاشة «الكباتن المعلّقون» ويبني عليه قرار القبول.
+            captainApplication: {
+                nationalId,
+                address:              req.body.address,
+                plateNumber:          req.body.plateNumber || '',
+                whatsapp:             req.body.whatsapp,
+                emergencyPhone:       req.body.emergencyPhone,
+                emergencyContactName: req.body.emergencyContactName,
+                emergencyRelation:    req.body.emergencyRelation,
+                hasCarrier:           req.body.hasCarrier || '',
+                pledgeText:           req.body.pledgeText,
+                submittedAt:          new Date()
+            },
             isVerified: false,
             verificationCode,
             verificationCodeExpires: Date.now() + 10 * 60 * 1000,

@@ -279,7 +279,11 @@ async function loadErrandCategories() {
  *        فإعادةُ كتابته هنا احتكاكٌ بلا سبب — وأكثر ما يُفقد العملاء عند طريق مسدود.
  */
 window.openErrandPicker = async function (seedQuery) {
-    if (!localStorage.getItem('token')) { window.location.href = 'client-login.html'; return; }
+    // ⚠️ لا بوّابة تسجيل دخول هنا: هذه شاشة **تصفّح وبحث عن محلات**، لا ميزة
+    //    حسابية. كان الفتح يحوّل الزائر فوراً إلى client-login.html، وهو ما
+    //    رفضت آبل الإصدار بسببه (5.1.1(v)): «التطبيق يطلب التسجيل قبل تصفّح
+    //    المتاجر والخدمات والمنتجات — لا يُطلب التسجيل إلا لما يخصّ الحساب».
+    //    البوّابة الصحيحة عند **بدء الطلب** (errand-context.start) وهي قائمة.
     const sheet = document.getElementById('errandSheet');
     const searchInput = document.getElementById('errandSearch');
     const seed = String(seedQuery || '').trim();

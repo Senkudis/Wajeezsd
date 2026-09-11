@@ -1270,6 +1270,66 @@ function filterCaptains() {
     renderCaptainsTable(filtered);
 }
 
+// 🪪 ملفّ الانتساب — البيانات التي كان يجمعها موقع التسجيل الخارجي.
+//    بلا عرضها هنا تصير المراجعة قراراً بلا معلومات: الأدمن يقبل أو يرفض
+//    باسمٍ وهاتف فقط، ولا يرى الرقم الوطني ولا جهة الطوارئ ولا يطابق
+//    السيلفي بالهوية — وهو الغرض الأصلي من جمعها.
+function _captainDossier(c) {
+    const esc = window.escapeHtml;
+    const a = c.captainApplication || {};
+    const d = c.documents || {};
+    const base = (window.API_URL || '');
+    const img = (u, label) => u
+        ? `<a href="${base + esc(u)}" target="_blank" rel="noopener" title="${esc(label)}"
+             style="display:inline-block;margin:2px;">
+             <img src="${base + esc(u)}" alt="${esc(label)}"
+                  style="width:58px;height:58px;object-fit:cover;border-radius:8px;border:1px solid var(--gv-border);">
+           </a>`
+        : '';
+    const row = (label, val) => val
+        ? `<div style="display:flex;gap:6px;font-size:12px;padding:2px 0;">
+             <span style="color:var(--gv-dark-2);min-width:96px;">${esc(label)}</span>
+             <span style="font-weight:700;">${esc(val)}</span>
+           </div>`
+        : '';
+
+    const photos = [
+        img(d.idImage, 'الهوية'), img(d.selfieImage, 'سيلفي'),
+        img(d.driverLicense, 'الرخصة'), img(d.vehiclePhoto, 'المركبة'),
+        img(d.profilePhoto, 'شخصية')
+    ].filter(Boolean).join('');
+
+    // لا ملفّ أصلاً (كابتن سجّل قبل نقل النموذج) — نقولها صراحةً بدل بطاقة فارغة
+    if (!a.nationalId && !photos) {
+        return `<div style="flex-basis:100%;font-size:12px;color:var(--gv-dark-2);padding-top:8px;">
+            لا يوجد ملفّ انتساب لهذا الطلب (سجّل قبل تفعيل النموذج الجديد).
+        </div>`;
+    }
+
+    return `
+    <details style="flex-basis:100%;margin-top:8px;">
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--gv-primary);">
+            <i class="fas fa-id-card"></i> ملفّ الانتساب والوثائق
+        </summary>
+        <div style="padding:10px 4px 2px;">
+            ${row('الرقم الوطني', a.nationalId)}
+            ${row('المنطقة', a.address)}
+            ${row('واتساب', a.whatsapp)}
+            ${row('رقم اللوحة', a.plateNumber)}
+            ${row('صندوق حمل', a.hasCarrier === 'yes' ? 'نعم' : a.hasCarrier === 'no' ? 'لا' : '')}
+            ${row('جهة الطوارئ', [a.emergencyContactName, a.emergencyRelation, a.emergencyPhone].filter(Boolean).join(' — '))}
+            ${a.pledgeText ? `<div style="margin-top:8px;">
+                <div style="font-size:11.5px;color:var(--gv-dark-2);margin-bottom:2px;">الإقرار الخطي</div>
+                <div style="font-size:12px;background:#f8fafc;border-radius:8px;padding:8px;white-space:pre-wrap;">${esc(a.pledgeText)}</div>
+            </div>` : ''}
+            ${photos ? `<div style="margin-top:8px;">
+                <div style="font-size:11.5px;color:var(--gv-dark-2);margin-bottom:4px;">الوثائق (اضغط للتكبير)</div>
+                ${photos}
+            </div>` : '<div style="font-size:12px;color:#b45309;margin-top:8px;">⚠️ لم تُرفع أي وثيقة</div>'}
+        </div>
+    </details>`;
+}
+
 function renderPendingCaptains(pending) {
     const body = document.getElementById('pendingCaptainsBody');
     if (!pending.length) {
@@ -1291,6 +1351,7 @@ function renderPendingCaptains(pending) {
                 <button class="gv-btn gv-btn-success gv-btn-sm" onclick="approveCaptain('${c._id}')"><i class="fas fa-check"></i> قبول</button>
                 <button class="gv-btn gv-btn-danger gv-btn-sm" onclick="rejectCaptain('${c._id}')"><i class="fas fa-times"></i> رفض</button>
             </div>
+            ${_captainDossier(c)}
         </div>
         `;
     }).join('');

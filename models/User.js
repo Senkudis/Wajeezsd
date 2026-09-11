@@ -61,9 +61,41 @@ const UserSchema = new mongoose.Schema(
         documents: {
             driverLicense: { type: String },  // URL الرخصة
             profilePhoto: { type: String },   // صورة شخصية
-            vehiclePhoto: { type: String }    // صورة المركبة
+            vehiclePhoto: { type: String },   // صورة المركبة
+            // 🪪 صورة الهوية والسيلفي — كانا يُجمعان في موقع التسجيل الخارجي
+            // وحده. السيلفي تحديداً هو ما يُطابَق بصورة الهوية عند المراجعة،
+            // فبدونه تصير المراجعة توثيقاً ناقصاً.
+            idImage: { type: String },
+            selfieImage: { type: String }
         },
         rejectionReason: { type: String },
+
+        // ── 🛵 طلب انتساب الكابتن ──
+        //
+        // نُقل من موقع التسجيل الخارجي (captain.wajeezsd.com) الذي كان يخزّن
+        // في SQLite منفصلة. سبب النقل مباشر: آبل رفضت الإصدار بالإرشاد 4 لأن
+        // «التسجيل ككابتن» كان يفتح المتصفّح الافتراضي خارج التطبيق.
+        //
+        // ويبقى القبول/الرفض على approvalStatus وشاشة الأدمن القائمة — فآلية
+        // المراجعة كانت موجودة أصلاً، والموقع كان يكرّرها ببيانات أغنى. هذه
+        // الحقول هي تلك البيانات.
+        captainApplication: {
+            // الرقم الوطني السوداني: 11 رقماً بالضبط. فريدٌ عملياً — يُفحص
+            // في مسار التسجيل لأن sparse unique على حقل متداخل داخل مستند
+            // يخدم كل الأدوار يعقّد أكثر مما يفيد.
+            nationalId:           { type: String, default: '' },
+            address:              { type: String, default: '' },   // المنطقة
+            plateNumber:          { type: String, default: '' },
+            whatsapp:             { type: String, default: '' },
+            emergencyPhone:       { type: String, default: '' },
+            emergencyContactName: { type: String, default: '' },
+            emergencyRelation:    { type: String, default: '' },
+            hasCarrier:           { type: String, default: '' },   // صندوق حمل
+            // الإقرار الخطي — يكتبه الكابتن بيده. دليل الموافقة على الشروط،
+            // ويُحفظ كما كُتب بلا تحرير.
+            pledgeText:           { type: String, default: '' },
+            submittedAt:          { type: Date,   default: null }
+        },
 
         // 👇 الإضافات الجديدة للتفعيل والأمان 👇
         isVerified: { type: Boolean, default: false },

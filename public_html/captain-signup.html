@@ -282,6 +282,7 @@
                 <div class="step-dot active" data-step="1"></div>
                 <div class="step-dot" data-step="2"></div>
                 <div class="step-dot" data-step="3"></div>
+                <div class="step-dot" data-step="4"></div>
             </div>
 
             <!-- Alert -->
@@ -372,6 +373,21 @@
                     </div>
                 </div>
 
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">رقم اللوحة</label>
+                        <input type="text" id="plateNumber" class="form-control" placeholder="اختياري" maxlength="30">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">صندوق حمل؟</label>
+                        <select id="hasCarrier" class="form-select">
+                            <option value="">غير محدد</option>
+                            <option value="yes">نعم</option>
+                            <option value="no">لا</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-secondary flex-fill py-3" onclick="goToStep(1)">
                         <i class="bi bi-arrow-right ms-1"></i> السابق
@@ -382,10 +398,101 @@
                 </div>
             </div>
 
-            <!-- Step 3: Document Upload -->
+            <!-- Step 3: بيانات الانتساب والإقرار -->
+            <!-- منقولة من موقع التسجيل المعتمد (captain.wajeezsd.com) بنفس
+                 حقوله وقواعده. كان النموذج يُفتح في المتصفّح الخارجي، وهو
+                 سبب رفض آبل بالإرشاد 4. -->
             <div class="step-section" id="step-3">
+                <h5 class="fw-bold mb-3"><i class="bi bi-person-vcard text-primary ms-1"></i> بيانات الانتساب</h5>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">الرقم الوطني *</label>
+                    <input type="text" id="nationalId" class="form-control form-control-lg"
+                        inputmode="numeric" maxlength="14" placeholder="11 رقماً">
+                    <div class="form-text small">11 رقماً بالضبط كما في بطاقتك.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">المنطقة *</label>
+                    <input type="text" id="address" class="form-control form-control-lg" placeholder="مثال: الرياض - مربع 5">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">رقم الواتساب *</label>
+                    <input type="tel" id="whatsapp" class="form-control form-control-lg" placeholder="0912345678" dir="ltr">
+                </div>
+
+                <hr>
+                <h6 class="fw-bold mb-2"><i class="bi bi-telephone-plus text-danger ms-1"></i> جهة الطوارئ</h6>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">الاسم *</label>
+                    <input type="text" id="emergencyContactName" class="form-control" placeholder="اسم من نتصل به">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">رقمه *</label>
+                        <input type="tel" id="emergencyPhone" class="form-control" placeholder="09xxxxxxxx" dir="ltr">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold small">صلة القرابة *</label>
+                        <input type="text" id="emergencyRelation" class="form-control" placeholder="أخ، والد...">
+                    </div>
+                </div>
+
+                <hr>
+                <h6 class="fw-bold mb-2"><i class="bi bi-file-earmark-text text-primary ms-1"></i> الشروط والإقرار</h6>
+                <div class="border rounded p-2 mb-2" style="max-height:150px;overflow-y:auto;background:#f8fafc;font-size:12.5px;line-height:1.9;">
+                    <b>شروط العمل ككابتن في وجيز:</b><br>
+                    1. ألتزم بتوصيل الطلبات في الوقت المحدّد وبالحالة التي استلمتها بها.<br>
+                    2. أتعامل مع العملاء والتجّار باحترام، ولا أطلب أي مبلغ خارج ما يحدّده التطبيق.<br>
+                    3. البيانات والوثائق التي قدّمتها صحيحة، وأتحمّل مسؤولية أي معلومة خاطئة.<br>
+                    4. ألتزم بقوانين المرور، والمركبة التي أعمل بها سليمة ومرخّصة.<br>
+                    5. أحافظ على سرّية بيانات العملاء ولا أستعملها خارج التوصيل.<br>
+                    6. يحقّ لإدارة وجيز إيقاف حسابي عند مخالفة أيٍّ ممّا سبق.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">الإقرار الخطي *</label>
+                    <textarea id="pledgeText" class="form-control" rows="3"
+                        placeholder="اكتب بخط يدك: أقرّ بأنني قرأت الشروط أعلاه وأوافق عليها، وأتعهّد بالالتزام بها."></textarea>
+                    <div class="form-text small">اكتب الإقرار بنفسك — يُحفظ مع طلبك كدليل موافقة.</div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary flex-fill py-3" onclick="goToStep(2)">
+                        <i class="bi bi-arrow-right ms-1"></i> السابق
+                    </button>
+                    <button class="btn btn-success flex-fill py-3 fw-bold" onclick="goToStep(4)">
+                        التالي <i class="bi bi-arrow-left ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Document Upload -->
+            <div class="step-section" id="step-4">
                 <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-check text-primary ms-1"></i> الوثائق المطلوبة
                 </h5>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">صورة الهوية (الوجه الأمامي) *</label>
+                    <div class="upload-zone" onclick="document.getElementById('idImage').click()">
+                        <i class="bi bi-person-vcard fs-3 text-muted"></i>
+                        <p class="small text-muted mb-0" id="idImage-label">اضغط لرفع صورة الهوية</p>
+                        <img id="idImage-preview" class="upload-preview d-none">
+                    </div>
+                    <input type="file" id="idImage" accept="image/*" class="d-none"
+                        onchange="previewFile(this, 'idImage')">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">صورة شخصية بيدك الهوية (سيلفي) *</label>
+                    <div class="upload-zone" onclick="document.getElementById('selfieImage').click()">
+                        <i class="bi bi-camera fs-3 text-muted"></i>
+                        <p class="small text-muted mb-0" id="selfieImage-label">اضغط لرفع السيلفي</p>
+                        <img id="selfieImage-preview" class="upload-preview d-none">
+                    </div>
+                    <input type="file" id="selfieImage" accept="image/*" capture="user" class="d-none"
+                        onchange="previewFile(this, 'selfieImage')">
+                </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">رخصة القيادة</label>
@@ -421,7 +528,7 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary flex-fill py-3" onclick="goToStep(2)">
+                    <button class="btn btn-outline-secondary flex-fill py-3" onclick="goToStep(3)">
                         <i class="bi bi-arrow-right ms-1"></i> السابق
                     </button>
                     <button class="btn btn-success flex-fill py-3 fw-bold" id="submitBtn"
@@ -431,8 +538,8 @@
                 </div>
             </div>
 
-            <!-- Step 4: Success -->
-            <div class="step-section" id="step-4">
+            <!-- Step 5: Success -->
+            <div class="step-section" id="step-5">
                 <div class="success-animation">
                     <div class="success-icon">✅</div>
                     <h4 class="fw-bold mb-2">تم إرسال طلبك!</h4>
@@ -523,6 +630,33 @@
                 }
             }
 
+            // 🪪 بيانات الانتساب — نفس قواعد الموقع المعتمد، تُفحص هنا قبل
+            //    رحلة الشبكة فيرى الكابتن الخطأ عند الحقل لا بعد الإرسال.
+            if (step === 4 && currentStep === 3) {
+                const nid = document.getElementById('nationalId').value.replace(/\s/g, '');
+                if (!/^\d{11}$/.test(nid)) {
+                    showAlert('الرقم الوطني يجب أن يتكون من 11 رقماً بالضبط', 'error');
+                    return;
+                }
+                const required = [
+                    ['address', 'المنطقة'],
+                    ['whatsapp', 'رقم الواتساب'],
+                    ['emergencyContactName', 'اسم جهة الطوارئ'],
+                    ['emergencyPhone', 'رقم الطوارئ'],
+                    ['emergencyRelation', 'صلة القرابة']
+                ];
+                for (const [id, label] of required) {
+                    if (!document.getElementById(id).value.trim()) {
+                        showAlert(`${label} مطلوب`, 'error');
+                        return;
+                    }
+                }
+                if (document.getElementById('pledgeText').value.trim().length < 10) {
+                    showAlert('اكتب الإقرار الخطي كاملاً للموافقة على الشروط', 'error');
+                    return;
+                }
+            }
+
             // Navigate
             document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
             document.getElementById(`step-${step}`).classList.add('active');
@@ -554,7 +688,17 @@
                         phone: document.getElementById('phone').value.trim(),
                         password: document.getElementById('password').value,
                         vehicleType: selectedVehicle,
-                        city: document.getElementById('city').value
+                        city: document.getElementById('city').value,
+                        // 🪪 ملفّ الانتساب — كان يُجمع في الموقع الخارجي
+                        nationalId:           document.getElementById('nationalId').value.replace(/\s/g, ''),
+                        address:              document.getElementById('address').value.trim(),
+                        plateNumber:          document.getElementById('plateNumber').value.trim(),
+                        hasCarrier:           document.getElementById('hasCarrier').value,
+                        whatsapp:             document.getElementById('whatsapp').value.trim(),
+                        emergencyContactName: document.getElementById('emergencyContactName').value.trim(),
+                        emergencyPhone:       document.getElementById('emergencyPhone').value.trim(),
+                        emergencyRelation:    document.getElementById('emergencyRelation').value.trim(),
+                        pledgeText:           document.getElementById('pledgeText').value.trim()
                     })
                 });
 
@@ -572,14 +716,18 @@
                 const driverLicense = document.getElementById('driverLicense').files[0];
                 const profilePhoto = document.getElementById('profilePhoto').files[0];
                 const vehiclePhoto = document.getElementById('vehiclePhoto').files[0];
+                const idImage = document.getElementById('idImage').files[0];
+                const selfieImage = document.getElementById('selfieImage').files[0];
 
                 let docsUploaded = true;
-                if (driverLicense || profilePhoto || vehiclePhoto) {
+                if (driverLicense || profilePhoto || vehiclePhoto || idImage || selfieImage) {
                     btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري رفع الوثائق...';
                     const formData = new FormData();
                     if (driverLicense) formData.append('driverLicense', driverLicense);
                     if (profilePhoto) formData.append('profilePhoto', profilePhoto);
                     if (vehiclePhoto) formData.append('vehiclePhoto', vehiclePhoto);
+                    if (idImage) formData.append('idImage', idImage);
+                    if (selfieImage) formData.append('selfieImage', selfieImage);
 
                     // ⚠️ كانت النتيجة مُهمَلة تماماً: فشل الرفع (صورة كبيرة أو شبكة
                     // ضعيفة) يمرّ صامتاً فيرى الكابتن «تم إرسال طلبك» بينما لا وثائق
@@ -596,13 +744,13 @@
                     }
                 }
 
-                // Success — show step 4
-                goToStep(4);
+                // Success — show step 5
+                goToStep(5);
 
                 if (!docsUploaded) {
                     // الحساب أُنشئ فعلاً، فلا نُفشل التسجيل — لكن لا نُخفي أن
                     // الوثائق لم تصل، مع طريق واضح لإكمالها.
-                    const note = document.querySelector('#step-4 .success-animation p');
+                    const note = document.querySelector('#step-5 .success-animation p');
                     if (note) {
                         note.innerHTML = 'تم إنشاء حسابك، لكن <strong>تعذّر رفع الوثائق</strong>. '
                             + 'سجّل الدخول ثم أعد رفعها من صفحة حسابك حتى تتمكن الإدارة من مراجعة طلبك.';

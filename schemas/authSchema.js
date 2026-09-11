@@ -22,8 +22,31 @@ const loginSchema = z.object({
 // تسجيل الكابتن. كان المسار الوحيد بلا مخطّط رغم أنه يُنشئ حساباً كاملاً.
 // vehicleType خصوصاً: قيمة خارج القائمة كانت تصل إلى Mongoose فيرفضها enum
 // ويسقط الطلب في catch العام ⇒ 500 بدل 400 برسالة مفهومة.
+// 🪪 حقول طلب الانتساب — منقولة من موقع التسجيل المعتمد بنفس قواعده.
+//    الرقم الوطني 11 رقماً بالضبط (قاعدة الموقع حرفياً)، والمسافات تُزال
+//    قبل الفحص لأن الناس يكتبونه مقسّماً.
+const sudaneseNationalId = z.string()
+    .trim()
+    .transform(v => v.replace(/\s/g, ''))
+    .refine(v => /^\d{11}$/.test(v), 'الرقم الوطني يجب أن يتكون من 11 رقماً بالضبط (أرقام فقط)');
+
 const captainRegisterSchema = registerSchema.extend({
     vehicleType: z.enum(VEHICLE_VALUES, { message: 'وسيلة التوصيل غير صالحة' }),
+
+    nationalId: sudaneseNationalId,
+    address:    z.string().trim().min(2, 'المنطقة مطلوبة').max(120, 'المنطقة طويلة جداً'),
+    whatsapp:   z.string().trim().min(6, 'رقم الواتساب غير صالح').max(20, 'رقم الواتساب غير صالح'),
+
+    emergencyPhone:       z.string().trim().min(6, 'رقم الطوارئ غير صالح').max(20, 'رقم الطوارئ غير صالح'),
+    emergencyContactName: z.string().trim().min(2, 'اسم جهة الطوارئ مطلوب').max(60, 'الاسم طويل جداً'),
+    emergencyRelation:    z.string().trim().min(2, 'صلة القرابة مطلوبة').max(40, 'صلة القرابة طويلة جداً'),
+
+    // الإقرار الخطي: دليل الموافقة على الشروط، فحدٌّ أدنى معقول يمنع «.»
+    pledgeText: z.string().trim().min(10, 'الإقرار الخطي مطلوب').max(2000, 'الإقرار طويل جداً'),
+
+    // اختيارية في الموقع الأصلي كذلك
+    plateNumber: z.string().trim().max(30, 'رقم اللوحة طويل جداً').optional().or(z.literal('')),
+    hasCarrier:  z.string().trim().max(20).optional().or(z.literal('')),
 });
 
 module.exports = { registerSchema, loginSchema, captainRegisterSchema };
