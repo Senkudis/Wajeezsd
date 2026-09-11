@@ -382,7 +382,40 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
             relatedId: captain._id
         });
 
-        res.json({ message: 'تمت الموافقة على الكابتن بنجاح', captain });
+        // 📩 رسالة القبول — واتساب هو ما يصل فعلاً: الكابتن لم يدخل التطبيق
+        //    بعد (سجّل ثم انتظر)، فإشعار التطبيق وحده قد لا يراه أحد.
+        //
+        //    وتُعاد في الرد دائماً حتى لو تعذّر الإرسال: إرسال واتساب معطّل
+        //    كلياً حين لا يُضبط WHATSAPP_BOT_URL (انظر services/whatsappService)،
+        //    فالنسخ اليدوي من اللوحة هو الطريق المضمون لا احتياطياً نادراً.
+        let approvalMessage = '';
+        try {
+            const { buildCaptainApprovalMessage } = require('../../utils/captainApprovalMessage');
+            const Settings = require('../../models/Settings');
+            const settings = await Settings.getSettings(captain.city);
+
+            approvalMessage = buildCaptainApprovalMessage({
+                name: captain.name,
+                phone: captain.phone,
+                email: captain.email,
+                appLink: settings && settings.playStoreLink,
+                supportPhone: settings && settings.adminPhone
+            });
+
+            // رقم الواتساب من نموذج الانتساب إن وُجد، وإلا هاتف الحساب
+            const waNumber = (captain.captainApplication && captain.captainApplication.whatsapp)
+                || captain.phone;
+            if (waNumber) {
+                const { sendWhatsAppNotification } = require('../../services/whatsappService');
+                // لا نُفشل القبول إن تعثّر الإرسال — القبول وقع في القاعدة فعلاً
+                sendWhatsAppNotification(waNumber, approvalMessage)
+                    .catch(e => logger.warn({ err: e.message }, 'captain approval WhatsApp failed'));
+            }
+        } catch (e) {
+            logger.warn({ err: e.message }, 'captain approval message build failed');
+        }
+
+        res.json({ message: 'تمت الموافقة على الكابتن بنجاح', captain, approvalMessage });
     } catch (error) {
         logger.error('Approve Error:', error);
         res.status(500).json({ message: 'Server Error' });
