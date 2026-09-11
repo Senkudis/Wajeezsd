@@ -510,7 +510,7 @@ router.put('/payment-requests/:id/reject', protect, requirePermission('manage_fi
 // 🏪 تنقية معرّفات المتاجر القادمة من نموذج الإدارة.
 // تُرجع مصفوفة دائماً: الفارغة = الكوبون يعمل في كل المتاجر (السلوك القديم).
 const mongooseLib = require('mongoose');
-function sanitizePlaceIds(input) {
+function sanitizeObjectIds(input) {
     if (!Array.isArray(input)) return [];
     return [...new Set(
         input.filter(id => typeof id === 'string' && mongooseLib.Types.ObjectId.isValid(id))
@@ -533,7 +533,7 @@ router.get('/promo-codes', protect, superAdminOnly, async (req, res) => {
 
 router.post('/promo-codes', protect, superAdminOnly, async (req, res) => {
     try {
-        const { code, type, value, appliesTo, maxDiscount, minOrderValue, usageLimit, userUsageLimit, validFrom, validUntil, city, description, places } = req.body;
+        const { code, type, value, appliesTo, maxDiscount, minOrderValue, usageLimit, userUsageLimit, validFrom, validUntil, city, description, places, products, minQuantity, buyQuantity, freeQuantity } = req.body;
         if (!code || !type || value === undefined || !validUntil) {
             return res.status(400).json({ message: 'الكود، النوع، القيمة، وتاريخ الانتهاء مطلوبة' });
         }
@@ -553,7 +553,21 @@ router.post('/promo-codes', protect, superAdminOnly, async (req, res) => {
             city:        city        || 'all',
             description: description || '',
             // 🏪 حصر المتاجر — تُنقّى المعرّفات، والفارغة تعني «كل المتاجر»
-            places:      sanitizePlaceIds(places),
+            places:      sanitizeObjectIds(places),
+            // 📦 حصر المنتجات وشرط الكمية وعرض «اشترِ N خذ M».
+            //    كانت هذه الحقول مدعومة في المحرّك ومتاحة للتاجر، ومغلقة في
+            //    وجه الأدمن وحده — أي أن مالك المنصّة يملك صلاحيات أقلّ من
+            //    مستأجريها. تُنقّى بنفس مُنقّي المتاجر (معرّفات صالحة فقط).
+            products:    sanitizeObjectIds(products),
+            minQuantity: Math.max(0, parseInt(minQuantity, 10) || 0),
+            ...(type === 'bogo' ? {
+                bogo: {
+                    buyQuantity:  Math.max(1, parseInt(buyQuantity, 10)  || 1),
+                    freeQuantity: Math.max(1, parseInt(freeQuantity, 10) || 1)
+                },
+                // نطاق bogo دائماً products — الخصم قيمة قطعٍ لا نسبة إجمالي
+                appliesTo: 'products'
+            } : {}),
             createdBy:   req.user._id
         });
 
@@ -572,11 +586,19 @@ router.put('/promo-codes/:id', protect, superAdminOnly, async (req, res) => {
         const promo = await PromoCode.findById(req.params.id);
         if (!promo) return res.status(404).json({ message: 'الكوبون غير موجود' });
 
-        const fields = ['type','value','appliesTo','maxDiscount','minOrderValue','usageLimit','userUsageLimit','validFrom','validUntil','city','description','isActive'];
+        const fields = ['type','value','appliesTo','maxDiscount','minOrderValue','usageLimit','userUsageLimit','validFrom','validUntil','city','description','isActive','minQuantity'];
         fields.forEach(f => { if (req.body[f] !== undefined) promo[f] = req.body[f]; });
-        // 🏪 المتاجر تمرّ بالمنقّي لا بالإسناد المباشر: معرّف غير صالح من
-        //    النموذج كان سيرمي خطأ cast بصيغة 500 بدل رسالة مفهومة.
-        if (req.body.places !== undefined) promo.places = sanitizePlaceIds(req.body.places);
+        // 🏪 المتاجر والمنتجات تمرّ بالمنقّي لا بالإسناد المباشر: معرّف غير
+        //    صالح من النموذج كان سيرمي خطأ cast بصيغة 500 بدل رسالة مفهومة.
+        if (req.body.places !== undefined)   promo.places   = sanitizeObjectIds(req.body.places);
+        if (req.body.products !== undefined) promo.products = sanitizeObjectIds(req.body.products);
+        if (promo.type === 'bogo') {
+            promo.bogo = {
+                buyQuantity:  Math.max(1, parseInt(req.body.buyQuantity, 10)  || promo.bogo?.buyQuantity  || 1),
+                freeQuantity: Math.max(1, parseInt(req.body.freeQuantity, 10) || promo.bogo?.freeQuantity || 1)
+            };
+            promo.appliesTo = 'products';   // لا معنى لنطاقٍ آخر مع bogo
+        }
         await promo.save();
         res.json(promo);
     } catch (e) {

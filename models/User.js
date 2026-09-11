@@ -292,5 +292,9 @@ UserSchema.index({ city: 1, role: 1, isAvailableForWork: 1 });          // City-
 // 🪪 صفحة الفريق العامة: استعلامٌ واحد يفلتر بالدور والظهور ويرتّب — فهرس مركّب
 // يغطّيه كاملاً. الصفحة عامة بلا مصادقة فهي أكثر مسارات القراءة تعرّضاً للزحف.
 UserSchema.index({ 'teamProfile.show': 1, role: 1, 'teamProfile.order': 1 });
+// 🪪 فحص تكرار الرقم الوطني عند تسجيل كل كابتن. بلا فهرس كان الفحص مسحاً
+//    كاملاً لمجموعة المستخدمين — وهي أكبر مجموعة في القاعدة (كل العملاء
+//    والكباتن والتجّار). sparse لأن الحقل يخصّ الكباتن وحدهم.
+UserSchema.index({ 'captainApplication.nationalId': 1 }, { sparse: true });
 
 module.exports = mongoose.model('User', UserSchema);
