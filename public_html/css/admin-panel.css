@@ -1164,3 +1164,125 @@ body.dark-mode .admin-palette-footer kbd, body.dark-mode .admin-palette-kbd {
     color: #9ca3af;
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   🪪 ملفّ انتساب الكابتن — في بطاقة «طلبات انضمام معلقة»
+   ──────────────────────────────────────────────────────────────
+   البيانات منقولة من موقع التسجيل الخارجي، والأدمن يقرّر القبول منها.
+   الغرض الوظيفي الأول: **مطابقة السيلفي بصورة الهوية**. ولذلك تحمل كل
+   صورة تسميتها تحتها — خمس مصغّرات رمادية بلا أسماء تجعل المطابقة تخميناً.
+   ══════════════════════════════════════════════════════════════ */
+.cap-dossier {
+    flex-basis: 100%;
+    margin-top: 10px;
+    border-top: 1px dashed var(--gv-border);
+    padding-top: 10px;
+}
+
+.cap-dossier > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--gv-primary);
+    padding: 7px 10px;
+    border-radius: var(--gv-radius-sm);
+    background: rgba(99, 102, 241, .07);
+    user-select: none;
+}
+.cap-dossier > summary::-webkit-details-marker { display: none; }
+.cap-dossier > summary::after {
+    content: '\f078';                      /* chevron-down */
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-inline-start: auto;
+    font-size: 10px;
+    transition: transform .2s;
+}
+.cap-dossier[open] > summary::after { transform: rotate(180deg); }
+
+.cap-dossier-body { padding: 12px 4px 2px; }
+
+/* شبكة الحقول: عمودان على الشاشات الواسعة، عمود على الهاتف.
+   auto-fit لا media query — البطاقة نفسها قد تكون داخل عمود ضيّق. */
+.cap-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 6px 14px;
+    margin-bottom: 10px;
+}
+.cap-fact {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: rgba(100, 116, 139, .06);
+    min-width: 0;
+}
+.cap-fact-label { color: var(--gv-dark-2); flex-shrink: 0; }
+.cap-fact-value {
+    font-weight: 800;
+    overflow-wrap: anywhere;   /* رقم وطني طويل لا يمدّ البطاقة */
+    unicode-bidi: isolate;     /* أرقام لاتينية داخل نصّ عربي */
+}
+
+.cap-section-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--gv-dark-2);
+    margin: 10px 0 5px;
+}
+
+.cap-pledge {
+    font-size: 12px;
+    line-height: 1.9;
+    background: #fffbeb;
+    border-inline-start: 3px solid #f59e0b;
+    border-radius: 8px;
+    padding: 9px 11px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* الوثائق: شبكة متساوية لا سطرٌ يلتفّ 4+1 */
+.cap-docs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+    gap: 8px;
+}
+.cap-doc {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    color: var(--gv-dark-2);
+}
+.cap-doc img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--gv-border);
+    transition: transform .15s, border-color .15s;
+    background: #f1f5f9;
+}
+.cap-doc:hover img { transform: scale(1.04); border-color: var(--gv-primary); }
+.cap-doc-name { display: block; font-size: 10.5px; font-weight: 700; margin-top: 3px; }
+.cap-doc.is-missing img { opacity: .35; }
+.cap-doc.is-missing .cap-doc-name { color: var(--gv-danger); }
+
+.cap-empty {
+    font-size: 12px;
+    color: var(--gv-dark-2);
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(100, 116, 139, .06);
+}
+
+body.dark-mode .cap-fact,
+body.dark-mode .cap-empty { background: rgba(148, 163, 184, .12); }
+body.dark-mode .cap-pledge { background: rgba(245, 158, 11, .12); }
+body.dark-mode .cap-doc img { background: #1f2937; border-color: #374151; }

@@ -190,17 +190,54 @@ describe('الإرشاد 5.1.1(v) — التصفّح بلا تسجيل', () => {
 
 describe('لوحة المراجعة', () => {
     const src = read('public_html/js/admin-panel.js');
+    const css = read('public_html/css/admin-panel.css');
+    const i = src.indexOf('function _captainDossier');
+    const block = src.slice(i, src.indexOf('function renderPendingCaptains', i));
 
     it('تعرض ملفّ الانتساب والوثائق للأدمن', () => {
         // بلا العرض تصير المراجعة قراراً باسمٍ وهاتف فقط
         expect(src).toContain('_captainDossier');
-        expect(src).toContain('captainApplication');
-        expect(src).toContain('d.selfieImage');
+        expect(block).toContain('captainApplication');
+        expect(block).toContain("['selfieImage', 'سيلفي']");
     });
 
     it('تهرب النصوص القادمة من الكابتن', () => {
-        const i = src.indexOf('function _captainDossier');
-        const block = src.slice(i, src.indexOf('\nfunction renderPendingCaptains', i));
         expect(block).toContain('esc(a.pledgeText)');
+    });
+
+    it('كل وثيقة تحمل تسميتها — المطابقة بين الهوية والسيلفي هي الغرض', () => {
+        // خمس مصغّرات رمادية بلا أسماء تجعل المراجعة تخميناً
+        expect(block).toContain('cap-doc-name');
+        for (const label of ['الهوية', 'سيلفي', 'الرخصة', 'المركبة', 'شخصية']) {
+            expect(block).toContain(label);
+        }
+        // الهوية والسيلفي متجاورتان في الترتيب — تُقارنان بالعين
+        expect(block.indexOf("'idImage'")).toBeLessThan(block.indexOf("'selfieImage'"));
+    });
+
+    it('الوثيقة الناقصة تُعرض باهتة لا تُحذف — غيابها معلومة للمراجع', () => {
+        expect(block).toContain('cap-doc is-missing');
+        expect(css).toContain('.cap-doc.is-missing');
+    });
+
+    it('الشبكة تستجيب للعرض بلا media query — البطاقة قد تكون في عمود ضيّق', () => {
+        expect(css).toContain('grid-template-columns: repeat(auto-fit, minmax(210px, 1fr))');
+        expect(css).toContain('grid-template-columns: repeat(auto-fill, minmax(78px, 1fr))');
+    });
+
+    it('القيم الطويلة لا تمدّ البطاقة ولا تنقلب أرقامها', () => {
+        const rule = css.slice(css.indexOf('.cap-fact-value'), css.indexOf('.cap-fact-value') + 200);
+        expect(rule).toContain('overflow-wrap: anywhere');
+        expect(rule).toContain('unicode-bidi: isolate');
+    });
+
+    it('تستعمل رموز التصميم لا ألواناً مكتوبة', () => {
+        expect(css).toContain('var(--gv-primary)');
+        expect(css).toContain('var(--gv-border)');
+        expect(css).toContain('var(--gv-radius-sm)');
+    });
+
+    it('لها وضعٌ ليلي', () => {
+        expect(css).toContain('body.dark-mode .cap-fact');
     });
 });

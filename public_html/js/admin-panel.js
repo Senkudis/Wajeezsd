@@ -1279,53 +1279,76 @@ function _captainDossier(c) {
     const a = c.captainApplication || {};
     const d = c.documents || {};
     const base = (window.API_URL || '');
-    const img = (u, label) => u
-        ? `<a href="${base + esc(u)}" target="_blank" rel="noopener" title="${esc(label)}"
-             style="display:inline-block;margin:2px;">
-             <img src="${base + esc(u)}" alt="${esc(label)}"
-                  style="width:58px;height:58px;object-fit:cover;border-radius:8px;border:1px solid var(--gv-border);">
-           </a>`
-        : '';
-    const row = (label, val) => val
-        ? `<div style="display:flex;gap:6px;font-size:12px;padding:2px 0;">
-             <span style="color:var(--gv-dark-2);min-width:96px;">${esc(label)}</span>
-             <span style="font-weight:700;">${esc(val)}</span>
+
+    // الوثائق الخمس بترتيب المراجعة: الهوية ثم السيلفي متجاورتين لأن
+    // المطابقة بينهما هي الغرض الأول. والناقصة تُعرض باهتة بدل أن تُحذف —
+    // غيابُها معلومةٌ للمراجع، وإخفاؤها يجعله يظنّ أن كل شيء وصل.
+    const DOCS = [
+        ['idImage', 'الهوية'],
+        ['selfieImage', 'سيلفي'],
+        ['driverLicense', 'الرخصة'],
+        ['vehiclePhoto', 'المركبة'],
+        ['profilePhoto', 'شخصية']
+    ];
+    const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">' +
+        '<rect width="80" height="80" fill="%23e2e8f0"/></svg>'
+    );
+
+    const docsHtml = DOCS.map(([key, label]) => {
+        const url = d[key];
+        if (!url) {
+            return `<span class="cap-doc is-missing" title="${esc(label)} — لم تُرفع">
+                        <img src="${PLACEHOLDER}" alt="">
+                        <span class="cap-doc-name">${esc(label)} ✕</span>
+                    </span>`;
+        }
+        return `<a class="cap-doc" href="${base + esc(url)}" target="_blank" rel="noopener"
+                   title="${esc(label)} — اضغط للتكبير">
+                    <img src="${base + esc(url)}" alt="${esc(label)}" loading="lazy">
+                    <span class="cap-doc-name">${esc(label)}</span>
+                </a>`;
+    }).join('');
+
+    const fact = (label, val) => val
+        ? `<div class="cap-fact">
+             <span class="cap-fact-label">${esc(label)}</span>
+             <span class="cap-fact-value">${esc(val)}</span>
            </div>`
         : '';
 
-    const photos = [
-        img(d.idImage, 'الهوية'), img(d.selfieImage, 'سيلفي'),
-        img(d.driverLicense, 'الرخصة'), img(d.vehiclePhoto, 'المركبة'),
-        img(d.profilePhoto, 'شخصية')
-    ].filter(Boolean).join('');
+    const carrier = a.hasCarrier === 'yes' ? 'نعم' : a.hasCarrier === 'no' ? 'لا' : '';
+    const emergency = [a.emergencyContactName, a.emergencyRelation, a.emergencyPhone]
+        .filter(Boolean).join(' — ');
 
-    // لا ملفّ أصلاً (كابتن سجّل قبل نقل النموذج) — نقولها صراحةً بدل بطاقة فارغة
-    if (!a.nationalId && !photos) {
-        return `<div style="flex-basis:100%;font-size:12px;color:var(--gv-dark-2);padding-top:8px;">
-            لا يوجد ملفّ انتساب لهذا الطلب (سجّل قبل تفعيل النموذج الجديد).
+    const facts = [
+        fact('الرقم الوطني', a.nationalId),
+        fact('المنطقة', a.address),
+        fact('واتساب', a.whatsapp),
+        fact('رقم اللوحة', a.plateNumber),
+        fact('صندوق حمل', carrier),
+        fact('جهة الطوارئ', emergency)
+    ].join('');
+
+    const hasAnyDoc = DOCS.some(([k]) => d[k]);
+
+    // كابتن سجّل قبل نقل النموذج — نقولها صراحةً بدل بطاقة فارغة تُربك
+    if (!a.nationalId && !hasAnyDoc) {
+        return `<div class="cap-dossier">
+            <div class="cap-empty">لا يوجد ملفّ انتساب لهذا الطلب (سجّل قبل تفعيل النموذج الجديد).</div>
         </div>`;
     }
 
     return `
-    <details style="flex-basis:100%;margin-top:8px;">
-        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--gv-primary);">
-            <i class="fas fa-id-card"></i> ملفّ الانتساب والوثائق
-        </summary>
-        <div style="padding:10px 4px 2px;">
-            ${row('الرقم الوطني', a.nationalId)}
-            ${row('المنطقة', a.address)}
-            ${row('واتساب', a.whatsapp)}
-            ${row('رقم اللوحة', a.plateNumber)}
-            ${row('صندوق حمل', a.hasCarrier === 'yes' ? 'نعم' : a.hasCarrier === 'no' ? 'لا' : '')}
-            ${row('جهة الطوارئ', [a.emergencyContactName, a.emergencyRelation, a.emergencyPhone].filter(Boolean).join(' — '))}
-            ${a.pledgeText ? `<div style="margin-top:8px;">
-                <div style="font-size:11.5px;color:var(--gv-dark-2);margin-bottom:2px;">الإقرار الخطي</div>
-                <div style="font-size:12px;background:#f8fafc;border-radius:8px;padding:8px;white-space:pre-wrap;">${esc(a.pledgeText)}</div>
-            </div>` : ''}
-            ${photos ? `<div style="margin-top:8px;">
-                <div style="font-size:11.5px;color:var(--gv-dark-2);margin-bottom:4px;">الوثائق (اضغط للتكبير)</div>
-                ${photos}
-            </div>` : '<div style="font-size:12px;color:#b45309;margin-top:8px;">⚠️ لم تُرفع أي وثيقة</div>'}
+    <details class="cap-dossier">
+        <summary><i class="fas fa-id-card"></i> ملفّ الانتساب والوثائق</summary>
+        <div class="cap-dossier-body">
+            ${facts ? `<div class="cap-facts">${facts}</div>` : ''}
+            ${a.pledgeText ? `
+                <div class="cap-section-title">الإقرار والتعهّد</div>
+                <div class="cap-pledge">${esc(a.pledgeText)}</div>` : ''}
+            <div class="cap-section-title">الوثائق — اضغط أي صورة للتكبير</div>
+            <div class="cap-docs">${docsHtml}</div>
         </div>
     </details>`;
 }
