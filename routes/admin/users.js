@@ -415,7 +415,13 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
             logger.warn({ err: e.message }, 'captain approval message build failed');
         }
 
-        res.json({ message: 'تمت الموافقة على الكابتن بنجاح', captain, approvalMessage });
+        res.json({
+            message: 'تمت الموافقة على الكابتن بنجاح',
+            captain,
+            approvalMessage,
+            // الرقم من الخادم لا من قائمة الواجهة: الصفّ يختفي بعد التحديث
+            whatsapp: (captain.captainApplication && captain.captainApplication.whatsapp) || captain.phone || ''
+        });
     } catch (error) {
         logger.error('Approve Error:', error);
         res.status(500).json({ message: 'Server Error' });
@@ -452,7 +458,30 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
             relatedId: captain._id
         });
 
-        res.json({ message: 'تم رفض طلب الكابتن', captain });
+        // 📩 رسالة الرفض — تُبنى وتُعاد ليرسلها الأدمن بزرّ واحد.
+        //    الرفض كان يُسجَّل ولا يبلَّغ به أحد خارج إشعار التطبيق، والمرفوض
+        //    غالباً لم يدخل التطبيق أصلاً. فينتظر بلا خبر، ولا يعرف أن سبب
+        //    الرفض قابلٌ للإصلاح.
+        let rejectionMessage = '';
+        try {
+            const { buildCaptainRejectionMessage } = require('../../utils/captainApprovalMessage');
+            const Settings = require('../../models/Settings');
+            const settings = await Settings.getSettings(captain.city);
+            rejectionMessage = buildCaptainRejectionMessage({
+                name: captain.name,
+                reason: captain.rejectionReason,
+                supportPhone: settings && settings.adminPhone
+            });
+        } catch (e) {
+            logger.warn({ err: e.message }, 'captain rejection message build failed');
+        }
+
+        res.json({
+            message: 'تم رفض طلب الكابتن',
+            captain,
+            rejectionMessage,
+            whatsapp: (captain.captainApplication && captain.captainApplication.whatsapp) || captain.phone || ''
+        });
     } catch (error) {
         logger.error('Reject Error:', error);
         res.status(500).json({ message: 'Server Error' });

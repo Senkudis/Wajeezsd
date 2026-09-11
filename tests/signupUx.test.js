@@ -71,10 +71,14 @@ describe('2. لا إيموجي في واجهة النموذج', () => {
     });
 
     it('أيقونات المركبات من Bootstrap Icons لا رموز تعبيرية', () => {
+        // الأيقونات لم تعد مكتوبة في الصفحة: تُقرأ من المصدر المشترك مع
+        // الاسم، فلا تفترق عمّا يراه العميل كما افترقت التسميات من قبل.
+        const vt = read('public_html/js/vehicle-types.js');
         for (const icon of ['bi-scooter', 'bi-bicycle', 'bi-car-front-fill',
                             'bi-truck-front-fill', 'bi-taxi-front-fill', 'bi-ev-front-fill']) {
-            expect(page).toContain(icon);
+            expect(vt).toContain(icon);
         }
+        expect(page).toContain('bi ${t.biIcon}');
     });
 });
 

@@ -4,12 +4,14 @@
  * أي إضافة وسيلة جديدة تتم هنا وفي public_html/js/vehicle-types.js (نفس القائمة).
  */
 const VEHICLE_TYPES = [
-    { value: 'motorcycle', label: 'دراجة نارية', icon: '🏍️', speedKmh: 30 },
-    { value: 'electric',   label: 'سكوتر كهربائي', icon: '⚡', speedKmh: 25 },
-    { value: 'bicycle',    label: 'دراجة هوائية', icon: '🚲', speedKmh: 14 },
-    { value: 'rickshaw',   label: 'ركشة',        icon: '🛺', speedKmh: 22 },
-    { value: 'car',        label: 'سيارة',       icon: '🚗', speedKmh: 30 },
-    { value: 'van',        label: 'عربة نقل',     icon: '🚐', speedKmh: 28 },
+    // biIcon: أيقونة Bootstrap لواجهاتٍ بلا رموز تعبيرية — تُحفظ هنا مع
+    // الاسم لتبقى المرآة مطابقة لـ public_html/js/vehicle-types.js حرفياً.
+    { value: 'motorcycle', label: 'دراجة نارية',  icon: '🏍️', biIcon: 'bi-scooter',          speedKmh: 30 },
+    { value: 'electric',   label: 'سكوتر كهربائي', icon: '⚡', biIcon: 'bi-ev-front-fill',    speedKmh: 25 },
+    { value: 'bicycle',    label: 'دراجة هوائية',  icon: '🚲', biIcon: 'bi-bicycle',          speedKmh: 14 },
+    { value: 'rickshaw',   label: 'ركشة',          icon: '🛺', biIcon: 'bi-taxi-front-fill',  speedKmh: 22 },
+    { value: 'car',        label: 'سيارة',         icon: '🚗', biIcon: 'bi-car-front-fill',   speedKmh: 30 },
+    { value: 'van',        label: 'عربة نقل',      icon: '🚐', biIcon: 'bi-truck-front-fill', speedKmh: 28 },
 ];
 
 const VEHICLE_VALUES = VEHICLE_TYPES.map(v => v.value);

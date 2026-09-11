@@ -30,7 +30,10 @@ const sudaneseNationalId = z.string()
     .transform(v => v.replace(/\s/g, ''))
     .refine(v => /^\d{11}$/.test(v), 'الرقم الوطني يجب أن يتكون من 11 رقماً بالضبط (أرقام فقط)');
 
-const captainRegisterSchema = registerSchema.extend({
+// حقول ملفّ الانتساب وحدها — بلا اسم ولا بريد ولا كلمة مرور.
+// تُستعمل مرّتين: في تسجيل كابتن جديد (مع registerSchema)، وفي ترقية عميل
+// قائم إلى كابتن (حيث تأتي الهوية من حسابه لا من الجسم).
+const captainApplicationFields = {
     vehicleType: z.enum(VEHICLE_VALUES, { message: 'وسيلة التوصيل غير صالحة' }),
 
     nationalId: sudaneseNationalId,
@@ -47,6 +50,14 @@ const captainRegisterSchema = registerSchema.extend({
     // اختيارية في الموقع الأصلي كذلك
     plateNumber: z.string().trim().max(30, 'رقم اللوحة طويل جداً').optional().or(z.literal('')),
     hasCarrier:  z.string().trim().max(20).optional().or(z.literal('')),
-});
+};
 
-module.exports = { registerSchema, loginSchema, captainRegisterSchema };
+// تسجيل كابتن جديد: بيانات حساب + ملفّ انتساب
+const captainRegisterSchema = registerSchema.extend(captainApplicationFields);
+
+// ترقية عميل قائم: ملفّ الانتساب وحده — الاسم والبريد والهاتف وكلمة المرور
+// من حسابه. وكلمة المرور **لا تُقبل هنا إطلاقاً**: قبولها من مسارٍ يعدّل
+// حساباً قائماً يفتح باب استيلاء.
+const captainApplicationSchema = z.object(captainApplicationFields).passthrough();
+
+module.exports = { registerSchema, loginSchema, captainRegisterSchema, captainApplicationSchema };

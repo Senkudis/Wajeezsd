@@ -26,6 +26,7 @@
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
     <script src="js/image-compress.js?v=b4a6b0be"></script>
+    <script src="js/vehicle-types.js?v=3a11758f"></script>
 
     <style>
         :root {
@@ -336,6 +337,15 @@
             <div class="step-section active" id="step-1">
                 <h5 class="fw-bold mb-3"><i class="bi bi-person-fill text-primary ms-1"></i> البيانات الأساسية</h5>
 
+                <!-- عميل مسجّل دخوله: الطلب يُضاف لحسابه، لا حساب ثانٍ -->
+                <div id="upgradeBanner" class="alert alert-info d-none align-items-start mb-3">
+                    <i class="bi bi-person-check-fill fs-5 ms-2"></i>
+                    <div class="small">
+                        أنت داخلٌ بحسابك كعميل. سيُضاف طلب الانتساب <strong>على نفس الحساب</strong>
+                        وتُحفظ بياناتك وطلباتك السابقة — وتدخل بنفس كلمة المرور.
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label fw-bold small">الاسم الكامل</label>
                     <input type="text" id="name" class="form-control form-control-lg" placeholder="أحمد محمد">
@@ -366,7 +376,7 @@
                     <div class="field-error" id="phone-error"></div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3" id="passwordWrap">
                     <label class="form-label fw-bold small">كلمة المرور</label>
                     <input type="password" id="password" class="form-control form-control-lg"
                         placeholder="6 أحرف على الأقل">
@@ -382,45 +392,10 @@
             <div class="step-section" id="step-2">
                 <h5 class="fw-bold mb-3"><i class="bi bi-truck text-primary ms-1"></i> نوع المركبة</h5>
 
-                <div class="row g-2 mb-4">
-                    <div class="col-4">
-                        <div class="vehicle-option" data-vehicle="motorcycle"
-                            onclick="selectVehicle(this, 'motorcycle')">
-                            <div class="vehicle-icon"><i class="bi bi-scooter"></i></div>
-                            <div class="small fw-bold mt-1">موتر</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="vehicle-option" data-vehicle="electric" onclick="selectVehicle(this, 'electric')">
-                            <div class="vehicle-icon"><i class="bi bi-ev-front-fill"></i></div>
-                            <div class="small fw-bold mt-1">موتر كهربائي</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="vehicle-option" data-vehicle="bicycle" onclick="selectVehicle(this, 'bicycle')">
-                            <div class="vehicle-icon"><i class="bi bi-bicycle"></i></div>
-                            <div class="small fw-bold mt-1">عجلة هوائية</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="vehicle-option" data-vehicle="rickshaw" onclick="selectVehicle(this, 'rickshaw')">
-                            <div class="vehicle-icon"><i class="bi bi-taxi-front-fill"></i></div>
-                            <div class="small fw-bold mt-1">ركشة</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="vehicle-option" data-vehicle="car" onclick="selectVehicle(this, 'car')">
-                            <div class="vehicle-icon"><i class="bi bi-car-front-fill"></i></div>
-                            <div class="small fw-bold mt-1">سيارة</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="vehicle-option" data-vehicle="van" onclick="selectVehicle(this, 'van')">
-                            <div class="vehicle-icon"><i class="bi bi-truck-front-fill"></i></div>
-                            <div class="small fw-bold mt-1">عربة نقل</div>
-                        </div>
-                    </div>
-                </div>
+                <!-- تُبنى من VehicleTypes (js/vehicle-types.js) — المصدر نفسه
+                     الذي يعرض به التطبيق وسيلة الكابتن للعميل. كانت مكتوبة
+                     يدوياً بأسماء تخالفه («موتر» مقابل «دراجة نارية»). -->
+                <div class="row g-2 mb-4" id="vehicleGrid"></div>
 
                 <div class="row g-2 mb-3">
                     <div class="col-6">
@@ -759,6 +734,22 @@
             if (el) el.textContent = `${String(d.getDate()).padStart(2, '0')} / ${String(d.getMonth() + 1).padStart(2, '0')} / ${d.getFullYear()}`;
         }
 
+        // شبكة الوسائل من المصدر المشترك — إضافة وسيلة جديدة تظهر هنا
+        // وعند العميل وفي لوحة الأدمن بلا تعديل ثلاثة ملفات.
+        function renderVehicleGrid() {
+            const grid = document.getElementById('vehicleGrid');
+            if (!grid || !window.VehicleTypes) return;
+            grid.innerHTML = VehicleTypes.list.map(t => `
+                <div class="col-4">
+                    <div class="vehicle-option" data-vehicle="${t.value}"
+                        onclick="selectVehicle(this, '${t.value}')">
+                        <div class="vehicle-icon"><i class="bi ${t.biIcon}"></i></div>
+                        <div class="small fw-bold mt-1">${t.label}</div>
+                    </div>
+                </div>`).join('');
+        }
+        renderVehicleGrid();
+
         function selectVehicle(el, type) {
             document.querySelectorAll('.vehicle-option').forEach(o => o.classList.remove('selected'));
             el.classList.add('selected');
@@ -806,6 +797,49 @@
             return compressedFiles[fieldId] || (document.getElementById(fieldId).files[0] || null);
         }
 
+        // ── عميل قائم يريد العمل ككابتن ──────────────────────────────────
+        // كان مصدوداً تماماً: التسجيل يردّ «مسجل مسبقاً» بلا طريق. وهو أكثر
+        // المتقدّمين ترجيحاً — جرّب الخدمة فأرادها عملاً. فإن كان داخلاً
+        // بحسابه نُرقّي نفس الحساب بدل طلب حسابٍ ثانٍ بهاتفٍ ثانٍ.
+        let upgradeMode = false;
+
+        function detectExistingSession() {
+            let token = null, user = null;
+            try {
+                token = localStorage.getItem('token');
+                user = JSON.parse(localStorage.getItem('user') || 'null');
+            } catch (_) { return; }
+            if (!token || !user || user.role !== 'client') return;
+
+            upgradeMode = true;
+            const set = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el || !v) return;
+                el.value = v;
+                el.readOnly = true;
+                el.classList.add('bg-light');
+            };
+            set('name', user.name);
+            set('email', user.email);
+            set('phone', user.phone);
+            if (user.city) {
+                const c = document.getElementById('city');
+                if (c) c.value = user.city;
+            }
+            const pw = document.getElementById('passwordWrap');
+            if (pw) pw.classList.add('d-none');
+            document.getElementById('upgradeBanner').classList.remove('d-none');
+            document.getElementById('upgradeBanner').classList.add('d-flex');
+        }
+
+        detectExistingSession();
+
+        /** يعود به بعد الدخول إلى هنا — returnUrl هو ما تقرأه صفحة الدخول. */
+        function goToLogin() {
+            try { localStorage.setItem('returnUrl', 'captain-signup.html'); } catch (_) {}
+            window.location.href = 'client-login.html';
+        }
+
         function goToStep(step) {
             hideAlert();
 
@@ -826,9 +860,12 @@
                     showFieldError('email', 'صيغة البريد الإلكتروني غير صحيحة'); return;
                 }
                 if (!phone) { showFieldError('phone', 'رقم الهاتف مطلوب'); return; }
-                if (!password) { showFieldError('password', 'كلمة المرور مطلوبة'); return; }
-                if (password.length < 6) {
-                    showFieldError('password', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return;
+                // في الترقية لا كلمة مرور جديدة — يدخل بكلمته القائمة
+                if (!upgradeMode) {
+                    if (!password) { showFieldError('password', 'كلمة المرور مطلوبة'); return; }
+                    if (password.length < 6) {
+                        showFieldError('password', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return;
+                    }
                 }
             }
 
@@ -899,17 +936,24 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري الإرسال...';
 
             try {
-                // Step 1: Register captain
-                const res = await fetch(`${API_URL}/api/auth/register-captain`, {
+                // حقول الحساب تُرسَل في التسجيل الجديد فقط. في الترقية تأتي
+                // من الحساب نفسه على الخادم — وكلمة المرور لا تُرسَل إطلاقاً.
+                const account = upgradeMode ? {} : {
+                    name: document.getElementById('name').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    phone: document.getElementById('phone').value.trim(),
+                    password: document.getElementById('password').value,
+                    city: document.getElementById('city').value
+                };
+                const sessionToken = upgradeMode ? localStorage.getItem('token') : null;
+
+                const res = await fetch(
+                    `${API_URL}/api/auth/${upgradeMode ? 'captain-application' : 'register-captain'}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: document.getElementById('name').value.trim(),
-                        email: document.getElementById('email').value.trim(),
-                        phone: document.getElementById('phone').value.trim(),
-                        password: document.getElementById('password').value,
+                    headers: Object.assign({ 'Content-Type': 'application/json' },
+                        sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
+                    body: JSON.stringify(Object.assign({}, account, {
                         vehicleType: selectedVehicle,
-                        city: document.getElementById('city').value,
                         // 🪪 ملفّ الانتساب — كان يُجمع في الموقع الخارجي
                         nationalId:           document.getElementById('nationalId').value.replace(/\s/g, ''),
                         address:              document.getElementById('address').value.trim(),
@@ -920,20 +964,38 @@
                         emergencyPhone:       document.getElementById('emergencyPhone').value.trim(),
                         emergencyRelation:    document.getElementById('emergencyRelation').value.trim(),
                         pledgeText:           buildPledgeText()
-                    })
+                    }))
                 });
 
                 const data = await res.json();
 
                 if (!res.ok) {
-                    showAlert(data.message || 'حدث خطأ', 'error');
+                    // الحساب موجود أصلاً: «مسجل مسبقاً» وحدها تُنهي الطريق.
+                    // نعطيه الطريق — يدخل بحسابه ثم يعود فتُضاف بياناته عليه.
+                    if (data.accountExists && data.existingRole === 'client') {
+                        showAlert(`${data.message} <div class="mt-2">`
+                            + `<button type="button" class="btn btn-sm btn-primary fw-bold" `
+                            + `onclick="goToLogin()">تسجيل الدخول بحسابي</button></div>`, 'error');
+                    } else {
+                        showAlert(data.message || 'حدث خطأ', 'error');
+                    }
+                    document.getElementById('alert-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
                     btn.disabled = false;
                     btn.innerHTML = originalText;
                     return;
                 }
 
                 // Step 2: Upload documents (if any)
+                // في الترقية يُعاد توكن جديد يحمل دور captain — نحدّثه في
+                // التخزين وإلا بقي التطبيق يعامله كعميل بعد الخروج من هنا.
                 const token = data.token;
+                if (upgradeMode && token) {
+                    try {
+                        localStorage.setItem('token', token);
+                        const u = JSON.parse(localStorage.getItem('user') || '{}');
+                        localStorage.setItem('user', JSON.stringify(Object.assign(u, data.user || {})));
+                    } catch (_) { /* التخزين قد يكون محجوباً — الطلب وصل فعلاً */ }
+                }
                 const driverLicense = pickedFile('driverLicense');
                 const profilePhoto = pickedFile('profilePhoto');
                 const vehiclePhoto = pickedFile('vehiclePhoto');

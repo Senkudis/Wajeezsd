@@ -1354,8 +1354,6 @@ function _captainDossier(c) {
 }
 
 function renderPendingCaptains(pending) {
-    // تُحفظ ليقرأ منها approveCaptain رقم الواتساب قبل اختفاء الصفّ
-    window._pendingCaptains = pending || [];
     const body = document.getElementById('pendingCaptainsBody');
     if (!pending.length) {
         body.innerHTML = '<div class="gv-empty"><i class="fas fa-check-circle"></i><p>لا توجد طلبات معلقة</p></div>';
@@ -1382,13 +1380,34 @@ function renderPendingCaptains(pending) {
     }).join('');
 }
 
+/**
+ * يفتح واتساب على رقم الكابتن والرسالة مكتوبة بالفعل.
+ *
+ * زرٌّ واحد لا نافذة: الأدمن يريد الإرسال، لا قراءة النصّ ثم نسخه ثم البحث
+ * عن المحادثة. wa.me يفتح التطبيق والنصّ جاهز — يراجعه ويضغط إرسال.
+ *
+ * وإن تعذّر (رقم ناقص) ننسخ النصّ ونقول ذلك، فلا يضيع العمل.
+ */
+function openWhatsAppWith(number, text) {
+    // toWhatsAppNumber موجودة أصلاً في هذا الملف وتعالج 00249 و9xx أيضاً —
+    // نسخةٌ ثانية هنا كانت ستفترق عنها عند أول حالة لم أفكّر فيها.
+    const intl = toWhatsAppNumber(number);
+
+    if (!intl || !text) {
+        if (text && navigator.clipboard) {
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('لا يوجد رقم واتساب — نُسخت الرسالة'))
+                .catch(() => showToast('لا يوجد رقم واتساب لهذا الكابتن'));
+        } else {
+            showToast('لا يوجد رقم واتساب لهذا الكابتن');
+        }
+        return;
+    }
+    window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+}
+
 async function approveCaptain(id) {
     try {
-        // رقم واتساب الكابتن يُقرأ **قبل** إعادة التحميل: القائمة تُحدَّث بعد
-        // القبول فيختفي الصفّ، ومعه الرقم الذي نريد فتح المحادثة عليه.
-        const row = (window._pendingCaptains || []).find(c => c._id === id) || {};
-        const wa = (row.captainApplication && row.captainApplication.whatsapp) || row.phone || '';
-
         const res = await fetch(`${BASE}/api/admin/approve-captain/${id}`, { method: 'PUT', headers: headers() });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) { showToast(data.message || 'تعذّر القبول'); return; }
@@ -1396,59 +1415,21 @@ async function approveCaptain(id) {
         showToast('تمت الموافقة');
         loadCaptains();
 
-        if (data.approvalMessage) showApprovalMessage(data.approvalMessage, wa);
-    } catch(e) { console.error(e); }
-}
-
-/**
- * يعرض رسالة القبول جاهزةً للنسخ أو الإرسال.
- *
- * لماذا تُعرض أصلاً والخادم يُرسلها: إرسال واتساب **معطّل كلياً** حين لا
- * يُضبط WHATSAPP_BOT_URL (انظر services/whatsappService). فالنسخ اليدوي هو
- * الطريق المضمون لا احتياطياً نادراً — والأدمن يجب أن يرى ما أُرسل أو ما
- * عليه إرساله، لا أن يخمّن.
- */
-function showApprovalMessage(text, whatsapp) {
-    const digits = String(whatsapp || '').replace(/\D/g, '');
-    // wa.me يريد الصيغة الدولية بلا صفر ولا +
-    const intl = digits.startsWith('249') ? digits
-               : digits.startsWith('0')   ? '249' + digits.slice(1)
-               : digits;
-    const waUrl = intl ? `https://wa.me/${intl}?text=${encodeURIComponent(text)}` : '';
-
-    Swal.fire({
-        title: 'رسالة القبول',
-        html: `
-            <div style="text-align:right;font-size:12px;color:var(--gv-dark-2);margin-bottom:6px;">
-                أُرسلت تلقائياً إن كان الواتساب مفعّلاً. وإن لم تصل، انسخها أو افتح المحادثة.
-            </div>
-            <textarea id="approvalMsgBox" readonly
-                style="width:100%;height:260px;font-family:inherit;font-size:12.5px;line-height:1.8;
-                       direction:rtl;text-align:right;padding:10px;border:1px solid #e2e8f0;
-                       border-radius:10px;background:#f8fafc;resize:vertical;">${window.escapeHtml(text)}</textarea>`,
-        width: 560,
-        showCancelButton: true,
-        confirmButtonText: 'نسخ النص',
-        cancelButtonText: 'إغلاق',
-        showDenyButton: !!waUrl,
-        denyButtonText: 'فتح واتساب',
-        denyButtonColor: '#25d366'
-    }).then(r => {
-        if (r.isConfirmed) {
-            const box = document.getElementById('approvalMsgBox');
-            const copy = navigator.clipboard
-                ? navigator.clipboard.writeText(text)
-                : Promise.reject();
-            copy.then(() => showToast('نُسخت الرسالة'))
-                .catch(() => {
-                    // WebView قديم أو سياق غير آمن — التحديد اليدوي يبقى ممكناً
-                    if (box) { box.focus(); box.select(); }
-                    showToast('اضغط مطوّلاً وانسخ');
-                });
-        } else if (r.isDenied && waUrl) {
-            window.open(waUrl, '_blank', 'noopener');
+        // زرّ واحد في التنبيه: يفتح واتساب والرسالة مكتوبة
+        if (data.approvalMessage) {
+            Swal.fire({
+                icon: 'success',
+                title: 'تم القبول',
+                text: 'أرسل له رسالة القبول وبيانات الدخول.',
+                confirmButtonText: 'إرسال عبر واتساب',
+                confirmButtonColor: '#25d366',
+                showCancelButton: true,
+                cancelButtonText: 'لاحقاً'
+            }).then(r => {
+                if (r.isConfirmed) openWhatsAppWith(data.whatsapp, data.approvalMessage);
+            });
         }
-    });
+    } catch(e) { console.error(e); }
 }
 
 async function rejectCaptain(id) {
@@ -1458,11 +1439,30 @@ async function rejectCaptain(id) {
     });
     if (!reason) return;
     try {
-        await fetch(`${BASE}/api/admin/reject-captain/${id}`, {
+        const res = await fetch(`${BASE}/api/admin/reject-captain/${id}`, {
             method: 'PUT', headers: headers(), body: JSON.stringify({ reason })
         });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { showToast(data.message || 'تعذّر الرفض'); return; }
+
         showToast('تم الرفض');
         loadCaptains();
+
+        // السبب مكتوبٌ أصلاً — إخفاؤه عن المتقدّم يتركه ينتظر بلا خبر،
+        // وأغلب الأسباب قابلة للإصلاح وإعادة التقديم.
+        if (data.rejectionMessage) {
+            Swal.fire({
+                icon: 'info',
+                title: 'تم الرفض',
+                text: 'أبلغه بالسبب — أغلب الأسباب يمكن تصحيحها وإعادة التقديم.',
+                confirmButtonText: 'إرسال عبر واتساب',
+                confirmButtonColor: '#25d366',
+                showCancelButton: true,
+                cancelButtonText: 'لاحقاً'
+            }).then(r => {
+                if (r.isConfirmed) openWhatsAppWith(data.whatsapp, data.rejectionMessage);
+            });
+        }
     } catch(e) { console.error(e); }
 }
 
@@ -1480,9 +1480,9 @@ function openAddCaptainModal() {
             </select>
             <label style="display:block;text-align:right;font-weight:700;margin-top:8px;font-size:13px;">نوع المركبة</label>
             <select id="swal-vehicle" class="swal2-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;">
-                <option value="motorcycle">موتر</option>
-                <option value="electric">موتر كهربائي</option>
-                <option value="bicycle">عجلة هوائية</option>
+                ${window.VehicleTypes
+                    ? VehicleTypes.plainOptionsHtml()
+                    : '<option value="motorcycle">دراجة نارية</option>'}
             </select>
             <input id="swal-pass" class="swal2-input" placeholder="كلمة المرور" type="password">
         `,

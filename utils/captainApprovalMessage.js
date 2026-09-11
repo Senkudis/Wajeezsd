@@ -81,4 +81,46 @@ function buildCaptainApprovalMessage(o) {
     return lines.join('\n');
 }
 
-module.exports = { buildCaptainApprovalMessage, localPhone };
+/**
+ * رسالة رفض الطلب.
+ *
+ * الرفض اليوم يُسجَّل في القاعدة ولا يبلَّغ به أحد — فينتظر المتقدّم أسابيع
+ * ولا يعرف. والسبب مكتوبٌ أصلاً عند الرفض، فإخفاؤه عنه بلا فائدة.
+ *
+ * ونُبقي الباب مفتوحاً صراحةً: أغلب أسباب الرفض قابلة للإصلاح (صورة غير
+ * واضحة، وثيقة ناقصة). «مرفوض» بلا طريقٍ للعودة تخسر كابتناً كان يصلح.
+ *
+ * @param {object} o {name, reason, supportPhone}
+ */
+function buildCaptainRejectionMessage(o) {
+    const opts = o || {};
+    const name = String(opts.name || '').trim() || 'الكابتن';
+    const reason = String(opts.reason || '').trim();
+    const support = localPhone(opts.supportPhone);
+
+    const lines = [
+        `*${name}، بخصوص طلب الانتساب لوجيز*`,
+        '',
+        'شكراً لوقتك. راجعنا طلبك، ولم نتمكّن من قبوله في الوقت الحالي.'
+    ];
+
+    if (reason) {
+        lines.push('', '*السبب*', reason);
+    }
+
+    lines.push(
+        '',
+        '*يمكنك التقديم من جديد*',
+        'إن كان السبب وثيقةً ناقصة أو صورة غير واضحة، صحّحها وقدّم مرة أخرى من التطبيق — طلبك سيُراجَع من جديد.'
+    );
+
+    if (support) {
+        lines.push('', `للاستفسار أو الاعتراض: ${support}`);
+    }
+
+    lines.push('', 'نقدّر اهتمامك بالعمل معنا.');
+
+    return lines.join('\n');
+}
+
+module.exports = { buildCaptainApprovalMessage, buildCaptainRejectionMessage, localPhone };

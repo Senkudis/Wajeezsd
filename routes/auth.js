@@ -7,7 +7,7 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const { validateAuth } = require('../middleware/validateMiddleware');
 const { validate } = require('../middleware/validate');
-const { registerSchema, loginSchema, captainRegisterSchema } = require('../schemas/authSchema');
+const { registerSchema, loginSchema, captainRegisterSchema, captainApplicationSchema } = require('../schemas/authSchema');
 const { protect } = require('../middleware/authMiddleware'); // Auto-im= ported
 const { sendWhatsAppOTP } = require('../services/whatsappService');
 const { sendSmsOTP } = require('../services/smsService');
@@ -96,6 +96,73 @@ async function registerFailedCodeAttempt(user, field) {
     await User.updateOne({ _id: user._id }, update);
     return exhausted;
 }
+
+// ==========================================
+// 🪪 ترقية عميل قائم إلى كابتن
+// ==========================================
+// العميل الذي يستعمل التطبيق ثم يريد العمل ككابتن كان **مصدوداً تماماً**:
+// /register-captain يردّ «البريد مسجل مسبقاً» ولا يدلّه على شيء. وهو أكثر
+// المتقدّمين ترجيحاً — جرّب الخدمة فأرادها عملاً.
+//
+// 🔒 مُصادَق عمداً: التحديث يقع على حسابٍ قائم، فلو فُتح بلا مصادقة لاستطاع
+//    من يعرف هاتف أي عميل تحويلَ حسابه. وكلمة المرور **لا تُقرأ من الجسم
+//    إطلاقاً** (captainApplicationSchema لا تحتويها) — يدخل بكلمته القديمة.
+router.post('/captain-application', protect, validate(captainApplicationSchema), async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'الحساب غير موجود' });
+
+        if (user.role === 'captain') {
+            const st = user.approvalStatus === 'approved' ? 'مقبول'
+                     : user.approvalStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
+            return res.status(409).json({ message: `لديك طلب انتساب بالفعل — حالته: ${st}.` });
+        }
+        if (user.role === 'merchant' || user.role === 'admin') {
+            return res.status(403).json({ message: 'حسابك مسجّل بدور آخر. تواصل مع الدعم.' });
+        }
+
+        // الرقم الوطني فريد — نستثني حساب الطالب نفسه من الفحص
+        const nationalId = String(req.body.nationalId || '').replace(/\s/g, '');
+        const dupId = await User.findOne({
+            'captainApplication.nationalId': nationalId,
+            _id: { $ne: user._id }
+        }).select('approvalStatus').lean();
+        if (dupId) {
+            return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.' });
+        }
+
+        // 🔄 الترقية: الدور والوسيلة وملفّ الانتساب. ولا تُمسّ كلمة المرور
+        //    ولا الاسم ولا الهاتف — بيانات حسابه كما هي، وتاريخه كعميل يبقى.
+        user.role = 'captain';
+        user.approvalStatus = 'pending';
+        user.vehicleType = req.body.vehicleType;
+        user.captainApplication = {
+            nationalId,
+            address:              req.body.address,
+            plateNumber:          req.body.plateNumber || '',
+            whatsapp:             req.body.whatsapp,
+            emergencyPhone:       req.body.emergencyPhone,
+            emergencyContactName: req.body.emergencyContactName,
+            emergencyRelation:    req.body.emergencyRelation,
+            hasCarrier:           req.body.hasCarrier || '',
+            pledgeText:           req.body.pledgeText,
+            submittedAt:          new Date()
+        };
+        await user.save();
+
+        // توكن جديد: القديم يحمل دور 'client' فيبقى التطبيق يعامله كعميل
+        const token = signUserToken(user);
+
+        res.status(201).json({
+            message: 'تم استلام طلبك. سيُراجَع وتصلك رسالة عند القبول.',
+            token,
+            user: { _id: user._id, name: user.name, role: user.role, approvalStatus: user.approvalStatus }
+        });
+    } catch (error) {
+        logger.error({ err: error.message }, 'captain application error');
+        res.status(500).json({ message: 'حدث خطأ في السيرفر' });
+    }
+});
 
 // ==========================================
 // 🔒 0️⃣ Check WhatsApp Subscription (Proxy)
@@ -223,12 +290,40 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
         email = String(email).toLowerCase().trim();
         phone = normalizePhone(phone);
 
-        // Check existing
-        let user = await User.findOne({ email });
-        if (user) return res.status(400).json({ message: 'البريد الإلكتروني مسجل مسبقاً' });
-
-        user = await User.findOne({ phone });
-        if (user) return res.status(400).json({ message: 'رقم الهاتف مسجل مسبقاً' });
+        // 👤 حسابٌ قائم بنفس البريد أو الهاتف.
+        //
+        // الأغلب أنه عميلٌ يريد أن يصير كابتناً — وهو طريقٌ مشروع. لكنه **لا
+        // يُفتح من هنا**: هذا المسار غير مُصادَق، فتحديث حسابٍ قائم منه يعني
+        // أن من يعرف هاتف أي عميل يستطيع تحويل حسابه، ولو قبلنا كلمة المرور
+        // المُرسَلة لكان استيلاءً كاملاً.
+        //
+        // الطريق الصحيح: يسجّل الدخول بحسابه ثم يقدّم عبر
+        // POST /api/auth/captain-application (مُصادَق). ونقول له ذلك صراحةً
+        // بدل «مسجل مسبقاً» التي تتركه في طريق مسدود.
+        const existing = await User.findOne({ $or: [{ email }, { phone }] })
+            .select('role approvalStatus').lean();
+        if (existing) {
+            if (existing.role === 'captain') {
+                const st = existing.approvalStatus === 'approved' ? 'مقبول'
+                         : existing.approvalStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
+                return res.status(409).json({
+                    message: `لديك حساب كابتن بالفعل — حالته: ${st}. سجّل الدخول لمتابعته.`,
+                    accountExists: true, existingRole: 'captain'
+                });
+            }
+            if (existing.role === 'merchant' || existing.role === 'admin') {
+                return res.status(409).json({
+                    message: 'هذا الحساب مسجّل بدور آخر. تواصل مع الدعم لتحويله.',
+                    accountExists: true, existingRole: existing.role
+                });
+            }
+            // عميل قائم
+            return res.status(409).json({
+                message: 'هذا الرقم مسجّل كعميل. سجّل الدخول بحسابك ثم قدّم طلب الانتساب من قائمة التطبيق — بياناتك ستُحفظ على نفس الحساب.',
+                accountExists: true, existingRole: 'client'
+            });
+        }
+        let user = null;
 
         // 🪪 الرقم الوطني فريد — نفس حماية موقع التسجيل المعتمد. بدونها يُسجّل
         //    الشخص نفسه مرّات ببريد وهاتف مختلفين فيتكرّر الملف على المراجعة.

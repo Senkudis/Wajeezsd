@@ -124,20 +124,81 @@ describe('التوصيل', () => {
     it('تُعاد في الرد دائماً — الإرسال قد يكون معطّلاً كلياً', () => {
         // services/whatsappService يعطّل الإرسال حين لا يُضبط WHATSAPP_BOT_URL
         expect(block).toContain('approvalMessage');
-        expect(block).toContain("res.json({ message: 'تمت الموافقة على الكابتن بنجاح', captain, approvalMessage })");
+        expect(block).toContain("message: 'تمت الموافقة على الكابتن بنجاح'");
     });
 
-    it('اللوحة تعرضها للنسخ ولفتح واتساب', () => {
+    it('الرقم يأتي من الخادم لا من قائمة الواجهة', () => {
+        // الصفّ يختفي بعد إعادة التحميل، فقراءته من القائمة سباقٌ ينكسر
+        expect(block).toContain('whatsapp:');
+    });
+
+    it('زرٌّ واحد يفتح واتساب والرسالة مكتوبة فيه', () => {
         const panel = read('public_html/js/admin-panel.js');
-        expect(panel).toContain('function showApprovalMessage');
+        expect(panel).toContain('function openWhatsAppWith');
         expect(panel).toContain('wa.me/');
-        expect(panel).toContain('navigator.clipboard');
+        expect(panel).toContain("confirmButtonText: 'إرسال عبر واتساب'");
+        expect(panel).toContain('openWhatsAppWith(data.whatsapp, data.approvalMessage)');
     });
 
-    it('اللوحة تقرأ الرقم قبل إعادة التحميل — الصفّ يختفي بعدها', () => {
+    it('يعيد استعمال مُطبِّع الرقم القائم لا نسخةً ثانية تفترق عنه', () => {
         const panel = read('public_html/js/admin-panel.js');
-        const i2 = panel.indexOf('async function approveCaptain');
-        const blk = panel.slice(i2, i2 + 900);
-        expect(blk.indexOf('_pendingCaptains')).toBeLessThan(blk.indexOf('loadCaptains()'));
+        const i2 = panel.indexOf('function openWhatsAppWith');
+        expect(panel.slice(i2, i2 + 800)).toContain('toWhatsAppNumber(number)');
+    });
+
+    it('بلا رقم: تُنسخ الرسالة بدل ضياع العمل', () => {
+        const panel = read('public_html/js/admin-panel.js');
+        const i2 = panel.indexOf('function openWhatsAppWith');
+        expect(panel.slice(i2, i2 + 900)).toContain('navigator.clipboard');
+    });
+});
+
+describe('رسالة الرفض', () => {
+    const { buildCaptainRejectionMessage } = require('../utils/captainApprovalMessage');
+    const msg = buildCaptainRejectionMessage({
+        name: 'محمد أحمد',
+        reason: 'صورة الهوية غير واضحة',
+        supportPhone: '249112046348'
+    });
+
+    it('تذكر السبب — وهو مكتوبٌ أصلاً عند الرفض', () => {
+        expect(msg).toContain('صورة الهوية غير واضحة');
+    });
+
+    it('تُبقي باب إعادة التقديم مفتوحاً', () => {
+        // أغلب الأسباب قابلة للإصلاح؛ «مرفوض» بلا طريقٍ تخسر كابتناً يصلح
+        expect(msg).toContain('يمكنك التقديم من جديد');
+    });
+
+    it('تعطي طريقاً للاعتراض', () => {
+        expect(msg).toContain('0112046348');
+    });
+
+    it('بلا سبب: لا عنوانٌ فارغ', () => {
+        const m = buildCaptainRejectionMessage({ name: 'ك' });
+        expect(m).not.toContain('*السبب*');
+        expect(m).toContain('يمكنك التقديم من جديد');
+    });
+
+    it('بلا رموز تعبيرية', () => {
+        expect(msg).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
+    });
+
+    it('لا يرمي على مُدخل غائب', () => {
+        expect(() => buildCaptainRejectionMessage()).not.toThrow();
+    });
+
+    it('المسار يبنيها ويعيدها مع الرقم', () => {
+        const route = read('routes/admin/users.js');
+        const i = route.indexOf('reject-captain/:id');
+        const blk = route.slice(i, i + 3000);
+        expect(blk).toContain('buildCaptainRejectionMessage');
+        expect(blk).toContain('rejectionMessage');
+        expect(blk).toContain('whatsapp:');
+    });
+
+    it('اللوحة ترسلها بزرٍّ واحد كذلك', () => {
+        const panel = read('public_html/js/admin-panel.js');
+        expect(panel).toContain('openWhatsAppWith(data.whatsapp, data.rejectionMessage)');
     });
 });
