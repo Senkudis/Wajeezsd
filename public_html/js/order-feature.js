@@ -199,6 +199,16 @@ async function fetchCategories() {
     }
 }
 
+/**
+ * أيقونة التصنيف مع احتياطي.
+ * الأيقونة يكتبها الأدمن نصّاً، فاسمٌ خاطئ أو حقلٌ فارغ كان يُخرج مربّعاً
+ * أبيض فارغاً في الشبكة — ظهر في لقطة مراجع آبل ويُقرأ كعطل لا كبيانات ناقصة.
+ */
+function catIcon(icon) {
+    const v = String(icon || '').trim();
+    return /^bi-[a-z0-9-]+$/i.test(v) ? v : 'bi-shop';
+}
+
 window.renderCategoryChips = function(categories, isSearchResult = false) {
     const grid = document.getElementById('categories-grid');
     if (!grid) return;
@@ -216,7 +226,7 @@ window.renderCategoryChips = function(categories, isSearchResult = false) {
         return `
         <div class="cat-chip fade-in-up" data-cat-id="${escapeHtml(String(cat._id))}" data-cat-name="${(cat.name||'').replace(/"/g,'&quot;')}" data-cat-notes="${(cat.notes||'').replace(/"/g,'&quot;')}">
             <div class="chip-icon" style="background:${color.bg};">
-                <i class="bi ${cat.icon}" style="color:white;font-size:22px;"></i>
+                <i class="bi ${catIcon(cat.icon)}" style="color:white;font-size:22px;"></i>
             </div>
             <div class="chip-label">${escapeHtml(cat.name)}</div>
         </div>`;
@@ -248,6 +258,22 @@ function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c * 1.15; // 1.15 — طريق أقصر من المتوسط الطولاني للمدينة
+}
+
+// 📏 المسافة المعروضة.
+//
+// التوصيل داخل المدينة، فأي رقمٍ بمئات الكيلومترات يعني أن العميل ليس في
+// مدينة الخدمة أصلاً — لا أن المحل بعيد. ومراجع آبل فتح التطبيق من كاليفورنيا
+// فرأى «15560.6 كم» على كل بطاقة، وهو رقمٌ صحيح حسابياً وبلا معنى للقارئ،
+// ويبدو عطلاً. فوق الحدّ لا نعرض رقماً إطلاقاً: البطاقة تبقى كاملة بلا كذب.
+const MAX_SHOWN_DISTANCE_KM = 150;
+
+function isShowableDistance(km) {
+    return km != null && Number.isFinite(Number(km)) && Number(km) <= MAX_SHOWN_DISTANCE_KM;
+}
+
+function formatDistance(km) {
+    return `${Number(km).toFixed(1)} كم`;
 }
 
 // 🔀 ترتيب المحلات: المفتوحة أولاً ثم الأقرب. يعمل دائماً (حتى بلا GPS —
@@ -317,7 +343,10 @@ function applyFreshLocation(places, loc, rerender) {
     // الترتيب نفسه — يكفي تصحيح الأرقام بلا لمس الـ DOM كلّه
     places.forEach(p => {
         const el = document.querySelector(`[data-place-id="${p._id}"] .place-dist`);
-        if (el && p.distanceKm != null) el.textContent = `${Number(p.distanceKm).toFixed(1)} كم`;
+        if (!el) return;
+        // خارج نطاق الخدمة: نُزيل الشارة بدل كتابة رقمٍ بلا معنى
+        if (isShowableDistance(p.distanceKm)) el.textContent = formatDistance(p.distanceKm);
+        else el.remove();
     });
     return places;
 }
@@ -593,7 +622,7 @@ const PH_HUES = [152, 28, 262, 200, 340, 45, 178, 300, 15, 225, 95, 320];
 
 window.placeCoverPlaceholder = function (p) {
     const cat = (p && p.category && typeof p.category === 'object') ? p.category : null;
-    const icon = (cat && cat.icon) || 'bi-shop';
+    const icon = catIcon(cat && cat.icon);
     const key = String((cat && (cat._id || cat.name)) || (p && p.name) || '');
     // FNV-1a: خلط أفضل بكثير من h*31 على السلاسل القصيرة
     let h = 2166136261;
@@ -742,14 +771,14 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
     const html = places.map((p, idx) => {
         const isOpen = p.is_open;
         const imgSrc = getFullImageUrl(p.image_url);
-        const dist = p.distanceKm != null
-            ? `${Number(p.distanceKm).toFixed(1)} كم`
-            : `<span class="dist-loading"></span>`;
+        const dist = isShowableDistance(p.distanceKm)
+            ? formatDistance(p.distanceKm)
+            : (p.distanceKm != null ? '' : `<span class="dist-loading"></span>`);
 
         // 🏷️ شارة القسم — تظهر فقط عند طلبها ومتى توفّر القسم مأهولاً (name/icon)
         const cat = (opts.showCategory && p.category && typeof p.category === 'object') ? p.category : null;
         const catBadge = cat
-            ? `<div class="place-card-cat"><i class="bi ${cat.icon || 'bi-shop'}"></i> ${escapeHtml(cat.name || '')}</div>`
+            ? `<div class="place-card-cat"><i class="bi ${catIcon(cat.icon)}"></i> ${escapeHtml(cat.name || '')}</div>`
             : '';
 
         // التقييم: يظهر النجمة والمعدّل وعدد المقيّمين، أو شارة "جديد" إن لم يُقيّم بعد
@@ -782,8 +811,8 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
                 <div class="place-card-name">${escapeHtml(p.name)}</div>
                 <div class="place-card-meta">
                     ${ratingHtml}
-                    <span class="meta-dot">·</span>
-                    <span class="meta-item place-dist"><i class="bi bi-geo-alt-fill"></i> ${dist}</span>
+                    ${dist ? `<span class="meta-dot">·</span>
+                    <span class="meta-item place-dist"><i class="bi bi-geo-alt-fill"></i> ${dist}</span>` : ''}
                 </div>
                 <button class="place-card-cta">
                     <i class="bi bi-bag-plus-fill"></i>
@@ -870,7 +899,15 @@ window.openPlaceDetails = function(placeId) {
     if (!place.ownerId) recordPlaceView(placeId);
 
     document.getElementById('placeModalName').innerText = place.name;
-    document.getElementById('placeModalDistance').innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> يبعد ${place.distanceKm != null ? Number(place.distanceKm).toFixed(1) : '--'} كم خريطة جوية`;
+    const _dEl = document.getElementById('placeModalDistance');
+    if (isShowableDistance(place.distanceKm)) {
+        _dEl.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> يبعد ${formatDistance(place.distanceKm)} خريطة جوية`;
+        _dEl.style.display = '';
+    } else {
+        // العميل خارج مدينة الخدمة (أو بلا موقع) — لا رقم بلا معنى
+        _dEl.innerHTML = '';
+        _dEl.style.display = 'none';
+    }
 
     // Handle Address
     const addressEl = document.getElementById('placeModalAddress');

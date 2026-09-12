@@ -46,6 +46,21 @@ It is not our catalogue: all wajeez stores and products are fully browsable
 without an account. If you would prefer this to be open to guests as well, we
 will change it immediately.
 
+**Guideline 2.1.0 — App Completeness**
+
+Thank you for the screenshots — they showed two defects we could not reproduce
+locally, and both are fixed in this build:
+
+1. Every store card showed a distance of about "15560.6 كم" (15,560 km). The
+   figure was arithmetically correct — the reviewer is thousands of kilometres
+   from our service city — but it is meaningless to read and looks like a bug.
+   Delivery is city-scoped, so a distance in the thousands does not describe the
+   store; it describes a user outside the service area. The app now shows no
+   distance at all above a sane threshold, instead of a misleading number.
+2. One category tile rendered as an empty white square. The category icon is
+   typed by our admin, and an empty or misspelled icon name produced no glyph.
+   Any invalid icon now falls back to a default store icon.
+
 **Guideline 2.1 — Information Needed**
 
 *Which companies or institutions provide the services offered in the app?*
@@ -70,6 +85,29 @@ The app does not operate in any highly regulated field:
 
 The categories available in the app are: restaurants, groceries and
 supermarkets, bakeries, cafés, and general retail shops.
+
+*About the bank details and ID document in your screenshot*
+
+One of your screenshots shows our **merchant onboarding** form, which asks for a
+bank account and an owner ID document. We want to be precise about this, because
+it is the only sensitive data the app collects:
+
+- It is collected **only from business owners applying to sell on the platform**
+  — never from customers. A customer can order without providing any document,
+  and pays cash on delivery.
+- **Purpose of the bank account:** it is where we transfer the merchant their own
+  sales proceeds. We are not a payment provider and we hold no customer funds; we
+  transfer a merchant's earnings to their account by ordinary bank transfer.
+- **Purpose of the ID document:** to verify that the person registering a store
+  is its actual owner. Listing a shop that someone else does not own would expose
+  both customers and the real owner to fraud.
+- **Handling:** these fields are stored on our server, are visible only to our
+  administrators, and are **never returned by any public API**. Store records
+  served to the app are explicitly stripped of all bank fields before they leave
+  the server.
+- Both fields belong to the merchant business account, are provided voluntarily
+  during a commercial onboarding, and are not required to use the app as a
+  customer.
 
 *What is the relationship between Mohamed Hamza and the providers of these
 services?*
@@ -115,7 +153,24 @@ Please let us know if anything else is needed — we will respond the same day.
 التصنيفات والمحلات والمنتجات والأسعار كلّها تظهر، والإضافة للسلة وحدها
 تطلب الدخول.
 
-### ثانياً: الأوراق — ما يلزم وما لا يلزم
+### ثانياً: ما كشفته لقطات المراجع — وتصحيحٌ لتشخيصي
+
+قلتُ سابقاً إن ما أثار سؤال 2.1 هو **الصيدليات**. لقطات آبل تقول إن السبب
+الأرجح شيءٌ آخر: إحدى اللقطات هي **شاشة انضمام التاجر** — الحساب البنكي
+وصورة البطاقة أو الجواز. ونصّ 5.1.1(ix) يشمل حالتين: الخدمات شديدة التنظيم
+**أو التطبيقات التي تطلب بياناتٍ حسّاسة**. وجمع حسابٍ بنكي ووثيقة هوية هو
+الحالة الثانية حرفياً.
+
+ولذلك أضفتُ للردّ فقرةً صريحة تشرح: أن هذه البيانات من **التاجر** لا من
+العميل، وأن الحساب البنكي لتحويل أرباح التاجر نفسه (لسنا وسيط دفع ولا نحتفظ
+بأموال أحد)، وأن الهوية للتحقّق من أن مسجّل المتجر هو مالكه، وأنها لا تُرسَل
+في أي مسار عام — وهذا صحيحٌ في الكود فعلاً: بيانات البنك تُحذف من كل ردٍّ
+يذهب للعميل.
+
+**فأبقِ الصيدليات خارجاً كما قرّرت** — هي عاملٌ إضافي — لكن اعلم أن السؤال
+سيبقى مطروحاً بسبب البيانات الحسّاسة، والجواب أعلاه هو ما يُغلقه.
+
+### ثالثاً: الأوراق — ما يلزم وما لا يلزم
 
 بعد إخراج الصيدليات، التطبيق صار توصيل مطاعم وبقالات: **مجالٌ غير منظَّم**.
 وعليه:
@@ -142,7 +197,7 @@ Please let us know if anything else is needed — we will respond the same day.
 ما تسمّيه آبل bait-and-switch (2.3.1)، وعقوبته إزالة التطبيق أو إغلاق
 الحساب لا رفض إصدار. الطريق: شركة مسجَّلة + تراخيص + إصدار جديد يُراجَع.
 
-### ثالثاً: قبل الإرسال
+### رابعاً: قبل الإرسال
 
 1. **املأ الحسابات التجريبية الثلاثة.** حساب الكابتن تحديداً يجب أن يكون
    `approvalStatus: 'approved'` و`isVerified: true` — الكابتن المعلّق يرى
