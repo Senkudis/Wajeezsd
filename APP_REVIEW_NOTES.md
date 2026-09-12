@@ -1,67 +1,70 @@
-# ردّ مراجعة آبل — 1.4.2 (32)
+# ردّ مراجعة آبل — الرفض الثاني لإصدار 1.4.2 (32)
 
-> انسخ القسم الإنجليزي أدناه في **App Review Information → Notes**،
-> وردّ به أيضاً على رسالة آبل في App Store Connect.
-> ⚠️ املأ بيانات الحسابين التجريبيين أولاً — بدونها يتكرّر رفض 2.1(a).
+> تاريخ المراجعة: 12 سبتمبر 2026 — Submission ID: 31f7ffd2-76f8-45c0-aacb-6207f97caa2c
+>
+> ⚠️ **اقرأ «ملاحظات لك» في الأسفل قبل الإرسال.** فيها سؤالان لا أعرف
+> إجابتهما، وبلا إجابتهما يُرفض الإصدار مرّةً ثالثة بنفس السبب 2.1.
 
 ---
 
-## English — paste this
+## English — paste this in App Store Connect (reply) and in App Review Notes
 
-Submission ID of previous review: 31f7ffd2-76f8-45c0-aacb-6207f97caa2c
-Previous version: 1.4.1 (31) — this build: 1.4.2 (32)
+Submission ID: 31f7ffd2-76f8-45c0-aacb-6207f97caa2c
+Version: 1.4.2 — new build attached.
 
-Thank you for the detailed review. All four issues are addressed in this build.
+Thank you for the follow-up. Both remaining issues are addressed below.
 
-**Guideline 4 — Design (sign in / register in the default browser)**
+---
 
-You are right. The "Register as a Captain (driver)" menu item opened an external
-website (captain.wajeezsd.com) in the default browser. That entire registration
-form is now built into the app as a native in-app screen. No sign-in or
-registration step leaves the app, and the external link has been removed
-completely. Captains register and sign in fully inside the app.
+**Guideline 5.1.1(v) — Registration required before browsing**
 
-Note: the app already offers in-app account deletion (Menu → Delete my account),
-as required for apps that support account creation.
+You are right, and our previous reply was inaccurate — we apologise. We had
+removed one registration gate (the "buy-for-me" place picker) but a second gate
+remained on the main Shop tab, which is the screen your reviewer opened. On that
+screen the category grid was replaced by a card reading "you must sign in or
+create an account to view stores". That gate is now removed.
 
-**Guideline 5.1.1(v) — Data Collection and Storage (registration required to browse)**
+With **no account at all**, a user can now:
 
-Correct — the store/product browsing screen redirected guests to the login page
-as soon as it opened. That gate is removed. Without any account, a user can now:
+- open the Shop tab and see every store category
+- see the "Stores near you" list with names, ratings, open/closed status
+- open any category and browse the stores in it
+- open any store page and see its full product list, prices, offers, ratings
+  and reviews
+- search across stores and products
 
-- choose a city and browse all store categories
-- open any store and view its full product list, prices, offers and ratings
-- use search across stores and products
-- read reviews and store details
+Registration is requested only for account-based actions, exactly as the
+guideline allows: adding to cart, placing an order, order history, favourites,
+and chatting with a store or driver. Tapping "Add to cart" as a guest shows a
+prompt with two choices — sign in, or **continue browsing as a guest** — and
+choosing the second keeps the user on the store page.
 
-Registration is now requested only for account-based actions: adding to cart,
-placing an order, chat with a store or driver, order history, and favourites.
+The only remaining signed-in search is the optional "search places outside our
+own stores" feature inside the buy-for-me flow. It calls a paid third-party
+place-search API on every request, so it is limited per account to control cost.
+It is not our catalogue: all wajeez stores and products are fully browsable
+without an account. If you would prefer this to be open to guests as well, we
+will change it immediately.
 
-**Guideline 5.1.5 — Location Services (app not functional when disabled)**
+**Guideline 2.1 — Information Needed (regulated services / sensitive data)**
 
-The app is fully functional with Location Services turned off, and this build
-was tested in exactly that state (Location Services denied, no account):
+- **Which companies or institutions provide the services offered in the app?**
 
-- The city is chosen manually from a list on first launch — location is never
-  used to determine it.
-- Browsing, searching, opening stores and viewing products all work normally.
-- Location is optional and used only to (a) sort nearby stores by distance and
-  (b) pre-centre the map pin when a signed-in user places a delivery order. When
-  it is unavailable, stores are simply listed without distance sorting and the
-  user sets the delivery pin manually on the map.
+  <<<FILL IN — انظر «ملاحظات لك» رقم ١>>>
 
-**Guideline 2.1(a) — Information Needed (cannot access driver accounts)**
+- **What is the relationship between Mohamed Hamza and the providers of these
+  services?**
 
-Demo credentials for all account types are below. The driver (captain) account is
-pre-approved, so it reaches the full driver experience — going online, receiving
-and accepting orders, navigation, and the earnings wallet.
+  <<<FILL IN — انظر «ملاحظات لك» رقم ٢>>>
 
-Driver (captain):
-  Login URL: in-app → Menu → "دخول الكابتن" (Captain login)
+**Demo accounts**
+
+Customer:
   Phone / Email: <<<FILL IN>>>
   Password: <<<FILL IN>>>
 
-Customer:
+Driver (captain) — pre-approved, reaches the full driver experience:
+  In-app → Menu → "دخول الكابتن" (Captain login)
   Phone / Email: <<<FILL IN>>>
   Password: <<<FILL IN>>>
 
@@ -69,33 +72,67 @@ Merchant (store owner):
   Phone / Email: <<<FILL IN>>>
   Password: <<<FILL IN>>>
 
-Note on OTP: if a verification code is requested during sign-in, the accounts
-above are already verified and will not ask for one.
+All three accounts are verified and will not ask for an SMS code.
 
-Please let us know if anything else is needed — we will respond quickly.
+Please let us know if anything else is needed — we will respond the same day.
 
 ---
 
 ## ملاحظات لك (لا تُرسَل)
 
-**قبل الإرسال:**
+### أولاً: لماذا تكرّر رفض 5.1.1(v) — وهو خطئي
 
-1. **أنشئ الحسابات الثلاثة** واملأ `<<<FILL IN>>>`. الأهم **حساب الكابتن**
-   ويجب أن يكون `approvalStatus: 'approved'` — الكابتن المعلّق لا يستقبل
-   طلبات، فيرى المراجع شاشة انتظار ويعيد الرفض بنفس السبب 2.1(a).
-2. تأكّد أن الحسابات **مفعّلة** (`isVerified: true`) حتى لا تطلب كود OTP —
-   المراجع لا يملك هاتفاً سودانياً لاستقبال الرسالة، وهذا وحده سببُ رفضٍ متكرّر.
-3. اضبط «أحدث إصدار» في لوحة الأدمن على **1.4.2** بعد قبول الإصدار، وإلا لن
-   يُبلَّغ المستخدمون بالتحديث.
+ردّي السابق قال إن التصفّح صار مفتوحاً، وكان ذلك **ناقصاً**: أزلتُ بوّابة
+واحدة (منتقي «اشترِ لي») وبقيت البوّابة الأهمّ في **صفحة التسوّق نفسها** —
+وهي الشاشة التي يفتحها المراجع. أُصلحت الآن، ومقيسةٌ في المتصفّح بلا حساب:
+التصنيفات والمحلات والمنتجات والأسعار كلّها تظهر، والإضافة للسلة وحدها
+تطلب الدخول.
 
-**ما لم أغيّره وسبب ذلك:**
+### ثانياً: السؤالان اللذان أحتاج إجابتهما منك
 
-- لم أنشئ الحسابات التجريبية: قاعدة الإنتاج، والقرار قرارك.
-- لم ألمس نصّ سياسة الخصوصية ولا إعدادات App Store Connect.
+آبل تسأل تحت 5.1.1(ix) — «الخدمات شديدة التنظيم». والأرجح أن ما أثارها
+**الصيدليات**: توصيل الأدوية مجالٌ منظَّم في كل الدول، ويُطلب فيه إثبات أن
+من يقدّم الخدمة مرخَّصٌ لها.
 
-**الحجّة إن سألوا عن الموقع (5.1.5):**
+**١. من يقدّم الخدمات؟** الجواب الصحيح — إن كان ينطبق — هو:
 
-القياس الذي أجريته: زائر بلا حساب + خدمات الموقع مرفوضة ⇒ شاشة التصفّح تُفتح
-وتعرض المحلات، بلا أي تحويل أو رسالة خطأ. كان قبل الإصلاح يُحوَّل فوراً إلى
-صفحة تسجيل الدخول — وأرجّح أن هذا ما جعل المراجع يصف التطبيق بأنه «غير وظيفي»،
-فاختلط عليه سببا 5.1.1(v) و5.1.5.
+> «وجيز منصّة توصيل ووساطة. لا نبيع أي منتج بأنفسنا ولا نملك مخزوناً ولا
+> صيدلية. البائع في كل طلب هو المتجر المستقلّ المسجَّل لدينا، وهو صاحب
+> الترخيص التجاري الخاص به. والصيدليات المدرجة صيدليات مرخّصة من [الجهة
+> المانحة في السودان — المجلس القومي للأدوية والسموم؟]، ولا تُباع عبر
+> التطبيق أدوية تستلزم وصفة / أو: تُسلَّم الأدوية الموصوفة بعد إبراز الوصفة
+> عند التسليم.»
+
+املأ ما بين الأقواس بما ينطبق فعلاً. **لا تكتب ما ليس صحيحاً** — آبل قد
+تطلب صوراً من التراخيص، والإجابة غير الدقيقة تُغلق الحساب لا الإصدار.
+
+وإن كنت **لا** تعرض صيدليات ولا أي خدمة منظَّمة، فالجواب أبسط: «التطبيق
+يوصّل مشتريات من متاجر بقالة ومطاعم مستقلّة، ولا يقدّم أي خدمة في مجال
+منظَّم (لا صحّة ولا مال ولا سفر)» — مع حذف التصنيف من التطبيق إن وُجد.
+
+**٢. علاقة Mohamed Hamza بمقدّمي الخدمة؟** آبل تريد معرفة صفة صاحب حساب
+المطوّر. الجواب المتوقَّع شيءٌ مثل:
+
+> «Mohamed Hamza هو [مالك/مدير] شركة [الاسم القانوني الكامل] المسجَّلة في
+> السودان برقم [رقم السجل التجاري]، وهي مالكة تطبيق وجيز ومشغّلته. الشركة
+> ليست مالكةً لأيٍّ من المتاجر المعروضة؛ علاقتها بها عقد اشتراك/عمولة
+> كمنصّة وسيطة.»
+
+أرسِل مع الردّ — إن توفّرت — صورة **السجل التجاري** أو رخصة النشاط. آبل
+تقبل المرفقات في ردّ App Store Connect، ووجودها يختصر جولةً كاملة.
+
+### ثالثاً: قبل الإرسال
+
+1. **املأ الحسابات التجريبية الثلاثة.** حساب الكابتن تحديداً يجب أن يكون
+   `approvalStatus: 'approved'` و`isVerified: true` — الكابتن المعلّق يرى
+   شاشة انتظار، والمراجع لا يملك هاتفاً سودانياً لاستقبال كود OTP.
+2. **ابنِ إصداراً جديداً.** بناء 32 يحمل البوّابة القديمة؛ لا فائدة من
+   إعادة إرساله. رقم البناء يأتي تلقائياً من `github.run_number`، والإصدار
+   يبقى 1.4.2 (مسموحٌ رفع بناءٍ جديد على نسخةٍ مرفوضة).
+3. بعد القبول: اضبط «أحدث إصدار» في لوحة الأدمن على 1.4.2.
+
+### ما لم أفعله وسبب ذلك
+
+- لم أنشئ الحسابات التجريبية — قاعدة الإنتاج، والقرار قرارك.
+- لم أكتب جواب 2.1 بنفسي: هو إقرارٌ قانوني عن شركتك وتراخيصها، وأي كلمة
+  أخترعها فيه قد تُغلق حساب المطوّر لا الإصدار وحده.
