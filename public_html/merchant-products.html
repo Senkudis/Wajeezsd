@@ -20,7 +20,10 @@
             --accent: #f59e0b;
         }
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
-        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        body { background: #f8fafc; min-height: 100vh;
+            /* الزرّ العائم يجلس فوق الشريط السفلي، و90px كانت تُبقيه فوق
+               آخر بطاقة فيغطّي شاراتها */
+            padding-bottom: calc(112px + var(--sab, 0px)); }
         /* page-header handled by m-page-header in merchant-ui.css?v=v3_1785875711038 */
         .product-card {
             background: white; border-radius: 16px;
@@ -31,15 +34,15 @@
         }
         .product-card:hover { transform: translateY(-1px); }
         .product-img {
-            width: 90px; min-height: 90px; object-fit: cover;
+            width: 78px; min-height: 78px; object-fit: cover;
             background: #f1f5f9; display: flex; align-items: center; justify-content: center;
             color: #94a3b8; font-size: 2rem; flex-shrink: 0;
         }
         .product-img img { width: 100%; height: 100%; object-fit: cover; }
-        .product-info { flex: 1; padding: 12px; }
-        .product-actions { display: flex; flex-direction: column; justify-content: center; padding: 8px; gap: 6px; }
+        .product-info { flex: 1; min-width: 0; padding: 11px 12px; }
+        .product-actions { display: flex; flex-direction: column; justify-content: center; padding: 8px 6px; gap: 6px; }
         .icon-btn {
-            width: 36px; height: 36px; border-radius: 10px; border: none;
+            width: 33px; height: 33px; border-radius: 10px; border: none;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.2s;
         }
@@ -82,14 +85,34 @@
         body.dark-mode .product-img { background: #0f172a; color: #64748b; }
         body.dark-mode .category-badge { background: #0f172a; border-color: #334155; color: #94a3b8; }
         body.dark-mode .availability-toggle { background: #0f172a; border-color: #334155; color: #f8fafc; }
-        /* 📝 وصف المنتج في قائمة التاجر: سطران بدل سطرٍ واحد مقصوصاً عند
-           180 بكسل. التاجر يكتب الوصف ثم لا يرى منه إلا بضع كلمات، فلا
-           يتبيّن أنه حُفظ ناقصاً أو أن فيه خطأً. النص كامل في تلميح العنوان،
-           وكاملٌ في نافذة التعديل. */
-        .product-desc-2l {
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-            overflow: hidden; line-height: 1.45; overflow-wrap: anywhere;
+        /* 📝 وصف المنتج في قائمة التاجر: سطران ثم زرّ يفتح الباقي.
+           الوصف الطويل مكتوباً كاملاً يُطيل البطاقة حتى تبتلع الشاشة فلا
+           يرى التاجر إلا منتجاً واحداً. وقصّه بلا زرّ يُخفيه تماماً على
+           الهاتف — تلميح العنوان (title) لا يعمل باللمس. */
+        .product-desc {
+            color: #64748b; font-size: 12.5px; line-height: 1.55;
+            margin-top: 3px; overflow-wrap: anywhere;
         }
+        .product-desc.clamped {
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .desc-toggle {
+            border: 0; background: transparent; padding: 2px 0 0;
+            color: var(--primary); font-size: 12px; font-weight: 800;
+            cursor: pointer; display: none; align-items: center; gap: 4px;
+        }
+        /* يظهر فقط حين يكون هناك مخفيٌّ فعلاً — يُقاس بعد الرسم */
+        .desc-toggle.show { display: inline-flex; }
+        .desc-toggle i { font-size: 11px; }
+        body.dark-mode .product-desc { color: #94a3b8; }
+        body.dark-mode .desc-toggle { color: #34d399; }
+
+        /* بلا min-width:0 يرفض العمود الانكماش تحت عرض محتواه، فتُدفع
+           الشارات والأسعار خارج البطاقة على الشاشات الضيّقة. */
+        .product-title { font-size: 15px; font-weight: 800; line-height: 1.35; }
+        .product-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .product-meta .badge { font-size: 10px; }
     </style>
     <link rel="stylesheet" href="css/dark-mode.css?v=afc716b6">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
@@ -393,7 +416,40 @@
                 ${items.map(p => buildProductCard(p)).join('')}
             </div>
         `).join('');
+
+        _markClampedDescriptions();
     }
+
+    // ── الوصف الطويل: سطران ثم زرّ ───────────────────────────────────────
+    // الزرّ يظهر فقط حين يكون هناك مخفيٌّ فعلاً، ويُعرف بالقياس بعد الرسم لا
+    // بعدّ الحروف: السطران يسعان كلماتٍ مختلفة باختلاف عرض الشاشة وحجم خطّ
+    // النظام — والتاجر الذي كبّر خطّ هاتفه هو أكثر من يحتاج الزرّ.
+    function _markClampedDescriptions() {
+        document.querySelectorAll('.product-desc.clamped').forEach(el => {
+            const btn = document.querySelector(`.desc-toggle[data-for="${el.id}"]`);
+            if (btn) btn.classList.toggle('show', el.scrollHeight - el.clientHeight > 2);
+        });
+    }
+
+    // القياس قبل تحميل خطّ Cairo يعطي ارتفاعاً بخطّ احتياطيّ مختلف المقاييس
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(_markClampedDescriptions).catch(() => {});
+    }
+    // تدوير الشاشة يغيّر ما يسعه السطران
+    let _descResizeTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(_descResizeTimer);
+        _descResizeTimer = setTimeout(_markClampedDescriptions, 150);
+    });
+
+    window.toggleDesc = function(btn) {
+        const el = document.getElementById(btn.dataset.for);
+        if (!el) return;
+        const opened = !el.classList.toggle('clamped');
+        btn.innerHTML = opened
+            ? '<i class="bi bi-chevron-up"></i> إخفاء الوصف'
+            : '<i class="bi bi-chevron-down"></i> عرض الوصف';
+    };
 
     function buildProductCard(p) {
         return `
@@ -404,9 +460,13 @@
                     : `<i class="bi bi-box-seam-fill"></i>`}
             </div>
             <div class="product-info">
-                <div class="fw-bold" style="font-size:15px;">${esc(p.name)}</div>
-                ${p.description ? `<div class="text-muted small product-desc-2l" title="${esc(p.description)}">${esc(p.description)}</div>` : ''}
-                <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                <div class="product-title">${esc(p.name)}</div>
+                ${p.description ? `
+                    <div class="product-desc clamped" id="desc-${p._id}">${esc(p.description)}</div>
+                    <button type="button" class="desc-toggle" data-for="desc-${p._id}" onclick="toggleDesc(this)">
+                        <i class="bi bi-chevron-down"></i> عرض الوصف
+                    </button>` : ''}
+                <div class="product-meta">
                     ${_saleOn(p)
                         ? `<span class="fw-bold text-danger">${p.salePrice} ج.س</span>
                            <s class="text-muted" style="font-size:12px;">${p.price} ج.س</s>
