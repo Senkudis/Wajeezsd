@@ -249,6 +249,39 @@
             color: white; font-size: 18px; font-weight: 800;
         }
 
+        /* 🛰️ حيوية التتبّع — الفرق بين «يتحرّك الآن» و«مؤشّرٍ جامد يبدو حيّاً».
+           كان العميل يرى دبّوس الكابتن ولا يعرف إن كان حيّاً أصلاً: بلا هذه
+           الشارة يفسّر الجمود بأن الكابتن واقفٌ أو مهمل، والسبب غالباً أن
+           التحديث انقطع. */
+        .track-live {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 800; border-radius: 20px;
+            padding: 2px 9px; white-space: nowrap;
+        }
+        .track-live .dot {
+            width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+            background: currentColor;
+        }
+        .track-live.live   { background: #dcfce7; color: #15803d; }
+        .track-live.stale  { background: #fef3c7; color: #b45309; }
+        .track-live.off    { background: #f1f5f9; color: #64748b; }
+        .track-live.live .dot { animation: trackPulse 1.6s ease-out infinite; }
+        @keyframes trackPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(21,128,61,.55); }
+            70%  { box-shadow: 0 0 0 7px rgba(21,128,61,0); }
+            100% { box-shadow: 0 0 0 0 rgba(21,128,61,0); }
+        }
+        /* شريطٌ تفسيري يظهر فقط حين ينقطع التحديث فعلاً */
+        .track-hint {
+            display: none; align-items: flex-start; gap: 8px;
+            background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+            border-radius: 12px; padding: 9px 12px; margin-top: 10px;
+            font-size: 12px; font-weight: 600; line-height: 1.6;
+        }
+        .track-hint.show { display: flex; }
+        body.dark-mode .track-hint { background: #3b2f14; border-color: #92400e; color: #fde68a; }
+        body.dark-mode .track-live.off { background: #1e293b; color: #94a3b8; }
+
         /* Route Summary — vertical with connector */
         .route-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid #f1f5f9; }
         .route-point-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
@@ -376,6 +409,9 @@
                         <!-- 🏁 عدد الرحلات: خبرةٌ محسوسة تطمئن العميل، وتنصف الكابتن
                              الجديد الذي لم يُقيَّم بعد لكنه أنجز رحلات فعلاً -->
                         <span class="captain-trips" id="captain-trips" style="display:none;"></span>
+                        <span class="track-live off" id="track-live" style="display:none;">
+                            <span class="dot"></span><span id="track-live-text">—</span>
+                        </span>
                     </div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
@@ -386,6 +422,11 @@
                         <i class="bi bi-chat-dots-fill"></i>
                     </a>
                 </div>
+            </div>
+
+            <div class="track-hint" id="track-hint">
+                <i class="bi bi-wifi-off" style="font-size:15px;flex-shrink:0;margin-top:1px;"></i>
+                <span id="track-hint-text"></span>
             </div>
 
             <!-- Route Summary — vertical with connector -->
@@ -407,17 +448,17 @@
             <!-- ETA Bar -->
             <div class="eta-bar" id="eta-container" style="display:none;">
                 <div>
-                    <div class="eta-label">⏱ وقت الوصول</div>
+                    <div class="eta-label"><i class="bi bi-clock-fill"></i> وقت الوصول</div>
                     <div class="eta-value" id="eta-text">—</div>
                 </div>
                 <div class="eta-divider"></div>
                 <div>
-                    <div class="eta-label">📍 المسافة</div>
+                    <div class="eta-label"><i class="bi bi-geo-alt-fill"></i> المسافة</div>
                     <div class="eta-value" id="eta-distance">—</div>
                 </div>
                 <div class="eta-divider"></div>
                 <div>
-                    <div class="eta-label">💰 السعر</div>
+                    <div class="eta-label"><i class="bi bi-cash-coin"></i> السعر</div>
                     <div class="eta-value" id="order-price">—</div>
                 </div>
             </div>
@@ -1042,6 +1083,11 @@
                     placeCaptainMarker(loc.lat, loc.lng);
                     if (bounds) bounds.extend(new google.maps.LatLng(loc.lat, loc.lng));
                     updateETA(loc.lat, loc.lng);
+                    // fixedAt = لحظة القياس (نسخ قديمة ترسل updatedAt فقط)
+                    const fixedAt = loc.fixedAt || loc.updatedAt;
+                    markCaptainFix(fixedAt ? Date.now() - new Date(fixedAt).getTime() : 0);
+                } else {
+                    renderTrackingFreshness();
                 }
 
                 if (bounds && !bounds.isEmpty()) {
@@ -1052,6 +1098,74 @@
                     map.fitBounds(bounds, { top: 80, bottom: panelH + 24, left: 40, right: 40 });
                 }
             }
+        }
+
+        // ── 🛰️ حيوية التتبّع ─────────────────────────────────────────────
+        // لحظة آخر **قياس** لموقع الكابتن (لا لحظة وصوله للخادم).
+        let _lastFixAt = null;
+        let _freshTimer = null;
+
+        const FRESH_MS = 60 * 1000;        // دون الدقيقة: يتحرّك الآن
+        const STALE_MS = 5 * 60 * 1000;    // فوق الخمس: التحديث منقطع فعلاً
+
+        function _ageText(ms) {
+            const m = Math.round(ms / 60000);
+            if (m < 1) return 'الآن';
+            if (m === 1) return 'قبل دقيقة';
+            if (m === 2) return 'قبل دقيقتين';
+            if (m <= 10) return `قبل ${m} دقائق`;
+            return `قبل ${m} دقيقة`;
+        }
+
+        /**
+         * يضبط شارة الحيوية والشريط التفسيري.
+         * القاعدة: لا نُظهر «مباشر» إلا إذا كان القياس حديثاً فعلاً — المؤشّر
+         * الجامد الذي يبدو حيّاً هو أصل شكوى «التتبّع ما شغال».
+         */
+        function renderTrackingFreshness() {
+            const badge = document.getElementById('track-live');
+            const text = document.getElementById('track-live-text');
+            const hint = document.getElementById('track-hint');
+            const hintText = document.getElementById('track-hint-text');
+            if (!badge || !text) return;
+
+            badge.style.display = 'inline-flex';
+            badge.classList.remove('live', 'stale', 'off');
+
+            if (_lastFixAt == null) {
+                badge.classList.add('off');
+                text.textContent = 'بانتظار إشارة الكابتن';
+                if (hint) hint.classList.remove('show');
+                return;
+            }
+
+            const age = Date.now() - _lastFixAt;
+            if (age <= FRESH_MS) {
+                badge.classList.add('live');
+                text.textContent = 'يتحرّك الآن';
+                if (hint) hint.classList.remove('show');
+            } else if (age <= STALE_MS) {
+                badge.classList.add('stale');
+                text.textContent = `آخر تحديث ${_ageText(age)}`;
+                if (hint) hint.classList.remove('show');
+            } else {
+                badge.classList.add('off');
+                text.textContent = `آخر تحديث ${_ageText(age)}`;
+                if (hint && hintText) {
+                    hintText.textContent = 'انقطع تحديث موقع الكابتن — قد تكون شبكته ضعيفة. '
+                        + 'الطلب ماضٍ، والموقع المعروض هو آخر ما وصلنا. اتصل به إن طال الأمر.';
+                    hint.classList.add('show');
+                }
+            }
+        }
+
+        /** يُسجَّل عند كل قراءة: عمرها بالمللي ثانية (0 = لحظية) */
+        function markCaptainFix(fixAgeMs) {
+            const age = Number(fixAgeMs);
+            _lastFixAt = Date.now() - (Number.isFinite(age) && age >= 0 ? age : 0);
+            renderTrackingFreshness();
+            // النصّ يشيخ وحده: بلا مؤقّت تبقى «يتحرّك الآن» مكتوبةً بعد انقطاعه
+            if (!_freshTimer) _freshTimer = setInterval(renderTrackingFreshness, 15000);
         }
 
         function placeCaptainMarker(lat, lng) {
@@ -1082,6 +1196,7 @@
                     const { lat, lng } = data;
                     placeCaptainMarker(lat, lng);
                     updateETA(lat, lng);
+                    markCaptainFix(data.fixAge);
                 }
             });
 

@@ -7,6 +7,15 @@
 const Auth = window.Auth;
 let watcherId = null;
 
+// ⏱️ أقصى عمرٍ لقراءةٍ نُعيد إرسالها في النبض. فوقه لا نرسل شيئاً: إرسال
+//    قراءةٍ قديمة بختمٍ جديد يُخفي العطل عن الخادم وعن العميل معاً.
+const MAX_FIX_AGE_MS = 45 * 1000;
+// لا نُغرق الكابتن بالتنبيه نفسه — مرّة كل دقيقتين تكفي
+const DEGRADED_WARN_EVERY_MS = 2 * 60 * 1000;
+let _lastDegradedWarnAt = 0;
+let _lastWatchRestartAt = 0;
+let _trackingUserId = null;
+
 // الحصول على الـ Capacitor plugins مباشرة من النافذة
 function getBackgroundGeolocation() {
     if (window.Capacitor && window.Capacitor.Plugins) {
@@ -73,6 +82,7 @@ const CaptainService = {
     },
 
     startTracking: async (userId) => {
+        _trackingUserId = userId;
         const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
 
         try {
@@ -106,6 +116,10 @@ const CaptainService = {
                                 }
                                 return console.error(error);
                             }
+                            CaptainService.lastFix = {
+                                lat: location.latitude, lng: location.longitude,
+                                at: location.time || Date.now()
+                            };
                             CaptainService.sendLocationToServer(userId, location.latitude, location.longitude);
                         }
                     );
@@ -136,15 +150,25 @@ const CaptainService = {
     },
 
     _startWebTracking: (userId) => {
-        if (navigator.geolocation) {
-            watcherId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    CaptainService.sendLocationToServer(userId, pos.coords.latitude, pos.coords.longitude);
-                },
-                (err) => console.error(err),
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        }
+        if (!navigator.geolocation) return;
+        _trackingUserId = userId;
+        watcherId = navigator.geolocation.watchPosition(
+            (pos) => {
+                // لحظة القياس من الجهاز نفسه إن توفّرت — أصدق من ساعة الاستلام
+                const at = pos.timestamp || Date.now();
+                CaptainService.lastFix = { lat: pos.coords.latitude, lng: pos.coords.longitude, at };
+                CaptainService.sendLocationToServer(userId, pos.coords.latitude, pos.coords.longitude);
+            },
+            (err) => {
+                // خطأ الإذن يُقال للكابتن لا يُبتلع في الـ console وحده:
+                // هو يظنّ التتبّع يعمل، والعميل يرى مؤشّراً جامداً.
+                if (err && err.code === 1 && typeof window.showToast === 'function') {
+                    window.showToast('إذن الموقع مرفوض — فعّله ليرى العميل تحرّكك', 'error');
+                }
+                console.error(err);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
     },
 
     stopTracking: async () => {
@@ -174,20 +198,70 @@ const CaptainService = {
     // 💓 Heartbeat Logic
     lastLocationTime: 0,
     lastLocation: null,
+    // 🛰️ آخر قراءةٍ فعلية مع لحظة قياسها — لا مجرّد إحداثيات بلا عمر
+    lastFix: null,
     heartbeatInterval: null,
+
+    /**
+     * إعادة تشغيل مراقب الموقع.
+     * مراقب `watchPosition` يموت صامتاً أحياناً (تعليق WebView، انقطاع مزوّد
+     * الموقع)، والإذن سليم. فإعادة التشغيل تُصلح أكثر الحالات بلا تدخّل.
+     */
+    _restartWatch: () => {
+        const now = Date.now();
+        if (now - _lastWatchRestartAt < 60000) return;   // لا حلقة إعادةٍ محمومة
+        _lastWatchRestartAt = now;
+        if (!_trackingUserId) return;
+        try {
+            if (watcherId != null && navigator.geolocation) navigator.geolocation.clearWatch(watcherId);
+        } catch (_) {}
+        watcherId = null;
+        CaptainService._startWebTracking(_trackingUserId);
+    },
 
     startHeartbeat: (userId) => {
         if (CaptainService.heartbeatInterval) clearInterval(CaptainService.heartbeatInterval);
 
         CaptainService.heartbeatInterval = setInterval(() => {
             const now = Date.now();
-            if (now - CaptainService.lastLocationTime > 8000 && CaptainService.lastLocation) {
-                
-                const { lat, lng } = CaptainService.lastLocation;
-                // الـ heartbeat يُجبر HTTP في الخلفية لضمان التحديث
-                CaptainService.sendLocationToServer(userId, lat, lng, true);
+            if (now - CaptainService.lastLocationTime <= 8000) return;   // وصلت قراءةٌ لتوّها
+            if (!CaptainService.lastFix) return;
+
+            const age = now - CaptainService.lastFix.at;
+
+            // ⛔ قراءةٌ ميتة لا تُعاد. كان النبض يبعث آخر إحداثيات كل ٨ ثوانٍ
+            //    مهما قدُمت، فيبقى ختم الخادم طازجاً بموقعٍ عمره دقائق:
+            //    العميل يرى مؤشّراً يبدو حيّاً وهو جامد، والخادم لا يرى عطلاً
+            //    فلا ينبّه أحداً. الآن نتوقّف ونقول للكابتن إن التتبّع تعثّر.
+            if (age > MAX_FIX_AGE_MS) {
+                CaptainService._onTrackingDegraded(age);
+                return;
             }
+
+            // الـ heartbeat يُجبر HTTP في الخلفية لضمان التحديث
+            CaptainService.sendLocationToServer(userId, CaptainService.lastFix.lat, CaptainService.lastFix.lng, true);
         }, 8000);
+    },
+
+    /**
+     * التتبّع تعثّر: لا قراءة جديدة منذ مدّة.
+     * يُقال للكابتن **في التطبيق وفوراً** لا بإشعارٍ من الخادم بعد دقائق —
+     * وهو غالباً لا يعرف أن شيئاً توقّف أصلاً.
+     */
+    _onTrackingDegraded: (ageMs) => {
+        const now = Date.now();
+        if (now - _lastDegradedWarnAt < DEGRADED_WARN_EVERY_MS) return;
+        _lastDegradedWarnAt = now;
+
+        const mins = Math.max(1, Math.round(ageMs / 60000));
+        try {
+            if (typeof window.showToast === 'function') {
+                window.showToast(`تعذّر تحديث موقعك منذ ${mins} دقيقة — العميل لا يرى تحرّكك`, 'warning');
+            }
+        } catch (_) {}
+
+        // إعادة تشغيل المراقبة: الإذن قد يكون سليماً والمراقب هو من مات
+        try { CaptainService._restartWatch(); } catch (_) {}
     },
 
     /**
@@ -199,9 +273,16 @@ const CaptainService = {
      *   • forceHttp=true (heartbeat): يُرسل HTTP دائماً بغض النظر عن الحالة
      * ──────────────────────────────────────────────────────────
      */
+    /** عمر آخر قراءةٍ فعلية بالمللي ثانية (0 إن كانت لحظية أو مجهولة) */
+    _fixAge: () => {
+        const f = CaptainService.lastFix;
+        return f ? Math.max(0, Date.now() - f.at) : 0;
+    },
+
     sendLocationToServer: (userId, lat, lng, forceHttp = false) => {
         CaptainService.lastLocation = { lat, lng };
         CaptainService.lastLocationTime = Date.now();
+        if (!CaptainService.lastFix) CaptainService.lastFix = { lat, lng, at: Date.now() };
 
         const now = Date.now();
         const shouldSendHttp = forceHttp || _appInBackground || (now - _lastHttpSend >= HTTP_THROTTLE_MS);
@@ -232,7 +313,9 @@ const CaptainService = {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ lat, lng })
+                    // ⏱️ عمر القراءة: الخادم يميّز به بين «وصلنا الموقع الآن»
+                    //    و«الكابتن هنا الآن» — وهما ليسا الشيء نفسه.
+                    body: JSON.stringify({ lat, lng, fixAge: CaptainService._fixAge() })
                 }).catch(() => {
                     // صامت — لا يُطبع خطأ في الخلفية لتجنب التشويش
                 });

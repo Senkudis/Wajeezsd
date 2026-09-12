@@ -301,9 +301,19 @@ router.put('/update-location', protect, captainOnly, async (req, res) => {
             return res.status(400).json({ message: 'إحداثيات غير صالحة — lat و lng مطلوبان كأرقام ضمن المدى' });
         }
 
+        // ⏱️ عمر القراءة يصل من الجهاز (fixAge بالمللي ثانية). بدونه كنّا
+        //    نفترض أن كل وصولٍ يعني قياساً جديداً — وهو غير صحيح: النبض يعيد
+        //    إرسال آخر قراءة، فيبدو الكابتن متتبَّعاً وهو ليس كذلك.
+        //    نقبل الغياب (نسخ قديمة من التطبيق) بافتراض أنها لحظية.
+        const now = new Date();
+        const rawAge = Number(req.body.fixAge);
+        const fixAge = Number.isFinite(rawAge) && rawAge >= 0
+            ? Math.min(rawAge, 24 * 60 * 60 * 1000)   // حارس ضد قيم عبثية
+            : 0;
+
         const User = require('../models/User');
         await User.findByIdAndUpdate(req.user._id, {
-            currentLocation: { lat, lng, updatedAt: new Date() }
+            currentLocation: { lat, lng, updatedAt: now, fixedAt: new Date(now.getTime() - fixAge) }
         });
 
         // Also emit to connected clients for real-time tracking
@@ -319,7 +329,11 @@ router.put('/update-location', protect, captainOnly, async (req, res) => {
                 if (order.client) {
                     io.to(order.client.toString()).emit('captain_location_updated', {
                         orderId: order._id,
-                        lat, lng
+                        lat, lng,
+                        // ⏱️ عمر القراءة يسافر مع الموقع: شاشة العميل تميّز
+                        //    «يتحرّك الآن» من «آخر تحديث قبل ٣ دقائق» بدل أن
+                        //    تعرض مؤشّراً جامداً يبدو حيّاً.
+                        fixAge
                     });
                 }
             }

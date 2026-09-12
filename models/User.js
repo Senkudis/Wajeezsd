@@ -28,7 +28,14 @@ const UserSchema = new mongoose.Schema(
         currentLocation: {
             lat: { type: Number },
             lng: { type: Number },
-            updatedAt: { type: Date }
+            // ⏱️ متى **وصلنا** الموقع. كان يُقرأ كأنه «متى كان الكابتن هنا»،
+            //    وهما شيئان مختلفان: النبض يعيد إرسال آخر قراءة كل ٨ ثوانٍ،
+            //    فيبقى updatedAt طازجاً بإحداثيات عمرها دقائق — والعميل يرى
+            //    مؤشّراً يبدو حيّاً وهو جامد.
+            updatedAt: { type: Date },
+            // 🛰️ متى **قِيس** الموقع فعلاً على الجهاز. هذا ما يُبنى عليه
+            //    الحكم: طازجٌ أم قديم.
+            fixedAt: { type: Date }
         },
 
         isActive: { type: Boolean, default: true }, // ← Admin-controlled: false = account suspended
