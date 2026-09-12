@@ -2,8 +2,8 @@
 
 > تاريخ المراجعة: 12 سبتمبر 2026 — Submission ID: 31f7ffd2-76f8-45c0-aacb-6207f97caa2c
 >
-> ⚠️ **قبل الإرسال:** يلزم سطرٌ واحد منك — اسم العمل كما في الشهادة —
-> وبيانات الحسابات التجريبية الثلاثة. انظر «ملاحظات لك» في الأسفل.
+> ⚠️ **قبل الإرسال:** يبقى منك شيءٌ واحد — بيانات الحسابات التجريبية
+> الثلاثة. انظر «ملاحظات لك» في الأسفل.
 
 ---
 
@@ -118,9 +118,10 @@ through the app, is reviewed, and is listed as an independent seller under a
 standard platform-merchant agreement; wajeez earns a delivery fee on orders.
 
 Mohamed Hamza is the developer of the app and the holder of this Apple Developer
-account, acting for wajeez, which is registered in Sudan under the business name
-"<<<اسم العمل كما في الشهادة>>>". The registration certificate can be provided
-on request.
+account, acting for wajeez, which is registered in Sudan as a business under the
+name "تطبيق وجيز للتوصيل" (transliterated: "Tatbiq Wajeez lil-Tawsil" —
+"Wajeez Delivery Application"). The registration certificate is in Arabic and can
+be provided on request.
 
 **Demo accounts**
 
@@ -182,8 +183,10 @@ Please let us know if anything else is needed — we will respond the same day.
   منهما: لا صحّة، ولا دفع داخل التطبيق (كلّه نقداً عند التسليم)، ولا بيانات
   حسّاسة.
 
-**فالمطلوب منك سطرٌ واحد فقط**: اسم العمل كما هو مكتوب في الشهادة، ليحلّ
-محلّ `<<<اسم العمل كما في الشهادة>>>`.
+**واسم العمل مُدرَجٌ الآن**: «تطبيق وجيز للتوصيل» — مع نقلٍ حرفيّ
+بالإنجليزية وترجمةٍ بين قوسين، فالمراجع لا يقرأ العربية والشهادة عربية.
+تأكّد أنه مطابقٌ حرفياً لما في الشهادة قبل الإرسال؛ اختلاف كلمةٍ واحدة بين
+الردّ والمستند يفتح جولةً جديدة.
 
 **وخطاب التفويض؟** غير مطلوب الآن. السؤال الذي طرحته آبل هو عن علاقة محمد
 بـ**مقدّمي الخدمات** — أي المتاجر — والجواب الصادق أنه لا علاقة ملكية به،
@@ -210,6 +213,6 @@ Please let us know if anything else is needed — we will respond the same day.
 ### ما لم أفعله وسبب ذلك
 
 - لم أنشئ الحسابات التجريبية — قاعدة الإنتاج، والقرار قرارك.
-- لم أضع اسم العمل ولا رقم الشهادة: لا أعرفهما، وأي اسمٍ أخترعه في إقرارٍ
-  رسمي يضرّ الحساب لا الإصدار وحده.
+- لم أضع رقم الشهادة: لا أعرفه، وأي رقمٍ أخترعه في إقرارٍ رسمي يضرّ
+  الحساب لا الإصدار وحده. وليس مطلوباً — الردّ يقول «تُقدَّم عند الطلب».
 - لم أنقل حساب المطوّر ولا لمست إعدادات App Store Connect.
