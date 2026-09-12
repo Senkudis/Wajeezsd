@@ -54,15 +54,35 @@ describe('شاشة المراسلة تستهلك --kb', () => {
     const html = read('public_html/chat.html');
 
     it('🔑 ارتفاع الغلاف يطرح --kb — وإلا لم تفعل الوحدة شيئاً', () => {
-        expect(html).toContain('calc(100dvh - var(--kb, 0px))');
+        expect(html).toContain('calc(var(--app-h, 100vh) - var(--kb, 0px))');
+    });
+
+    it('🔑 بلا dvh في معادلة الكيبورد — وهي سبب بقاء العطل على الهواتف الأقدم', () => {
+        // WebView أقدم من Chrome 108 لا تعرف dvh، وCSS يُهمل الإعلان كلّه عند
+        // وحدةٍ مجهولة: تسقط المعادلة بجملتها فلا يُطرح الكيبورد مهما قِيس.
+        expect(html).not.toContain('calc(100dvh - var(--kb');
+        const i = html.indexOf('var(--kb, 0px))');
+        expect(html.slice(Math.max(0, i - 120), i)).not.toContain('dvh');
     });
 
     it('تُحمّل الوحدة', () => {
         expect(html).toMatch(/js\/keyboard-inset\.js/);
     });
 
-    it('يبقى 100vh احتياطاً قبلها للمتصفّحات بلا dvh', () => {
-        expect(html).toMatch(/height:\s*100vh;[\s\S]{0,600}calc\(100dvh - var\(--kb/);
+    it('يبقى 100vh احتياطاً — في الإعلان السابق وفي بديل المتغيّر معاً', () => {
+        expect(html).toMatch(/height:\s*100vh;[\s\S]{0,1200}calc\(var\(--app-h, 100vh\)/);
+    });
+
+    it('الوحدة تُصدّر --app-h بالبكسل', () => {
+        const src = read('public_html/js/keyboard-inset.js');
+        expect(src).toContain("setProperty('--app-h', layoutH + 'px')");
+        // تدوير الشاشة قد لا يُطلق حدثاً من visualViewport
+        expect(src).toContain("window.addEventListener('resize', schedule)");
+    });
+
+    it('وشبكة أمان لأجهزة الإزاحة (adjustPan) حيث لا يُقاس كيبورد أصلاً', () => {
+        expect(html).toContain("input.addEventListener('focus'");
+        expect(html).toContain("scrollIntoView({ block: 'center'");
     });
 
     it('شريط الإدخال خارج المنطقة القابلة للتمرير — يرتفع بالتخطيط لا بإزاحة', () => {

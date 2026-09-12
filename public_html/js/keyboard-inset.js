@@ -44,6 +44,19 @@
         const layoutH = root.clientHeight;
         const overlap = Math.max(0, Math.round(layoutH - (vv.height + vv.offsetTop)));
 
+        // 📏 ارتفاع نافذة التخطيط بالبكسل.
+        //
+        // ⚠️ سببُ عطلٍ حقيقي: الصفحة كانت تعتمد `100dvh`، وهي وحدة لا تعرفها
+        //    إصدارات WebView أقدم من Chrome 108. وفي CSS، إعلانٌ بوحدة مجهولة
+        //    **يُهمل كلّه** — فتسقط `calc(100dvh - var(--kb))` بجملتها ويبقى
+        //    `height:100vh` السابق، أي أن طرح الكيبورد لا يحدث إطلاقاً مهما
+        //    قِيس بدقّة. والهاتف القديم هو بالضبط هاتف كثيرٍ من مستعملينا.
+        //    نُصدّر الارتفاع بالبكسل ليصير الحساب صالحاً في كل متصفّح.
+        if (layoutH > 0) {
+            const prevH = parseInt(root.style.getPropertyValue('--app-h'), 10) || 0;
+            if (Math.abs(layoutH - prevH) >= 2) root.style.setProperty('--app-h', layoutH + 'px');
+        }
+
         const kb = overlap >= MIN_KEYBOARD_PX ? overlap : 0;
         const prev = parseInt(root.style.getPropertyValue('--kb'), 10) || 0;
         if (kb === prev) return;
@@ -71,6 +84,9 @@
 
     vv.addEventListener('resize', schedule);
     vv.addEventListener('scroll', schedule);
+    // تدوير الشاشة يغيّر نافذة التخطيط بلا حدث من visualViewport أحياناً
+    window.addEventListener('resize', schedule);
+    window.addEventListener('orientationchange', () => setTimeout(schedule, 120));
 
     // إغلاق الكيبورد بلا حدث resize يحدث على بعض الأجهزة — نُصفّر عند فقدان
     // التركيز احتياطاً.
