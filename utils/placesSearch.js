@@ -98,7 +98,6 @@ const ERRAND_CATEGORIES = [
     { key: 'grocery',   label: 'بقالات',     icon: 'bi-basket-fill',      types: ['grocery_store', 'supermarket', 'convenience_store'] },
     { key: 'restaurant',label: 'مطاعم',      icon: 'bi-egg-fried',        types: ['restaurant', 'meal_takeaway'] },
     { key: 'cafe',      label: 'كافيهات',    icon: 'bi-cup-hot-fill',     types: ['cafe', 'coffee_shop'] },
-    { key: 'pharmacy',  label: 'صيدليات',    icon: 'bi-capsule',          types: ['pharmacy', 'drugstore'] },
     { key: 'bakery',    label: 'مخابز',      icon: 'bi-cake2-fill',       types: ['bakery'] },
     { key: 'store',     label: 'متاجر',      icon: 'bi-shop',             types: ['store', 'department_store'] },
     { key: 'butcher',   label: 'لحوم وخضار', icon: 'bi-cart4',            types: ['butcher_shop', 'market'] },
@@ -240,6 +239,18 @@ function categoryKeyOf(p) {
     return '';
 }
 
+// 🚫 أنواعٌ لا نعرضها ولا نوصّل منها: بيع الأدوية مجالٌ منظَّم يحتاج ترخيصاً
+//    لا نملكه بعد. حذف شريحة «صيدليات» وحدها لا يكفي — البحث النصّي الحر
+//    يمرّ على جوجل، فمن يكتب «صيدلية» كان يجدها. الحجب هنا عند المصدر، فلا
+//    يظهر مكانٌ من هذا النوع في أي مسار: شريحةً كان أو بحثاً أو مكاناً
+//    متعلَّماً من طلبٍ سابق.
+const BLOCKED_TYPES = new Set(['pharmacy', 'drugstore']);
+
+function isBlockedType(p) {
+    if (p.primaryType && BLOCKED_TYPES.has(p.primaryType)) return true;
+    return (p.types || []).some(t => BLOCKED_TYPES.has(t));
+}
+
 /** يحوّل مكان جوجل إلى الشكل الذي تفهمه الواجهة */
 function mapPlace(p) {
     return {
@@ -294,6 +305,7 @@ async function callGoogle(endpoint, body) {
     return (json.places || [])
         // الأماكن المغلقة نهائياً ضوضاء تُربك العميل والكابتن
         .filter(p => p.businessStatus !== 'CLOSED_PERMANENTLY')
+        .filter(p => !isBlockedType(p))
         .map(mapPlace)
         .filter(p => p.name && Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
@@ -343,4 +355,5 @@ async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
     return { results: clampToCity(data, city, zone), cached };
 }
 
-module.exports = { searchText, searchByCategory, diagnose, clampToCity, centerFor, normalizeQuery, textSearchBody, nearbySearchBody, ERRAND_CATEGORIES, CITY_CENTERS };
+module.exports = {
+    BLOCKED_TYPES, searchText, searchByCategory, diagnose, clampToCity, centerFor, normalizeQuery, textSearchBody, nearbySearchBody, ERRAND_CATEGORIES, CITY_CENTERS };

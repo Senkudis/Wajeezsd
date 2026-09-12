@@ -909,7 +909,8 @@ router.post('/seed-demo', protect, superAdminOnly, async (req, res) => {
         await Place.deleteMany({});
 
         const categories = await PlaceCategory.insertMany([
-            { name: 'صيدليات', icon: 'bi-capsule-pill', sortOrder: 1 },
+            // 🚫 لا صيدليات في البذرة: بيع الأدوية مجالٌ منظَّم لا نعمل فيه
+            { name: 'بقالات', icon: 'bi-basket-fill', sortOrder: 1 },
             { name: 'مطاعم', icon: 'bi-cup-hot-fill', sortOrder: 2 },
             { name: 'سوبرماركت', icon: 'bi-cart-fill', sortOrder: 3 },
             { name: 'مخابز', icon: 'bi-egg-fried', sortOrder: 4 },
@@ -917,7 +918,7 @@ router.post('/seed-demo', protect, superAdminOnly, async (req, res) => {
             { name: 'ملابس', icon: 'bi-bag-fill', sortOrder: 6 },
         ]);
 
-        const pharma = categories[0]._id;
+        const groceries = categories[0]._id;
         const restaurants = categories[1]._id;
         const supermarket = categories[2]._id;
         const bakery = categories[3]._id;
@@ -925,15 +926,15 @@ router.post('/seed-demo', protect, superAdminOnly, async (req, res) => {
         // Demo places around Khartoum
         await Place.insertMany([
             {
-                name: 'صيدلية النيل', category: pharma,
-                image_url: 'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=400',
+                name: 'بقالة النيل', category: groceries,
+                image_url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=400',
                 phone: '0912345678', whatsapp: '249912345678',
                 location: { lat: 15.5010, lng: 32.5590 },
                 workingHours: { open: '08:00', close: '22:00', days: [0, 1, 2, 3, 4, 5, 6] }
             },
             {
-                name: 'صيدلية الخرطوم', category: pharma,
-                image_url: 'https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?w=400',
+                name: 'بقالة الخرطوم', category: groceries,
+                image_url: 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400',
                 phone: '0922345678', whatsapp: '249922345678',
                 location: { lat: 15.5050, lng: 32.5630 },
                 workingHours: { open: '09:00', close: '21:00', days: [1, 2, 3, 4, 5, 6] }

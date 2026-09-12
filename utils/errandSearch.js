@@ -86,8 +86,12 @@ async function runErrandSearch({ q = '', categoryKey = '', city = 'Khartoum', la
     // 2.أ) أماكن تعلّمناها من طلبات سابقة — مجانية وأدقّ (اختارها عملاء فعلاً).
     //      تُبحث قبل جوجل، وإن كفت أوقفنا النداء المدفوع أصلاً.
     let learned = [];
+    // 🚫 الصيدليات محجوبة عند المصدر في placesSearch، لكن ما تعلّمناه قبل
+    //    الحجب محفوظٌ في القاعدة — فنستثنيه هنا كذلك، وإلا ظهر من الطبقة
+    //    المجانية ما مُنع من الطبقة المدفوعة.
     const learnedFilter = q
-        ? { city, $or: [{ name: arabicFlexibleRegex(q) }, { address: arabicFlexibleRegex(q) }] }
+        ? { city, categoryKey: { $ne: 'pharmacy' },
+            $or: [{ name: arabicFlexibleRegex(q) }, { address: arabicFlexibleRegex(q) }] }
         // بلا نصّ: التصنيف وحده. يخدم الطبقة المجانية حين لا يُسمح بنداء جوجل.
         : { city, categoryKey };
     const docs = await ExternalPlace.find(learnedFilter)

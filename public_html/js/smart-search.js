@@ -14,7 +14,7 @@
     var RECENT_KEY = 'wajeez_recent_searches';
     var DEFAULT_IMG = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80';
     // تلميحات دوّارة للـ placeholder (تأثير الكتابة)
-    var HINTS = ['برجر لذيذ', 'صيدلية قريبة', 'مطعم مشويات', 'بقالة', 'كيك وحلويات', 'قهوة', 'خضار وفواكه'];
+    var HINTS = ['برجر لذيذ', 'مخبز قريب', 'مطعم مشويات', 'بقالة', 'كيك وحلويات', 'قهوة', 'خضار وفواكه'];
 
     var overlay = null;
     var inputEl = null;
