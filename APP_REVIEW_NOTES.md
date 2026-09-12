@@ -7,7 +7,12 @@
 
 ---
 
-## English — paste this in App Store Connect (reply) and in App Review Notes
+## English — النصّ الكامل: الصِقه في **ردّ الرسالة** (Reply) داخل App Store Connect
+
+> ⚠️ **حقل App Review Notes سقفه 4000 حرف**، وهذا النصّ أطول. استعمل
+> النسخة المختصرة في `APP_REVIEW_NOTES_SHORT.txt` (3623 حرفاً) للحقل،
+> والنصّ الكامل أدناه في ردّ الرسالة — سقفه أوسع بكثير، والمراجع يقرأ
+> الاثنين.
 
 Submission ID: 31f7ffd2-76f8-45c0-aacb-6207f97caa2c
 Version: 1.4.2 — new build attached.

@@ -1,0 +1,30 @@
+Version 1.4.2, build 35. Previous submission: 31f7ffd2-76f8-45c0-aacb-6207f97caa2c
+
+GUIDELINE 5.1.1(v) — REGISTRATION BEFORE BROWSING
+You are right, and our previous reply was incomplete — we apologise. We had removed one registration gate but a second one remained on the main Shop tab, which is the screen your reviewer opened: the category grid was replaced by a card reading "you must sign in to view stores". That gate is removed.
+
+With no account at all, a user can now: open the Shop tab and see all categories; see the nearby-stores list; open any category; open any store page with its full product list, prices, offers, ratings and reviews; and search across stores and products.
+
+Registration is requested only for account-based actions: add to cart, place an order, order history, favourites, and chat. Tapping "Add to cart" as a guest offers two choices — sign in, or continue browsing as a guest.
+
+GUIDELINE 2.1.0 — APP COMPLETENESS
+Thank you for the screenshots; they showed two defects we could not reproduce locally. Both are fixed:
+1. Every store card showed a distance of about 15,560 km. The figure was correct — the reviewer is far from our service city — but meaningless and it looks like a bug. Delivery is city-scoped, so above a sane threshold we now show no distance at all instead of a misleading number.
+2. One category tile rendered as an empty white square: the category icon is typed by our admin, and an empty or misspelled name produced no glyph. Invalid icons now fall back to a default store icon.
+
+GUIDELINE 2.1 — INFORMATION NEEDED
+Which companies or institutions provide the services?
+wajeez is a local delivery platform. We sell nothing ourselves and hold no inventory. Goods are supplied by independent local businesses — restaurants, groceries, supermarkets, bakeries, cafés — which register, are reviewed by us, and remain responsible for their products and their own trade licences. We provide the ordering interface and delivery by contracted drivers.
+
+The app does not operate in any highly regulated field: no healthcare and no pharmacies (medicines are not sold, listed or searchable in any form; an earlier build listed a pharmacy category, removed in this build); no banking or financial services (the app processes no payments — every order is cash on delivery, no card or wallet); no gambling and no air travel.
+
+About the bank details and ID document in your screenshot: that is our merchant onboarding form. It is collected only from business owners applying to sell, never from customers. The bank account is where we transfer a merchant their own sales proceeds; the ID verifies that the person registering a store is its owner. These fields are visible only to our administrators and are never returned by any public API.
+
+What is the relationship between Mohamed Hamza and the providers of these services?
+There is no ownership relationship. He holds no interest in any merchant listed in the app; each is an independent seller under a standard platform-merchant agreement. Mohamed Hamza is the app's developer and the holder of this developer account, acting for wajeez, registered in Sudan as a business under the name "تطبيق وجيز للتوصيل" ("Wajeez Delivery Application"). The registration certificate can be provided on request.
+
+DEMO ACCOUNTS
+Customer — phone: <<<FILL>>>  password: <<<FILL>>>
+Driver (captain, pre-approved) — in-app Menu > "دخول الكابتن" — phone: <<<FILL>>>  password: <<<FILL>>>
+Merchant — phone: <<<FILL>>>  password: <<<FILL>>>
+All three are verified and will not ask for an SMS code.
