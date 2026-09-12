@@ -1052,8 +1052,11 @@ router.get('/shop/:placeId/products', async (req, res) => {
         // لا يعود التسريب.
         const place = await Place.findById(req.params.placeId)
             .select(PLACE_CLIENT_EXCLUDE)
-            .populate('category', 'name icon');
-        if (!place || !place.isActive) return res.status(404).json({ message: 'المتجر غير موجود' });
+            .populate('category', 'name icon isActive');
+        // قسمٌ مخفيّ ⇒ لا منتجات عبر الرابط المباشر كذلك
+        if (!place || !place.isActive || (place.category && place.category.isActive === false)) {
+            return res.status(404).json({ message: 'المتجر غير موجود' });
+        }
         const products = await Product.find({ placeId: place._id, isAvailable: true })
             .sort({ category: 1, sortOrder: 1 });
         // 🏷️ السعر الفعّال يُحسب هنا لا في المتصفّح: نافذة العرض تُقيَّم بساعة

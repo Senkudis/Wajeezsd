@@ -72,6 +72,20 @@ router.get('/', async (req, res) => {
             query.city = city || 'Khartoum';
         }
 
+        // 🚫 محلّات الأقسام المخفيّة لا تُعرض.
+        //    «حذف» القسم من اللوحة يُخفيه (isActive:false) ولا يمسّ محلّاته،
+        //    وقائمة «المحلات القريبة منك» تُجلب **بلا تصنيف** — فكانت محلّات
+        //    قسمٍ أُخفي عمداً تبقى ظاهرة فيها وفي البحث. إخفاء القسم قرارٌ
+        //    معناه «هذا الباب مغلق»، فيجب أن يشمل ما تحته.
+        //    (city=all للوحة الإدارة: تُدير كل شيء بما فيه المخفيّ.)
+        if (city !== 'all') {
+            const activeCats = await PlaceCategory.find({ isActive: true }).select('_id').lean();
+            const activeIds = activeCats.map(c => c._id);
+            query.category = category_id
+                ? { $in: activeIds.filter(id => String(id) === String(category_id)) }
+                : { $in: activeIds };
+        }
+
         // 🔒 بلا select كانت تُرجع رقم الحساب البنكي واسم صاحبه ورصيد المحفظة
         // لأي زائر بلا تسجيل دخول
         const places = await Place.find(query)
@@ -134,9 +148,15 @@ router.get('/search', async (req, res) => {
         const matchedCatIds = matchedCats.map(c => c._id);
 
         // 1) متاجر: مطابقة بالاسم أو ضمن قسم مطابق (في المدينة، فعّالة)
+        //    ومحصورة في الأقسام الظاهرة — البحث بالاسم كان ينفذ من حول
+        //    إخفاء القسم فيُرجع محلّاته واحداً واحداً.
+        const activeCatDocs = await PlaceCategory.find({ isActive: true }).select('_id').lean();
+        const activeCatIds = activeCatDocs.map(c => c._id);
         const placeOr = [{ name: rx }];
         if (matchedCatIds.length) placeOr.push({ category: { $in: matchedCatIds } });
-        const placeDocs = await Place.find({ isActive: true, city: cityFilter, $or: placeOr })
+        const placeDocs = await Place.find({
+            isActive: true, city: cityFilter, category: { $in: activeCatIds }, $or: placeOr
+        })
             .select(PLACE_CLIENT_EXCLUDE)   // 🔒 نفس التسريب كان في البحث أيضاً
             .populate('category', 'name icon')
             .limit(20);
@@ -640,8 +660,13 @@ router.get('/:id', async (req, res) => {
     try {
         const place = await Place.findById(req.params.id)
             .select(PLACE_CLIENT_EXCLUDE)   // 🔒 صفحة المتجر عامة — لا بيانات بنكية
-            .populate('category', 'name icon');
+            .populate('category', 'name icon isActive');
         if (!place) return res.status(404).json({ message: 'المحل غير موجود' });
+        // قسمٌ مخفيّ ⇒ صفحته مغلقة كذلك. وإلا بقي رابطٌ مباشر (مشاركة قديمة
+        // أو رابط قصير) يفتح محلاً قرّرت الإدارة إخفاء بابه كلّه.
+        if (!place.isActive || (place.category && place.category.isActive === false)) {
+            return res.status(404).json({ message: 'المحل غير موجود' });
+        }
         // stripPlacePrivateFields شبكة أمان: لو أُزيل select يوماً لا يعود التسريب
         res.json(stripPlaceClientFields(place.toJSON()));
     } catch (err) {

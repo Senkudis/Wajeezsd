@@ -90,3 +90,48 @@ describe('لا ذكر للصيدليات في ما يراه المستخدم', (
         }
     });
 });
+
+/**
+ * 🔒 إخفاء القسم من اللوحة يجب أن يُخفي ما تحته.
+ *
+ * «حذف» القسم في لوحة الإدارة ليس حذفاً: يضبط isActive:false ولا يمسّ
+ * محلّاته. وقائمة «المحلات القريبة منك» تُجلب **بلا تصنيف** — فمحلّات قسمٍ
+ * أُخفي عمداً كانت تبقى ظاهرة فيها، وفي البحث بالاسم، وعبر الرابط المباشر.
+ *
+ * أي أن حذف قسم «صيدليات» من اللوحة ما كان ليُخرج الصيدليات من التطبيق.
+ */
+describe('محلّات الأقسام المخفيّة لا تُعرض', () => {
+    const places = read('routes/places.js');
+    const merchant = read('routes/merchant.js');
+
+    it('قائمة المحلات تُحصر في الأقسام الظاهرة', () => {
+        const i = places.indexOf("router.get('/', async");
+        const blk = places.slice(i, places.indexOf("router.get('/search'"));
+        expect(blk).toContain('PlaceCategory.find({ isActive: true })');
+        expect(blk).toContain('query.category = category_id');
+    });
+
+    it('ولوحة الإدارة تبقى ترى كل شيء (city=all)', () => {
+        const i = places.indexOf("router.get('/', async");
+        const blk = places.slice(i, places.indexOf("router.get('/search'"));
+        expect(blk).toContain("if (city !== 'all') {");
+    });
+
+    it('والبحث بالاسم لا ينفذ من حول الإخفاء', () => {
+        const i = places.indexOf("router.get('/search'");
+        const blk = places.slice(i, i + 2500);
+        expect(blk).toContain('category: { $in: activeCatIds }');
+    });
+
+    it('والرابط المباشر لصفحة المحل مغلق كذلك', () => {
+        const i = places.indexOf("router.get('/:id', async");
+        const blk = places.slice(i, i + 900);
+        expect(blk).toContain("place.category.isActive === false");
+    });
+
+    it('ومنتجاته لا تُخدَم عبر مسارها العام', () => {
+        const i = merchant.indexOf("router.get('/shop/:placeId/products'");
+        const blk = merchant.slice(i, i + 1800);
+        expect(blk).toContain("place.category.isActive === false");
+    });
+});
