@@ -24,6 +24,7 @@
     <script src="js/theme-manager.js?v=0daaeecd"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/image-compress.js?v=b4a6b0be"></script>
 </head>
 
 <body class="bg-light">
@@ -139,6 +140,21 @@
                 </div>
             </div>
 
+            <!-- 🪪 وثائقي — الكابتن الذي تعثّر رفع وثائقه عند التسجيل كان
+                 يبقى معلّقاً بلا طريق: الرسالة تقول «أعد رفعها من صفحة
+                 حسابك»، وهذه الصفحة لم يكن فيها رفع إطلاقاً. -->
+            <div class="p-3 pb-0" id="docsSection" hidden>
+                <div class="border rounded-3 p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-file-earmark-person me-1"></i> وثائقي</h6>
+                        <span id="docsStatusBadge" class="badge rounded-pill"></span>
+                    </div>
+                    <p class="text-muted small mb-3" id="docsHint"></p>
+                    <div id="docsList" class="d-flex flex-column gap-2"></div>
+                    <input type="file" id="docInput" accept="image/*" hidden>
+                </div>
+            </div>
+
             <div class="p-3 pb-0">
                 <button class="btn btn-outline-primary w-100 fw-bold py-3 rounded-3 hover-scale"
                     onclick="shareApp('captain-profile')">
@@ -202,6 +218,115 @@
         const token = window.Auth.getToken();
         if (!token) window.location.href = 'captain-login.html';
 
+        // ── 🪪 وثائقي: عرضٌ ورفعٌ من داخل التطبيق ────────────────────────
+        // رسالة التسجيل تَعِد الكابتن بأن يعيد الرفع «من صفحة حسابك» عند فشل
+        // الرفع — ولم يكن في الصفحة رفعٌ إطلاقاً، فيبقى معلّقاً بلا طريق.
+        const DOC_LABELS = {
+            idImage:       { label: 'صورة الهوية',        icon: 'bi-person-vcard' },
+            selfieImage:   { label: 'صورة شخصية (سيلفي)', icon: 'bi-person-badge' },
+            driverLicense: { label: 'رخصة القيادة',       icon: 'bi-card-heading' },
+            vehiclePhoto:  { label: 'صورة المركبة',       icon: 'bi-bicycle' },
+            profilePhoto:  { label: 'صورة الملف الشخصي',  icon: 'bi-image' }
+        };
+        let _docsState = {};
+
+        function renderDocs(status, approvalStatus, rejectionReason) {
+            _docsState = status || {};
+            const section = document.getElementById('docsSection');
+            if (!section) return;
+            section.hidden = false;
+
+            const missing = Object.keys(DOC_LABELS).filter(k => !_docsState[k]);
+            const badge = document.getElementById('docsStatusBadge');
+            const hint = document.getElementById('docsHint');
+
+            if (approvalStatus === 'approved') {
+                badge.className = 'badge rounded-pill bg-success';
+                badge.textContent = 'حساب معتمد';
+                hint.textContent = missing.length
+                    ? 'يمكنك تحديث أي وثيقة متى تغيّرت (رخصة جديدة، مركبة جديدة).'
+                    : 'وثائقك مكتملة. يمكنك تحديث أي منها متى تغيّرت.';
+            } else if (approvalStatus === 'rejected') {
+                badge.className = 'badge rounded-pill bg-danger';
+                badge.textContent = 'مرفوض';
+                hint.textContent = rejectionReason
+                    ? `سبب الرفض: ${rejectionReason} — صحّح ما يلزم وأعد الرفع، وسيُراجَع طلبك من جديد.`
+                    : 'صحّح وثائقك وأعد رفعها، وسيُراجَع طلبك من جديد.';
+            } else {
+                badge.className = 'badge rounded-pill bg-warning text-dark';
+                badge.textContent = 'قيد المراجعة';
+                hint.textContent = missing.length
+                    ? 'طلبك لن يُراجَع قبل اكتمال الوثائق الناقصة أدناه.'
+                    : 'وثائقك وصلت كاملة. طلبك في انتظار مراجعة الإدارة.';
+            }
+
+            document.getElementById('docsList').innerHTML = Object.entries(DOC_LABELS).map(([key, d]) => {
+                const has = !!_docsState[key];
+                return `
+                <div class="d-flex align-items-center gap-2 border rounded-3 p-2" data-doc="${key}">
+                    <i class="bi ${d.icon} fs-5 ${has ? 'text-success' : 'text-muted'}"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold" style="font-size:13.5px;">${d.label}</div>
+                        <div class="small ${has ? 'text-success' : 'text-danger'}" style="font-size:11.5px;">
+                            ${has ? 'تم الرفع' : 'لم تُرفع بعد'}
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm ${has ? 'btn-outline-secondary' : 'btn-primary'} fw-bold"
+                        onclick="pickDoc('${key}')">${has ? 'تحديث' : 'رفع'}</button>
+                </div>`;
+            }).join('');
+        }
+
+        let _pendingDocKey = null;
+        function pickDoc(key) {
+            _pendingDocKey = key;
+            const input = document.getElementById('docInput');
+            input.value = '';          // اختيار الملف نفسه مرّتين يجب أن يعمل
+            input.click();
+        }
+
+        document.getElementById('docInput').addEventListener('change', async function () {
+            const file = this.files && this.files[0];
+            const key = _pendingDocKey;
+            if (!file || !key) return;
+
+            const row = document.querySelector(`[data-doc="${key}"]`);
+            const btn = row && row.querySelector('button');
+            const original = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
+
+            try {
+                // الضغط قبل الرفع: حدّ الخادم 5MB وكاميرا الهاتف تُنتج أكثر
+                let toSend = file;
+                try { if (window.WajeezImage) toSend = await window.WajeezImage.compress(file); } catch (_) {}
+
+                const fd = new FormData();
+                fd.append(key, toSend);
+                const res = await fetch(`${API_URL}/api/upload/captain-docs`, {
+                    method: 'POST',
+                    headers: window.Auth.getAuthHeader(),   // بلا Content-Type — المتصفح يضبط الحدود
+                    body: fd
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || 'تعذّر رفع الوثيقة');
+
+                _docsState[key] = true;
+                renderDocs(_docsState, _lastApprovalStatus, _lastRejectionReason);
+                Swal.fire({ toast: true, position: 'top', icon: 'success', timer: 1800,
+                    showConfirmButton: false, title: 'تم رفع الوثيقة' });
+            } catch (e) {
+                if (btn) { btn.disabled = false; btn.innerHTML = original; }
+                Swal.fire({ icon: 'error', title: 'تعذّر الرفع', text: e.message,
+                    confirmButtonText: 'حسناً' });
+            } finally {
+                _pendingDocKey = null;
+                this.value = '';
+            }
+        });
+
+        let _lastApprovalStatus = 'pending';
+        let _lastRejectionReason = '';
+
         async function loadProfileData() {
             try {
                 const res = await fetchWithRetry(`${API_URL}/api/captain/profile-details`, {
@@ -232,6 +357,13 @@
                     document.getElementById('orders').innerText = Number(data.totalOrders || 0).toLocaleString('en-US');
                     document.getElementById('revenue').innerText =
                         Number(data.totalEarnings || 0).toLocaleString('en-US') + ' ج.س';
+
+                    // 🪪 حالة الوثائق
+                    _lastApprovalStatus = data.approvalStatus || 'pending';
+                    _lastRejectionReason = data.rejectionReason || '';
+                    if (data.documentsStatus) {
+                        renderDocs(data.documentsStatus, _lastApprovalStatus, _lastRejectionReason);
+                    }
 
                     // Vehicle Logic — من المصدر المركزي vehicle-types.js
                     const vehicleText = data.vehicleType ? window.VehicleTypes.iconLabel(data.vehicleType) : 'غير محدد';

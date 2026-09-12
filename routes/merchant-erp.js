@@ -14,6 +14,7 @@ const Expense = require('../models/Expense');
 const ShopLedger = require('../models/ShopLedger');
 const SettlementRequest = require('../models/SettlementRequest');
 const { recordStockMovement, recordLedgerEntry, checkLowStockAlert } = require('../utils/erpHelpers');
+const { effectivePrice } = require('../utils/productPricing');
 const { sendNotification, notifyAdmins } = require('../utils/notificationHelper');
 const logger = require('../utils/logger');
 
@@ -836,11 +837,18 @@ router.post('/pos/sale', protect, merchantOnly, loadPlace, requirePro, async (re
             if (product.stock !== null && product.stock !== undefined && product.stock < qty) {
                 return res.status(400).json({ message: `المنتج "${product.name}" متوفر منه ${product.stock} فقط` });
             }
-            const subtotal = product.price * qty;
+            // 💸 السعر الفعّال لا `price` الخام: المنتج الذي عليه تخفيضٌ
+            //    سارٍ كان يُباع في المحل بسعره الأصلي بينما يشتريه عميل
+            //    التطبيق مخفَّضاً — نفس المنتج بسعرين في اللحظة نفسها.
+            const eff = effectivePrice(product);
+            const subtotal = eff.price * qty;
             itemsTotal += subtotal;
             validatedItems.push({
                 productId: product._id, name: product.name,
-                price: product.price, cost: product.cost || 0,
+                price: eff.price, cost: product.cost || 0,
+                // السعر قبل التخفيض يبقى في الفاتورة: بدونه لا يُعرف لاحقاً
+                // لماذا بيع هذا الصنف بأقلّ من سعره المعلن
+                listPrice: eff.onSale ? eff.listPrice : undefined,
                 quantity: qty, subtotal
             });
         }

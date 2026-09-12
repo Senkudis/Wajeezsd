@@ -9,7 +9,8 @@ const PosSaleSchema = new mongoose.Schema({
     items: [{
         productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         name: { type: String, required: true },
-        price: { type: Number, required: true },
+        price: { type: Number, required: true },      // المحصَّل فعلاً (بعد التخفيض إن كان سارياً)
+        listPrice: { type: Number, default: null },   // السعر المعلن وقت البيع — يُملأ عند التخفيض فقط
         cost: { type: Number, default: 0 },   // لقطة التكلفة وقت البيع
         quantity: { type: Number, default: 1 },
         subtotal: { type: Number }

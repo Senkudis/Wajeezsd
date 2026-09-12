@@ -129,7 +129,18 @@ router.get('/profile-details', protect, captainOnly, async (req, res) => {
             totalOrders: result.totalOrders,
             totalEarnings: result.totalEarnings,
             profilePhoto: (req.user.documents && req.user.documents.profilePhoto) || null,
-            joinDate: req.user.createdAt
+            joinDate: req.user.createdAt,
+
+            // 🪪 حالة الوثائق: الكابتن الذي فشل رفع وثائقه عند التسجيل كان
+            //    يبقى معلّقاً بلا أن يعرف ما ينقصه ولا كيف يُكمله. نرسل
+            //    وجودها لا مساراتها — الملفّات نفسها لا تُعرض له.
+            approvalStatus: req.user.approvalStatus || 'pending',
+            rejectionReason: req.user.rejectionReason || '',
+            documentsStatus: ['driverLicense', 'profilePhoto', 'vehiclePhoto', 'idImage', 'selfieImage']
+                .reduce((acc, k) => {
+                    acc[k] = !!(req.user.documents && req.user.documents[k]);
+                    return acc;
+                }, {})
         });
 
     } catch (error) {

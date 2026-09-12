@@ -12,6 +12,7 @@
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
+    <script src="js/product-price.js?v=7211fddf"></script>
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
     <style>
         :root {
@@ -311,15 +312,13 @@
     const esc = window.escapeHtml || ((v) => String(v ?? '').replace(/[&<>"']/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
 
-    // 🏷️ هل العرض ساري الآن؟ نفس شروط utils/productPricing على الخادم.
-    //    التاجر يحتاج التمييز بين ثلاث حالات لا اثنتين: لا عرض، وعرضٌ سارٍ،
+    // 🏷️ هل العرض ساري الآن؟ القاعدة من المصدر المشترك مع الخادم — كانت
+    //    مكتوبةً هنا بيدها، ونسخةٌ ثالثة في نقطة البيع افترقت فعلاً فباعت
+    //    بالسعر الأصلي رغم سريان التخفيض.
+    //    والتاجر يحتاج التمييز بين ثلاث حالات لا اثنتين: لا عرض، وعرضٌ سارٍ،
     //    وعرضٌ مضبوطٌ لكنه مجدول أو منتهٍ — الأخيرة تبدو كعطل بدون تمييزها.
-    function _saleOn(p, now = Date.now()) {
-        if (p.salePrice === null || p.salePrice === undefined || p.salePrice === '') return false;
-        if (!(p.salePrice < p.price)) return false;
-        if (p.saleStartsAt && now < new Date(p.saleStartsAt).getTime()) return false;
-        if (p.saleEndsAt && now > new Date(p.saleEndsAt).getTime()) return false;
-        return true;
+    function _saleOn(p) {
+        return !!(window.ProductPrice && ProductPrice.effective(p).onSale);
     }
 
     let products = [];
