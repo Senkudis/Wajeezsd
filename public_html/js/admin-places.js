@@ -24,7 +24,6 @@ function setSubmitLoading(btn, loading, originalHtml) {
 }
 
 let allCategories = [];
-let placesDataTable = null;
 
 // =====================================
 // 🗺️ Google Maps URL Coord Extractor + Map Preview
@@ -324,110 +323,226 @@ async function loadAdminPlaces() {
     }
 }
 
+// 🏪 عرض شبكة المحلات — أُعيد بناؤه.
+//
+// ما كان: جدولٌ محشور في ثلثي الشاشة بجانب قائمة التصنيفات، **وترويسةٌ لا
+// تطابق خلاياها**: اسم المحل تحت «#»، والتصنيف تحت «المنشأة»، والهاتف تحت
+// «الفئة». وخمسة أزرار بأحجام وألوان مختلفة تلتفّ على سطرين فيختلف موضع كل
+// زرّ بين صفٍّ وآخر — فالضغط الخاطئ (حذف بدل تعديل) مسألة وقت.
+//
+// وأسئلة الإدارة الفعلية («كم محلاً بلا تاجر؟» «أي محلات بورتسودان مغلقة؟»)
+// كانت تُجاب بمسح الجدول بالعين. صار لها شريط تصفية.
+//
+// وDataTables حُذفت من هنا: كانت تجلب نصوصها العربية من CDN خارجي بشكل غير
+// متزامن، فتظهر اللوحة بالإنجليزية ريثما يصل الملف — وبالإنجليزية دائماً إن
+// تعذّر الوصول إليه.
+
+let _allAdminPlaces = [];
+const _placeFilters = { q: '', city: '', kind: '', status: '', sort: 'name' };
+let _placesShowAll = false;
+const PLACES_PAGE_SIZE = 50;
+
+const PLACE_CITY_AR = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+
+function escAttr(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 window.handlePlaceImageError = function(img) {
     img.onerror = null;
     img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2304553A' stroke-width='2'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E";
 };
 
+function placeImageUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('data:image')) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const base = window.API_URL || 'https://wajeezsd.com';
+    const clean = url.replace(/\\/g, '/');
+    const withSlash = clean.startsWith('/') ? clean : '/' + clean;
+    const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
+    if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
+    return base + withSlash;
+}
+
+const DEFAULT_STORE_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2304553A' stroke-width='2'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E";
+
+/** يطبّق البحث والتصفية والترتيب على القائمة الكاملة. */
+function filterAdminPlaces() {
+    const f = _placeFilters;
+    let out = _allAdminPlaces.slice();
+
+    if (f.q) {
+        const q = f.q.toLowerCase();
+        out = out.filter(p => [p.name, p.phone, p.category && p.category.name, PLACE_CITY_AR[p.city], p.address]
+            .some(v => String(v || '').toLowerCase().includes(q)));
+    }
+    if (f.city)   out = out.filter(p => p.city === f.city);
+    if (f.status) out = out.filter(p => (f.status === 'open' ? !!p.is_open : !p.is_open));
+    if (f.kind === 'merchant') out = out.filter(p => !!p.ownerId);
+    else if (f.kind === 'noowner') out = out.filter(p => !p.ownerId);
+    else if (f.kind === 'errand')  out = out.filter(p => !!p.errandEnabled);
+    else if (f.kind === 'pro')     out = out.filter(p => p.tier === 'pro' && p.ownerId);
+
+    const by = {
+        name:     (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar'),
+        category: (a, b) => String(a.category?.name || '').localeCompare(String(b.category?.name || ''), 'ar'),
+        city:     (a, b) => String(a.city || '').localeCompare(String(b.city || '')),
+        // المغلق أولاً في ترتيب الحالة: هو ما يحتاج تدخّل الإدارة
+        status:   (a, b) => (a.is_open ? 1 : 0) - (b.is_open ? 1 : 0)
+    }[f.sort] || null;
+    if (by) out.sort(by);
+
+    return out;
+}
+
+function buildPlaceRow(p) {
+    const isErrand = !!p.errandEnabled;
+    const isPro    = p.tier === 'pro';
+    const owned    = !!p.ownerId;
+    const safeName = escAttr(p.name);
+
+    const tags = [
+        `<span class="pl-tag"><i class="fas fa-location-dot"></i> ${PLACE_CITY_AR[p.city] || p.city || '—'}</span>`,
+        owned ? `<span class="pl-tag merchant"><i class="fas fa-user-tie"></i> بتاجر</span>`
+              : `<span class="pl-tag noowner"><i class="fas fa-user-slash"></i> بدون تاجر</span>`,
+        isErrand ? `<span class="pl-tag errand"><i class="fas fa-bag-shopping"></i> اشترِ لي</span>` : '',
+        // الباقة تخصّ متجر التاجر وحده — محلٌّ بلا مالك لا باقة له
+        (isPro && owned) ? `<span class="pl-tag pro"><i class="fas fa-crown"></i> متجر كبير</span>` : ''
+    ].join('');
+
+    return `
+        <tr>
+            <td data-label="المنشأة">
+                <div class="pl-identity">
+                    <img class="pl-img" src="${p.image_url ? placeImageUrl(p.image_url) : DEFAULT_STORE_SVG}"
+                        alt="" onerror="handlePlaceImageError(this)">
+                    <div>
+                        <div class="pl-name">${escAttr(p.name)}</div>
+                        <div class="pl-tags">${tags}</div>
+                    </div>
+                </div>
+            </td>
+            <td data-label="التصنيف">${escAttr(p.category?.name || '—')}</td>
+            <td data-label="الهاتف">${p.phone
+                ? `<span class="pl-phone" dir="ltr">${escAttr(p.phone)}</span>`
+                : '<span class="pl-muted">لا يوجد</span>'}</td>
+            <td data-label="الحالة">
+                <span class="pl-status ${p.is_open ? 'open' : 'closed'}">${p.is_open ? 'مفتوح' : 'مغلق'}</span>
+            </td>
+            <td data-label="إدارة">
+                <div class="pl-actions">
+                    <button class="pl-btn edit" onclick="openEditPlaceModal('${p._id}')" title="تعديل بيانات المحل">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <!-- 🛍️ مفتاح سريع: تفعيل "اشترِ لي" كان يتطلب فتح نافذة التعديل
+                         كاملة (خريطة وصور ومنتجات) لأجل مربّع واحد -->
+                    <button class="pl-btn errand ${isErrand ? 'on' : ''}"
+                        onclick="toggleErrandEnabled('${p._id}', ${isErrand}, this)"
+                        title="${isErrand ? 'إيقاف إتاحته في اشترِ لي' : 'إتاحته في اشترِ لي'}">
+                        <i class="fas fa-bag-shopping"></i>
+                    </button>
+                    ${owned ? `<button class="pl-btn tier"
+                        onclick="togglePlaceTier('${p._id}', '${isPro ? 'pro' : 'basic'}', '${safeName.replace(/'/g, '')}')"
+                        title="${isPro ? 'إرجاع للباقة الأساسية' : 'ترقية لباقة المتجر الكبير'}">
+                        <i class="fas fa-crown"></i>
+                    </button>` : ''}
+                    <button class="pl-btn link" onclick="copyAdminShareLink('${escAttr(p.shareCode || '')}')"
+                        title="نسخ الرابط القصير">
+                        <i class="fas fa-link"></i>
+                    </button>
+                    <button class="pl-btn del" onclick="deletePlace('${p._id}', '${safeName.replace(/'/g, '')}')"
+                        title="حذف المحل">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+}
+
 function renderAdminPlacesTable(places) {
+    if (Array.isArray(places)) { _allAdminPlaces = places; _placesShowAll = false; }
+
     const tbody = document.querySelector('#placesTable tbody');
-    if (places.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;">لا توجد محلات بعد</td></tr>';
+    const countEl = document.getElementById('placesResultCount');
+    const resetBtn = document.getElementById('placeFiltersReset');
+    if (!tbody) return;
+
+    const visible = filterAdminPlaces();
+    const hasFilter = !!(_placeFilters.q || _placeFilters.city || _placeFilters.kind || _placeFilters.status);
+    if (resetBtn) resetBtn.classList.toggle('d-none', !hasFilter);
+
+    if (!_allAdminPlaces.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="pl-empty">
+            <i class="fas fa-store-slash"></i> لا توجد محلات بعد — أضف أول محل من الأزرار أعلاه</td></tr>`;
+        if (countEl) countEl.textContent = '';
         return;
     }
 
-    const getFullImageUrl = (url) => {
-        if (!url) return '';
-        if (url.startsWith('data:image')) return url;
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        const base = window.API_URL || 'https://wajeezsd.com';
-        const cleanUrl = url.replace(/\\/g, '/');
-        const withSlash = cleanUrl.startsWith('/') ? cleanUrl : '/' + cleanUrl;
-        const isLocal = base.includes('localhost') || base.includes('127.0.0.1');
-        if (!isLocal && withSlash.startsWith('/uploads')) return base + '/api' + withSlash;
-        return base + withSlash;
-    };
+    if (!visible.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="pl-empty">
+            <i class="fas fa-magnifying-glass"></i> لا محلات تطابق هذه التصفية</td></tr>`;
+        if (countEl) countEl.textContent = `0 من ${_allAdminPlaces.length} محل`;
+        return;
+    }
 
-    const defaultStoreSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='%2304553A' stroke-width='2'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E";
+    // قصٌّ مبدئي: مئات الصفوف دفعةً واحدة تُبطئ الصفحة بلا أن يقرأها أحد
+    const shown = _placesShowAll ? visible : visible.slice(0, PLACES_PAGE_SIZE);
+    tbody.innerHTML = shown.map(buildPlaceRow).join('');
 
-    const pill = (bg, color, html) =>
-        `<span style="background:${bg};color:${color};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;">${html}</span>`;
-
-    tbody.innerHTML = places.map(p => {
-        // 🛍️ نوع المحل أهمّ من حالته: متجرٌ بتاجر يبيع منتجاته، ومحلٌّ بلا تاجر
-        // لا يصله إلا طلب "اشترِ لي". الخلط بينهما في جدول واحد بلا تمييز كان
-        // يُخفي أن المحلات المضافة للخدمة صفر.
-        const isErrand = !!p.errandEnabled;
-        const noOwner = !p.ownerId;
-        const kind = isErrand
-            ? pill('#ede9fe', '#5b21b6', '<i class="fas fa-bag-shopping"></i> اشترِ لي')
-            : (noOwner
-                ? pill('#fef3c7', '#92400e', '<i class="fas fa-user-slash"></i> بدون تاجر')
-                : pill('#dcfce7', '#166534', '<i class="fas fa-user-tie"></i> متجر بتاجر'));
-
-        return `
-        <tr>
-            <td>
-                <img src="${p.image_url ? getFullImageUrl(p.image_url) : defaultStoreSvg}" onerror="handlePlaceImageError(this)" style="width:36px;height:36px;border-radius:8px;object-fit:cover;margin-left:8px;vertical-align:middle;background:#f3f4f6;padding:2px;">
-                <strong>${p.name}</strong>
-                <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
-                    <i class="bi bi-geo-alt-fill"></i> ${p.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}
-                </div>
-                <div style="margin-top:6px;">${kind}</div>
-            </td>
-            <td>${p.category?.name || '-'}</td>
-            <td>${p.phone || '-'}</td>
-            <td>
-                ${p.is_open
-            ? '<span style="background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">مفتوح</span>'
-            : '<span style="background:#fee2e2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">مغلق</span>'}
-                ${p.ownerId
-            ? (p.tier === 'pro'
-                ? '<div style="margin-top:4px;"><span style="background:#ede9fe;color:#6d28d9;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;"><i class="fas fa-crown"></i> متجر كبير</span></div>'
-                : '<div style="margin-top:4px;"><span style="background:#f1f5f9;color:#64748b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">باقة أساسية</span></div>')
-            : ''}
-            </td>
-            <td>
-                <!-- 🛍️ مفتاح سريع: تفعيل الخدمة لمحلٍّ قائم كان يتطلب فتح نافذة
-                     التعديل كاملة (خريطة وصور ومنتجات) لأجل مربّع واحد -->
-                <button onclick="toggleErrandEnabled('${p._id}', ${isErrand}, this)"
-                    title="${isErrand ? 'إيقاف إتاحته في اشترِ لي' : 'إتاحته في اشترِ لي'}"
-                    style="padding:6px 12px;font-size:12px;margin-left:6px;border:none;border-radius:8px;cursor:pointer;background:${isErrand ? '#7c3aed' : '#e5e7eb'};color:${isErrand ? '#fff' : '#6b7280'};">
-                    <i class="fas fa-bag-shopping"></i>
-                </button>
-                ${p.ownerId
-            ? `<button onclick="togglePlaceTier('${p._id}', '${p.tier === 'pro' ? 'pro' : 'basic'}', '${(p.name || '').replace(/'/g, '')}')" title="تغيير باقة المتجر" style="padding:6px 12px;font-size:12px;margin-left:6px;background:${p.tier === 'pro' ? '#6d28d9' : '#94a3b8'};color:#fff;border:none;border-radius:8px;cursor:pointer;">
-                    <i class="fas fa-crown"></i>
-                </button>`
-            : ''}
-                <button onclick="copyAdminShareLink('${p.shareCode || ''}')" class="btn-primary-custom" title="نسخ الرابط القصير" style="padding:6px 12px;font-size:12px;margin-left:6px;background:#0f766e;color:#fff;border:none;border-radius:8px;">
-                    <i class="fas fa-link" style="font-size:1.1rem;"></i>
-                </button>
-                <button onclick="openEditPlaceModal('${p._id}')" class="btn-primary-custom" style="padding:6px 12px;font-size:12px;margin-left:6px;">
-                    <i class="fas fa-edit"></i> تعديل
-                </button>
-                <button onclick="deletePlace('${p._id}', '${p.name}')" class="btn-danger-custom" style="padding:6px 12px;font-size:12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </td>
-        </tr>
-    `;
-    }).join('');
-
-    // Initialize DataTables
-    if (typeof $ !== 'undefined' && $.fn.dataTable) {
-        if (placesDataTable) {
-            placesDataTable.destroy();
-        }
-        placesDataTable = $('#placesTable').DataTable({
-            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json' },
-            pageLength: 25,
-            ordering: true,
-            responsive: true,
-            destroy: true
-        });
+    if (countEl) {
+        countEl.innerHTML = `يعرض <strong>${shown.length}</strong> من ${_allAdminPlaces.length} محل`
+            + (shown.length < visible.length
+                ? ` — <button type="button" class="btn btn-sm btn-link p-0 fw-bold" onclick="showAllAdminPlaces()">عرض الكل (${visible.length})</button>`
+                : '');
     }
 }
+
+window.showAllAdminPlaces = function () {
+    _placesShowAll = true;
+    renderAdminPlacesTable();
+};
+
+// ربط شريط التصفية — مرّةً واحدة عند تحميل الصفحة
+function bindPlaceFilters() {
+    const q = document.getElementById('placeSearch');
+    if (!q) return;   // صفحة أخرى تستعمل هذا الملف
+    let t = null;
+    q.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+            _placeFilters.q = q.value.trim();
+            _placesShowAll = false;
+            renderAdminPlacesTable();
+        }, 180);
+    });
+    const bind = (id, key) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', () => {
+            _placeFilters[key] = el.value;
+            _placesShowAll = false;
+            renderAdminPlacesTable();
+        });
+    };
+    bind('placeCityFilter', 'city');
+    bind('placeKindFilter', 'kind');
+    bind('placeStatusFilter', 'status');
+    bind('placeSort', 'sort');
+
+    const reset = document.getElementById('placeFiltersReset');
+    if (reset) reset.addEventListener('click', () => {
+        _placeFilters.q = _placeFilters.city = _placeFilters.kind = _placeFilters.status = '';
+        q.value = '';
+        ['placeCityFilter', 'placeKindFilter', 'placeStatusFilter'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+        });
+        _placesShowAll = false;
+        renderAdminPlacesTable();
+    });
+}
+document.addEventListener('DOMContentLoaded', bindPlaceFilters);
 
 /**
  * 🛍️ تبديل إتاحة المحل في خدمة "اشترِ لي" من الجدول مباشرة.
