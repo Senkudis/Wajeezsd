@@ -868,9 +868,25 @@ window.findPlaceById = function (placeId) {
     return null;
 };
 
+// المحلّات التي سُجّلت مشاهدتها في هذه الصفحة — فتحُ البطاقة وإغلاقها
+// وفتحها ثانيةً اهتمامٌ واحد لا ثلاثة.
+const _viewedPlaces = new Set();
+
+/** تسجيل مشاهدة عند فتح المتجر — لا عند ظهوره في القائمة. */
+function recordPlaceView(placeId) {
+    if (!placeId || _viewedPlaces.has(placeId)) return;
+    _viewedPlaces.add(placeId);
+    fetch(`${API_URL}/api/places/${placeId}/view`, { method: 'POST' }).catch(() => {});
+}
+
 window.openPlaceDetails = function(placeId) {
     const place = window.findPlaceById(placeId);
     if (!place) { console.warn('openPlaceDetails: place not found in any loaded source', placeId); return; }
+
+    // 👁️ المحلّ بلا تاجر لا صفحة متجر له، فبطاقته هذه هي «فتح المتجر»
+    //    بالنسبة له. أمّا متجر التاجر فتسجّله shop-detail.html عند فتحه —
+    //    والعدّ هنا أيضاً يحسب الزيارة الواحدة مرّتين.
+    if (!place.ownerId) recordPlaceView(placeId);
 
     document.getElementById('placeModalName').innerText = place.name;
     document.getElementById('placeModalDistance').innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> يبعد ${place.distanceKm != null ? Number(place.distanceKm).toFixed(1) : '--'} كم خريطة جوية`;

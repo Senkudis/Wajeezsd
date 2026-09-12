@@ -78,13 +78,12 @@ router.get('/', async (req, res) => {
             .select(PLACE_CLIENT_EXCLUDE)
             .populate('category', 'name icon');
 
-        // زيادة عداد المشاهدات (fire & forget)
-        if (places.length > 0) {
-            Place.updateMany(
-                { _id: { $in: places.map(p => p._id) } },
-                { $inc: { viewsCount: 1 } }
-            ).catch(() => {});
-        }
+        // ⚠️ لا عدّ مشاهدات هنا. كان كل طلب قائمة يكتب `$inc` على كل محلّات
+        //    المدينة — عشرات المستندات في أكثر نقطةٍ استعمالاً، على نفس
+        //    اتصالات القاعدة التي ينتظرها العميل. والرقم نفسه كان مضلّلاً:
+        //    يعدّ الظهور في الشبكة لا الاهتمام بالمحل، فمحلٌّ لم يفتحه أحد
+        //    يبلغ آلاف «المشاهدات» لمجرد وجوده في القائمة.
+        //    المشاهدة تُسجَّل عند فتح المتجر وحده: POST /api/places/:id/view
 
         // Return with virtuals + ownerId so client can show "Browse Products" button for merchant stores
         res.json(places.map(p => {

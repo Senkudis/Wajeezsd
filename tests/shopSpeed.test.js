@@ -120,3 +120,59 @@ describe('فتح قسمٍ لأول مرة يستعمل ما هو محمَّل أ
         expect(feature.slice(i - 200, i + 500)).toContain('catch (_)');
     });
 });
+
+/**
+ * 👁️ عدّ المشاهدات: عند فتح المتجر لا عند ظهوره في القائمة.
+ *
+ * كان كل طلب قائمة يكتب `$inc` على كل محلّات المدينة — عشرات المستندات في
+ * أكثر نقطةٍ استعمالاً، على نفس اتصالات القاعدة التي ينتظرها العميل.
+ * والرقم نفسه كان مضلّلاً: محلٌّ لم يفتحه أحد يبلغ آلاف «المشاهدات» لمجرد
+ * وجوده في الشبكة.
+ */
+describe('عدّ المشاهدات عند الفتح وحده', () => {
+    const places = fs.readFileSync(path.join(__dirname, '..', 'routes', 'places.js'), 'utf8');
+    const shopPage = read('shop-detail.html');
+
+    const listBlock = places.slice(
+        places.indexOf("router.get('/', async"),
+        places.indexOf("router.get('/search'")
+    );
+
+    it('قائمة المحلات لا تكتب شيئاً', () => {
+        expect(listBlock).not.toContain('updateMany');
+        // الصيغة الفعلية لا الكلمة: شرحٌ في تعليقٍ فوقها يذكرها بحقّ
+        expect(listBlock).not.toMatch(/\$inc:\s*\{\s*viewsCount/);
+    });
+
+    it('ومسار المشاهدة وحده يزيد العدّاد', () => {
+        expect(places).toContain("router.post('/:id/view'");
+        const i = places.indexOf("router.post('/:id/view'");
+        expect(places.slice(i, i + 300)).toContain('$inc: { viewsCount: 1 }');
+    });
+
+    it('صفحة المتجر تسجّل مشاهدتها عند فتحها', () => {
+        expect(shopPage).toContain('/view`, { method: \'POST\' }');
+    });
+
+    it('بطاقة المحلّ بلا تاجر تسجّل كذلك — لا صفحة متجر له', () => {
+        expect(feature).toContain('function recordPlaceView');
+        expect(feature).toContain('if (!place.ownerId) recordPlaceView(placeId)');
+    });
+
+    it('ومتجر التاجر لا يُعدّ مرّتين', () => {
+        // البطاقة ثم الصفحة زيارةٌ واحدة، فالعدّ في الاثنين يضاعفها
+        const i = feature.indexOf('window.openPlaceDetails');
+        expect(feature.slice(i, i + 700)).not.toMatch(/^\s*recordPlaceView\(placeId\);/m);
+    });
+
+    it('فتحٌ وإغلاقٌ وفتحٌ في الصفحة نفسها اهتمامٌ واحد', () => {
+        expect(feature).toContain('_viewedPlaces');
+        const i = feature.indexOf('function recordPlaceView');
+        expect(feature.slice(i, i + 300)).toContain('_viewedPlaces.has(placeId)');
+    });
+
+    it('فشل التسجيل لا يُفشل فتح المتجر', () => {
+        const i = feature.indexOf('function recordPlaceView');
+        expect(feature.slice(i, i + 400)).toContain('.catch(() => {})');
+    });
+});
