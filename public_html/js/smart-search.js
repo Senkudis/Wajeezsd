@@ -469,7 +469,29 @@
 
     /** البحث الموسّع: نفس نقطة نهاية منتقي "اشترِ لي" — محمية ومسقوفة ومدفوعة */
     function deepErrandSearch() {
-        if (!localStorage.getItem('token')) { window.location.href = 'client-login.html'; return; }
+        // 🔎 هذا ليس تصفّح كتالوجنا — هو بحثٌ خارجيّ مدفوع لكل نداء، يُستعمل
+        //    ضمن طلب «اشترِ لي». فيبقى خلف الحساب (سقفٌ لكل مستخدم يحمي
+        //    التكلفة)، لكن **بلا تحويلٍ صامت**: نشرح ونترك الخيار.
+        //    وكل تصفّح المحلات والمنتجات مفتوح للزائر بلا حساب.
+        if (!localStorage.getItem('token')) {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'البحث الموسّع',
+                    text: 'البحث في الأماكن خارج متاجرنا متاح بعد تسجيل الدخول. أمّا متاجر وجيز ومنتجاتها فتصفّحها مفتوح بلا حساب.',
+                    showCancelButton: true,
+                    confirmButtonText: 'تسجيل الدخول',
+                    cancelButtonText: 'أكمل التصفّح'
+                }).then(r => {
+                    if (r.isConfirmed) {
+                        try { localStorage.setItem('returnUrl', location.href); } catch (_) {}
+                        window.location.href = 'client-login.html';
+                    }
+                });
+            }
+            errandDeepBusy = false;
+            return;
+        }
         var q = lastQuery;
         errandDeepBusy = true; errandNote = '';
         render();

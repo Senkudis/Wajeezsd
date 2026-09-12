@@ -548,20 +548,25 @@
         .empty-state h6 { font-size: 17px; font-weight: 800; color: #374151; }
         .empty-state p { font-size: 14px; color: #9ca3af; }
 
-        /* ─── Guest View ─── */
-        .guest-card {
-            background: white; border-radius: 24px;
-            padding: 36px 24px; text-align: center;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-            margin-top: 8px;
+        /* ─── دعوة الزائر ───
+           شريطٌ رفيع يُغلَق، لا بطاقةٌ تحجب المحتوى: التصفّح مفتوح، والحساب
+           لا يلزم إلا عند الطلب. (كانت هنا بطاقة تملأ الشاشة مكان المحلات.) */
+        .guest-invite {
+            display: flex; align-items: center; gap: 10px;
+            background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;
+            border-radius: 16px; padding: 10px 14px; margin-top: 10px;
         }
-        .guest-icon-wrap {
-            width: 80px; height: 80px; border-radius: 24px;
-            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 36px;
+        .guest-invite .gi-text { flex: 1; font-size: 13px; font-weight: 700; line-height: 1.5; }
+        .guest-invite .gi-btn {
+            background: #16a34a; color: #fff; border: none; border-radius: 20px;
+            padding: 7px 16px; font-size: 12.5px; font-weight: 800;
+            text-decoration: none; white-space: nowrap;
         }
+        .guest-invite .gi-close {
+            background: none; border: none; color: #16a34a; font-size: 18px;
+            line-height: 1; padding: 0 2px; cursor: pointer;
+        }
+        body.dark-mode .guest-invite { background: #052e1a; border-color: #14532d; color: #86efac; }
 
         /* ─── Place Details Bottom Sheet ─── */
         .modal.bottom-sheet .modal-dialog {
@@ -792,23 +797,8 @@
 
 <body>
 
-    <!-- ✅ FIX: إخفاء فوري للـ grid قبل DOMContentLoaded لمنع الفراغ المحرج للزائر -->
-    <script>
-        (function () {
-            if (!localStorage.getItem('token')) {
-                document.addEventListener('DOMContentLoaded', function () {
-                    const grid = document.getElementById('categories-grid');
-                    if (grid) grid.style.minHeight = '0';
-                });
-                // لا نُخفي الصفحة كلها — فقط نمنع الـ flash للـ grid
-                const styleEl = document.createElement('style');
-                styleEl.textContent = '#categories-grid { visibility: hidden; } #featured-section { min-height: 180px; }';
-                document.head.appendChild(styleEl);
-                // نُزيل الستايل المؤقت بعد DOMContentLoaded
-                window.addEventListener('DOMContentLoaded', () => styleEl.remove(), { once: true });
-            }
-        })();
-    </script>
+    <!-- كان هنا إخفاءٌ لشبكة التصنيفات عن الزائر — لم يعد له معنى: الزائر
+         يرى الشبكة نفسها التي يراها صاحب الحساب. -->
 
     <!-- Loading Splash Screen -->
     <script>
@@ -1158,7 +1148,7 @@
     <script type="module" src="js/app-core.js?v=623603db"></script>
     <script type="module" src="js/native-notifications.js?v=6426d1e7"></script>
     <script src="js/map-markers.js?v=f66d1f1b"></script>
-    <script src="js/order-feature.js?v=164d6329"></script>
+    <script src="js/order-feature.js?v=9841ed12"></script>
     <!-- 🛍️ منتقي "اشترِ لي" — بعد order-feature.js لاعتماده على getUserLocation/getFullImageUrl -->
     <script src="js/errand-context.js?v=f33a33bc"></script>
     <script src="js/errand-picker.js?v=d46da3a2"></script>
@@ -1176,26 +1166,13 @@
             // ✅ البانرات تظهر للجميع بغض النظر عن تسجيل الدخول
             if (typeof loadBanners === 'function') loadBanners();
 
-            if (!token) {
-                grid.innerHTML = '';
-                document.getElementById('featured-section').innerHTML = `
-                    <div class="guest-card">
-                        <div class="guest-icon-wrap">🛍️</div>
-                        <h5 class="fw-bold text-dark mb-2">تصفح المحلات</h5>
-                        <p class="text-muted mb-4" style="font-size:14px;">
-                            يجب عليك تسجيل الدخول أو إنشاء حساب لعرض المحلات وتقديم الطلبات
-                        </p>
-                        <div class="d-flex gap-2 justify-content-center flex-wrap">
-                            <a href="client-login.html" class="btn btn-success rounded-pill px-4 fw-bold">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>تسجيل الدخول
-                            </a>
-                            <a href="client-register.html" class="btn btn-outline-success rounded-pill px-4 fw-bold">
-                                <i class="bi bi-person-plus me-2"></i>إنشاء حساب
-                            </a>
-                        </div>
-                    </div>`;
-            } else {
-                fetchCategories();
+            // 🔓 التصفّح مفتوح للجميع — كان الزائر يرى بطاقة «سجّل الدخول
+            //    لعرض المحلات» مكان التصنيفات، وهي سبب رفض آبل الصريح
+            //    (5.1.1(v)). لا يُطلب الحساب إلا لما يخصّ الحساب: السلة
+            //    والطلب والمفضّلة والمحادثة.
+            fetchCategories();
+
+            if (token) {
                 // ⭐ المعرّفات أولاً ثم الشبكات: بلا هذا تُرسم البطاقات بقلوبٍ
                 //    فارغة ثم تمتلئ بعد لحظة — وميضٌ يبدو خللاً.
                 const favIds = (typeof loadFavoriteIds === 'function')
@@ -1205,8 +1182,37 @@
                     if (typeof loadFeaturedShops === 'function') loadFeaturedShops();
                     if (typeof loadFavoritePlaces === 'function') loadFavoritePlaces();
                 });
+            } else {
+                // الزائر: نفس المحلات، بلا المفضّلة (ميزة حسابية)
+                if (typeof loadFeaturedShops === 'function') loadFeaturedShops();
+                showGuestInvite();
             }
         });
+
+        /**
+         * دعوةٌ لا بوّابة: الزائر يتصفّح كل شيء، ونذكّره أن الطلب يحتاج حساباً.
+         * تُغلق وتبقى مغلقة — تكرارها في كل زيارة مضايقة لا دعوة.
+         */
+        function showGuestInvite() {
+            try { if (localStorage.getItem('guestInviteDismissed') === '1') return; } catch (_) {}
+            const host = document.getElementById('featured-section');
+            if (!host || document.getElementById('guestInvite')) return;
+            const bar = document.createElement('div');
+            bar.id = 'guestInvite';
+            bar.className = 'guest-invite';
+            bar.innerHTML = `
+                <i class="bi bi-person-circle" style="font-size:20px;"></i>
+                <div class="gi-text">تصفّح المحلات والمنتجات بحرّية — يلزم حساب عند إتمام الطلب فقط.</div>
+                <a href="client-login.html" class="gi-btn">تسجيل الدخول</a>
+                <button type="button" class="gi-close" aria-label="إغلاق"
+                    onclick="dismissGuestInvite()">&times;</button>`;
+            host.parentNode.insertBefore(bar, host);
+        }
+        window.dismissGuestInvite = function () {
+            const bar = document.getElementById('guestInvite');
+            if (bar) bar.remove();
+            try { localStorage.setItem('guestInviteDismissed', '1'); } catch (_) {}
+        };
 
         // 🛍️ منطق منتقي "اشترِ لي" ⇐ js/errand-picker.js (يُحمَّل أسفل الصفحة)
 

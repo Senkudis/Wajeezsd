@@ -88,33 +88,14 @@ window.showOrderSection = function() {
         else a.classList.remove('active');
     });
 
-    // Check Authentication — same pattern as notifications.html and client-my-orders.html
-    const token = localStorage.getItem('token');
+    // 🔓 التصفّح مفتوح للزائر: التصنيفات والمحلات والمنتجات ليست ميزات
+    //    حسابية. كانت هنا بوّابة تعرض «يجب تسجيل الدخول لعرض المحلات» —
+    //    وهي سبب رفض آبل الصريح (5.1.1(v)): «التطبيق يطلب التسجيل قبل
+    //    تصفّح المنتجات والمتاجر؛ لا يُطلب إلا لما يخصّ الحساب».
+    //    البوّابة الصحيحة عند الإضافة للسلة وإتمام الطلب، وهي قائمة.
     const grid = document.getElementById('categories-grid');
     if (!grid) return; // Not on a page with categories
 
-    if (!token) {
-        // Guest — show login prompt injected into the grid container
-        grid.innerHTML = `
-            <div class="text-center py-5 col-12" id="guest-view">
-                <div class="mb-4">
-                    <i class="bi bi-shop" style="font-size: 4rem; color: #dee2e6;"></i>
-                </div>
-                <h5 class="fw-bold text-dark mb-2">تصفح المحلات</h5>
-                <p class="text-muted mb-4">يجب عليك تسجيل الدخول أو إنشاء حساب لعرض المحلات وتقديم الطلبات</p>
-                <div class="d-flex gap-2 justify-content-center">
-                    <a href="client-login.html" class="btn btn-success rounded-pill px-4">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>تسجيل الدخول
-                    </a>
-                    <a href="client-register.html" class="btn btn-outline-success rounded-pill px-4">
-                        <i class="bi bi-person-plus me-2"></i>إنشاء حساب
-                    </a>
-                </div>
-            </div>`;
-        return;
-    }
-
-    // Authenticated — fetch categories if not already loaded
     if (grid.innerHTML.includes('spinner-border') || document.getElementById('guest-view')) {
         // skeleton chips متناسقة مع شبكة التصنيفات بدل السبينر العائم
         grid.innerHTML = Array.from({ length: 8 }, () => '<div class="skeleton skeleton-chip"></div>').join('');
