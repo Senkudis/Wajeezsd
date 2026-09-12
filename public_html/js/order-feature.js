@@ -297,6 +297,62 @@ function getUserLocation() {
 }
 
 // ==========================================
+// 📍 موقعٌ للرسم الفوري — بلا انتظارٍ إطلاقاً
+// ==========================================
+// كانت القائمة تنتظر GPS حتى **ثلاث ثوانٍ بعد** وصول بيانات المتاجر قبل أن
+// تُرسم أصلاً. أي أن الشبكة تردّ في جزء من الثانية والعميل يظلّ أمام هياكل
+// فارغة. والانتظار نفسه كان يتكرّر في كل صفحة: التطبيق تنقّلٌ كامل لا SPA،
+// فذاكرة الموقع تبدأ فارغة في كل مرة.
+//
+// الآن: نرسم فوراً بآخر موقعٍ معروف (ولو من زيارةٍ سابقة)، ثم نصحّح متى
+// وصلت القراءة الجديدة.
+function instantLocation() {
+    if (window.userLocation && window.userLocation.lat != null) return window.userLocation;
+    if (window.WajeezGeo && typeof WajeezGeo.lastKnown === 'function') return WajeezGeo.lastKnown();
+    return null;
+}
+
+/**
+ * وصل موقعٌ جديد بعد الرسم: حدّث الأرقام في مكانها، وأعد الرسم فقط إن
+ * تغيّر الترتيب فعلاً — إعادة الرسم دائماً تُقفز البطاقات تحت إصبع العميل.
+ * @param {Array}    places   القائمة المعروضة نفسها
+ * @param {object}   loc      {lat,lng}
+ * @param {function} rerender تُستدعى بالقائمة المرتّبة عند تغيّر الترتيب
+ */
+function applyFreshLocation(places, loc, rerender) {
+    if (!loc || loc.lat == null || !Array.isArray(places) || !places.length) return places;
+
+    const orderBefore = places.map(p => p._id).join(',');
+    places.forEach(p => {
+        p.distanceKm = calculateHaversineDistance(loc.lat, loc.lng, p.location?.lat ?? 0, p.location?.lng ?? 0);
+    });
+    const sorted = sortShopsOpenFirst(places.slice());
+
+    if (sorted.map(p => p._id).join(',') !== orderBefore) {
+        if (typeof rerender === 'function') rerender(sorted);
+        return sorted;
+    }
+
+    // الترتيب نفسه — يكفي تصحيح الأرقام بلا لمس الـ DOM كلّه
+    places.forEach(p => {
+        const el = document.querySelector(`[data-place-id="${p._id}"] .place-dist`);
+        if (el && p.distanceKm != null) el.textContent = `${Number(p.distanceKm).toFixed(1)} كم`;
+    });
+    return places;
+}
+
+/**
+ * تعذّر تحديد الموقع: المؤشّر الدوّار مكان المسافة يدور إلى الأبد فيبدو
+ * التطبيق عالقاً. نضع شرطةً صريحة بدلاً منه.
+ */
+function markDistanceUnavailable(root) {
+    (root || document).querySelectorAll('.dist-loading').forEach(el => {
+        el.classList.remove('dist-loading');
+        el.textContent = '— كم';
+    });
+}
+
+// ==========================================
 // 🛍️ Fetch Places — GPS والشبكة بالتوازي + كاش فوري (SWR)
 // كان: انتظار GPS عالي الدقة (حتى 10 ثوانٍ) قبل بدء طلب المتاجر أصلاً!
 // ==========================================
@@ -374,9 +430,23 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
         if (cached && Array.isArray(cached.places)) {
             hadCache = true;
-            finalize(cached.places.slice(), window.userLocation || null);
+            finalize(cached.places.slice(), instantLocation());
         }
     } catch (_) {}
+
+    // ⚡ 1ب. أول زيارةٍ لهذا القسم: قائمة المدينة كاملة محمّلة أصلاً لقسم
+    //    «المحلات القريبة». ترشيحها محلياً يملأ الشاشة فوراً بدل هياكل
+    //    فارغة، والشبكة تصحّحها بعد قليل.
+    if (!hadCache) {
+        try {
+            const city = JSON.parse(sessionStorage.getItem(`wajeez_featured_${currentCity}`) || 'null');
+            if (city && Array.isArray(city.places)) {
+                const subset = city.places.filter(p =>
+                    String(p.category && (p.category._id || p.category)) === String(categoryId));
+                if (subset.length) { hadCache = true; finalize(subset, instantLocation()); }
+            }
+        } catch (_) {}
+    }
 
     if (!hadCache) {
         // Skeleton loading — 4 بطاقات تملأ صفّي الشبكة بالتساوي
@@ -404,35 +474,16 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
         try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), places })); } catch (_) {}
         if (seq !== _placesViewSeq) return; // المستخدم فتح قسماً آخر أثناء الجلب
 
-        // امنح GPS مهلة أطول (3 ثوانٍ) — كثير من الهواتف تحتاج ثانيتين أو أكثر لأول fix
-        const loc = await Promise.race([
-            locPromise,
-            new Promise(r => setTimeout(() => r(window.userLocation || null), 3000))
-        ]);
-        if (seq !== _placesViewSeq) return;
-        finalize(places.slice(), loc);
+        // ⚡ ارسم الآن بآخر موقعٍ معروف — لا انتظار لـ GPS بعد وصول البيانات
+        finalize(places.slice(), instantLocation());
 
-        // وصل GPS متأخراً؟ حدّث المسافات في مكانها بدون إعادة بناء القائمة
-        if (!loc) {
-            locPromise.then(late => {
-                if (late && seq === _placesViewSeq) {
-                    // تحديث المسافات بصمت في الـ DOM مباشرة
-                    const updated = places.slice().map(p => ({
-                        ...p,
-                        distanceKm: calculateHaversineDistance(late.lat, late.lng, p.location?.lat ?? 0, p.location?.lng ?? 0)
-                    }));
-                    updated.sort((a, b) => {
-                        if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
-                        return (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9);
-                    });
-                    // تحديث أرقام المسافة في الـ DOM مباشرة بدون re-render
-                    updated.forEach(p => {
-                        const el = document.querySelector(`[data-place-id="${p._id}"] .place-dist`);
-                        if (el && p.distanceKm != null) el.textContent = `${Number(p.distanceKm).toFixed(1)} كم`;
-                    });
-                }
-            });
-        }
+        // ثم صحّح متى وصلت القراءة الجديدة
+        locPromise.then(late => {
+            if (seq !== _placesViewSeq) return;
+            if (!late) { markDistanceUnavailable(listContainer); return; }
+            applyFreshLocation(placesData, late,
+                sorted => { placesData = sorted; renderPlacesList(sorted, listContainer, notesHtml); });
+        });
     } catch (err) {
         if (seq !== _placesViewSeq) return;
         if (hadCache) return; // المحتوى المعروض من الكاش أفضل من رسالة خطأ
@@ -492,7 +543,7 @@ window.loadFeaturedShops = async function () {
         const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
         if (cached && Array.isArray(cached.places) && cached.places.length) {
             hadCache = true;
-            finalize(cached.places.slice(), window.userLocation || null);
+            finalize(cached.places.slice(), instantLocation());
         }
     } catch (_) {}
 
@@ -515,30 +566,17 @@ window.loadFeaturedShops = async function () {
         try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), places })); } catch (_) {}
         if (seq !== _featuredSeq) return; // تغيّرت المدينة/الحالة أثناء الجلب
 
-        // امنح GPS مهلة أطول (3 ثوانٍ)
-        const loc = await Promise.race([
-            locPromise,
-            new Promise(r => setTimeout(() => r(window.userLocation || null), 3000))
-        ]);
+        // ⚡ ارسم الآن بآخر موقعٍ معروف، وصحّح متى وصلت القراءة الجديدة
+        finalize(places.slice(), instantLocation());
 
-        if (seq !== _featuredSeq) return;
-        finalize(places.slice(), loc);
-
-        if (!loc) locPromise.then(late => {
-            if (late && seq === _featuredSeq) {
-                const updated = places.slice().map(p => ({
-                    ...p,
-                    distanceKm: calculateHaversineDistance(late.lat, late.lng, p.location?.lat ?? 0, p.location?.lng ?? 0)
-                }));
-                updated.sort((a, b) => {
-                    if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
-                    return (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9);
-                });
-                updated.forEach(p => {
-                    const el = document.querySelector(`[data-place-id="${p._id}"] .place-dist`);
-                    if (el && p.distanceKm != null) el.textContent = `${Number(p.distanceKm).toFixed(1)} كم`;
-                });
-            }
+        locPromise.then(late => {
+            if (seq !== _featuredSeq) return;
+            if (!late) { markDistanceUnavailable(section); return; }
+            applyFreshLocation(window._featuredPlaces || [], late, sorted => {
+                window._featuredPlaces = sorted;
+                const grid = document.getElementById('featured-grid');
+                if (grid) renderPlacesList(sorted, grid, '', { showCategory: true });
+            });
         });
     } catch (err) {
         if (seq !== _featuredSeq || hadCache) return; // الكاش أفضل من رسالة خطأ
@@ -697,7 +735,9 @@ window.loadFavoritePlaces = async function () {
 
         // 📍 المسافة تُحسب هنا كما في المحلات القريبة، وإلا ظهرت البطاقات
         //    بمؤشّر تحميلٍ لا ينتهي (renderPlacesList ينتظر distanceKm)
-        const loc = window.userLocation;
+        //    وآخر موقعٍ معروف يكفي هنا: window.userLocation وحدها تكون فارغة
+        //    في أول ثوانٍ من عمر الصفحة، فتظهر المفضّلة دوّارةً بلا رقم.
+        const loc = instantLocation();
         if (loc && loc.lat != null) {
             places.forEach(p => {
                 p.distanceKm = calculateHaversineDistance(loc.lat, loc.lng, p.location?.lat ?? 0, p.location?.lng ?? 0);

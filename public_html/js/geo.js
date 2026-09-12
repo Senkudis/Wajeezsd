@@ -27,8 +27,44 @@
     var preciseFix = null;   // { lat, lng, accuracy, ts }
     var coarseFix  = null;   // { lat, lng, ts }
 
+    // 💾 آخر موقع معروف يبقى بين الصفحات.
+    //    التطبيق صفحاتٌ مستقلّة (تنقّل كامل لا SPA)، فذاكرة هذا الملف تبدأ
+    //    فارغة مع كل صفحة — وكان العميل ينتظر قراءة GPS جديدة (حتى 6 ثوانٍ)
+    //    في كل مرة يفتح فيها التسوّق، فتبقى المسافات دوّارةً بلا رقم.
+    //    يُستعمل للعرض الفوري وللترتيب فقط — لا للدبوس ولا للملاحة.
+    var STORE_KEY   = 'wajeez_last_fix';
+    var STORE_MAX_AGE = 6 * 60 * 60 * 1000;   // بعد ستّ ساعات لا نثق به للعرض
+
     function isFresh(fix, maxAgeMs) {
         return !!fix && (Date.now() - fix.ts) < maxAgeMs;
+    }
+
+    function persistFix(fix) {
+        try {
+            localStorage.setItem(STORE_KEY, JSON.stringify({ lat: fix.lat, lng: fix.lng, ts: fix.ts }));
+        } catch (_) { /* وضع التصفّح الخاص أو تخزينٌ ممتلئ — لا يعطّل شيئاً */ }
+    }
+
+    // ترطيب الكاش الخشن من التخزين عند تحميل الملف
+    (function hydrate() {
+        try {
+            var raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+            if (raw && typeof raw.lat === 'number' && typeof raw.lng === 'number'
+                && isFresh(raw, STORE_MAX_AGE)) {
+                coarseFix = { lat: raw.lat, lng: raw.lng, ts: raw.ts };
+            }
+        } catch (_) {}
+    })();
+
+    /**
+     * آخر موقع معروف للعرض الفوري — بلا إطلاق قراءة جديدة وبلا انتظار.
+     * قد يكون من زيارةٍ سابقة (حتى ستّ ساعات)، فهو للمسافة التقريبية
+     * والترتيب لا غير.
+     */
+    function lastKnown() {
+        if (preciseFix) return { lat: preciseFix.lat, lng: preciseFix.lng, ts: preciseFix.ts };
+        if (coarseFix)  return { lat: coarseFix.lat,  lng: coarseFix.lng,  ts: coarseFix.ts  };
+        return null;
     }
 
     /**
@@ -79,6 +115,7 @@
                 }
 
                 preciseFix = { lat: best.lat, lng: best.lng, accuracy: best.accuracy, ts: Date.now() };
+                persistFix(preciseFix);   // الأدقّ يصلح خشناً كذلك في الزيارة القادمة
                 resolve({ lat: best.lat, lng: best.lng, accuracy: best.accuracy });
             }
 
@@ -134,6 +171,7 @@
             navigator.geolocation.getCurrentPosition(
                 function (pos) {
                     coarseFix = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() };
+                    persistFix(coarseFix);
                     resolve({ lat: coarseFix.lat, lng: coarseFix.lng });
                 },
                 function () {
@@ -162,6 +200,7 @@
         getPrecise: getPrecise,
         getCoarse: getCoarse,
         lastPrecise: lastPrecise,
+        lastKnown: lastKnown,
         describeAccuracy: describeAccuracy,
         GOOD_ENOUGH_M: GOOD_ENOUGH_M,
         ACCEPTABLE_M: ACCEPTABLE_M
