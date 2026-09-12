@@ -2,8 +2,8 @@
 
 > تاريخ المراجعة: 12 سبتمبر 2026 — Submission ID: 31f7ffd2-76f8-45c0-aacb-6207f97caa2c
 >
-> ⚠️ **اقرأ «ملاحظات لك» في الأسفل قبل الإرسال.** فيها سؤالان لا أعرف
-> إجابتهما، وبلا إجابتهما يُرفض الإصدار مرّةً ثالثة بنفس السبب 2.1.
+> ⚠️ **قبل الإرسال:** يلزم سطرٌ واحد منك — اسم العمل كما في الشهادة —
+> وبيانات الحسابات التجريبية الثلاثة. انظر «ملاحظات لك» في الأسفل.
 
 ---
 
@@ -46,16 +46,43 @@ It is not our catalogue: all wajeez stores and products are fully browsable
 without an account. If you would prefer this to be open to guests as well, we
 will change it immediately.
 
-**Guideline 2.1 — Information Needed (regulated services / sensitive data)**
+**Guideline 2.1 — Information Needed**
 
-- **Which companies or institutions provide the services offered in the app?**
+*Which companies or institutions provide the services offered in the app?*
 
-  <<<FILL IN — انظر «ملاحظات لك» رقم ١>>>
+wajeez is a local delivery platform. We do not sell any goods ourselves and we
+hold no inventory. In every order the goods are supplied by independent local
+businesses — restaurants, grocery stores, supermarkets, bakeries and cafés —
+which register on the platform, are reviewed by us, and remain responsible for
+their own products and their own trade licences. wajeez provides the ordering
+interface and the delivery of the purchased items by contracted drivers.
 
-- **What is the relationship between Mohamed Hamza and the providers of these
-  services?**
+The app does not operate in any highly regulated field:
 
-  <<<FILL IN — انظر «ملاحظات لك» رقم ٢>>>
+- No healthcare services and no pharmacies. Medicines are not sold, listed or
+  searchable in the app in any form. (An earlier build listed a pharmacy
+  category; it has been removed from this build, and pharmacy results are now
+  filtered out of the place search as well.)
+- No banking or financial services. The app processes no payments at all: every
+  order is paid in cash on delivery. There is no card, wallet or in-app payment
+  of any kind.
+- No gambling, no cannabis, no air travel.
+
+The categories available in the app are: restaurants, groceries and
+supermarkets, bakeries, cafés, and general retail shops.
+
+*What is the relationship between Mohamed Hamza and the providers of these
+services?*
+
+There is no ownership relationship. Mohamed Hamza holds no interest, financial
+or otherwise, in any of the merchants listed in the app. Each merchant applies
+through the app, is reviewed, and is listed as an independent seller under a
+standard platform-merchant agreement; wajeez earns a delivery fee on orders.
+
+Mohamed Hamza is the developer of the app and the holder of this Apple Developer
+account, acting for wajeez, which is registered in Sudan under the business name
+"<<<اسم العمل كما في الشهادة>>>". The registration certificate can be provided
+on request.
 
 **Demo accounts**
 
@@ -88,38 +115,32 @@ Please let us know if anything else is needed — we will respond the same day.
 التصنيفات والمحلات والمنتجات والأسعار كلّها تظهر، والإضافة للسلة وحدها
 تطلب الدخول.
 
-### ثانياً: السؤالان اللذان أحتاج إجابتهما منك
+### ثانياً: الأوراق — ما يلزم وما لا يلزم
 
-آبل تسأل تحت 5.1.1(ix) — «الخدمات شديدة التنظيم». والأرجح أن ما أثارها
-**الصيدليات**: توصيل الأدوية مجالٌ منظَّم في كل الدول، ويُطلب فيه إثبات أن
-من يقدّم الخدمة مرخَّصٌ لها.
+بعد إخراج الصيدليات، التطبيق صار توصيل مطاعم وبقالات: **مجالٌ غير منظَّم**.
+وعليه:
 
-**١. من يقدّم الخدمات؟** الجواب الصحيح — إن كان ينطبق — هو:
+- **5.1.1(ix) لم يعد ينطبق** — لا حاجة لحساب مؤسسة، ولا تراخيص، ولا نقل
+  الحساب. هذا الشرط يخصّ المجالات شديدة التنظيم وحدها.
+- **سؤال 2.1 يُجاب بالكتابة لا بالمرفقات.** آبل تطلب المستندات حين تشير
+  الإجابة إلى مجال منظَّم أو بيانات حسّاسة. والإجابة أعلاه لا تشير لأيٍّ
+  منهما: لا صحّة، ولا دفع داخل التطبيق (كلّه نقداً عند التسليم)، ولا بيانات
+  حسّاسة.
 
-> «وجيز منصّة توصيل ووساطة. لا نبيع أي منتج بأنفسنا ولا نملك مخزوناً ولا
-> صيدلية. البائع في كل طلب هو المتجر المستقلّ المسجَّل لدينا، وهو صاحب
-> الترخيص التجاري الخاص به. والصيدليات المدرجة صيدليات مرخّصة من [الجهة
-> المانحة في السودان — المجلس القومي للأدوية والسموم؟]، ولا تُباع عبر
-> التطبيق أدوية تستلزم وصفة / أو: تُسلَّم الأدوية الموصوفة بعد إبراز الوصفة
-> عند التسليم.»
+**فالمطلوب منك سطرٌ واحد فقط**: اسم العمل كما هو مكتوب في الشهادة، ليحلّ
+محلّ `<<<اسم العمل كما في الشهادة>>>`.
 
-املأ ما بين الأقواس بما ينطبق فعلاً. **لا تكتب ما ليس صحيحاً** — آبل قد
-تطلب صوراً من التراخيص، والإجابة غير الدقيقة تُغلق الحساب لا الإصدار.
+**وخطاب التفويض؟** غير مطلوب الآن. السؤال الذي طرحته آبل هو عن علاقة محمد
+بـ**مقدّمي الخدمات** — أي المتاجر — والجواب الصادق أنه لا علاقة ملكية به،
+وهذا ما كُتب. لم تسأل عمّن يملك وجيز، فلا تتطوّع بفتح ملفٍّ لم يُفتح.
 
-وإن كنت **لا** تعرض صيدليات ولا أي خدمة منظَّمة، فالجواب أبسط: «التطبيق
-يوصّل مشتريات من متاجر بقالة ومطاعم مستقلّة، ولا يقدّم أي خدمة في مجال
-منظَّم (لا صحّة ولا مال ولا سفر)» — مع حذف التصنيف من التطبيق إن وُجد.
+**لكن احتفظ بالورقتين جاهزتين**: صورة الشهادة، وخطاب تفويض موقَّع من صاحب
+العمل. إن سألت آبل سؤالاً متابعاً عن صفة صاحب الحساب، الردّ في اليوم نفسه
+بمرفقٍ جاهز يُنهي الأمر — والتأخّر أو التردّد هو ما يطيل الملف.
 
-**٢. علاقة Mohamed Hamza بمقدّمي الخدمة؟** آبل تريد معرفة صفة صاحب حساب
-المطوّر. الجواب المتوقَّع شيءٌ مثل:
-
-> «Mohamed Hamza هو [مالك/مدير] شركة [الاسم القانوني الكامل] المسجَّلة في
-> السودان برقم [رقم السجل التجاري]، وهي مالكة تطبيق وجيز ومشغّلته. الشركة
-> ليست مالكةً لأيٍّ من المتاجر المعروضة؛ علاقتها بها عقد اشتراك/عمولة
-> كمنصّة وسيطة.»
-
-أرسِل مع الردّ — إن توفّرت — صورة **السجل التجاري** أو رخصة النشاط. آبل
-تقبل المرفقات في ردّ App Store Connect، ووجودها يختصر جولةً كاملة.
+⚠️ **وإن رجعت الصيدليات يوماً**: لا تُعِدها من لوحة الإدارة بعد القبول. هذا
+ما تسمّيه آبل bait-and-switch (2.3.1)، وعقوبته إزالة التطبيق أو إغلاق
+الحساب لا رفض إصدار. الطريق: شركة مسجَّلة + تراخيص + إصدار جديد يُراجَع.
 
 ### ثالثاً: قبل الإرسال
 
@@ -134,5 +155,6 @@ Please let us know if anything else is needed — we will respond the same day.
 ### ما لم أفعله وسبب ذلك
 
 - لم أنشئ الحسابات التجريبية — قاعدة الإنتاج، والقرار قرارك.
-- لم أكتب جواب 2.1 بنفسي: هو إقرارٌ قانوني عن شركتك وتراخيصها، وأي كلمة
-  أخترعها فيه قد تُغلق حساب المطوّر لا الإصدار وحده.
+- لم أضع اسم العمل ولا رقم الشهادة: لا أعرفهما، وأي اسمٍ أخترعه في إقرارٍ
+  رسمي يضرّ الحساب لا الإصدار وحده.
+- لم أنقل حساب المطوّر ولا لمست إعدادات App Store Connect.
