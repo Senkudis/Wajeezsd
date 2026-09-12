@@ -45,6 +45,27 @@ body.dark-mode .badge-pending { background: #78350f !important; color: #fde68a !
 body.dark-mode .badge-approved { background: #065f46 !important; color: #6ee7b7 !important; }
 body.dark-mode .badge-rejected { background: #7f1d1d !important; color: #fca5a5 !important; }
 body.dark-mode .img-preview { background: #111827 !important; border-color: #374151 !important; }
+
+        /* 🏷️ التصنيف: ما اختاره التاجر أو اقترحه — كان يختفي كلياً من اللوحة */
+        .cat-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #f1f5f9; color: #475569; padding: 4px 11px;
+            border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap;
+        }
+        .cat-chip.new  { background: #fef3c7; color: #92400e; }
+        .cat-chip.none { background: #fee2e2; color: #b91c1c; }
+        .cat-origin {
+            margin-top: 7px; font-size: 12.5px; font-weight: 700; color: #15803d;
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        }
+        .cat-origin.is-new { color: #b45309; }
+        .cat-origin-btn {
+            border: none; background: #15803d; color: #fff; border-radius: 8px;
+            padding: 4px 10px; font-size: 12px; font-weight: 800; cursor: pointer;
+            font-family: inherit;
+        }
+        .cat-origin-btn:hover { filter: brightness(.92); }
+        body.dark-mode .cat-chip { background: #1f2937 !important; color: #cbd5e1 !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
     <link rel="stylesheet" href="css/dark-mode.css?v=afc716b6">
@@ -137,6 +158,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                             <thead>
                                 <tr>
                                     <th>المتجر</th>
+                                    <th>التصنيف</th>
                                     <th>المالك</th>
                                     <th>رقم الهاتف</th>
                                     <th>التاريخ</th>
@@ -145,7 +167,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                                 </tr>
                             </thead>
                             <tbody id="requestsTable">
-                                <tr><td colspan="6" class="text-center py-4"><i class="fas fa-spinner fa-spin text-primary"></i> جاري التحميل...</td></tr>
+                                <tr><td colspan="7" class="text-center py-4"><i class="fas fa-spinner fa-spin text-primary"></i> جاري التحميل...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -181,6 +203,10 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                             <div class="col-6">
                                 <label class="form-label small text-muted">التصنيف المختار</label>
                                 <select id="dCategory" class="form-select" required></select>
+                                <!-- ما اختاره التاجر يُعرض نصّاً دائماً: القائمة كانت
+                                     تفرغ صامتةً متى لم يطابق أي خيار، فيبدو كأن التاجر
+                                     لم يختر شيئاً — واقتراحه لتصنيف جديد كان يضيع كلياً. -->
+                                <div id="dCategoryOrigin" class="cat-origin d-none"></div>
                             </div>
                             <div class="col-12 mt-2">
                                 <label class="form-label small text-muted">العنوان الوصفي</label>
@@ -284,7 +310,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             } catch (err) {
                 // كان الخطأ يُبتلع بلا تسجيل، ونصّه الخام يُحقن في DOM.
                 console.error('Load merchant requests error:', err);
-                document.getElementById('requestsTable').innerHTML = '<tr><td colspan="6" class="text-danger text-center">تعذّر تحميل الطلبات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="loadRequests()">أعد المحاولة</button></td></tr>';
+                document.getElementById('requestsTable').innerHTML = '<tr><td colspan="7" class="text-danger text-center">تعذّر تحميل الطلبات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="loadRequests()">أعد المحاولة</button></td></tr>';
             }
         }
 
@@ -321,7 +347,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             const list = _reqFilter === 'all' ? requests : requests.filter(r => r.status === _reqFilter);
             if (!list.length) {
                 const msg = requests.length === 0 ? 'لا توجد طلبات انضمام حالياً' : 'لا توجد طلبات في هذه الحالة';
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${msg}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">${msg}</td></tr>`;
                 return;
             }
 
@@ -348,9 +374,19 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                     `;
                 }
 
+                // التصنيف في القائمة نفسها: اقتراحٌ جديد يحتاج قراراً قبل
+                // الموافقة، وإخفاؤه داخل النافذة يعني ألّا يراه أحد.
+                const rc = readRequestCategory(req.category);
+                const catCell = rc.suggested
+                    ? `<span class="cat-chip new" title="اقتراح من التاجر"><i class="fas fa-lightbulb"></i> ${window.escapeHtml(rc.suggested)}</span>`
+                    : (rc.name
+                        ? `<span class="cat-chip">${window.escapeHtml(rc.name)}</span>`
+                        : '<span class="cat-chip none">بلا تصنيف</span>');
+
                 return `
                     <tr>
                         <td class="fw-bold text-dark">${window.escapeHtml(req.businessName)}</td>
+                        <td>${catCell}</td>
                         <td class="text-secondary">${window.escapeHtml(req.ownerName)}</td>
                         <td dir="ltr" class="text-end">${window.escapeHtml(req.phone)}</td>
                         <td>${new Date(req.createdAt).toLocaleDateString('ar-EG')}</td>
@@ -365,14 +401,92 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
 
         let reqMapInstance = null;
 
+        // التصنيفات المعتمدة — يُحتفظ بها لترجمة ما أرسله التاجر إلى اسمٍ مقروء
+        let allCats = [];
+
         async function loadCategories() {
             try {
                 const res = await fetch(`${API_URL}/api/places/categories`);
-                const cats = await res.json();
-                document.getElementById('dCategory').innerHTML = '<option value="">اختر التصنيف...</option>' + 
-                    cats.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                allCats = await res.json();
+                // القيمة هي المعرّف: نموذج التاجر يرسل المعرّف، فمطابقةُ الاسم
+                // كانت تفشل دائماً وتُفرغ القائمة.
+                document.getElementById('dCategory').innerHTML = '<option value="">اختر التصنيف...</option>' +
+                    allCats.map(c => `<option value="${c._id}">${window.escapeHtml(c.name)}</option>`).join('');
+                if (typeof renderRequests === 'function' && requests.length) renderRequests();
             } catch (err) {
                 console.error('Failed to load categories', err);
+            }
+        }
+
+        /**
+         * يفسّر حقل category القادم من طلب التاجر.
+         * النموذج يرسل إمّا معرّف تصنيف قائم، وإمّا "أخرى - <اقتراح التاجر>".
+         * @returns {{id:string, name:string, suggested:string}}
+         */
+        function readRequestCategory(raw) {
+            const v = String(raw || '').trim();
+            if (!v) return { id: '', name: '', suggested: '' };
+
+            const byId = allCats.find(c => String(c._id) === v);
+            if (byId) return { id: String(byId._id), name: byId.name, suggested: '' };
+
+            // اقتراح تاجر: "أخرى - مخبوزات"
+            const m = v.match(/^أخرى\s*-\s*(.+)$/);
+            const suggested = m ? m[1].trim() : '';
+
+            // طلبات قديمة كانت تحفظ الاسم لا المعرّف
+            const byName = allCats.find(c => c.name === (suggested || v));
+            if (byName) return { id: String(byName._id), name: byName.name, suggested: '' };
+
+            return { id: '', name: suggested || v, suggested: suggested || v };
+        }
+
+        /**
+         * ينشئ التصنيف الذي اقترحه التاجر ويختاره فوراً.
+         * كان على الأدمن أن يترك الطلب، يفتح صفحة المحلات، ينشئ التصنيف،
+         * ثم يعود ويفتح الطلب من جديد — فلا يفعل، ويضيع الاقتراح.
+         */
+        async function createSuggestedCategory(name) {
+            const clean = String(name || '').trim();
+            if (!clean) return;
+
+            const exists = allCats.find(c => c.name === clean);
+            if (exists) {
+                document.getElementById('dCategory').value = String(exists._id);
+                Swal.fire({ icon: 'info', title: 'التصنيف موجود أصلاً', timer: 1600, showConfirmButton: false });
+                return;
+            }
+
+            const { isConfirmed } = await Swal.fire({
+                title: `إنشاء تصنيف «${clean}»؟`,
+                text: 'سيظهر للعملاء في قسم التسوّق ولبقيّة التجّار عند التسجيل.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'أنشئه',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#15803d'
+            });
+            if (!isConfirmed) return;
+
+            try {
+                const res = await fetch(`${API_URL}/api/places/categories`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: clean, icon: 'bi-shop' })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || 'فشل إنشاء التصنيف');
+
+                await loadCategories();
+                const created = allCats.find(c => c.name === clean) || data;
+                if (created && created._id) document.getElementById('dCategory').value = String(created._id);
+
+                const originEl = document.getElementById('dCategoryOrigin');
+                originEl.classList.remove('is-new');
+                originEl.innerHTML = `<i class="fas fa-check-circle"></i> أُنشئ التصنيف واختير: <strong>${window.escapeHtml(clean)}</strong>`;
+                Swal.fire({ icon: 'success', title: 'تم إنشاء التصنيف', timer: 1600, showConfirmButton: false });
+            } catch (e) {
+                Swal.fire('خطأ', e.message, 'error');
             }
         }
 
@@ -385,12 +499,26 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             document.getElementById('dOwnerName').value = req.ownerName;
             document.getElementById('dPhone').value = req.phone;
             
-            // Set category or default
+            // التصنيف: ما اختاره التاجر يُختار في القائمة، وما اقترحه يُعرض
+            // نصّاً مع زرٍّ يعتمده — كان يختفي بلا أثر.
             const catSelect = document.getElementById('dCategory');
-            if(Array.from(catSelect.options).some(o => o.value === req.category)) {
-                catSelect.value = req.category;
+            const originEl = document.getElementById('dCategoryOrigin');
+            const cat = readRequestCategory(req.category);
+            catSelect.value = cat.id || '';
+            originEl.classList.remove('d-none', 'is-new');
+
+            if (cat.suggested) {
+                originEl.classList.add('is-new');
+                originEl.innerHTML =
+                    `<i class="fas fa-lightbulb"></i> التاجر اقترح تصنيفاً جديداً: `
+                    + `<strong>${window.escapeHtml(cat.suggested)}</strong>`
+                    + `<button type="button" class="cat-origin-btn" onclick="createSuggestedCategory('${window.escapeHtml(cat.suggested).replace(/'/g, '&#39;')}')">`
+                    + `<i class="fas fa-plus"></i> أنشئه واختره</button>`;
+            } else if (cat.name) {
+                originEl.innerHTML = `<i class="fas fa-check-circle"></i> اختاره التاجر: <strong>${window.escapeHtml(cat.name)}</strong>`;
             } else {
-                catSelect.value = '';
+                originEl.innerHTML = `<i class="fas fa-triangle-exclamation"></i> لم يصل تصنيف مع الطلب — اختر واحداً قبل الموافقة`;
+                originEl.classList.add('is-new');
             }
 
             document.getElementById('dAddress').value = req.address || '';
@@ -564,6 +692,22 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
         }
 
         function quickApprove(id) {
+            // القبول السريع يمرّر التصنيف كما وصل. فإن كان اقتراحاً لا تصنيفاً
+            // قائماً، لا يوجد ما يُربط به المتجر — ففتح الطلب هو الطريق.
+            const req = requests.find(r => r._id === id);
+            const cat = req ? readRequestCategory(req.category) : { id: '' };
+            if (!cat.id) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'يحتاج تصنيفاً أولاً',
+                    text: cat.suggested
+                        ? `اقترح التاجر تصنيف «${cat.suggested}». افتح الطلب لإنشائه أو اختيار تصنيف قائم.`
+                        : 'لم يصل تصنيف صالح مع هذا الطلب. افتح الطلب واختر تصنيفاً.',
+                    confirmButtonText: 'افتح الطلب',
+                    confirmButtonColor: '#f59e0b'
+                }).then(r => { if (r.isConfirmed) viewRequest(id); });
+                return;
+            }
             updateStatus(id, 'approved', false);
         }
 
@@ -590,6 +734,19 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                 rejectReason = value || 'غير مطابق للشروط';
                 requestBody.rejectReason = rejectReason;
             } else {
+                // 🏷️ بلا تصنيف كان الخادم يضع المتجر في «أول تصنيف نشط» صامتاً،
+                //    فتجد مخبزاً تحت الصيدليات ولا يعرف أحد لماذا.
+                if (includeEditedData && !document.getElementById('dCategory').value) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'اختر التصنيف أولاً',
+                        text: 'لم يُحدَّد تصنيف لهذا المتجر. اختر واحداً من القائمة، أو أنشئ التصنيف الذي اقترحه التاجر.',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                    document.getElementById('dCategory').focus();
+                    return;
+                }
+
                 const { isConfirmed } = await Swal.fire({
                     title: 'تأكيد الموافقة',
                     text: 'سيتم فوراً تحويل هذا العميل إلى تاجر، وإنشاء متجر جديد له. هل أنت متأكد؟',

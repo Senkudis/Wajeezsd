@@ -180,9 +180,9 @@ router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
             if (logoImage) request.logoImage = logoImage;
             if (idImage) request.idImage = idImage;
 
-            request.status = 'approved';
-            request.rejectReason = '';
-            await request.save();
+            // ⚠️ الفحوص **قبل** الحفظ: كانت الحالة تُحفظ 'approved' أولاً ثم
+            //    يُردّ 400، فيبقى الطلب مقبولاً في القاعدة بلا متجرٍ أُنشئ —
+            //    ويختفي من قائمة «قيد المراجعة» فلا يعود أحد إليه.
 
             // Find category
             let categoryDoc = null;
@@ -197,14 +197,18 @@ router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
                 // Fallback: any category with this name
                 categoryDoc = await PlaceCategory.findOne({ name: request.category });
             }
+            // 🏷️ لا تصنيف صالحاً؟ نتوقّف ونقول ذلك.
+            //    كان البديل «أول تصنيف نشط»، وإن لم يوجد فتصنيفٌ جديد اسمه
+            //    «أخرى» — أي أن مخبزاً يُحفظ تحت الصيدليات بلا أن يعلم أحد،
+            //    ولا يجد العميل المتجر حيث يبحث عنه. والسبب الأكثر شيوعاً أن
+            //    التاجر اقترح تصنيفاً جديداً ("أخرى - مخبوزات") لا يقابله
+            //    تصنيفٌ قائم — وهذا قرار إدارة لا تخمين خادم.
             if (!categoryDoc) {
-                // If not found by name, try to use the first active category
-                categoryDoc = await PlaceCategory.findOne({ isActive: true });
-            }
-            if (!categoryDoc) {
-                // If STILL not found, create a generic category so Place validation passes
-                categoryDoc = new PlaceCategory({ name: 'أخرى', isActive: true });
-                await categoryDoc.save();
+                return res.status(400).json({
+                    message: 'لا يمكن الموافقة: تصنيف المتجر غير محدَّد أو غير موجود'
+                        + (request.category ? ` («${request.category}»)` : '')
+                        + '. افتح الطلب واختر تصنيفاً من القائمة أو أنشئ التصنيف الذي اقترحه التاجر.'
+                });
             }
 
             // 🗺️ حارس الموقع: Place يتطلب lat/lng إلزامياً — بدونهما كانت الموافقة
@@ -217,6 +221,10 @@ router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
                     message: 'لا يمكن الموافقة: موقع المتجر غير محدد. عدّل الطلب وحدد الموقع على الخريطة أولاً.'
                 });
             }
+
+            request.status = 'approved';
+            request.rejectReason = '';
+            await request.save();
 
             if (wasAlreadyApproved) {
                 // Update existing place to avoid duplication
