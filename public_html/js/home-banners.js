@@ -40,7 +40,11 @@ async function loadHomeBanners() {
             // 🔗 حلّ وجهة النقر من النوع/المعرّف (أو من link القديم)
             const dest = resolveBannerHref(banner);
 
-            let bannerContent = `<img src="${imgUrl}" class="d-block w-100 home-banner-img" alt="${banner.title || 'Banner'}" onerror="this.parentElement.style.display='none'">`;
+            // ⚠️ onerror كان يُخفي الشريحة وحدها ويترك القسم مفتوحاً: إعلانٌ
+            //    صورته مكسورة يعني **صندوقاً رمادياً فارغاً** أعلى الشاشة
+            //    الأولى — ظهر في لقطة App Store ويُقرأ كتطبيقٍ ناقص.
+            //    الآن: تُخفى الشريحة، وإن لم تبقَ شريحةٌ صالحة يُخفى القسم.
+            let bannerContent = `<img src="${imgUrl}" class="d-block w-100 home-banner-img" alt="${banner.title || 'Banner'}" onerror="window.__bannerImgFailed && window.__bannerImgFailed(this)">`;
 
             if (dest) {
                 // التنقّل الداخلي عبر onclick (لا target=_blank للروابط الداخلية في تطبيق Capacitor)
@@ -68,6 +72,22 @@ async function loadHomeBanners() {
         console.error('Error loading home banners:', err);
     }
 }
+
+/**
+ * صورة إعلانٍ فشل تحميلها: تُخفى شريحتها، وإن لم يبقَ شيءٌ يُخفى القسم كلّه.
+ * بلا الشقّ الثاني يبقى إطارٌ رماديّ فارغ مكان الإعلان.
+ */
+window.__bannerImgFailed = function (img) {
+    const item = img.closest('.carousel-item');
+    if (item) item.style.display = 'none';
+
+    const section = document.getElementById('home-banners-section')
+        || document.getElementById('banners-section');
+    if (!section) return;
+
+    const alive = section.querySelectorAll('.carousel-item:not([style*="display: none"])').length;
+    if (alive === 0) section.style.display = 'none';
+};
 
 // 🔗 يحوّل (النوع + المعرّف) إلى وجهة نقر فعلية. يدعم البنرات القديمة عبر banner.link.
 function resolveBannerHref(banner) {

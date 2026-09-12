@@ -107,8 +107,10 @@ async function firstPlaceId() {
     // وأي قيمة أخرى تُعيد التوجيه إلى client-order.html فتخرج لقطة مكرّرة.
     const SHOTS = [
         { file: '01-الرئيسية', url: 'index.html', auth: false, wait: 4500 },
-        { file: '02-تسوق-المتاجر', url: 'client-order.html', auth: true, wait: 5000 },
-        { file: '03-صفحة-متجر', url: placeId ? `shop-detail.html?placeId=${placeId}` : null, auth: true, wait: 5000 },
+        // 🔓 التصفّح صار مفتوحاً للزائر (إصلاح 5.1.1(v))، فهاتان لا تحتاجان
+        //    حساباً — واللقطة بلا حساب هي بالضبط ما يراه المراجع.
+        { file: '02-تسوق-المتاجر', url: 'client-order.html', auth: false, wait: 5000 },
+        { file: '03-صفحة-متجر', url: placeId ? `shop-detail.html?placeId=${placeId}` : null, auth: false, wait: 5000 },
         { file: '04-طلباتي', url: 'client-my-orders.html', auth: true, wait: 4000 },
         { file: '05-طلبات-المتاجر', url: 'client-shop-orders.html', auth: true, wait: 4000 }
     ];
@@ -133,6 +135,16 @@ async function firstPlaceId() {
         const page = await browser.newPage();
         await page.setViewport(VIEWPORT);
         await page.emulateTimezone('Africa/Khartoum');
+
+        // 📍 موقع داخل الخرطوم. بدونه يرفض المتصفّح إذن الموقع، فتظهر البطاقات
+        //    بلا مسافة («— كم») — وهي لقطة صحيحة لكنها أفقر ممّا يراه العميل.
+        //    والمسافة لا تُعرض أصلاً فوق 150 كم، فلا بدّ أن يكون الموقع محلياً.
+        try {
+            await browser.defaultBrowserContext().overridePermissions(BASE, ['geolocation']);
+            await page.setGeolocation({ latitude: 15.5527, longitude: 32.5599, accuracy: 40 });
+        } catch (e) {
+            console.warn('⚠️  تعذّر ضبط الموقع — ستظهر البطاقات بلا مسافة:', e.message);
+        }
 
         // بذر ما قبل تحميل أي سكربت في الصفحة:
         //  • API_CONFIG مُعيَّن مسبقاً ⇒ js/config.js يتخطّى كتلته الشرطية فلا يوجّه
@@ -186,6 +198,17 @@ async function firstPlaceId() {
 
             const finalUrl = page.url();
             const redirected = !finalUrl.endsWith(shot.url);
+
+            // 🚫 حارس المراجعة: لقطةٌ فيها قسم منظَّم تناقض ردّنا لآبل نصّاً.
+            //    الفحص على النصّ المعروض لا على الكود — البيانات من الإنتاج.
+            const banned = await page.evaluate(() => {
+                const t = document.body ? document.body.innerText : '';
+                return ['صيدل', 'دواء', 'أدوية'].filter(w => t.includes(w));
+            });
+            if (banned.length) {
+                console.log(`  🚫 ${shot.file} — تحوي كلمات ممنوعة: ${banned.join('، ')}`
+                    + ' — لا ترفع هذه اللقطة قبل معالجتها');
+            }
 
             console.log(`  ${ok ? '✅' : '❌'} ${shot.file}.png — ${w}×${h}`
                 + (twin ? `  ⚠️ مطابقة لـ ${twin}` : '')

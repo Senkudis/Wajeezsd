@@ -65,3 +65,34 @@ describe('أيقونة التصنيف: احتياطيٌّ دائماً', () => {
         expect(feature).not.toContain("(cat && cat.icon) || 'bi-shop'");
     });
 });
+
+/**
+ * 🖼️ الصندوق الرمادي الفارغ أعلى الشاشة الأولى.
+ *
+ * ظهر في لقطة App Store: إطارٌ رماديّ بلا محتوى بين الترويسة ونموذج الطلب.
+ * سببه أن `onerror` على صورة الإعلان كان يُخفي **الشريحة** ويترك **القسم**
+ * مفتوحاً — فإعلانٌ صورته مكسورة يترك إطاره فارغاً في أول ما يراه المستخدم.
+ */
+describe('قسم الإعلانات لا يترك إطاراً فارغاً', () => {
+    const banners = fs.readFileSync(
+        path.join(__dirname, '..', 'public_html', 'js', 'home-banners.js'), 'utf8');
+
+    it('فشل الصورة يُعالَج بدالة لا بسطرٍ يُخفي الشريحة وحدها', () => {
+        expect(banners).toContain('window.__bannerImgFailed');
+        expect(banners).not.toContain("onerror=\"this.parentElement.style.display='none'\"");
+    });
+
+    it('وإن لم تبقَ شريحةٌ صالحة يُخفى القسم كلّه', () => {
+        const i = banners.indexOf('window.__bannerImgFailed = function');
+        const blk = banners.slice(i, i + 700);
+        expect(blk).toContain("section.style.display = 'none'");
+        expect(blk).toContain('.carousel-item:not([style*="display: none"])');
+    });
+
+    it('والقسم يبدأ مخفيّاً ولا يُفتح إلا بإعلانٍ فعلي', () => {
+        const index = fs.readFileSync(
+            path.join(__dirname, '..', 'public_html', 'index.html'), 'utf8');
+        expect(index).toContain('id="home-banners-section" style="display:none;');
+        expect(banners).toContain("bannersSection.style.display = 'none';");
+    });
+});
