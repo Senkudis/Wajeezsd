@@ -30,12 +30,13 @@ describe('الإضافة مثبَّتة ومسجَّلة', () => {
         expect(deps['@capacitor-community/background-geolocation']).toBeTruthy();
     });
 
-    it('وفي مشروع أندرويد — بلا التسجيل لا تُحمَّل مهما ثُبّتت', () => {
-        const plugins = JSON.parse(read('android/app/src/main/assets/capacitor.plugins.json'));
-        const names = plugins.map(p => p.classpath);
-        expect(names.some(n => n.includes('capacitor_background_geolocation'))).toBe(true);
+    it('وفي مشروع أندرويد — بلا الربط لا تُحمَّل مهما ثُبّتت', () => {
+        // ⚠️ لا نفحص capacitor.plugins.json: مُولَّد ومستثنى في .gitignore،
+        //    فيغيب في بيئة البناء النظيفة. الملفّان أدناه متتبَّعان فعلاً.
         expect(read('android/capacitor.settings.gradle'))
-            .toContain('capacitor-community-background-geolocation');
+            .toContain("include ':capacitor-community-background-geolocation'");
+        expect(read('android/app/capacitor.build.gradle'))
+            .toContain("implementation project(':capacitor-community-background-geolocation')");
     });
 
     it('وخدمتها أمامية من نوع location — لا إذن «الموقع دائماً»', () => {
@@ -49,10 +50,9 @@ describe('الإضافة مثبَّتة ومسجَّلة', () => {
 
 describe('الشروط الصامتة الثلاثة', () => {
     it('١. useLegacyBridge — بدونه تتوقّف القراءات بعد خمس دقائق', () => {
+        // capacitor.config.json هو المصدر؛ `cap sync` ينسخه إلى أصول أندرويد
+        // (وتلك نسخةٌ مُولَّدة مستثناة من المستودع فلا تُفحص هنا).
         expect(capConfig.android && capConfig.android.useLegacyBridge).toBe(true);
-        // وفي الأصول المحزومة كذلك، وإلا لم يقرأه التطبيق
-        const shipped = JSON.parse(read('android/app/src/main/assets/capacitor.config.json'));
-        expect(shipped.android.useLegacyBridge).toBe(true);
     });
 
     it('٢. الناقل الأصليّ — أندرويد يخنق HTTP من WebView في الخلفية', () => {
