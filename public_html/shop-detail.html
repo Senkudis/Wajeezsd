@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/dark-mode.css?v=afc716b6">
+    <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <!-- شاشة تحديد الموقع — نفس مصدر index.html -->
     <link rel="stylesheet" href="css/map-ui.css?v=6e46f188">
     <script src="js/config.js?v=977449f7"></script>
@@ -933,6 +933,18 @@
     //    نصّ JS داخل السمة)، فابتلعت طبقةٌ منها الشرطات المائلة وخرجت السمة
     //    باقتباساتٍ مختلّة: لا تُنفَّذ ولا تُصدر خطأً، وتبقى أيقونة الصورة
     //    المكسورة مكانها. الدالّة المسمّاة تُنهي طبقات الاقتباس كلها.
+    /**
+     * صورة منتج في الشبكة تعذّر تحميلها: تُستبدل **هي وحدها** بأيقونة.
+     * كان السطر السابق يمسح الحاوية كلّها (`parentElement.innerHTML`)، فتذهب
+     * معها شارةُ العرض وزرُّ المشاركة — منتجٌ صورته مكسورة يفقد تخفيضه من
+     * العرض، وهو أسوأ من غياب الصورة.
+     */
+    window.prodImgFallback = function (img) {
+        const ph = document.createElement('i');
+        ph.className = 'bi bi-box-seam-fill';
+        img.replaceWith(ph);
+    };
+
     window.pdImageFallback = function (img) {
         const ph = document.createElement('div');
         ph.className = 'pd-img-ph';
@@ -1030,7 +1042,10 @@
 
         const imgSrc = getFullImageUrl(p.image);
         const imgHtml = imgSrc
-            ? `<img src="${imgSrc}" alt="${escapeHtml(p.name)}" style="cursor:zoom-in" onclick="openProductImage('${imgSrc}', event)" onerror="this.parentElement.innerHTML='&lt;i class=&quot;bi bi-box-seam-fill&quot;&gt;&lt;/i&gt;'">`
+            // ⚠️ كان onerror يمسح **الحاوية كلّها**، فتذهب معها شارةُ العرض
+            //    وزرُّ المشاركة: منتجٌ صورته مكسورة يفقد تخفيضه من العرض.
+            //    الآن تُستبدل الصورة وحدها بأيقونةٍ في مكانها.
+            ? `<img src="${imgSrc}" alt="${escapeHtml(p.name)}" style="cursor:zoom-in" onclick="openProductImage('${imgSrc}', event)" onerror="prodImgFallback(this)">`
             : `<i class="bi bi-box-seam-fill"></i>`;
 
         const shareBtnHtml = `<button onclick="shareProduct('${p._id}', event)"
@@ -2378,7 +2393,7 @@
 
 <script src="js/maps-loader.js?v=9c3cdf9b"></script>
 <script src="js/map-markers.js?v=f66d1f1b"></script>
-<script src="js/theme-manager.js?v=0daaeecd"></script>
+<script src="js/theme-manager.js?v=ef048761"></script>
 <script>loadGoogleMaps({ libraries: 'places,geometry', need: ['routes'], callback: '__googleMapsReady' });</script>
     <script src="js/report-block.js?v=7f330204"></script>
 </body>

@@ -88,6 +88,30 @@ const ThemeManager = {
             document.body.appendChild(button);
         }
         this.updateButtonIcon();
+        this.bindScrollHide(button);
+    },
+
+    /**
+     * يُخفي الزرّ العائم أثناء التمرير ويعيده عند التوقّف.
+     *
+     * الزرّ ثابتٌ فوق كل شيء أسفل يمين الشاشة، فيغطّي ما تحته دائماً: بطاقة
+     * منتج، اسم محل، أو آخر سطرٍ في قائمة — ظهر ذلك في لقطات App Store نفسها.
+     * وهو زرٌّ لا يُستعمل إلا نادراً، فالأولى أن يغيب حين يقرأ المستخدم.
+     */
+    bindScrollHide: function (button) {
+        if (this._scrollHideBound) return;
+        this._scrollHideBound = true;
+
+        let timer = null;
+        const onScroll = () => {
+            button.classList.add('is-hidden');
+            clearTimeout(timer);
+            timer = setTimeout(() => button.classList.remove('is-hidden'), 650);
+        };
+
+        // capture + passive: بعض الصفحات تُمرّر داخل حاوية لا في النافذة،
+        // فمستمعٌ على النافذة وحدها كان سيفوته التمرير الحقيقي.
+        window.addEventListener('scroll', onScroll, { passive: true, capture: true });
     },
 
     /**

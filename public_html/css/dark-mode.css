@@ -993,6 +993,23 @@ body.dark-mode .theme-toggle {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
+/* 🫥 الزرّ العائم يغطّي المحتوى أسفل يمين كل شاشة — وهو ثابتٌ فوق كل شيء
+   بلا استثناء: بطاقة منتج، اسم محل، أو آخر سطرٍ في قائمة. ولا يُستعمل إلا
+   نادراً. فيغيب أثناء التمرير (حين يقرأ المستخدم) ويعود حين يتوقّف، ويغيب
+   كذلك والكيبورد مفتوح — الشاشة وقتها ضيّقة أصلاً. */
+.theme-toggle {
+    transition: opacity .22s ease, transform .22s ease, background .3s, box-shadow .3s;
+}
+.theme-toggle.is-hidden {
+    opacity: 0;
+    transform: translateY(14px) scale(.9);
+    pointer-events: none;
+}
+html.kb-open .theme-toggle {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .theme-toggle:hover {
     transform: scale(1.1) rotate(12deg);
     box-shadow: 0 6px 20px rgba(10, 135, 84, 0.4);
