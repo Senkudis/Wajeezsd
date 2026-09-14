@@ -112,3 +112,39 @@ describe('البطارية والإيقاف', () => {
         expect(blk).toContain('_watchMode = null;');
     });
 });
+
+/**
+ * 🩹 الإضافة تعلن دعم Capacitor 7 فقط، ومشروعنا على 8.
+ *
+ * `from: "7.0.0"` في SwiftPM تعني `7.0.0 ..< 8.0.0`، فيفشل حلّ التبعيات قبل
+ * أن تبدأ الترجمة أصلاً — وهو ما أسقط أوّل بناء فعلاً. والشفرة نفسها لا
+ * تستعمل شيئاً تغيّر بين الإصدارين؛ المانع هو المدى المعلَن.
+ *
+ * ولماذا سكربت لا تعديلٌ يدوي: node_modules لا يُرفع، وبيئة البناء تُنشئها
+ * بـ npm ci في كل مرّة — فأي تعديل باليد يضيع بصمت.
+ */
+describe('ترقيع مدى Capacitor في الإضافة', () => {
+    const patch = read('scripts/patch-bg-geolocation.js');
+
+    it('يُستدعى تلقائياً بعد التثبيت', () => {
+        expect(pkg.scripts.postinstall).toContain('patch-bg-geolocation');
+    });
+
+    it('يوسّع المدى ليقبل 8.x', () => {
+        expect(patch).toContain('"7.0.0"..<"9.0.0"');
+    });
+
+    it('ولا يعمل مرّتين ولا يسقط حين تغيب الإضافة', () => {
+        expect(patch).toContain("if (!fs.existsSync(PKG)) return;");
+        expect(patch).toContain('if (src.includes(TO)) return;');
+    });
+
+    it('ويصرخ إن تغيّر المنبع بدل ترقيعٍ صامت على نصٍّ لا نعرفه', () => {
+        expect(patch).toContain('لم يُعثر على المدى المتوقّع');
+    });
+
+    it('والمدى مُطبَّق فعلاً في النسخة المثبَّتة', () => {
+        const sw = read('node_modules/@capacitor-community/background-geolocation/Package.swift');
+        expect(sw).toContain('"7.0.0"..<"9.0.0"');
+    });
+});
