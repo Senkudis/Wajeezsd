@@ -218,6 +218,41 @@ jobs:
           fi
           echo "✅ آيفون فقط — $(grep -c 'TARGETED_DEVICE_FAMILY = \"1\";' "$PBX") هدف"
 
+      - name: Enable background location (Info.plist)
+        run: |
+          set -euo pipefail
+          # 🛰️ تتبّع الكابتن أثناء رحلةٍ نشطة.
+          #
+          #    بلا هذه المفاتيح تتوقّف القراءات لحظة ما يقفل الكابتن شاشته،
+          #    فيرى العميل مؤشّراً جامداً ويظنّ الكابتن واقفاً. ومجلد ios/
+          #    مُولَّد في كل بناء (cap add ios)، فما يُضبط في Xcode يدوياً يضيع
+          #    — لذلك يُكتب هنا.
+          #
+          #    ⚠️ آبل تدقّق في UIBackgroundModes=location وتطلب تبريراً. نصّ
+          #    الاستخدام أدناه هو التبرير نفسه: يذكر من يُتتبَّع (الكابتن)،
+          #    ومتى (أثناء رحلة نشطة)، ولماذا (ليتابعها العميل).
+          PLIST=ios/App/App/Info.plist
+          test -f "$PLIST" || { echo "::error::$PLIST غير موجود"; exit 1; }
+
+          WHEN="يُستخدم موقعك لعرض المتاجر القريبة منك وتحديد نقطة التسليم على الخريطة."
+          ALWAYS="يُستخدم موقعك أثناء رحلة توصيل نشطة فقط — ليتابع العميل تقدّم طلبه على الخريطة حتى والتطبيق في الخلفية. لا يُجمع موقعك حين تكون غير متصل."
+
+          /usr/libexec/PlistBuddy -c "Delete :NSLocationWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Delete :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$PLIST" 2>/dev/null || true
+
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string $WHEN" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSLocationAlwaysAndWhenInUseUsageDescription string $ALWAYS" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
+
+          # تحقّقٌ صريح: مفتاحٌ ناقص يعني تطبيقاً يُرفض عند الرفع أو يتعطّل صامتاً
+          /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" "$PLIST" >/dev/null             || { echo "::error::NSLocationWhenInUseUsageDescription لم يُكتب"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :NSLocationAlwaysAndWhenInUseUsageDescription" "$PLIST" >/dev/null             || { echo "::error::NSLocationAlwaysAndWhenInUseUsageDescription لم يُكتب"; exit 1; }
+          MODE=$(/usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" "$PLIST")
+          [ "$MODE" = "location" ] || { echo "::error::UIBackgroundModes:0 = '$MODE' لا 'location'"; exit 1; }
+          echo "✅ الموقع في الخلفية مفعّل في Info.plist"
+
       - name: Enable Push Notifications capability (aps-environment)
         run: |
           set -euo pipefail

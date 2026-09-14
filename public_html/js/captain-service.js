@@ -15,11 +15,33 @@ const DEGRADED_WARN_EVERY_MS = 2 * 60 * 1000;
 let _lastDegradedWarnAt = 0;
 let _lastWatchRestartAt = 0;
 let _trackingUserId = null;
+// 'native' = خدمة خلفية، 'web' = watchPosition داخل WebView.
+// ⚠️ بدونه كان الإيقاف يخطئ الطريق: حين تغيب الإضافة نسقط إلى watchPosition
+//    لكن الإيقاف يدخل فرع «الأصلي» (لأن المنصّة أصلية) فلا يُلغى المراقب
+//    إطلاقاً — يبقى يقرأ الموقع ويُرسله بعد أن أعلن الكابتن أنه غير متصل.
+let _watchMode = null;
 
 // الحصول على الـ Capacitor plugins مباشرة من النافذة
 function getBackgroundGeolocation() {
     if (window.Capacitor && window.Capacitor.Plugins) {
         return window.Capacitor.Plugins.BackgroundGeolocation;
+    }
+    return null;
+}
+
+/**
+ * 🌐 ناقل HTTP أصليّ (CapacitorHttp).
+ *
+ * ⚠️ ضروريٌّ لا تحسين: بعد خمس دقائق في الخلفية **يخنق أندرويد طلبات HTTP
+ *    الصادرة من WebView**. أي أن إضافة التتبّع الخلفي وحدها لا تكفي — تصل
+ *    القراءة إلى الكود ثم يموت الطلب في الطريق، فيبقى العطل كما هو بينما
+ *    يبدو أن كل شيء مضبوط. الناقل الأصليّ خارج هذا الخنق.
+ *    https://github.com/capacitor-community/background-geolocation/issues/14
+ */
+function getNativeHttp() {
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+        && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+        return window.Capacitor.Plugins.CapacitorHttp;
     }
     return null;
 }
@@ -86,16 +108,11 @@ const CaptainService = {
         const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
 
         try {
-            // 1. تفعيل الشاشة (Keep Awake)
-            if (isNative) {
-                const KeepAwake = getKeepAwake();
-                if (KeepAwake) {
-                    await KeepAwake.keepAwake();
-                    
-                }
-            }
-
-            // 2. بدء التتبع
+            // 🔋 لا تُبقِ الشاشة مضاءة حين تعمل الخدمة الخلفية.
+            //    كانت الشاشة تُجبَر على البقاء مضاءة طوال الوردية لأن التتبّع
+            //    كان يموت بدونها — وهو استنزافٌ هائل للبطارية. مع الخدمة
+            //    الخلفية لم يعد لذلك معنى؛ يبقى فقط في مسار الاحتياط
+            //    (_startWebTracking) حيث التتبّع فعلاً لا يعمل إلا والشاشة حيّة.
             if (isNative) {
                 const BackgroundGeolocation = getBackgroundGeolocation();
                 if (BackgroundGeolocation) {
@@ -124,6 +141,8 @@ const CaptainService = {
                         }
                     );
                     
+                    _watchMode = 'native';
+
                     // طلب إذن تخطي توفير طاقة البطارية للحفاظ على اتصال Socket في الخلفية
                     if (window.AndroidDownloader && typeof window.AndroidDownloader.requestBatteryBypass === 'function') {
                         setTimeout(() => {
@@ -132,7 +151,7 @@ const CaptainService = {
                     }
                 } else {
                     console.warn('⚠️ BackgroundGeolocation plugin not available, using web fallback');
-                    CaptainService._startWebTracking(userId);
+                    await CaptainService._startFallbackTracking(userId, true);
                 }
             } else {
                 CaptainService._startWebTracking(userId);
@@ -145,13 +164,30 @@ const CaptainService = {
 
         } catch (e) {
             console.error("❌ Tracking Failed:", e);
-            CaptainService._startWebTracking(userId);
+            await CaptainService._startFallbackTracking(userId, isNative);
         }
+    },
+
+    /**
+     * مسار الاحتياط: watchPosition داخل WebView.
+     * هنا **وهنا وحده** نُبقي الشاشة مضاءة — بلا خدمةٍ خلفية يموت التتبّع
+     * لحظة انطفائها، فإبقاؤها ثمنٌ مقابل تتبّعٍ يعمل. أمّا مع الخدمة الخلفية
+     * فهو استنزافُ بطاريةٍ بلا مقابل.
+     */
+    _startFallbackTracking: async (userId, isNative) => {
+        if (isNative) {
+            try {
+                const KeepAwake = getKeepAwake();
+                if (KeepAwake) await KeepAwake.keepAwake();
+            } catch (_) {}
+        }
+        CaptainService._startWebTracking(userId);
     },
 
     _startWebTracking: (userId) => {
         if (!navigator.geolocation) return;
         _trackingUserId = userId;
+        _watchMode = 'web';
         watcherId = navigator.geolocation.watchPosition(
             (pos) => {
                 // لحظة القياس من الجهاز نفسه إن توفّرت — أصدق من ساعة الاستلام
@@ -180,15 +216,22 @@ const CaptainService = {
         }
 
         try {
-            if (isNative && watcherId) {
+            if (_watchMode === 'native' && watcherId) {
                 const BackgroundGeolocation = getBackgroundGeolocation();
-                const KeepAwake = getKeepAwake();
                 if (BackgroundGeolocation) await BackgroundGeolocation.removeWatcher({ id: watcherId });
-                if (KeepAwake) await KeepAwake.allowSleep();
-            } else if (watcherId) {
+            } else if (watcherId != null && navigator.geolocation) {
                 navigator.geolocation.clearWatch(watcherId);
             }
+
+            // إطلاق الشاشة دائماً: طُلب إبقاؤها في مسار الاحتياط، وتركُها
+            // مضاءة بعد انتهاء الوردية أسوأ ما يمكن للبطارية.
+            if (isNative) {
+                const KeepAwake = getKeepAwake();
+                if (KeepAwake) await KeepAwake.allowSleep();
+            }
+
             watcherId = null;
+            _watchMode = null;
             
         } catch (e) {
             console.error("Stop Error:", e);
@@ -305,20 +348,26 @@ const CaptainService = {
             }
             const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
             const token = localStorage.getItem('token');
-            if (token) {
-                fetch(`${apiBase}/api/captain/update-location`, {
+            if (!token) return;
+
+            const url = `${apiBase}/api/captain/update-location`;
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+            // ⏱️ عمر القراءة: الخادم يميّز به بين «وصلنا الموقع الآن»
+            //    و«الكابتن هنا الآن» — وهما ليسا الشيء نفسه.
+            const payload = { lat, lng, fixAge: CaptainService._fixAge() };
+
+            const nativeHttp = getNativeHttp();
+            if (nativeHttp) {
+                // الناقل الأصليّ: لا يخنقه أندرويد بعد خمس دقائق في الخلفية
+                nativeHttp.request({ url, method: 'PUT', headers, data: payload })
+                    .catch(() => { /* صامت — الخلفية لا مكان فيها للضجيج */ });
+            } else {
+                fetch(url, {
                     method: 'PUT',
                     keepalive: true,   // ✅ يضمن إتمام الطلب حتى لو أُغلق التطبيق
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    // ⏱️ عمر القراءة: الخادم يميّز به بين «وصلنا الموقع الآن»
-                    //    و«الكابتن هنا الآن» — وهما ليسا الشيء نفسه.
-                    body: JSON.stringify({ lat, lng, fixAge: CaptainService._fixAge() })
-                }).catch(() => {
-                    // صامت — لا يُطبع خطأ في الخلفية لتجنب التشويش
-                });
+                    headers,
+                    body: JSON.stringify(payload)
+                }).catch(() => {});
             }
         }
     }

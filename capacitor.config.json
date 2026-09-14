@@ -40,5 +40,8 @@
         "alert"
       ]
     }
+  },
+  "android": {
+    "useLegacyBridge": true
   }
 }
