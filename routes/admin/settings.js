@@ -114,7 +114,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             'deliveryProofMode', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
-            'appVersion', 'minVersion', 'playStoreLink', 'forceUpdate'
+            'appVersion', 'minVersion', 'playStoreLink', 'appStoreLink', 'forceUpdate'
         ];
 
         const updates = { updatedBy: req.user._id };

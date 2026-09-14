@@ -28,7 +28,9 @@ function localPhone(phone) {
  * @param {string} o.name          اسم الكابتن كما سجّله
  * @param {string} [o.phone]       هاتف الحساب — معرّف الدخول الأساسي
  * @param {string} [o.email]       بريد الحساب — معرّف بديل
- * @param {string} [o.appLink]     رابط تحميل التطبيق
+ * @param {string} [o.appLink]     رابط تحميل التطبيق (أندرويد)
+ * @param {string} [o.appLinkIos]  رابط App Store — الرسالة تصل واتساب ولا
+ *                                 نعرف جهاز الكابتن، فنعطي الرابطين معاً
  * @param {string} [o.supportPhone] رقم الدعم
  * @returns {string} نصّ الرسالة جاهزاً للإرسال
  */
@@ -38,6 +40,7 @@ function buildCaptainApprovalMessage(o) {
     const phone = localPhone(opts.phone);
     const email = String(opts.email || '').trim();
     const appLink = String(opts.appLink || '').trim();
+    const appLinkIos = String(opts.appLinkIos || '').trim();
     const support = localPhone(opts.supportPhone);
 
     // معرّف الدخول: الهاتف أولاً لأنه ما يحفظه الكابتن، والبريد بديلاً
@@ -69,8 +72,12 @@ function buildCaptainApprovalMessage(o) {
         '• الإلغاء بعد القبول يعرّض الحساب للتجميد إلا لظرف طارئ وبعد الرجوع للإدارة.'
     ];
 
-    if (appLink) {
-        lines.push('', `*تحميل التطبيق*`, appLink);
+    // 📲 الرابطان معاً: الرسالة تصل واتساب ولا نعرف جهازه، ورابطٌ لمتجرٍ
+    //    لا يملكه طريقٌ مسدود في أول خطوة يطلبها منه.
+    if (appLink || appLinkIos) {
+        lines.push('', '*تحميل التطبيق*');
+        if (appLink) lines.push(`أندرويد: ${appLink}`);
+        if (appLinkIos) lines.push(`آيفون: ${appLinkIos}`);
     }
     if (support) {
         lines.push('', `لأي استفسار: ${support}`);

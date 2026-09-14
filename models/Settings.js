@@ -168,6 +168,13 @@ const settingsSchema = new mongoose.Schema({
         type: String,
         default: 'https://play.google.com/store/apps/details?id=com.wajeezsd.app'
     },
+    // 🍏 رابط App Store. كان رابط جوجل بلاي وحده هو «رابط التطبيق» في كل
+    //    مكان: مستخدم آيفون يضغط «شارك التطبيق» فيصل صديقَه رابطُ متجرٍ لا
+    //    يملكه، وكذلك رسالة قبول الكابتن. الرابط يُختار الآن حسب الجهاز.
+    appStoreLink: {
+        type: String,
+        default: 'https://apps.apple.com/app/id6807840888'
+    },
     forceUpdate: {
         type: Boolean,
         default: false

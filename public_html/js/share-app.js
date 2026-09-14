@@ -12,8 +12,34 @@
 (function () {
     'use strict';
 
-    var FALLBACK_URL = 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
+    var FALLBACK_PLAY = 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
+    var FALLBACK_APPLE = 'https://apps.apple.com/app/id6807840888';
     var CACHE_KEY = 'wajeez_share_link';
+
+    /**
+     * أي متجرٍ يخصّ هذا الجهاز.
+     *
+     * كان رابط جوجل بلاي وحده يُرسَل للجميع: مستخدم آيفون يضغط «شارك
+     * التطبيق» فيصل صديقَه رابطُ متجرٍ لا يملكه — زرٌّ يبدو أنه عمل وهو لم
+     * يفعل شيئاً نافعاً.
+     */
+    function isApplePlatform() {
+        try {
+            if (window.Capacitor && typeof Capacitor.getPlatform === 'function') {
+                return Capacitor.getPlatform() === 'ios';
+            }
+        } catch (_) {}
+        var ua = navigator.userAgent || '';
+        // iPadOS 13+ يُعرّف نفسه كـ Macintosh — نميّزه باللمس
+        var iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+        return /iPad|iPhone|iPod/.test(ua) || iPadOS;
+    }
+
+    function pickStoreLink(cfg) {
+        var apple = isApplePlatform();
+        if (apple) return (cfg && cfg.appStoreLink) || FALLBACK_APPLE;
+        return (cfg && cfg.playStoreLink) || FALLBACK_PLAY;
+    }
 
     function apiBase() {
         return window.API_BASE_URL || window.API_URL || 'https://wajeezsd.com';
@@ -27,11 +53,11 @@
         return fetch(apiBase() + '/api/auth/app-config')
             .then(function (r) { return r.ok ? r.json() : {}; })
             .then(function (cfg) {
-                var url = (cfg && cfg.playStoreLink) || FALLBACK_URL;
+                var url = pickStoreLink(cfg);
                 try { sessionStorage.setItem(CACHE_KEY, url); } catch (_) {}
                 return url;
             })
-            .catch(function () { return FALLBACK_URL; });
+            .catch(function () { return pickStoreLink(null); });
     }
 
     function toast(msg, ok) {

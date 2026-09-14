@@ -39,6 +39,8 @@ async function loadSettings() {
             document.getElementById('appVersion').value = settings.appVersion || '';
             document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '';
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
+            const _asl = document.getElementById('appStoreLink');
+            if (_asl) _asl.value = settings.appStoreLink || '';
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }
 
@@ -101,6 +103,8 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         data.appVersion = document.getElementById('appVersion').value.trim();
         data.minVersion = document.getElementById('minVersion').value.trim();
         data.playStoreLink = document.getElementById('playStoreLink').value.trim();
+        const _aslEl = document.getElementById('appStoreLink');
+        if (_aslEl) data.appStoreLink = _aslEl.value.trim();
         data.forceUpdate = document.getElementById('forceUpdate').checked;
     }
 

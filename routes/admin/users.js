@@ -399,6 +399,7 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
                 phone: captain.phone,
                 email: captain.email,
                 appLink: settings && settings.playStoreLink,
+                appLinkIos: settings && settings.appStoreLink,
                 supportPhone: settings && settings.adminPhone
             });
 
