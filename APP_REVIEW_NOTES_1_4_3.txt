@@ -1,0 +1,43 @@
+Version 1.4.3 — what changed and why background location is used
+
+NEW IN THIS VERSION: BACKGROUND LOCATION (UIBackgroundModes: location)
+
+wajeez is a local delivery app with two kinds of users: customers who order,
+and drivers ("captains") who deliver. Background location is used by the
+driver side only.
+
+Who is tracked
+Only a signed-in driver account. Customers are never tracked in the background;
+the customer app requests location only in the foreground, to sort nearby stores
+and to place the delivery pin, and the app is fully usable with location denied.
+
+When it runs
+The driver opens the app and turns on the "Online" switch to start a shift. From
+that moment until they switch it off, their position is shared. Turning the
+switch off stops tracking immediately. No location is collected while a driver
+is offline, and none is collected for customers.
+
+Why it must continue in the background
+A driver rides a motorbike with the phone in a pocket or on a mount with the
+screen locked. Without background location the position freezes the moment the
+screen turns off. Two things break:
+1. The customer watching the live map sees a frozen marker and concludes the
+   driver has stopped or abandoned the order. This was our most common support
+   complaint before this version.
+2. Order dispatch sends each new order to the nearest available drivers. A stale
+   position means orders are offered to drivers who are no longer nearby.
+
+What the driver sees
+While tracking is active, Android shows a persistent notification ("You are
+online"), so the driver always knows location sharing is on and can stop it with
+one switch inside the app.
+
+How to verify
+Sign in with the driver account below (in-app menu > "دخول الكابتن"), turn on
+the "Online" switch, and accept the location permission. The position updates
+are visible in the customer's tracking screen for an active order.
+
+Data handling
+Positions are sent to our own server only, used for live order tracking and
+dispatch, and are not shared with or sold to third parties. The app processes no
+payments; every order is cash on delivery.

@@ -73,13 +73,15 @@ describe('الشروط الصامتة الثلاثة', () => {
     it('ونصّ الإذن يشرح من ومتى ولماذا — آبل تسأل عن هذا بالضبط', () => {
         const i = workflow.indexOf('ALWAYS=');
         const line = workflow.slice(i, i + 400);
-        expect(line).toContain('رحلة توصيل نشطة');
-        expect(line).toContain('غير متصل');
+        // النصّ يصف ما يجري فعلاً: التتبّع مربوط بحالة «متصل» لا برحلةٍ بعينها
+        expect(line).toContain('وردية العمل');
+        expect(line).toContain('وأنت غير متصل');
+        expect(line).not.toContain('رحلة توصيل نشطة فقط');
     });
 
     it('والبناء يفشل صراحةً إن لم تُكتب — لا بناءٌ صامتٌ بلا تتبّع', () => {
         const i = workflow.indexOf('Enable background location');
-        const blk = workflow.slice(i, i + 2600);
+        const blk = workflow.slice(i, i + 3400);
         expect(blk).toContain('::error::UIBackgroundModes:0');
     });
 });
