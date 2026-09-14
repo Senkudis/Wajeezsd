@@ -472,6 +472,11 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                     const { planDispatch } = require('../utils/captainDispatch');
 
                     // كباتن المدينة الفعّالون ذوو توكن FCM (+ موقعهم للترتيب بالقرب)
+                    // ⚠️ غياب `isAvailableForWork` هنا **مقصود** — لا تُضفه.
+                    //    الإشعار يصل الكابتن ولو كان غير متصل: هو دعوةٌ للعودة
+                    //    والمنافسة على الطلب، لا إسناداً له. والإسناد نفسه محميّ
+                    //    في مسار القبول. من يراه «نقصاً» في الاستعلام يقرأه على
+                    //    أنه إرسال، وهو تنبيه.
                     const activeCaptains = await User.find({
                         role: 'captain',
                         city: order.city,   // 🌍 Scoped to order's city

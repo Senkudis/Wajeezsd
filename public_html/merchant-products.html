@@ -659,7 +659,7 @@
             preview.src = fullUrl;
             preview.style.display = 'block';
 
-            Swal.fire({ toast:true, position:'top-end', text:'✅ تم رفع الصورة بنجاح', icon:'success', timer:1500, showConfirmButton:false });
+            Swal.fire({ toast:true, position:'top-end', text:'تم رفع الصورة بنجاح', icon:'success', timer:1500, showConfirmButton:false });
         } catch (err) {
             Swal.fire('خطأ', 'تعذر رفع الصورة، حاول مرة أخرى', 'error');
             document.getElementById('pImage').value = ''; // clear on failure
@@ -790,7 +790,7 @@
             socket.on('out_of_stock_alert', (data) => {
                 Swal.fire({
                     toast: true, position: 'top-end', icon: 'warning',
-                    title: '⚠️ نفاد الكمية!',
+                    title: 'نفاد الكمية',
                     text: `نفد للتو مخزون المنتج: "${data.productName}"`,
                     timer: 5000, showConfirmButton: false
                 });

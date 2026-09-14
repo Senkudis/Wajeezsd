@@ -16,7 +16,10 @@
     <style>
         :root { --primary: #048c5b; --accent: #f59e0b; }
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
-        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        body { background: #f8fafc; min-height: 100vh; /* الزرّ العائم يجلس فوق الشريط السفلي، و90px تُبقيه فوق آخر بطاقة
+               فيغطّيها. و--sab شريط الإيماءات (env() الخام يعيد صفراً في
+               WebView أندرويد). */
+            padding-bottom: calc(112px + var(--sab, 0px)); }
 
         .promo-card {
             background: #fff; border-radius: 16px; padding: 14px;

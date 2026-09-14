@@ -36,7 +36,7 @@
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <!-- نظام تصميم الكابتن — بعد dark-mode.css عمداً كي تفوز قواعده الليلية -->
-    <link rel="stylesheet" href="css/captain-ui.css?v=703cb625">
+    <link rel="stylesheet" href="css/captain-ui.css?v=31f0fe4e">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/theme-manager.js?v=ef048761"></script>
@@ -189,6 +189,16 @@
     </header>
 
     <div class="cap-wrap">
+
+        <!-- 🚨 وردية متوقّفة: أول ما يراه الكابتن حين لا يكون متصلاً -->
+        <div class="cap-offline-banner cap-section" id="offlineBanner">
+            <div class="cob-ic"><i class="bi bi-pause-circle-fill"></i></div>
+            <div class="cob-txt">
+                <div class="cob-title">ورديتك متوقّفة — لن تصلك طلبات</div>
+                <div class="cob-sub">اضغط «ابدأ الوردية» ليبدأ استقبال الطلبات ويرى العميل موقعك.</div>
+            </div>
+            <button type="button" class="cob-btn" onclick="checkOnboarding(true)">ابدأ الوردية</button>
+        </div>
 
         <!-- مؤشرات ثانوية -->
         <div class="cap-metrics cap-section">
@@ -463,10 +473,19 @@
         function updateUI(active) {
             const badge = document.getElementById('availabilityToggle');
             if (!badge) return;
-            // النقطة النابضة هي الإشارة التي تُقرأ من مسافة — النص تأكيد لا أكثر
+            // النقطة النابضة هي الإشارة التي تُقرأ من مسافة — النص تأكيد لا أكثر.
+            // و«غير متصل» حالةٌ لا دعوة: نُضيف ما يُفعل بها، فالشارة زرٌّ أصلاً.
             badge.className = 'cap-status ' + (active ? 'is-online' : 'is-offline');
             badge.innerHTML = '<span class="cap-dot"></span><span>'
-                + (active ? 'متصل وجاهز' : 'غير متصل') + '</span>';
+                + (active ? 'متصل وجاهز' : 'غير متصل — اضغط للبدء') + '</span>';
+            badge.setAttribute('aria-pressed', active ? 'true' : 'false');
+            badge.title = active
+                ? 'أنت متصل وتستقبل الطلبات — اضغط لإيقاف الوردية'
+                : 'أنت غير متصل ولا تصلك طلبات — اضغط لبدء الوردية';
+
+            // اللافتة تتبع الحالة: تظهر وهو متوقّف وتختفي فور الاتصال
+            const banner = document.getElementById('offlineBanner');
+            if (banner) banner.classList.toggle('show', !active);
         }
 
         // --- 4. GPS TRACKING VIA CAPTAIN SERVICE ---

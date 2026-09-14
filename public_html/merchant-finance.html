@@ -15,7 +15,10 @@
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
     <style>
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
-        body { background: #f8fafc; min-height: 100vh; padding-bottom: 90px; }
+        body { background: #f8fafc; min-height: 100vh; /* الزرّ العائم يجلس فوق الشريط السفلي، و90px تُبقيه فوق آخر بطاقة
+               فيغطّيها. و--sab شريط الإيماءات (env() الخام يعيد صفراً في
+               WebView أندرويد). */
+            padding-bottom: calc(112px + var(--sab, 0px)); }
         .page-header {
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             color: white; padding: 16px 16px 60px; position: relative;

@@ -25,7 +25,9 @@
             --line: #e2e8f0; --bg: #f1f5f9;
         }
         * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
-        body { background: var(--bg); min-height: 100vh; padding-bottom: 90px; }
+        body { background: var(--bg); min-height: 100vh; /* --sab شريط الإيماءات: بدونه يجلس آخر سطرٍ تحت شريط النظام
+               (env() الخام يعيد صفراً في WebView أندرويد). */
+            padding-bottom: calc(90px + var(--sab, 0px)); }
 
         /* ── الهيدر ── */
         .page-header {

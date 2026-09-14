@@ -505,7 +505,7 @@
     function receiptText(sale) {
         const when = new Date(sale.createdAt).toLocaleString('ar-SD', { dateStyle: 'medium', timeStyle: 'short' });
         const lines = [];
-        lines.push(`🧾 *${shopName}*`);
+        lines.push(`*${shopName}*`);
         lines.push(`فاتورة نقطة بيع`);
         lines.push(`${when}`);
         lines.push('━━━━━━━━━━━━━━');
@@ -520,7 +520,7 @@
         lines.push(`*الإجمالي: ${fmt(sale.totalAmount)} ج.س*`);
         lines.push(`الدفع: ${sale.paymentMethod === 'bank' ? 'تحويل بنكي' : 'نقداً'}`);
         lines.push('━━━━━━━━━━━━━━');
-        lines.push('شكراً لتعاملكم معنا 🌟');
+        lines.push('شكراً لتعاملكم معنا');
         lines.push('عبر تطبيق وجيز');
         return lines.join('\n');
     }

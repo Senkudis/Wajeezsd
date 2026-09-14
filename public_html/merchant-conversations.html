@@ -18,7 +18,9 @@
         body {
             background: #f0f2f5;
             min-height: 100vh;
-            padding-bottom: 80px;
+            /* --sab شريط الإيماءات: بدونه يجلس آخر سطرٍ تحت شريط النظام
+               (env() الخام يعيد صفراً في WebView أندرويد). */
+            padding-bottom: calc(90px + var(--sab, 0px));
         }
 
         /* ===== HEADER ===== */
@@ -233,7 +235,7 @@
             type="text"
             class="search-input"
             id="searchInput"
-            placeholder="🔍  ابحث باسم العميل أو الرسالة..."
+            placeholder="ابحث باسم العميل أو الرسالة..."
             oninput="filterConversations(this.value)"
         >
     </div>
