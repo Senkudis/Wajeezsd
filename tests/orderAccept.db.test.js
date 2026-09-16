@@ -10,7 +10,7 @@
  * وما يُفحص هنا أيضاً: أن الرفض يقع **قبل** أي أثر جانبي — كابتن من مدينةٍ
  * أخرى، أو موقوف، أو لم يُعتمد بعد، يجب أن يخرج بلا أن يلمس الطلب.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, afterAll, beforeEach } from 'vitest';
 const express = require('express');
 const request = require('supertest');
 const mongoose = require('mongoose');
@@ -22,30 +22,24 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const { signUserToken } = require('../utils/authToken');
 
-let db, app;
+// ⚠️ في المستوى الأعلى لا في beforeAll — انظر التعليق في ledger.db.test.js:
+// القرار بتشغيل المجموعة يُتَّخذ وقت الجمع، قبل beforeAll.
+const db = await startMongo();
+assertRanInCI(db);
 
-beforeAll(async () => {
-    db = await startMongo();
-    if (!db.ok) return;
+let app = null;
+if (db.ok) {
     app = express();
     app.use(express.json());
-    // io مزيَّف: نلتقط ما يُبَثّ ولا نفتح مقبساً
+    // io مزيَّف: لا يُفتح مقبس، ولا يُرسَل شيء خارج العملية
     app.set('io', { to: () => ({ emit: () => {} }) });
     app.use('/api/orders', require('../routes/orders'));
-}, 120000);
+}
 
-afterAll(async () => { if (db && db.ok) await stopMongo(); });
-beforeEach(async () => { if (db && db.ok) await clearMongo(); });
+afterAll(async () => { if (db.ok) await stopMongo(); });
+beforeEach(async () => { if (db.ok) await clearMongo(); });
 
-const maybe = () => (db && db.ok ? describe : describe.skip);
-
-// يسقط البناء في CI إن غابت القاعدة، بدل خضرةٍ كاذبة
-describe('القاعدة حاضرة', () => {
-    it('في CI لا تُخطّى هذه المجموعة', () => {
-        assertRanInCI(db);
-        expect(true).toBe(true);
-    });
-});
+const maybe = () => (db.ok ? describe : describe.skip);
 
 let seq = 0;
 async function makeCaptain(over = {}) {

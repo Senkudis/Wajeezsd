@@ -16,7 +16,7 @@
  *
  * لا اختبار نصٍّ ولا محاكاة تمسك أياً من هذه. تحتاج mongod.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, afterAll, beforeEach } from 'vitest';
 const { startMongo, stopMongo, clearMongo, syncIndexes, assertRanInCI } = require('./helpers/mongo');
 
 const Place = require('../models/Place');
@@ -26,24 +26,18 @@ const Product = require('../models/Product');
 const { recordLedgerEntry, recordStockMovement } = require('../utils/erpHelpers');
 const mongoose = require('mongoose');
 
-let db;
-beforeAll(async () => {
-    db = await startMongo();
-    if (db.ok) await syncIndexes(ShopLedger);
-}, 120000);
-afterAll(async () => { if (db && db.ok) await stopMongo(); });
-beforeEach(async () => { if (db && db.ok) await clearMongo(); });
+// ⚠️ الاتصال في المستوى الأعلى لا في beforeAll: vitest يجمع الملف (فيقرّر
+// أي مجموعةٍ تُشغَّل) **قبل** أن يُنفَّذ beforeAll. اتصالٌ داخل beforeAll يعني
+// أن `maybe()` تُقرأ و db ما زالت undefined، فتُتخطّى المجموعات دائماً —
+// حتى والقاعدة حاضرة. هكذا مرّت هذه الاختبارات خضراء في CI وهي لم تعمل.
+const db = await startMongo();
+assertRanInCI(db);
+if (db.ok) await syncIndexes(ShopLedger);
 
-// بلا قاعدة: تُتخطّى بصوتٍ مسموع بدل أن تخضرّ كاذبة
-const maybe = () => (db && db.ok ? describe : describe.skip);
+afterAll(async () => { if (db.ok) await stopMongo(); });
+beforeEach(async () => { if (db.ok) await clearMongo(); });
 
-// يسقط البناء في CI إن غابت القاعدة، بدل خضرةٍ كاذبة
-describe('القاعدة حاضرة', () => {
-    it('في CI لا تُخطّى هذه المجموعة', () => {
-        assertRanInCI(db);
-        expect(true).toBe(true);
-    });
-});
+const maybe = () => (db.ok ? describe : describe.skip);
 
 async function makePlace(balance = 0) {
     return Place.create({
