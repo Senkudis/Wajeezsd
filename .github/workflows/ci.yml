@@ -10,6 +10,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    # 🗄️ قاعدة بيانات حقيقية للاختبارات.
+    # اختبارات الدفتر المالي وسباق قبول الطلب تفحص سلوك MongoDB نفسها —
+    # الذرّية في findOneAndUpdate بشرط، والفهرس الفريد الجزئي — ولا معنى
+    # لها بلا mongod. وهي تُتخطّى محلياً إن غاب، لكن assertRanInCI يُسقط
+    # البناء هنا إن تُخطّيت: مجموعةٌ خضراء لم تُشغَّل أسوأ من مجموعةٍ حمراء.
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_MONGO_URI: mongodb://127.0.0.1:27017/wajeez_ci
+      JWT_SECRET: ci-only-secret-never-used-in-production
+
     steps:
       - uses: actions/checkout@v4
 
