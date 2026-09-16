@@ -170,3 +170,87 @@ describe('الترجمة', () => {
         expect(missing).toEqual([]);
     });
 });
+
+describe('نظامٌ بصري واحد، لا أقسامٌ متجاورة', () => {
+    it('حقل ضوءٍ ثابت تحت الصفحة كلها — لا في البطل وحده', () => {
+        expect(page).toContain('body::before');
+        expect(page).toMatch(/body::before \{[\s\S]*?position: fixed/);
+    });
+
+    it('وشبكة نقطية تتلاشى نزولاً', () => {
+        expect(page).toContain('body::after');
+        expect(page).toContain('mask-image: radial-gradient(ellipse 130% 70% at 50% 0%');
+    });
+
+    it('والأقسام تتناوب: ثلاثة فصولٍ مُشرَّطة', () => {
+        const bands = page.match(/<section id="[^"]+" class="band">/g) || [];
+        expect(bands.length).toBe(3);
+        expect(page).toContain('.band::before, .band::after');
+    });
+
+    it('وإطار الجهاز واحدٌ في البطل والمعرض — لا إطارَين مختلفَين', () => {
+        expect(page).toContain('.shot .phone {');
+        expect(page).not.toContain('.shot .frame');
+        const shots = page.match(/<div class="phone"><img src="\/assets\/app\//g) || [];
+        expect(shots.length).toBe(3);
+    });
+});
+
+describe('المعرض لا يبتلع الشاشة', () => {
+    it('ثلاثة أجهزةٍ بعرضٍ محكوم لا ثلاث صورٍ بعرض العمود', () => {
+        const i = page.indexOf('.shots {');
+        const blk = page.slice(i, i + 260);
+        expect(blk).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+        expect(blk).toContain('max-width: 760px');
+    });
+
+    it('وعلى الجوال شريطٌ أفقي بالتقاط لا ثلاث شاشاتٍ فوق بعضها', () => {
+        const i = page.indexOf('@media (max-width: 660px)');
+        expect(i).toBeGreaterThan(-1);
+        const blk = page.slice(i, i + 600);
+        expect(blk).toContain('scroll-snap-type: x mandatory');
+        expect(blk).toContain('scroll-snap-align: center');
+    });
+});
+
+describe('بلاطاتٌ متفاوتة لا ستّ نسخٍ متطابقة', () => {
+    it('١ و٤ و٥ تأخذ عمودين فتمتلئ الصفوف الثلاثة بلا فجوة', () => {
+        expect(page).toContain('#featGrid > .card:nth-child(1),');
+        expect(page).toMatch(/nth-child\(5\) \{ grid-column: span 2; \}/);
+    });
+
+    it('وكل جمهورٍ ستّ مزايا بالضبط — البلاطات محسوبة على هذا العدد', () => {
+        const i = page.indexOf('const PERSONAS');
+        const blk = page.slice(i, page.indexOf('};', i));
+        // حدود كل جمهور: من مفتاحه إلى مفتاح الذي يليه — بلا تعابير نمطية
+        const arBlk = blk.slice(blk.indexOf('ar: {'), blk.indexOf('en: {'));
+        for (const [key, next] of [['client', 'merchant'], ['merchant', 'captain'], ['captain', null]]) {
+            const a = arBlk.indexOf(key + ': [');
+            expect(a, key).toBeGreaterThan(-1);
+            const b = next ? arBlk.indexOf(next + ': [') : arBlk.length;
+            expect(arBlk.slice(a, b).split("['bi-").length - 1, key).toBe(6);
+        }
+        expect((blk.match(/(client|merchant|captain): \[/g) || []).length).toBe(6);
+    });
+
+    it('والخطوات يصلها خيطٌ فتُقرأ مساراً', () => {
+        expect(page).toContain('.steps::before');
+        expect(page).toContain('repeating-linear-gradient(90deg, var(--line)');
+    });
+});
+
+describe('لا تجاوز أفقي مصدره التوهّج', () => {
+    it('هالة الجهاز لا تتجاوز حشو المسرح الجانبي', () => {
+        // ‎-30% من عرض الحاوية كان يوسّع المستند 36px على جوالٍ ضيّق
+        const i = page.indexOf('.phone-wrap::before');
+        const blk = page.slice(i, i + 220);
+        const m = blk.match(/inset: -\d+% -(\d+)%/);
+        expect(m).not.toBeNull();
+        expect(Number(m[1])).toBeLessThanOrEqual(9);
+    });
+
+    it('والجهاز الخلفي يظهر حيث يتّسع العمود وحده', () => {
+        expect(page).toContain('.phone-back { display: none; }');
+        expect(page).toMatch(/@media \(min-width: 980px\) \{[\s\S]{0,240}\.phone-back \{/);
+    });
+});

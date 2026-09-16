@@ -146,6 +146,34 @@
             transition: background-color .3s, color .3s;
         }
 
+        /* حقل الضوء: يمتدّ تحت الصفحة كلها فتصير الأقسام فصولاً في مشهدٍ
+           واحد لا بطاقاتٍ متجاورة على ورقةٍ بيضاء. */
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+            background:
+                radial-gradient(58ch 42ch at 84% -8%, color-mix(in srgb, var(--green-bright) 17%, transparent), transparent 60%),
+                radial-gradient(50ch 38ch at 4% 24%, color-mix(in srgb, var(--gold) 11%, transparent), transparent 62%),
+                radial-gradient(72ch 50ch at 52% 104%, color-mix(in srgb, var(--green-bright) 13%, transparent), transparent 60%);
+        }
+        /* شبكة نقطية تتلاشى نزولاً — عمقٌ بلا ضجيج */
+        body::after {
+            content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            color: var(--line);
+            background-image: radial-gradient(currentColor 1px, transparent 1px);
+            background-size: 28px 28px;
+            -webkit-mask-image: radial-gradient(ellipse 130% 70% at 50% 0%, #000, transparent 72%);
+            mask-image: radial-gradient(ellipse 130% 70% at 50% 0%, #000, transparent 72%);
+        }
+
+        /* فصلٌ بين الأقسام: شريطٌ خفيف بحدٍّ متلاشٍ بدل تدفّقٍ لا ينقطع */
+        .band { position: relative; background: color-mix(in srgb, var(--surface) 52%, transparent); }
+        .band::before, .band::after {
+            content: ''; position: absolute; inset-inline: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--line) 18%, var(--line) 82%, transparent);
+        }
+        .band::before { top: 0; }
+        .band::after { bottom: 0; }
+
         a { color: inherit; text-decoration: none; }
         img { max-width: 100%; display: block; }
 
@@ -244,6 +272,8 @@
             transition: all .28s var(--ease);
             max-height: calc(100dvh - 96px); overflow-y: auto;
         }
+        /* السمة hidden وحدها لا تكفي: display:flex أعلاه يتغلّب عليها */
+        .drawer[hidden], .scrim[hidden] { display: none; }
         .drawer.open { transform: none; opacity: 1; visibility: visible; }
         .drawer a {
             display: flex; align-items: center; gap: 10px;
@@ -276,25 +306,60 @@
         .sec-sub { color: var(--ink-2); font-size: var(--step-1); }
 
         .card {
+            position: relative; overflow: hidden;
             background: var(--surface); border: 1px solid var(--line);
             border-radius: var(--r); padding: clamp(18px, 2.2vw, 26px);
             box-shadow: var(--sh-1);
             transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s;
         }
+        /* خيط ضوءٍ في حافّتها العليا: تمييزٌ عند اللمس بلا إزاحة لون البطاقة */
+        .card::before {
+            content: ''; position: absolute; inset-inline: 0; top: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--green-bright), transparent);
+            opacity: 0; transition: opacity .3s var(--ease);
+        }
+        .card:hover::before { opacity: 1; }
         .card:hover { transform: translateY(-4px); box-shadow: var(--sh-2); border-color: color-mix(in srgb, var(--green-bright) 35%, var(--line)); }
 
         .card-ic {
             width: 46px; height: 46px; border-radius: 14px;
-            background: var(--green-soft); color: var(--green-bright);
+            background: linear-gradient(140deg, color-mix(in srgb, var(--green-bright) 24%, transparent), color-mix(in srgb, var(--gold) 15%, transparent));
+            border: 1px solid var(--line); color: var(--green-bright);
             display: grid; place-items: center; font-size: 1.3rem; margin-bottom: 14px;
         }
         .card h3 { font-size: var(--step-1); font-weight: 800; margin-bottom: 6px; }
+        /* البطاقة التي هي رابط تقول ذلك: سهمٌ يتقدّم عند اللمس */
+        .card-go {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
+            color: var(--green-bright); font-size: .84rem; font-weight: 800;
+        }
+        .card-go i { transition: transform .3s var(--ease); }
+        a.card:hover .card-go i { transform: translateX(-5px); }
         .card p { color: var(--ink-2); font-size: .9rem; }
 
         /* شبكة تتنفّس: تُعيد التوزيع عند أي عرض بلا نقاط توقّف */
         .grid-auto {
             display: grid; gap: var(--gap);
             grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+        }
+        /* بلاطاتٌ متفاوتة العرض: ستّ بطاقاتٍ متطابقة تُقرأ جدولاً لا واجهة.
+           كل جمهورٍ ستّ مزايا، والبلاطات ١ و٤ و٥ تأخذ عمودين — فتمتلئ
+           الصفوف الثلاثة تماماً بلا فجوةٍ في الأخير. */
+        #featGrid > .card:first-child {
+            background: linear-gradient(140deg, color-mix(in srgb, var(--green) 13%, var(--surface)), var(--surface) 62%);
+        }
+        @media (min-width: 900px) {
+            #featGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            #featGrid > .card:nth-child(1),
+            #featGrid > .card:nth-child(4),
+            #featGrid > .card:nth-child(5) { grid-column: span 2; }
+            #featGrid > .card:nth-child(1) {
+                display: grid; grid-template-columns: auto 1fr; gap: 2px 18px; align-items: start;
+            }
+            #featGrid > .card:nth-child(1) .card-ic {
+                grid-row: span 2; width: 58px; height: 58px; font-size: 1.6rem; margin-bottom: 0;
+            }
+            #featGrid > .card:nth-child(1) h3 { font-size: var(--step-2); align-self: end; }
         }
 
         .btn {
@@ -323,12 +388,14 @@
                 radial-gradient(70ch 50ch at 85% 8%, var(--green-soft), transparent 62%),
                 radial-gradient(60ch 40ch at 8% 88%, var(--gold-soft), transparent 58%);
         }
-        .hero-grid {
-            display: grid; gap: clamp(28px, 5vw, 56px); align-items: center;
-            grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
-        }
+        .hero-grid { display: grid; gap: clamp(28px, 5vw, 56px); align-items: center; }
+        @media (min-width: 980px) { .hero-grid { grid-template-columns: 1.04fr .96fr; } }
         .hero h1 { font-size: var(--step-4); font-weight: 900; margin-bottom: 16px; }
-        .hero h1 em { font-style: normal; color: var(--green-bright); }
+        .hero h1 em {
+            font-style: normal;
+            background: linear-gradient(100deg, var(--green-bright), var(--gold));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
         .hero-lead { color: var(--ink-2); font-size: var(--step-1); max-width: 54ch; margin-bottom: 26px; }
 
         .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
@@ -346,8 +413,14 @@
         /* حشوٌ جانبي يستوعب نتوء الشارتين، فلا تخرجان عن الشاشة مهما اتّسعت */
         .stage { display: grid; place-items: center; padding-inline: 26px; }
         .phone-wrap { position: relative; width: min(300px, 74vw); }
+        /* هالة تحت الجهاز: تربطه بحقل الضوء بدل أن يطفو فوقه */
+        .phone-wrap::before {
+            content: ''; position: absolute; inset: -14% -7%; z-index: 0; border-radius: 50%;
+            background: radial-gradient(circle, color-mix(in srgb, var(--green-bright) 24%, transparent), transparent 66%);
+            filter: blur(6px);
+        }
         .phone {
-            position: relative; width: 100%;
+            position: relative; z-index: 1; width: 100%;
             border: 11px solid #16241d; border-radius: 42px; background: #16241d;
             box-shadow: var(--sh-3), 0 0 0 1px rgba(255, 255, 255, .06) inset;
             overflow: hidden;
@@ -357,6 +430,15 @@
             width: 86px; height: 20px; background: #16241d; border-radius: 12px; z-index: 3;
         }
         .phone img { width: 100%; height: auto; border-radius: 31px; }
+        /* الجهاز الخلفي يظهر حيث يتّسع العمود وحده — دونه ينزلق خارج الشاشة */
+        .phone-back { display: none; }
+        @media (min-width: 980px) {
+            .phone-back {
+                display: block; position: absolute; z-index: 0;
+                inset-block-start: 8%; inset-inline-start: -27%; width: 76%;
+                transform: rotate(-7deg); opacity: .9;
+            }
+        }
 
         .float-chip {
             position: absolute; z-index: 4;
@@ -406,8 +488,16 @@
         .seg[aria-selected="true"] { background: var(--surface); color: var(--green); box-shadow: var(--sh-1); }
 
         /* ─── الخطوات ─────────────────────────────────────────────── */
-        .steps { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); counter-reset: s; }
-        .step { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: clamp(22px, 2.6vw, 30px); box-shadow: var(--sh-1); }
+        .steps { position: relative; display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); counter-reset: s; }
+        /* الخيط يمرّ بمحاور الأرقام الثلاثة: الخطوات مسارٌ متّصل */
+        @media (min-width: 880px) {
+            .steps::before {
+                content: ''; position: absolute; z-index: 0; inset-inline: 16%;
+                top: calc(clamp(22px, 2.6vw, 30px) + 22px); height: 2px;
+                background: repeating-linear-gradient(90deg, var(--line) 0 9px, transparent 9px 18px);
+            }
+        }
+        .step { position: relative; z-index: 1; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: clamp(22px, 2.6vw, 30px); box-shadow: var(--sh-1); }
         .step::before {
             counter-increment: s; content: counter(s);
             display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 14px;
@@ -418,13 +508,34 @@
         .step p { color: var(--ink-2); font-size: .9rem; }
 
         /* ─── معرض اللقطات ────────────────────────────────────────── */
-        .shots { display: grid; gap: clamp(16px, 2.4vw, 28px); grid-template-columns: repeat(auto-fit, minmax(min(210px, 45%), 1fr)); align-items: start; }
-        .shot { text-align: center; }
-        .shot img {
-            width: 100%; border-radius: 22px; border: 1px solid var(--line);
-            box-shadow: var(--sh-2); background: var(--surface-2);
+        .shots {
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: clamp(14px, 2vw, 26px); align-items: end;
+            max-width: 760px; margin-inline: auto;
         }
+        .shot { text-align: center; }
+        /* الإطار نفسه إطار البطل: الجهاز واحدٌ في الصفحة كلها */
+        .shot .phone { border-width: 8px; border-radius: 32px; }
+        .shot .phone::before { top: 7px; width: 62px; height: 15px; }
+        .shot .phone img { border-radius: 24px; }
+        .shot--mid .phone { transform: translateY(-26px); }
+        .shot--mid figcaption { margin-top: -14px; }
         .shot figcaption { margin-top: 12px; font-size: .88rem; font-weight: 800; color: var(--ink-2); }
+
+        /* على الجوال: شريطٌ أفقي بالتقاطٍ عند كل جهاز — ثلاث شاشاتٍ فوق
+           بعضها تجعل القسم وحده بطول ألفي بكسل. */
+        @media (max-width: 660px) {
+            .shots {
+                display: flex; gap: 14px; align-items: flex-start;
+                max-width: none; overflow-x: auto; scroll-snap-type: x mandatory;
+                margin-inline: calc(var(--pad-x) * -1); padding-inline: var(--pad-x);
+                scrollbar-width: none; -webkit-overflow-scrolling: touch;
+            }
+            .shots::-webkit-scrollbar { display: none; }
+            .shot { flex: 0 0 min(62%, 230px); scroll-snap-align: center; }
+            .shot--mid .phone { transform: none; }
+            .shot--mid figcaption { margin-top: 12px; }
+        }
 
         /* ─── الفريق ──────────────────────────────────────────────── */
         .team-panel {
@@ -438,6 +549,15 @@
             content: ''; position: absolute; inset-block-start: -40%; inset-inline-end: -10%;
             width: 340px; height: 340px; border-radius: 50%;
             background: radial-gradient(circle, rgba(224, 180, 72, .22), transparent 70%);
+        }
+        .team-panel::before, .cta::after {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
+            background-size: 46px 46px;
+            -webkit-mask-image: radial-gradient(ellipse 90% 90% at 18% 0%, #000, transparent 72%);
+            mask-image: radial-gradient(ellipse 90% 90% at 18% 0%, #000, transparent 72%);
         }
         .team-panel > * { position: relative; z-index: 1; }
         .team-panel h2 { font-size: var(--step-3); font-weight: 900; margin-bottom: 10px; }
@@ -543,8 +663,8 @@
     <header class="topbar" id="topbar">
         <nav class="nav" aria-label="التنقّل الرئيسي">
             <a href="#top" class="brand" aria-label="وجيز">
-                <img src="/logo.png" alt="وجيز" class="logo-light" width="140" height="34">
-                <img src="/logo-white.png" alt="وجيز" class="logo-dark" width="140" height="34">
+                <img src="/logo-ink.png" alt="وجيز" class="logo-light" width="83" height="34">
+                <img src="/logo-white.png" alt="وجيز" class="logo-dark" width="83" height="34">
             </a>
 
             <ul class="nav-links">
@@ -621,6 +741,9 @@
 
                 <div class="stage">
                     <div class="phone-wrap">
+                        <div class="phone phone-back" aria-hidden="true">
+                            <img src="/assets/app/shop.jpg" width="540" height="1170" alt="" loading="lazy" decoding="async">
+                        </div>
                         <span class="float-chip chip-live"><span class="dot-live" aria-hidden="true"></span><span data-i18n="chip_live">الكابتن في الطريق</span></span>
                         <div class="phone">
                             <img src="/assets/app/home.jpg" width="540" height="1170" alt="شاشة الطلب في تطبيق وجيز" fetchpriority="high" decoding="async">
@@ -657,7 +780,7 @@
         </section>
 
         <!-- ─── كيف يعمل ─── -->
-        <section id="how">
+        <section id="how" class="band">
             <div class="wrap">
                 <div class="sec-head reveal">
                     <span class="eyebrow" data-i18n="how_badge">ثلاث خطوات</span>
@@ -682,15 +805,15 @@
                 </div>
                 <div class="shots">
                     <figure class="shot reveal">
-                        <img src="/assets/app/home.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="شاشة إنشاء طلب توصيل">
+                        <div class="phone"><img src="/assets/app/home.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="شاشة إنشاء طلب توصيل"></div>
                         <figcaption data-i18n="shot1">اطلب توصيل أي شيء</figcaption>
                     </figure>
-                    <figure class="shot reveal">
-                        <img src="/assets/app/shop.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="تصفّح متاجر المدينة">
+                    <figure class="shot shot--mid reveal">
+                        <div class="phone"><img src="/assets/app/shop.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="تصفّح متاجر المدينة"></div>
                         <figcaption data-i18n="shot2">تصفّح متاجر مدينتك</figcaption>
                     </figure>
                     <figure class="shot reveal">
-                        <img src="/assets/app/store.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="صفحة متجر ومنتجاته">
+                        <div class="phone"><img src="/assets/app/store.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="صفحة متجر ومنتجاته"></div>
                         <figcaption data-i18n="shot3">منتجات وأسعار واضحة</figcaption>
                     </figure>
                 </div>
@@ -698,7 +821,7 @@
         </section>
 
         <!-- ─── الشروحات ─── -->
-        <section id="tutorials">
+        <section id="tutorials" class="band">
             <div class="wrap">
                 <div class="sec-head reveal">
                     <span class="eyebrow" data-i18n="tut_badge">شروحات</span>
@@ -710,16 +833,19 @@
                         <div class="card-ic"><i class="bi bi-box-seam-fill" aria-hidden="true"></i></div>
                         <h3 data-i18n="tut1h">اطلب من التطبيق</h3>
                         <p data-i18n="tut1p">كيف تنشئ مشواراً جديداً وتتابع الكابتن على الخريطة.</p>
+                        <span class="card-go"><span data-i18n="go">افتح الشرح</span><i class="bi bi-arrow-left" aria-hidden="true"></i></span>
                     </a>
                     <a class="card reveal" href="tutorial-shop-order.html">
                         <div class="card-ic"><i class="bi bi-bag-check-fill" aria-hidden="true"></i></div>
                         <h3 data-i18n="tut2h">اطلب من المتاجر</h3>
                         <p data-i18n="tut2p">تصفّح متاجر مدينتك وأضف منتجاتك للسلة واطلبها.</p>
+                        <span class="card-go"><span data-i18n="go">افتح الشرح</span><i class="bi bi-arrow-left" aria-hidden="true"></i></span>
                     </a>
                     <a class="card reveal" href="tutorial-merchant-register.html">
                         <div class="card-ic"><i class="bi bi-shop-window" aria-hidden="true"></i></div>
                         <h3 data-i18n="tut3h">سجّل متجرك</h3>
                         <p data-i18n="tut3p">خطوات انضمام التاجر وإدارة المنتجات والطلبات.</p>
+                        <span class="card-go"><span data-i18n="go">افتح الشرح</span><i class="bi bi-arrow-left" aria-hidden="true"></i></span>
                     </a>
                 </div>
             </div>
@@ -747,7 +873,7 @@
         </section>
 
         <!-- ─── الأسئلة ─── -->
-        <section id="faq">
+        <section id="faq" class="band">
             <div class="wrap">
                 <div class="sec-head reveal">
                     <span class="eyebrow" data-i18n="faq_badge">أسئلة متكرّرة</span>
@@ -830,8 +956,8 @@
         <div class="wrap">
             <div class="foot-grid">
                 <div class="foot-brand">
-                    <img src="/logo.png" alt="وجيز" class="logo-light" width="140" height="34">
-                    <img src="/logo-white.png" alt="وجيز" class="logo-dark" width="140" height="34">
+                    <img src="/logo-ink.png" alt="وجيز" class="logo-light" width="83" height="34">
+                    <img src="/logo-white.png" alt="وجيز" class="logo-dark" width="83" height="34">
                     <p data-i18n="foot_about">وجيز منصّة توصيل في أم درمان وبورتسودان: تربط العميل بمتاجر مدينته وبكابتن يوصّل طلبه، مع تتبّع حيّ ودفع كاش عند الاستلام.</p>
                     <div class="socials">
                         <a href="https://facebook.com/wajeezsd" target="_blank" rel="noopener" aria-label="فيسبوك"><i class="bi bi-facebook" aria-hidden="true"></i></a>
@@ -894,7 +1020,7 @@
                 hero_badge: 'Now on Android and iPhone',
                 hero_h1: 'Everything you need<br><em>delivered with Wajeez</em>',
                 hero_lead: 'Order from shops in your city, or have anything delivered from anywhere. Follow your captain live on the map and pay cash on delivery — in Omdurman and Port Sudan.',
-                get_on: 'Download on', hero_how: 'How it works',
+                get_on: 'Download on', hero_how: 'How it works', go: 'Open guide',
                 t1: 'Live tracking', t1s: 'Captain on the map',
                 t2: 'Cash payment', t2s: 'Pay on delivery',
                 t3: 'Verified captains', t3s: 'Documents reviewed',
