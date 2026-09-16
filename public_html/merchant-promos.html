@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=8dfb5096"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
@@ -455,6 +456,8 @@
     };
 
     async function load() {
+        // كانت الصفحة تبقى فارغة حتى يعود الخادم — فتُقرأ «لا أكواد»
+        if (window.UIState) UIState.skeleton('#promosContainer', { count: 3, avatar: false });
         try {
             const [pRes, prodRes] = await Promise.all([
                 fetch(`${API_URL}/api/merchant/promo-codes`, { headers: H() }),
@@ -466,11 +469,19 @@
             render();
         } catch (e) {
             console.error('Load promos error:', e);
-            document.getElementById('promosContainer').innerHTML =
-                '<div class="text-center text-muted py-5">تعذّر تحميل الأكواد. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="load()">أعد المحاولة</button></div>';
+            if (window.UIState) {
+                UIState.error('#promosContainer', {
+                    title: 'تعذّر تحميل الأكواد',
+                    text: 'تحقّق من اتصالك ثم أعد المحاولة.',
+                    onRetry: function () { load(); }
+                });
+            }
         }
     }
     window.load = load;
+
+    // عودة الاتصال تُعيد الجلب بلا ضغطة
+    if (window.UIState) UIState.onReconnect(function () { load(); });
 
     load();
 </script>

@@ -47,6 +47,7 @@
         #missions-container .card img { max-height: 140px !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=8dfb5096"></script>
 </head>
 
 <body class="bg-light">
@@ -169,10 +170,17 @@
             return html;
         }
 
+        // عودة الاتصال تُعيد الجلب وحدها — الكابتن في الطريق ولا يتفرّغ
+        // لملاحظة أن القائمة قديمة ثم يسحبها ليحدّثها.
+        if (window.UIState) UIState.onReconnect(function () { fetchMissions(); });
+
         // محدّد زر أول طلب شراء ينتظر تسعيراً — يُملأ أثناء الرسم ويُستهلك بعده
         let _pendingErrandCoach = null;
 
         async function fetchMissions() {
+            // هيكلٌ عظمي أثناء الجلب: كانت القائمة تبقى بيضاء فارغة حتى يعود
+            // الخادم، فتُقرأ «لا مهام لديك» وهي لم تُحمَّل بعد.
+            if (window.UIState) UIState.skeleton('#missions-container', { count: 2 });
             try {
                 const response = await fetchWithRetry(`${API_URL}/api/orders/my-missions`, {
                     headers: window.Auth.getAuthHeader()
