@@ -23,6 +23,7 @@ const Place = require('../models/Place');
 const ShopLedger = require('../models/ShopLedger');
 const StockMovement = require('../models/StockMovement');
 const Product = require('../models/Product');
+const PlaceCategory = require('../models/PlaceCategory');
 const { recordLedgerEntry, recordStockMovement } = require('../utils/erpHelpers');
 const mongoose = require('mongoose');
 
@@ -40,10 +41,14 @@ beforeEach(async () => { if (db.ok) await clearMongo(); });
 const maybe = () => (db.ok ? describe : describe.skip);
 
 async function makePlace(balance = 0) {
+    // الحقول المطلوبة في المخطّط كلها: التصنيف والإحداثيات. نمرّرها كما
+    // يمرّرها التطبيق — فالمصنع الذي يلتفّ على التحقّق يفحص شيئاً آخر.
+    const category = await PlaceCategory.create({ name: 'تجربة' });
     return Place.create({
         name: 'متجر الاختبار',
+        category: category._id,
         shopWalletBalance: balance,
-        location: { type: 'Point', coordinates: [32.5, 15.6] }
+        location: { lat: 15.6, lng: 32.5 }
     });
 }
 
@@ -228,12 +233,12 @@ maybe()('حركة المخزون سطر تدقيق لا يُفشل البيع', 
 
         await recordStockMovement({
             placeId: place._id, productId: product._id, productName: product.name,
-            type: 'out', quantity: 3, balanceAfter: 7, reason: 'بيع'
+            type: 'sale', quantity: -3, balanceAfter: 7, reason: 'بيع'
         });
 
         const rows = await StockMovement.find({ placeId: place._id });
         expect(rows).toHaveLength(1);
-        expect(rows[0].quantity).toBe(3);
+        expect(rows[0].quantity).toBe(-3);
         expect(rows[0].balanceAfter).toBe(7);
     });
 
