@@ -31,7 +31,7 @@ body.dark-mode .badge-rejected { background: #7f1d1d !important; color: #fca5a5 
 body.dark-mode .bank-box { background: #111827 !important; border-color: #374151 !important; color: #d1d5db !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <link rel="stylesheet" href="css/admin-mobile.css?v=9f8d7083">
     <script src="js/admin-mobile.js?v=5b949b76"></script>
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
@@ -145,7 +145,11 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
 
         const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 
+        // عودة الاتصال تُعيد الجلب بلا ضغطة
+        if (window.UIState) UIState.onReconnect(function () { loadSettlements(); });
+
         async function loadSettlements() {
+            if (window.UIState) UIState.skeleton('#settlementsTable', { variant: 'row', cols: 8, count: 5 });
             try {
                 const res = await fetch(`${API_URL}/api/merchant-erp/admin/settlements`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -155,8 +159,11 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
                 settlements = d.settlements || [];
                 renderTable();
             } catch (err) {
-                document.getElementById('settlementsTable').innerHTML =
-                    `<tr><td colspan="8" class="text-danger text-center">خطأ في التحميل: ${err.message}</td></tr>`;
+                // نصّ الاستثناء الخام لا يقول للأدمن ما يفعل
+                if (window.UIState) UIState.error('#settlementsTable', {
+                    title: 'تعذّر تحميل التسويات',
+                    onRetry: function () { loadSettlements(); }
+                });
             }
         }
 

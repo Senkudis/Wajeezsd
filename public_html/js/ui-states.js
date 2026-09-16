@@ -39,6 +39,8 @@
         '.uis-sk-body{flex:1;min-width:0}',
         '.uis-sk-line{height:12px;margin-bottom:9px}',
         '.uis-sk-line:last-child{margin-bottom:0}',
+        '.uis-sk-cell{padding:14px 12px!important}',
+        '.uis-sk-cell .uis-sk-line{margin:0}',
 
         /* الفراغ والخطأ: بطاقة واحدة بمقاسٍ واحد في كل الصفحات */
         '.uis-state{display:flex;flex-direction:column;align-items:center;justify-content:center;',
@@ -118,6 +120,24 @@
 
         clear(box);
         box.setAttribute('aria-busy', 'true');
+
+        // جدول: الهيكل يجب أن يكون صفوفاً وخلايا. بطاقةٌ داخل tbody يرفضها
+        // المتصفّح فيرفعها خارج الجدول، فيظهر الهيكل فوقه لا داخله.
+        if (opts.variant === 'row') {
+            var cols = Math.max(1, Math.min(opts.cols || 1, 20));
+            for (var r = 0; r < count; r++) {
+                var tr = el('tr');
+                var td = el('td', 'uis-sk-cell');
+                td.colSpan = cols;
+                var bar = el('div', 'uis-sk uis-sk-line');
+                bar.style.width = (60 + (r % 3) * 15) + '%';
+                td.appendChild(bar);
+                tr.appendChild(td);
+                box.appendChild(tr);
+            }
+            return;
+        }
+
         for (var i = 0; i < count; i++) {
             var card = el('div', 'uis-sk-card');
             if (avatar) card.appendChild(el('div', 'uis-sk uis-sk-avatar'));

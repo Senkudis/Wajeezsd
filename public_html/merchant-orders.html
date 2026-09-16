@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
@@ -645,7 +645,13 @@
     }
 
     // ── جلب البيانات ────────────────────────────────────────
+    // عودة الاتصال تُعيد الجلب بلا ضغطة
+    if (window.UIState) UIState.onReconnect(function () { loadOrders(true); });
+
     async function loadOrders(isAutoRefresh = false) {
+        // الهيكل عند التحميل الأول وحده: رسمه فوق قائمةٍ معروضة في
+        // كل تحديثٍ تلقائي يجعل الشاشة ترتجّ كل بضع ثوانٍ.
+        if (!isAutoRefresh && window.UIState) UIState.skeleton('#ordersContainer', { count: 3 });
         try {
             const res = await fetch(`${API_URL}/api/merchant/orders`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -671,10 +677,10 @@
             renderOrders();
         } catch (err) {
             if (!isAutoRefresh) {
-                document.getElementById('ordersContainer').innerHTML =
-                    `<div class="alert alert-danger m-3">فشل تحميل الطلبات
-                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="loadOrders()">إعادة المحاولة</button>
-                    </div>`;
+                if (window.UIState) UIState.error('#ordersContainer', {
+                    title: 'تعذّر تحميل الطلبات',
+                    onRetry: function () { loadOrders(); }
+                });
             }
         }
     }

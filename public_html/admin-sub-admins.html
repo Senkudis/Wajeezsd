@@ -129,7 +129,7 @@ body.dark-mode .req-card { background: #1c1a0f !important; border-color: #92400e
 body.dark-mode .req-name { color: #f9fafb !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <link rel="stylesheet" href="css/admin-panel.css?v=68b59909">
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <link rel="stylesheet" href="css/admin-mobile.css?v=9f8d7083">
@@ -317,7 +317,11 @@ body.dark-mode .req-name { color: #f9fafb !important; }
             loadAdmins();
         }
 
+        // عودة الاتصال تُعيد الجلب بلا ضغطة
+        if (window.UIState) UIState.onReconnect(function () { loadAdmins(); });
+
         async function loadAdmins() {
+            if (window.UIState) UIState.skeleton('#adminsTableBody', { variant: 'row', cols: 7, count: 4 });
             try {
                 const res = await fetch(`${BASE}/api/admin/sub-admins`, {
                     headers: { 'Authorization': `Bearer ${token}` }

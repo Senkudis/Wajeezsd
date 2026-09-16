@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
@@ -145,19 +145,19 @@
     <!-- P&L -->
     <div class="section-card">
         <div class="section-title"><i class="bi bi-calculator-fill text-warning me-1"></i> الأرباح والخسائر</div>
-        <div id="plBox" class="small"><div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div></div>
+        <div id="plBox" class="small"></div>
     </div>
 
     <!-- Top products -->
     <div class="section-card">
         <div class="section-title"><i class="bi bi-trophy-fill text-warning me-1"></i> الأكثر مبيعاً</div>
-        <div id="topProducts"><div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div></div>
+        <div id="topProducts"></div>
     </div>
 
     <!-- Top customers -->
     <div class="section-card">
         <div class="section-title"><i class="bi bi-people-fill text-warning me-1"></i> أفضل العملاء</div>
-        <div id="topCustomers"><div class="text-center py-3"><div class="spinner-border spinner-border-sm text-warning"></div></div></div>
+        <div id="topCustomers"></div>
     </div>
 
 </div>
@@ -224,6 +224,16 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
     }
+
+    function reportsSkeleton() {
+        if (!window.UIState) return;
+        ['#plBox', '#topProducts', '#topCustomers'].forEach(function (sel) {
+            UIState.skeleton(sel, { count: 3, avatar: false });
+        });
+    }
+
+    // عودة الاتصال تُعيد الجلب بلا ضغطة
+    if (window.UIState) UIState.onReconnect(function () { loadAll(); });
 
     async function loadSummary() {
         try {
@@ -340,6 +350,7 @@
     }
 
     function loadAll() {
+        reportsSkeleton();
         loadSummary(); loadSeries(); loadProfit(); loadTopProducts(); loadCustomers();
     }
     loadAll();

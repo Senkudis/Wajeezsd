@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
@@ -104,9 +104,7 @@
     <button class="tab-btn" data-tab="settlements" onclick="switchTab('settlements', this)">التسويات</button>
 </div>
 
-<div class="container-fluid px-3" id="content">
-    <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
-</div>
+<div class="container-fluid px-3" id="content"></div>
 
 <button class="m-fab" id="fabAddExpense" onclick="openExpenseModal()" style="display:none;">
     <i class="bi bi-plus-lg"></i>
@@ -263,9 +261,13 @@
         adjustment:  { icon: 'bi-sliders',   bg: '#fef3c7', color: '#d97706', label: 'تسوية إدارية' }
     };
 
+    // عودة الاتصال تُعيد الجلب بلا ضغطة
+    if (window.UIState) UIState.onReconnect(function () { loadLedger(1); });
+
     async function loadLedger(page) {
         const el = document.getElementById('content');
-        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        if (window.UIState) UIState.skeleton(el, { count: 4, avatar: false });
+        else el.innerHTML = '';
         try {
             const d = await apiGet(`/finance/ledger?page=${page}&limit=30`);
             if (!d.entries.length) {
@@ -312,7 +314,8 @@
 
     async function loadExpenses(page) {
         const el = document.getElementById('content');
-        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        if (window.UIState) UIState.skeleton(el, { count: 4, avatar: false });
+        else el.innerHTML = '';
         try {
             // 💼 المصروفات لباقة المتجر الكبير — رسالة ترقية داخل المحتوى للأساسي
             const check = await fetch(`${API_URL}/api/merchant-erp/expenses?page=${page}&limit=30`, { headers: H });
@@ -439,7 +442,8 @@
 
     async function loadSettlements() {
         const el = document.getElementById('content');
-        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        if (window.UIState) UIState.skeleton(el, { count: 4, avatar: false });
+        else el.innerHTML = '';
         try {
             const d = await apiGet('/finance/settlements');
             if (!d.settlements.length) {

@@ -142,3 +142,93 @@ describe('الصفحات المتبنّية', () => {
         }
     });
 });
+
+/* ─── التبنّي عبر الصفحات كلها ─────────────────────────────────── */
+
+const adopted = pages.filter(f => /UIState\.(skeleton|error)/.test(read(f)));
+
+describe('التغطية', () => {
+    it('ثماني عشرة صفحة على الأقل تبنّت الحالات', () => {
+        expect(adopted.length).toBeGreaterThanOrEqual(18);
+    });
+
+    it('وأغلبها تُعيد الجلب عند عودة الاتصال', () => {
+        const n = adopted.filter(f => /UIState\.onReconnect/.test(read(f))).length;
+        expect(n).toBeGreaterThanOrEqual(14);
+    });
+});
+
+describe('كل نداءٍ يصيب هدفه', () => {
+    it('🔴 كل مُحدِّدٍ يمرَّر للوحدة له عنصرٌ بهذا المعرّف في الصفحة', () => {
+        // مُحدِّدٌ بمعرّفٍ غير موجود لا يرمي: الوحدة تخرج صامتة، فيبقى
+        // التحميل بلا أثرٍ ولا أحد يعرف أن السطر لا يفعل شيئاً.
+        const bad = [];
+        for (const f of adopted) {
+            const s = read(f);
+            for (const m of s.matchAll(/UIState\.(?:skeleton|empty|error)\('#([\w-]+)'/g)) {
+                if (!new RegExp('id="' + m[1] + '"').test(s)) bad.push(f + ' -> #' + m[1]);
+            }
+        }
+        expect(bad).toEqual([]);
+    });
+
+    it('وكل نداءٍ محروسٌ بوجود الوحدة', () => {
+        const bad = [];
+        for (const f of adopted) {
+            const s = read(f);
+            for (const m of s.matchAll(/UIState\.(skeleton|error|empty|onReconnect)/g)) {
+                const line = s.slice(s.lastIndexOf('\n', m.index) + 1, s.indexOf('\n', m.index));
+                if (!/window\.UIState/.test(line) && !/^\s*UIState\./.test(line)) {
+                    bad.push(f + ': ' + line.trim());
+                }
+            }
+        }
+        expect(bad).toEqual([]);
+    });
+
+    it('🔴 والجداول تأخذ صفوفاً لا بطاقات', () => {
+        // بطاقةٌ (div) داخل tbody يرفعها المتصفّح خارج الجدول عند التحليل،
+        // فيظهر الهيكل فوق الجدول لا في مكانه — عطلٌ يبدو عشوائياً.
+        const bad = [];
+        for (const f of adopted) {
+            const s = read(f);
+            for (const m of s.matchAll(/UIState\.skeleton\('#([\w-]+)',\s*\{([^}]*)\}/g)) {
+                const isTbody = new RegExp('<tbody[^>]*id="' + m[1] + '"').test(s);
+                const asRow = /variant:\s*'row'/.test(m[2]);
+                if (isTbody !== asRow) {
+                    bad.push(f + ' -> #' + m[1] + (isTbody ? ' (tbody بلا row)' : ' (row بلا tbody)'));
+                }
+            }
+        }
+        expect(bad).toEqual([]);
+    });
+});
+
+describe('الدوّامات القديمة أُزيلت حيث استُبدلت', () => {
+    it('لا دوّامة متبقّية في صفحات التاجر المتبنّية', () => {
+        for (const f of ['merchant-finance.html', 'merchant-inventory.html', 'merchant-reports.html']) {
+            expect(read(f), f).not.toContain('spinner-border text-warning"></div></div>');
+        }
+    });
+
+    it('ولا في سجلّ النشاط ولا الفريق ولا الشكاوى', () => {
+        expect(read('admin-activity.html')).not.toContain('fa-spinner fa-spin"></i> جاري التحميل');
+        expect(read('admin-team.html')).not.toContain('fa-spinner fa-spin"></i> جارٍ التحميل');
+        expect(read('admin-complaints.html')).not.toContain('padding:30px;color:#94a3b8;"><i class="fas fa-spinner');
+    });
+
+    it('والبديل يترك الحاوية فارغة لا برسالةٍ قديمة حين تغيب الوحدة', () => {
+        // `else el.innerHTML = ''` — الصفحة القديمة المخزّنة في الكاش قد لا
+        // تحمّل الوحدة بعد، فيجب ألا تبقى الدوّامة نصّاً ميّتاً
+        const withFallback = adopted.filter(f => /else [\w$().'#\[\]]+\.innerHTML = '';/.test(read(f)));
+        expect(withFallback.length).toBeGreaterThanOrEqual(4);
+    });
+});
+
+describe('الهيكل لا يمحو قائمةً معروضة', () => {
+    it('التحديث التلقائي في طلبات التاجر لا يرسم هيكلاً فوقها', () => {
+        // رسمه في كل تحديثٍ دوري يجعل الشاشة ترتجّ كل بضع ثوانٍ
+        const s = read('merchant-orders.html');
+        expect(s).toContain("if (!isAutoRefresh && window.UIState) UIState.skeleton('#ordersContainer'");
+    });
+});

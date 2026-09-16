@@ -90,7 +90,7 @@ body.dark-mode .info-item { background: #111827 !important; border-color: #37415
 body.dark-mode .action-bar { background: #111827 !important; border-color: #374151 !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <link rel="stylesheet" href="css/admin-panel.css?v=68b59909">
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <link rel="stylesheet" href="css/admin-mobile.css?v=9f8d7083">
@@ -206,7 +206,8 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
         if (priority) url += `&priority=${priority}`;
         if (category) url += `&category=${category}`;
         const tbody = document.getElementById('complaintsBody');
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+        if (window.UIState) UIState.skeleton(tbody, { variant: 'row', cols: 8, count: 5 });
+        else tbody.innerHTML = '';
         try {
             const res  = await fetch(url, {headers:hdr()});
             const data = await res.json();

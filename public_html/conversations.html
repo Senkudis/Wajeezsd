@@ -95,7 +95,7 @@
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
 </head>
 
 <body>
@@ -131,10 +131,7 @@
 
         <!-- List -->
         <div id="conversationsContent" class="conv-list">
-            <div class="text-center py-5 text-muted">
-                <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
-                <p class="small">جاري تحميل المحادثات...</p>
-            </div>
+
         </div>
     </div>
 
@@ -253,7 +250,11 @@
         }
 
         // ===== Load conversations from API =====
+        // عودة الاتصال تُعيد الجلب بلا ضغطة
+        if (window.UIState) UIState.onReconnect(function () { loadConversations(); });
+
         async function loadConversations() {
+            if (window.UIState) UIState.skeleton('#conversationsContent', { count: 4 });
             try {
                 const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
                 const headers = (window.Auth && window.Auth.getAuthHeader)

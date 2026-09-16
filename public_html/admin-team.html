@@ -198,7 +198,7 @@
         <a class="btn-ghost" id="viewSiteBtn" href="#" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> عرض الصفحة</a>
     </div>
 
-    <div id="content" class="loading"><i class="fas fa-spinner fa-spin"></i> جارٍ التحميل…</div>
+    <div id="content" class="loading"></div>
 </div>
 
 <!-- نافذة تعديل البطاقة -->
@@ -292,6 +292,9 @@
     }
 
     // ── التحميل ────────────────────────────────────────────
+    // عودة الاتصال تُعيد الجلب بلا ضغطة
+    if (window.UIState) UIState.onReconnect(function () { load(); });
+
     async function load() {
         const search = $('searchInput').value.trim();
         const role = $('roleFilter').value;
@@ -300,7 +303,8 @@
         if (role) params.set('role', role);
 
         $('content').className = 'loading';
-        $('content').innerHTML = '<i class="fas fa-spinner fa-spin"></i> جارٍ التحميل…';
+        if (window.UIState) UIState.skeleton($('content'), { count: 3 });
+        else $('content').innerHTML = '';
 
         try {
             const res = await fetch(BASE + '/api/team/admin/members?' + params.toString(), { headers: AUTH });

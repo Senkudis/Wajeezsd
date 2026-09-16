@@ -57,7 +57,7 @@ body.dark-mode .modal { background: #1f2937 !important; color: #f9fafb !importan
 body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <link rel="stylesheet" href="css/admin-panel.css?v=68b59909">
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <link rel="stylesheet" href="css/admin-mobile.css?v=9f8d7083">
@@ -132,7 +132,11 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
             return new Date(iso).toLocaleDateString('ar-SD', { day: '2-digit', month: '2-digit' });
         };
 
+        // عودة الاتصال تُعيد الجلب بلا ضغطة
+        if (window.UIState) UIState.onReconnect(function () { loadList(); });
+
         async function loadList() {
+            if (window.UIState) UIState.skeleton('#list', { count: 4 });
             const box = document.getElementById('list');
             try {
                 const res = await fetch(`${BASE}/api/admin/chats`, { headers: hdr() });

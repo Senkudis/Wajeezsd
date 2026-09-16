@@ -89,7 +89,7 @@ body.dark-mode .tl-desc { color: #d1d5db !important; }
 body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !important; border-color: #374151 !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <link rel="stylesheet" href="css/admin-panel.css?v=68b59909">
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <link rel="stylesheet" href="css/admin-mobile.css?v=9f8d7083">
@@ -179,6 +179,9 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
         let currentPage = 1;
         let totalPages = 1;
 
+        // عودة الاتصال تُعيد الجلب بلا ضغطة
+        if (window.UIState) UIState.onReconnect(function () { loadLogs(); });
+
         async function loadLogs(page = 1) {
             if (page < 1 || (page > totalPages && totalPages > 0)) return;
             currentPage = page;
@@ -188,7 +191,8 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
             const to = document.getElementById('fTo').value;
 
             const tl = document.getElementById('logTimeline');
-            tl.innerHTML = '<div class="text-center text-muted" style="padding: 40px;"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+            if (window.UIState) UIState.skeleton(tl, { count: 4, avatar: false });
+            else tl.innerHTML = '';
 
             try {
                 let url = `${BASE}/api/admin/activity-log?page=${page}&limit=30`;

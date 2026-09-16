@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=8dfb5096"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
@@ -66,9 +66,7 @@
     <button class="tab-btn" data-tab="movements" onclick="switchTab('movements', this)">سجل الحركات</button>
 </div>
 
-<div class="container-fluid px-3" id="content">
-    <div class="text-center py-5"><div class="spinner-border text-warning"></div></div>
-</div>
+<div class="container-fluid px-3" id="content"></div>
 
 <!-- Restock modal -->
 <div class="modal fade" id="restockModal" tabindex="-1" data-bs-backdrop="static">
@@ -190,9 +188,13 @@
         if (tab === 'low') loadLowStock(); else loadMovements(1);
     }
 
+    // عودة الاتصال تُعيد الجلب بلا ضغطة
+    if (window.UIState) UIState.onReconnect(function () { loadLowStock(); });
+
     async function loadLowStock() {
         const el = document.getElementById('content');
-        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        if (window.UIState) UIState.skeleton(el, { count: 4, avatar: false });
+        else el.innerHTML = '';
         try {
             const d = await apiGet('/inventory/low-stock');
             lowStockCache = d.products;
@@ -241,7 +243,8 @@
 
     async function loadMovements(page) {
         const el = document.getElementById('content');
-        el.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning"></div></div>';
+        if (window.UIState) UIState.skeleton(el, { count: 4, avatar: false });
+        else el.innerHTML = '';
         try {
             const d = await apiGet(`/inventory/movements?page=${page}&limit=30`);
             document.getElementById('headerSub').textContent = `${fmt(d.total)} حركة مسجلة`;
