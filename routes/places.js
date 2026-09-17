@@ -1087,11 +1087,21 @@ router.post('/:id/rate', protect, async (req, res) => {
         const place = await Place.findById(placeId);
         if (!place) return res.status(404).json({ message: 'المتجر غير موجود' });
 
-        // منع التقييم المزدوج لنفس الطلب
-        if (orderId) {
-            const exists = await Rating.findOne({ client: req.user._id, order: orderId, targetType: 'place' });
-            if (exists) return res.status(400).json({ message: 'لقد قيّمت هذا المتجر مسبقاً لهذا الطلب' });
+        // 🧾 لا تقييم بلا شراء. كان orderId اختيارياً ولا يُفحص إطلاقاً — لا
+        //    مِلكيةً ولا ارتباطاً بالمتجر ولا تسليماً — وفحصُ التكرار مقيّدٌ
+        //    بالمُقيِّم نفسه، فيكفي معرّفٌ عشوائيّ جديد في كل مرّة ليمرّ.
+        //    النتيجة: أي حساب يرفع متجراً أو يخفضه بلا حدّ بلا أن يطلب منه.
+        const { verifyShopPurchase } = require('../utils/verifyPurchase');
+        const purchase = await verifyShopPurchase({
+            clientId: req.user._id, placeId, orderId
+        });
+        if (!purchase.ok) {
+            return res.status(purchase.status).json({ message: purchase.message });
         }
+
+        // منع التقييم المزدوج لنفس الطلب
+        const exists = await Rating.findOne({ client: req.user._id, order: orderId, targetType: 'place' });
+        if (exists) return res.status(400).json({ message: 'لقد قيّمت هذا المتجر مسبقاً لهذا الطلب' });
 
         await Rating.create({
             client:     req.user._id,
@@ -1135,6 +1145,19 @@ router.post('/:placeId/products/:productId/rate', protect, async (req, res) => {
 
         const product = await Product.findById(productId);
         if (!product) return res.status(404).json({ message: 'المنتج غير موجود' });
+
+        // 🧾 نفس الثغرة هنا، وبلا فحص تكرارٍ أصلاً: المنتج يجب أن يكون ضمن
+        //    طلبٍ مُسلَّم لهذا المُقيِّم من هذا المتجر.
+        const { verifyShopPurchase } = require('../utils/verifyPurchase');
+        const purchase = await verifyShopPurchase({
+            clientId: req.user._id, placeId, orderId, productId
+        });
+        if (!purchase.ok) {
+            return res.status(purchase.status).json({ message: purchase.message });
+        }
+
+        const dup = await Rating.findOne({ client: req.user._id, order: orderId, targetType: 'product', targetId: productId });
+        if (dup) return res.status(400).json({ message: 'لقد قيّمت هذا المنتج مسبقاً لهذه الطلبية' });
 
         await Rating.create({
             client:     req.user._id,

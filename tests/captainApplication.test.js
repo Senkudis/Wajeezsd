@@ -75,7 +75,15 @@ describe('الأدمن يرى الطلبات ويتصرّف فيها', () => {
 
     it('🔑 الرفض يُبقي العميل عاملاً — لا يُعطّل حسابه', () => {
         const rj = users.slice(users.indexOf("'/reject-captain/:id'"));
-        expect(rj).toMatch(/if \(isUpgrade\)[\s\S]{0,400}captain\.isActive = true/);
+        expect(rj).toMatch(/if \(isUpgrade \|\| isLegacyUpgrade\)[\s\S]{0,500}captain\.isActive = true/);
+    });
+
+    it('🕳️ وطلبٌ قُدّم قبل الإصلاح يُكشف بفجوة الزمن — وإلا عُطّل حسابه من جديد', () => {
+        // المنطق القديم قلب دوره إلى captain فوراً، فلا يعرف isUpgrade أنه ترقية
+        const rj = users.slice(users.indexOf("'/reject-captain/:id'"));
+        expect(rj).toContain('isLegacyUpgrade');
+        expect(rj).toMatch(/new Date\(_submitted\) - new Date\(captain\.createdAt\)/);
+        expect(rj).toMatch(/if \(isLegacyUpgrade\) \{[\s\S]{0,200}role = 'client'/);
     });
 
     it('ورفضُ حسابٍ أُنشئ ككابتن يبقى كما كان', () => {

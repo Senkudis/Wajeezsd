@@ -463,16 +463,33 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
         }
         if (!adminCanActOnUser(req, captain)) return res.status(403).json({ message: 'غير مصرح — هذا الكابتن خارج مدينتك' });
 
+        // 🕳️ نافذةٌ متبقّية من المنطق القديم: طلبات قُدّمت قبل الإصلاح قلبت
+        //    دور صاحبها إلى 'captain' فوراً، فلا يعرف isUpgrade أنها ترقية.
+        //    رفضُها اليوم كان سيُعطّل حساب عميلٍ من جديد.
+        //
+        //    التمييز بلا استعلامٍ إضافي: من سجّل ككابتن ابتداءً يُنشأ حسابه
+        //    ويُقدّم طلبه في الطلب نفسه (createdAt ≈ submittedAt)، والمُرقَّى
+        //    بينهما فجوة — استعمل التطبيق ثم تقدّم.
+        //    (scripts/repair-captain-applications.js يُصلح المتراكم منها.)
+        const _submitted = captain.captainApplication?.submittedAt;
+        const isLegacyUpgrade = !isUpgrade
+            && !!_submitted
+            && (new Date(_submitted) - new Date(captain.createdAt)) > 10 * 60 * 1000;
+
         captain.rejectionReason = reason || 'لم يتم تحديد السبب';
         if (captain.captainApplication) {
             captain.captainApplication.status = 'rejected';
             captain.captainApplication.rejectionReason = captain.rejectionReason;
         }
 
-        if (isUpgrade) {
+        if (isUpgrade || isLegacyUpgrade) {
             // 🔑 عميلٌ رُفض طلبُ انتسابه يبقى **عميلاً عاملاً**.
             //    تعطيل حسابه هنا كان يعني أن من يطلب وظيفة ويُرفض يخسر
             //    التطبيق نفسه — ولا علاقة لأهليته للعمل بأهليته للطلب.
+            if (isLegacyUpgrade) {
+                captain.role = 'client';
+                captain.approvalStatus = 'approved';   // الافتراضي للعميل
+            }
             captain.isActive = true;
         } else {
             captain.approvalStatus = 'rejected';
