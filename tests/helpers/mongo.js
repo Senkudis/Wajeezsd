@@ -21,14 +21,35 @@ const mongoose = require('mongoose');
 let memoryServer = null;
 let state = null;
 
+/**
+ * يستبدل اسم القاعدة في الـURI باسمٍ فريد لهذا الملف.
+ * يُبقي سلسلة الاستعلام كما هي (replicaSet وغيرها تعيش فيها).
+ */
+function withUniqueDb(uri) {
+    const tag = `${process.env.VITEST_WORKER_ID || '0'}_${Date.now().toString(36)}`
+        + `_${Math.random().toString(36).slice(2, 8)}`;
+    const q = uri.indexOf('?');
+    const query = q === -1 ? '' : uri.slice(q);
+    const base = q === -1 ? uri : uri.slice(0, q);
+    // بعد المضيف: إما اسم قاعدة فيُستبدل، أو لا شيء فيُضاف
+    const afterScheme = base.indexOf('://') + 3;
+    const slash = base.indexOf('/', afterScheme);
+    const host = slash === -1 ? base : base.slice(0, slash);
+    return `${host}/wajeez_ci_${tag}${query}`;
+}
+
 /** يفتح اتصالاً ويُعيد سبب التعذّر إن تعذّر — لا يرمي. */
 async function startMongo() {
     if (state) return state;
 
     const uri = process.env.TEST_MONGO_URI;
     if (uri && uri.trim()) {
-        await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
-        state = { ok: true, source: 'TEST_MONGO_URI' };
+        // 🔴 قاعدةٌ خاصّة بكل ملف اختبار. vitest يشغّل الملفات متوازية،
+        //    وكلها تشير إلى TEST_MONGO_URI نفسه — فـ clearMongo في ملفٍ كان
+        //    يمسح بيانات ملفٍ آخر في منتصف اختباره، فيسقط بـ 401 «المستخدم
+        //    غير موجود» بلا أي خللٍ في الكود المفحوص. العزل هنا لا هناك.
+        await mongoose.connect(withUniqueDb(uri), { serverSelectionTimeoutMS: 15000 });
+        state = { ok: true, source: 'TEST_MONGO_URI', isolated: true };
         return state;
     }
 
@@ -48,6 +69,10 @@ async function startMongo() {
 }
 
 async function stopMongo() {
+    // القاعدة المؤقّتة تُسقَط، وإلا تراكمت قاعدةٌ لكل ملفٍ في كل بناء
+    if (state && state.isolated && mongoose.connection.readyState === 1) {
+        await mongoose.connection.dropDatabase().catch(() => {});
+    }
     if (mongoose.connection.readyState !== 0) await mongoose.disconnect();
     if (memoryServer) { await memoryServer.stop(); memoryServer = null; }
     state = null;
