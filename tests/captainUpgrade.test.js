@@ -67,9 +67,15 @@ describe('الحالات التي تُرفض', () => {
 });
 
 describe('ما تفعله الترقية فعلاً', () => {
-    it('نفس الحساب: الدور والحالة والوسيلة وملفّ الانتساب', () => {
-        expect(upBlock).toContain("user.role = 'captain'");
-        expect(upBlock).toContain("user.approvalStatus = 'pending'");
+    it('🔑 نفس الحساب، والدور **لا يتغيّر** — الطلب حالةٌ لا ترقية', () => {
+        // كان هذا الاختبار يحرس `user.role = 'captain'` بوصفه السلوك الصحيح،
+        // وهو نفسه العطل: العميل يفقد حسابه لحظة الضغط على «إرسال»، وإن رُفض
+        // بقي كابتناً مرفوضاً — والكابتن المرفوض ممنوعٌ من الدخول أصلاً، فيصير
+        // محظوراً من التطبيق كلّه عقوبةً على أنه تقدّم لوظيفة.
+        expect(upBlock).not.toMatch(/user\.role\s*=\s*'captain'/);
+        expect(upBlock).not.toMatch(/user\.approvalStatus\s*=\s*'pending'/);
+
+        expect(upBlock).toContain("status: 'pending'");
         expect(upBlock).toContain('user.vehicleType = req.body.vehicleType');
         expect(upBlock).toContain('user.captainApplication = {');
         expect(upBlock).toContain('submittedAt');
@@ -123,9 +129,12 @@ describe('الواجهة: نفس النموذج يرقّي حين يكون دا�
         expect(page).toContain('const account = upgradeMode ? {} :');
     });
 
-    it('تحدّث التوكن بعد الترقية — وإلا بقي دوره client في التطبيق', () => {
-        expect(page).toContain('if (upgradeMode && token)');
-        expect(page).toContain("localStorage.setItem('token', token)");
+    it('🔑 لا تكتب دور captain في التخزين — الدور يبقى client حتى القبول', () => {
+        // كانت تكتب data.user (وفيه role: 'captain') فوق المستخدم المخزَّن،
+        // فيخرج من الصفحة وقد فقد واجهة العميل قبل أن ينظر أحدٌ في طلبه.
+        expect(page).not.toContain('Object.assign(u, data.user');
+        expect(page).toContain('u.applicationStatus');
+        expect(page).toContain("localStorage.setItem('token', data.token)");
     });
 
     it('غير الداخل يجد زرّ دخولٍ يعود به إلى هنا', () => {

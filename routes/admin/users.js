@@ -344,7 +344,18 @@ router.post('/create-captain', protect, requirePermission('manage_captains'), as
 router.get('/pending-captains', protect, requirePermission('view_captains'), async (req, res) => {
     try {
         // 🌍 sub_admin يرى طلبات مدينته فقط
-        const captains = await User.find({ role: 'captain', approvalStatus: 'pending', ...getAdminCityFilter(req) })
+        // مصدران للطلبات، ولا بدّ منهما معاً:
+        //   ١) تسجيلٌ جديد ككابتن — حسابٌ أُنشئ ليكون كابتناً (role='captain').
+        //   ٢) ترقية عميلٍ قائم — دورُه يبقى 'client' حتى القبول، فلا يظهر في
+        //      الفلتر الأول إطلاقاً. كان هؤلاء يظهرون لأن الدور كان يُقلب
+        //      فوراً؛ وبعد إيقاف ذلك القلب صاروا يحتاجون شرطهم الخاص.
+        const captains = await User.find({
+            ...getAdminCityFilter(req),
+            $or: [
+                { role: 'captain', approvalStatus: 'pending' },
+                { 'captainApplication.status': 'pending' }
+            ]
+        })
             .select('-password')
             .sort({ createdAt: -1 });
         res.json(captains);
@@ -359,10 +370,18 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
     try {
         const captain = await User.findById(req.params.id);
         if (!captain) return res.status(404).json({ message: 'الكابتن غير موجود' });
-        if (captain.role !== 'captain') return res.status(400).json({ message: 'هذا المستخدم ليس كابتن' });
+        const isUpgrade = captain.role !== 'captain'
+            && captain.captainApplication?.status === 'pending';
+        if (captain.role !== 'captain' && !isUpgrade) {
+            return res.status(400).json({ message: 'هذا المستخدم ليس كابتن ولا لديه طلب انتساب' });
+        }
         if (!adminCanActOnUser(req, captain)) return res.status(403).json({ message: 'غير مصرح — هذا الكابتن خارج مدينتك' });
 
+        // 🔑 هنا وحدها تقع الترقية — لا عند تقديم الطلب.
+        if (isUpgrade) captain.role = 'captain';
+
         captain.approvalStatus = 'approved';
+        if (captain.captainApplication?.status) captain.captainApplication.status = 'approved';
         captain.isVerified = true;
         captain.isActive = true;
         await captain.save();
@@ -437,12 +456,28 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
         const { reason } = req.body;
         const captain = await User.findById(req.params.id);
         if (!captain) return res.status(404).json({ message: 'الكابتن غير موجود' });
-        if (captain.role !== 'captain') return res.status(400).json({ message: 'هذا المستخدم ليس كابتن' });
+        const isUpgrade = captain.role !== 'captain'
+            && captain.captainApplication?.status === 'pending';
+        if (captain.role !== 'captain' && !isUpgrade) {
+            return res.status(400).json({ message: 'هذا المستخدم ليس كابتن ولا لديه طلب انتساب' });
+        }
         if (!adminCanActOnUser(req, captain)) return res.status(403).json({ message: 'غير مصرح — هذا الكابتن خارج مدينتك' });
 
-        captain.approvalStatus = 'rejected';
         captain.rejectionReason = reason || 'لم يتم تحديد السبب';
-        captain.isActive = false;
+        if (captain.captainApplication) {
+            captain.captainApplication.status = 'rejected';
+            captain.captainApplication.rejectionReason = captain.rejectionReason;
+        }
+
+        if (isUpgrade) {
+            // 🔑 عميلٌ رُفض طلبُ انتسابه يبقى **عميلاً عاملاً**.
+            //    تعطيل حسابه هنا كان يعني أن من يطلب وظيفة ويُرفض يخسر
+            //    التطبيق نفسه — ولا علاقة لأهليته للعمل بأهليته للطلب.
+            captain.isActive = true;
+        } else {
+            captain.approvalStatus = 'rejected';
+            captain.isActive = false;
+        }
         await captain.save();
 
         await logAdminAction(req, 'reject_captain',

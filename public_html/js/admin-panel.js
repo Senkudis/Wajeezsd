@@ -1303,7 +1303,10 @@ function _captainDossier(c) {
                         <span class="cap-doc-name">${esc(label)} ✕</span>
                     </span>`;
         }
-        return `<a class="cap-doc" href="${base + esc(url)}" target="_blank" rel="noopener"
+        // ⚠️ لا target="_blank": داخل التطبيق يخرج إلى متصفّح النظام، ومراجعةُ
+        //    الوثائق تعني تقليب عدّة صور — أي عدّة خروجات. data-lightbox يعرضها
+        //    في مكانها (js/img-lightbox.js).
+        return `<a class="cap-doc" data-lightbox href="${base + esc(url)}" rel="noopener"
                    title="${esc(label)} — اضغط للتكبير">
                     <img src="${base + esc(url)}" alt="${esc(label)}" loading="lazy">
                     <span class="cap-doc-name">${esc(label)}</span>

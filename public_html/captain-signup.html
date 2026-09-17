@@ -987,14 +987,19 @@
                 }
 
                 // Step 2: Upload documents (if any)
-                // في الترقية يُعاد توكن جديد يحمل دور captain — نحدّثه في
-                // التخزين وإلا بقي التطبيق يعامله كعميل بعد الخروج من هنا.
-                const token = data.token;
-                if (upgradeMode && token) {
+                // ⚠️ في الترقية **لا يتغيّر الدور**: يبقى عميلاً حتى يقبله
+                //    الأدمن. كان الكود هنا يكتب دور 'captain' في التخزين فور
+                //    الإرسال، فيخرج المستخدم من هذه الصفحة وقد فقد واجهة
+                //    العميل — بينما لم يوافق أحد بعد.
+                //
+                //    نحدّث التوكن (قد يكون جُدّد) ونحفظ حالة الطلب وحدها.
+                const token = data.token || localStorage.getItem('token');
+                if (upgradeMode) {
                     try {
-                        localStorage.setItem('token', token);
+                        if (data.token) localStorage.setItem('token', data.token);
                         const u = JSON.parse(localStorage.getItem('user') || '{}');
-                        localStorage.setItem('user', JSON.stringify(Object.assign(u, data.user || {})));
+                        u.applicationStatus = (data.user && data.user.applicationStatus) || 'pending';
+                        localStorage.setItem('user', JSON.stringify(u));
                     } catch (_) { /* التخزين قد يكون محجوباً — الطلب وصل فعلاً */ }
                 }
                 const driverLicense = pickedFile('driverLicense');

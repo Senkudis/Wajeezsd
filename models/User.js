@@ -101,7 +101,23 @@ const UserSchema = new mongoose.Schema(
             // الإقرار الخطي — يكتبه الكابتن بيده. دليل الموافقة على الشروط،
             // ويُحفظ كما كُتب بلا تحرير.
             pledgeText:           { type: String, default: '' },
-            submittedAt:          { type: Date,   default: null }
+            submittedAt:          { type: Date,   default: null },
+
+            // 🔑 حالة **الطلب**، منفصلةً عن دور الحساب.
+            //
+            //    كان الدور نفسه يحمل الحالة: عميلٌ يتقدّم ⇒ يصير role='captain'
+            //    فوراً. فيفقد حسابه كعميل قبل أن يراه أحد، ثم إن رُفض بقي
+            //    كابتناً مرفوضاً — وتسجيل الدخول يُمنع للكابتن المرفوض، فينتهي
+            //    به الأمر **محظوراً من التطبيق كلّه** لأنه تقدّم لوظيفة.
+            //
+            //    الآن: الدور لا يتغيّر حتى القبول. هذا الحقل وحده يتحرّك.
+            //    'none' = لم يتقدّم قط.
+            status: {
+                type: String,
+                enum: ['none', 'pending', 'approved', 'rejected'],
+                default: 'none'
+            },
+            rejectionReason: { type: String, default: '' }
         },
 
         // 👇 الإضافات الجديدة للتفعيل والأمان 👇

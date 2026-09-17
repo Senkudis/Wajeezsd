@@ -196,7 +196,16 @@ router.get('/dashboard-limited', protect, adminOnly, async (req, res) => {
             Order.countDocuments({ ...cityFilter }),
             Order.countDocuments({ status: { $in: ['pending', 'accepted', 'picked_up'] }, ...cityFilter }),
             User.countDocuments({ role: 'captain', isActive: true, ...cityFilter }),
-            User.countDocuments({ role: 'captain', approvalStatus: 'pending', ...cityFilter })
+            // يشمل ترقيات العملاء: دورهم يبقى 'client' حتى القبول، فلا
+            // يعدّهم الفلتر الأول — وكان العدّاد يُظهر صفراً وقائمةُ الطلبات
+            // غير فارغة.
+            User.countDocuments({
+                ...cityFilter,
+                $or: [
+                    { role: 'captain', approvalStatus: 'pending' },
+                    { 'captainApplication.status': 'pending' }
+                ]
+            })
         ]);
         res.json({ totalOrders, activeOrders, totalCaptains, pendingCaptains });
     } catch (error) {

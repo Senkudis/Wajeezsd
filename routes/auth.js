@@ -123,6 +123,16 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
             return res.status(403).json({ message: 'حسابك مسجّل بدور آخر. تواصل مع الدعم.' });
         }
 
+        // طلبٌ قيد المراجعة يمنع طلباً ثانياً. أمّا المرفوض فيُعاد التقديم:
+        // أكثر أسباب الرفض قابلٌ للإصلاح (صورة غير واضحة، بيانات ناقصة)،
+        // وإغلاق الباب في وجهه يخسر متقدّماً جاهزاً.
+        if (user.captainApplication && user.captainApplication.status === 'pending') {
+            return res.status(409).json({
+                message: 'طلبك قيد المراجعة بالفعل. سنبلغك عند اتخاذ القرار.',
+                applicationStatus: 'pending'
+            });
+        }
+
         // الرقم الوطني فريد — نستثني حساب الطالب نفسه من الفحص
         const nationalId = String(req.body.nationalId || '').replace(/\s/g, '');
         const dupId = await User.findOne({
@@ -133,12 +143,21 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
             return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.' });
         }
 
-        // 🔄 الترقية: الدور والوسيلة وملفّ الانتساب. ولا تُمسّ كلمة المرور
-        //    ولا الاسم ولا الهاتف — بيانات حسابه كما هي، وتاريخه كعميل يبقى.
-        user.role = 'captain';
-        user.approvalStatus = 'pending';
+        // 🔑 الدور **لا يتغيّر هنا**. يبقى عميلاً حتى يقبله الأدمن.
+        //
+        //    كان يُقلب إلى 'captain' فوراً، فيقع أمران:
+        //    ١) يفقد حسابه كعميل لحظة الضغط على «إرسال» — لا طلبات، لا سلة،
+        //       لا شيء — بينما لم يوافق أحد بعد.
+        //    ٢) وإن رُفض بقي كابتناً مرفوضاً، وتسجيل الدخول ممنوع على الكابتن
+        //       المرفوض (انظر /login) — فيصير **محظوراً من التطبيق كلّه**
+        //       عقوبةً على أنه تقدّم لوظيفة.
+        //
+        //    الآن: ملفّ الانتساب يُحفظ، وحالته 'pending'، والحساب يعمل كعميل
+        //    طوال المراجعة. الترقية تقع في approve-captain وحده.
         user.vehicleType = req.body.vehicleType;
         user.captainApplication = {
+            status: 'pending',
+            rejectionReason: '',
             nationalId,
             address:              req.body.address,
             plateNumber:          req.body.plateNumber || '',
@@ -152,13 +171,17 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
         };
         await user.save();
 
-        // توكن جديد: القديم يحمل دور 'client' فيبقى التطبيق يعامله كعميل
-        const token = signUserToken(user);
-
+        // التوكن يبقى كما هو: الدور لم يتغيّر. ونُعيده ليستعمله رفع الوثائق
+        // في الخطوة التالية من نفس الصفحة (المسار يقبل أي حساب مُصادَق).
         res.status(201).json({
             message: 'تم استلام طلبك. سيُراجَع وتصلك رسالة عند القبول.',
-            token,
-            user: { _id: user._id, name: user.name, role: user.role, approvalStatus: user.approvalStatus }
+            token: signUserToken(user),
+            user: {
+                _id: user._id,
+                name: user.name,
+                role: user.role,
+                applicationStatus: user.captainApplication.status
+            }
         });
     } catch (error) {
         logger.error({ err: error.message }, 'captain application error');
@@ -556,7 +579,7 @@ router.get('/firebase-web-config', (req, res) => {
 router.get('/me', protect, async (req, res) => {
     try {
         const user = await User.findById(req.user._id)
-            .select('name phone email role approvalStatus city isActive');
+            .select('name phone email role approvalStatus city isActive captainApplication.status captainApplication.rejectionReason');
         if (!user) return res.status(404).json({ message: 'المستخدم غير موجود' });
         if (!user.isActive) return res.status(403).json({ message: 'الحساب معطّل' });
 
@@ -567,7 +590,11 @@ router.get('/me', protect, async (req, res) => {
             email: user.email,
             role: user.role,
             approvalStatus: user.approvalStatus,
-            city: user.city
+            city: user.city,
+            // حالة طلب الانتساب — مستقلّة عن الدور، فالعميل المتقدّم يبقى
+            // عميلاً. الواجهة تعرض بها «قيد المراجعة» أو سبب الرفض.
+            applicationStatus: user.captainApplication?.status || 'none',
+            applicationRejectionReason: user.captainApplication?.rejectionReason || ''
         });
     } catch (err) {
         logger.error('GET /me error:', err);

@@ -421,8 +421,8 @@ function renderOrder(o) {
         <div class="od-card" style="margin-bottom:20px;">
             <div class="od-card-title"><i class="fas fa-image"></i> الصور المرفقة</div>
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                ${o.parcelImage ? `<img src="${esc(getFullImageUrl(o.parcelImage))}" class="od-img-preview" onclick="window.open(this.src)" alt="صورة الطرد" onerror="this.style.display='none'">` : ''}
-                ${o.receiptImage ? `<img src="${esc(getFullImageUrl(o.receiptImage))}" class="od-img-preview" onclick="window.open(this.src)" alt="إيصال الدفع" onerror="this.style.display='none'">` : ''}
+                ${o.parcelImage ? `<img src="${esc(getFullImageUrl(o.parcelImage))}" class="od-img-preview" data-lightbox alt="صورة الطرد" onerror="this.style.display='none'">` : ''}
+                ${o.receiptImage ? `<img src="${esc(getFullImageUrl(o.receiptImage))}" class="od-img-preview" data-lightbox alt="إيصال الدفع" onerror="this.style.display='none'">` : ''}
             </div>
         </div>` : ''}
 
@@ -680,7 +680,7 @@ async function loadChat(id) {
             // بدل عرض صورة مكسورة تبدو كخلل في اللوحة
             const media = m.imageUrl
                 ? `<div style="margin-top:6px;"><img src="${getFullImageUrl(m.imageUrl)}"
-                       onclick="window.open(this.src)" alt="صورة"
+                       data-lightbox alt="صورة"
                        style="max-width:170px;border-radius:10px;cursor:pointer;display:block;"
                        onerror="this.replaceWith(document.createTextNode('تعذّر تحميل الصورة'))"></div>`
                 : (m.imageExpiredAt
@@ -829,5 +829,6 @@ async function reassignCaptain(orderId) {
 }
 
 </script>
+<script src="js/img-lightbox.js?v=b97017cb"></script>
 </body>
 </html>

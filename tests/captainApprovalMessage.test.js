@@ -190,8 +190,14 @@ describe('رسالة الرفض', () => {
 
     it('المسار يبنيها ويعيدها مع الرقم', () => {
         const route = read('routes/admin/users.js');
-        const i = route.indexOf('reject-captain/:id');
-        const blk = route.slice(i, i + 3000);
+        // ⚠️ لا نافذة بطولٍ ثابت: كانت 3000 محرف، فكفى أن تُضاف تعليقاتٌ
+        //    للمسار حتى يخرج `whatsapp:` منها فيسقط الاختبار على تغييرٍ لم
+        //    يمسّ سلوكه. ونرسو على تعريف المسار لا على تعليقٍ يسبقه، ثم
+        //    نقتطع حتى المسار التالي.
+        const i = route.indexOf("router.put('/reject-captain/:id'");
+        const after = route.slice(i);
+        const end = after.indexOf('\nrouter.', 1);
+        const blk = end > 0 ? after.slice(0, end) : after;
         expect(blk).toContain('buildCaptainRejectionMessage');
         expect(blk).toContain('rejectionMessage');
         expect(blk).toContain('whatsapp:');

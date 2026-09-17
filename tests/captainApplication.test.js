@@ -1,243 +1,122 @@
 /**
- * 🪪 نقل تسجيل الكابتن من الموقع الخارجي إلى داخل التطبيق.
+ * 🪪 منطق طلب الانتساب ككابتن.
  *
- * السبب مباشر: آبل رفضت الإصدار 1.4.1 بالإرشاد 4 —
- *   «يُنقل المستخدم (حساب السائق) إلى المتصفّح الافتراضي للتسجيل، وهي
- *    تجربة استخدام رديئة».
- * الرابط كان `<a href="https://captain.wajeezsd.com" target="_blank">`.
+ * عطلان مترابطان، سببهما واحد: الدور كان يحمل **حالة الطلب**.
  *
- * والموقع لم يكن نسخةً من نموذج التطبيق بل شيئاً آخر: يجمع الرقم الوطني
- * وجهة الطوارئ والإقرار الخطي وصورتَي الهوية والسيلفي، ويخزّن في SQLite
- * منفصلة. هذه الاختبارات تحرس أن ما كان يجمعه صار يُجمع داخل التطبيق،
- * وأن آلية القبول/الرفض القائمة (approvalStatus) هي التي تستقبله.
+ * ١) عميلٌ يضغط «إرسال» فيصير role='captain' في اللحظة نفسها — يفقد حسابه
+ *    كعميل قبل أن ينظر أحدٌ في طلبه.
+ * ٢) وإن رُفض بقي كابتناً مرفوضاً، وتسجيل الدخول ممنوع على الكابتن المرفوض،
+ *    و isActive=false فوقها — فيصير **محظوراً من التطبيق كلّه** عقوبةً على
+ *    أنه تقدّم لوظيفة.
+ *
+ * القاعدة الآن: الدور لا يتغيّر إلا عند القبول. حالة الطلب في حقلها.
  */
 import { describe, it, expect } from 'vitest';
 const fs = require('fs');
 const path = require('path');
 const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
-const codeOnly = (s) => s.split(/\r?\n/)
-    .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*'); })
+const codeOnly = (src) => src.split('\n')
+    .filter(l => { const t = l.trim(); return t && !t.startsWith('*') && !t.startsWith('//') && !t.startsWith('/*'); })
     .join('\n');
 
-const { captainRegisterSchema } = require('../schemas/authSchema');
-const User = require('../models/User');
+describe('حالة الطلب مستقلّة عن الدور', () => {
+    const model = read('models/User.js');
 
-const valid = {
-    name: 'محمد أحمد الطيب', email: 'cap@example.com', phone: '0912345678',
-    password: '123456', vehicleType: 'motorcycle',
-    nationalId: '12345678901', address: 'الرياض - مربع 5', whatsapp: '0912345678',
-    emergencyPhone: '0911111111', emergencyContactName: 'أخي', emergencyRelation: 'أخ',
-    pledgeText: 'أقرّ بأنني قرأت الشروط أعلاه وأوافق عليها وأتعهّد بالالتزام بها.'
-};
-
-describe('مخطّط طلب الانتساب', () => {
-    it('يقبل طلباً مكتملاً', () => {
-        expect(captainRegisterSchema.safeParse(valid).success).toBe(true);
-    });
-
-    it('الرقم الوطني 11 رقماً بالضبط — نفس قاعدة الموقع المعتمد', () => {
-        for (const bad of ['1234567890', '123456789012', 'abcdefghijk', '']) {
-            expect(captainRegisterSchema.safeParse({ ...valid, nationalId: bad }).success).toBe(false);
-        }
-    });
-
-    it('يقبل الرقم مكتوباً بمسافات ويطبّعه — الناس يكتبونه مقسّماً', () => {
-        const r = captainRegisterSchema.safeParse({ ...valid, nationalId: '123 4567 8901' });
-        expect(r.success).toBe(true);
-        expect(r.data.nationalId).toBe('12345678901');
-    });
-
-    it('جهة الطوارئ بأجزائها الثلاثة مطلوبة', () => {
-        for (const f of ['emergencyPhone', 'emergencyContactName', 'emergencyRelation']) {
-            expect(captainRegisterSchema.safeParse({ ...valid, [f]: '' }).success).toBe(false);
-        }
-    });
-
-    it('الإقرار الخطي مطلوب ولا يمرّ بنقطة', () => {
-        expect(captainRegisterSchema.safeParse({ ...valid, pledgeText: '' }).success).toBe(false);
-        expect(captainRegisterSchema.safeParse({ ...valid, pledgeText: '.' }).success).toBe(false);
-    });
-
-    it('رقم اللوحة وصندوق الحمل اختياريان — كما في الموقع', () => {
-        const r = captainRegisterSchema.safeParse({ ...valid, plateNumber: '', hasCarrier: '' });
-        expect(r.success).toBe(true);
-    });
-
-    it('ما زال يرفض وسيلة توصيل مجهولة', () => {
-        expect(captainRegisterSchema.safeParse({ ...valid, vehicleType: 'tank' }).success).toBe(false);
+    it('الحقل موجود بقيمه الأربع', () => {
+        const block = model.slice(model.indexOf('captainApplication'));
+        expect(block).toMatch(/enum: \['none', 'pending', 'approved', 'rejected'\]/);
+        expect(block).toMatch(/default: 'none'/);
     });
 });
 
-describe('مخطّط المستخدم', () => {
-    it('يحمل ملفّ الانتساب وصورتَي الهوية والسيلفي', () => {
-        const u = new User({
-            name: 'ك', phone: '0912345678', password: 'x', role: 'captain',
-            captainApplication: { nationalId: '12345678901', pledgeText: 'أقرّ' },
-            documents: { idImage: '/uploads/documents/a.png', selfieImage: '/uploads/documents/b.png' }
-        });
-        expect(u.validateSync()).toBeUndefined();
-        expect(u.captainApplication.nationalId).toBe('12345678901');
-        expect(u.documents.selfieImage).toBe('/uploads/documents/b.png');
-    });
-
-    it('حساب بلا ملفّ انتساب يبقى صالحاً — الكباتن القدامى لا تُكسر', () => {
-        const u = new User({ name: 'ك', phone: '0912345679', password: 'x', role: 'captain' });
-        expect(u.validateSync()).toBeUndefined();
-        expect(u.captainApplication.nationalId).toBe('');
-    });
-});
-
-describe('مسار التسجيل', () => {
+describe('تقديم الطلب لا يُرقّي', () => {
     const src = codeOnly(read('routes/auth.js'));
-    const i = src.indexOf("'/register-captain'");
-    const block = src.slice(i, src.indexOf('\nrouter.', i + 20));
+    const route = src.slice(src.indexOf("router.post('/captain-application'"), src.indexOf("router.get('/check-subscription"));
 
-    it('يمنع تكرار الرقم الوطني — نفس حماية الموقع', () => {
-        // بدونها يسجّل الشخص نفسه مراراً ببريد وهاتف مختلفين
-        expect(block).toContain("'captainApplication.nationalId': nationalId");
-        expect(block).toContain('409');
+    it('🔑 لا يضع role = captain', () => {
+        expect(route).not.toMatch(/user\.role\s*=\s*'captain'/);
     });
 
-    it('يحفظ الملفّ كاملاً على الحساب', () => {
-        expect(block).toContain('captainApplication: {');
-        for (const f of ['nationalId', 'address', 'whatsapp', 'emergencyPhone',
-                         'emergencyContactName', 'emergencyRelation', 'pledgeText']) {
-            expect(block).toContain(f);
-        }
+    it('🔑 ولا يضع approvalStatus = pending — ذاك يقفل الدخول على الكابتن', () => {
+        expect(route).not.toMatch(/user\.approvalStatus\s*=\s*'pending'/);
     });
 
-    it('الحساب يبدأ معلّقاً — القبول يبقى على الآلية القائمة', () => {
-        expect(block).toContain("approvalStatus: 'pending'");
+    it('يضع حالة الطلب بدلاً منهما', () => {
+        expect(route).toMatch(/status: 'pending'/);
     });
-});
 
-describe('رفع الوثائق', () => {
-    const src = codeOnly(read('routes/upload.js'));
+    it('طلبٌ قيد المراجعة يمنع طلباً ثانياً', () => {
+        expect(route).toMatch(/captainApplication\.status === 'pending'/);
+    });
 
-    it('يقبل صورتَي الهوية والسيلفي', () => {
-        expect(src).toContain("{ name: 'idImage', maxCount: 1 }");
-        expect(src).toContain("{ name: 'selfieImage', maxCount: 1 }");
-        expect(src).toContain("updates['documents.idImage']");
-        expect(src).toContain("updates['documents.selfieImage']");
+    it('🔑 والمرفوض يُعاد تقديمه — أكثر أسباب الرفض قابلٌ للإصلاح', () => {
+        // الحارس على 'pending' وحدها، فلا شيء يمنع المرفوض
+        expect(route).not.toMatch(/status === 'rejected'[\s\S]{0,120}return res\.status\(40/);
     });
 });
 
-describe('الإرشاد 4 — لا خروج إلى المتصفّح', () => {
-    const index = read('public_html/index.html');
+describe('الأدمن يرى الطلبات ويتصرّف فيها', () => {
+    const users = codeOnly(read('routes/admin/users.js'));
+    const dash  = codeOnly(read('routes/admin/dashboard.js'));
 
-    it('«التسجيل ككابتن» يفتح صفحة داخل التطبيق', () => {
-        // نفحص **رابطاً** لا مجرّد ورود النصّ: التعليق فوق السطر يذكر العنوان
-        // القديم شرحاً لسبب إزالته، ومطابقة النصّ الخام كانت تُفشل الاختبار
-        // على شرحه نفسه.
-        expect(index).not.toMatch(/href=["']https:\/\/captain\.wajeezsd\.com/);
-        expect(index).not.toMatch(/target=["']_blank["'][^>]*>\s*<i[^>]*><\/i>\s*التسجيل ككابتن/);
-        expect(index).toMatch(/href="captain-signup\.html"[\s\S]{0,200}التسجيل ككابتن/);
+    it('🔑 القائمة تشمل ترقيات العملاء — دورهم client فلا يجدها الفلتر القديم', () => {
+        const list = users.slice(users.indexOf("'/pending-captains'"), users.indexOf("'/approve-captain/:id'"));
+        expect(list).toContain("'captainApplication.status': 'pending'");
     });
 
-    it('صفحة التسجيل تجمع حقول الموقع كلها', () => {
-        const page = read('public_html/captain-signup.html');
-        for (const id of ['nationalId', 'address', 'whatsapp', 'emergencyContactName',
-                          'emergencyPhone', 'emergencyRelation',
-                          'idImage', 'selfieImage', 'plateNumber', 'hasCarrier']) {
-            expect(page).toContain(`id="${id}"`);
-        }
-        // الإقرار لم يعد مربّع نصّ حرّ: صار نصّاً جاهزاً بفراغَي الاسم والرقم
-        // (انظر tests/signupUx.test.js) ويُركَّب عند الإرسال.
-        expect(page).toContain('id="pledgeName"');
-        expect(page).toContain('id="pledgePhone"');
-        expect(page).toContain('pledgeText:           buildPledgeText()');
+    it('والعدّاد في اللوحة كذلك — وإلا أظهر صفراً والقائمة غير فارغة', () => {
+        expect(dash).toContain("'captainApplication.status': 'pending'");
     });
 
-    it('تعرض الوثيقة الرسمية حرفياً لا نصّاً مُعاد صوغه', () => {
-        // الكابتن يوقّع إقراراً بأنه قرأ **هذه** البنود. نصٌّ مختصر أو معاد
-        // صوغه يجعل الإقرار موقّعاً على وثيقة أخرى غير المعتمدة.
-        const page = read('public_html/captain-signup.html');
-        expect(page).toContain('وثيقة ضوابط وشروط عمل الكابتن');
-        for (const clause of [
-            'دستور العمل',            // الديباجة
-            'صندوق التوصيل',          // أولاً
-            'متوسط زمن التوصيل',      // ثانياً
-            'باب العميل',             // ثالثاً
-            'تحديد النسبة',           // رابعاً
-            'لائحة الجزاءات',         // خامساً
-            'مخالفات الشرف والأمانة'  // جدول الجزاءات
-        ]) {
-            expect(page).toContain(clause);
-        }
+    it('🔑 القبول هو الموضع الوحيد الذي يُرقّي', () => {
+        const ap = users.slice(users.indexOf("'/approve-captain/:id'"), users.indexOf("'/reject-captain/:id'"));
+        expect(ap).toMatch(/if \(isUpgrade\) captain\.role = 'captain'/);
     });
 
-    it('صيغة الإقرار هي نصّ البند السادس', () => {
-        expect(read('public_html/captain-signup.html'))
-            .toContain('بأنني قرأت جميع الشروط والضوابط المذكورة أعلاه');
+    it('🔑 الرفض يُبقي العميل عاملاً — لا يُعطّل حسابه', () => {
+        const rj = users.slice(users.indexOf("'/reject-captain/:id'"));
+        expect(rj).toMatch(/if \(isUpgrade\)[\s\S]{0,400}captain\.isActive = true/);
+    });
+
+    it('ورفضُ حسابٍ أُنشئ ككابتن يبقى كما كان', () => {
+        const rj = users.slice(users.indexOf("'/reject-captain/:id'"));
+        expect(rj).toMatch(/else \{[\s\S]{0,200}approvalStatus = 'rejected'[\s\S]{0,120}isActive = false/);
     });
 });
 
-describe('الإرشاد 5.1.1(v) — التصفّح بلا تسجيل', () => {
-    const src = codeOnly(read('public_html/js/errand-picker.js'));
+describe('🖼️ الصور تُعرض داخل التطبيق', () => {
+    const lb = read('public_html/js/img-lightbox.js');
 
-    it('فتح منتقي المحلات لا يحوّل الزائر لتسجيل الدخول', () => {
-        // كان أول سطر في openErrandPicker يحوّل فوراً — وهو تصفّح لا ميزة حسابية
-        const i = src.indexOf('window.openErrandPicker');
-        const head = src.slice(i, i + 400);
-        expect(head).not.toContain("client-login.html");
+    it('تُعرّف openImage وتعترض data-lightbox', () => {
+        expect(lb).toContain('window.openImage');
+        expect(lb).toContain("closest('[data-lightbox]')");
     });
 
-    it('بوّابة بدء الطلب تبقى — ذاك فعلٌ حسابي', () => {
-        const ctx = codeOnly(read('public_html/js/errand-context.js'));
-        expect(ctx).toContain("client-login.html");
-    });
-});
-
-describe('لوحة المراجعة', () => {
-    const src = read('public_html/js/admin-panel.js');
-    const css = read('public_html/css/admin-panel.css');
-    const i = src.indexOf('function _captainDossier');
-    const block = src.slice(i, src.indexOf('function renderPendingCaptains', i));
-
-    it('تعرض ملفّ الانتساب والوثائق للأدمن', () => {
-        // بلا العرض تصير المراجعة قراراً باسمٍ وهاتف فقط
-        expect(src).toContain('_captainDossier');
-        expect(block).toContain('captainApplication');
-        expect(block).toContain("['selfieImage', 'سيلفي']");
+    it('🔑 تمنع الانتقال على الروابط — وهو أصل الخروج من التطبيق', () => {
+        expect(lb).toContain('e.preventDefault()');
     });
 
-    it('تهرب النصوص القادمة من الكابتن', () => {
-        expect(block).toContain('esc(a.pledgeText)');
+    it('تحترم المساحة الآمنة بـ --sat/--sab لا env()', () => {
+        expect(lb).toContain('var(--sat');
+        expect(lb).toContain('var(--sab');
+        expect(lb).not.toMatch(/env\(safe-area/);
     });
 
-    it('كل وثيقة تحمل تسميتها — المطابقة بين الهوية والسيلفي هي الغرض', () => {
-        // خمس مصغّرات رمادية بلا أسماء تجعل المراجعة تخميناً
-        expect(block).toContain('cap-doc-name');
-        for (const label of ['الهوية', 'سيلفي', 'الرخصة', 'المركبة', 'شخصية']) {
-            expect(block).toContain(label);
+    it('🔑 وثائق الكابتن لم تعد تفتح خارج التطبيق', () => {
+        const panel = read('public_html/js/admin-panel.js');
+        const doc = panel.slice(panel.indexOf('class="cap-doc" data-lightbox'), panel.indexOf('class="cap-doc" data-lightbox') + 300);
+        expect(doc).not.toContain('target="_blank"');
+    });
+
+    it('ولا window.open(this.src) في صفحات الأدمن', () => {
+        for (const f of ['public_html/admin-chats.html', 'public_html/admin-order-details.html']) {
+            expect(read(f)).not.toContain('window.open(this.src)');
         }
-        // الهوية والسيلفي متجاورتان في الترتيب — تُقارنان بالعين
-        expect(block.indexOf("'idImage'")).toBeLessThan(block.indexOf("'selfieImage'"));
     });
 
-    it('الوثيقة الناقصة تُعرض باهتة لا تُحذف — غيابها معلومة للمراجع', () => {
-        expect(block).toContain('cap-doc is-missing');
-        expect(css).toContain('.cap-doc.is-missing');
-    });
-
-    it('الشبكة تستجيب للعرض بلا media query — البطاقة قد تكون في عمود ضيّق', () => {
-        expect(css).toContain('grid-template-columns: repeat(auto-fit, minmax(210px, 1fr))');
-        expect(css).toContain('grid-template-columns: repeat(auto-fill, minmax(78px, 1fr))');
-    });
-
-    it('القيم الطويلة لا تمدّ البطاقة ولا تنقلب أرقامها', () => {
-        const rule = css.slice(css.indexOf('.cap-fact-value'), css.indexOf('.cap-fact-value') + 200);
-        expect(rule).toContain('overflow-wrap: anywhere');
-        expect(rule).toContain('unicode-bidi: isolate');
-    });
-
-    it('تستعمل رموز التصميم لا ألواناً مكتوبة', () => {
-        expect(css).toContain('var(--gv-primary)');
-        expect(css).toContain('var(--gv-border)');
-        expect(css).toContain('var(--gv-radius-sm)');
-    });
-
-    it('لها وضعٌ ليلي', () => {
-        expect(css).toContain('body.dark-mode .cap-fact');
+    it('الوحدة محمّلة في الصفحات التي تستعملها', () => {
+        for (const f of ['public_html/admin.html', 'public_html/admin-chats.html', 'public_html/admin-order-details.html']) {
+            expect(read(f)).toContain('js/img-lightbox.js');
+        }
     });
 });

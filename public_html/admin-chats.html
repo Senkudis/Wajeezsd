@@ -197,7 +197,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
                         { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                     // الصورة المحذوفة بعد 48 ساعة: نوضّح السبب بدل صورة مكسورة
                     const media = m.imageUrl
-                        ? `<img src="${imgUrl(m.imageUrl)}" alt="صورة" onclick="window.open(this.src)">`
+                        ? `<img src="${imgUrl(m.imageUrl)}" alt="صورة" data-lightbox>`
                         : (m.imageExpiredAt
                             ? `<div style="font-size:.72rem;color:#94a3b8;margin-top:5px;">
                                  <i class="fas fa-image"></i> حُذفت الصورة بعد ${data.imageTtlHours || 48} ساعة</div>`
@@ -277,6 +277,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
 
         loadList();
     </script>
+<script src="js/img-lightbox.js?v=b97017cb"></script>
 </body>
 
 </html>
