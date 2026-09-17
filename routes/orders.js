@@ -22,6 +22,8 @@ const { validateOrderLocations } = require('../utils/geofence');
 const { evaluateDeliveryProof } = require('../utils/deliveryProof');
 const { NEGOTIATION_TTL_MS } = require('../utils/negotiation');
 const logger = require('../utils/logger');
+// 📈 عدّادات المسار — «أطلق وانسَ»، لا تُنتظر ولا تُفشل طلباً
+const analytics = require('../utils/analytics');
 
 // ⚡ Settings cache — per-city Map, refresh every 60 seconds to avoid repeated DB queries
 // Structure: Map<city, { data: settingsObj, time: timestamp }>
@@ -574,6 +576,8 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             ? `تم جدولة طلبك بنجاح! سيُنشر للكباتن في ${new Date(scheduledAt).toLocaleString('ar-SA')}`
             : 'تم إنشاء الطلب بنجاح — نبحث لك عن أقرب كابتن';
 
+        analytics.track('orderCreated', { city: order.city });
+
         // BUG-C4 FIX: إرسال الحقول الضرورية للعميل فقط — لا تسريب appFee/netRevenue/city/parcelImage
         res.status(201).json({
             message: msg,
@@ -689,6 +693,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
                 }
             }
 
+            analytics.track('orderCancelled', { city: shopOrder.city });
             return res.json({ message: 'Order cancelled successfully', order: shopOrder });
         }
 
@@ -829,6 +834,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
             }
         }
 
+        analytics.track('orderCancelled', { city: order.city });
         res.json({ message: 'Order cancelled successfully', order });
     } catch (error) {
         logger.error({ err: error }, 'Cancel order error');
@@ -1540,6 +1546,8 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
 
         // BUG-C5 FIX: حذف الاستعلام المكرّر — updatedOrder يحتوي على النسخة الحديثة بعد new:true
         const order = updatedOrder;
+        // بعد التحديث الذرّي لا قبله: الخاسر في السباق لا يُعدّ قبولاً
+        analytics.track('orderAccepted', { city: order.city });
 
         // 🚀 Clear negotiation state AND notify rejected captains
         const io = req.app.get('io');
@@ -2107,6 +2115,8 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
             }
             return res.status(400).json({ message: 'الطلب غير متاح للتوصيل أو تم توصيله مسبقاً.' });
         }
+
+        analytics.track('orderDelivered', { city: order.city });
 
         // 🏁 عدّاد رحلات الكابتن — يزداد مرة واحدة فقط
         User.updateOne({ _id: req.user.id }, { $inc: { completedTrips: 1 } })

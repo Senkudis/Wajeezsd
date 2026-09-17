@@ -926,6 +926,10 @@ server.listen(PORT, () => {
 // 🧯 المعالجة العالمية للأخطاء غير الملتقَطة
 const errorTracker = require('./utils/errorTracker');
 
+// 🔔 تنبيه الإدارة عند خطأٍ جديد أو متكرّر. كان السجلّ يُكتب ولا يُنبِّه أحداً،
+// فالعطل يُكتشف حين يشتكي مستخدم. notifyAdmins يحتاج app للبثّ عبر socket.
+require('./utils/errorAlerts').setApp(app);
+
 // unhandledRejection: نكتفي بالتسجيل — كثير من رفض الوعود غير حرج، وإسقاط السيرفر عليه مبالغة.
 process.on('unhandledRejection', (reason) => {
     logger.error({ reason: String(reason) }, 'Unhandled Promise Rejection');

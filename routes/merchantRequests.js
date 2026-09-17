@@ -94,6 +94,7 @@ router.post('/', protect, async (req, res) => {
             }
         }
 
+        require('../utils/analytics').track('merchantRequest', { city: req.user && req.user.city });
         res.status(201).json(newRequest);
     } catch (error) {
         logger.error('Error creating merchant request:', error);

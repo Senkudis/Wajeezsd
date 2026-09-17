@@ -1013,6 +1013,8 @@ router.post('/seed-demo', protect, superAdminOnly, async (req, res) => {
 // تسجيل مشاهدة لمتجر (fire & forget)
 router.post('/:id/view', async (req, res) => {
     try {
+        // 📈 قمّة مسار الطلب: «كم من فتح متجراً انتهى بطلب؟»
+        require('../utils/analytics').track('storeOpened', { city: req.query && req.query.city });
         await Place.findByIdAndUpdate(req.params.id, { $inc: { viewsCount: 1 } });
         res.json({ ok: true });
     } catch (e) {

@@ -15,13 +15,29 @@ const buffer = [];
 
 const TTL_DAYS = 30;
 
-/** بصمة تجميع: نفس الرسالة على نفس المسار خطأ واحد يتكرّر لا أخطاء كثيرة */
+/**
+ * بصمة تجميع: نفس الرسالة على نفس المسار خطأ واحد يتكرّر لا أخطاء كثيرة.
+ *
+ * ⚠️ المسار يُطبَّع كما تُطبَّع الرسالة. كان يُؤخذ حرفياً من `req.originalUrl`
+ * فيحمل معرّف الطلب وسلسلة الاستعلام: `/api/orders/<id>/accept` يعطي بصمةً
+ * لكل طلب، فيبدو العطل الواحد آلافَ أخطاءٍ «جديدة» — تنفخ السجلّ، وتجعل كل
+ * واحدةٍ منها تستحقّ تنبيهاً فتُغرق الإدارة وتُغرق معها الخطأ الحقيقي.
+ */
+function normalizePath(p) {
+    return String(p)
+        .split('?')[0]                           // سلسلة الاستعلام ليست هويّة
+        .replace(/[0-9a-f]{24}/gi, ':id')        // معرّفات مونجو
+        .replace(/\/\d+(?=\/|$)/g, '/:n')        // مقاطع رقمية
+        .slice(0, 160);
+}
+
 function fingerprintOf(entry) {
     const msg = String(entry.message || 'Unknown error')
         .replace(/[0-9a-f]{24}/gi, ':id')       // معرّفات مونجو
         .replace(/\d+/g, 'N')                    // أرقام متغيّرة
         .slice(0, 200);
-    return `${entry.method || '-'} ${entry.path || '-'} ${msg}`;
+    const path = entry.path ? normalizePath(entry.path) : '-';
+    return `${entry.method || '-'} ${path} ${msg}`;
 }
 
 /**
@@ -42,14 +58,19 @@ function record(entry = {}) {
     // حافظ على الحدّ الأقصى — احذف الأقدم
     if (buffer.length > MAX_ERRORS) buffer.splice(0, buffer.length - MAX_ERRORS);
 
-    persist(row).catch(() => { /* تسجيل الخطأ لا يجوز أن يصنع خطأً */ });
+    persist(row)
+        // القرار بالتنبيه يُبنى على العدّاد **بعد** الزيادة، وهو في القاعدة
+        // فمشترَكٌ بين نسخ التطبيق كلها — لا في ذاكرة نسخةٍ واحدة.
+        .then(res => res && require('./errorAlerts').consider(row, res))
+        .catch(() => { /* تسجيل الخطأ لا يجوز أن يصنع خطأً */ });
 }
 
 async function persist(row) {
     const ErrorLog = require('../models/ErrorLog');
     const now = new Date();
-    await ErrorLog.updateOne(
-        { fingerprint: fingerprintOf(row) },
+    const fingerprint = fingerprintOf(row);
+    const doc = await ErrorLog.findOneAndUpdate(
+        { fingerprint },
         {
             $inc: { count: 1 },
             $set: {
@@ -61,8 +82,11 @@ async function persist(row) {
             },
             $setOnInsert: { firstAt: now }
         },
-        { upsert: true }
+        // new: true ليعود العدّاد بعد الزيادة. و count === 1 يعني إدراجاً
+        // جديداً بالضبط، فلا حاجة لبيانات النتيجة الوصفية.
+        { upsert: true, new: true, projection: { count: 1 } }
     );
+    return { fingerprint, count: doc ? doc.count : NaN };
 }
 
 /**

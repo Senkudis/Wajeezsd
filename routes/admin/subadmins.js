@@ -222,4 +222,36 @@ router.get('/errors', protect, superAdminOnly, async (req, res) => {
     }
 });
 
+// @route   GET /api/admin/analytics?days=30
+// @desc    مسار المنتج: أين يسقط المستخدم، وكم نسبة من يفتح متجراً ثم يطلب.
+//          الأرقام مجمَّعة يومياً في DailyStat — لا هويّات ولا أحداث فردية.
+router.get('/analytics', protect, superAdminOnly, async (req, res) => {
+    try {
+        const DailyStat = require('../../models/DailyStat');
+        const analytics = require('../../utils/analytics');
+
+        // الحدّ الأعلى تسعون يوماً: نطاقٌ أوسع يقرأ وثائق كثيرة بلا فائدة
+        const days = Math.max(1, Math.min(90, Number(req.query.days) || 30));
+        const from = new Date(Date.now() + 3 * 3600000 - (days - 1) * 86400000)
+            .toISOString().slice(0, 10);
+
+        const filter = { day: { $gte: from } };
+        if (req.query.city) filter.city = analytics.normalizeCity(req.query.city);
+
+        const rows = await DailyStat.find(filter).sort({ day: 1 }).lean();
+        res.json({
+            from,
+            to: DailyStat.today(),
+            days,
+            city: req.query.city ? analytics.normalizeCity(req.query.city) : 'all',
+            ...analytics.summarize(rows),
+            // السلسلة اليومية: المجموع يقول «كم»، والسلسلة تقول «إلى أين يتجه»
+            daily: rows
+        });
+    } catch (e) {
+        logger.error({ err: e.message }, 'admin analytics failed');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 module.exports = router;

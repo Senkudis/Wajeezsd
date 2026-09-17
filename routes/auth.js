@@ -18,6 +18,8 @@ const rateLimit = require('express-rate-limit'); // 🛡️ Rate Limiting
 const { OAuth2Client } = require('google-auth-library'); // ✅ Google Auth
 const logger = require('../utils/logger');
 const { generateOtpCode } = require('../utils/otp');
+// 📈 عدّادات المسار — «أطلق وانسَ»، لا تُنتظر ولا تُفشل طلباً
+const analytics = require('../utils/analytics');
 const { signUserToken } = require('../utils/authToken');
 
 // 🔒 هوية Google بلا بريد مؤكَّد لا تُقبل إطلاقاً.
@@ -203,6 +205,8 @@ router.get('/check-subscription/:phone', otpLimiter, async (req, res) => {
 // 1️⃣ تسجيل مستخدم جديد (بدون تشفير يدوي)
 // ==========================================
 router.post('/register', otpLimiter, validate(registerSchema), async (req, res) => {
+    // يُعدّ عند المحاولة لا عند النجاح: الفارق بينهما هو التسرّب نفسه
+    analytics.track('registerStarted', { city: req.body && req.body.city });
     try {
         let { name, email, phone, password } = req.body;
 
@@ -264,6 +268,9 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
             sendSmsOTP(phone, `رمز تفعيل حسابك في وجيز هو: ${verificationCode}`)
                 .catch(err => logger.error("⚠️ SMS Error:", err.message));
         }
+
+        analytics.track('registerCompleted', { city: userCity });
+        analytics.track('otpSent', { city: userCity });
 
         res.status(201).json({ message: 'تم التسجيل بنجاح! راجع هاتفك أو بريدك للحصول على الكود.' });
 
@@ -395,6 +402,9 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
             expiresIn: '1h',
             claims: { scope: 'upload_only' }
         });
+
+        analytics.track('captainSignup', { city: captainCity });
+        analytics.track('otpSent', { city: captainCity });
 
         res.status(201).json({
             message: 'تم التسجيل! قم بتفعيل حسابك ورفع الوثائق. سيتم مراجعة طلبك من الإدارة.',
@@ -708,6 +718,7 @@ router.post('/verify-email', otpLimiter, async (req, res) => {
         }
 
         user.isVerified = true;
+        analytics.track('otpVerified', { city: user.city });
         user.verificationCode = undefined;
         user.verificationCodeExpires = undefined;
         user.otpCode = undefined;
