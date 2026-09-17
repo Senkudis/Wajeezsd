@@ -138,6 +138,13 @@ describe('القياس لا يعطّل شيئاً', () => {
     it('ونداءٌ بحدثٍ مجهول لا يرمي', () => {
         expect(() => analytics.track('nope', { city: 'Khartoum' })).not.toThrow();
     });
+
+    it('ويُعيد وعداً دائماً — به ينتظره الاختبار بدل نومٍ مقدَّر يرتجف', () => {
+        // العقد: الإنتاج لا ينتظره، والاختبار يستطيع. وحتى الحدث المجهول
+        // يُعيد وعداً فلا ينكسر `await` عليه.
+        expect(analytics.track('orderCreated', {})).toBeInstanceOf(Promise);
+        expect(analytics.track('nope', {})).toBeInstanceOf(Promise);
+    });
 });
 
 describe('🔒 لا بيانات تخصّ فرداً', () => {

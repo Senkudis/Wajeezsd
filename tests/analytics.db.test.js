@@ -26,13 +26,12 @@ beforeEach(async () => { if (db.ok) await clearMongo(); });
 
 const maybe = () => (db.ok ? describe : describe.skip);
 
-/** `track` يكتب في الخلفية؛ ننتظر استقرار الكتابة قبل الفحص. */
-const settle = () => new Promise(r => setTimeout(r, 120));
+// `track` يُعيد وعد الكتابة (ولا يُنتظَر في الإنتاج) — ننتظره هنا بدل
+// نومٍ بمدّةٍ مقدَّرة، فالمدّة ترتجف على عاملٍ بطيء.
 
 maybe()('العدّ يبدأ من واحد ولا يضيع أوّل حدث', () => {
     it('أول حدثٍ في اليوم يُنشئ الوثيقة بواحد', async () => {
-        analytics.track('orderCreated', { city: 'Khartoum' });
-        await settle();
+        await analytics.track('orderCreated', { city: 'Khartoum' });
 
         const rows = await DailyStat.find({});
         expect(rows).toHaveLength(1);
@@ -43,11 +42,9 @@ maybe()('العدّ يبدأ من واحد ولا يضيع أوّل حدث', () 
 
     it('والأحداث تتراكم في وثيقةٍ واحدة لا تنمو مع العدد', async () => {
         for (let i = 0; i < 6; i++) {
-            analytics.track('storeOpened', { city: 'Khartoum' });
-            await settle();
+            await analytics.track('storeOpened', { city: 'Khartoum' });
         }
-        analytics.track('orderCreated', { city: 'Khartoum' });
-        await settle();
+        await analytics.track('orderCreated', { city: 'Khartoum' });
 
         const rows = await DailyStat.find({});
         expect(rows).toHaveLength(1);
@@ -57,8 +54,7 @@ maybe()('العدّ يبدأ من واحد ولا يضيع أوّل حدث', () 
 
     it('والمدن تُفصل، والمجهولة تُجمع', async () => {
         for (const city of ['Khartoum', 'PortSudan', 'Cairo', undefined, '<script>']) {
-            analytics.track('orderCreated', { city });
-            await settle();
+            await analytics.track('orderCreated', { city });
         }
         const rows = await DailyStat.find({}).sort({ city: 1 }).lean();
         const byCity = Object.fromEntries(rows.map(r => [r.city, r.orderCreated]));
@@ -69,18 +65,16 @@ maybe()('العدّ يبدأ من واحد ولا يضيع أوّل حدث', () 
 maybe()('🔴 حدثٌ مجهول لا يكتب شيئاً', () => {
     it('لا وثيقة ولا حقلٌ جديد', async () => {
         // بلا حارس الأسماء كان $inc يُنشئ الحقل في الوثيقة صامتاً
-        analytics.track('orderCreatd', { city: 'Khartoum' });
-        analytics.track('', { city: 'Khartoum' });
-        analytics.track(undefined, { city: 'Khartoum' });
-        await settle();
+        await analytics.track('orderCreatd', { city: 'Khartoum' });
+        await analytics.track('', { city: 'Khartoum' });
+        await analytics.track(undefined, { city: 'Khartoum' });
 
         expect(await DailyStat.countDocuments()).toBe(0);
     });
 
     it('ولا يمنع حدثاً صحيحاً بعده', async () => {
-        analytics.track('nope', { city: 'Khartoum' });
-        analytics.track('orderCreated', { city: 'Khartoum' });
-        await settle();
+        await analytics.track('nope', { city: 'Khartoum' });
+        await analytics.track('orderCreated', { city: 'Khartoum' });
 
         const rows = await DailyStat.find({}).lean();
         expect(rows).toHaveLength(1);
@@ -91,9 +85,11 @@ maybe()('🔴 حدثٌ مجهول لا يكتب شيئاً', () => {
 
 maybe()('⚡ نداءات متزامنة: وثيقةٌ واحدة ورقمٌ واحد', () => {
     it('عشرون حدثاً معاً تعطي عشرين في وثيقةٍ واحدة', async () => {
-        // الفهرس الفريد على (day, city) هو ما يمنع وثيقتين لليوم نفسه
-        for (let i = 0; i < 20; i++) analytics.track('orderCreated', { city: 'Khartoum' });
-        await new Promise(r => setTimeout(r, 600));
+        // الفهرس الفريد على (day, city) هو ما يمنع وثيقتين لليوم نفسه.
+        // معاً فعلاً (Promise.all) لا واحدةً تلو الأخرى — وإلا لم يقع السباق.
+        await Promise.all(
+            Array.from({ length: 20 }, () => analytics.track('orderCreated', { city: 'Khartoum' }))
+        );
 
         const rows = await DailyStat.find({});
         expect(rows).toHaveLength(1);

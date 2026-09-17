@@ -46,10 +46,13 @@ function track(event, { city } = {}) {
     if (!inc) {
         // الصراخ هنا مقصود: العدّاد الصامت أسوأ من غيابه
         logger.error({ event }, 'analytics: حدث غير معروف — أضفه إلى EVENTS و DailyStat');
-        return;
+        return Promise.resolve();
     }
 
-    Promise.resolve()
+    // ⚠️ يُعاد الوعد ولا يُنتظَر في الإنتاج: المسارات تنادي بلا await فلا
+    //    تتعلّق الاستجابة بالكتابة. وإنما يُعاد ليستطيع الاختبار انتظاره —
+    //    البديل كان نوماً بمدّةٍ مقدَّرة، وهو يرتجف على عاملٍ بطيء.
+    return Promise.resolve()
         .then(async () => {
             const DailyStat = require('../models/DailyStat');
             await DailyStat.updateOne(

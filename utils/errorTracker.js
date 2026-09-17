@@ -58,7 +58,9 @@ function record(entry = {}) {
     // حافظ على الحدّ الأقصى — احذف الأقدم
     if (buffer.length > MAX_ERRORS) buffer.splice(0, buffer.length - MAX_ERRORS);
 
-    persist(row)
+    // ⚠️ يُعاد الوعد ولا يُنتظَر في الإنتاج: النداء في معالج الأخطاء بلا
+    //    await. وإنما يُعاد ليستطيع الاختبار انتظاره بدل نومٍ مقدَّر يرتجف.
+    return persist(row)
         // القرار بالتنبيه يُبنى على العدّاد **بعد** الزيادة، وهو في القاعدة
         // فمشترَكٌ بين نسخ التطبيق كلها — لا في ذاكرة نسخةٍ واحدة.
         .then(res => res && require('./errorAlerts').consider(row, res))
