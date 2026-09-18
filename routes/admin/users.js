@@ -383,8 +383,12 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
         //    وطلبات قديمة وصلت فعلاً بلا وثيقةٍ واحدة. وقبولُ كابتنٍ بلا هوية
         //    ولا صورةٍ لوسيلته يعني إسناد طلبات عملاء إلى شخصٍ مجهول.
         const docs = captain.documents || {};
+        //    السيلفي منها: هي ما يُطابقه المراجع بصورة الهوية، فقبولٌ بلا
+        //    سيلفي يعني اعتماد هويةٍ لم يتحقّق أحدٌ أنها لصاحبها.
+        //    ورخصة القيادة خارجها عمداً — وسائل التوصيل منها ما لا يحتاجها.
         const missing = [
             [docs.idImage,      'الهوية'],
+            [docs.selfieImage,  'السيلفي'],
             [docs.profilePhoto, 'الصورة الشخصية'],
             [docs.vehiclePhoto, 'صورة وسيلة التوصيل']
         ].filter(([v]) => !v).map(([, label]) => label);

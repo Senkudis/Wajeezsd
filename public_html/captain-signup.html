@@ -587,7 +587,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">رخصة القيادة</label>
+                    <label class="form-label fw-bold small">رخصة القيادة <span class="text-muted fw-normal">(اختياري)</span></label>
                     <div class="upload-zone" onclick="document.getElementById('driverLicense').click()">
                         <i class="bi bi-cloud-arrow-up fs-3 text-muted"></i>
                         <p class="small text-muted mb-0" id="driverLicense-label">اضغط لرفع صورة الرخصة</p>
@@ -598,7 +598,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">صورة شخصية</label>
+                    <label class="form-label fw-bold small">صورة شخصية *</label>
                     <div class="upload-zone" onclick="document.getElementById('profilePhoto').click()">
                         <i class="bi bi-person-badge fs-3 text-muted"></i>
                         <p class="small text-muted mb-0" id="profilePhoto-label">اضغط لرفع صورتك الشخصية</p>
@@ -609,7 +609,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label fw-bold small">صورة المركبة</label>
+                    <label class="form-label fw-bold small">صورة المركبة *</label>
                     <div class="upload-zone" onclick="document.getElementById('vehiclePhoto').click()">
                         <i class="bi bi-car-front fs-3 text-muted"></i>
                         <p class="small text-muted mb-0" id="vehiclePhoto-label">اضغط لرفع صورة المركبة</p>
@@ -941,8 +941,12 @@
         //
         //    ويُفحص هنا لا في goToStep: زرّ الإرسال يستدعي هذه مباشرة،
         //    و goToStep(5) لا تقع إلا **بعد** نجاح الإرسال.
+        //    السيلفي إجبارية لأنها **أداة التحقّق نفسها**: المراجع يطابقها
+        //    بصورة الهوية. وثيقةٌ بلا ما يُطابَق بها تُراجَع على الثقة وحدها.
+        //    ورخصة القيادة اختيارية — وسائل التوصيل منها ما لا يحتاجها.
         const REQUIRED_DOCS = [
             ['idImage',      'صورة الهوية مطلوبة'],
+            ['selfieImage',  'صورة السيلفي مطلوبة — تُطابَق بصورة هويتك'],
             ['profilePhoto', 'صورتك الشخصية مطلوبة'],
             ['vehiclePhoto', 'صورة وسيلة التوصيل مطلوبة']
         ];

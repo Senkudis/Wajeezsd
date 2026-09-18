@@ -20,9 +20,9 @@ const codeOnly = (src) => src.split('\n')
 describe('الواجهة تمنع الإرسال الناقص', () => {
     const page = read('public_html/captain-signup.html');
 
-    it('🔑 الثلاث الإجبارية معرَّفة', () => {
+    it('🔑 الأربع الإجبارية معرَّفة', () => {
         expect(page).toContain('REQUIRED_DOCS');
-        for (const id of ['idImage', 'profilePhoto', 'vehiclePhoto']) {
+        for (const id of ['idImage', 'selfieImage', 'profilePhoto', 'vehiclePhoto']) {
             expect(page).toContain(`['${id}',`);
         }
     });
@@ -40,12 +40,27 @@ describe('الواجهة تمنع الإرسال الناقص', () => {
     });
 });
 
+describe('🪪 رخصة القيادة اختيارية — ووسمُها يقول ذلك', () => {
+    const page = read('public_html/captain-signup.html');
+
+    it('ليست ضمن الإجباريات', () => {
+        const block = page.slice(page.indexOf('REQUIRED_DOCS'), page.indexOf('function missingRequiredDoc'));
+        expect(block).not.toContain('driverLicense');
+    });
+
+    it('🔑 والوسوم تطابق القواعد — لا نجمة على اختياري ولا غيابها عن إجباري', () => {
+        expect(page).toContain('رخصة القيادة <span class="text-muted fw-normal">(اختياري)</span>');
+        expect(page).toContain('صورة شخصية *');
+        expect(page).toContain('صورة المركبة *');
+    });
+});
+
 describe('🔒 الخادم لا يقبل كابتناً بوثائق ناقصة', () => {
     const users = codeOnly(read('routes/admin/users.js'));
     const ap = users.slice(users.indexOf("'/approve-captain/:id'"), users.indexOf("'/reject-captain/:id'"));
 
-    it('🔑 يفحص الثلاث قبل الترقية — الواجهة تُتجاوَز', () => {
-        for (const f of ['docs.idImage', 'docs.profilePhoto', 'docs.vehiclePhoto']) {
+    it('🔑 يفحصها كلّها قبل الترقية — الواجهة تُتجاوَز', () => {
+        for (const f of ['docs.idImage', 'docs.selfieImage', 'docs.profilePhoto', 'docs.vehiclePhoto']) {
             expect(ap).toContain(f);
         }
         expect(ap).toMatch(/missingDocuments/);
