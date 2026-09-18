@@ -162,43 +162,19 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
         const settings = await getCachedSettings(req.userCity);
         const commissionRate = settings.commissionRate ?? 0.15; // null-safe fallback only
 
-        // 📏 حساب المسافة التقديرية والتسعيرة المحسوبة للرحلة
-        const { haversineKm } = require('../utils/geofence');
-        let totalDistanceKm = 0;
-        if (isMultiStop && Array.isArray(sanitizedStops) && sanitizedStops.length >= 2) {
-            for (let i = 1; i < sanitizedStops.length; i++) {
-                const segDist = haversineKm(sanitizedStops[i - 1], sanitizedStops[i]);
-                if (typeof segDist === 'number' && Number.isFinite(segDist)) {
-                    totalDistanceKm += segDist;
-                }
-            }
-        } else if (pickup && dropoff) {
-            const dist = haversineKm(pickup, dropoff);
-            if (typeof dist === 'number' && Number.isFinite(dist)) {
-                totalDistanceKm = dist;
-            }
-        }
-
-        const base = settings.baseFare || 1000;
-        const costPerKm = settings.costPerKm || 200;
-        const extraStopFee = settings.extraStopFee || 0;
-        const extraStops = isMultiStop ? Math.max(0, sanitizedStops.length - 2) : 0;
-
-        // تسعيرة التطبيق المقدرة للرحلة
-        let calculatedPrice = base + (totalDistanceKm * costPerKm) + (extraStopFee * extraStops);
-        calculatedPrice = Math.ceil(calculatedPrice / 100) * 100;
-
-        // نسب التخفيض والسقف من الإعدادات
-        const maxDiscountPercent = typeof settings.maxDiscountPercent === 'number' ? settings.maxDiscountPercent : 10;
-        const maxPriceSurgePercent = typeof settings.maxPriceSurgePercent === 'number' ? settings.maxPriceSurgePercent : 100;
-
-        // ✅ Server-Side Security: Prevent clients from sending an abnormally low price below the relative discount limit
-        const minPriceFloor = base + (extraStopFee * extraStops);
-        const relativeMinPrice = Math.ceil((calculatedPrice * (1 - (maxDiscountPercent / 100))) / 100) * 100;
-        const minAllowedPrice = Math.max(minPriceFloor, relativeMinPrice);
-
-        // سقف السعر الأقصى المسموح
-        const maxAllowedPrice = Math.ceil((calculatedPrice * (1 + (maxPriceSurgePercent / 100))) / 100) * 100;
+        // 📏 التسعيرة وحدودها — من المصدر المشترك utils/tripPricing.
+        //    كان الحساب مكتوباً هنا سطوراً متتابعة، فأيّ شاشة تحتاج السعر
+        //    (تعديل المسار عند الأدمن مثلاً) كانت ستنسخه — ونسختان تعنيان
+        //    سعرين للمشوار الواحد بحسب من أنشأه.
+        const { calculateTripPricing } = require('../utils/tripPricing');
+        const pricing = calculateTripPricing(settings, {
+            stops: isMultiStop ? sanitizedStops : null,
+            pickup, dropoff
+        });
+        const {
+            distanceKm: totalDistanceKm, extraStops, calculatedPrice,
+            minAllowedPrice, maxAllowedPrice, maxDiscountPercent, maxPriceSurgePercent
+        } = pricing;
 
         if (price < minAllowedPrice) {
             return res.status(400).json({

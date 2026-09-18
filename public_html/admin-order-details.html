@@ -293,7 +293,11 @@ function renderNegotiationsCard(o) {
         </div>`;
 }
 
+// 🧭 الطلب المحمّل حالياً — يحتاجه محرّر المسار (الإحداثيات والسعر والمدينة)
+let currentOrder = null;
+
 function renderOrder(o) {
+    currentOrder = o;
     const container = document.getElementById('mainContainer');
     const createdDate = new Date(o.createdAt).toLocaleString('ar-SA');
 
@@ -452,6 +456,7 @@ function renderOrder(o) {
             <div class="od-actions">
                 <button class="od-btn od-btn-primary" onclick="changeStatus('${o._id}')"><i class="fas fa-exchange-alt"></i> تغيير الحالة</button>
                 <button class="od-btn od-btn-warning" onclick="editPrice('${o._id}', ${o.price})"><i class="fas fa-edit"></i> تعديل السعر</button>
+                ${!['delivered','cancelled'].includes(o.status) ? `<button class="od-btn" style="background:#0ea5e9;color:#fff;" onclick="openRouteEditor()"><i class="fas fa-route"></i> تعديل المسار</button>` : ''}
                 ${['accepted','picked_up'].includes(o.status) ? `<button class="od-btn" style="background:#8b5cf6;color:white;" onclick="reassignCaptain('${o._id}')"><i class="fas fa-sync-alt"></i> تبديل الكابتن</button>` : ''}
                 ${o.status !== 'cancelled' ? `<button class="od-btn od-btn-danger" onclick="forceCancel('${o._id}')"><i class="fas fa-ban"></i> إلغاء إجباري</button>` : ''}
                 <button class="od-btn od-btn-ghost" onclick="deleteOrder('${o._id}')"><i class="fas fa-trash"></i> حذف</button>
@@ -463,6 +468,192 @@ function renderOrder(o) {
     // Init map if coordinates exist
     if (hasMappableRoute(o)) {
         setTimeout(() => initOrderMap(o), 500);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   🧭 محرّر مسار الرحلة
+
+   يسمح بإضافة محطة أو حذفها أو إعادة ترتيبها، ويُظهر أثر كل تغيير على
+   السعر **قبل** الحفظ.
+
+   ⚠️ السعر لا يُحسب هنا إطلاقاً: كل تسعيرة تأتي من
+   POST /orders/:id/route-quote، وهو يستدعي utils/tripPricing — نفس
+   الدالّة التي يسعّر بها العميل عند إنشاء الطلب. حسابٌ في الواجهة كان
+   سيبدو صحيحاً اليوم ثم ينحرف أوّل ما يتغيّر رسمُ النقطة الإضافية في
+   الإعدادات، فيرى الأدمن رقماً ويحفظ الخادمُ غيره.
+   ══════════════════════════════════════════════════════════════ */
+
+let routeDraft = [];
+let routeQuote = null;
+let routeQuoteTimer = 0;
+
+function openRouteEditor() {
+    const o = currentOrder;
+    if (!o) return;
+
+    // المصدر: stops إن وُجدت، وإلا نبني محطتين من pickup/dropoff
+    const base = (Array.isArray(o.stops) && o.stops.length >= 2)
+        ? o.stops
+        : [
+            { type: 'pickup',  address: (o.pickup && o.pickup.address) || '', lat: o.pickup && o.pickup.lat, lng: o.pickup && o.pickup.lng,
+              contactName: (o.pickup && o.pickup.contactName) || '', contactPhone: (o.pickup && o.pickup.contactPhone) || '' },
+            { type: 'dropoff', address: (o.dropoff && o.dropoff.address) || '', lat: o.dropoff && o.dropoff.lat, lng: o.dropoff && o.dropoff.lng,
+              contactName: (o.dropoff && o.dropoff.receiverName) || '', contactPhone: (o.dropoff && o.dropoff.receiverPhone) || '' }
+          ];
+
+    routeDraft = base.map(s => ({
+        type: s.type === 'pickup' ? 'pickup' : 'dropoff',
+        address: s.address || '', lat: s.lat, lng: s.lng,
+        contactName: s.contactName || '', contactPhone: s.contactPhone || '',
+        note: s.note || '', done: !!s.done
+    }));
+
+    document.getElementById('routeModal').style.display = 'flex';
+    renderRouteDraft();
+}
+
+function closeRouteEditor() {
+    document.getElementById('routeModal').style.display = 'none';
+    routeDraft = []; routeQuote = null;
+}
+
+function addRouteStop(type) {
+    if (routeDraft.length >= 12) { alert('أقصى عدد محطات هو 12'); return; }
+    routeDraft.push({ type, address: '', lat: null, lng: null, contactName: '', contactPhone: '', note: '', done: false });
+    renderRouteDraft();
+}
+
+function removeRouteStop(i) {
+    // 🔒 محطة أنجزها الكابتن لا تُحذف — أنجز عملاً ثم يُمحى أثره.
+    //    والخادم يرفضها أيضاً؛ المنع هنا لئلا يكتشف الأدمن ذلك بعد الحفظ.
+    if (routeDraft[i] && routeDraft[i].done) {
+        alert('لا يمكن حذف محطة أنجزها الكابتن');
+        return;
+    }
+    if (routeDraft.length <= 2) { alert('المسار يحتاج محطتين على الأقل'); return; }
+    routeDraft.splice(i, 1);
+    renderRouteDraft();
+}
+
+function moveRouteStop(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= routeDraft.length) return;
+    const tmp = routeDraft[i]; routeDraft[i] = routeDraft[j]; routeDraft[j] = tmp;
+    renderRouteDraft();
+}
+
+function setRouteField(i, field, value) {
+    if (!routeDraft[i]) return;
+    routeDraft[i][field] = (field === 'lat' || field === 'lng')
+        ? (value === '' ? null : Number(value))
+        : value;
+    if (field === 'lat' || field === 'lng') scheduleRouteQuote();
+}
+
+function renderRouteDraft() {
+    const box = document.getElementById('routeStops');
+    box.innerHTML = routeDraft.map((s, i) => `
+        <div style="border:1.5px solid ${s.done ? '#bbf7d0' : '#e2e8f0'};border-radius:12px;padding:10px;margin-bottom:10px;background:${s.done ? '#f0fdf4' : '#fff'};">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;
+                    background:${s.type === 'pickup' ? '#dbeafe' : '#fee2e2'};color:${s.type === 'pickup' ? '#2563eb' : '#dc2626'};">${i + 1}</span>
+                <select onchange="setRouteField(${i},'type',this.value)" ${s.done ? 'disabled' : ''}
+                    style="border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-family:inherit;font-weight:700;font-size:12.5px;">
+                    <option value="pickup" ${s.type === 'pickup' ? 'selected' : ''}>استلام</option>
+                    <option value="dropoff" ${s.type === 'dropoff' ? 'selected' : ''}>تسليم</option>
+                </select>
+                ${s.done ? '<span style="font-size:11px;font-weight:800;color:#166534;background:#dcfce7;border-radius:99px;padding:2px 9px;">أنجزها الكابتن</span>' : ''}
+                <span style="margin-inline-start:auto;display:flex;gap:4px;">
+                    <button type="button" onclick="moveRouteStop(${i},-1)" style="border:1px solid #e2e8f0;background:#fff;border-radius:7px;width:28px;height:28px;cursor:pointer;">↑</button>
+                    <button type="button" onclick="moveRouteStop(${i},1)" style="border:1px solid #e2e8f0;background:#fff;border-radius:7px;width:28px;height:28px;cursor:pointer;">↓</button>
+                    <button type="button" onclick="removeRouteStop(${i})" ${s.done ? 'disabled' : ''}
+                        style="border:1px solid #fecaca;background:#fff;color:#dc2626;border-radius:7px;width:28px;height:28px;cursor:pointer;${s.done ? 'opacity:.4;' : ''}">✕</button>
+                </span>
+            </div>
+            <input value="${esc(s.address)}" oninput="setRouteField(${i},'address',this.value)" placeholder="العنوان"
+                style="width:100%;border:1px solid #e2e8f0;border-radius:9px;padding:8px;font-family:inherit;font-size:13px;margin-bottom:6px;">
+            <div style="display:flex;gap:6px;">
+                <input value="${s.lat == null ? '' : s.lat}" oninput="setRouteField(${i},'lat',this.value)" placeholder="خط العرض" dir="ltr" inputmode="decimal"
+                    style="flex:1;min-width:0;border:1px solid #e2e8f0;border-radius:9px;padding:8px;font-family:inherit;font-size:12.5px;">
+                <input value="${s.lng == null ? '' : s.lng}" oninput="setRouteField(${i},'lng',this.value)" placeholder="خط الطول" dir="ltr" inputmode="decimal"
+                    style="flex:1;min-width:0;border:1px solid #e2e8f0;border-radius:9px;padding:8px;font-family:inherit;font-size:12.5px;">
+            </div>
+        </div>`).join('');
+
+    scheduleRouteQuote();
+}
+
+/** تسعيرةٌ مُهدَّأة: كل حرفٍ في حقل الإحداثيات لا يستحقّ نداء شبكة */
+function scheduleRouteQuote() {
+    clearTimeout(routeQuoteTimer);
+    routeQuoteTimer = setTimeout(fetchRouteQuote, 350);
+}
+
+async function fetchRouteQuote() {
+    const out = document.getElementById('routePricing');
+    const ready = routeDraft.filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng));
+    if (ready.length < 2) {
+        out.innerHTML = '<span style="color:#b45309;">أدخل إحداثيات محطتين على الأقل لحساب السعر</span>';
+        routeQuote = null;
+        return;
+    }
+    try {
+        const res = await fetch(`${BASE}/api/admin/orders/${currentOrder._id}/route-quote`, {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+            body: JSON.stringify({ stops: routeDraft })
+        });
+        const data = await res.json();
+        routeQuote = data.pricing;
+        if (!routeQuote) { out.textContent = '—'; return; }
+
+        const oldPrice = currentOrder.price;
+        const diff = routeQuote.calculatedPrice - oldPrice;
+        const sign = diff > 0 ? '+' : '';
+        out.innerHTML = `
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>المسافة</span><b>${routeQuote.distanceKm.toFixed(2)} كم</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>نقاط إضافية</span><b>${routeQuote.extraStops}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed #e2e8f0;margin-top:4px;padding-top:6px;">
+                <span>تسعيرة التطبيق</span><b style="color:#0369a1;">${routeQuote.calculatedPrice} ج.س</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;">
+                <span>السعر الحالي</span><b>${oldPrice} ج.س</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;">
+                <span>الفرق</span><b style="color:${diff > 0 ? '#dc2626' : (diff < 0 ? '#16a34a' : '#64748b')};">${sign}${diff} ج.س</b></div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:6px;">
+                الحدود المسموحة: ${routeQuote.minAllowedPrice} – ${routeQuote.maxAllowedPrice} ج.س</div>`;
+
+        const pf = document.getElementById('routePriceInput');
+        if (pf && !pf.dataset.touched) pf.value = routeQuote.calculatedPrice;
+    } catch (e) {
+        out.innerHTML = '<span style="color:#dc2626;">تعذّر حساب السعر</span>';
+        routeQuote = null;
+    }
+}
+
+async function saveRouteEdit() {
+    const btn = document.getElementById('routeSaveBtn');
+    const missing = routeDraft.some(s => !Number.isFinite(s.lat) || !Number.isFinite(s.lng) || !String(s.address || '').trim());
+    if (missing) { alert('كل محطة تحتاج عنواناً وإحداثيات صحيحة'); return; }
+
+    const pf = document.getElementById('routePriceInput');
+    const price = pf && pf.value !== '' ? Number(pf.value) : undefined;
+
+    btn.disabled = true; btn.textContent = 'جارٍ الحفظ...';
+    try {
+        const res = await fetch(`${BASE}/api/admin/orders/${currentOrder._id}/route`, {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+            body: JSON.stringify({ stops: routeDraft, price })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.message || 'فشل حفظ المسار'); return; }
+        closeRouteEditor();
+        location.reload();
+    } catch (e) {
+        alert('فشل الاتصال بالسيرفر');
+    } finally {
+        btn.disabled = false; btn.textContent = 'حفظ المسار';
     }
 }
 
@@ -830,5 +1021,38 @@ async function reassignCaptain(orderId) {
 
 </script>
 <script src="js/img-lightbox.js?v=b97017cb"></script>
+<div id="routeModal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(15,23,42,.6);align-items:center;justify-content:center;padding:14px;"
+     onclick="if(event.target===this)closeRouteEditor()">
+  <div style="background:#f8fafc;border-radius:18px;width:min(560px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="background:#fff;padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;">
+      <i class="fas fa-route" style="color:#0ea5e9;"></i>
+      <b style="font-size:15px;">تعديل مسار الرحلة</b>
+      <button onclick="closeRouteEditor()" style="margin-inline-start:auto;border:0;background:#f1f5f9;border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:16px;">&times;</button>
+    </div>
+
+    <div style="overflow-y:auto;padding:14px 18px;">
+      <div id="routeStops"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button type="button" onclick="addRouteStop('pickup')" style="flex:1;border:1.5px dashed #93c5fd;background:#eff6ff;color:#1d4ed8;border-radius:10px;padding:9px;font-weight:800;font-family:inherit;cursor:pointer;">+ نقطة استلام</button>
+        <button type="button" onclick="addRouteStop('dropoff')" style="flex:1;border:1.5px dashed #fca5a5;background:#fef2f2;color:#b91c1c;border-radius:10px;padding:9px;font-weight:800;font-family:inherit;cursor:pointer;">+ نقطة تسليم</button>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
+        <div style="font-size:12px;font-weight:800;color:#0369a1;margin-bottom:8px;">
+          <i class="fas fa-calculator"></i> التسعيرة — تُحسب في الخادم بنفس إعدادات المدينة
+        </div>
+        <div id="routePricing" style="font-size:13px;">—</div>
+        <label style="display:block;margin-top:10px;font-size:12px;font-weight:700;color:#475569;">السعر النهائي (ج.س)</label>
+        <input id="routePriceInput" type="number" inputmode="numeric" onchange="this.dataset.touched=1"
+               style="width:100%;border:1px solid #e2e8f0;border-radius:9px;padding:9px;font-family:inherit;font-weight:800;margin-top:4px;">
+      </div>
+    </div>
+
+    <div style="background:#fff;padding:12px 18px;border-top:1px solid #e2e8f0;display:flex;gap:8px;">
+      <button onclick="closeRouteEditor()" style="flex:1;border:1.5px solid #e2e8f0;background:#fff;border-radius:11px;padding:11px;font-weight:800;font-family:inherit;cursor:pointer;">تراجع</button>
+      <button id="routeSaveBtn" onclick="saveRouteEdit()" style="flex:2;border:0;background:#0ea5e9;color:#fff;border-radius:11px;padding:11px;font-weight:800;font-family:inherit;cursor:pointer;">حفظ المسار</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

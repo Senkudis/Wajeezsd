@@ -716,6 +716,171 @@ router.delete('/orders/:id', protect, requirePermission('manage_orders'), async 
 // @route   PUT /api/admin/orders/:id
 // @desc    تعديل بيانات الطلب شاملة
 
+// @route   PUT /api/admin/orders/:id/route
+// @desc    تعديل مسار الرحلة — إضافة محطة أو حذفها أو إعادة ترتيبها
+// 🔐 صلاحية: manage_orders
+//
+// 💰 السعر يُعاد حسابه من utils/tripPricing — نفس الدالّة التي يسعّر بها
+//    العميل عند الإنشاء. لا حساب ثانٍ هنا: نسختان تعنيان سعرين للمشوار
+//    الواحد بحسب من عدّله.
+
+router.put('/orders/:id/route', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        // 🚫 رحلةٌ انتهت لا مسار لها يُعدَّل — والتعديل بعدها يُفسد المحاسبة
+        if (['delivered', 'cancelled'].includes(order.status)) {
+            return res.status(400).json({ message: 'لا يمكن تعديل مسار طلبٍ منتهٍ' });
+        }
+
+        const raw = Array.isArray(req.body.stops) ? req.body.stops : null;
+        if (!raw || raw.length < 2) {
+            return res.status(400).json({ message: 'المسار يحتاج محطتين على الأقل' });
+        }
+        if (raw.length > 12) {
+            return res.status(400).json({ message: 'أقصى عدد محطات هو 12' });
+        }
+        if (!raw.some(s => s.type === 'pickup') || !raw.some(s => s.type === 'dropoff')) {
+            return res.status(400).json({ message: 'المسار يحتاج نقطة استلام ونقطة تسليم على الأقل' });
+        }
+
+        const { validateStopsLocations } = require('../../utils/geofence');
+        const geo = validateStopsLocations(raw);
+        if (!geo.valid) return res.status(400).json({ message: geo.message });
+
+        const { sanitizeStops, calculateTripPricing } = require('../../utils/tripPricing');
+
+        // 🔒 تقدّم الكابتن يُحفظ: محطةٌ زارها فعلاً لا يجوز أن تعود «لم تُنجَز»
+        //    لمجرّد أن الأدمن أضاف محطةً بعدها. نطابق بالإحداثيات لأن الترتيب
+        //    قد يتغيّر.
+        const prev = Array.isArray(order.stops) ? order.stops : [];
+        const doneAt = new Map(
+            prev.filter(s => s.done).map(s => [s.lat + ',' + s.lng, s.doneAt || new Date()])
+        );
+
+        const stops = sanitizeStops(raw, false).map(s => {
+            const hit = doneAt.get(s.lat + ',' + s.lng);
+            return hit ? Object.assign({}, s, { done: true, doneAt: hit }) : s;
+        });
+
+        // ⚠️ حذف محطةٍ أنجزها الكابتن ممنوع: أنجز عملاً ثم يُمحى أثره، ويختلّ
+        //    ما بُني عليه من إثبات تسليم ومحاسبة.
+        const removedDone = prev.filter(
+            s => s.done && !stops.some(n => n.lat === s.lat && n.lng === s.lng)
+        );
+        if (removedDone.length) {
+            return res.status(400).json({
+                message: 'لا يمكن حذف محطة أنجزها الكابتن: ' + (removedDone[0].address || 'محطة')
+            });
+        }
+
+        const settings = await Settings.getSettings(order.city || 'Khartoum');
+        const pricing = calculateTripPricing(settings, { stops });
+
+        // 💵 السعر: يقترحه الخادم، وللأدمن أن يتجاوزه ضمن حدود الإعدادات
+        //    نفسها التي تحكم العميل — لا استثناء يفتح باب التسعير المزاجيّ.
+        let newPrice = pricing.calculatedPrice;
+        if (req.body.price !== undefined && req.body.price !== null) {
+            const p = Number(req.body.price);
+            if (!Number.isFinite(p)) return res.status(400).json({ message: 'السعر غير صالح' });
+            if (p < pricing.minAllowedPrice || p > pricing.maxAllowedPrice) {
+                return res.status(400).json({
+                    message: 'السعر خارج الحدود المسموحة (' + pricing.minAllowedPrice +
+                             ' – ' + pricing.maxAllowedPrice + ' ج.س)',
+                    pricing
+                });
+            }
+            newPrice = p;
+        }
+
+        const beforeStops = prev.length;
+        const beforePrice = order.price;
+
+        // 🔄 المرآتان تُحدَّثان مع المحطات: بقيّة الكود كلّه يقرأ pickup/dropoff
+        //    (التتبّع، الإشعارات، شاشة الكابتن)، فتركُهما يعني مساراً جديداً
+        //    وعنواناً قديماً معروضاً للناس.
+        const firstPickup = stops.find(s => s.type === 'pickup');
+        const lastDropoff = stops.slice().reverse().find(s => s.type === 'dropoff');
+
+        order.stops = stops;
+        order.isMultiStop = stops.length > 2;
+        if (firstPickup) {
+            order.pickup = {
+                address: firstPickup.address, lat: firstPickup.lat, lng: firstPickup.lng,
+                contactName: firstPickup.contactName, contactPhone: firstPickup.contactPhone
+            };
+        }
+        if (lastDropoff) {
+            order.dropoff = {
+                address: lastDropoff.address, lat: lastDropoff.lat, lng: lastDropoff.lng,
+                receiverName: lastDropoff.contactName, receiverPhone: lastDropoff.contactPhone
+            };
+        }
+
+        order.price = newPrice;
+        const commissionRate = settings.commissionRate != null ? settings.commissionRate : 0.15;
+        order.appFee = newPrice * commissionRate;
+        // ➕ الإكرامية تُضاف بعد العمولة ولا تُحسب عليها
+        order.netRevenue = (newPrice - order.appFee) + (Number(order.tip && order.tip.amount) || 0);
+
+        await order.save();
+
+        await logAdminAction(req, 'edit_order_route',
+            'عدّل مسار الطلب: ' + beforeStops + ' ← ' + stops.length + ' محطة، ' +
+            'السعر ' + beforePrice + ' ← ' + newPrice + ' ج.س',
+            order._id, order.client && order.client.toString()
+        );
+
+        // 📢 الطرفان يجب أن يعرفا فوراً: الكابتن قد يكون في الطريق إلى عنوانٍ
+        //    لم يعد ضمن المسار، والعميل تغيّر ما سيدفعه.
+        const { sendNotification } = require('../../utils/notificationHelper');
+        const io = req.app.get('io');
+        const priceChanged = beforePrice !== newPrice;
+        const msg = 'عُدّل مسار الرحلة — ' + stops.length + ' محطة' +
+            (priceChanged ? ('، والسعر الآن ' + newPrice + ' ج.س') : '');
+
+        const targets = [order.client, order.captain].filter(Boolean);
+        for (const uid of targets) {
+            await sendNotification(req.app, {
+                userId: uid, title: 'تعديل على مسار الرحلة',
+                message: msg, type: 'order_update', relatedId: order._id
+            });
+            if (io) {
+                io.to(uid.toString()).emit('order_route_updated', {
+                    orderId: String(order._id), stops: stops, price: newPrice
+                });
+            }
+        }
+
+        res.json({ message: 'تم تعديل المسار', order, pricing });
+    } catch (err) {
+        logger.error({ err: err.message }, 'edit order route error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// @route   POST /api/admin/orders/:id/route-quote
+// @desc    تسعيرةٌ تجريبية لمسارٍ مقترح قبل حفظه — تُغذّي المعاينة الحيّة
+//          فيرى الأدمن أثر كل محطة على السعر قبل أن يلتزم به.
+
+router.post('/orders/:id/route-quote', protect, requirePermission('manage_orders'), async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id).select('city').lean();
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        const stops = Array.isArray(req.body.stops) ? req.body.stops : [];
+        if (stops.length < 2) return res.json({ pricing: null });
+
+        const settings = await Settings.getSettings(order.city || 'Khartoum');
+        const { calculateTripPricing } = require('../../utils/tripPricing');
+        res.json({ pricing: calculateTripPricing(settings, { stops: stops }) });
+    } catch (err) {
+        logger.error({ err: err.message }, 'route quote error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 router.put('/orders/:id', protect, requirePermission('manage_orders'), async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
