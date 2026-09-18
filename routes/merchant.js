@@ -874,21 +874,39 @@ router.put('/orders/:id/reject', protect, merchantOnly, async (req, res) => {
         const place = await Place.findOne({ ownerId: req.user._id });
         if (!place) return res.status(404).json({ message: 'لا يوجد متجر مرتبط بحسابك' });
 
-        // BUG #25 FIX: Check for assigned captain BEFORE modifying the order
-        // If a captain is already assigned (en route), merchant cannot reject
+        // 🚪 نافذة الإلغاء عند التاجر — ثلاث مراحل لا واحدة.
+        //
+        //    كانت تقف عند shop_preparing، فالتاجر الذي نشر الطلب ثم اكتشف أن
+        //    المنتج تالف أو أن العميل لا يردّ **لا مخرج له**: ينتظر كابتناً
+        //    ليأتي لطلبٍ لن يُسلَّم. والحدّ الحقيقي ليس الحالة بل **وجود
+        //    كابتن**: ما دام لم يقبله أحد فلا أحد في الطريق، والإلغاء آمن.
+        //
+        //    ⚠️ ما بعد إسناد الكابتن يبقى ممنوعاً: كابتنٌ قطع الطريق يستحقّ
+        //    تعويضاً وقراراً إدارياً، لا زرّاً في يد التاجر.
+        const CANCELLABLE = ['shop_pending', 'shop_preparing', 'ready_for_pickup'];
+
         const existingOrder = await ShopOrder.findOne({
             _id: req.params.id,
             place: place._id,
-            status: { $in: ['shop_pending', 'shop_preparing'] }
-        }).select('captain').lean();
-        if (!existingOrder) return res.status(400).json({ message: 'الطلب غير موجود أو لا يمكن رفضه الآن' });
+            status: { $in: CANCELLABLE }
+        }).select('captain status').lean();
+        if (!existingOrder) return res.status(400).json({ message: 'الطلب غير موجود أو لا يمكن إلغاؤه الآن' });
         if (existingOrder.captain) {
-            return res.status(400).json({ message: 'لا يمكن رفض الطلب — كابتن في طريقه لاستلام الطلب' });
+            return res.status(400).json({ message: 'لا يمكن الإلغاء — كابتن في طريقه لاستلام الطلب' });
+        }
+
+        // ⚠️ بعد النشر يوجد **طلب توصيل** منفصل يراه الكباتن. قد يكون كابتنٌ
+        //    قبله في هذه اللحظة دون أن يُختم بعد على ShopOrder، فنفحصه أيضاً.
+        const OrderModel = require('../models/Order');
+        const linkedDelivery = await OrderModel.findOne({ shopOrderId: req.params.id })
+            .select('_id status captain').lean();
+        if (linkedDelivery && linkedDelivery.captain) {
+            return res.status(400).json({ message: 'لا يمكن الإلغاء — قَبِل كابتن الطلب للتوّ' });
         }
 
         // 🛡️ CRITICAL FIX: Atomic state transition (only after captain check passes)
         const order = await ShopOrder.findOneAndUpdate(
-            { _id: req.params.id, place: place._id, status: { $in: ['shop_pending', 'shop_preparing'] }, captain: { $exists: false } },
+            { _id: req.params.id, place: place._id, status: { $in: CANCELLABLE }, captain: { $exists: false } },
             {
                 $set: {
                     status: 'cancelled',
@@ -899,7 +917,18 @@ router.put('/orders/:id/reject', protect, merchantOnly, async (req, res) => {
             },
             { new: true }
         );
-        if (!order) return res.status(400).json({ message: 'الطلب غير موجود أو تم تعيين كابتن في هذه اللحظة — لا يمكن رفضه' });
+        if (!order) return res.status(400).json({ message: 'الطلب غير موجود أو تم تعيين كابتن في هذه اللحظة — لا يمكن إلغاؤه' });
+
+        // 🧹 إلغاء طلب التوصيل المرتبط — وإلا بقي معروضاً على الكباتن لطلبٍ
+        //    لم يعد قائماً، فيأتي أحدهم إلى متجرٍ لا شيء فيه.
+        if (linkedDelivery) {
+            await OrderModel.updateOne(
+                { _id: linkedDelivery._id, captain: { $exists: false } },
+                { $set: { status: 'cancelled', cancelledAt: new Date(), cancelReason: 'ألغى التاجر الطلب' } }
+            );
+            const ioCap = req.app.get('io');
+            if (ioCap) ioCap.emit('order_removed', { orderId: String(linkedDelivery._id) });
+        }
 
         // 📦 إعادة المخزون للمنتجات عند رفض التاجر
         if (order.items && order.items.length > 0) {

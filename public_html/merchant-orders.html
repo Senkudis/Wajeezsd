@@ -490,6 +490,23 @@
         </div>`;
     }
 
+    /**
+     * 🚪 هل يستطيع التاجر الإلغاء الآن؟
+     *
+     * كان الزرّ يظهر عند «طلب جديد» فقط، فالتاجر الذي قَبِل ثم اكتشف أن
+     * المنتج تالف أو أن العميل لا يردّ **لا مخرج له** — ينتظر كابتناً ليأتي
+     * لطلبٍ لن يُسلَّم. والخادم كان يسمح بالإلغاء في التجهيز أصلاً؛ الواجهة
+     * وحدها هي التي أخفت الطريق.
+     *
+     * الحدّ الحقيقي ليس الحالة بل **وجود كابتن**: ما دام لم يقبله أحد فلا
+     * أحد في الطريق. وبعد الإسناد يصير القرار إدارياً — كابتنٌ قطع الطريق
+     * يستحقّ تعويضاً لا زرّاً في يد الطرف الآخر.
+     */
+    function canCancel(o) {
+        return ['shop_pending', 'shop_preparing', 'ready_for_pickup'].includes(o.status)
+            && !o.captain;
+    }
+
     // ── الإجراء التالي الوحيد ────────────────────────────────
     function buildNextAction(o) {
         const id = o._id;
@@ -501,9 +518,9 @@
                 <button class="btn-sec chat" onclick="openClientChat('${id}','${clientId}')">
                     <i class="bi bi-chat-dots-fill"></i> محادثة العميل
                 </button>
-                ${o.status === 'shop_pending' ? `
+                ${canCancel(o) ? `
                 <button class="btn-sec danger" onclick="rejectOrder('${id}')">
-                    <i class="bi bi-x-circle"></i> رفض الطلب
+                    <i class="bi bi-x-circle"></i> ${o.status === 'shop_pending' ? 'رفض الطلب' : 'إلغاء الطلب'}
                 </button>` : ''}
             </div>`;
 
@@ -866,12 +883,30 @@
     }
 
     async function rejectOrder(id) {
+        const o = allOrders.find(x => String(x._id) === String(id)) || {};
+        const isNew = o.status === 'shop_pending';
+        const paid  = o.paymentStatus === 'confirmed';
+        const published = o.status === 'ready_for_pickup';
+
+        // ⚠️ العميل دفع بالفعل ⇒ الإلغاء يعني ردّ مبلغه. لا يصحّ أن يمضي
+        //    التاجر في القرار دون أن يُقال له ذلك صراحةً.
+        const warn = [];
+        if (paid) warn.push('<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:9px;margin-bottom:8px;color:#b91c1c;font-weight:700;font-size:13px;">'
+            + 'العميل حوّل قيمة البضاعة بالفعل — الإلغاء يُلزمك بردّ المبلغ إليه.</div>');
+        if (published) warn.push('<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:9px;margin-bottom:8px;color:#1d4ed8;font-weight:700;font-size:13px;">'
+            + 'الطلب منشورٌ للكباتن الآن — سيُسحب منهم فوراً.</div>');
+
         const result = await Swal.fire({
-            title: 'رفض الطلب', input: 'text',
-            inputLabel: 'سبب الرفض (يظهر للعميل)',
+            title: isNew ? 'رفض الطلب' : 'إلغاء الطلب',
+            html: warn.join('') + '<div style="font-size:13px;color:#64748b;text-align:right;">'
+                + 'يظهر السبب للعميل، فاكتبه بوضوح.</div>',
+            input: 'text',
             inputPlaceholder: 'مثال: المنتج غير متوفر حالياً',
-            showCancelButton: true, confirmButtonText: 'رفض الطلب',
-            cancelButtonText: 'تراجع', confirmButtonColor: '#ef4444'
+            inputValidator: (v) => (!v || v.trim().length < 3) ? 'اكتب سبباً مفهوماً للعميل' : undefined,
+            showCancelButton: true,
+            confirmButtonText: isNew ? 'رفض الطلب' : 'نعم، ألغِ الطلب',
+            cancelButtonText: 'تراجع', confirmButtonColor: '#ef4444',
+            reverseButtons: true
         });
         if (!result.isConfirmed) return;
         try {
@@ -880,8 +915,15 @@
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason: result.value || 'رفض التاجر' })
             });
-            if (res.ok) { showToast('تم الرفض', 'تم إشعار العميل', 'info'); loadOrders(true); }
-            else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل رفض الطلب', 'error'); }
+            if (res.ok) {
+                showToast(isNew ? 'تم الرفض' : 'أُلغي الطلب',
+                    'تم إشعار العميل' + (published ? ' وسُحب من الكباتن' : ''), 'info');
+                loadOrders(true);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                Swal.fire('تعذّر الإلغاء', err.message || 'فشل إلغاء الطلب', 'error');
+                loadOrders(true);   // الحالة تغيّرت على الخادم — أعد المزامنة
+            }
         } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); }
     }
 
