@@ -676,15 +676,33 @@ router.get('/users/search', protect, requireAnyPermission(['send_notifications',
         const q = (req.query.q || '').trim();
         if (!q || q.length < 2) return res.json([]);
 
+        const AdminSearch = require('../../public_html/js/admin-search');
+
+        // 🛡️ تهريب المُدخَل قبل بنائه نمطاً: كان يُحقن خاماً، فنقطةٌ أو قوسٌ
+        //    في ما يكتبه الأدمن يُفسَّر كنمط — نتائج عشوائية، أو نمطٌ كارثيّ
+        //    يشغل الخادم على مجموعةٍ كبيرة.
+        const safe = AdminSearch.escapeRegex(q);
+        const or = [
+            { name:  { $regex: safe, $options: 'i' } },
+            // 📧 لم يكن يُبحَث فيه إطلاقاً
+            { email: { $regex: safe, $options: 'i' } }
+        ];
+
+        // 📞 الهاتف مخزَّنٌ 249XXXXXXXXX، فبحثُ النصّ الخام لا يجد `0912…`
+        //    أبداً — الصيغة الوحيدة التي كانت تعمل مصادفةً هي إسقاط الصفر.
+        //    نطابق على **جوهر الرقم** فتستوي كل الصيغ التي يكتبها الإنسان.
+        //    ولا نُرسي على نهاية الرقم: البحث يجري أثناء الكتابة، و«91234»
+        //    يجب أن تجد صاحبها قبل أن يُكمل الأدمن الرقم كلّه.
+        const core = AdminSearch.phoneCore(q);
+        if (core) or.push({ phone: { $regex: AdminSearch.escapeRegex(core) } });
+        else       or.push({ phone: { $regex: safe, $options: 'i' } });
+
         const users = await User.find({
-            $or: [
-                { name: { $regex: q, $options: 'i' } },
-                { phone: { $regex: q, $options: 'i' } }
-            ],
+            $or: or,
             role: { $in: ['client', 'captain', 'merchant'] },
             ...getAdminCityFilter(req) // 🌍 sub_admin يبحث في مدينته فقط
         })
-        .select('name phone role fcmToken')
+        .select('name phone email role fcmToken')
         .limit(10);
 
         res.json(users);

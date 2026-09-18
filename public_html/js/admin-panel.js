@@ -716,14 +716,14 @@ function filterOrders() {
     if (q) {
         //  اسم المتجر ضمن البحث: طلب المتجر بلا عناوين استلام/تسليم، فكان
         // البحث عنه مستحيلاً إلا باسم العميل — واسم المتجر أوّل ما يُبحث به.
-        filtered = filtered.filter(o =>
-            (o.client?.name || '').toLowerCase().includes(q) ||
-            (o.captain?.name || '').toLowerCase().includes(q) ||
-            (o.shopName || '').toLowerCase().includes(q) ||
-            (o.pickup?.address || '').toLowerCase().includes(q) ||
-            (o.dropoff?.address || '').toLowerCase().includes(q) ||
-            String(o.price).includes(q)
-        );
+        filtered = filtered.filter(o => AdminSearch.matches(q, {
+            name:  o.client?.name,
+            phone: o.client?.phone,
+            email: o.client?.email
+        }, [
+            o.captain?.name, o.captain?.phone, o.shopName,
+            o.pickup?.address, o.dropoff?.address, String(o.price)
+        ]));
     }
     renderAllOrders(filtered);
 }
@@ -901,10 +901,7 @@ window.filterUsers = function() {
         filtered = filtered.filter(u => u.isVerified);
     }
     if (q) {
-        filtered = filtered.filter(u =>
-            (u.name || '').toLowerCase().includes(q) ||
-            (u.phone || '').includes(q)
-        );
+        filtered = filtered.filter(u => AdminSearch.matches(q, u));
     }
     // عدّاد غير المفعلين في خيار الفلتر (يلفت نظر الأدمن للحسابات العالقة)
     const unverifiedCount = allUsers.filter(u => !u.isVerified).length;
@@ -1263,10 +1260,9 @@ function renderCaptainsTable(captains) {
 function filterCaptains() {
     const q = (document.getElementById('captainSearch')?.value || '').trim().toLowerCase();
     if (!q) { renderCaptainsTable(allCaptains); return; }
-    const filtered = (allCaptains || []).filter(c =>
-        (c.name || '').toLowerCase().includes(q) ||
-        (c.phone || '').toString().toLowerCase().includes(q)
-    );
+    const filtered = (allCaptains || []).filter(c => AdminSearch.matches(q, c, [
+        c.vehicleType, c.captainApplication?.nationalId, c.captainApplication?.plateNumber
+    ]));
     renderCaptainsTable(filtered);
 }
 
@@ -1551,8 +1547,7 @@ function searchBroadcastUser() {
             const res = await fetch(`${BASE}/api/admin/users`, { headers: headers() });
             const users = await res.json();
             const filtered = users.filter(u =>
-                (u.name || '').toLowerCase().includes(q.toLowerCase()) ||
-                (u.phone || '').includes(q)
+                AdminSearch.matches(q, u)
             ).slice(0, 20);
 
             if (!filtered.length) {
@@ -1712,8 +1707,8 @@ function _runCaptainSearch() {
 
     let found = false;
     Object.values(captainMarkers).forEach(({ marker, data, infoWindow }) => {
-        const nameMatch = (data.name || '').toLowerCase().includes(q);
-        const phoneMatch = (data.phone || '').includes(q);
+        const nameMatch  = AdminSearch.matches(q, { name: data.name });
+        const phoneMatch = AdminSearch.matches(q, { phone: data.phone });
         
         if (q === '') {
             marker.setAnimation(null);

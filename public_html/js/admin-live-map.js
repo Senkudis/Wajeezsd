@@ -500,9 +500,7 @@ function performSearch(query) {
     // Search through all known captains (on-map + offline)
     const results = Object.entries(loadedOnInit)
         .filter(([, d]) => {
-            const nameMatch  = (d.name  || '').toLowerCase().includes(q);
-            const phoneMatch = (d.phone || '').toLowerCase().includes(q);
-            return nameMatch || phoneMatch;
+            return AdminSearch.matches(q, d);
         })
         .map(([id, d]) => ({ id, ...d }))
         .slice(0, 8); // max 8 results

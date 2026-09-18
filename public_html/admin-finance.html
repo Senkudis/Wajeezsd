@@ -466,6 +466,7 @@
     <script src="js/admin-alerts.js?v=197ebabe"></script>
     <script src="js/admin-export.js?v=64f3a22c"></script>
     <script src="js/admin-palette.js?v=5e60d8d8"></script>
+<script src="js/admin-search.js?v=7649b4af"></script>
 </head>
 <body>
 
@@ -1243,12 +1244,9 @@ function renderPayments() {
 
     let list = currentFilter ? allPayments.filter(r => r.status === currentFilter) : allPayments;
     if (searchVal) {
-        list = list.filter(r => {
-            const name = (r.captainId?.name || '').toLowerCase();
-            const phone = (r.captainId?.phone || '').toLowerCase();
-            const txId = (r.transactionId || '').toLowerCase();
-            return name.includes(searchVal) || phone.includes(searchVal) || txId.includes(searchVal);
-        });
+        list = list.filter(r =>
+            AdminSearch.matches(searchVal, r.captainId || {}, [r.transactionId])
+        );
     }
 
     if (!list.length) {
