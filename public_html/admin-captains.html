@@ -239,6 +239,24 @@
 <script>
 'use strict';
 
+/* 🧰 دالّتا الشريط الجانبي.
+   ⚠️ كانتا معرَّفتين في js/admin-dashboard.js الذي **لا تُحمّله هذه
+   الصفحة** — فزرّ القائمة وزرّ الخروج كانا ميّتين تماماً. عرّفتُهما هنا
+   بدل تحميل الملفّ كلّه: فيه تهيئةُ لوحةٍ أخرى تعمل عند DOMContentLoaded
+   ولا شأن لها بهذه الصفحة. */
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('show');
+    const ov = document.getElementById('sidebarOverlay');
+    if (ov) ov.classList.toggle('show');
+}
+
+function logout() {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminName');
+    localStorage.removeItem('token');
+    window.location.href = 'admin-login.html';
+}
+
 const API = (typeof API_URL !== 'undefined' ? API_URL : '');
 const authHeaders = () => (window.Auth && window.Auth.getAuthHeader)
     ? window.Auth.getAuthHeader()

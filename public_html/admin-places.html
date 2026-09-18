@@ -200,7 +200,9 @@
                 <button class="nav-item" onclick="location.href='admin.html'">
                     <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
                 </button>
-                <button class="nav-item active" onclick="loadPlacesData()">
+                <!-- ⚠️ كان ينادي loadPlacesData() وهي غير موجودة — زرٌّ ميّت.
+                     الدالّة الفعليّة في js/admin-places.js اسمها loadAdminPlaces. -->
+                <button class="nav-item active" onclick="loadAdminPlaces()">
                     <i class="fas fa-store"></i><span>المحلات والتصنيفات</span>
                 </button>
 
