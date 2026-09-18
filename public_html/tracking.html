@@ -480,7 +480,7 @@
 
     <!-- Scripts -->
     <script src="js/maps-loader.js?v=9c3cdf9b"></script>
-    <script src="js/map-markers.js?v=f66d1f1b"></script>
+    <script src="js/map-markers.js?v=34f3acc0"></script>
     <script>loadGoogleMaps({ libraries: 'geometry,marker', need: ['routes'], callback: 'initTrackingMap' });</script>
     <script src="vendor/socket.io/socket.io.min.js"></script>
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
@@ -708,18 +708,143 @@
             });
         }
 
-        // ===== Smooth Marker Animation =====
-        function animateMarker(marker, from, to, duration = 500) {
-            const start = Date.now();
-            const step = () => {
-                const elapsed = Date.now() - start;
-                const t = Math.min(elapsed / duration, 1);
-                const lat = from.lat() + (to.lat() - from.lat()) * t;
-                const lng = from.lng() + (to.lng() - from.lng()) * t;
-                marker.setPosition({ lat, lng });
-                if (t < 1) requestAnimationFrame(step);
+        // ===== حركة الكابتن على الخريطة =====
+        //
+        // ما كان: مدّةٌ ثابتة 500ms مهما كانت المسافة، وسرعةٌ خطّية تبدأ
+        // وتقف فجأة، وأيقونةٌ لا تدور. فقفزةُ مئة متر وقفزةُ كيلومتر
+        // تستغرقان الوقت نفسه — الأولى تزحف والثانية تطير.
+        //
+        // الآن: المدّة تتبع المسافة، والتسارع ناعم الطرفين، والقرص يدور
+        // نحو وجهته. والقفزات البعيدة (انقطاع شبكة ثم عودة) تُنقَل فوراً
+        // بلا حركة: طيرانٌ عبر المدينة يكذب على العين.
+
+        let captainHeading = null;      // آخر اتجاه معروف، يُحفظ بين التحديثات
+        let captainAnimId  = 0;         // لإلغاء حركةٍ سابقة لم تكتمل
+
+        /** المسافة بالأمتار (هافرساين مبسّط يكفي لمسافات المدينة) */
+        function metersBetween(a, b) {
+            const R = 6371000, toRad = d => d * Math.PI / 180;
+            const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+            const s1 = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+            return 2 * R * Math.asin(Math.sqrt(s1));
+        }
+
+        /** زاوية السير بالدرجات (0 = شمال) */
+        function bearing(a, b) {
+            const toRad = d => d * Math.PI / 180, toDeg = r => r * 180 / Math.PI;
+            const y = Math.sin(toRad(b.lng - a.lng)) * Math.cos(toRad(b.lat));
+            const x = Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
+                      Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(toRad(b.lng - a.lng));
+            return (toDeg(Math.atan2(y, x)) + 360) % 360;
+        }
+
+        /** أقصر فرقٍ زاويّ — يمنع الدوران الطويل عند عبور 360°/0° */
+        function shortestTurn(from, to) {
+            return ((to - from + 540) % 360) - 180;
+        }
+
+        const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        function animateMarker(marker, fromLatLng, toLatLng) {
+            const from = { lat: fromLatLng.lat(), lng: fromLatLng.lng() };
+            const to   = { lat: toLatLng.lat(),   lng: toLatLng.lng()   };
+
+            const dist = metersBetween(from, to);
+            if (dist < 1) return;                       // ضجيج GPS — لا تحرّك شيئاً
+
+            const headTo = bearing(from, to);
+            const headFrom = (captainHeading === null) ? headTo : captainHeading;
+            const turn = shortestTurn(headFrom, headTo);
+
+            // قفزة بعيدة ⇒ نقلٌ فوريّ. الحركة عبر المدينة تكذب على العين.
+            if (dist > 600) {
+                captainHeading = headTo;
+                marker.setPosition(to);
+                setCaptainIcon(marker, headTo);
+                return;
+            }
+
+            // مدّةٌ تتبع المسافة: ٤ متر/إطار تقريباً، ضمن حدّين معقولين
+            const duration = Math.max(420, Math.min(2600, dist * 14));
+
+            const id = ++captainAnimId;
+            const t0 = performance.now();
+
+            const step = (now) => {
+                if (id !== captainAnimId) return;        // ألغتها حركةٌ أحدث
+                const p = Math.min((now - t0) / duration, 1);
+                const e = easeInOutCubic(p);
+
+                marker.setPosition({
+                    lat: from.lat + (to.lat - from.lat) * e,
+                    lng: from.lng + (to.lng - from.lng) * e
+                });
+
+                // الدوران يسبق الحركة قليلاً — كما يميل الراكب قبل أن ينعطف
+                const h = (headFrom + turn * Math.min(1, e * 1.6) + 360) % 360;
+                captainHeading = h;
+                setCaptainIcon(marker, h);
+
+                if (p < 1) requestAnimationFrame(step);
             };
             requestAnimationFrame(step);
+        }
+
+        /**
+         * 💓 هالةٌ نابضة تحت القرص.
+         *
+         * على خريطةٍ فيها مسارٌ ونقطتان، تضيع نقطةٌ ثالثة ساكنة. النبض
+         * يجعل العين تجدها في لحظة، ويقول ضمناً «هذا حيّ يتحرّك الآن» —
+         * وهو ما يأتي العميل إلى الشاشة ليتأكّد منه.
+         *
+         * دائرةٌ واحدة يتغيّر نصف قطرها وشفافيّتها، لا عنصر DOM: تبقى
+         * ملتصقة بالإحداثيات مهما حُرّكت الخريطة أو غُيّر تقريبها.
+         */
+        let captainPulse = null;
+        let pulseRaf = 0;
+
+        function addCaptainPulse(lat, lng) {
+            if (captainPulse || typeof google === 'undefined') return;
+            captainPulse = new google.maps.Circle({
+                map, center: { lat, lng },
+                strokeColor: '#04553A', strokeOpacity: 0.5, strokeWeight: 2,
+                fillColor: '#04553A', fillOpacity: 0.16,
+                radius: 30, clickable: false, zIndex: 998
+            });
+
+            const T0 = performance.now();
+            const tick = (now) => {
+                if (!captainPulse) return;
+                const cycle = ((now - T0) % 2200) / 2200;      // نبضة كل 2.2 ثانية
+                captainPulse.setRadius(26 + cycle * 62);
+                captainPulse.setOptions({
+                    fillOpacity: 0.17 * (1 - cycle),
+                    strokeOpacity: 0.5 * (1 - cycle)
+                });
+                if (captainMarker) captainPulse.setCenter(captainMarker.getPosition());
+                pulseRaf = requestAnimationFrame(tick);
+            };
+            pulseRaf = requestAnimationFrame(tick);
+        }
+
+        // توقّف النبض عند إخفاء الصفحة — لا نُشغّل rAF في الخلفية بلا فائدة
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (pulseRaf) cancelAnimationFrame(pulseRaf);
+                pulseRaf = 0;
+            } else if (captainPulse && !pulseRaf) {
+                const pos = captainMarker && captainMarker.getPosition();
+                captainPulse.setMap(null); captainPulse = null;
+                if (pos) addCaptainPulse(pos.lat(), pos.lng());
+            }
+        });
+
+        /** يُحدّث أيقونة القرص بالاتجاه الحالي ونوع وسيلة الكابتن */
+        function setCaptainIcon(marker, heading) {
+            if (typeof WajeezMarkers === 'undefined' || !WajeezMarkers.captainPuck) return;
+            const veh = currentOrder?.captain?.vehicleType || 'motorcycle';
+            marker.setIcon(WajeezMarkers.captainPuck(veh, heading));
         }
 
         async function fetchOrder() {
@@ -1175,8 +1300,12 @@
             } else {
                 captainMarker = new google.maps.Marker({
                     position: { lat, lng }, map, zIndex: 999,
-                    icon: (typeof WajeezMarkers !== 'undefined') ? WajeezMarkers.captain('available') : { url: SVG_CAPTAIN, scaledSize: new google.maps.Size(54, 54), anchor: new google.maps.Point(27, 27) }
+                    // قرصٌ دوّار بأيقونة وسيلة الكابتن — لا دبوس ثابت بدراجة هوائية
+                    icon: (typeof WajeezMarkers !== 'undefined' && WajeezMarkers.captainPuck)
+                        ? WajeezMarkers.captainPuck(currentOrder?.captain?.vehicleType, null)
+                        : { url: SVG_CAPTAIN, scaledSize: new google.maps.Size(54, 54), anchor: new google.maps.Point(27, 27) }
                 });
+                addCaptainPulse(lat, lng);
             }
         }
 
