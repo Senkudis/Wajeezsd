@@ -207,6 +207,29 @@
         .btn-primary-step:active { transform: scale(0.98); }
         .btn-primary-step:disabled { opacity: 0.65; }
         .btn-green { background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 4px 14px rgba(22,163,74,0.3); }
+
+        /* 🎨 لونٌ لكل خطوة — ثلاثة أزرار خضراء متتالية في الموضع نفسه
+           تُقرأ زرّاً واحداً يتكرّر، فيضغطها التاجر بلا قراءة. */
+        .btn-step1  { background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 14px rgba(37,99,235,.30); }
+        .btn-step2  { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 14px rgba(245,158,11,.30); }
+        .btn-publish{ background: linear-gradient(135deg, #16a34a, #047857); box-shadow: 0 6px 20px rgba(5,150,105,.38); }
+        /* زرّ اطّلاعٍ لا خطوة: يقع في موضع أزرار الخطوات، فيُميَّز عنها */
+        .btn-track  { background: linear-gradient(135deg, #0ea5e9, #0369a1); box-shadow: 0 4px 14px rgba(14,165,233,.30); }
+        .step-num {
+            width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+            background: rgba(255,255,255,.25); display: inline-grid; place-items: center;
+            font-size: 12.5px; font-weight: 900;
+        }
+
+        /* 📣 «لم يُنشر بعد» — الإشارة التي كانت غائبة تماماً */
+        .publish-state {
+            margin: 0 16px 10px; padding: 10px 12px; border-radius: 12px;
+            background: #fef2f2; border: 1.5px dashed #fca5a5;
+            display: flex; align-items: flex-start; gap: 9px;
+        }
+        .publish-state i { color: #dc2626; font-size: 1.05rem; margin-top: 1px; }
+        .publish-state strong { display: block; font-size: 13px; color: #b91c1c; font-weight: 800; }
+        .publish-state span { font-size: 11.5px; color: #7f1d1d; line-height: 1.6; }
         .btn-amber { background: linear-gradient(135deg, var(--amber), var(--amber-dark)); box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
         .secondary-row { display: flex; gap: 8px; margin-top: 8px; }
         .btn-sec {
@@ -427,17 +450,44 @@
         const readyDone = ['ready_for_pickup','captain_assigned','picked_up','delivered'].includes(o.status);
         const deliveredDone = o.status === 'delivered';
 
+        // ⚠️ كانت الخطوة الثالثة تُسمّى «التجهيز» — وهو نشاطٌ داخل المتجر لا
+        //    حدثٌ في النظام. فلا شيء في الشاشة كلّها كان يقول **متى يُنشر
+        //    الطلب للكباتن**. التاجر يقبل الطلب، يرى الشريط يتقدّم، فيظنّ أن
+        //    الكباتن رأوه — ويقف ينتظر من لم يُبلَّغ أصلاً.
+        //    التسمية الآن تصف الأثر: «النشر للكباتن».
         const steps = [
-            { lbl: 'القبول',   done: afterAccept, active: o.status === 'shop_pending' },
-            { lbl: 'الدفع',    done: payDone,     active: afterAccept && !payDone && !readyDone },
-            { lbl: 'التجهيز',  done: readyDone,   active: o.status === 'shop_preparing' && payDone },
-            { lbl: 'التسليم',  done: deliveredDone, active: readyDone && !deliveredDone }
+            { lbl: 'القبول',        done: afterAccept, active: o.status === 'shop_pending' },
+            { lbl: 'الدفع',         done: payDone,     active: afterAccept && !payDone && !readyDone },
+            { lbl: 'النشر للكباتن', done: readyDone,   active: o.status === 'shop_preparing' && payDone },
+            { lbl: 'التسليم',       done: deliveredDone, active: readyDone && !deliveredDone }
         ];
         return `<div class="steps-wrap"><div class="steps">` + steps.map((s, i) => `
             <div class="step ${s.done ? 'done' : ''} ${s.active ? 'active' : ''}">
                 <div class="step-dot">${s.done ? '<i class="bi bi-check-lg"></i>' : (i + 1)}</div>
                 <div class="step-lbl">${s.lbl}</div>
             </div>`).join('') + `</div></div>`;
+    }
+
+    /**
+     * 📣 هل رآه الكباتن؟ — سؤالٌ لم تكن الشاشة تجيبه.
+     *
+     * شكوى التجّار: «أعمل تأكيد الطلب وأقول إنه اتنشر للكباتن». وهم معذورون:
+     * القبول يُغيّر الحالة، والشريط يتقدّم، والزرّ أخضر كالذي قبله — كل
+     * الإشارات تقول «مضى»، ولا إشارة واحدة تقول «لم يخرج من متجرك بعد».
+     *
+     * هذه اللافتة تقولها صراحةً، وتبقى حتى لحظة النشر فعلاً.
+     */
+    function buildPublishState(o) {
+        const published = ['ready_for_pickup', 'captain_assigned', 'picked_up', 'delivered'].includes(o.status);
+        if (published || ['cancelled'].includes(o.status)) return '';
+
+        return `<div class="publish-state">
+            <i class="bi bi-eye-slash-fill"></i>
+            <div>
+                <strong>لم يُنشر للكباتن بعد</strong>
+                <span>لا يراه أي كابتن حتى تضغط زرّ النشر في الخطوة ٣</span>
+            </div>
+        </div>`;
     }
 
     // ── الإجراء التالي الوحيد ────────────────────────────────
@@ -464,8 +514,8 @@
                 : 'بعد القبول سيُطلب من العميل تحويل مبلغ البضاعة';
             return `<div class="next-action">
                 <div class="next-hint"><i class="bi bi-arrow-down-circle"></i> الخطوة التالية: ${hint}</div>
-                <button class="btn-primary-step btn-green" onclick="acceptOrder('${id}', this)">
-                    <i class="bi bi-check-circle-fill"></i> قبول الطلب
+                <button class="btn-primary-step btn-step1" onclick="acceptOrder('${id}', this)">
+                    <span class="step-num">١</span> قبول الطلب
                 </button>
                 ${secondary}
             </div>`;
@@ -477,8 +527,8 @@
             if (o.paymentStatus === 'receipt_sent' && o.paymentReceiptImage) {
                 return `<div class="next-action">
                     <div class="next-hint"><i class="bi bi-arrow-up-circle"></i> الخطوة التالية: راجع إشعار الدفع أعلاه ثم أكّد الاستلام</div>
-                    <button class="btn-primary-step btn-green" onclick="confirmPayment('${id}', this)">
-                        <i class="bi bi-patch-check-fill"></i> تأكيد استلام الدفع
+                    <button class="btn-primary-step btn-step2" onclick="confirmPayment('${id}', this)">
+                        <span class="step-num">٢</span> تأكيد استلام الدفع
                     </button>
                     ${secondary}
                 </div>`;
@@ -495,10 +545,14 @@
 
         // 3) قيد التنفيذ + الدفع مؤكد → الخطوة: جاهز
         if (o.status === 'shop_preparing' && o.paymentStatus === 'confirmed') {
+            // 🔑 الاسم يصف **الأثر** لا نشاط المتجر: «جاهز للاستلام» كانت
+            //    تصف حال البضاعة على الرفّ، والتاجر يريد أن يعرف ماذا يحدث
+            //    في النظام حين يضغط. ولونٌ ثالثٌ مختلف: ثلاثة أزرار خضراء
+            //    متتالية في الموضع نفسه تُقرأ زرّاً واحداً يتكرّر.
             return `<div class="next-action">
-                <div class="next-hint"><i class="bi bi-arrow-down-circle"></i> الخطوة التالية: عند اكتمال التجهيز اضغط الزر — سيُفتح الطلب للكباتن فوراً</div>
-                <button class="btn-primary-step btn-green" onclick="markReady('${id}', this)">
-                    <i class="bi bi-box-seam-fill"></i> الطلب جاهز للاستلام
+                <div class="next-hint"><i class="bi bi-megaphone-fill"></i> الخطوة الأخيرة عندك: بالضغط يظهر الطلب لكباتن المدينة فوراً</div>
+                <button class="btn-primary-step btn-publish" onclick="markReady('${id}', this)">
+                    <span class="step-num">٣</span> تمّ التجهيز — انشر الطلب للكباتن
                 </button>
                 ${secondary}
             </div>`;
@@ -529,7 +583,7 @@
                 ${capPhone ? `<a href="tel:${capPhone}" class="d-block mt-1" style="font-size:12px;color:#047857;">
                     <i class="bi bi-telephone-fill"></i> ${capPhone}</a>` : ''}
             </div>
-            <button class="btn-primary-step btn-green" style="margin-top:8px;" onclick="trackCaptain('${id}', this)">
+            <button class="btn-primary-step btn-track" style="margin-top:8px;" onclick="trackCaptain('${id}', this)">
                 <i class="bi bi-geo-alt-fill"></i> تتبع الكابتن على الخريطة
             </button>
             <div class="next-action" style="padding-top:0;">${secondary}</div>`;
@@ -614,6 +668,7 @@
             ${o.notes ? `<div class="addr-box" style="background:#fffbeb;"><i class="bi bi-chat-left-text-fill" style="color:var(--amber);"></i> ${window.escapeHtml(o.notes)}</div>` : ''}
             ${receiptHtml}
             ${buildSteps(o)}
+            ${buildPublishState(o)}
             ${buildNextAction(o)}
         </div>`;
     }
@@ -722,12 +777,29 @@
     }
 
     async function markReady(id, btn) {
-        busyBtn(btn, 'جاري الإبلاغ...');
+        // ✋ تأكيدٌ على هذه وحدها: هي اللحظة التي يخرج فيها الطلب من المتجر
+        //    إلى كباتن المدينة. ولأن التجّار كانوا يظنّون أن القبول ينشره،
+        //    فالرسالة تسمّي ما سيحدث الآن صراحةً.
+        const ok = await Swal.fire({
+            title: 'ننشر الطلب للكباتن؟',
+            html: '<div style="font-size:14px;line-height:1.9;text-align:right;">'
+                + 'سيظهر الطلب فوراً لكباتن مدينتك، ويأتي أوّل من يقبله لاستلامه.'
+                + '<br><strong>تأكّد أن الطلب مُجهَّز فعلاً قبل النشر.</strong></div>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، انشره الآن',
+            cancelButtonText: 'ليس بعد',
+            confirmButtonColor: '#047857',
+            reverseButtons: true
+        }).then(r => r.isConfirmed);
+        if (!ok) return;
+
+        busyBtn(btn, 'جاري النشر...');
         try {
             const res = await fetch(`${API_URL}/api/merchant/orders/${id}/ready`, {
                 method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });
-            if (res.ok) { showToast('الطلب جاهز', 'تم إشعار العميل وفتح الطلب للكباتن', 'success'); loadOrders(true); }
+            if (res.ok) { showToast('نُشر للكباتن', 'يراه كباتن مدينتك الآن — وسيصلك إشعار عند قبوله', 'success'); loadOrders(true); }
             else { const err = await res.json().catch(() => ({})); Swal.fire('خطأ', err.message || 'فشل تحديث الحالة', 'error'); loadOrders(true); }
         } catch (e) { Swal.fire('خطأ', 'فشل الاتصال بالسيرفر', 'error'); loadOrders(true); }
     }
