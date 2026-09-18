@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <script src="js/admin-guard.js?v=b336cfda" data-perm="view_captain_details"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ملفّات الكباتن | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="vendor/jquery/jquery-3.7.0.min.js"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+
+    <link rel="stylesheet" href="css/admin-dashboard.css?v=2a49b552">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
+
+    <script src="js/config.js?v=977449f7"></script>
+    <script src="js/admin-cache-buster.js?v=355a130e"></script>
+    <script src="js/auth-helper.js?v=c97361b3"></script>
+    <script src="js/vehicle-types.js?v=3a11758f"></script>
+    <script src="js/admin-search.js?v=7649b4af"></script>
+    <script src="js/img-lightbox.js?v=b97017cb"></script>
+
+    <style>
+        :root {
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --accent-dark: #0369a1;
+            --ok: #16a34a;
+            --warn: #d97706;
+            --bad: #dc2626;
+            --muted: #64748b;
+            --line: #e2e8f0;
+        }
+
+        /* ── شريط الأدوات ─────────────────────────────── */
+        .cap-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+        .cap-search { position: relative; flex: 1 1 260px; min-width: 0; }
+        .cap-search input {
+            width: 100%; padding: 11px 42px 11px 14px;
+            border: 1.5px solid var(--line); border-radius: 12px;
+            font-size: .95rem; font-family: inherit; background: #fff;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .cap-search input:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        .cap-search i {
+            position: absolute; inset-inline-end: 14px; top: 50%;
+            transform: translateY(-50%); color: var(--muted); pointer-events: none;
+        }
+        .cap-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .cap-chip {
+            border: 1.5px solid var(--line); background: #fff; color: #475569;
+            border-radius: 999px; padding: 8px 14px; font-size: .84rem;
+            font-weight: 700; font-family: inherit; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; transition: all .15s;
+        }
+        .cap-chip:hover { border-color: #cbd5e1; }
+        .cap-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .cap-chip .n { background: rgba(0,0,0,.08); border-radius: 999px; padding: 1px 7px; font-size: .76rem; min-width: 22px; }
+        .cap-chip.active .n { background: rgba(255,255,255,.25); }
+
+        /* ── إحصاء سريع ───────────────────────────────── */
+        .cap-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .cap-stat { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+        .cap-stat-ico { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; font-size: 1.05rem; }
+        .cap-stat-v { font-size: 1.45rem; font-weight: 800; line-height: 1; color: #0f172a; }
+        .cap-stat-l { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+
+        /* ── البطاقات ─────────────────────────────────── */
+        .cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+        .cap-card {
+            background: #fff; border: 1px solid var(--line); border-radius: 16px;
+            padding: 16px; cursor: pointer; transition: box-shadow .18s, transform .18s, border-color .18s;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .cap-card:hover { box-shadow: 0 8px 24px rgba(15,23,42,.08); transform: translateY(-2px); border-color: #cbd5e1; }
+        .cap-head { display: flex; align-items: center; gap: 12px; }
+        .cap-avatar {
+            width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+            object-fit: cover; background: var(--accent-light); color: var(--accent-dark);
+            display: grid; place-items: center; font-weight: 800; font-size: 1.1rem;
+        }
+        .cap-name { font-weight: 800; color: #0f172a; font-size: 1rem; line-height: 1.3; }
+        .cap-sub { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+        .cap-sub bdi { unicode-bidi: isolate; }
+
+        .badge-state { font-size: .72rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+        .st-approved { background: #dcfce7; color: #15803d; }
+        .st-pending  { background: #fef3c7; color: #b45309; }
+        .st-rejected { background: #fee2e2; color: #b91c1c; }
+        .st-blocked  { background: #1e293b; color: #f8fafc; }
+        .st-inactive { background: #e2e8f0; color: #475569; }
+
+        .cap-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border-top: 1px dashed var(--line); padding-top: 11px; }
+        .cap-meta div { text-align: center; }
+        .cap-meta .v { font-weight: 800; color: #0f172a; font-size: .95rem; }
+        .cap-meta .l { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+
+        .doc-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+        .doc-pill { font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; }
+        .doc-ok   { background: #dcfce7; color: #15803d; }
+        .doc-miss { background: #fee2e2; color: #b91c1c; }
+
+        /* ── لوح التفاصيل ─────────────────────────────── */
+        .cap-drawer { position: fixed; inset: 0; z-index: 2000; display: none; background: rgba(15,23,42,.55); }
+        .cap-drawer.open { display: block; }
+        .cap-panel {
+            position: absolute; inset-block: 0; inset-inline-start: 0;
+            width: min(560px, 100%); background: #f8fafc;
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 40px rgba(0,0,0,.25);
+            animation: capIn .22s cubic-bezier(.4,0,.2,1);
+        }
+        @keyframes capIn { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+        .cap-panel-head {
+            background: #fff; border-bottom: 1px solid var(--line);
+            padding: calc(14px + var(--sat, 0px)) 18px 14px;
+            display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+        }
+        .cap-panel-body { overflow-y: auto; padding: 16px 18px calc(24px + var(--sab, 0px)); }
+        .cap-x { margin-inline-start: auto; width: 36px; height: 36px; border: 0; border-radius: 10px; background: #f1f5f9; color: #475569; font-size: 1.15rem; cursor: pointer; }
+
+        .sec { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+        .sec-t { font-size: .78rem; font-weight: 800; color: var(--accent-dark); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+        .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: .88rem; }
+        .kv:last-child { border-bottom: 0; }
+        .kv .k { color: var(--muted); flex-shrink: 0; }
+        .kv .v { font-weight: 700; color: #0f172a; text-align: end; word-break: break-word; }
+        .kv .v bdi { unicode-bidi: isolate; }
+
+        .docs-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
+        .doc-box { text-align: center; }
+        .doc-box img, .doc-none { width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); display: block; cursor: zoom-in; }
+        .doc-none { display: grid; place-items: center; background: #f1f5f9; color: #cbd5e1; font-size: 1.4rem; cursor: default; }
+        .doc-cap { font-size: .7rem; margin-top: 5px; font-weight: 700; color: #475569; }
+        .pledge { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 11px 13px; font-size: .84rem; line-height: 1.85; color: #78350f; white-space: pre-wrap; }
+
+        .cap-empty { text-align: center; padding: 56px 20px; color: var(--muted); }
+        .cap-empty i { font-size: 2.6rem; color: #cbd5e1; margin-bottom: 12px; display: block; }
+
+        @media (max-width: 575px) { .cap-grid { grid-template-columns: 1fr; } }
+    </style>
+
+    <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=9f8d7083">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
+    <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-palette.js?v=5e60d8d8"></script>
+</head>
+
+<body>
+<div class="wrapper">
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo"><i class="fas fa-crown"></i></div>
+            <h2>وَجِيز</h2>
+            <p id="adminName">المدير العام</p>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">الإدارة</div>
+            <button class="nav-item" onclick="location.href='admin.html'">
+                <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+            </button>
+            <button class="nav-item active">
+                <i class="fas fa-id-card"></i><span>ملفّات الكباتن</span>
+            </button>
+            <div class="nav-label">روابط سريعة</div>
+            <button class="nav-item" onclick="location.href='admin-finance.html'">
+                <i class="fas fa-wallet"></i><span>الإدارة المالية</span>
+            </button>
+            <button class="nav-item" onclick="location.href='admin-live-map.html'">
+                <i class="fas fa-map-location-dot"></i><span>الخريطة الحية</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div class="header-title d-none d-md-block">
+                <h1>ملفّات الكباتن</h1>
+                <p>البيانات الثبوتية، الوثائق، الأداء، وحالة الطلب</p>
+            </div>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="admin-export-btn" onclick="exportCaptains()" title="تصدير CSV">
+                    <i class="fas fa-file-excel" style="color:#16a34a;"></i>
+                    <span class="d-none d-sm-inline">تصدير</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="cap-stats" id="stats"></div>
+
+            <div class="cap-toolbar">
+                <div class="cap-search">
+                    <input type="text" id="q" placeholder="ابحث بالاسم أو الهاتف أو البريد أو الرقم الوطني…" autocomplete="off">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="cap-chips" id="chips"></div>
+            </div>
+
+            <div id="list"></div>
+        </div>
+    </main>
+</div>
+
+<div class="cap-drawer" id="drawer" onclick="if(event.target===this)closeDrawer()">
+    <div class="cap-panel">
+        <div class="cap-panel-head">
+            <div id="drawerAvatar"></div>
+            <div style="min-width:0;">
+                <div class="cap-name" id="drawerName">—</div>
+                <div class="cap-sub" id="drawerSub">—</div>
+            </div>
+            <button class="cap-x" onclick="closeDrawer()" aria-label="إغلاق">&times;</button>
+        </div>
+        <div class="cap-panel-body" id="drawerBody"></div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+const API = (typeof API_URL !== 'undefined' ? API_URL : '');
+const authHeaders = () => (window.Auth && window.Auth.getAuthHeader)
+    ? window.Auth.getAuthHeader()
+    : { Authorization: 'Bearer ' + (localStorage.getItem('adminToken') || localStorage.getItem('token')) };
+
+let ALL = [];
+let FILTER = 'all';
+
+const STATES = {
+    approved: { label: 'معتمد',        cls: 'st-approved' },
+    pending:  { label: 'قيد المراجعة', cls: 'st-pending'  },
+    rejected: { label: 'مرفوض',        cls: 'st-rejected' },
+    blocked:  { label: 'محجوب',        cls: 'st-blocked'  },
+    inactive: { label: 'موقوف',        cls: 'st-inactive' }
+};
+
+const DOC_LABELS = {
+    idImage:       'الهوية',
+    selfieImage:   'السيلفي',
+    profilePhoto:  'شخصية',
+    vehiclePhoto:  'المركبة',
+    driverLicense: 'الرخصة'
+};
+
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const initials = (n) => String(n || '؟').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('');
+const fullUrl  = (u) => !u ? '' : (/^https?:/i.test(u) ? u : API + u);
+const fmtDate  = (d) => d ? new Date(d).toLocaleDateString('ar-SD', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+const money    = (n) => (Number(n) || 0).toLocaleString('ar-SD') + ' ج.س';
+const vehicle  = (v) => (v && window.VehicleTypes) ? window.VehicleTypes.iconLabel(v) : (v || '—');
+
+// رقمٌ داخل نصّ عربي: bdi يعزله فلا ينقلب ترتيبه
+const phoneHtml = (p) => p ? '<bdi dir="ltr">' + esc(p) + '</bdi>' : '—';
+
+async function load() {
+    const list = document.getElementById('list');
+    list.innerHTML = '<div class="cap-empty"><i class="fas fa-spinner fa-spin"></i>جارٍ التحميل…</div>';
+    try {
+        const res = await fetch(API + '/api/admin/captains-detailed', { headers: authHeaders() });
+        if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            list.innerHTML = '<div class="cap-empty"><i class="fas fa-lock"></i>' + esc(e.message || 'تعذّر الجلب') + '</div>';
+            return;
+        }
+        const data = await res.json();
+        ALL = data.captains || [];
+        renderStats();
+        renderChips();
+        render();
+    } catch (err) {
+        list.innerHTML = '<div class="cap-empty"><i class="fas fa-wifi"></i>تعذّر الاتصال</div>';
+    }
+}
+
+function counts() {
+    const c = { all: ALL.length, approved: 0, pending: 0, rejected: 0, blocked: 0, inactive: 0, missing: 0 };
+    for (const x of ALL) {
+        c[x.state] = (c[x.state] || 0) + 1;
+        if (x.missingDocsCount > 0) c.missing++;
+    }
+    return c;
+}
+
+function renderStats() {
+    const c = counts();
+    const tiles = [
+        ['fa-id-card', c.all, 'إجمالي الكباتن', '#0ea5e9', '#e0f2fe'],
+        ['fa-user-clock', c.pending, 'قيد المراجعة', '#d97706', '#fef3c7'],
+        ['fa-file-circle-exclamation', c.missing, 'وثائق ناقصة', '#dc2626', '#fee2e2'],
+        ['fa-circle-check', c.approved, 'معتمدون', '#16a34a', '#dcfce7']
+    ];
+    document.getElementById('stats').innerHTML = tiles.map(t =>
+        '<div class="cap-stat">' +
+            '<div class="cap-stat-ico" style="background:' + t[4] + ';color:' + t[3] + ';"><i class="fas ' + t[0] + '"></i></div>' +
+            '<div><div class="cap-stat-v">' + t[1] + '</div><div class="cap-stat-l">' + t[2] + '</div></div>' +
+        '</div>').join('');
+}
+
+function renderChips() {
+    const c = counts();
+    const chips = [
+        ['all', 'الكل', c.all],
+        ['pending', 'قيد المراجعة', c.pending],
+        ['approved', 'معتمد', c.approved],
+        ['rejected', 'مرفوض', c.rejected],
+        ['blocked', 'محجوب', c.blocked],
+        ['missing', 'وثائق ناقصة', c.missing]
+    ];
+    document.getElementById('chips').innerHTML = chips.map(ch =>
+        '<button class="cap-chip ' + (FILTER === ch[0] ? 'active' : '') + '" onclick="setFilter(\'' + ch[0] + '\')">' +
+        ch[1] + ' <span class="n">' + ch[2] + '</span></button>').join('');
+}
+
+function setFilter(f) { FILTER = f; renderChips(); render(); }
+
+function visible() {
+    const q = document.getElementById('q').value.trim();
+    return ALL.filter(c => {
+        if (FILTER === 'missing') { if (!c.missingDocsCount) return false; }
+        else if (FILTER !== 'all' && c.state !== FILTER) return false;
+
+        // 🔎 المطابقة المشتركة: الهاتف بأي صيغة، والبريد، والاسم بلا همزات
+        return AdminSearch.matches(q, c, [
+            c.application.nationalId, c.application.plateNumber,
+            c.application.whatsapp, c.application.address, c.vehicleType
+        ]);
+    });
+}
+
+function render() {
+    const rows = visible();
+    const list = document.getElementById('list');
+    if (!rows.length) {
+        list.innerHTML = '<div class="cap-empty"><i class="fas fa-user-slash"></i>لا كباتن مطابقون</div>';
+        return;
+    }
+    list.innerHTML = '<div class="cap-grid">' + rows.map(cardHtml).join('') + '</div>';
+}
+
+function cardHtml(c) {
+    const st = STATES[c.state] || STATES.approved;
+    const photo = fullUrl(c.documents.profilePhoto);
+    const avatar = photo
+        ? '<img class="cap-avatar" src="' + esc(photo) + '" alt="" data-fallback="' + esc(initials(c.name)) + '">'
+        : '<div class="cap-avatar">' + esc(initials(c.name)) + '</div>';
+
+    const pills = Object.keys(c.requiredDocs).map(k => {
+        const ok = c.requiredDocs[k];
+        return '<span class="doc-pill ' + (ok ? 'doc-ok' : 'doc-miss') + '">' +
+               '<i class="fas fa-' + (ok ? 'check' : 'xmark') + '"></i>' + DOC_LABELS[k] + '</span>';
+    }).join('');
+
+    return '<div class="cap-card" onclick="openDrawer(\'' + c._id + '\')">' +
+        '<div class="cap-head">' + avatar +
+            '<div style="min-width:0;flex:1;">' +
+                '<div class="cap-name">' + esc(c.name || 'بلا اسم') + '</div>' +
+                '<div class="cap-sub">' + phoneHtml(c.phone) + ' · ' + esc(vehicle(c.vehicleType)) + '</div>' +
+            '</div>' +
+            '<span class="badge-state ' + st.cls + '">' + st.label + '</span>' +
+        '</div>' +
+        '<div class="doc-pills">' + pills + '</div>' +
+        '<div class="cap-meta">' +
+            '<div><div class="v">' + c.deliveredCount + '</div><div class="l">توصيلة</div></div>' +
+            '<div><div class="v">' + (c.averageRating ? c.averageRating.toFixed(1) : '—') + '</div><div class="l">التقييم</div></div>' +
+            '<div><div class="v">' + fmtDate(c.joinedAt) + '</div><div class="l">الانضمام</div></div>' +
+        '</div>' +
+    '</div>';
+}
+
+// صورة مكسورة ⇒ الأحرف الأولى. بمستمعٍ واحد لا onerror مضمّن في كل بطاقة.
+document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    if (img.classList.contains('cap-avatar') && img.dataset.fallback) {
+        const d = document.createElement('div');
+        d.className = 'cap-avatar';
+        d.textContent = img.dataset.fallback;
+        img.replaceWith(d);
+    } else if (img.closest('.doc-box')) {
+        const d = document.createElement('div');
+        d.className = 'doc-none';
+        d.innerHTML = '<i class="fas fa-triangle-exclamation"></i>';
+        d.title = 'الملف غير موجود على الخادم';
+        img.replaceWith(d);
+    }
+}, true);
+
+function openDrawer(id) {
+    const c = ALL.find(x => String(x._id) === String(id));
+    if (!c) return;
+    const st = STATES[c.state] || STATES.approved;
+    const a = c.application;
+
+    const photo = fullUrl(c.documents.profilePhoto);
+    document.getElementById('drawerAvatar').innerHTML = photo
+        ? '<img class="cap-avatar" src="' + esc(photo) + '" alt="" data-fallback="' + esc(initials(c.name)) + '">'
+        : '<div class="cap-avatar">' + esc(initials(c.name)) + '</div>';
+    document.getElementById('drawerName').textContent = c.name || 'بلا اسم';
+    document.getElementById('drawerSub').innerHTML =
+        '<span class="badge-state ' + st.cls + '">' + st.label + '</span> · ' + phoneHtml(c.phone);
+
+    const kv = (k, v) => '<div class="kv"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>';
+    const ltr = (v) => v ? '<bdi dir="ltr">' + esc(v) + '</bdi>' : '—';
+
+    const docs = Object.keys(DOC_LABELS).map(key => {
+        const url = fullUrl(c.documents[key]);
+        return '<div class="doc-box">' +
+            (url
+                ? '<img src="' + esc(url) + '" alt="' + DOC_LABELS[key] + '" data-lightbox loading="lazy">'
+                : '<div class="doc-none"><i class="fas fa-xmark"></i></div>') +
+            '<div class="doc-cap">' + DOC_LABELS[key] + '</div></div>';
+    }).join('');
+
+    document.getElementById('drawerBody').innerHTML =
+        '<div class="sec">' +
+            '<div class="sec-t"><i class="fas fa-address-card"></i> البيانات الثبوتية</div>' +
+            kv('الرقم الوطني', ltr(a.nationalId)) +
+            kv('المنطقة', esc(a.address) || '—') +
+            kv('البريد', ltr(c.email)) +
+            kv('المدينة', c.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم') +
+            kv('واتساب', phoneHtml(a.whatsapp)) +
+        '</div>' +
+
+        '<div class="sec">' +
+            '<div class="sec-t"><i class="fas fa-truck-fast"></i> وسيلة التوصيل</div>' +
+            kv('النوع', esc(vehicle(c.vehicleType))) +
+            kv('رقم اللوحة', ltr(a.plateNumber)) +
+            kv('صندوق حمل', esc(a.hasCarrier) || '—') +
+        '</div>' +
+
+        '<div class="sec">' +
+            '<div class="sec-t"><i class="fas fa-phone-volume"></i> جهة الطوارئ</div>' +
+            kv('الاسم', esc(a.emergencyContactName) || '—') +
+            kv('الصلة', esc(a.emergencyRelation) || '—') +
+            kv('الهاتف', phoneHtml(a.emergencyPhone)) +
+        '</div>' +
+
+        '<div class="sec">' +
+            '<div class="sec-t"><i class="fas fa-images"></i> الوثائق — اضغط للتكبير</div>' +
+            '<div class="docs-row">' + docs + '</div>' +
+            (c.missingDocsCount
+                ? '<div class="mt-2 small fw-bold" style="color:var(--bad);">' +
+                  '<i class="fas fa-triangle-exclamation"></i> ' + c.missingDocsCount +
+                  ' وثيقة إجبارية ناقصة — لا يمكن اعتماده قبل رفعها</div>'
+                : '') +
+        '</div>' +
+
+        '<div class="sec">' +
+            '<div class="sec-t"><i class="fas fa-chart-simple"></i> الأداء والمحفظة</div>' +
+            kv('توصيلات مكتملة', c.deliveredCount) +
+            kv('التقييم', c.ratingCount ? (c.averageRating.toFixed(1) + ' من ' + c.ratingCount + ' تقييم') : 'لا تقييمات') +
+            kv('رصيد المحفظة', money(c.walletBalance)) +
+            kv('الحدّ الائتماني', c.creditLimit != null ? money(c.creditLimit) : '—') +
+            kv('الحالة', c.isBlocked ? 'محجوب' : (c.isActive ? 'نشط' : 'موقوف')) +
+        '</div>' +
+
+        '<div class="sec">' +
+            '<div class="sec-t"><i class="fas fa-clock-rotate-left"></i> التواريخ</div>' +
+            kv('الانضمام', fmtDate(c.joinedAt)) +
+            kv('تقديم الطلب', fmtDate(a.submittedAt)) +
+            (c.rejectionReason ? kv('سبب الرفض', esc(c.rejectionReason)) : '') +
+        '</div>' +
+
+        (a.pledgeText
+            ? '<div class="sec">' +
+              '<div class="sec-t"><i class="fas fa-file-signature"></i> الإقرار والتعهّد</div>' +
+              '<div class="pledge">' + esc(a.pledgeText) + '</div></div>'
+            : '');
+
+    document.getElementById('drawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+function exportCaptains() {
+    const rows = visible();
+    if (!rows.length) return;
+    const head = ['الاسم', 'الهاتف', 'البريد', 'المدينة', 'الحالة', 'الوسيلة', 'الرقم الوطني',
+                  'المنطقة', 'جهة الطوارئ', 'هاتف الطوارئ', 'توصيلات', 'التقييم', 'وثائق ناقصة', 'الانضمام'];
+    const cell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const lines = [head.join(',')].concat(rows.map(c => [
+        c.name, c.phone, c.email, c.city, (STATES[c.state] || {}).label, vehicle(c.vehicleType),
+        c.application.nationalId, c.application.address,
+        c.application.emergencyContactName, c.application.emergencyPhone,
+        c.deliveredCount, c.averageRating, c.missingDocsCount, fmtDate(c.joinedAt)
+    ].map(cell).join(',')));
+
+    // BOM لكي تفتح Excel العربية سليمة
+    const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'captains-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('q').addEventListener('input', render);
+load();
+</script>
+</body>
+</html>

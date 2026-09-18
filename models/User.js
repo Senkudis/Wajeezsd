@@ -237,6 +237,12 @@ const UserSchema = new mongoose.Schema(
             enum: [
                 'view_orders', 'manage_orders',
                 'view_captains', 'manage_captains',
+                // 🪪 ملفّ الكابتن الكامل: الرقم الوطني، العنوان، جهة الطوارئ،
+                //    صور الهوية والسيلفي. صلاحيةٌ مستقلّة عن view_captains عن
+                //    قصد — تلك تُظهر اسماً ورقماً ورصيداً، وهذه تكشف بياناتٍ
+                //    شخصيةً ثبوتية. من يتابع أداء الكباتن ليس بالضرورة من
+                //    يُصرَّح له بالاطّلاع على هوياتهم. (نفس منطق view_chats.)
+                'view_captain_details',
                 'view_stores', 'manage_stores',
                 'view_stats',         // إحصائيات مبسطة بدون أرباح وعملاء
                 'view_map',

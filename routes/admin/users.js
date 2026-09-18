@@ -90,6 +90,112 @@ router.get('/captains', protect, requirePermission('view_captains'), async (req,
     }
 });
 
+// @route   GET /api/admin/captains-detailed
+// @desc    ملفّ الكباتن الكامل لصفحة admin-captains.html
+// 🔐 صلاحية: view_captain_details — لا view_captains.
+//    تلك تُظهر اسماً ورقماً ورصيداً، وهذه تكشف الرقم الوطني والعنوان وجهة
+//    الطوارئ وصور الهوية والسيلفي. فصلُهما مقصود.
+
+router.get('/captains-detailed', protect, requirePermission('view_captain_details'), async (req, res) => {
+    try {
+        const captains = await User.find({
+            $or: [
+                { role: 'captain' },
+                // مُرقّىً ما زال طلبه معلّقاً: دورُه 'client' حتى القبول
+                { 'captainApplication.status': { $in: ['pending', 'rejected'] } }
+            ],
+            ...getAdminCityFilter(req)
+        })
+            .select(
+                'name phone email city role isActive isVerified approvalStatus vehicleType ' +
+                'wallet_balance credit_limit is_blocked averageRating ratingCount completedTrips ' +
+                'createdAt lastSeen currentLocation captainApplication documents rejectionReason'
+            )
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // 📊 إثراءٌ لا تملكه الوثيقة: عدد التوصيلات المكتملة فعلاً من الطلبات.
+        //    completedTrips حقلٌ يُزاد يدوياً وقد ينحرف؛ العدّ من المصدر أصدق.
+        const ids = captains.map(c => c._id);
+        const delivered = ids.length ? await Order.aggregate([
+            { $match: { captain: { $in: ids }, status: 'delivered' } },
+            { $group: { _id: '$captain', count: { $sum: 1 } } }
+        ]) : [];
+        const deliveredMap = Object.fromEntries(delivered.map(d => [String(d._id), d.count]));
+
+        const rows = captains.map(c => {
+            const app  = c.captainApplication || {};
+            const docs = c.documents || {};
+
+            // حالة موحّدة تُغني الواجهة عن استنتاجها من حقول متفرّقة
+            let state = 'approved';
+            if (app.status === 'pending' || (c.role === 'captain' && c.approvalStatus === 'pending')) state = 'pending';
+            else if (app.status === 'rejected' || c.approvalStatus === 'rejected') state = 'rejected';
+            if (c.is_blocked) state = 'blocked';
+            else if (state === 'approved' && !c.isActive) state = 'inactive';
+
+            const requiredDocs = {
+                idImage:      !!docs.idImage,
+                selfieImage:  !!docs.selfieImage,
+                profilePhoto: !!docs.profilePhoto,
+                vehiclePhoto: !!docs.vehiclePhoto
+            };
+
+            return {
+                _id: c._id,
+                name: c.name,
+                phone: c.phone,
+                email: c.email || '',
+                city: c.city,
+                role: c.role,
+                state,
+                vehicleType: c.vehicleType || '',
+                isActive: c.isActive,
+                isVerified: c.isVerified,
+                isBlocked: !!c.is_blocked,
+                walletBalance: c.wallet_balance || 0,
+                creditLimit: c.credit_limit,
+                averageRating: c.averageRating || 0,
+                ratingCount: c.ratingCount || 0,
+                deliveredCount: deliveredMap[String(c._id)] || 0,
+                joinedAt: c.createdAt,
+                lastSeen: c.lastSeen || null,
+                rejectionReason: app.rejectionReason || c.rejectionReason || '',
+                application: {
+                    status:               app.status || 'none',
+                    nationalId:           app.nationalId || '',
+                    address:              app.address || '',
+                    plateNumber:          app.plateNumber || '',
+                    whatsapp:             app.whatsapp || '',
+                    emergencyPhone:       app.emergencyPhone || '',
+                    emergencyContactName: app.emergencyContactName || '',
+                    emergencyRelation:    app.emergencyRelation || '',
+                    hasCarrier:           app.hasCarrier || '',
+                    pledgeText:           app.pledgeText || '',
+                    submittedAt:          app.submittedAt || null
+                },
+                documents: {
+                    idImage:       docs.idImage || '',
+                    selfieImage:   docs.selfieImage || '',
+                    profilePhoto:  docs.profilePhoto || '',
+                    vehiclePhoto:  docs.vehiclePhoto || '',
+                    driverLicense: docs.driverLicense || ''
+                },
+                requiredDocs,
+                missingDocsCount: Object.values(requiredDocs).filter(v => !v).length
+            };
+        });
+
+        await logAdminAction(req, 'view_captain_details',
+            `اطّلع على ملفّات الكباتن (${rows.length})`);
+
+        res.json({ captains: rows, total: rows.length });
+    } catch (error) {
+        logger.error({ err: error.message }, 'captains-detailed error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   GET /api/admin/merchants-list
 // @desc    لائحة التجار مع بياناتهم: الاسم، الهاتف، اسم المتجر، الفئة، عدد المنتجات
 // 🔐 صلاحية: view_stores
