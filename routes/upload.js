@@ -223,7 +223,13 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
         // 🔔 تنبيه الإدارة: الكابتن يُبلَّغ عند التسجيل بأن «طلبه سيُراجَع»، ولم يكن
         // أحد يُخبر الإدارة بذلك إطلاقاً — فيبقى ينتظر اعتماداً لا يعلم به أحد.
         // اللحظة هي رفع الوثائق لا التسجيل: قبلها لا شيء لتراجعه الإدارة.
-        if (req.user.role === 'captain' && req.user.approvalStatus === 'pending') {
+        // ⚠️ كان الشرط على الدور وحده: role === 'captain'. وبعد أن صار المُرقَّى
+        //    يبقى عميلاً حتى القبول، توقّف تنبيه الإدارة عن الوصول في ترقيات
+        //    العملاء تماماً — يرفع وثائقه ولا يعلم أحد. نفحص حالة الطلب أيضاً.
+        const _isCaptainApplicant =
+            (req.user.role === 'captain' && req.user.approvalStatus === 'pending')
+            || req.user.captainApplication?.status === 'pending';
+        if (_isCaptainApplicant) {
             try {
                 const { notifyAdmins } = require('../utils/notificationHelper');
                 await notifyAdmins(req.app, {

@@ -913,6 +913,7 @@
                 }
             }
 
+
             // تعبئة الإقرار عند دخول خطوته — بعد أن صار الاسم والرقم معروفين
             if (step === 3) prefillPledge();
 
@@ -930,7 +931,38 @@
             currentStep = step;
         }
 
+        // 📎 الوثائق الإجبارية.
+        //
+        // ⚠️ لم يكن يفحصها شيء إطلاقاً: التحقّق كلّه على الخطوة الثالثة
+        //    (الحقول النصّية)، والوثائق في الرابعة بلا شرط. وهذه الدالة ترفع
+        //    «ما وُجد» — فإن لم يُختر ملفٌ واحد لم يُستدعَ مسار الرفع أصلاً.
+        //    النتيجة: طلباتٌ تصل المراجعة بخمس علامات ✕، ولا المتقدّم يعلم
+        //    أنه نسي ولا شيء منعه.
+        //
+        //    ويُفحص هنا لا في goToStep: زرّ الإرسال يستدعي هذه مباشرة،
+        //    و goToStep(5) لا تقع إلا **بعد** نجاح الإرسال.
+        const REQUIRED_DOCS = [
+            ['idImage',      'صورة الهوية مطلوبة'],
+            ['profilePhoto', 'صورتك الشخصية مطلوبة'],
+            ['vehiclePhoto', 'صورة وسيلة التوصيل مطلوبة']
+        ];
+
+        function missingRequiredDoc() {
+            for (const [id, msg] of REQUIRED_DOCS) {
+                if (!pickedFile(id)) return { id, msg };
+            }
+            return null;
+        }
+
         async function submitRegistration() {
+            const missing = missingRequiredDoc();
+            if (missing) {
+                showAlert(missing.msg, 'error');
+                document.getElementById(`${missing.id}-label`)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
             const btn = document.getElementById('submitBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;

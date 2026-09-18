@@ -377,6 +377,25 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
         }
         if (!adminCanActOnUser(req, captain)) return res.status(403).json({ message: 'غير مصرح — هذا الكابتن خارج مدينتك' });
 
+        // 📎 لا قبول بوثائق ناقصة.
+        //
+        //    التحقّق في الواجهة يمنع الإرسال الناقص، لكنه واجهةٌ تُتجاوَز —
+        //    وطلبات قديمة وصلت فعلاً بلا وثيقةٍ واحدة. وقبولُ كابتنٍ بلا هوية
+        //    ولا صورةٍ لوسيلته يعني إسناد طلبات عملاء إلى شخصٍ مجهول.
+        const docs = captain.documents || {};
+        const missing = [
+            [docs.idImage,      'الهوية'],
+            [docs.profilePhoto, 'الصورة الشخصية'],
+            [docs.vehiclePhoto, 'صورة وسيلة التوصيل']
+        ].filter(([v]) => !v).map(([, label]) => label);
+
+        if (missing.length) {
+            return res.status(400).json({
+                message: `لا يمكن القبول — وثائق ناقصة: ${missing.join('، ')}. اطلب من المتقدّم رفعها ثم أعد المحاولة.`,
+                missingDocuments: missing
+            });
+        }
+
         // 🔑 هنا وحدها تقع الترقية — لا عند تقديم الطلب.
         if (isUpgrade) captain.role = 'captain';
 
