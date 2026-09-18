@@ -478,6 +478,8 @@
     <link rel="stylesheet" href="css/smart-search.css?v=8dc97789">
 
 
+    <script src="js/maps-link-input.js?v=4c2ac8f8"></script>
+    <script src="js/maps-link.js?v=ca39f0c5"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=ab12c7ad"></script>
 </head>
@@ -973,6 +975,16 @@
                         </div>
                     </div>
                 </div>
+                <!-- 🔗 لمن لا يُحسن وضع الدبوس: رابط الموقع يُحرّكه نيابةً عنه.
+                     ونُبقي التأكيد على زرّ الخريطة نفسه، فيمرّ الموقع بكل ما
+                     يمرّ به اليدويّ — فحص النطاق ومعاينة العنوان. -->
+                <details id="mapLinkBox" style="margin-bottom:10px;">
+                    <summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#2563eb;list-style:none;">
+                        <i class="bi bi-link-45deg"></i> لا تعرف تحديد الموقع؟ الصق رابط خرائط جوجل
+                    </summary>
+                    <div id="mapLinkHost" style="margin-top:9px;"></div>
+                </details>
+
                 <button id="map-confirm-btn" type="button" onclick="window.confirmLocationSelection()"
                     class="wj-confirm" style="touch-action:manipulation;position:relative;">
                     تأكيد الموقع
@@ -1770,5 +1782,34 @@
         </div>
     </div>
 
+
+<script>
+/* 🔗 حقل رابط الخرائط في ورقة تحديد الموقع.
+   عند التأكيد نُحرّك الخريطة إلى النقطة بدل تجاوزها: بهذا يمرّ الموقع
+   المُستخرَج من الرابط بنفس فحص النطاق ومعاينة العنوان الذي يمرّ به
+   الموقع المحدّد باليد — طريقٌ واحد لا طريقان. */
+(function () {
+    var box = document.getElementById('mapLinkBox');
+    if (!box) return;
+    var mounted = false;
+    box.addEventListener('toggle', function () {
+        if (!box.open || mounted || !window.MapsLinkInput) return;
+        mounted = true;
+        MapsLinkInput.mount('#mapLinkHost', {
+            label: 'رابط الموقع',
+            onPick: function (lat, lng) {
+                if (window.map && window.google && google.maps) {
+                    window.map.panTo({ lat: lat, lng: lng });
+                    window.map.setZoom(17);
+                }
+                if (typeof window.checkDeliveryZone === 'function') {
+                    setTimeout(window.checkDeliveryZone, 260);
+                }
+                box.open = false;
+            }
+        });
+    });
+})();
+</script>
 </body>
 </html>

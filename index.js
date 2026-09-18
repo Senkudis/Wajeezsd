@@ -311,6 +311,8 @@ apiRoutes.use('/captain', captainRoutes);
 apiRoutes.use('/emergency', require('./routes/emergency'));
 apiRoutes.use('/upload', require('./routes/upload'));
 apiRoutes.use('/places', require('./routes/places'));
+// 🔗 فكّ روابط خرائط جوجل المختصرة — الروابط التي لا تحمل إحداثياتها
+apiRoutes.use('/maps', require('./routes/maps'));
 // 🚩 الإبلاغ عن محتوى مسيء وحظر المستخدمين (App Store Guideline 1.2)
 apiRoutes.use('/reports', require('./routes/reports'));
 apiRoutes.use('/beacon', require('./routes/beacon'));

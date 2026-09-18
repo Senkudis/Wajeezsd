@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <!-- شاشة تحديد الموقع — نفس مصدر index.html -->
     <link rel="stylesheet" href="css/map-ui.css?v=6e46f188">
+    <script src="js/maps-link-input.js?v=4c2ac8f8"></script>
+    <script src="js/maps-link.js?v=ca39f0c5"></script>
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=ab12c7ad"></script>
@@ -433,6 +435,13 @@
                         <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#dc3545;"><i class="bi bi-geo-alt-fill"></i></span>
                     </div>
                     <input type="hidden" id="deliveryLat">
+                    <!-- 🔗 رابط الموقع لمن لا يُحسن تحديده على الخريطة -->
+                    <details id="shopLinkBox" style="margin-top:10px;">
+                        <summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#2563eb;list-style:none;">
+                            <i class="bi bi-link-45deg"></i> لا تعرف تحديد الموقع؟ الصق رابط خرائط جوجل
+                        </summary>
+                        <div id="shopLinkHost" style="margin-top:9px;"></div>
+                    </details>
                     <input type="hidden" id="deliveryLng">
                 </div>
                 
@@ -2397,5 +2406,35 @@
 <script src="js/theme-manager.js?v=ef048761"></script>
 <script>loadGoogleMaps({ libraries: 'places,geometry', need: ['routes'], callback: '__googleMapsReady' });</script>
     <script src="js/report-block.js?v=7f330204"></script>
+
+<script>
+/* 🔗 رابط الموقع في طلب المتجر — يملأ الحقول نفسها التي يملؤها منتقي
+   الخريطة، فلا مسار بيانات ثانٍ. */
+(function () {
+    var box = document.getElementById('shopLinkBox');
+    if (!box) return;
+    var mounted = false;
+    box.addEventListener('toggle', function () {
+        if (!box.open || mounted || !window.MapsLinkInput) return;
+        mounted = true;
+        MapsLinkInput.mount('#shopLinkHost', {
+            label: 'رابط موقع التسليم',
+            onPick: function (lat, lng, meta) {
+                var la = document.getElementById('deliveryLat');
+                var ln = document.getElementById('deliveryLng');
+                if (la) la.value = lat;
+                if (ln) ln.value = lng;
+                var addr = document.getElementById('deliveryAddress');
+                if (addr && !addr.value.trim() && meta && meta.address) addr.value = meta.address;
+                if (window.shopMap && window.google && google.maps) {
+                    window.shopMap.panTo({ lat: lat, lng: lng });
+                    window.shopMap.setZoom(17);
+                }
+                box.open = false;
+            }
+        });
+    });
+})();
+</script>
 </body>
 </html>
