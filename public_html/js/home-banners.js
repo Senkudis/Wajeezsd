@@ -132,3 +132,9 @@ if (document.readyState === 'loading') {
 } else {
     loadHomeBanners();
 }
+
+// ⚠️ الإعلانات مربوطة بالمدينة (‎/api/banners?city=…) وتُجلب مرّة واحدة عند
+//    التحميل. وتبديل المدينة في js/home.js ينادي window.HomeBanners.loadBanners
+//    لإعادة جلبها — ولم يكن هذا الكائن موجوداً أصلاً، فيسقط الشرط بصمت
+//    وتبقى إعلانات المدينة السابقة معروضة بعد الانتقال إلى مدينةٍ أخرى.
+window.HomeBanners = { loadBanners: loadHomeBanners };
