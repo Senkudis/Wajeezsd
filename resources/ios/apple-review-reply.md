@@ -11,6 +11,13 @@
 > Notes استعمل النسخة المقتضبة: `resources/ios/apple-review-notes.txt`.
 > النصّ الكامل هنا للصقه في **Messages** حيث لا حدّ.
 >
+> ⚠️ **صُحِّح موضعان كانا يناقضان التطبيق:**
+> - **الصيدليات**: أُخرجت من التطبيق كلّياً (5.1.1ix). والنصّ القديم كان
+>   يقول إنها موجودة — أي أنه يستدعي سؤالاً نجا منه التطبيق بالحذف.
+> - **الموقع في الخلفية**: النصّ القديم قال «أثناء رحلة نشطة فقط»، ونصّ
+>   الإذن داخل التطبيق يقول «من تفعيل متصل حتى إيقافه». والمراجع يقرأ
+>   الاثنين — ووصفٌ أضيق من الواقع يُقرأ تضليلاً.
+>
 > ⚠️ **لا حساب تاجر:** `create-review-accounts.js` يُنشئ عميلاً وكابتناً فقط.
 > حُذف ذكر حساب التاجر من هنا — الوعد بحساب لا تُعطيه سببُ رفضٍ مستقلّ.
 >
@@ -97,10 +104,14 @@ user-written reviews on store pages, so both mechanisms are provided:
 الحساب** (Delete Account) for customers; Profile → Delete Account permanently
 for captains and merchants.
 
-**Location permission.** Background location is requested for the **captain
-role only**, and only while an active delivery is in progress, so that the
-waiting customer can see the courier move on the map. It stops when the
-delivery ends. The customer role never requests background location.
+**Location permission.** Customers use location in the foreground only, to see
+nearby stores and place the drop-off pin. Background location is requested for
+the **captain role only**, and is used during a work shift — from the moment
+the captain switches to "Online" until they switch it off — so that nearby
+orders reach them and the waiting customer can watch the courier move on the
+map while the app is in the background. No location is collected while a
+captain is offline, and the customer role never requests background location.
+This is exactly what the in-app permission text states.
 
 ### 4. External services used
 
@@ -133,9 +144,9 @@ App Store storefront.
 
 The app does not operate in a regulated industry. It is a general courier and
 local-delivery service: no financial services, no healthcare services, no
-gambling, no pharmaceuticals dispensed or sold by us. Some listed stores are
-pharmacies, but the app only provides delivery for them — it does not sell,
-prescribe, or provide information about medicines.
+gambling. There are **no pharmacies and no medicines anywhere in the app** —
+that category was removed entirely and cannot be selected, searched, browsed
+or ordered through any path in the app.
 
 All content in the app is our own or is uploaded by the merchants themselves
 through their merchant accounts, and each merchant accepts our terms granting
