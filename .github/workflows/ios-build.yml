@@ -347,13 +347,24 @@ jobs:
 
           patch_key "ITSAppUsesNonExemptEncryption" "bool" "false"
 
-          # UIBackgroundModes — array تحتاج معالجة خاصة
+          # UIBackgroundModes — كل وضعٍ يُفحص وحده.
+          #
+          # ⚠️ كان الشرط على وجود **المصفوفة** لا على محتواها: إن وُجدت
+          #    يُتخطّى البلوك كلّه. وحين صارت إضافةٌ من إضافات Capacitor
+          #    تُنشئها بـ location وحدها، توقّفت remote-notification عن
+          #    الإضافة تماماً — وبلا هذا الوضع لا يوقظ الإشعارُ الصامت
+          #    التطبيقَ في الخلفية، والتطبيق يعتمد على إشعارات البيانات.
+          #    عطلٌ صامت: لا خطأ في البناء، والإشعارات تصل ناقصة.
           if ! /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$PLIST" > /dev/null 2>&1; then
             /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST"
-            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string location" "$PLIST"
-            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string remote-notification" "$PLIST"
-            echo "✅ أُضيف: UIBackgroundModes"
+            echo "✅ أُنشئت: UIBackgroundModes"
           fi
+          for MODE in location remote-notification; do
+            if ! /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$PLIST" | grep -qw "$MODE"; then
+              /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes: string $MODE" "$PLIST"
+              echo "✅ أُضيف وضع الخلفية: $MODE"
+            fi
+          done
 
           # CFBundleLocalizations
           if ! /usr/libexec/PlistBuddy -c "Print :CFBundleLocalizations" "$PLIST" > /dev/null 2>&1; then
@@ -527,6 +538,12 @@ jobs:
 
           # الاستحقاق أيضاً: بلا aps-environment لا يُصدر الجهاز توكناً أصلاً
           codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q 'aps-environment'             || { echo "::error::الحزمة الموقَّعة بلا aps-environment"; exit 1; }
+
+          # 🔔 وضع الخلفية للإشعارات — يُفحص في الحزمة نفسها.
+          #    غيابه لا يُفشل بناءً ولا يُظهر خطأً، لكنه يمنع الإشعار الصامت
+          #    من إيقاظ التطبيق. وقد سقط فعلاً في 1.4.3 قبل هذا الفحص.
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$APP/Info.plist" 2>/dev/null             | grep -qw 'remote-notification'             || { echo "::error::UIBackgroundModes بلا remote-notification — الإشعارات الصامتة لن تعمل";
+                 /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$APP/Info.plist" || true; exit 1; }
 
           echo "✅ GoogleService-Info.plist داخل الحزمة، والاستحقاق موقَّع معها"
 
