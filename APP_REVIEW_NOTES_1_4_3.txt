@@ -1,43 +1,78 @@
-Version 1.4.3 — what changed and why background location is used
+Version 1.4.3 (build 41). Previous approved version: 1.4.2.
 
-NEW IN THIS VERSION: BACKGROUND LOCATION (UIBackgroundModes: location)
+WHAT IS NEW
+The one substantive change is background location for the driver side only
+(UIBackgroundModes: location). The rest is bug fixes and interface work.
 
-wajeez is a local delivery app with two kinds of users: customers who order,
-and drivers ("captains") who deliver. Background location is used by the
-driver side only.
+BACKGROUND LOCATION — WHO, WHEN, WHY
 
-Who is tracked
-Only a signed-in driver account. Customers are never tracked in the background;
-the customer app requests location only in the foreground, to sort nearby stores
-and to place the delivery pin, and the app is fully usable with location denied.
+wajeez is a local delivery app with two kinds of users: customers who order, and
+drivers ("captains") who deliver. Background location applies to drivers only.
 
-When it runs
-The driver opens the app and turns on the "Online" switch to start a shift. From
-that moment until they switch it off, their position is shared. Turning the
-switch off stops tracking immediately. No location is collected while a driver
-is offline, and none is collected for customers.
+Who: only a signed-in driver account. Customers are never tracked in the
+background. The customer side asks for location in the foreground only, to sort
+nearby stores and place the delivery pin, and the app stays fully usable if
+location is denied.
 
-Why it must continue in the background
-A driver rides a motorbike with the phone in a pocket or on a mount with the
-screen locked. Without background location the position freezes the moment the
-screen turns off. Two things break:
+When: the driver taps the shift switch ("ابدأ الوردية" — start shift; the header
+then reads "متصل" / online). From that moment until they turn it off, position
+is shared. Turning it off stops tracking immediately. Nothing is collected while
+a driver is offline.
+
+Why it must continue in the background: a driver rides a motorbike with the
+phone in a pocket or on a mount, screen locked. Without background location the
+position freezes the moment the screen turns off, and two things break:
+
 1. The customer watching the live map sees a frozen marker and concludes the
    driver has stopped or abandoned the order. This was our most common support
    complaint before this version.
-2. Order dispatch sends each new order to the nearest available drivers. A stale
-   position means orders are offered to drivers who are no longer nearby.
+2. Dispatch offers each new order to the nearest available drivers. A stale
+   position means orders go to drivers who are no longer nearby.
 
-What the driver sees
-While tracking is active, Android shows a persistent notification ("You are
-online"), so the driver always knows location sharing is on and can stop it with
-one switch inside the app.
+Control: the shift switch is on the driver's main screen and is the single
+control — one tap starts, one tap stops. While offline the screen shows a banner
+saying the shift is stopped and no orders will arrive, so the state is never
+ambiguous.
 
-How to verify
-Sign in with the driver account below (in-app menu > "دخول الكابتن"), turn on
-the "Online" switch, and accept the location permission. The position updates
-are visible in the customer's tracking screen for an active order.
+Data handling: positions go to our own server only, are used for live tracking
+and dispatch, and are not shared with or sold to third parties. The app
+processes no payments; every order is cash on delivery.
 
-Data handling
-Positions are sent to our own server only, used for live order tracking and
-dispatch, and are not shared with or sold to third parties. The app processes no
-payments; every order is cash on delivery.
+HOW TO VERIFY
+
+1. Menu > "دخول الكابتن" (driver login), sign in with the driver account below.
+2. Tap "ابدأ الوردية" (start shift) and allow the location permission.
+3. Background the app or lock the screen.
+4. Sign in as the customer account, place an order, open the tracking screen:
+   the driver marker keeps moving. Tapping the shift switch again stops it.
+
+STILL TRUE FROM THE APPROVED 1.4.2
+
+Nothing here changes the points raised on earlier submissions:
+
+- Browsing without an account works: with no account a user can open the Shop
+  tab, all categories, any store page with products, prices and ratings, and
+  search. Registration is requested only for cart, ordering, history, favourites
+  and chat.
+- No highly regulated field. No healthcare and no pharmacies — medicines are not
+  sold, listed or searchable in any form. No banking or financial services: the
+  app processes no payments, every order is cash on delivery, no card or wallet.
+  No gambling, no air travel.
+- Goods come from independent local businesses (restaurants, groceries,
+  bakeries, cafés, clothing, beauty) that register with us and remain
+  responsible for their products and trade licences. We sell nothing and hold no
+  inventory.
+- The onboarding form collecting a bank account and an ID document is shown only
+  to business owners applying to sell, never to customers: the account is where
+  we transfer a merchant their own sales proceeds, the ID verifies that the
+  person registering a store owns it. Both are visible only to administrators
+  and are never returned by any public API.
+
+DEMO ACCOUNTS
+
+Customer — phone: <<<FILL>>>  password: <<<FILL>>>
+Driver (pre-approved) — menu > "دخول الكابتن" — phone: <<<FILL>>>  password: <<<FILL>>>
+Merchant — phone: <<<FILL>>>  password: <<<FILL>>>
+
+All are verified and will not ask for an SMS code. The driver is already
+approved, so the shift switch works immediately after signing in.
