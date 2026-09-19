@@ -472,7 +472,7 @@
     <link rel="stylesheet" href="css/enhanced-styles.css?v=c7becdb9">
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <!-- شاشة تحديد الموقع — مصدر واحد تتقاسمه مع shop-detail.html -->
-    <link rel="stylesheet" href="css/map-ui.css?v=6e46f188">
+    <link rel="stylesheet" href="css/map-ui.css?v=22cf50c4">
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/smart-search.css?v=8dc97789">
@@ -1798,9 +1798,15 @@
         MapsLinkInput.mount('#mapLinkHost', {
             label: 'رابط الموقع',
             onPick: function (lat, lng) {
-                if (window.map && window.google && google.maps) {
-                    window.map.panTo({ lat: lat, lng: lng });
-                    window.map.setZoom(17);
+                // ⚠️ الخريطة تُنشر باسم _activeMapInstance في js/home.js —
+                //    و`map` هناك `let` في نطاق الملف، فلا يضعه المتصفّح على
+                //    window أصلاً. فكان `window.map` دائماً undefined وهذا
+                //    البلوك لا يُنفَّذ قطّ: يُغلق الحقل ولا يتحرّك شيء، فيبدو
+                //    زرّ التأكيد ميّتاً.
+                var m = window._activeMapInstance || window.map;
+                if (m && window.google && google.maps) {
+                    m.panTo({ lat: lat, lng: lng });
+                    m.setZoom(17);
                 }
                 if (typeof window.checkDeliveryZone === 'function') {
                     setTimeout(window.checkDeliveryZone, 260);

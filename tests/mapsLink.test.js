@@ -146,8 +146,93 @@ describe('🖥️ المكوّن في الواجهة', () => {
     it('🔑 وفي طلب العميل يُحرّك الخريطة لا يتجاوزها', () => {
         // بهذا يمرّ الموقع بفحص النطاق ومعاينة العنوان كالموقع اليدويّ
         const idx = read('public_html/index.html');
-        const boot = idx.slice(idx.indexOf("MapsLinkInput.mount('#mapLinkHost'"));
-        expect(boot.slice(0, 700)).toContain('window.map.panTo');
-        expect(boot.slice(0, 700)).toContain('checkDeliveryZone');
+        const boot = idx.slice(idx.indexOf("MapsLinkInput.mount('#mapLinkHost'"), 900 + idx.indexOf("MapsLinkInput.mount('#mapLinkHost'"));
+        expect(boot).toContain('panTo');
+        expect(boot).toContain('checkDeliveryZone');
+    });
+});
+
+/**
+ * 🔴 العطل الذي أبلغ عنه المستخدم: زرّ «تأكيد هذا الموقع» لا يستجيب.
+ *
+ * السبب لم يكن في الزرّ: `onPick` كان يقرأ `window.map`، و`map` في
+ * js/home.js معرَّف بـ `let` في نطاق الملف — و`let` لا يضع المتغيّر على
+ * window (بخلاف `var`). فالشرط يسقط دائماً، فيُغلق الحقل ولا يتحرّك شيء.
+ *
+ * والاختبار الذي كان هنا يؤكّد وجود `window.map.panTo` — أي أنه كان
+ * **يحرس العطل**. فحصُ وجود نداءٍ في النصّ لا يقول شيئاً عن وجود الكائن
+ * الذي يُنادى عليه. لذلك يفحص ما يلي الطرفين معاً: القارئ والكاتب.
+ */
+describe('🔴 كل كائنٍ يُقرأ من window يجب أن يُكتب فيه', () => {
+    const globalsRead = (src) => {
+        const out = new Set();
+        for (const m of src.matchAll(/window\.(_?[A-Za-z][\w$]*)\s*(?:\.|\|\|)/g)) out.add(m[1]);
+        return out;
+    };
+
+    it('خريطة طلب التوصيل: ما يقرؤه onPick منشورٌ فعلاً في home.js', () => {
+        const idx = read('public_html/index.html');
+        const at = idx.indexOf("MapsLinkInput.mount('#mapLinkHost'");
+        const boot = idx.slice(at, at + 900);
+        const home = read('public_html/js/home.js');
+
+        // الاسم المقروء لا بدّ أن يكون مُسنَداً في home.js
+        expect(boot).toContain('window._activeMapInstance');
+        expect(home).toMatch(/window\._activeMapInstance\s*=/);
+
+        // و`map` وحده ليس على window: تأكيدُ أن الاعتماد عليه خطأ
+        expect(home).not.toMatch(/^\s*window\.map\s*=/m);
+    });
+
+    it('خريطة طلب المتجر: window.shopMap مُسنَدة لا مقروءةً فقط', () => {
+        const shop = read('public_html/shop-detail.html');
+        expect(shop).toContain('window.shopMap.panTo');
+        expect(shop).toMatch(/window\.shopMap\s*=\s*shopMap/);
+    });
+
+    it('ولا اسمٍ آخر يُقرأ في المُركِّبَين بلا إسناد', () => {
+        const pages = {
+            'public_html/index.html': ['public_html/js/home.js'],
+            'public_html/shop-detail.html': []
+        };
+        const missing = [];
+        for (const [page, extra] of Object.entries(pages)) {
+            const src = read(page);
+            const at = src.indexOf('MapsLinkInput.mount(');
+            if (at === -1) continue;
+            const boot = src.slice(at, at + 900);
+            const writers = [src, ...extra.map(read)].join('\n');
+            for (const name of globalsRead(boot)) {
+                if (name === 'google') continue;   // تُعرّفها مكتبة جوجل
+                if (!new RegExp('window\\.' + name + '\\s*=').test(writers)) {
+                    missing.push(`${page} -> window.${name}`);
+                }
+            }
+        }
+        expect(missing).toEqual([]);
+    });
+});
+
+describe('🔴 الدبوس لا ينفذ من البطاقة السفلية', () => {
+    // التعليقات تشرح الأرقام فتذكرها — تُنزع، وإلا قرأ الفحصُ نثراً لا تصريحاً
+    const css = read('public_html/css/map-ui.css').replace(/\/\*[\s\S]*?\*\//g, '');
+
+    const zOf = (selector) => {
+        const i = css.indexOf(selector + ' {');
+        if (i === -1) return null;
+        const block = css.slice(i, css.indexOf('}', i));
+        const m = block.match(/z-index:\s*(\d+)/);
+        return m ? Number(m[1]) : null;
+    };
+
+    it('البطاقة أعلى من الدبوس في نفس سياق التكديس', () => {
+        // الاثنان position:absolute داخل #static-map-container. بلا z-index
+        // على البطاقة كان الدبوس (z-index:5) يُرسم فوقها — ولم يُرَ قبلاً
+        // لأن البطاقة كانت أقصر من أن تبلغ منتصف الشاشة حيث يقف الدبوس.
+        const pin = zOf('.wj-pin');
+        const sheet = zOf('.wj-sheet');
+        expect(pin).toBe(5);
+        expect(sheet).not.toBeNull();
+        expect(sheet).toBeGreaterThan(pin);
     });
 });

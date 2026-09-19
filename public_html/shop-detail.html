@@ -13,7 +13,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
     <!-- شاشة تحديد الموقع — نفس مصدر index.html -->
-    <link rel="stylesheet" href="css/map-ui.css?v=6e46f188">
+    <link rel="stylesheet" href="css/map-ui.css?v=22cf50c4">
     <script src="js/maps-link-input.js?v=4c2ac8f8"></script>
     <script src="js/maps-link.js?v=ca39f0c5"></script>
     <script src="js/config.js?v=977449f7"></script>
@@ -1672,6 +1672,10 @@
             disableDefaultUI: true,
             gestureHandling: 'greedy'
         });
+        // ⚠️ `shopMap` معرَّف بـ let في نطاق الملف، فلا يضعه المتصفّح على
+        //    window. وحقل «الصق رابط الموقع» يقرأ window.shopMap ليُحرّك
+        //    الخريطة إلى النقطة — فكانت الحقول تُملأ والخريطة لا تتحرّك.
+        window.shopMap = shopMap;
 
         // ✅ FIX #2: لا نُنشئ dirService/dirRenderer هنا
         // سيُنشآن مرة واحدة فقط داخل confirmShopMap عند الضغط على التأكيد
