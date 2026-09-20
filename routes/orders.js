@@ -368,6 +368,18 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             }
         }
 
+        // ⏳ موعد نهاية نافذة البحث: عنده تسأل الواجهةُ العميلَ «أنتظر أم
+        //    ألغي؟». يُحسب من إعدادات المدينة لا برقمٍ مكتوب هنا، والطلب
+        //    المجدول لا نافذة له — بحثه يبدأ وقت نشره لا وقت إنشائه.
+        if (!orderData.scheduledAt) {
+            try {
+                const nudges = await Settings.getNudgeSettings(req.userCity);
+                orderData.searchDeadlineAt = new Date(Date.now() + nudges.clientDecisionMin * 60000);
+            } catch (e) {
+                logger.warn({ err: e.message }, 'searchDeadline: تعذّرت قراءة الإعدادات');
+            }
+        }
+
         const order = await Order.create(orderData);
 
         // ✅ تحديث عداد الكوبون — فقط للكود الذي تحقّقنا منه وأنتج خصماً فعلياً.
@@ -571,11 +583,54 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                 promoCode: order.promoCode,
                 paymentMethod: order.paymentMethod,
                 tip: order.tip?.amount || 0,
-                createdAt: order.createdAt
+                createdAt: order.createdAt,
+                searchDeadlineAt: order.searchDeadlineAt
             }
         });
     } catch (error) {
         logger.error({ err: error }, 'Create Order Failed');
+        res.status(500).json({ message: 'حدث خطأ في الخادم' });
+    }
+});
+
+// @route   PUT /api/orders/:id/extend-search
+// @desc    العميل اختار «أنتظر أكثر» عند نهاية نافذة البحث.
+//
+// لماذا نافذةٌ تُمدَّد بدل مهلةٍ تقتل: 83٪ من الطلبات المقبولة فعلاً تُقبل
+// خلال ساعة، والوسيط 12.8 دقيقة — فإعدام الطلب عند العشرين يُضيّع ثلث ما
+// كان سينجح. المطلوب إنهاء الصمت لا إنهاء الطلب.
+router.put('/:id/extend-search', protect, validateObjectId, async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id).select('client status searchExtendCount city');
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (String(order.client) !== String(req.user.id)) {
+            return res.status(403).json({ message: 'غير مصرّح' });
+        }
+        // التمديد لا معنى له إلا والطلب ما زال يبحث
+        if (order.status !== 'pending') {
+            return res.status(400).json({ message: 'الطلب لم يعد في مرحلة البحث' });
+        }
+
+        const nudges = await Settings.getNudgeSettings(order.city);
+        const next = new Date(Date.now() + nudges.clientDecisionMin * 60000);
+
+        // شرط الحالة داخل التحديث: لو قبله كابتنٌ في هذه اللحظة لا نمدّد
+        // نافذة بحثٍ لطلبٍ صار مُسنَداً.
+        const updated = await Order.findOneAndUpdate(
+            { _id: order._id, status: 'pending' },
+            { $set: { searchDeadlineAt: next }, $inc: { searchExtendCount: 1 } },
+            { new: true }
+        ).select('searchDeadlineAt searchExtendCount status');
+
+        if (!updated) return res.status(400).json({ message: 'الطلب لم يعد في مرحلة البحث' });
+
+        res.json({
+            message: 'واصلنا البحث لك',
+            searchDeadlineAt: updated.searchDeadlineAt,
+            searchExtendCount: updated.searchExtendCount
+        });
+    } catch (error) {
+        logger.error({ err: error }, 'extend-search failed');
         res.status(500).json({ message: 'حدث خطأ في الخادم' });
     }
 });

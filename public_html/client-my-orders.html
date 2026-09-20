@@ -292,6 +292,30 @@
         .searching-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
         .searching-sub { font-size: 12px; opacity: 0.92; line-height: 1.6; }
 
+        /* ⏳ عدّاد نافذة البحث — يحوّل الانتظار من صمتٍ مفتوح إلى وعدٍ محدّد */
+        .search-countdown {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 10px; padding: 5px 14px; border-radius: 999px;
+            background: rgba(255, 255, 255, .18); color: #fff;
+            font-weight: 800; font-size: 13px;
+            font-variant-numeric: tabular-nums;   /* الرقم لا يرقص وهو ينزل */
+        }
+        /* لوحة القرار: بلا رادارٍ يدور — البحث توقّف والسؤال مطروح */
+        .searching-panel.decision { background: linear-gradient(135deg, #b45309, #92400e); }
+        .decision-ic {
+            width: 46px; height: 46px; border-radius: 50%; margin: 0 auto 10px;
+            background: rgba(255, 255, 255, .16); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+        }
+        /* الأحمر الافتراضي يكاد يختفي على الكهرماني — حدٌّ أبيض يُقرأ */
+        .decision-cancel {
+            background: transparent; color: #fff;
+            border: 1.5px solid rgba(255, 255, 255, .75);
+        }
+        .decision-cancel:hover, .decision-cancel:active {
+            background: rgba(255, 255, 255, .15); color: #fff;
+        }
+
         /* 💬 بطاقات عروض التفاوض (Captain Offers) */
         .offers-header {
             font-weight: 800; font-size: 13.5px; color: var(--primary);
@@ -509,7 +533,44 @@
         };
 
         // ───── 🔍 لوحة "جاري البحث عن كابتن" المتحركة (حالة الانتظار) ─────
-        function renderSearchingPanel() {
+        //
+        // ⏳ العدّاد: كان الانتظار صمتاً مفتوحاً بلا نهاية معلومة — 216 طلباً
+        //    ماتت انتظاراً بوسيط 111 دقيقة، و60 عميلاً لم يصبروا عشر دقائق.
+        //    الرقم النازل يحوّل الصمت إلى وعدٍ محدّد؛ وعند انتهائه يُسأل
+        //    العميل «أنتظر أم ألغي؟» بدل أن يُترك أو يُلغى عنه.
+        function renderSearchingPanel(order) {
+            const deadline = order && order.searchDeadlineAt ? new Date(order.searchDeadlineAt) : null;
+            const hasDeadline = deadline && !isNaN(deadline.getTime());
+            const expired = hasDeadline && deadline.getTime() <= Date.now();
+
+            if (expired) {
+                return `
+                <div class="searching-panel mb-2 decision" data-order="${order._id}">
+                    <div class="decision-ic"><i class="bi bi-hourglass-bottom"></i></div>
+                    <div class="searching-title">لم نجد كابتناً متاحاً بعد</div>
+                    <div class="searching-sub">
+                        طلبك ما زال معروضاً. تحب نواصل البحث، ولا تلغي الطلب؟
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-success flex-fill rounded-pill fw-bold"
+                            onclick="extendSearch('${order._id}', this)">
+                            <i class="bi bi-arrow-clockwise me-1"></i> واصل البحث
+                        </button>
+                        <button class="btn decision-cancel flex-fill rounded-pill fw-bold"
+                            onclick="cancelOrder('${order._id}')">
+                            <i class="bi bi-x-circle me-1"></i> ألغِ الطلب
+                        </button>
+                    </div>
+                </div>`;
+            }
+
+            const countdown = hasDeadline
+                ? `<div class="search-countdown" data-deadline="${deadline.toISOString()}"
+                        data-order="${order._id}">
+                     <i class="bi bi-clock"></i> <span class="cd-val">--:--</span>
+                   </div>`
+                : '';
+
             return `
             <div class="searching-panel mb-2">
                 <div class="radar">
@@ -521,10 +582,50 @@
                     أرسلنا طلبك للكباتن القريبين منك<br>
                     ستصلك عروض الأسعار خلال لحظات — يمكنك اختيار الأنسب
                 </div>
+                ${countdown}
                 <div class="searching-progress"></div>
                 <div class="typing-dots mt-2"><span></span><span></span><span></span></div>
             </div>`;
         }
+
+        // يُحدّث كل العدّادات المعروضة كل ثانية. عند بلوغ الصفر تُعاد الرسم
+        // مرّة واحدة فتظهر لوحة القرار مكان العدّاد.
+        let _cdTimer = null;
+        function startCountdowns() {
+            if (_cdTimer) clearInterval(_cdTimer);
+            const tick = () => {
+                const nodes = document.querySelectorAll('.search-countdown');
+                if (!nodes.length) { clearInterval(_cdTimer); _cdTimer = null; return; }
+                let anyExpired = false;
+                nodes.forEach(n => {
+                    const left = new Date(n.dataset.deadline).getTime() - Date.now();
+                    if (left <= 0) { anyExpired = true; return; }
+                    const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+                    const val = n.querySelector('.cd-val');
+                    if (val) val.textContent = `${m}:${String(s).padStart(2, '0')}`;
+                });
+                if (anyExpired) { clearInterval(_cdTimer); _cdTimer = null; loadOrders(); }
+            };
+            tick();
+            _cdTimer = setInterval(tick, 1000);
+        }
+
+        // «واصل البحث» — يمدّ النافذة بدل أن يموت الطلب صامتاً
+        window.extendSearch = async function (id, btn) {
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
+            try {
+                const res = await fetch(`${API_URL}/api/orders/${id}/extend-search`, {
+                    method: 'PUT', headers: window.Auth.getAuthHeader()
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    Swal.fire('تعذّر', data.message || 'لم نستطع تمديد البحث', 'info');
+                }
+            } catch (e) {
+                Swal.fire('تعذّر الاتصال', 'تحقّق من الإنترنت ثم أعد المحاولة', 'error');
+            }
+            loadOrders();
+        };
 
         // ───── 🏬 لوحة "بانتظار موافقة المتجر" (طلب المتجر وصل للتاجر ولم يُقبل بعد) ─────
         function renderMerchantWaitingPanel() {
@@ -907,8 +1008,13 @@
                                     activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-1" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
                                 } else {
                                     // لا عروض بعد → لوحة "جاري البحث عن كابتن" المتحركة
-                                    activeBtns = renderSearchingPanel();
-                                    activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-2" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
+                                    activeBtns = renderSearchingPanel(order);
+                                    // لوحة القرار تحمل زرّ الإلغاء داخلها، فلا يُكرَّر تحتها
+                                    const _expired = order.searchDeadlineAt &&
+                                        new Date(order.searchDeadlineAt).getTime() <= Date.now();
+                                    if (!_expired) {
+                                        activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-2" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
+                                    }
                                 }
                             }
                         } else if (order.status === 'chat_initiated') {
@@ -1156,6 +1262,9 @@
                         _activeFilter = hasActive ? 'active' : 'all';
                     }
                     applyOrderFilter(_activeFilter);
+
+                    // ⏳ يُشغَّل بعد الرسم لا قبله: العدّادات عناصر في الصفحة
+                    startCountdowns();
 
                     if (currentPage < currentTotalPages) {
                         const loadMoreHtml = `

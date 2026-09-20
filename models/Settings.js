@@ -206,6 +206,12 @@ const settingsSchema = new mongoose.Schema({
         clientDelay1: { type: Number, default: 30,  min: 1, max: 1440 },
         clientDelay2: { type: Number, default: 120, min: 1, max: 1440 },
 
+        // ⏳ نافذة القرار: بعدها يُسأل العميل «أنتظر أم ألغي؟» بدل أن يبقى
+        //    في صمتٍ مفتوح. ليست إعداماً للطلب — 83٪ من الطلبات المقبولة
+        //    فعلاً تُقبل خلال ساعة، فقتلُها عند عشرين دقيقة يُضيّع ثلثها.
+        //    الإلغاء التلقائي يبقى عند ست ساعات كما هو.
+        clientDecisionMin: { type: Number, default: 20, min: 5, max: 360 },
+
         // الكابتن: قَبِل الطلب ولم يستلم الطرد
         captainPickup1: { type: Number, default: 15, min: 1, max: 1440 },
         captainPickup2: { type: Number, default: 40, min: 1, max: 1440 },
@@ -263,6 +269,7 @@ const NUDGE_DEFAULTS = Object.freeze({
     enabled: true,
     clientDelay1: 30,
     clientDelay2: 120,
+    clientDecisionMin: 20,
     captainPickup1: 15,
     captainPickup2: 40,
     captainDeliver1: 30,

@@ -95,6 +95,14 @@ const OrderSchema = new mongoose.Schema(
         pickedUpAt:  { type: Date, default: null },
         deliveredAt: { type: Date, default: null },
 
+        // ⏳ نهاية نافذة البحث الحالية: عندها يُسأل العميل «أنتظر أم ألغي؟».
+        //    كان الطلب يبقى معلّقاً في صمتٍ مفتوح حتى الكنس بعد ست ساعات —
+        //    216 طلباً ماتت انتظاراً بوسيط 111 دقيقة، و60 عميلاً لم يصبروا
+        //    عشر دقائق. الموعد يُرسَل للواجهة فتعرض عدّاداً بدل صمت.
+        searchDeadlineAt:   { type: Date, default: null },
+        // كم مرّة اختار العميل «أنتظر أكثر» — للقياس ولمنع التمديد اللانهائي
+        searchExtendCount:  { type: Number, default: 0 },
+
         // 📣 وقت بثّ الطلب لكل الكباتن (الموجة 2). null = لم يُبَثّ للكل بعد.
         // شبكة الأمان في scheduler تلتقط الطلبات المعلّقة التي ضاع مؤقّت موجتها الثانية.
         dispatchedAllAt: { type: Date, default: null },
