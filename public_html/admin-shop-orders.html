@@ -212,8 +212,16 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
         const client = esc(o.client?.name || 'عميل');
         const clientPhone = o.client?.phone || '';
         const cap = o.captain?.name ? ` · الكابتن: ${esc(o.captain.name)}` : '';
-        const canCancel = !['cancelled', 'ready_for_pickup', 'captain_assigned', 'picked_up', 'delivered'].includes(o.status);
-        const cancelBtn = canCancel ? `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o._id}')"><i class="bi bi-x-circle"></i> إلغاء إجباري</button>` : '';
+        // 🔗 بعد أن يخرج الطلب للتوصيل لا يُلغى من هنا بل من طلب التوصيل
+        //    المرتبط — وإلغاؤه يُسقط طلب المتجر ويُرجع المخزون تلقائياً
+        //    (post-save في models/Order.js). كانت الإدارة تُطرد إلى شاشةٍ
+        //    أخرى لتبحث عنه يدوياً؛ الآن يُلغى من مكانه.
+        const liveDelivery = o.deliveryOrderId && o.deliveryStatus &&
+            !['cancelled', 'delivered'].includes(o.deliveryStatus);
+        const canCancel = o.status !== 'cancelled' && o.status !== 'delivered';
+        const cancelBtn = !canCancel ? '' : (liveDelivery
+            ? `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o.deliveryOrderId}', true)"><i class="bi bi-x-circle"></i> إلغاء الطلب والتوصيل</button>`
+            : `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o._id}', false)"><i class="bi bi-x-circle"></i> إلغاء إجباري</button>`);
         return `
         <div class="so-card ${flash ? 'flash' : ''}" id="so-${o._id}">
             <div class="d-flex justify-content-between align-items-start">
@@ -289,10 +297,14 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
         } catch (e) { currentPage--; }
     }
 
-    window.forceCancel = async function(id) {
+    // isDelivery: المعرّف لطلب التوصيل المرتبط لا لطلب المتجر — إلغاؤه
+    // يُسقط طلب المتجر معه ويُرجع المخزون ويُشعر الكابتن أيضاً.
+    window.forceCancel = async function(id, isDelivery) {
         const result = await Swal.fire({
-            title: 'إلغاء الطلب إدارياً',
-            text: 'سيتم إلغاء الطلب نيابة عن التاجر وإرجاع المخزون وإشعار الأطراف. هل أنت متأكد؟',
+            title: isDelivery ? 'إلغاء الطلب والتوصيل معاً' : 'إلغاء الطلب إدارياً',
+            text: isDelivery
+                ? 'الطلب خرج للتوصيل. سيُلغى طلب التوصيل وطلب المتجر معاً، ويُرجَع المخزون، ويُشعَر العميل والتاجر والكابتن. هل أنت متأكد؟'
+                : 'سيتم إلغاء الطلب نيابة عن التاجر وإرجاع المخزون وإشعار الأطراف. هل أنت متأكد؟',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'نعم، إلغاء إجباري',
@@ -302,7 +314,8 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
         if (!result.isConfirmed) return;
 
         try {
-            const res = await fetch(`${API_URL}/api/admin/shop-orders/${id}/cancel-force`, {
+            const path = isDelivery ? 'orders' : 'shop-orders';
+            const res = await fetch(`${API_URL}/api/admin/${path}/${id}/cancel-force`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });

@@ -267,6 +267,26 @@ router.get('/shop-orders', protect, requirePermission('view_orders'), async (req
         const counts = {};
         countsAgg.forEach(c => { counts[c._id] = c.n; });
 
+        // 🔗 طلب التوصيل المرتبط بكل طلب متجر.
+        //    الرابط أحاديّ الاتجاه (Order.shopOrderId) فلا سبيل لقراءته من
+        //    ShopOrder وحده. وبدونه كانت الإدارة تُطرد إلى شاشة الطلبات
+        //    لتبحث يدوياً عن الطلب المقابل كي تُلغيه — والإلغاء هناك هو
+        //    الطريق الوحيد بعد أن يخرج الطلب للتوصيل (post-save في Order
+        //    يُسقط طلب المتجر ويُرجع المخزون).
+        const ids = orders.map(o => o._id);
+        if (ids.length) {
+            const links = await Order.find({ shopOrderId: { $in: ids } })
+                .select('_id status shopOrderId').lean();
+            const byShop = new Map(links.map(l => [String(l.shopOrderId), l]));
+            orders.forEach(o => {
+                const l = byShop.get(String(o._id));
+                if (l) {
+                    o.deliveryOrderId = l._id;
+                    o.deliveryStatus = l.status;
+                }
+            });
+        }
+
         res.json({ orders, total, counts, currentPage: page, totalPages: Math.ceil(total / limit) });
     } catch (error) {
         logger.error('Admin shop-orders error:', error);
