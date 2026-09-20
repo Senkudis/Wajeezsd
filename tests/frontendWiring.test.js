@@ -168,3 +168,23 @@ describe('لا env() خام في أي ورقة أنماط أو صفحة', () => 
         expect(offenders).toEqual([]);
     });
 });
+
+describe('تنظيف الطرفية يعمل في كل الصفحات', () => {
+    it('كل صفحة تحمّل سكربتات المشروع تحمّل console-cleaner', () => {
+        // كان محمَّلاً في صفحتين من سبعين، فتُطبع 46 رسالة تشخيص في طرفية
+        // المستخدم على البقيّة — أثرٌ يُقرأ «نسخة تطوير» لا منتجاً.
+        const missing = pages.filter(f => {
+            const s = read(f);
+            return /<script src="js\//.test(s) && !/console-cleaner/.test(s);
+        });
+        expect(missing).toEqual([]);
+    });
+
+    it('ولا يسبق حارس الإدارة — الحارس أوّل ما يعمل', () => {
+        // سبقُه يعني ومضةً من محتوى الإدارة لمن لا يملك صلاحية
+        for (const f of pages.filter(p => read(p).includes('admin-guard.js'))) {
+            const s = read(f);
+            expect(s.indexOf('admin-guard.js'), f).toBeLessThan(s.indexOf('console-cleaner.js'));
+        }
+    });
+});

@@ -152,8 +152,12 @@ const SavedLocations = {
             return;
         }
 
-        // طلب اسم الموقع
-        const name = prompt('أدخل اسم الموقع (مثل: البيت، العمل):', '');
+        // طلب اسم الموقع — بنافذة التطبيق لا بنافذة نظام التشغيل الرمادية
+        const name = await window.NativeDialogs.prompt(
+            'اسم الموقع',
+            'سمِّ هذا الموقع لتجده بسرعة في المرّة القادمة.',
+            { placeholder: 'البيت، العمل، بيت أهلي…' }
+        );
         if (!name) return;
 
         const result = this.save(name, address, coords[0], coords[1]);

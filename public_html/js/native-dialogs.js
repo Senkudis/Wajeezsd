@@ -75,6 +75,59 @@ const NativeDialogs = {
     },
 
     /**
+     * طلب نصٍّ من المستخدم.
+     *
+     * ⚠️ وُجدت لأن `prompt()` الخام كان يُستدعى في مسارٍ حيّ (تسمية موقع
+     *    محفوظ): نافذةٌ رماديّة من نظام التشغيل، بخطٍّ غير خطّ التطبيق
+     *    وأزرارٍ إنجليزية، تظهر فجأةً وسط واجهةٍ عربية مصمَّمة. وعلى iOS
+     *    داخل WebView تبدو كأنها تحذيرٌ من المتصفّح لا جزءٌ من التطبيق.
+     *
+     * @param {string} title العنوان
+     * @param {string} message الشرح
+     * @param {object} [opts] { placeholder, value, confirmText, cancelText, maxLength }
+     * @returns {Promise<string|null>} النصّ، أو null إن أُلغي
+     */
+    prompt: async (title, message, opts = {}) => {
+        const {
+            placeholder = '', value = '',
+            confirmText = 'حفظ', cancelText = 'إلغاء', maxLength = 40
+        } = opts;
+
+        // Dialog.prompt متاحة في الإضافة الأصلية؛ وإن غابت نزل إلى Swal
+        if (Dialog && typeof Dialog.prompt === 'function') {
+            const r = await Dialog.prompt({
+                title, message,
+                okButtonTitle: confirmText,
+                cancelButtonTitle: cancelText,
+                inputPlaceholder: placeholder,
+                inputText: value
+            });
+            return r.cancelled ? null : (r.value || '').trim() || null;
+        }
+
+        if (window.Swal) {
+            const r = await Swal.fire({
+                title, text: message,
+                input: 'text',
+                inputValue: value,
+                inputPlaceholder: placeholder,
+                inputAttributes: { maxlength: String(maxLength), autocapitalize: 'off' },
+                showCancelButton: true,
+                confirmButtonText: confirmText,
+                cancelButtonText: cancelText,
+                confirmButtonColor: '#04553A',
+                cancelButtonColor: '#6c757d',
+                // التحقّق داخل النافذة: لا تُغلق ثم تُفتح رسالة خطأ منفصلة
+                inputValidator: (v) => (!v || !v.trim()) ? 'اكتب اسماً أولاً' : undefined
+            });
+            return r.isConfirmed ? String(r.value || '').trim() : null;
+        }
+
+        const v = prompt(`${title}\n\n${message}`, value);
+        return v === null ? null : (v.trim() || null);
+    },
+
+    /**
      * عرض رسالة نجاح
      * @param {string} title - العنوان
      * @param {string} message - الرسالة
