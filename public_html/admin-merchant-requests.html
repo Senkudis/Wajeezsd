@@ -320,7 +320,11 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             }
         }
 
-        let _reqFilter = 'pending'; // ابدأ بقائمة الانتظار (أولوية المراجعة)
+        // 🗂️ التبويب الافتتاحي: قائمة الانتظار أولويةُ المراجعة — لكن حين
+        //    تخلو (وهي خاليةٌ فعلاً: كل الطلبات مقبولة) كانت الصفحة تفتح
+        //    على شاشةٍ فارغة، فيظنّ الأدمن أن البيانات لا تظهر. يُضبط في
+        //    _pickOpeningTab بعد وصول البيانات.
+        let _reqFilter = 'pending';
         window.setReqFilter = function(f) { _reqFilter = f; renderTable(); };
 
         function _renderReqFilterTabs() {
@@ -346,8 +350,18 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                 tab('all', 'الكل', '#0d6efd');
         }
 
+        /** يفتح على «قيد المراجعة» إن كان فيها شيء، وإلا على «الكل». */
+        function _pickOpeningTab() {
+            if (_openingTabPicked) return;
+            _openingTabPicked = true;
+            const pending = requests.filter(r => r.status === 'pending').length;
+            if (!pending && requests.length) _reqFilter = 'all';
+        }
+        let _openingTabPicked = false;
+
         function renderTable() {
             const tbody = document.getElementById('requestsTable');
+            _pickOpeningTab();
             _renderReqFilterTabs();
 
             const list = _reqFilter === 'all' ? requests : requests.filter(r => r.status === _reqFilter);

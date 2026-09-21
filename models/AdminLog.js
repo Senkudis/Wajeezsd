@@ -22,6 +22,17 @@ const adminLogSchema = new mongoose.Schema({
             // 🔁 تحويل عميلٍ قائم إلى كابتن: تغييرُ دورٍ على حسابٍ له سجلّ
             //    وطلباتٌ سابقة، فلا بدّ أن يُترك أثره
             'upgrade_client_to_captain',
+            // 🪪 الاطّلاع على الملفّ الثبوتي (هوية، عنوان، جهة طوارئ، صور).
+            //    كان يُكتب ولا يُسجَّل: الفعل غير معرَّف هنا، وadminLogger
+            //    يبتلع خطأ الكتابة — فالتعليق يَعِد بتدقيقٍ لا يقع.
+            'view_captain_details',
+            'view_merchant_requests',
+            // 🔐 الموافقة على جهاز أدمنٍ جديد ورفضه — قرارُ وصولٍ يجب أن يُدقَّق
+            'approve_device', 'reject_device',
+            // ✍️ أفعالٌ أخرى كانت تُكتب ولا تُقبل: سبعةٌ من خمسةٍ وعشرين
+            //    فعلاً إدارياً لم تكن تترك أثراً إطلاقاً.
+            'review_feedback', 'republish_shop_order', 'remind_captains',
+            'edit_order_route', 'update_store',
             // الطلبات
             'delete_order', 'update_order', 'cancel_order',
             // المتاجر والأقسام

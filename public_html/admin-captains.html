@@ -453,9 +453,22 @@ function openDrawer(id) {
             '<div class="doc-cap">' + DOC_LABELS[key] + '</div></div>';
     }).join('');
 
+    // 🪪 كابتنٌ أنشأته الإدارة من اللوحة لا ملفّ انتسابٍ له أصلاً — مسار
+    //    الإنشاء لا يجمع الرقم الوطني ولا العنوان ولا جهة الطوارئ. وعرضُ
+    //    عمودٍ من الشرطات يبدو عطلاً في الشاشة، فيقول الأدمن «البيانات ما
+    //    بتظهر» وهي لم تُجمع قط. نقول له ذلك صراحةً.
+    const _hasApplication = !!(a.nationalId || a.address || a.whatsapp || a.emergencyPhone);
+    const _noAppNote = _hasApplication ? '' :
+        '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;' +
+        'padding:10px 12px;font-size:13px;color:#92400e;margin-bottom:10px;">' +
+        'هذا الحساب أُنشئ من لوحة الإدارة، فلا يوجد ملفّ انتساب. ' +
+        'البيانات الثبوتية تُجمع فقط ممّن يسجّل من التطبيق.' +
+        '</div>';
+
     document.getElementById('drawerBody').innerHTML =
         '<div class="sec">' +
             '<div class="sec-t"><i class="fas fa-address-card"></i> البيانات الثبوتية</div>' +
+            _noAppNote +
             kv('الرقم الوطني', ltr(a.nationalId)) +
             kv('المنطقة', esc(a.address) || '—') +
             kv('البريد', ltr(c.email)) +

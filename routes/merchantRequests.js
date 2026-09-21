@@ -11,7 +11,7 @@ const User = require('../models/User');
 const Settings = require('../models/Settings');
 const Marketer = require('../models/Marketer');
 const Referral = require('../models/Referral');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { protect, adminOnly, requireAnyPermission } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
 const { logAdminAction } = require('../utils/adminLogger');
 
@@ -116,7 +116,15 @@ router.get('/my-request', protect, async (req, res) => {
 });
 
 // GET /admin/all (protect, adminOnly, returns all requests sorted by createdAt desc)
-router.get('/admin/all', protect, adminOnly, async (req, res) => {
+// 🔐 صلاحيةٌ لا دورٌ فقط.
+//
+// ⚠️ كان adminOnly وحده: أي أدمنٍ مساعد يصل إلى بيانات كل المتقدّمين —
+//    أسماء وهواتف وحسابات بنكية وصور هوية — ولو لم تُمنح له الصلاحية.
+//    وحارس الصفحة في الواجهة يُخفي الزرّ فقط، والواجهة تُتجاوَز بطلبٍ
+//    مباشر. الخادم هو الحكم.
+router.get('/admin/all', protect, adminOnly,
+    requireAnyPermission(['view_merchant_requests', 'manage_merchant_requests', 'manage_stores']),
+    async (req, res) => {
     try {
         const requests = await MerchantRequest.find()
             .populate('userId', 'name phone email')
@@ -130,7 +138,10 @@ router.get('/admin/all', protect, adminOnly, async (req, res) => {
 });
 
 // PUT /admin/:id/status (protect, adminOnly)
-router.put('/admin/:id/status', protect, adminOnly, async (req, res) => {
+// القبول والرفض صلاحيةٌ أخرى: من يراجع ليس بالضرورة من يقرّر
+router.put('/admin/:id/status', protect, adminOnly,
+    requireAnyPermission(['manage_merchant_requests', 'manage_stores']),
+    async (req, res) => {
     try {
         const { status, rejectReason } = req.body;
         const request = await MerchantRequest.findById(req.params.id);
