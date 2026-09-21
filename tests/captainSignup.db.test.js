@@ -49,22 +49,38 @@ const application = () => {
 };
 const register = body => request(app).post('/api/auth/register-captain').send(body);
 
+/**
+ * يسجّل ويتأكّد أن التسجيل وقع فعلاً.
+ *
+ * ⚠️ `await register(...)` بلا فحصٍ يبتلع الفشل: الملف يسجّل سبع مرّات
+ *    و otpLimiter يسمح بخمسٍ في خمس دقائق من نفس العنوان، فالسادسة
+ *    والسابعة تُردّان بـ 429 — ثم تفشل اختبارات الدخول بـ 400 لأن
+ *    المستخدم لم يُنشأ أصلاً، فيبدو العطل في الدخول وهو في التسجيل.
+ *    (سقط البناء في CI مرّتين بسبب هذا.)
+ */
+async function registerOk(body) {
+    const res = await register(body);
+    if (res.status !== 201) {
+        throw new Error(`تعذّر التسجيل (${res.status}): ${JSON.stringify(res.body)}`);
+    }
+    return res;
+}
+
 maybe()('التسجيل يُنشئ طلباً قابلاً للمراجعة', () => {
-    it('ينجح ويُعيد توكن رفعٍ لا توكن دخول', async () => {
-        const res = await register(application());
-        expect(res.status).toBe(201);
-        expect(res.body.uploadToken).toBeTruthy();
-        expect(res.body.token).toBeUndefined();   // لا دخول قبل القبول
-    });
-
-    it('ولا يَعِد بشاشة OTP غير موجودة', async () => {
-        const res = await register(application());
-        expect(res.body.requiresOtp).toBeUndefined();
-    });
-
-    it('والحساب يبدأ معلّقاً غير مفعّل', async () => {
+    // 🧮 الفحوص مجموعةٌ في اختبارٍ واحد عمداً.
+    //
+    //    otpLimiter يسمح بخمس تسجيلات في خمس دقائق من نفس العنوان، وكل
+    //    `it` يحتاج تسجيلاً لأن beforeEach يمسح القاعدة. فتفريقها على
+    //    ثلاثة اختبارات يستهلك الحدّ ويجعل ما بعدها يفشل لسببٍ لا علاقة
+    //    له بما تفحصه. والحدّ حمايةٌ حقيقية لا تُخفَّض من أجل الاختبار.
+    it('يُعيد توكن رفعٍ لا توكن دخول، ولا يَعِد بشاشة OTP، والحساب يبدأ معلّقاً', async () => {
         const body = application();
-        await register(body);
+        const res = await registerOk(body);
+
+        expect(res.body.uploadToken).toBeTruthy();
+        expect(res.body.token).toBeUndefined();        // لا دخول قبل القبول
+        expect(res.body.requiresOtp).toBeUndefined();  // لا شاشةَ OTP موجودة
+
         const u = await User.findOne({ email: body.email }).lean();
         expect(u.role).toBe('captain');
         expect(u.approvalStatus).toBe('pending');
@@ -74,22 +90,21 @@ maybe()('التسجيل يُنشئ طلباً قابلاً للمراجعة', ()
 });
 
 maybe()('🔴 توكن الرفع يصل إلى مسار الوثائق', () => {
-    it('لا يُردّ بـ 403 «توكن مقيّد» على /api/upload/captain-docs', async () => {
-        // هذا هو العطل بعينه: كانت قائمة المسموح تحوي مساراً غير موجود،
-        // فيُحجب الرفع الحقيقي دائماً ولا تصل الإدارة وثيقةٌ واحدة.
-        const res = await register(application());
-        const up = await request(app).post('/api/upload/captain-docs')
-            .set('Authorization', `Bearer ${res.body.uploadToken}`)
-            .attach('idImage', Buffer.from('fake-image-bytes'), 'id.jpg');
+    it('يُقبل على /api/upload/captain-docs ويبقى مقيّداً عمّا سواه', async () => {
+        // العطل بعينه: قائمة المسموح كانت تحوي مساراً غير موجود، فيُحجب
+        // الرفع الحقيقي دائماً ولا تصل الإدارة وثيقةٌ واحدة.
+        const res = await registerOk(application());
+        const token = res.body.uploadToken;
 
+        const up = await request(app).post('/api/upload/captain-docs')
+            .set('Authorization', `Bearer ${token}`)
+            .attach('idImage', Buffer.from('fake-image-bytes'), 'id.jpg');
         expect(up.status).not.toBe(403);
         expect(String(up.body.message || '')).not.toContain('مقيّد');
-    });
 
-    it('⚡ لكنه يبقى مقيّداً — لا يفتح بقيّة التطبيق', async () => {
-        const res = await register(application());
+        // ⚡ ولا يفتح بقيّة التطبيق
         const me = await request(app).get('/api/auth/me')
-            .set('Authorization', `Bearer ${res.body.uploadToken}`);
+            .set('Authorization', `Bearer ${token}`);
         expect(me.status).toBe(403);
     });
 });
@@ -97,7 +112,7 @@ maybe()('🔴 توكن الرفع يصل إلى مسار الوثائق', () => 
 maybe()('الدخول قبل القبول يقول الحقيقة', () => {
     it('«قيد المراجعة» لا «فعّل حسابك»', async () => {
         const body = application();
-        await register(body);
+        await registerOk(body);
         const res = await request(app).post('/api/auth/login')
             .send({ email: body.email, password: body.password });
 
@@ -108,7 +123,7 @@ maybe()('الدخول قبل القبول يقول الحقيقة', () => {
 
     it('وبعد القبول يدخل', async () => {
         const body = application();
-        await register(body);
+        await registerOk(body);
         await User.updateOne({ email: body.email },
             { $set: { approvalStatus: 'approved', isVerified: true, isActive: true } });
 
