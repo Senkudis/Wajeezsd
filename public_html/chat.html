@@ -242,6 +242,18 @@
         }
 
         /* ===== 🖼️ صور الرسائل ===== */
+        /* 📢 نصٌّ للقارئ وحده: مَن أرسل الرسالة لا يُميَّز إلا بالمحاذاة
+           واللون، وكلاهما لا يصل قارئ الشاشة. */
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+        }
+        /* 🖼️ زرّ الصورة: كانت <img onclick> فلا يُفتح العارض بالكيبورد إطلاقاً */
+        .msg-image-btn {
+            display: block; background: none; border: 0; padding: 0;
+            border-radius: 12px; cursor: zoom-in; font: inherit;
+        }
+        .msg-image-btn:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
         .msg-image {
             display: block;
             max-width: 220px;
@@ -642,37 +654,37 @@
 <body>
     <!-- Header -->
     <div class="chat-header" style="padding-top: calc(12px + var(--sat, env(safe-area-inset-top, 0px)));">
-        <button class="back-btn" onclick="goBack()">
-            <i class="bi bi-chevron-right"></i>
+        <button class="back-btn" onclick="goBack()" aria-label="رجوع">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
         </button>
-        <div class="avatar" id="chatAvatar">
+        <div class="avatar" id="chatAvatar" aria-hidden="true">
             <span id="chatAvatarEmoji">👤</span>
             <span class="status-dot" id="statusDot"></span>
         </div>
         <div class="info">
             <h6 id="receiverName">جاري التحميل...</h6>
-            <small id="statusText" style="display:flex;align-items:center;gap:4px;">
+            <small id="statusText" role="status" aria-live="polite" style="display:flex;align-items:center;gap:4px;">
                 <span id="onlineStatusLabel">متصل</span>
             </small>
         </div>
         <!-- Track Order Button -->
         <a id="track-order-btn" href="#" style="background:rgba(255,255,255,0.15);border-radius:99px;padding:6px 12px;color:white;font-size:11px;font-weight:700;text-decoration:none;display:none;align-items:center;gap:5px;white-space:nowrap;">
-            <i class="bi bi-map-fill"></i> تتبع
+            <i class="bi bi-map-fill" aria-hidden="true"></i> تتبع
         </a>
         <!-- 🚩 إجراءات السلامة: إبلاغ وحظر (App Store Guideline 1.2) -->
         <button type="button" id="safetyBtn" onclick="openSafetyMenu()" aria-label="خيارات السلامة"
                 style="background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:32px;height:32px;
                        color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
                        flex-shrink:0;margin-inline-start:6px;">
-            <i class="bi bi-three-dots-vertical"></i>
+            <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
         </button>
     </div>
 
     <!-- Connection Status Banner -->
-    <div class="connection-banner" id="connectionBanner">⚠️ جاري الاتصال...</div>
+    <div class="connection-banner" id="connectionBanner" role="status" aria-live="polite">⚠️ جاري الاتصال...</div>
 
     <!-- Chat Area -->
-    <div class="chat-container" id="chatContainer">
+    <div class="chat-container" id="chatContainer" role="log" aria-live="polite" aria-label="الرسائل">
         <div class="empty-chat">
             <div class="spinner-border text-secondary spinner-border-sm" role="status"></div>
             <p class="mt-2">جاري تحميل الرسائل...</p>
@@ -680,24 +692,24 @@
     </div>
 
     <!-- Typing Indicator -->
-    <div id="typingIndicator" class="typing-indicator">
+    <div id="typingIndicator" class="typing-indicator" role="status" aria-live="polite">
         <div class="bubble">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
+            <div class="dot" aria-hidden="true"></div>
+            <div class="dot" aria-hidden="true"></div>
+            <div class="dot" aria-hidden="true"></div>
             <span style="margin-right: 6px;">يكتب</span>
         </div>
     </div>
 
     <!-- 🖼️ معاينة الصورة قبل الإرسال -->
     <div class="img-preview-bar" id="imgPreviewBar">
-        <img id="imgPreviewThumb" alt="">
+        <img id="imgPreviewThumb" alt="معاينة الصورة المختارة">
         <div class="meta">
             <b id="imgPreviewName">صورة</b>
             <span id="imgPreviewHint">تُحذف الصور تلقائياً بعد 48 ساعة</span>
         </div>
         <button class="cancel" onclick="clearPendingImage()" aria-label="إلغاء الصورة">
-            <i class="bi bi-x-circle-fill"></i>
+            <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
         </button>
     </div>
 
@@ -709,20 +721,21 @@
             onchange="onImagePicked(this)">
         <button id="attachBtn" class="attach-btn" onclick="document.getElementById('imageInput').click()"
             aria-label="إرفاق صورة" disabled>
-            <i class="bi bi-image"></i>
+            <i class="bi bi-image" aria-hidden="true"></i>
         </button>
-        <input type="text" id="messageInput" placeholder="جاري تهيئة المحادثة..." autocomplete="off" disabled>
-        <button id="sendBtn" class="send-btn" onclick="sendMessage()" disabled>
-            <i class="bi bi-send-fill" style="transform: rotate(180deg);"></i>
+        <input type="text" id="messageInput" aria-label="اكتب رسالة" placeholder="جاري تهيئة المحادثة..." autocomplete="off" disabled>
+        <button id="sendBtn" class="send-btn" onclick="sendMessage()" aria-label="إرسال" disabled>
+            <i class="bi bi-send-fill" aria-hidden="true" style="transform: rotate(180deg);"></i>
         </button>
     </div>
 
     <!-- عارض الصورة بالحجم الكامل -->
-    <div class="img-lightbox" id="imgLightbox" onclick="closeLightbox()">
-        <button class="close-x" onclick="closeLightbox()" aria-label="إغلاق">
-            <i class="bi bi-x-lg"></i>
+    <div class="img-lightbox" id="imgLightbox" onclick="closeLightbox()"
+         role="dialog" aria-modal="true" aria-label="الصورة بالحجم الكامل">
+        <button class="close-x" onclick="closeLightbox()" aria-label="إغلاق الصورة">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
-        <img id="lightboxImg" src="" alt="صورة">
+        <img id="lightboxImg" src="" alt="صورة مُرسَلة في المحادثة">
     </div>
 
     <script src="vendor/socket.io/socket.io.min.js"></script>
@@ -1043,6 +1056,10 @@
         }
 
         // ===== Render Messages =====
+        // حالة الرسالة كانت ثلاث أيقوناتٍ صامتة: ساعةٌ وصحٌّ وصحّان.
+        // الفرق بين «أُرسلت» و«قُرئت» يهمّ المستخدم، فيستحقّ نصّاً.
+        const STATUS_LABEL = { sending: 'قيد الإرسال', sent: 'أُرسلت', read: 'قُرئت' };
+
         function addMessageToUI(msg, prepend = false) {
             const container = document.getElementById('chatContainer');
             const emptyState = container.querySelector('.empty-chat');
@@ -1105,26 +1122,33 @@
                 const isTempMsg = !msg._id || String(msg._id).startsWith('temp_');
                 const initialStatus = msg.isRead ? 'read' : (isTempMsg ? 'sending' : 'sent');
                 const icon = initialStatus === 'sending'
-                    ? '<i class="bi bi-clock"></i>'
+                    ? '<i class="bi bi-clock" aria-hidden="true"></i>'
                     : (initialStatus === 'read'
-                        ? '<i class="bi bi-check-all"></i>'
-                        : '<i class="bi bi-check"></i>');
-                statusHtml = `<span class="msg-status" data-status="${initialStatus}">${icon}</span>`;
+                        ? '<i class="bi bi-check-all" aria-hidden="true"></i>'
+                        : '<i class="bi bi-check" aria-hidden="true"></i>');
+                statusHtml = `<span class="msg-status" data-status="${initialStatus}"
+                    role="img" aria-label="${STATUS_LABEL[initialStatus]}">${icon}</span>`;
             }
 
+            // 🔊 مَن أرسلها؟ بصرياً تكفي المحاذاة واللون؛ سمعياً لا شيء يدلّ.
+            //    رسالتي تُسبَق بـ «أنت:»، والواردة باسم مرسلها إن عُرف.
             const nameHtml = senderName && !isMe
                 ? `<span class="sender-name">${escapeHtml(senderName)}</span>`
-                : '';
+                : `<span class="sr-only">${isMe ? 'أنت:' : 'رسالة واردة:'}</span>`;
 
             // 🖼️ الصورة: إما حيّة، أو حُذفت بعد 48 ساعة (imageExpiredAt)، أو لا شيء
             let mediaHtml = '';
             if (msg.imageUrl) {
                 const full = fullUrl(msg.imageUrl);
-                mediaHtml = `<img class="msg-image" src="${escapeHtml(full)}" alt="صورة"
-                    onclick="openLightbox(this.src)" loading="lazy">`;
+                mediaHtml = `<button type="button" class="msg-image-btn"
+                        aria-label="فتح الصورة بالحجم الكامل"
+                        onclick="openLightbox(this.querySelector('img').src)">
+                        <img class="msg-image" src="${escapeHtml(full)}" alt="صورة مُرسَلة"
+                            loading="lazy">
+                    </button>`;
             } else if (msg.imageExpiredAt) {
                 mediaHtml = `<div class="msg-image-expired">
-                        <i class="bi bi-clock-history"></i> حُذفت الصورة بعد 48 ساعة
+                        <i class="bi bi-clock-history" aria-hidden="true"></i> حُذفت الصورة بعد 48 ساعة
                     </div>`;
             }
 
@@ -1177,12 +1201,16 @@
             if (!statusEl) return;
 
             statusEl.setAttribute('data-status', status);
+            if (STATUS_LABEL[status]) {
+                statusEl.setAttribute('role', 'img');
+                statusEl.setAttribute('aria-label', STATUS_LABEL[status]);
+            }
             if (status === 'sending') {
-                statusEl.innerHTML = '<i class="bi bi-clock"></i>';
+                statusEl.innerHTML = '<i class="bi bi-clock" aria-hidden="true"></i>';
             } else if (status === 'sent') {
-                statusEl.innerHTML = '<i class="bi bi-check"></i>';
+                statusEl.innerHTML = '<i class="bi bi-check" aria-hidden="true"></i>';
             } else if (status === 'read') {
-                statusEl.innerHTML = '<i class="bi bi-check-all"></i>';
+                statusEl.innerHTML = '<i class="bi bi-check-all" aria-hidden="true"></i>';
             }
         }
 
@@ -1502,7 +1530,14 @@
                     }
                 } else if (res.status === 403) {
                     const errorText = await res.json();
-                    alert(errorText.message || 'لا يمكن الإرسال، الطلب منتهي');
+                    // كان نداءَ alert الخام: يحجب الواجهة ويبدو غريباً داخل التطبيق
+                    // المغلَّف، وSweetAlert محمَّلٌ في هذه الصفحة أصلاً.
+                    await Swal.fire({
+                        icon: 'warning',
+                        title: 'تعذّر الإرسال',
+                        text: errorText.message || 'لا يمكن الإرسال، الطلب منتهي',
+                        confirmButtonText: 'حسناً'
+                    });
                     location.reload();
                 } else {
                     console.error('[Chat] HTTP send failed:', res.status);
