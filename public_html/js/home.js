@@ -740,7 +740,8 @@ window.confirmLocationSelection = function() {
 
     window._selectedSearchAddr = null;
 
-    calculatePrice();
+    // تغيّرت هندسة المشوار: أُضيفت نقطة أو نُقل دبوس
+    onTripChanged();
     window.closeMapUI();
 
     // ارسم المسار الكامل عبر كل النقاط المحددة (يشمل النقاط الإضافية إن وُجدت)
@@ -1015,8 +1016,7 @@ window.addStop = function(type) {
 window.removeStop = function(id) {
     const card = document.querySelector(`#extraStopsList [data-stopid="${id}"]`);
     if (card) card.remove();
-    isPriceManuallyEdited = false; // أعِد التسعير التلقائي بعد التغيير
-    calculatePrice();
+    onTripChanged();
     refreshMultiRoute();
 };
 
@@ -1174,6 +1174,35 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return straightDistance * 1.4;
 }
 
+/** يُحدّث تلميح السعر وحده — يُستدعى حين نُبقي سعراً يدوياً ونريد إظهار حدوده الجديدة */
+function updatePriceHint(limits) {
+    const priceHint = document.getElementById('price-hint');
+    if (!priceHint || !limits) return;
+    priceHint.innerHTML = `<i class="bi bi-info-circle"></i> السعر التقديري: <b>${limits.estimated.toLocaleString()} ج.س</b> (أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>)`;
+}
+
+/**
+ * 🔁 تغيّرت هندسة المشوار (أُضيفت نقطة أو حُذفت أو نُقل دبوس).
+ *
+ * ⚠️ العطل الذي يُغلقه: `isPriceManuallyEdited` تلتصق عند أوّل لمسةٍ لحقل
+ *    السعر ولا يُصفّرها إلا `removeStop`. فمن يضبط نقطتين، ثم يعدّل السعر،
+ *    ثم يضيف وجهةً ثالثة — يبقى معه سعر المشوار الأوّل ولا تُحتسب بقيّة
+ *    النقاط. وهو ما أبلغ عنه المستخدم حرفياً.
+ *
+ * والقاعدة: **كل وجهةٍ تُضاف أو تُحذف تُحدّث السعر فوراً**. السعر هنا ليس
+ * رأياً بل ميزانية المشوار — والمستخدم يضيف الوجهة ليرى كم ستكلّفه. وسعرٌ
+ * حُسب لمشوارٍ من نقطتين لا معنى له في مشوارٍ من أربع، والخادم يرفضه أصلاً
+ * لأنه دون الحدّ الأدنى الجديد.
+ */
+function onTripChanged() {
+    const pts = _orderedCoords();
+    if (pts.length < 2) return;
+
+    // تغيّر المشوار يُبطل أي تعديلٍ يدويٍّ سابق: كان لمشوارٍ آخر
+    isPriceManuallyEdited = false;
+    calculatePrice();
+}
+
 function calculatePrice() {
     // 1. Prevent overwriting if user manually edited
     if (isPriceManuallyEdited) return;
@@ -1190,11 +1219,8 @@ function calculatePrice() {
     priceInput.value = finalPrice;
     priceInput.classList.add('border-warning', 'border-2');
 
-    // 4. Update hint if present
-    const priceHint = document.getElementById('price-hint');
-    if (priceHint) {
-        priceHint.innerHTML = `<i class="bi bi-info-circle"></i> السعر التقديري: <b>${finalPrice.toLocaleString()} ج.س</b> (أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>)`;
-    }
+    // 4. Update hint if present — نصٌّ واحد في updatePriceHint لا نسختان
+    updatePriceHint(limits);
 }
 
 function previewImage(input) {
