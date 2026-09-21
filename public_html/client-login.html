@@ -386,7 +386,8 @@
                         localStorage.setItem('role', 'merchant');
                         setTimeout(() => { window.location.replace('merchant-dashboard.html'); }, 800);
                     } else {
-                        showAlert("عذراً، هذا الحساب ليس حساب عميل أو تاجر", "error");
+                        showAlert(RoleRedirect.wrongDoorHtml(data.user, 'حساب عميل'), "error");
+                        RoleRedirect.bind(data.token, data.user);
                         btn.innerHTML = originalBtnText;
                         btn.disabled = false;
                     }
@@ -849,6 +850,7 @@
 
     <script src="js/theme-manager.js?v=ef048761"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
+    <script src="js/role-redirect.js?v=80f153a8"></script>
     <script src="js/geo.js?v=9999b0e3"></script>
     <script src="js/input-hardener.js?v=95c0e89c"></script>
 <script type="module" src="js/app-core.js?v=a795958a"></script>

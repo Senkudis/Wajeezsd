@@ -402,10 +402,72 @@ router.post('/create-captain', protect, requirePermission('manage_captains'), as
         const normalizedPhone = normalizePhone(phone);
         logger.info(`📞 Create Captain - Original: ${phone}, Normalized: ${normalizedPhone}, City: ${captainCity}`);
 
-        // التحقق من وجود المستخدم مسبقاً
+        // 👤 حسابٌ قائم بنفس الهاتف أو البريد.
+        //
+        // ⚠️ كان الردّ «المستخدم موجود بالفعل» وينتهي الأمر — طريقٌ مسدود.
+        //    والأغلب أنه عميلٌ يعرفه الأدمن ويريد تشغيله كابتناً، فيضطرّ
+        //    إلى اختلاق رقمٍ ثانٍ له أو تركه. والاثنان خسارة: الأول يُنشئ
+        //    حساباً مكرّراً لشخصٍ واحد، والثاني يُضيّع كابتناً جاهزاً.
+        //
+        //    الآن نقول له **من** هو الحساب ونعرض ترقيته — ولا نُرقّي إلا
+        //    بموافقةٍ صريحة (confirmUpgrade)، فالترقية تغيّر دور الحساب.
         const userExists = await User.findOne({ $or: [{ email }, { phone: normalizedPhone }] });
         if (userExists) {
-            return res.status(400).json({ message: 'المستخدم موجود بالفعل (البريد أو الهاتف مسجل مسبقاً)' });
+            const isUpgradable = ['client', 'customer'].includes(userExists.role);
+
+            if (!isUpgradable) {
+                const roleAr = userExists.role === 'captain' ? 'كابتن'
+                             : userExists.role === 'merchant' ? 'تاجر'
+                             : userExists.role === 'admin' ? 'مسؤول' : userExists.role;
+                return res.status(400).json({
+                    message: `هذا الرقم مسجّل بالفعل كـ${roleAr} باسم «${userExists.name}».`,
+                    existingRole: userExists.role
+                });
+            }
+
+            // 🔒 نطاق الأدمن المساعد يسري هنا كما يسري على كل تصرّف
+            if (!adminCanActOnUser(req, userExists)) {
+                return res.status(403).json({ message: 'هذا الحساب خارج نطاق مدنك.' });
+            }
+
+            if (!req.body.confirmUpgrade) {
+                return res.status(409).json({
+                    canUpgrade: true,
+                    message: `هذا الرقم مسجّل كعميل باسم «${userExists.name}». هل تحوّله إلى كابتن؟`,
+                    existing: {
+                        _id: userExists._id,
+                        name: userExists.name,
+                        phone: userExists.phone,
+                        city: userExists.city,
+                        createdAt: userExists.createdAt
+                    }
+                });
+            }
+
+            // ✅ ترقيةٌ لا إنشاء: الحساب نفسه يبقى بسجلّه وطلباته السابقة.
+            //    ولا تُمسّ كلمة مروره — يدخل بكلمته التي يعرفها.
+            userExists.role            = 'captain';
+            userExists.vehicleType     = vehicleType || userExists.vehicleType;
+            userExists.approvalStatus  = 'approved';
+            userExists.isActive        = true;
+            userExists.isVerified      = true;
+            if (userExists.captainApplication) userExists.captainApplication.status = 'approved';
+            await userExists.save();
+
+            await logAdminAction(req, 'upgrade_client_to_captain',
+                `تم تحويل العميل ${userExists.name} إلى كابتن`,
+                userExists._id, userExists.name,
+                { phone: userExists.phone, city: userExists.city, vehicleType }
+            );
+
+            return res.status(200).json({
+                _id: userExists._id,
+                name: userExists.name,
+                role: userExists.role,
+                city: userExists.city,
+                upgraded: true,
+                message: `تم تحويل «${userExists.name}» إلى كابتن. يدخل بنفس رقمه وكلمة مروره السابقة.`
+            });
         }
 
         // إنشاء المستخدم

@@ -49,6 +49,7 @@
     <script src="js/city-service.js?v=61f2b7a7"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
+    <script src="js/role-redirect.js?v=80f153a8"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=ab12c7ad"></script>
@@ -196,7 +197,10 @@
                             window.location.replace('captain-dashboard.html');
                         }, 800);
                     } else {
-                        showAlert("عذراً، هذا الحساب ليس مسجلاً ككابتن", "error");
+                        // 🚪 بابٌ يدلّ على بابه: الدخول نجح وبياناته صحيحة،
+                        //    والصفحة وحدها رفضت. نقول له ما حسابه ونُدخله به.
+                        showAlert(RoleRedirect.wrongDoorHtml(data.user, 'حساب كابتن'), "error");
+                        RoleRedirect.bind(data.token, data.user);
                         btn.innerHTML = originalBtnText;
                         btn.disabled = false;
                     }

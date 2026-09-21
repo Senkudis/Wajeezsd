@@ -513,6 +513,7 @@
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
+    <script src="js/role-redirect.js?v=80f153a8"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=ab12c7ad"></script>
@@ -793,7 +794,13 @@
                         loginBtn.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
 
                     } else {
-                        showError('عذراً، هذا الحساب ليس حساب مسؤول!');
+                        // ⚠️ showError تستعمل textContent، فالنصّ الغنيّ يظهر
+                        //    وسوماً خاماً. هذه الحالة وحدها تحتاج زرّاً.
+                        errorMsg.innerHTML = RoleRedirect.wrongDoorHtml(data.user, 'حساب إداري');
+                        errorMsg.style.display = 'block';
+                        RoleRedirect.bind(data.token, data.user);
+                        loginBtn.classList.remove('loading');
+                        loginBtn.disabled = false;
                     }
                 } else {
                     if (res.status === 429 && data.retryAfter) {

@@ -1501,15 +1501,70 @@ function openAddCaptainModal() {
         })
     }).then(async (result) => {
         if (!result.isConfirmed) return;
-        try {
-            const res = await fetch(`${BASE}/api/admin/create-captain`, {
-                method: 'POST', headers: headers(), body: JSON.stringify(result.value)
-            });
-            const data = await res.json();
-            if (res.ok) { showToast('تم الإنشاء'); loadCaptains(); }
-            else Swal.fire('خطأ', data.message, 'error');
-        } catch(e) { Swal.fire('خطأ', 'فشل الاتصال', 'error'); }
+        await submitCreateCaptain(result.value);
     });
+}
+
+/**
+ * 🔁 إنشاء كابتن — أو ترقية عميلٍ قائم بموافقةٍ صريحة.
+ *
+ * كان الردّ على رقمٍ مسجّل «المستخدم موجود بالفعل» ثم ينتهي الأمر. والأغلب
+ * أنه عميلٌ يعرفه الأدمن ويريد تشغيله كابتناً، فيضطرّ إلى اختلاق رقمٍ ثانٍ
+ * له — حسابان لشخصٍ واحد — أو يتركه.
+ *
+ * الخادم الآن يردّ 409 مع canUpgrade وبيانات الحساب، فنعرضها ونسأل. ولا
+ * ترقية إلا بضغطةٍ ثانية: تغييرُ دورِ حسابٍ له سجلٌّ ليس مما يقع ضمناً.
+ */
+async function submitCreateCaptain(payload) {
+    try {
+        const res = await fetch(`${BASE}/api/admin/create-captain`, {
+            method: 'POST', headers: headers(), body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            showToast(data.upgraded ? 'تم تحويل العميل إلى كابتن' : 'تم الإنشاء');
+            if (data.upgraded) {
+                Swal.fire({ icon: 'success', title: 'تمّت الترقية', text: data.message });
+            }
+            loadCaptains();
+            return;
+        }
+
+        if (res.status === 409 && data.canUpgrade) {
+            const e = data.existing || {};
+            const since = e.createdAt
+                ? new Date(e.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long' })
+                : '—';
+            const cityAr = e.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم';
+            const c = await Swal.fire({
+                icon: 'question',
+                title: 'هذا الرقم لعميلٍ مسجَّل',
+                html: `
+                    <div style="text-align:right;font-size:14px;line-height:1.9;">
+                        <div><b>الاسم:</b> ${window.escapeHtml(e.name || '')}</div>
+                        <div><b>الهاتف:</b> <span dir="ltr">${window.escapeHtml(e.phone || '')}</span></div>
+                        <div><b>المدينة:</b> ${cityAr}</div>
+                        <div><b>عميل منذ:</b> ${since}</div>
+                        <hr style="margin:12px 0;">
+                        <div>سيتحوّل هذا الحساب نفسه إلى كابتن — بسجلّه وطلباته السابقة.</div>
+                        <div style="color:#b45309;font-size:13px;margin-top:6px;">
+                            يدخل بنفس رقمه وكلمة مروره السابقة، ولن تُستعمل كلمة المرور التي كتبتها.
+                        </div>
+                    </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'نعم، حوّله إلى كابتن',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: '#0a8754'
+            });
+            if (!c.isConfirmed) return;
+            return submitCreateCaptain({ ...payload, confirmUpgrade: true });
+        }
+
+        Swal.fire('تنبيه', data.message || 'تعذّر الإنشاء', 'warning');
+    } catch (e) {
+        Swal.fire('خطأ', 'فشل الاتصال', 'error');
+    }
 }
 
 // ── Broadcast ──

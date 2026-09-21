@@ -19,6 +19,9 @@ const adminLogSchema = new mongoose.Schema({
             // الكباتن
             'create_captain', 'approve_captain', 'reject_captain',
             'block_captain', 'unblock_captain', 'delete_captain',
+            // 🔁 تحويل عميلٍ قائم إلى كابتن: تغييرُ دورٍ على حسابٍ له سجلّ
+            //    وطلباتٌ سابقة، فلا بدّ أن يُترك أثره
+            'upgrade_client_to_captain',
             // الطلبات
             'delete_order', 'update_order', 'cancel_order',
             // المتاجر والأقسام
