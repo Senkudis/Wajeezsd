@@ -42,7 +42,7 @@ describe('بناء الرسالة', () => {
     const msg = buildCaptainApprovalMessage(full);
 
     it('لا تحتوي كلمة مرور — تُذكّر بالتي اختارها', () => {
-        expect(msg).toContain('كلمة المرور: هي التي اخترتها عند التسجيل');
+        expect(msg).toContain('كلمة السر: هي الكتبتها وقت التسجيل');
         expect(msg).not.toMatch(/كلمة المرور\s*:\s*[A-Za-z0-9!@#$%^&*]{4,}/);
     });
 
@@ -61,9 +61,24 @@ describe('بناء الرسالة', () => {
         expect(msg).toContain('الإشعارات');
     });
 
-    it('تُنسب البنود للوثيقة لا تخترع قواعد', () => {
-        expect(msg).toContain('التوريد في نهاية كل يوم عمل');
-        expect(msg).toContain('الإلغاء بعد القبول يعرّض الحساب للتجميد');
+    it('🔴 تشرح المحفظة — أكثر ما يُفاجئ الكابتن', () => {
+        // الأجرة تُقبض كاملة والعمولة تتراكم ديناً، وعند الحدّ تتوقّف
+        // الطلبات. من لا يُقَل له هذا يظنّ التطبيق تعطّل.
+        expect(msg).toContain('عمولة التطبيق 15%');
+        expect(msg).toContain('دين في المحفظة');
+        expect(msg).toContain('بتوقف عنك الطلبات');
+    });
+
+    it('🔴 والأرقام من إعدادات مدينته لا مكتوبةً في النصّ', () => {
+        const kh = buildCaptainApprovalMessage({ ...full, commissionRate: 0.15, creditLimit: -8500 });
+        const ps = buildCaptainApprovalMessage({ ...full, commissionRate: 0.2,  creditLimit: -8000 });
+        expect(kh).toContain('8,500');
+        expect(ps).toContain('8,000');
+        expect(ps).toContain('20%');
+    });
+
+    it('وتذكر ما يُجمّد الحساب', () => {
+        expect(msg).toContain('الإلغاء المتكرر بجمّد الحساب');
     });
 
     it('بلا رموز تعبيرية', () => {
@@ -71,8 +86,8 @@ describe('بناء الرسالة', () => {
     });
 
     it('تستعمل تنسيق واتساب للعريض', () => {
-        expect(msg).toContain('*بيانات الدخول*');
-        expect(msg).toContain('*كيف تبدأ*');
+        expect(msg).toContain('*دخولك للتطبيق*');
+        expect(msg).toContain('*أول شغلة تعملها*');
     });
 
     it('قصيرة بما يكفي لرسالة واتساب واحدة', () => {
@@ -92,10 +107,26 @@ describe('الحقول الناقصة', () => {
         expect(m).toContain('استخدم رقم هاتفك الذي سجّلت به');
     });
 
-    it('بلا رابط أو دعم: لا عناوين فارغة', () => {
+    it('🔴 رابطا المتجرين يصلان ولو خلت الإعدادات', () => {
+        // العطل المُبلَّغ عنه: appStoreLink فارغٌ في إعدادات المدينتين،
+        // فكان سطر الآيفون يسقط كلّه — وصاحب الآيفون يُقال له «حمّل
+        // التطبيق» ولا يُعطى من أين.
         const m = buildCaptainApprovalMessage({ name: 'ك', phone: '0912345678' });
-        expect(m).not.toContain('*تحميل التطبيق*');
-        expect(m).not.toContain('لأي استفسار');
+        expect(m).toContain('*تحميل التطبيق*');
+        expect(m).toContain('play.google.com');
+        expect(m).toContain('apps.apple.com');
+    });
+
+    it('وإعدادُ المدينة يغلب الرابط الاحتياطي', () => {
+        const m = buildCaptainApprovalMessage({
+            name: 'ك', phone: '0912345678', appLinkIos: 'https://example.com/ios'
+        });
+        expect(m).toContain('https://example.com/ios');
+    });
+
+    it('وبلا رقم دعمٍ لا يُكتب سطرٌ فارغ', () => {
+        const m = buildCaptainApprovalMessage({ name: 'ك', phone: '0912345678' });
+        expect(m).not.toContain('أي استفسار أو مشكلة:');
     });
 
     it('بلا اسم: صيغة محايدة لا فراغ', () => {

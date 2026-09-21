@@ -99,15 +99,21 @@ describe('رسالة قبول الكابتن تعطي الرابطين', () => {
         expect(m).toContain('آيفون: https://apps.apple.com');
     });
 
-    it('وبرابطٍ واحد لا يظهر سطرُ الآخر فارغاً', () => {
+    it('🔴 وغيابُ الإعداد لا يحذف منصّةً كاملة', () => {
+        // العطل المُبلَّغ عنه: appStoreLink فارغٌ في إعدادات المدينتين
+        // فعلاً، فكان سطر الآيفون يسقط كلّه — وكل كابتن مقبول تصله رسالةٌ
+        // برابط أندرويد وحده. والرابط ثابتٌ ومعروف، فغيابه من الإعدادات
+        // لا يبرّر حذفه.
         const m = buildCaptainApprovalMessage({ name: 'ك', appLink: 'https://play.google.com/x' });
         expect(m).toContain('أندرويد: https://play.google.com/x');
-        expect(m).not.toContain('آيفون:');
+        expect(m).toContain('آيفون: https://apps.apple.com/app/id6807840888');
     });
 
-    it('وبلا أيٍّ منهما لا عنوانَ تحميلٍ فارغ', () => {
+    it('وبلا أيّ إعدادٍ يصل الرابطان المعروفان', () => {
         const m = buildCaptainApprovalMessage({ name: 'ك' });
-        expect(m).not.toContain('*تحميل التطبيق*');
+        expect(m).toContain('*تحميل التطبيق*');
+        expect(m).toContain('play.google.com');
+        expect(m).toContain('apps.apple.com');
     });
 
     it('والمسار يمرّر الرابطين من الإعدادات', () => {

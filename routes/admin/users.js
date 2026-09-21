@@ -610,7 +610,10 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
                 email: captain.email,
                 appLink: settings && settings.playStoreLink,
                 appLinkIos: settings && settings.appStoreLink,
-                supportPhone: settings && settings.adminPhone
+                supportPhone: settings && settings.adminPhone,
+                // من إعدادات مدينته: النسبة والحدّ يختلفان بين المدن
+                commissionRate: settings && settings.commissionRate,
+                creditLimit: settings && settings.defaultCreditLimit
             });
 
             // رقم الواتساب من نموذج الانتساب إن وُجد، وإلا هاتف الحساب
