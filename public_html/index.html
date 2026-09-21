@@ -587,7 +587,7 @@
                                 <div id="savedAddressChips" class="d-flex gap-2 flex-wrap"></div>
                             </div>
 
-                            <div class="mb-4 position-relative" id="pickup-block">
+                            <div class="mb-4 position-relative" id="pickup-block" role="group" aria-labelledby="pickup-section-label">
                                 <label class="text-muted small fw-bold d-block mb-2" id="pickup-section-label">من وين؟ (موقع الاستلام)</label>
                                 <button type="button" class="btn map-select-btn map-select-btn-pickup w-100 mb-2"
                                     onclick="event.preventDefault(); event.stopPropagation(); openMapModal('pickup')">
@@ -596,6 +596,7 @@
                                 </button>
                                 <div class="input-wrapper">
                                     <input type="text" class="form-control location-input bg-white" id="pickup-addr"
+                                        aria-label="عنوان الاستلام — يُحدَّد من الخريطة"
                                         placeholder="الموقع غير محدد (اختر من الخريطة)" readonly
                                         style="cursor: pointer;" onclick="openMapModal('pickup')">
                                     <span class="input-icon text-success"><i class="bi bi-geo-alt-fill"></i></span>
@@ -604,18 +605,20 @@
                                     <div class="col-7">
                                         <input type="text" id="pickup-name"
                                             class="form-control form-control-sm bg-white"
+                                            aria-label="اسم المرسل أو المحل"
                                             placeholder="اسم المرسل / المحل">
                                     </div>
                                     <div class="col-5">
                                         <input type="tel" id="pickup-phone"
                                             class="form-control form-control-sm bg-white english-num"
+                                            aria-label="هاتف المرسل"
                                             placeholder="رقم الهاتف">
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="mb-0 position-relative">
-                                <label class="text-muted small fw-bold d-block mb-2">لوين؟ (موقع التسليم)</label>
+                            <div class="mb-0 position-relative" role="group" aria-labelledby="dropoff-section-label">
+                                <label class="text-muted small fw-bold d-block mb-2" id="dropoff-section-label">لوين؟ (موقع التسليم)</label>
                                 <button type="button" class="btn map-select-btn map-select-btn-dropoff w-100 mb-2"
                                     onclick="event.preventDefault(); event.stopPropagation(); openMapModal('dropoff')">
                                     <i class="bi bi-flag-fill me-2"></i>تحديد من الخريطة
@@ -623,6 +626,7 @@
                                 </button>
                                 <div class="input-wrapper">
                                     <input type="text" class="form-control location-input bg-white" id="dropoff-addr"
+                                        aria-label="عنوان التسليم — يُحدَّد من الخريطة"
                                         placeholder="الوجهة غير محددة (اختر من الخريطة)" readonly
                                         style="cursor: pointer;" onclick="openMapModal('dropoff')">
                                     <span class="input-icon text-danger"><i class="bi bi-flag-fill"></i></span>
@@ -631,11 +635,13 @@
                                     <div class="col-7">
                                         <input type="text" id="dropoff-name"
                                             class="form-control form-control-sm bg-white"
+                                            aria-label="اسم المستلم أو المحل"
                                             placeholder="اسم المستلم / المحل">
                                     </div>
                                     <div class="col-5">
                                         <input type="tel" id="dropoff-phone"
                                             class="form-control form-control-sm bg-white english-num"
+                                            aria-label="هاتف المستلم"
                                             placeholder="رقم الهاتف">
                                     </div>
                                 </div>
@@ -686,14 +692,14 @@
 
                         <!-- يظهر فقط عند اختيار "مكان آخر": بلا اسم لا يعرف الكابتن أين يشتري -->
                         <div id="errand-shop-name-wrap" class="d-none mb-3">
-                            <label class="text-muted small fw-bold d-block mb-1">اسم المحل</label>
+                            <label class="text-muted small fw-bold d-block mb-1" for="errand-shop-input">اسم المحل</label>
                             <input type="text" id="errand-shop-input" class="form-control" maxlength="120"
                                 placeholder="مثلاً: بقالة الأمين — شارع الستين">
                         </div>
-                        <label class="text-muted small fw-bold d-block mb-1">ماذا تريد أن يشتري لك الكابتن؟</label>
+                        <label class="text-muted small fw-bold d-block mb-1" for="errand-items">ماذا تريد أن يشتري لك الكابتن؟</label>
                         <textarea id="errand-items" class="form-control mb-3" rows="3" maxlength="800"
                             placeholder="اكتب الأصناف، كل صنف في سطر:&#10;- شاورما دجاج ×2&#10;- عصير مانجو كبير"></textarea>
-                        <label class="text-muted small fw-bold d-block mb-1">ميزانية تقديرية للبضاعة (اختياري)</label>
+                        <label class="text-muted small fw-bold d-block mb-1" for="errand-budget">ميزانية تقديرية للبضاعة (اختياري)</label>
                         <input type="number" id="errand-budget" class="form-control mb-2" lang="en" dir="ltr"
                             placeholder="مثلاً 5000" min="0" inputmode="numeric"
                             oninput="window.toggleErrandAutoApprove && window.toggleErrandAutoApprove()">
@@ -718,6 +724,7 @@
                     </div>
 
                     <textarea id="details" class="form-control mb-3" rows="2"
+                        aria-label="وصف الأغراض (اختياري)"
                         placeholder="وصف للأغراض (مثلاً: كيس ملابس، مستندات...)" maxlength="500"></textarea>
 
                     <label class="parcel-upload-btn w-100" for="parcel-image" id="parcel-upload-label">
@@ -727,15 +734,16 @@
                     <input type="file" id="parcel-image" class="d-none" accept="image/*" onchange="previewImage(this)">
 
                     <div id="img-preview" class="mt-2 d-none position-relative">
-                        <img src="" class="rounded-4 object-fit-cover w-100 shadow-sm" style="height: 140px;">
+                        <img src="" alt="معاينة صورة الطرد" class="rounded-4 object-fit-cover w-100 shadow-sm" style="height: 140px;">
                         <button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle shadow"
-                            onclick="clearImage()" style="width:30px;height:30px;padding:0;">×</button>
+                            onclick="clearImage()" aria-label="حذف صورة الطرد"
+                            style="width:30px;height:30px;padding:0;"><span aria-hidden="true">×</span></button>
                     </div>
                 </div>
 
                 <div class="section-card bg-light border-0">
-                    <label class="section-title text-success mb-2">
-                        <i class="bi bi-cash-stack"></i> تقدير السعر
+                    <label class="section-title text-success mb-2" for="price">
+                        <i class="bi bi-cash-stack" aria-hidden="true"></i> تقدير السعر
                     </label>
 
 
@@ -863,7 +871,7 @@
                     حدد موقع الاستلام
                 </div>
                 <!-- City Switch — أقصى اليمين في الشريط العلوي -->
-                <button type="button" id="map-city-btn" onclick="window.chooseMapCity()" title="تغيير المدينة"
+                <button type="button" id="map-city-btn" onclick="window.chooseMapCity()" title="تغيير المدينة" aria-label="تغيير المدينة"
                     class="wj-chip wj-chip-city"
                     style="pointer-events:auto;touch-action:manipulation;margin-right:auto;">
                     <span id="map-city-label">تبديل المدينة</span>
@@ -873,10 +881,10 @@
             <!-- 🔍 Search Bar & Banner -->
             <div style="pointer-events:auto;position:absolute;top:calc(var(--sat, env(safe-area-inset-top, 0px)) + 68px);left:16px;right:16px;z-index:100001;">
                 <div style="position:relative;display:flex;align-items:center;">
-                    <input type="text" id="map-search-input" placeholder="ابحث عن مكان أو عنوان..."
+                    <input type="text" id="map-search-input" aria-label="ابحث عن مكان أو عنوان" placeholder="ابحث عن مكان أو عنوان..."
                         style="width:100%;padding:14px 48px 14px 40px;border:none;border-radius:14px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:600;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.12);outline:none;direction:rtl;"
                         autocomplete="off">
-                    <button type="button" id="map-search-btn" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--primary);color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
+                    <button type="button" id="map-search-btn" aria-label="بحث" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--primary);color:white;border:none;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(10,135,84,0.3); transition: transform 0.1s;">
                         <i class="bi bi-search"></i>
                     </button>
                     <!-- 🧹 زر المسح: كان clearMapSearch في home.js يبحث عن هذا العنصر
@@ -887,11 +895,11 @@
                     </button>
                 </div>
                 <!-- Search Results Dropdown -->
-                <div id="map-search-results"
+                <div id="map-search-results" role="listbox" aria-label="نتائج البحث عن مكان"
                     style="display:none;margin-top:6px;background:white;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,0.15);max-height:240px;overflow-y:auto;font-family:'Cairo',sans-serif;">
                 </div>
                 <!-- ⚠️ Geofence Warning Banner (Moved here to show below search results) -->
-                <div id="geofence-warning-banner"
+                <div id="geofence-warning-banner" role="alert"
                     style="display: none; margin-top: 6px; background: #dc3545; color: white; padding: 12px 16px; border-radius: 12px; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 13px; align-items: center; gap: 10px; box-shadow: 0 4px 16px rgba(220, 53, 69, 0.4); pointer-events: auto;">
                     <i class="bi bi-exclamation-triangle-fill fs-5" style="margin-left: 5px;"></i>
                     <span>عفواً، الدبوس خارج منطقة التوصيل حالياً. نعمل على التوسعة قريباً.</span>
@@ -937,7 +945,7 @@
                 style="pointer-events:none;position:absolute;right:16px;bottom:calc(184px + var(--sab, env(safe-area-inset-bottom, 0px)));display:flex;flex-direction:column;align-items:center;gap:10px;">
 
                 <!-- Locate Me -->
-                <button type="button" id="locate-me-btn" onclick="locateMe()" title="تحديد موقعي" class="map-fab-btn"
+                <button type="button" id="locate-me-btn" onclick="locateMe()" title="تحديد موقعي" aria-label="تحديد موقعي" class="map-fab-btn"
                     style="pointer-events:auto;touch-action:manipulation;">
                     <i class="bi bi-crosshair2" id="locate-me-icon"></i>
                 </button>
@@ -945,13 +953,13 @@
 
 
                 <!-- Day / Night toggle (Hidden as requested) -->
-                <button type="button" id="map-theme-btn" onclick="toggleMapTheme()" title="تبديل الثيم"
+                <button type="button" id="map-theme-btn" onclick="toggleMapTheme()" title="تبديل الثيم" aria-label="تبديل ثيم الخريطة"
                     class="map-fab-btn" style="display:none; pointer-events:auto;touch-action:manipulation;">
                     <i class="bi bi-moon-fill" id="map-theme-icon"></i>
                 </button>
 
                 <!-- Satellite / Roadmap toggle -->
-                <button type="button" id="map-layer-btn" onclick="toggleMapLayer()" title="تبديل الطبقة"
+                <button type="button" id="map-layer-btn" onclick="toggleMapLayer()" title="تبديل الطبقة" aria-label="تبديل طبقة الخريطة (قمر صناعي أو خريطة)"
                     class="map-fab-btn" style="pointer-events:auto;touch-action:manipulation;">
                     <i class="bi bi-layers-fill" id="map-layer-icon"></i>
                 </button>
@@ -970,7 +978,7 @@
                     <span class="wj-addr-ico"><i class="bi bi-geo-alt-fill"></i></span>
                     <div style="min-width:0;flex:1;">
                         <div class="wj-addr-label" id="wj-addr-label">موقع الاستلام</div>
-                        <div id="map-address-preview">
+                        <div id="map-address-preview" role="status" aria-live="polite">
                             <span style="opacity:.6;">حرّك الخريطة لتحديد موقعك بدقة…</span>
                         </div>
                     </div>
@@ -1015,23 +1023,23 @@
         }
     </script>
 
-    <nav class="mobile-nav-glass">
-        <a href="#" class="nav-item-link active" id="nav-home-tab" onclick="showHomeSection()">
+    <nav class="mobile-nav-glass" aria-label="التنقل الرئيسي">
+        <a href="#" class="nav-item-link active" id="nav-home-tab" onclick="showHomeSection()" aria-current="page">
 
-            <i class="bi bi-house-door-fill"></i>
+            <i class="bi bi-house-door-fill" aria-hidden="true"></i>
             <span class="small d-block">الرئيسية</span>
         </a>
         <a href="client-order.html" class="nav-item-link" id="nav-order-tab">
-            <i class="bi bi-shop"></i>
+            <i class="bi bi-shop" aria-hidden="true"></i>
             <span class="small d-block">تسوق</span>
         </a>
 
         <a href="client-my-orders.html" class="nav-item-link">
-            <i class="bi bi-box-seam"></i>
+            <i class="bi bi-box-seam" aria-hidden="true"></i>
             <span class="small d-block">طلباتي</span>
         </a>
         <a href="notifications.html" class="nav-item-link">
-            <i class="bi bi-bell"></i>
+            <i class="bi bi-bell" aria-hidden="true"></i>
             <span class="small d-block">الإشعارات</span>
         </a>
     </nav>
@@ -1565,13 +1573,13 @@
 
 
     <!-- 🛍️ Place Details Modal -->
-    <div class="modal fade" id="placeDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="placeDetailsModal" tabindex="-1" aria-hidden="true" aria-labelledby="placeModalName">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 rounded-4 overflow-hidden shadow">
                 <div class="position-relative">
                     <img src="" id="placeModalImage" class="w-100 object-fit-cover"
                         style="height: 180px; background-color: #e9ecef;" alt="Cover">
-                    <button type="button"
+                    <button type="button" aria-label="إغلاق تفاصيل المحل"
                         class="btn-close btn-close-white position-absolute top-0 start-0 m-3 shadow-sm bg-dark bg-opacity-50"
                         data-bs-dismiss="modal"></button>
                     <span id="placeModalStatus"
@@ -1656,7 +1664,7 @@
     </div>
 
     <!-- 🟢 Full Screen Map Overlay for Shop Orders -->
-    <div id="shop-map-overlay" class="d-none" style="position: fixed; inset: 0; z-index: 2147483647; background: #f4f6f8; overflow: hidden;">
+    <div id="shop-map-overlay" class="d-none" role="dialog" aria-modal="true" aria-label="تحديد موقع التوصيل" style="position: fixed; inset: 0; z-index: 2147483647; background: #f4f6f8; overflow: hidden;">
         <!-- Web SDK Map anchors here -->
         <div id="shopOrderMapActual" style="position: absolute; inset: 0; width: 100vw; height: 100vh;"></div>
 
@@ -1664,13 +1672,13 @@
         <div style="position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 10003; width: 90%; max-width: 400px;">
             <div class="input-group shadow-sm" style="border-radius: 50px; overflow: hidden;">
                 <span class="input-group-text bg-white border-0 ps-3"><i class="bi bi-search text-success"></i></span>
-                <input type="text" id="shopMapSearchInput" class="form-control border-0 fw-bold" placeholder="ابحث عن حي أو شارع..." style="font-size: 14px;" oninput="window.searchShopMapLocation(this.value)">
+                <input type="text" id="shopMapSearchInput" class="form-control border-0 fw-bold" aria-label="ابحث عن حي أو شارع" placeholder="ابحث عن حي أو شارع..." style="font-size: 14px;" oninput="window.searchShopMapLocation(this.value)">
             </div>
-            <div id="shopMapSearchResults" style="display:none; max-height:180px; overflow-y:auto; border-radius:12px; margin-top:6px; background:white; box-shadow: 0 4px 16px rgba(0,0,0,0.15);"></div>
+            <div id="shopMapSearchResults" role="listbox" aria-label="نتائج البحث عن الموقع" style="display:none; max-height:180px; overflow-y:auto; border-radius:12px; margin-top:6px; background:white; box-shadow: 0 4px 16px rgba(0,0,0,0.15);"></div>
         </div>
 
         <!-- 🚨 Geofence Warning Banner -->
-        <div id="shop-geofence-banner" style="display: none; position: absolute; top: 130px; left: 50%; transform: translateX(-50%); z-index: 10003; background-color: rgba(220, 53, 69, 0.95); color: white; padding: 12px 24px; border-radius: 50px; font-weight: bold; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); backdrop-filter: blur(4px);">
+        <div id="shop-geofence-banner" role="alert" style="display: none; position: absolute; top: 130px; left: 50%; transform: translateX(-50%); z-index: 10003; background-color: rgba(220, 53, 69, 0.95); color: white; padding: 12px 24px; border-radius: 50px; font-weight: bold; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); backdrop-filter: blur(4px);">
             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
             <span class="small" style="line-height: 1.4; display: inline-block;">عفواً، الموقع خارج منطقة التوصيل حالياً.</span>
         </div>
@@ -1704,14 +1712,14 @@
             <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill text-success me-2"></i> تأكيد موقع التوصيل والتفاصيل</h6>
 
             <!-- Phone Input -->
-            <label class="form-label fw-bold small text-muted"><i class="bi bi-telephone-fill me-1 text-success"></i> رقم هاتف المستلم (للتواصل)</label>
+            <label for="shopOverlayPhone" class="form-label fw-bold small text-muted"><i class="bi bi-telephone-fill me-1 text-success" aria-hidden="true"></i> رقم هاتف المستلم (للتواصل)</label>
             <div class="input-group mb-3">
                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-phone text-success"></i></span>
                 <input type="tel" id="shopOverlayPhone" class="form-control border-start-0 fw-bold" placeholder="09xxxxxxxx" oninput="if(window.pendingShopOrder) window.pendingShopOrder.dropoff.receiverPhone = this.value || '0000000000'">
             </div>
 
             <!-- Price Input -->
-            <label class="form-label fw-bold small text-muted"><i class="bi bi-cash-coin me-1 text-success"></i> سعر التوصيل (قابل للتفاوض)</label>
+            <label for="shopOverlayPrice" class="form-label fw-bold small text-muted"><i class="bi bi-cash-coin me-1 text-success" aria-hidden="true"></i> سعر التوصيل (قابل للتفاوض)</label>
             <div class="input-group price-stepper input-group-lg mb-2">
                 <button type="button" id="shop-price-minus" class="btn btn-price-step" aria-label="إنقاص 100" title="إنقاص 100">
                     <i class="bi bi-dash-lg"></i>
