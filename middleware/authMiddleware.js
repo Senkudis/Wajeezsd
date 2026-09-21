@@ -73,9 +73,15 @@ const protect = async (req, res, next) => {
             logger.warn({ jwtRole: decoded.role, dbRole: req.user.role, userId: req.user._id }, '[Auth] Role mismatch');
         }
 
-        // 🔒 Security: Check scope for restricted tokens (e.g. upload_only)
+        // 🔒 توكن مقيّد النطاق: لا يصلح إلا لما صدر لأجله.
+        //
+        // ⚠️ كانت القائمة تحتوي '/api/auth/upload-documents' — **مسارٌ لا وجود
+        //    له في المشروع إطلاقاً**. فالتوكن الذي يُصدره /register-captain
+        //    لرفع الوثائق كان يُرفض على كل مسار، بما فيه المسار الحقيقي
+        //    /api/upload/captain-docs. أي أن وثائق كل كابتنٍ سجّل من التطبيق
+        //    لم تصل الإدارة قط، ثم يُرفض طلبه لنقص الوثائق.
         if (decoded.scope && decoded.scope !== 'full') {
-            const allowedPaths = ['/api/auth/upload-documents'];
+            const allowedPaths = ['/api/upload/captain-docs'];
             if (!allowedPaths.some(p => req.originalUrl.includes(p))) {
                 return res.status(403).json({ message: 'هذا التوكن مقيّد بمهام محددة فقط' });
             }

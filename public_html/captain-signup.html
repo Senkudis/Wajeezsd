@@ -1030,7 +1030,12 @@
                 //    العميل — بينما لم يوافق أحد بعد.
                 //
                 //    نحدّث التوكن (قد يكون جُدّد) ونحفظ حالة الطلب وحدها.
-                const token = data.token || localStorage.getItem('token');
+                // ⚠️ كان يقرأ data.token وحده — والخادم يسمّيه uploadToken في
+                //    التسجيل الجديد. فالزائر الذي لا حساب له (تخزينه فارغ)
+                //    يرسل الوثائق بـ Bearer null فتُرفض، ويرى «تم إرسال طلبك»
+                //    بينما لا وثيقة عند الإدارة. الترقية وحدها كانت تنجح
+                //    لأن التخزين فيها توكنٌ حقيقي.
+                const token = data.uploadToken || data.token || localStorage.getItem('token');
                 if (upgradeMode) {
                     try {
                         if (data.token) localStorage.setItem('token', data.token);

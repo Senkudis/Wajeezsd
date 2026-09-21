@@ -366,8 +366,6 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
             return res.status(409).json({ message: `هذا الرقم الوطني مسجل مسبقاً. حالة طلبك: ${st}.` });
         }
 
-        const verificationCode = generateOtpCode();
-
         // 🌍 Validate city
         const VALID_CITIES_CAP = ['Khartoum', 'PortSudan'];
         const captainCity = VALID_CITIES_CAP.includes(req.body.city) ? req.body.city : 'Khartoum';
@@ -395,27 +393,20 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
                 pledgeText:           req.body.pledgeText,
                 submittedAt:          new Date()
             },
-            isVerified: false,
-            verificationCode,
-            verificationCodeExpires: Date.now() + 10 * 60 * 1000,
-            otpCode: verificationCode,
-            otpExpires: Date.now() + 10 * 60 * 1000
+            isVerified: false
         });
 
         await user.save();
 
-        if (process.env.NODE_ENV === 'development') {
-            logger.info(`\ud83d\udd10 [DEV] Captain verification code for ${name}: ${verificationCode}`);
-        }
-
-        // Send verification email
-        sendEmail(email, 'كود تفعيل حساب كابتن وجيز', `كود التفعيل الخاص بك هو: ${verificationCode}`)
-            .catch(err => logger.info('⚠️ Email Error:', err.message));
-
-        if (phone) {
-            sendSmsOTP(phone, `رمز تفعيل حسابك ككابتن في وجيز هو: ${verificationCode}`)
-                .catch(err => logger.error('⚠️ SMS Error:', err.message));
-        }
+        // 📵 لا كود تفعيلٍ يُرسَل هنا.
+        //
+        //    كان يُولَّد كودٌ ويُرسَل برسالةٍ وبريد: «رمز تفعيل حسابك ككابتن
+        //    هو…» — وليس في التطبيق شاشةٌ واحدة تستقبله. لا صفحة التسجيل
+        //    (تقفز إلى «تم الإرسال») ولا captain-login (لا حقل OTP فيها
+        //    أصلاً). فكان الكود يصل إلى هاتفه ولا مكان يُدخله فيه.
+        //
+        //    والتفعيل يقع مع القبول الإداري (approve-captain يضبط isVerified)،
+        //    فالكود زائدٌ كلّه: يُربك المتقدّم ويكلّف رسالةً على كل تسجيل.
 
         // ✅ FIX #16: Issue a limited upload-only token (not a full login token)
         // Full login is blocked by approvalStatus check in /login until admin approves
@@ -427,12 +418,13 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
         });
 
         analytics.track('captainSignup', { city: captainCity });
-        analytics.track('otpSent', { city: captainCity });
 
+        // 🔑 لا شاشة OTP للكابتن: التفعيل يقع مع القبول الإداري
+        //    (approve-captain يضبط isVerified). وكان الردّ يَعِد بـ requiresOtp
+        //    ولا شاشةَ تستقبله، فيقفز المتقدّم إلى «تم الإرسال» ولا يُسأل كوداً.
         res.status(201).json({
-            message: 'تم التسجيل! قم بتفعيل حسابك ورفع الوثائق. سيتم مراجعة طلبك من الإدارة.',
-            uploadToken,       // ← limited-scope token for document upload only
-            requiresOtp: true, // ← frontend should show OTP verification screen
+            message: 'تم استلام طلبك ورفع وثائقك. ستراجعه الإدارة وتصلك رسالة عند القبول.',
+            uploadToken,       // مقيّد برفع الوثائق، صالح ساعة
             userId: user._id
         });
 
@@ -472,6 +464,20 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
             return res.status(403).json({ message: 'حسابك موقوف. تواصل مع الإدارة.' });
         }
 
+        // 🔒 الكابتن المعلّق أو المرفوض: قُل له الحقيقة، لا «فعّل حسابك».
+        //
+        // ⚠️ كان هذا الفحص **بعد** فحص isVerified — والكابتن الجديد يُنشأ غير
+        //    مفعّل ولا يُفعّله إلا قبول الأدمن. فمن يسجّل ثم يحاول الدخول كان
+        //    يُقال له «حسابك غير مفعّل، أرسلنا كوداً جديداً»، وليس في صفحة
+        //    دخول الكباتن حقلٌ يُدخل فيه الكود. طريقٌ مسدود برسالةٍ خاطئة:
+        //    حسابه لا ينقصه كود، بل ينقصه قرار.
+        if (user.role === 'captain' && user.approvalStatus === 'pending') {
+            return res.status(403).json({ message: 'طلبك قيد المراجعة من الإدارة. سيتم إشعارك عند الموافقة.' });
+        }
+        if (user.role === 'captain' && user.approvalStatus === 'rejected') {
+            return res.status(403).json({ message: 'تم رفض طلبك. تواصل مع الإدارة لمزيد من التفاصيل.' });
+        }
+
         // ✅ OTP Auto-Redirect: لو الحساب غير مفعّل، ابعت كود جديد وأعد توجيه الفرونت
         if (!user.isVerified) {
             const newCode = generateOtpCode();
@@ -501,14 +507,6 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
                 message: 'حسابك غير مفعّل. تم إرسال كود تفعيل جديد إلى هاتفك.',
                 email: user.email
             });
-        }
-
-        // 🔒 Block pending/rejected captains
-        if (user.role === 'captain' && user.approvalStatus === 'pending') {
-            return res.status(403).json({ message: 'حسابك قيد المراجعة من الإدارة. سيتم إشعارك عند الموافقة.' });
-        }
-        if (user.role === 'captain' && user.approvalStatus === 'rejected') {
-            return res.status(403).json({ message: 'تم رفض طلبك. تواصل مع الإدارة لمزيد من التفاصيل.' });
         }
 
         const token = signUserToken(user);
