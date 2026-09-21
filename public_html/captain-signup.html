@@ -638,6 +638,26 @@
                     <h4 class="fw-bold mb-2">تم إرسال طلبك!</h4>
                     <p class="text-muted">سيتم مراجعة بياناتك ووثائقك من قبل الإدارة. ستصلك رسالة عند القبول.</p>
                     <hr>
+
+                    <!-- 📲 من قدّم من المتصفّح لا يملك التطبيق بعد.
+                         وهو أحوج ما يكون إليه الآن: عمله كلّه يقع فيه —
+                         الطلبات تصله بإشعارٍ فوري، والخريطة والمحفظة داخله.
+                         فلا نتركه يكتشف ذلك لاحقاً. تظهر على الويب فقط. -->
+                    <div id="getAppCard" class="d-none mb-3 p-3"
+                        style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;">
+                        <div class="fw-bold mb-1">
+                            <i class="bi bi-phone text-success ms-1"></i> حمّل تطبيق وجيز
+                        </div>
+                        <div class="small text-muted mb-3">
+                            الطلبات تصلك بإشعارٍ فوري، والخريطة ومحفظتك داخل التطبيق.
+                        </div>
+                        <a id="getAppBtn" href="#" target="_blank" rel="noopener"
+                            class="btn btn-success w-100 py-3 fw-bold">
+                            <i class="bi bi-download ms-1"></i>
+                            <span id="getAppLabel">تحميل التطبيق</span>
+                        </a>
+                    </div>
+
                     <a href="captain-login.html" class="btn btn-outline-success w-100 py-3">
                         <i class="bi bi-box-arrow-in-left ms-1"></i> الذهاب لتسجيل الدخول
                     </a>
@@ -959,6 +979,46 @@
             return null;
         }
 
+        /**
+         * 📲 «حمّل التطبيق» — لمن قدّم من المتصفّح وحده.
+         *
+         * من فتح الرابط والتطبيق مثبّت لم يمرّ من هنا أصلاً: App Links و
+         * Universal Links اختطفتا الرابط وفتحت الصفحة داخل التطبيق. فمن
+         * وصل إلى المتصفّح لا يملكه — وعمله كلّه يقع فيه.
+         *
+         * والرابط يُختار بمنصّته: إرسالُ رابط بلاي لصاحب آيفون زرٌّ يبدو
+         * أنه عمل وهو لم يفعل شيئاً نافعاً. والاختيار من share-app.js —
+         * مصدرٌ واحد يعرف أن iPadOS 13+ يُعرّف نفسه Macintosh.
+         */
+        function showGetAppCard() {
+            try {
+                const inApp = !!(window.Capacitor && window.Capacitor.isNativePlatform
+                                 && window.Capacitor.isNativePlatform());
+                if (inApp) return;   // هو داخل التطبيق فعلاً
+
+                const card = document.getElementById('getAppCard');
+                if (!card || typeof window.getAppStoreLink !== 'function') return;
+
+                const apple = typeof window.isApplePlatform === 'function' && window.isApplePlatform();
+                const btn = document.getElementById('getAppBtn');
+                document.getElementById('getAppLabel').textContent =
+                    apple ? 'تحميل من App Store' : 'تحميل من Google Play';
+
+                // ⚠️ تُعرَض فوراً برابط المتجر المعروف، ثم يُحدَّث إن جاء من
+                //    الإعدادات رابطٌ آخر. وانتظارُ الشبكة قبل العرض كان يعني
+                //    أن بطيء الاتصال — وهو حال أكثر من نستهدفهم — لا يرى
+                //    البطاقة إطلاقاً. والرابطان الاحتياطيان معروفان أصلاً.
+                btn.href = apple
+                    ? 'https://apps.apple.com/app/id6807840888'
+                    : 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
+                card.classList.remove('d-none');
+
+                window.getAppStoreLink().then(function (url) {
+                    if (url) btn.href = url;
+                }).catch(function () { /* الرابط الاحتياطي معروضٌ بالفعل */ });
+            } catch (_) { /* البطاقة إضافةٌ لا شرط — لا تُفشل التسجيل */ }
+        }
+
         async function submitRegistration() {
             const missing = missingRequiredDoc();
             if (missing) {
@@ -1077,6 +1137,7 @@
 
                 // Success — show step 5
                 goToStep(5);
+                showGetAppCard();
 
                 if (!docsUploaded) {
                     // الحساب أُنشئ فعلاً، فلا نُفشل التسجيل — لكن لا نُخفي أن
@@ -1100,6 +1161,7 @@
     </script>
 
     <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/share-app.js?v=b1135735"></script>
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>
 </body>

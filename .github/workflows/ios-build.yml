@@ -256,7 +256,7 @@ jobs:
           [ "$MODE" = "location" ] || { echo "::error::UIBackgroundModes:0 = '$MODE' لا 'location'"; exit 1; }
           echo "✅ الموقع في الخلفية مفعّل في Info.plist"
 
-      - name: Enable Push Notifications capability (aps-environment)
+      - name: Enable Push + Universal Links capabilities
         run: |
           set -euo pipefail
           # 🔔 بلا هذا الاستحقاق يرفض iOS التسجيل للإشعارات من أساسه:
@@ -271,6 +271,13 @@ jobs:
           #
           #    'production' هي بيئة APNs الصحيحة لبناء App Store وTestFlight.
           #    ('development' للبناء المباشر من Xcode على جهاز مطوّر.)
+          # 🔗 و associated-domains هو نظير intent-filter في أندرويد: بدونه
+          #    لا يلتقط iOS روابط wajeezsd.com إطلاقاً — تفتح في سفاري دائماً
+          #    مهما صحّ ملف apple-app-site-association على الخادم. وأندرويد
+          #    عنده هذا منذ البداية، فكانت الميزة موجودةً على منصّةٍ دون أخرى.
+          #
+          #    ويلزم أن تكون Associated Domains مفعّلةً على App ID في حساب
+          #    المطوّر أيضاً، وإلا رفض التوقيع الاستحقاق. (الفحص أدناه يكشفه.)
           ENT=ios/App/App/App.entitlements
           cat > "$ENT" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -279,10 +286,16 @@ jobs:
           <dict>
               <key>aps-environment</key>
               <string>production</string>
+              <key>com.apple.developer.associated-domains</key>
+              <array>
+                  <string>applinks:wajeezsd.com</string>
+                  <string>applinks:www.wajeezsd.com</string>
+              </array>
           </dict>
           </plist>
           PLIST
           /usr/libexec/PlistBuddy -c "Print :aps-environment" "$ENT"
+          /usr/libexec/PlistBuddy -c "Print :com.apple.developer.associated-domains" "$ENT"
 
           # ربط الملف بإعدادات البناء — نضعه بجوار معرّف الحزمة في كل تهيئة
           PBX=ios/App/App.xcodeproj/project.pbxproj
@@ -538,6 +551,10 @@ jobs:
 
           # الاستحقاق أيضاً: بلا aps-environment لا يُصدر الجهاز توكناً أصلاً
           codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q 'aps-environment'             || { echo "::error::الحزمة الموقَّعة بلا aps-environment"; exit 1; }
+          # 🔗 الاستحقاق يُكتب في الملف لكن التوقيع قد يُسقطه إن لم تكن
+          #    Associated Domains مفعّلةً على App ID — فيمرّ البناء وتبقى
+          #    الروابط تفتح في سفاري بلا سببٍ ظاهر. نفحص الحزمة الموقَّعة.
+          codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q 'applinks:wajeezsd.com'             || { echo "::error::الحزمة الموقَّعة بلا associated-domains — فعّل Associated Domains على App ID في حساب المطوّر ثم أعد توليد البروفايل"; exit 1; }
 
           # 🔔 وضع الخلفية للإشعارات — يُفحص في الحزمة نفسها.
           #    غيابه لا يُفشل بناءً ولا يُظهر خطأً، لكنه يمنع الإشعار الصامت

@@ -210,6 +210,12 @@ const AppCore = {
                         }
                     }
 
+                    // 🛵 رابط انتساب الكابتن — لا يحتاج نداء شبكة، مسارٌ ثابت
+                    if (/\/join-captain(\?|#|$)/.test(String(url || ''))) {
+                        window.location.href = 'captain-signup.html';
+                        return;
+                    }
+
                     // Match Shop Short Link: /s/code
                     const sMatch = String(url || '').match(/\/s\/([2-9A-HJ-NP-Za-km-z]{4,12})/);
                     if (sMatch) {

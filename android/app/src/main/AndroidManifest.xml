@@ -66,6 +66,10 @@
                 <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/s/" />
                 <data android:scheme="https" android:host="wajeezsd.com" android:pathPrefix="/p/" />
                 <data android:scheme="https" android:host="www.wajeezsd.com" android:pathPrefix="/p/" />
+                <!-- 🛵 رابط انتساب الكابتن: path لا pathPrefix — مسارٌ واحد
+                     بعينه، وpathPrefix كان سيلتقط /join-captain-anything -->
+                <data android:scheme="https" android:host="wajeezsd.com" android:path="/join-captain" />
+                <data android:scheme="https" android:host="www.wajeezsd.com" android:path="/join-captain" />
             </intent-filter>
         </activity>
 

@@ -123,6 +123,16 @@
      * يفتح ورقة المشاركة، أو ينسخ الرابط حين تغيب.
      * @param {string} [source] من أين ضُغط الزر — للتتبّع لاحقاً إن لزم
      */
+    /**
+     * 🏪 رابط متجر هذا الجهاز — يُعاد وعداً.
+     *
+     * كُشف عمداً: صفحة انتساب الكابتن تحتاجه لتعرض «حمّل التطبيق» بعد
+     * الإرسال، وتكرارُ كشف المنصّة هناك يعني نسختين تتباعدان — وإحداهما
+     * ستنسى أن iPadOS 13+ يُعرّف نفسه Macintosh.
+     */
+    window.getAppStoreLink = getShareUrl;
+    window.isApplePlatform = isApplePlatform;
+
     window.shareApp = function (source) {
         getShareUrl().then(function (url) {
             var title = 'وجيز — توصيل وتسوّق';
