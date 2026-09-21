@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/splash.css?v=3e93bd55">
     <!-- شاشة الإشعارات الموحّدة — بعد dark-mode.css عمداً (انظر رأس الملف) -->
-    <link rel="stylesheet" href="css/notifications-ui.css?v=e0ebecde">
+    <link rel="stylesheet" href="css/notifications-ui.css?v=ef58ac3d">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
     <script src="js/config.js?v=977449f7"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
@@ -53,12 +53,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
                     <div class="header-brand-badge">
-                        <i class="bi bi-bell-fill text-white" style="font-size: 1.4rem;"></i>
+                        <i class="bi bi-bell-fill text-white" style="font-size: 1.4rem;" aria-hidden="true"></i>
                     </div>
                     <div>
                         <h2 class="h5 fw-bold mb-0 text-white">الإشعارات</h2>
                         <div class="live-status-pill">
-                            <span class="pulse-dot"></span>
+                            <span class="pulse-dot" aria-hidden="true"></span>
                             <span id="headerSubtitle">كل جديدك وتحديثاتك هنا</span>
                         </div>
                     </div>
@@ -69,45 +69,45 @@
     </div>
 
     <div class="wn-wrap">
-        <div class="wn-toolbar" id="wnToolbar" hidden>
+        <div class="wn-toolbar" id="wnToolbar" role="group" aria-label="تصفية الإشعارات" hidden>
             <button type="button" class="wn-chip" id="chipAll" aria-pressed="true" data-filter="all">الكل</button>
             <button type="button" class="wn-chip" id="chipUnread" aria-pressed="false" data-filter="unread">
-                غير المقروء<span class="wn-chip-count" id="unreadCount">0</span>
+                غير المقروء<span class="wn-chip-count" id="unreadCount" aria-label="لا إشعارات غير مقروءة">0</span>
             </button>
             <button type="button" class="wn-mark-all" id="markAllReadBtn">
-                <i class="bi bi-check2-all me-1"></i>تحديد الكل كمقروء
+                <i class="bi bi-check2-all me-1" aria-hidden="true"></i>تحديد الكل كمقروء
             </button>
         </div>
 
-        <div id="notificationsList"></div>
+        <div id="notificationsList" role="region" aria-label="الإشعارات" aria-live="polite"></div>
     </div>
 
     <div class="wn-toast" id="wnToast" role="status" aria-live="polite"></div>
 
     <!-- Bottom Navigation: Built immediately to avoid flash -->
     <div id="mobile-nav-container">
-        <nav class="mobile-nav-glass">
+        <nav class="mobile-nav-glass" aria-label="التنقل الرئيسي">
             <a href="index.html" class="nav-item-link">
-                <i class="bi bi-house-door"></i>
+                <i class="bi bi-house-door" aria-hidden="true"></i>
                 <span>الرئيسية</span>
             </a>
             <a href="client-order.html" class="nav-item-link">
-                <i class="bi bi-shop"></i>
+                <i class="bi bi-shop" aria-hidden="true"></i>
                 <span>تسوق</span>
             </a>
             <a href="client-my-orders.html" class="nav-item-link">
-                <i class="bi bi-box-seam"></i>
+                <i class="bi bi-box-seam" aria-hidden="true"></i>
                 <span>طلباتي</span>
             </a>
-            <a href="notifications.html" class="nav-item-link active">
-                <i class="bi bi-bell-fill"></i>
+            <a href="notifications.html" class="nav-item-link active" aria-current="page">
+                <i class="bi bi-bell-fill" aria-hidden="true"></i>
                 <span>الإشعارات</span>
             </a>
         </nav>
     </div>
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="js/notifications-ui.js?v=dd0a61e9"></script>
+    <script src="js/notifications-ui.js?v=2546c1a5"></script>
     <script>
         WajeezNotifications.init({
             loginUrl: 'client-login.html',

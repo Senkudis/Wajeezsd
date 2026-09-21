@@ -175,7 +175,7 @@ window.WajeezNotifications = (function () {
         function skeleton(n) {
             let h = '';
             for (let i = 0; i < n; i++) {
-                h += '<div class="wn-skel">' +
+                h += '<div class="wn-skel" aria-hidden="true">' +
                     '<span style="width:42px;height:42px;border-radius:13px;flex-shrink:0"></span>' +
                     '<div style="flex:1">' +
                     '<span style="width:55%;height:13px;margin-bottom:9px"></span>' +
@@ -188,7 +188,7 @@ window.WajeezNotifications = (function () {
 
         function emptyState(icon, title, text, actions) {
             return '<div class="wn-empty">' +
-                '<div class="wn-empty-icon"><i class="bi ' + icon + '"></i></div>' +
+                '<div class="wn-empty-icon" aria-hidden="true"><i class="bi ' + icon + '"></i></div>' +
                 '<h5>' + esc(title) + '</h5>' +
                 '<p>' + esc(text) + '</p>' +
                 (actions || '') + '</div>';
@@ -208,7 +208,8 @@ window.WajeezNotifications = (function () {
             return '<button type="button" class="wn-item ' +
                 (n.isRead ? '' : 'is-unread ') + (url ? 'is-tappable' : '') + '"' +
                 ' data-id="' + esc(n._id) + '" data-url="' + esc(url) + '">' +
-                '<span class="wn-icon" style="background:' + v.bg + ';color:' + v.fg + '">' +
+                (n.isRead ? '' : '<span class="wn-sr">غير مقروء.</span>') +
+                '<span class="wn-icon" aria-hidden="true" style="background:' + v.bg + ';color:' + v.fg + '">' +
                 '<i class="bi ' + v.icon + '"></i></span>' +
                 '<span class="wn-body">' +
                 '<span class="wn-head">' +
@@ -217,7 +218,7 @@ window.WajeezNotifications = (function () {
                 '</span>' +
                 '<span class="wn-msg">' + esc(n.message) + '</span>' +
                 '</span>' +
-                (url ? '<i class="bi bi-chevron-left wn-go"></i>' : '') +
+                (url ? '<i class="bi bi-chevron-left wn-go" aria-hidden="true"></i>' : '') +
                 '</button>';
         }
 
@@ -236,7 +237,7 @@ window.WajeezNotifications = (function () {
             for (const n of items) {
                 const g = groupOf(new Date(n.createdAt));
                 if (g !== lastGroup) {
-                    html += '<div class="wn-group-title">' + g + '</div>';
+                    html += '<div class="wn-group-title" role="heading" aria-level="2">' + g + '</div>';
                     lastGroup = g;
                 }
                 html += itemHtml(n);
@@ -250,7 +251,13 @@ window.WajeezNotifications = (function () {
         function refreshCounts() {
             const unread = allItems.filter(n => !n.isRead).length;
             const countEl = document.getElementById('unreadCount');
-            if (countEl) countEl.textContent = unread;
+            if (countEl) {
+                countEl.textContent = unread;
+                // الشارة رقمٌ عارٍ حين تُقرأ — تسميتها تتبع قيمتها
+                countEl.setAttribute('aria-label', unread
+                    ? unread + ' إشعار غير مقروء'
+                    : 'لا إشعارات غير مقروءة');
+            }
             const markBtn = document.getElementById('markAllReadBtn');
             if (markBtn) markBtn.disabled = unread === 0;
             if (subtitleEl) {
