@@ -1,6 +1,20 @@
 const mongoose = require('mongoose');
 
 const merchantRequestSchema = new mongoose.Schema({
+    // 🌍 مدينة المتجر — يُشتقّ من إحداثياته، وإلا من مدينة صاحبه.
+    //
+    // ⚠️ لم يكن موجوداً إطلاقاً، فطلبات المتاجر كانت **بلا تقييد مدينة**:
+    //    أدمنٌ مساعد معيَّن على بورتسودان يرى كل المتقدّمين في السودان —
+    //    أسماءهم وهواتفهم وأرقام حساباتهم البنكية وصور هوياتهم. وبقيّة
+    //    الكيانات (الطلبات، الكباتن، المتاجر) كلّها مقيَّدة بالمدينة منذ
+    //    البداية؛ هذه وحدها كانت مفتوحة.
+    city: {
+        type: String,
+        enum: ['Khartoum', 'PortSudan'],
+        default: 'Khartoum',
+        index: true
+    },
+
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

@@ -11,7 +11,7 @@ const User = require('../models/User');
 const Settings = require('../models/Settings');
 const Marketer = require('../models/Marketer');
 const Referral = require('../models/Referral');
-const { protect, adminOnly, requireAnyPermission } = require('../middleware/authMiddleware');
+const { protect, adminOnly, requireAnyPermission, getAdminCityFilter, adminCoversCity } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
 const { logAdminAction } = require('../utils/adminLogger');
 
@@ -49,7 +49,21 @@ router.post('/', protect, async (req, res) => {
 
         const { businessName, ownerName, phone, location, address, category, description, bankAccount, bankAccountNumber, bankAccountOwner, logoImage, idImage, referralSource, referralDetail, referralCode } = req.body;
 
+        // 🌍 مدينة الطلب: من إحداثيات المتجر إن صحّت، وإلا من مدينة صاحبه.
+        //    نفس منطق القبول (cityFromCoords) — فلا تختلف المدينة بين
+        //    الطلب والمتجر الذي يُنشأ منه.
+        let reqCity = req.user.city || 'Khartoum';
+        try {
+            const lat = Number(location && location.lat);
+            const lng = Number(location && location.lng);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                const { cityFromCoords } = require('../utils/geofence');
+                reqCity = cityFromCoords(lat, lng) || reqCity;
+            }
+        } catch (_) { /* الإحداثيات اختيارية — تبقى مدينة الحساب */ }
+
         const newRequest = new MerchantRequest({
+            city: reqCity,
             businessName, ownerName, phone, location, address, category, description,
             bankAccount, bankAccountNumber, bankAccountOwner, logoImage, idImage,
             referralSource: ['social', 'person', 'captain', 'whatsapp', 'google', 'ad', 'market', 'other'].includes(referralSource) ? referralSource : '',
@@ -67,7 +81,8 @@ router.post('/', protect, async (req, res) => {
                 title: 'طلب انضمام تاجر جديد',
                 message: `متجر "${businessName || 'غير مسمّى'}" بانتظار المراجعة والموافقة.`,
                 type: 'merchant_request',
-                relatedId: newRequest._id
+                relatedId: newRequest._id,
+                city: reqCity
             });
         } catch (e) { logger.error('notifyAdmins (merchant request) failed:', e.message); }
 
@@ -126,7 +141,8 @@ router.get('/admin/all', protect, adminOnly,
     requireAnyPermission(['view_merchant_requests', 'manage_merchant_requests', 'manage_stores']),
     async (req, res) => {
     try {
-        const requests = await MerchantRequest.find()
+        // 🔒 مدن الأدمن وحدها — المسؤول الرئيسي يرى الكل
+        const requests = await MerchantRequest.find(getAdminCityFilter(req))
             .populate('userId', 'name phone email')
             .sort({ createdAt: -1 });
             
@@ -165,6 +181,9 @@ router.get('/admin/:id/approval-message', protect, adminOnly,
     try {
         const request = await MerchantRequest.findById(req.params.id);
         if (!request) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (!adminCoversCity(req.user, request.city)) {
+            return res.status(403).json({ message: 'هذا الطلب خارج نطاق مدنك' });
+        }
 
         // مدينة المتجر من مكانه إن أُنشئ، وإلا من حساب صاحبه
         const Place = require('../models/Place');
@@ -197,6 +216,13 @@ router.put('/admin/:id/status', protect, adminOnly,
 
         if (!request) {
             return res.status(404).json({ message: 'الطلب غير موجود' });
+        }
+
+        // 🔒 القراءة مقيَّدةٌ بالمدينة، فالقرار أولى: بلا هذا يستطيع أدمنٌ
+        //    مساعد أن يقبل أو يرفض متجراً في مدينةٍ لا يشرف عليها بمجرّد
+        //    معرفة معرّفه — والقائمة لا تعرضه له أصلاً.
+        if (!adminCoversCity(req.user, request.city)) {
+            return res.status(403).json({ message: 'هذا الطلب خارج نطاق مدنك' });
         }
 
         if (status === 'rejected') {

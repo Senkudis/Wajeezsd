@@ -57,6 +57,49 @@ describe('🔐 طلبات المتاجر: صلاحيةٌ لا دورٌ فقط', 
     });
 });
 
+describe('🔴 طلبات المتاجر مقيَّدةٌ بالمدينة', () => {
+    const MerchantRequest = require('../models/MerchantRequest');
+
+    it('الحقل في المخطّط — كان الكيانَ الوحيد بلا مدينة', () => {
+        // الطلبات، الكباتن، المتاجر: كلّها مقيَّدة منذ البداية. هذه وحدها
+        // كانت مفتوحة، فأدمنُ مدينةٍ يرى متقدّمي السودان كلّه — أسماءهم
+        // وهواتفهم وأرقام حساباتهم البنكية وصور هوياتهم.
+        const f = MerchantRequest.schema.path('city');
+        expect(f).toBeTruthy();
+        expect(f.enumValues).toEqual(['Khartoum', 'PortSudan']);
+    });
+
+    it('🔴 والقائمة تُرشَّح بمدن الأدمن', () => {
+        const get = reqRoutes.slice(reqRoutes.indexOf("router.get('/admin/all'"),
+                                    reqRoutes.indexOf("router.put('/admin/:id/status'"));
+        expect(get).toContain('getAdminCityFilter(req)');
+    });
+
+    it('🔴 والقرار كذلك — لا يُقبل طلبٌ خارج النطاق بمعرفة معرّفه', () => {
+        const put = reqRoutes.slice(reqRoutes.indexOf("router.put('/admin/:id/status'"));
+        expect(put).toContain('adminCoversCity(req.user, request.city)');
+    });
+
+    it('ورسالة القبول محميّةٌ بالنطاق نفسه', () => {
+        const msg = reqRoutes.slice(reqRoutes.indexOf("router.get('/admin/:id/approval-message'"),
+                                    reqRoutes.indexOf("router.put('/admin/:id/status'"));
+        expect(msg).toContain('adminCoversCity');
+    });
+
+    it('وتُختم عند الإنشاء من الإحداثيات لا من فراغ', () => {
+        const post = reqRoutes.slice(reqRoutes.indexOf("router.post('/', protect"),
+                                     reqRoutes.indexOf("router.get('/my-request'"));
+        expect(post).toContain('cityFromCoords');
+        expect(post).toContain('city: reqCity');
+    });
+
+    it('والتنبيه يتبع المدينة — لا يُزعج أدمن المدينة الأخرى', () => {
+        const post = reqRoutes.slice(reqRoutes.indexOf("router.post('/', protect"),
+                                     reqRoutes.indexOf("router.get('/my-request'"));
+        expect(post).toContain('city: reqCity');
+    });
+});
+
 describe('🗂️ الصفحة لا تفتح على تبويبٍ فارغ', () => {
     it('🔴 تنتقل إلى «الكل» حين تخلو قائمة الانتظار', () => {
         // كل طلبات الإنتاج مقبولة وصفرٌ معلّق، فكانت الشاشة تُفتح فارغة
