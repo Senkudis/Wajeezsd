@@ -469,8 +469,8 @@
         }
     </style>
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
-    <link rel="stylesheet" href="css/enhanced-styles.css?v=c7becdb9">
-    <link rel="stylesheet" href="css/dark-mode.css?v=b38292d8">
+    <link rel="stylesheet" href="css/enhanced-styles.css?v=ce667195">
+    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <!-- شاشة تحديد الموقع — مصدر واحد تتقاسمه مع shop-detail.html -->
     <link rel="stylesheet" href="css/map-ui.css?v=22cf50c4">
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
@@ -1056,74 +1056,86 @@
                 </div>
             </div>
         </div>
-        <div class="offcanvas-body p-0">
-            <div class="list-group list-group-flush">
-                <a href="client-login.html" id="menu-login-btn" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-box-arrow-in-right me-3 text-primary"></i> تسجيل الدخول
-                </a>
-                <a href="client-my-orders.html" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-clock-history me-3 text-success"></i> سجل طلباتي
-                </a>
-                <a href="client-register-shop.html" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-shop-window me-3 text-primary"></i> انضم كتاجر (سجل متجرك)
-                </a>
-                <a href="client-complaint.html" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-headset me-3 text-danger"></i> الدعم الفني والشكاوي
-                </a>
-                <a href="#" onclick="event.preventDefault(); shareApp('menu');"
-                    class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-share-fill me-3 text-warning"></i> شارك التطبيق مع أصحابك
-                </a>
+        <div class="offcanvas-body p-0 wj-menu">
+            <!-- 🧭 القائمة مفروزةً بالقصد لا بترتيب الإضافة.
+                 كانت ثماني وصلاتٍ في كومةٍ واحدة: حسابٌ ودعمٌ ودعايةٌ
+                 وسياسةُ خصوصية بلا فاصل، ولكلٍّ أيقونةٌ بلونٍ مختلف —
+                 ثمانية ألوان لا تعني شيئاً، فالعين لا تجد فيها ترتيباً.
+                 الآن: أربع مجموعاتٍ معنونة، ولونٌ واحد، وكلماتٌ قصيرة. -->
 
-                <a href="https://wajeezsd.com" target="_blank" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-info-circle me-3 text-info"></i> عن وجيز
+            <div class="wj-menu-group">حسابي</div>
+            <div class="list-group list-group-flush">
+                <a href="client-login.html" id="menu-login-btn" class="list-group-item list-group-item-action">
+                    <i class="bi bi-box-arrow-in-right"></i> تسجيل الدخول
                 </a>
-                <a href="https://wajeezsd.com/privacy-policy.html" target="_blank"
-                    class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-shield-check me-3 text-secondary"></i> سياسة الخصوصية
+                <a href="client-my-orders.html" class="list-group-item list-group-item-action">
+                    <i class="bi bi-clock-history"></i> طلباتي
+                </a>
+                <a href="#" onclick="logout()" id="menu-logout-btn"
+                    class="list-group-item list-group-item-action text-danger d-none">
+                    <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+                </a>
+            </div>
+
+            <!-- ⚠️ «بوابات أخرى» كلمةٌ لا يقولها أحد. والناس لا تبحث عن
+                 بوابة، تبحث عن عمل — فالعنوان صار بلغتهم، وضُمّ إليه
+                 تسجيل المتجر: كلّها بابُ من يريد أن يكسب من التطبيق. -->
+            <div class="wj-menu-group">اشتغل معانا</div>
+            <div class="list-group list-group-flush">
+                <a href="captain-signup.html" class="list-group-item list-group-item-action">
+                    <i class="bi bi-person-plus"></i> سجّل ككابتن
+                </a>
+                <a href="captain-login.html" class="list-group-item list-group-item-action">
+                    <i class="bi bi-scooter"></i> دخول الكباتن
+                </a>
+                <a href="client-register-shop.html" class="list-group-item list-group-item-action">
+                    <i class="bi bi-shop"></i> سجّل متجرك
+                </a>
+            </div>
+
+            <div class="wj-menu-group">مساعدة</div>
+            <div class="list-group list-group-flush">
+                <a href="client-complaint.html" class="list-group-item list-group-item-action">
+                    <i class="bi bi-headset"></i> الدعم والشكاوى
                 </a>
                 <!-- إعادة الجولة — وعدت بها الخطوة الأخيرة من جولة العميل
                      نصّاً ("من القائمة الجانبية")، فكان وعداً بلا تنفيذ -->
                 <a href="#" onclick="event.preventDefault(); replayClientTour();" id="menu-replay-tour"
-                    class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-play-circle me-3 text-success"></i> إعادة الجولة التعريفية
-                </a>
-                <a href="#" onclick="logout()" id="menu-logout-btn"
-                    class="list-group-item list-group-item-action py-3 text-danger d-none">
-                    <i class="bi bi-box-arrow-right me-3"></i> تسجيل الخروج
+                    class="list-group-item list-group-item-action">
+                    <i class="bi bi-play-circle"></i> شرح التطبيق
                 </a>
             </div>
 
-            <!-- بوابات الكابتن والأدمن -->
-            <div class="px-3 pt-3 pb-1">
-                <small class="text-muted fw-bold text-uppercase" style="font-size:11px;letter-spacing:1px;">بوابات
-                    أخرى</small>
-            </div>
+            <div class="wj-menu-group">عن وجيز</div>
             <div class="list-group list-group-flush">
-                <a href="captain-login.html" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-scooter me-3 text-success"></i> دخول الكابتن
+                <a href="#" onclick="event.preventDefault(); shareApp('menu');"
+                    class="list-group-item list-group-item-action">
+                    <i class="bi bi-share"></i> شارك وجيز
                 </a>
-                <!-- ⚠️ كان هذا الرابط يفتح https://captain.wajeezsd.com في
-                     المتصفّح الافتراضي — وهو سبب رفض آبل بالإرشاد 4 حرفياً:
-                     «يُنقل المستخدم إلى المتصفّح الافتراضي للتسجيل، وهي تجربة
-                     استخدام رديئة». نموذج الموقع نفسه صار داخل التطبيق في
-                     captain-signup.html بكل حقوله. -->
-                <a href="captain-signup.html"
-                    class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-person-plus-fill me-3 text-success"></i> التسجيل ككابتن
+                <a href="https://wajeezsd.com" target="_blank" class="list-group-item list-group-item-action">
+                    <i class="bi bi-info-circle"></i> من نحن
                 </a>
-                <a href="admin-login.html" class="list-group-item list-group-item-action py-3">
-                    <i class="bi bi-shield-lock-fill me-3 text-danger"></i> دخول المسؤول
+                <a href="https://wajeezsd.com/privacy-policy.html" target="_blank"
+                    class="list-group-item list-group-item-action">
+                    <i class="bi bi-shield-check"></i> سياسة الخصوصية
                 </a>
             </div>
 
-            <div class="p-3 mt-4 text-center">
+            <div class="p-3 mt-3 text-center">
                 <!-- حذف الحساب داخل التطبيق — مخفي بشكل افتراضي، يظهر في الأسفل -->
                 <a href="#" onclick="event.preventDefault(); openDeleteAccount();" id="menu-delete-account-btn"
                     class="d-none text-danger text-decoration-none small mb-3 d-inline-block">
                     <i class="bi bi-person-x me-1"></i> حذف الحساب نهائياً
                 </a>
-                
+
+                <!-- 🔻 دخول المسؤول نزل إلى هنا: لا شأن للعميل به، وكان
+                     يجلس في القائمة نفسها بلونٍ أحمر يلفت إليه النظر. -->
+                <p class="mb-2">
+                    <a href="admin-login.html" class="text-muted text-decoration-none small">
+                        <i class="bi bi-shield-lock me-1"></i> دخول المسؤول
+                    </a>
+                </p>
+
                 <!-- ⚠️ كان الرقم مكتوباً يدوياً (1.4.1 بينما التطبيق 1.0.9) — يُقرأ الآن من APP_VERSION -->
                 <p class="text-muted small mb-0">إصدار التطبيق <span data-app-version>—</span></p>
             </div>

@@ -531,7 +531,10 @@ body.dark-mode .btn-outline-light {
     color: var(--text-muted);
 }
 
-body.dark-mode .btn-close {
+/* ⚠️ .btn-close-white أبيضُ أصلاً — وُضع فوق ترويسةٍ خضراء داكنة.
+   قلبُه يجعله أسود، والقاعدة الأخرى تُلبسه خلفيةً داكنة، فيخرج مربّعاً
+   رمادياً على الأخضر بدل أن يكون علامة × بيضاء. يُستثنى منهما. */
+body.dark-mode .btn-close:not(.btn-close-white) {
     filter: invert(1);
 }
 
@@ -2747,7 +2750,7 @@ body.dark-mode .chip-time,
 body.dark-mode .status-dismissed,
 body.dark-mode .page-btn,
 body.dark-mode .btn-ghost,
-body.dark-mode .btn-close {
+body.dark-mode .btn-close:not(.btn-close-white) {
     background: #1e293b !important;
     color: #9ca3af !important;
     border-color: #374151 !important;
@@ -3008,4 +3011,12 @@ body.dark-mode .table-hover > tbody > tr:hover > * {
 
 body.dark-mode .table-bordered > :not(caption) > * {
     border-color: #374151 !important;
+}
+
+/* 🔴 «تسجيل الخروج» كان يفقد حمرته في الوضع الليلي: قاعدةُ لون النصّ
+   العامّة تغلب .text-danger، فيصير كأيّ وصلةٍ أخرى — وهو الفعل الوحيد
+   في القائمة الذي يُنهي جلسةَ المستخدم. يبقى مميّزاً في الوضعين. */
+body.dark-mode .wj-menu .list-group-item.text-danger,
+body.dark-mode .wj-menu .list-group-item.text-danger i {
+    color: #f87171 !important;
 }

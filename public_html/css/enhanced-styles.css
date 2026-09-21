@@ -833,6 +833,48 @@ body {
 }
 
 /* ========================================
+   🧭 القائمة الجانبية — مفروزةً ومقروءة
+   ========================================
+   كانت كومةً واحدة من ثماني وصلات، لكلٍّ أيقونةٌ بلونٍ مختلف: أزرق فأخضر
+   فأحمر فبرتقالي… ثمانيةُ ألوانٍ لا يحمل أيٌّ منها معنى. واللون حين لا
+   يعني شيئاً يصير ضجيجاً: العين تتوقّف عند كل سطرٍ بدل أن تمسح القائمة.
+
+   فلونٌ واحدٌ هادئ للأيقونات، والتمييز يقع على العناوين: أربع مجموعات
+   صغيرةٍ تفصل الحساب عن العمل عن المساعدة عن التعريف. */
+.wj-menu-group {
+    padding: 16px 20px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    color: #9aa0a6;
+}
+.wj-menu .list-group + .wj-menu-group {
+    border-top: 1px solid rgba(0, 0, 0, .06);
+    margin-top: 2px;
+}
+.wj-menu .list-group-item {
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.wj-menu .list-group-item i {
+    font-size: 17px;
+    color: var(--primary, #04553A);
+    opacity: .75;
+    flex: 0 0 24px;
+}
+/* الخروج وحده يبقى أحمر: فعلٌ لا رجعة فيه في هذه الجلسة */
+.wj-menu .list-group-item.text-danger i { color: inherit; opacity: 1; }
+
+body.dark-mode .wj-menu-group { color: #7c848c; }
+body.dark-mode .wj-menu .list-group + .wj-menu-group {
+    border-top-color: rgba(255, 255, 255, .08);
+}
+body.dark-mode .wj-menu .list-group-item i { color: #4ade80; }
+
+/* ========================================
    Empty States - Professional
    ======================================== */
 #guest-view i,
