@@ -196,6 +196,51 @@ router.get('/captains-detailed', protect, requirePermission('view_captain_detail
     }
 });
 
+// @route   GET /api/admin/captains/:id/approval-message
+// @desc    نصّ رسالة القبول ورقم واتسابه — في أي وقت، لا عند القبول فقط
+//
+// ⚠️ كانت الرسالة تُعرض مرّةً واحدة في نافذةٍ بعد القبول مباشرة. فمن
+//    أغلقها سهواً — أو قَبِل ثم انشغل — فقدها إلى الأبد، ولا سبيل لبنائها
+//    من جديد إلا بإلغاء القبول وإعادته. والرسالة ليست حدثاً بل نصٌّ
+//    مشتقٌّ من الحساب وإعدادات مدينته، فيُبنى متى طُلب.
+router.get('/captains/:id/approval-message', protect,
+    requireAnyPermission(['manage_captains', 'view_captain_details']),
+    async (req, res) => {
+    try {
+        const captain = await User.findById(req.params.id)
+            .select('name phone email city captainApplication');
+        if (!captain) return res.status(404).json({ message: 'الكابتن غير موجود' });
+        if (!adminCanActOnUser(req, captain)) {
+            return res.status(403).json({ message: 'هذا الحساب خارج نطاق مدنك' });
+        }
+
+        const Settings = require('../../models/Settings');
+        const settings = await Settings.getSettings(captain.city);
+        const { buildCaptainApprovalMessage } = require('../../utils/captainApprovalMessage');
+
+        res.json({
+            message: buildCaptainApprovalMessage({
+                name: captain.name,
+                phone: captain.phone,
+                email: captain.email,
+                appLink: settings && settings.playStoreLink,
+                appLinkIos: settings && settings.appStoreLink,
+                supportPhone: settings && settings.adminPhone,
+                commissionRate: settings && settings.commissionRate,
+                creditLimit: settings && settings.defaultCreditLimit,
+                groupLink: settings && settings.captainGroupLink
+            }),
+            whatsapp: (captain.captainApplication && captain.captainApplication.whatsapp)
+                || captain.phone || '',
+            // يُنبَّه الأدمن إن لم يُضبط رابط المجموعة بعد — وإلا أرسل رسالةً ناقصة
+            groupLinkSet: !!(settings && settings.captainGroupLink)
+        });
+    } catch (error) {
+        logger.error({ err: error.message }, 'captain approval-message error');
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // @route   GET /api/admin/merchants-list
 // @desc    لائحة التجار مع بياناتهم: الاسم، الهاتف، اسم المتجر، الفئة، عدد المنتجات
 // 🔐 صلاحية: view_stores
@@ -613,7 +658,8 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
                 supportPhone: settings && settings.adminPhone,
                 // من إعدادات مدينته: النسبة والحدّ يختلفان بين المدن
                 commissionRate: settings && settings.commissionRate,
-                creditLimit: settings && settings.defaultCreditLimit
+                creditLimit: settings && settings.defaultCreditLimit,
+                groupLink: settings && settings.captainGroupLink
             });
 
             // رقم الواتساب من نموذج الانتساب إن وُجد، وإلا هاتف الحساب

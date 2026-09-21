@@ -327,6 +327,58 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
         let _reqFilter = 'pending';
         window.setReqFilter = function(f) { _reqFilter = f; renderTable(); };
 
+        /** يحوّل الرقم إلى صيغة واتساب الدولية (بلا +). */
+        function toWhatsAppNumber(raw) {
+            let n = String(raw || '').replace(/\D/g, '');
+            if (!n) return '';
+            if (n.startsWith('00')) n = n.slice(2);
+            if (n.startsWith('249')) return n;
+            if (n.startsWith('0')) return '249' + n.slice(1);
+            if (n.length === 9) return '249' + n;
+            return n;
+        }
+
+        /**
+         * 📲 إرسال رسالة قبول التاجر — في أي وقت.
+         *
+         * الرسالة تُبنى في الخادم من الطلب وإعدادات مدينته، فلا تُحفظ ولا
+         * تفوت: من لم يُرسلها وقت القبول يرسلها الآن بضغطة.
+         */
+        window.sendMerchantApproval = async function (id) {
+            try {
+                const res = await fetch(`${API_URL}/api/merchant-requests/admin/${id}/approval-message`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) { Swal.fire('تنبيه', data.message || 'تعذّر تجهيز الرسالة', 'warning'); return; }
+
+                // ⚠️ بلا رابط المجموعة تصل الرسالة ناقصةً أهمّ ما فيها
+                if (!data.groupLinkSet) {
+                    const go = await Swal.fire({
+                        icon: 'warning',
+                        title: 'رابط مجموعة التجار غير مضبوط',
+                        html: 'الرسالة ستُرسَل بلا رابط المجموعة. اضبطه من الإعدادات لمدينة المتجر.',
+                        showCancelButton: true,
+                        confirmButtonText: 'أرسل بدونه',
+                        cancelButtonText: 'إلغاء'
+                    });
+                    if (!go.isConfirmed) return;
+                }
+
+                const intl = toWhatsAppNumber(data.whatsapp);
+                if (!intl) {
+                    if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(data.message);
+                        Swal.fire('تم النسخ', 'لا يوجد رقم واتساب — نُسخت الرسالة لتُرسلها يدوياً', 'info');
+                    } else Swal.fire('تنبيه', 'لا يوجد رقم واتساب لهذا التاجر', 'warning');
+                    return;
+                }
+                window.open('https://wa.me/' + intl + '?text=' + encodeURIComponent(data.message), '_blank', 'noopener');
+            } catch (e) {
+                Swal.fire('خطأ', 'تعذّر الاتصال بالخادم', 'error');
+            }
+        };
+
         function _renderReqFilterTabs() {
             const el = document.getElementById('reqFilterTabs');
             if (!el) return;
@@ -582,8 +634,16 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                     </button>
                 `;
             } else if (req.status === 'approved') {
+                // 📲 زرّ إرسال رسالة القبول — دائمٌ ما دام الطلب مقبولاً.
+                //    الرسالة تُبنى من الخادم متى طُلبت، فمن لم يُرسلها وقت
+                //    القبول (أو أغلق النافذة سهواً) يرسلها الآن.
                 actionsDiv.innerHTML = `
                     <div class="alert w-100 mb-2 text-center fw-bold alert-success">هذا الطلب تمت الموافقة عليه مسبقاً</div>
+                    <button type="button" class="btn-custom w-100 mb-2"
+                        style="background:#25d366;color:#fff;border:none;"
+                        onclick="sendMerchantApproval('${req._id}')">
+                        <i class="fab fa-whatsapp"></i> إرسال رسالة القبول عبر واتساب
+                    </button>
                     <button type="button" class="btn-primary-custom btn-custom w-100" onclick="updateStatus('${req._id}', 'approved', true)">
                         <i class="fas fa-save"></i> حفظ التعديلات
                     </button>
@@ -815,8 +875,27 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                 });
 
                 if (res.ok) {
+                    const payload = await res.json().catch(() => ({}));
                     await loadRequests();
                     closeModal();
+
+                    // 📲 عند القبول: اعرض إرسال الرسالة فوراً.
+                    //    ومن أغلق هذه النافذة لا يفقد شيئاً — الزرّ باقٍ في
+                    //    تفاصيل الطلب ويُعيد بناءها متى شاء.
+                    if (status === 'approved' && payload.approvalMessage) {
+                        const r = await Swal.fire({
+                            icon: 'success',
+                            title: 'تم قبول المتجر',
+                            text: 'أرسل له رسالة القبول وبيانات الدخول ورابط المجموعة.',
+                            confirmButtonText: 'إرسال عبر واتساب',
+                            confirmButtonColor: '#25d366',
+                            showCancelButton: true,
+                            cancelButtonText: 'لاحقاً'
+                        });
+                        if (r.isConfirmed) sendMerchantApproval(id);
+                        return;
+                    }
+
                     Swal.fire('نجاح', `تم ${status === 'approved' ? 'قبول' : 'رفض'} الطلب بنجاح`, 'success');
                 } else {
                     const err = await res.json();

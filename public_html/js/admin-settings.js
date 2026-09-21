@@ -41,6 +41,11 @@ async function loadSettings() {
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
             const _asl = document.getElementById('appStoreLink');
             if (_asl) _asl.value = settings.appStoreLink || '';
+            // 👥 روابط المجموعات — لمدينة الإعدادات المعروضة
+            const _cgl = document.getElementById('captainGroupLink');
+            if (_cgl) _cgl.value = settings.captainGroupLink || '';
+            const _mgl = document.getElementById('merchantGroupLink');
+            if (_mgl) _mgl.value = settings.merchantGroupLink || '';
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }
 
@@ -105,6 +110,10 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         data.playStoreLink = document.getElementById('playStoreLink').value.trim();
         const _aslEl = document.getElementById('appStoreLink');
         if (_aslEl) data.appStoreLink = _aslEl.value.trim();
+        const _cglEl = document.getElementById('captainGroupLink');
+        if (_cglEl) data.captainGroupLink = _cglEl.value.trim();
+        const _mglEl = document.getElementById('merchantGroupLink');
+        if (_mglEl) data.merchantGroupLink = _mglEl.value.trim();
         data.forceUpdate = document.getElementById('forceUpdate').checked;
     }
 

@@ -175,6 +175,21 @@ const settingsSchema = new mongoose.Schema({
         type: String,
         default: 'https://apps.apple.com/app/id6807840888'
     },
+    // 👥 روابط مجموعات واتساب — لكل مدينةٍ مجموعتها.
+    //
+    // الوثيقة مُخزَّنة لكل مدينة أصلاً، فلا حاجة لحقلين لكل دور: كابتنُ
+    // بورتسودان تُقرأ إعداداتُ مدينته فيصله رابطُها. ومجموعاتُ واتساب
+    // تُعاد إنشاؤها ويتغيّر رابطها، فلا يصحّ تثبيته في الكود — رابطٌ ميت
+    // في رسالة قبولٍ أسوأ من لا رابط: يضغطه المقبول فيجد بابا مغلقاً.
+    captainGroupLink: {
+        type: String,
+        default: ''
+    },
+    merchantGroupLink: {
+        type: String,
+        default: ''
+    },
+
     forceUpdate: {
         type: Boolean,
         default: false

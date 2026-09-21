@@ -137,6 +137,55 @@ router.get('/admin/all', protect, adminOnly,
     }
 });
 
+/**
+ * يبني رسالة قبول التاجر من بيانات الطلب وإعدادات مدينته.
+ * مشتركةٌ بين القبول ومسار إعادة الإرسال — نسختان كانتا ستتباعدان.
+ */
+async function buildMerchantMessage(request, city) {
+    const Settings = require('../models/Settings');
+    const { buildMerchantApprovalMessage } = require('../utils/captainApprovalMessage');
+    const settings = await Settings.getSettings(city || 'Khartoum');
+    return buildMerchantApprovalMessage({
+        name: request.ownerName,
+        businessName: request.businessName,
+        phone: request.phone,
+        groupLink: settings && settings.merchantGroupLink,
+        supportPhone: settings && settings.adminPhone,
+        appLink: settings && settings.playStoreLink,
+        appLinkIos: settings && settings.appStoreLink
+    });
+}
+
+// GET /admin/:id/approval-message — نصّ الرسالة في أي وقت لا عند القبول فقط.
+// الرسالة نصٌّ مشتقٌّ من الطلب وإعدادات مدينته، فتُبنى متى طُلبت. ومن
+// أغلق نافذة القبول سهواً كان يفقدها إلى الأبد.
+router.get('/admin/:id/approval-message', protect, adminOnly,
+    requireAnyPermission(['view_merchant_requests', 'manage_merchant_requests', 'manage_stores']),
+    async (req, res) => {
+    try {
+        const request = await MerchantRequest.findById(req.params.id);
+        if (!request) return res.status(404).json({ message: 'الطلب غير موجود' });
+
+        // مدينة المتجر من مكانه إن أُنشئ، وإلا من حساب صاحبه
+        const Place = require('../models/Place');
+        const place = await Place.findOne({ owner: request.userId }).select('city').lean();
+        const owner = await User.findById(request.userId).select('city').lean();
+        const city = (place && place.city) || (owner && owner.city) || 'Khartoum';
+
+        const Settings = require('../models/Settings');
+        const settings = await Settings.getSettings(city);
+
+        res.json({
+            message: await buildMerchantMessage(request, city),
+            whatsapp: request.phone || '',
+            groupLinkSet: !!(settings && settings.merchantGroupLink)
+        });
+    } catch (error) {
+        logger.error('merchant approval-message error:', error.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // PUT /admin/:id/status (protect, adminOnly)
 // القبول والرفض صلاحيةٌ أخرى: من يراجع ليس بالضرورة من يقرّر
 router.put('/admin/:id/status', protect, adminOnly,
@@ -338,7 +387,24 @@ router.put('/admin/:id/status', protect, adminOnly,
                 logger.error('Referral place link error:', refLinkErr.message);
             }
 
-            return res.json({ request, place: newPlace });
+            // 📩 رسالة قبول التاجر — تُبنى هنا وتُعاد دائماً.
+            //
+            //    لم تكن موجودة: التاجر يُقبل فيتغيّر صفٌّ في جدول ولا يعلم
+            //    هو بشيء — ينتظر ثم يتصل ليسأل. وهو الطرف الذي عليه العمل
+            //    بعد القبول: يدخل ويرفع منتجاته ويضبط أوقاته.
+            let approvalMessage = '';
+            try {
+                approvalMessage = await buildMerchantMessage(request, newPlace.city);
+            } catch (e) {
+                logger.warn({ err: e.message }, 'merchant approval message build failed');
+            }
+
+            return res.json({
+                request,
+                place: newPlace,
+                approvalMessage,
+                whatsapp: request.phone || ''
+            });
 
         }
 

@@ -123,6 +123,27 @@
             display: flex; align-items: center; gap: 12px; flex-shrink: 0;
         }
         .cap-panel-body { overflow-y: auto; padding: 16px 18px calc(24px + var(--sab, 0px)); }
+
+/* 📲 زرّ إرسال رسالة القبول — دائمٌ في أعلى الملفّ */
+.wa-send-btn {
+    width: 100%;
+    background: #25d366;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.wa-send-btn:hover { filter: brightness(1.06); }
+.wa-send-btn i { font-size: 17px; }
         .cap-x { margin-inline-start: auto; width: 36px; height: 36px; border: 0; border-radius: 10px; background: #f1f5f9; color: #475569; font-size: 1.15rem; cursor: pointer; }
 
         .sec { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
@@ -522,8 +543,62 @@ function openDrawer(id) {
               '<div class="pledge">' + esc(a.pledgeText) + '</div></div>'
             : '');
 
+    // 📲 زرٌّ دائم لإرسال رسالة القبول.
+    //
+    // كانت تُعرض مرّةً واحدة في نافذةٍ بعد القبول مباشرة، فمن أغلقها سهواً
+    // — أو قَبِل ثم انشغل — فقدها ولا سبيل لبنائها إلا بإلغاء القبول
+    // وإعادته. والرسالة نصٌّ مشتقّ لا حدثٌ يمرّ، فتُطلب متى شاء.
+    document.getElementById('drawerBody').insertAdjacentHTML('afterbegin',
+        '<button type="button" class="wa-send-btn" onclick="sendApprovalMessage('' + c._id + '')">' +
+        '<i class="fab fa-whatsapp"></i> إرسال رسالة القبول عبر واتساب</button>');
+
     document.getElementById('drawer').classList.add('open');
     document.body.style.overflow = 'hidden';
+}
+
+/** يحوّل الرقم إلى صيغة واتساب الدولية (بلا +). */
+function toWhatsAppNumber(raw) {
+    let n = String(raw || '').replace(/\D/g, '');
+    if (!n) return '';
+    if (n.startsWith('00')) n = n.slice(2);
+    if (n.startsWith('249')) return n;
+    if (n.startsWith('0')) return '249' + n.slice(1);
+    if (n.length === 9) return '249' + n;
+    return n;
+}
+
+async function sendApprovalMessage(id) {
+    try {
+        const res = await fetch(API + '/api/admin/captains/' + id + '/approval-message', { headers: authHeaders() });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { Swal.fire('تنبيه', data.message || 'تعذّر تجهيز الرسالة', 'warning'); return; }
+
+        // ⚠️ رابط المجموعة غير مضبوط ⇒ الرسالة ستصل ناقصةً أهمّ ما فيها.
+        //    يُقال للأدمن قبل الإرسال لا بعده.
+        if (!data.groupLinkSet) {
+            const go = await Swal.fire({
+                icon: 'warning',
+                title: 'رابط مجموعة الكباتن غير مضبوط',
+                html: 'الرسالة ستُرسَل بلا رابط المجموعة. اضبطه من الإعدادات لمدينة الكابتن.',
+                showCancelButton: true,
+                confirmButtonText: 'أرسل بدونه',
+                cancelButtonText: 'إلغاء'
+            });
+            if (!go.isConfirmed) return;
+        }
+
+        const intl = toWhatsAppNumber(data.whatsapp);
+        if (!intl) {
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(data.message);
+                Swal.fire('تم النسخ', 'لا يوجد رقم واتساب لهذا الكابتن — نُسخت الرسالة لتُرسلها يدوياً', 'info');
+            } else Swal.fire('تنبيه', 'لا يوجد رقم واتساب لهذا الكابتن', 'warning');
+            return;
+        }
+        window.open('https://wa.me/' + intl + '?text=' + encodeURIComponent(data.message), '_blank', 'noopener');
+    } catch (e) {
+        Swal.fire('خطأ', 'تعذّر الاتصال بالخادم', 'error');
+    }
 }
 
 function closeDrawer() {

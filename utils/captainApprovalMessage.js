@@ -20,6 +20,8 @@
  *    التطبيق تعطّل، ويتصل بالدعم غاضباً — وهو محقّ: لم يُقَل له.
  */
 
+const NEWLINE = String.fromCharCode(10);
+
 /** يُظهر الرقم بصيغة محلية مقروءة (09xxxxxxxx) بدل 2499xxxxxxxx. */
 function localPhone(phone) {
     const p = String(phone || '').replace(/\D/g, '');
@@ -40,6 +42,7 @@ function localPhone(phone) {
  * @param {string} [o.supportPhone] رقم الدعم
  * @param {number} [o.commissionRate] نسبة عمولة التطبيق (0.15 = ١٥٪)
  * @param {number} [o.creditLimit]   حدّ المديونية (سالب) — عنده يتوقّف استقبال الطلبات
+ * @param {string} [o.groupLink]     رابط مجموعة واتساب لكباتن مدينته
  * @returns {string} نصّ الرسالة جاهزاً للإرسال
  */
 function buildCaptainApprovalMessage(o) {
@@ -59,6 +62,7 @@ function buildCaptainApprovalMessage(o) {
         || 'https://apps.apple.com/app/id6807840888';
     const support = localPhone(opts.supportPhone);
 
+    const groupLink = String(opts.groupLink || '').trim();
     const pct = Math.round((Number(opts.commissionRate) || 0.15) * 100);
     // الحدّ يُخزَّن سالباً (-8500) والكابتن يفهمه مبلغاً موجباً يدين به
     const debtCap = Math.abs(Number(opts.creditLimit) || 0);
@@ -104,6 +108,19 @@ function buildCaptainApprovalMessage(o) {
     lines.push('*حاجات تخليك كابتن كويس*');
     lines.push('• خلّي بطاريتك ونتك دايماً شغالين — تأخير الطلب بينزّل تقييمك.');
     lines.push('• ما تلغي طلب بعد ما تقبلو إلا لظرف طارئ وبعد ما ترجع للإدارة، الإلغاء المتكرر بجمّد الحساب.');
+
+    // 👥 مجموعة كباتن مدينته.
+    //
+    //    تُوضع قبل روابط التحميل عمداً: هي أولُ ما نريده أن يفعل. وفيها
+    //    تصله التعليمات اليومية وتغيّرات الأسعار والمناطق — فمن لا ينضمّ
+    //    يعمل بمعلوماتٍ قديمة ثم يُلام عليها.
+    //
+    //    ولا يُكتب العنوان إن خلا الإعداد: عنوانٌ بلا رابطٍ تحته يبدو عطلاً.
+    if (groupLink) {
+        lines.push('', '*مهم — انضم لمجموعة الكباتن*');
+        lines.push('كل التعليمات والتحديثات وتغييرات الأسعار بتنزل في المجموعة أول بأول.');
+        lines.push('انضم من هنا: ' + groupLink);
+    }
 
     // 📲 الرابطان معاً: الرسالة تصل واتساب ولا نعرف جهازه، ورابطٌ لمتجرٍ
     //    لا يملكه طريقٌ مسدود في أول خطوة يطلبها منه.
@@ -163,4 +180,76 @@ function buildCaptainRejectionMessage(o) {
     return lines.join('\n');
 }
 
-module.exports = { buildCaptainApprovalMessage, buildCaptainRejectionMessage, localPhone };
+/**
+ * 🏪 رسالة قبول التاجر.
+ *
+ * لم تكن موجودة: التاجر يُقبل في اللوحة فيتغيّر صفٌّ في جدول، ولا يعلم
+ * هو بشيء — ينتظر ثم يتصل ليسأل. وهو الطرف الذي عليه العمل بعد القبول:
+ * يدخل، ويرفع منتجاته، ويضبط أوقات فتحه. فإن لم يُقَل له، لا يبدأ.
+ *
+ * وبناؤها منفصل عن رسالة الكابتن لا مشتركٌ معها: يشتركان في الشكل لا في
+ * المحتوى — لا محفظةَ دَين هنا ولا زرّ «متصل»، وحساب التاجر يُدار من
+ * لوحته لا من التطبيق. ودمجُهما كان سيُنتج دالةً مليئةً بالشروط.
+ *
+ * @param {object} o {name, businessName, phone, groupLink, supportPhone, appLink, appLinkIos}
+ */
+function buildMerchantApprovalMessage(o) {
+    const opts = o || {};
+    const name = String(opts.name || '').trim() || 'صاحب المتجر';
+    const biz = String(opts.businessName || '').trim();
+    const phone = localPhone(opts.phone);
+    const groupLink = String(opts.groupLink || '').trim();
+    const support = localPhone(opts.supportPhone);
+    const appLink = String(opts.appLink || '').trim()
+        || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
+    const appLinkIos = String(opts.appLinkIos || '').trim()
+        || 'https://apps.apple.com/app/id6807840888';
+
+    const lines = [
+        biz ? `*مبروك ${name} — متجر «${biz}» اتقبل في وجيز*`
+            : `*مبروك ${name} — متجرك اتقبل في وجيز*`,
+        '',
+        'راجعنا طلبك وبياناتك، ومتجرك صار ظاهر للزبائن في التطبيق.',
+        '',
+        '*دخولك للوحة المتجر*'
+    ];
+    if (phone) lines.push(`• رقم الهاتف: ${phone}`);
+    else lines.push('• استخدم رقم هاتفك الذي سجّلت به');
+    lines.push('• كلمة السر: هي الكتبتها وقت التسجيل');
+    lines.push('');
+    lines.push('نسيتها؟ اضغط "نسيت كلمة المرور" في شاشة الدخول ويجيك كود في تلفونك.');
+    lines.push('');
+    lines.push('*أول شغلة تعملها*');
+    lines.push('1. ادخل لوحة المتجر وكمّل بيانات محلك وصورته.');
+    lines.push('2. ضيف منتجاتك بأسعارها — المتجر الفاضي ما بيطلب منو زبون.');
+    lines.push('3. اضبط أوقات الفتح والقفل، عشان ما تجيك طلبات وانت مقفول.');
+    lines.push('4. لمن يجيك طلب: أكّدو وجهّزو، والكابتن بيجي يستلم.');
+    lines.push('');
+    lines.push('*حاجات مهمة*');
+    lines.push('• خلّي الإشعارات شغالة — الطلب الما بيتأكّد بيتلغى ويزعل الزبون.');
+    lines.push('• حدّث توفّر المنتجات أول بأول، وما تخلّي صنف ناقص وهو ظاهر.');
+    lines.push('• مستحقاتك بتطلبها من اللوحة وبتراجعها الإدارة وتحوّلها لحسابك.');
+
+    // 👥 مجموعة تجّار مدينته — نفس منطق الكباتن، ولا عنوانَ بلا رابط
+    if (groupLink) {
+        lines.push('', '*مهم — انضم لمجموعة التجار*');
+        lines.push('التحديثات والعروض وتغييرات النظام بتنزل في المجموعة أول بأول.');
+        lines.push('انضم من هنا: ' + groupLink);
+    }
+
+    lines.push('', '*تحميل التطبيق*');
+    lines.push(`أندرويد: ${appLink}`);
+    lines.push(`آيفون: ${appLinkIos}`);
+
+    if (support) lines.push('', `أي استفسار أو مشكلة: ${support}`);
+    lines.push('', 'أهلاً بيك معانا.');
+
+    return lines.join(NEWLINE);
+}
+
+module.exports = {
+    buildCaptainApprovalMessage,
+    buildCaptainRejectionMessage,
+    buildMerchantApprovalMessage,
+    localPhone
+};

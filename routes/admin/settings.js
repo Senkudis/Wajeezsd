@@ -114,7 +114,9 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             'deliveryProofMode', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
-            'appVersion', 'minVersion', 'playStoreLink', 'appStoreLink', 'forceUpdate'
+            'appVersion', 'minVersion', 'playStoreLink', 'appStoreLink', 'forceUpdate',
+            // 👥 روابط مجموعات واتساب — لكل مدينة مجموعتها
+            'captainGroupLink', 'merchantGroupLink'
         ];
 
         const updates = { updatedBy: req.user._id };
@@ -122,6 +124,20 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             if (req.body[field] !== undefined) {
                 updates[field] = req.body[field];
             }
+        }
+
+        // 🔗 رابط المجموعة: فارغٌ (تعطيل) أو رابط دعوة واتساب صحيح.
+        //    لا نقبل أي نصّ: الرابط يُرسَل إلى كل مقبولٍ بعده، وخطؤه لا
+        //    يُكتشف إلا حين يشتكي من ضغطه — بعد أن يكون قد وصل عشرات.
+        for (const f of ['captainGroupLink', 'merchantGroupLink']) {
+            if (updates[f] === undefined) continue;
+            const v = String(updates[f] || '').trim();
+            if (v && !/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]/.test(v)) {
+                return res.status(400).json({
+                    message: 'رابط المجموعة يجب أن يبدأ بـ https://chat.whatsapp.com/ — انسخه من «دعوة عبر رابط» في إعدادات المجموعة'
+                });
+            }
+            updates[f] = v;
         }
 
         const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'maxTipAmount', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin', 'defaultCreditLimit'];
