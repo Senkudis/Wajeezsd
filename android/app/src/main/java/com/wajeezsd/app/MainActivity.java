@@ -45,6 +45,9 @@ public class MainActivity extends BridgeActivity {
     // لأن قيم documentElement.style لا تنجو من التنقّل بين الصفحات.
     private int safeTop = 0, safeBottom = 0, safeLeft = 0, safeRight = 0;
 
+    // ⌨️ ارتفاع لوحة المفاتيح (CSS px). المصدر الوحيد الموثوق على أندرويد.
+    private int kbHeight = 0;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // 🛠️ FIX: إخفاء شريط العنوان النيتف برمجياً قبل أي شيء آخر.
@@ -124,11 +127,30 @@ public class MainActivity extends BridgeActivity {
             int left = Math.round(bars.left / density);
             int right = Math.round(bars.right / density);
 
-            if (top != safeTop || bottom != safeBottom || left != safeLeft || right != safeRight) {
+            // ⌨️ الكيبورد — وهذا هو ما كان ناقصاً.
+            //
+            // الويب كان يقيس الكيبورد بـ visualViewport (js/keyboard-inset.js)،
+            // وهو قياسٌ صحيحٌ في المتصفّح. لكن التطبيق يعمل edge-to-edge،
+            // فنافذة WebView **لا تُقلَّص** عند فتح الكيبورد — تبقى
+            // visualViewport.height كما هي، فيُحسب الارتفاع صفراً ويبقى شريط
+            // الكتابة خلف الكيبورد. أي أن معادلة CSS كانت سليمة ولا تصلها
+            // بيانات. النظام يعرف الارتفاع، فنأخذه منه مباشرةً.
+            boolean imeVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
+            int ime = imeVisible
+                    ? Math.round(windowInsets.getInsets(WindowInsetsCompat.Type.ime()).bottom / density)
+                    : 0;
+
+            // 🔻 inset الكيبورد يشمل شريط التنقّل السفلي، فإبقاء --sab معه
+            //    يُضاعف الحشو بارتفاع الشريط ويترك فجوةً تحت شريط الكتابة.
+            if (ime > 0) bottom = 0;
+
+            if (top != safeTop || bottom != safeBottom || left != safeLeft
+                    || right != safeRight || ime != kbHeight) {
                 safeTop = top;
                 safeBottom = bottom;
                 safeLeft = left;
                 safeRight = right;
+                kbHeight = ime;
                 injectSafeAreaVars();
             }
             return windowInsets;
@@ -142,12 +164,19 @@ public class MainActivity extends BridgeActivity {
         WebView webView = getBridge() != null ? getBridge().getWebView() : null;
         if (webView == null || !webViewReady) return;
 
-        String js = "(function(){var s=document.documentElement.style;" +
+        String js = "(function(){var d=document.documentElement,s=d.style;" +
                 "s.setProperty('--sat','" + safeTop + "px');" +
                 "s.setProperty('--sab','" + safeBottom + "px');" +
                 "s.setProperty('--sal','" + safeLeft + "px');" +
                 "s.setProperty('--sar','" + safeRight + "px');" +
-                "document.dispatchEvent(new CustomEvent('wj-safe-area'));})();";
+                // ⌨️ علامةٌ تُخبر js/keyboard-inset.js أن المصدر الأصلي يعمل،
+                //    فيكفّ عن الكتابة فوقه بصفرٍ مقيسٍ من visualViewport.
+                "window.__wjNativeKb=true;" +
+                "s.setProperty('--kb','" + kbHeight + "px');" +
+                "d.classList.toggle('kb-open'," + (kbHeight > 0 ? "true" : "false") + ");" +
+                "document.dispatchEvent(new CustomEvent('wj-safe-area'));" +
+                "document.dispatchEvent(new CustomEvent('wj-keyboard',{detail:{height:" + kbHeight + "}}));" +
+                "})();";
         webView.post(() -> webView.evaluateJavascript(js, null));
     }
 

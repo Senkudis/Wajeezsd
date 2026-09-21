@@ -24,6 +24,16 @@
 (function () {
     'use strict';
 
+    // 📜 آخر رسالة تبقى ظاهرة حين يُفتح الكيبورد — وهي التي يردّ عليها.
+    //    يُسجَّل قبل أي خروجٍ مبكر: مصدر أندرويد الأصلي يعمل ولو غابت
+    //    visualViewport، فلا يصحّ أن يسقط المستمع معها.
+    document.addEventListener('wj-keyboard', (e) => {
+        const h = (e.detail && e.detail.height) || 0;
+        if (h <= 0) return;
+        const list = document.querySelector('[data-kb-scroll], .chat-container');
+        if (list) requestAnimationFrame(() => { list.scrollTop = list.scrollHeight; });
+    });
+
     const vv = window.visualViewport;
     if (!vv) return;
 
@@ -56,6 +66,15 @@
             const prevH = parseInt(root.style.getPropertyValue('--app-h'), 10) || 0;
             if (Math.abs(layoutH - prevH) >= 2) root.style.setProperty('--app-h', layoutH + 'px');
         }
+
+        // 🤖 على أندرويد المصدرُ أصلي لا محسوب.
+        //
+        // ⚠️ هذا سببُ أن الإصلاح السابق «لم يظهر»: التطبيق يعمل edge-to-edge،
+        //    فنافذة WebView لا تُقلَّص عند فتح الكيبورد. تبقى visualViewport
+        //    كما هي، فيُقاس overlap صفراً ويبقى `--kb: 0px` — والمعادلة في
+        //    chat.html سليمةٌ ولا يصلها شيء. MainActivity يقرأ inset الكيبورد
+        //    من النظام ويحقنه، فلا نكتب فوقه هنا بصفرٍ خاطئ.
+        if (window.__wjNativeKb) return;
 
         const kb = overlap >= MIN_KEYBOARD_PX ? overlap : 0;
         const prev = parseInt(root.style.getPropertyValue('--kb'), 10) || 0;
