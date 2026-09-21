@@ -39,7 +39,10 @@ const application = () => {
     return {
         name: 'كابتن تجربة', email: `cap${n}@example.com`, phone: `09123456${String(n).padStart(2,'0')}`,
         password: 'Test@1234', vehicleType: 'motorcycle', city: 'Khartoum',
-        nationalId: `99988${String(n).padStart(4,'0')}`, address: 'الخرطوم — الرياض',
+        // 🪪 أحد عشر رقماً بالضبط — ما دون ذلك يردّه المُتحقِّق بـ 400.
+        //    (أخطأتُ فيه أوّلاً فسقط البناء في CI: الاختبار لا يُشغَّل محلياً
+        //     لأن تنزيل mongod محجوب، فلا يُكتشف إلا هناك.)
+        nationalId: `999${String(n).padStart(8, '0')}`, address: 'الخرطوم — الرياض',
         whatsapp: '0912345678', emergencyContactName: 'أخ', emergencyPhone: '0912345679',
         emergencyRelation: 'أخ', pledgeText: 'أتعهد بالالتزام'
     };
