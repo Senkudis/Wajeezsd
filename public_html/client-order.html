@@ -833,8 +833,9 @@
 
         <!-- Search Bar -->
         <div class="hero-search">
-            <i class="bi bi-search search-icon"></i>
+            <i class="bi bi-search search-icon" aria-hidden="true"></i>
             <input type="text" id="globalSearchInput"
+                aria-label="ابحث عن منتج أو متجر أو قسم"
                 placeholder="ابحث عن منتج أو متجر أو قسم..."
                 oninput="handleGlobalSearch(this.value)">
         </div>
@@ -901,13 +902,13 @@
         <!-- Places List View -->
         <div id="places-view" class="d-none">
             <div class="places-header">
-                <button class="back-btn" onclick="showCategories()">
-                    <i class="bi bi-arrow-right"></i>
+                <button class="back-btn" onclick="showCategories()" aria-label="رجوع إلى التصنيفات">
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </button>
                 <div class="places-title" id="places-category-title">المحلات</div>
-                <div class="places-count" id="places-count-badge" style="display:none;"></div>
+                <div class="places-count" id="places-count-badge" style="display:none;" aria-live="polite"></div>
             </div>
-            <div id="places-list">
+            <div id="places-list" role="region" aria-label="قائمة المحلات" aria-live="polite" aria-busy="false">
                 <!-- Populated by loadPlaces() -->
             </div>
         </div>
@@ -920,7 +921,7 @@
             <div class="errand-sheet-handle"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
                 <h5 style="margin:0;"><i class="bi bi-bag-heart-fill"></i> اطلب من أي محل</h5>
-                <button onclick="closeErrandPicker()" style="background:none;border:none;font-size:20px;color:#94a3b8;padding:0;line-height:1;">&#x2715;</button>
+                <button onclick="closeErrandPicker()" aria-label="إغلاق منتقي المحل" style="background:none;border:none;font-size:20px;color:#94a3b8;padding:0;line-height:1;"><span aria-hidden="true">&#x2715;</span></button>
             </div>
             <p class="sheet-sub">ابحث عن أي محل بالاسم، أو اختر تصنيفاً لترى الأقرب إليك.</p>
             <!-- Search inside sheet -->
@@ -941,7 +942,7 @@
     </div>
 
     <!-- ═══ PLACE DETAILS BOTTOM SHEET ═══ -->
-    <div class="modal bottom-sheet fade" id="placeDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal bottom-sheet fade" id="placeDetailsModal" tabindex="-1" aria-hidden="true" aria-labelledby="placeModalName">
         <div class="modal-dialog">
             <div class="modal-content">
                 <!-- Drag Handle -->
@@ -957,9 +958,9 @@
                         onerror="this.style.display='none'">
                     <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 60%);"></div>
                     <!-- Close -->
-                    <button type="button" data-bs-dismiss="modal"
+                    <button type="button" data-bs-dismiss="modal" aria-label="إغلاق تفاصيل المحل"
                         style="position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.4);border:none;color:white;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
-                        <i class="bi bi-x-lg"></i>
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
                     </button>
                     <!-- Status Badge -->
                     <span id="placeModalStatus" class="position-absolute"
@@ -1041,21 +1042,21 @@
     </div><!-- end #placeDetailsModal -->
 
     <!-- 🟢 Full Screen Map Overlay for Shop Orders -->
-    <div id="shop-map-overlay" class="d-none" style="position: fixed; inset: 0; z-index: 2147483647; background: #f4f6f8; overflow: hidden;">
+    <div id="shop-map-overlay" class="d-none" role="dialog" aria-modal="true" aria-label="تحديد موقع التوصيل" style="position: fixed; inset: 0; z-index: 2147483647; background: #f4f6f8; overflow: hidden;">
         <div id="shopOrderMapActual" style="position: absolute; inset: 0; width: 100vw; height: 100vh;"></div>
 
         <!-- Search Bar (TOP of map) -->
         <div style="position: absolute; top: 70px; left: 50%; transform: translateX(-50%); z-index: 10003; width: 90%; max-width: 400px;">
             <div class="input-group shadow-sm" style="border-radius: 50px; overflow: hidden;">
                 <span class="input-group-text bg-white border-0 ps-3"><i class="bi bi-search text-success"></i></span>
-                <input type="text" id="shopMapSearchInput" class="form-control border-0 fw-bold" placeholder="ابحث عن حي أو شارع..." style="font-size: 14px;" oninput="window.searchShopMapLocation(this.value)">
+                <input type="text" id="shopMapSearchInput" class="form-control border-0 fw-bold" aria-label="ابحث عن حي أو شارع" placeholder="ابحث عن حي أو شارع..." style="font-size: 14px;" oninput="window.searchShopMapLocation(this.value)">
                 <button class="btn btn-success border-0 px-3 fw-bold" onclick="window.searchShopMapLocation(document.getElementById('shopMapSearchInput').value)" style="font-size:13px;">بحث</button>
             </div>
-            <div id="shopMapSearchResults" style="display:none; max-height:180px; overflow-y:auto; border-radius:12px; margin-top:6px; background:white; box-shadow: 0 4px 16px rgba(0,0,0,0.15);"></div>
+            <div id="shopMapSearchResults" role="listbox" aria-label="نتائج البحث عن الموقع" style="display:none; max-height:180px; overflow-y:auto; border-radius:12px; margin-top:6px; background:white; box-shadow: 0 4px 16px rgba(0,0,0,0.15);"></div>
         </div>
 
         <!-- Geofence Warning Banner -->
-        <div id="shop-geofence-banner" style="display: none; position: absolute; top: 130px; left: 50%; transform: translateX(-50%); z-index: 10003; background-color: rgba(220, 53, 69, 0.95); color: white; padding: 12px 24px; border-radius: 50px; font-weight: bold; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); backdrop-filter: blur(4px);">
+        <div id="shop-geofence-banner" role="alert" style="display: none; position: absolute; top: 130px; left: 50%; transform: translateX(-50%); z-index: 10003; background-color: rgba(220, 53, 69, 0.95); color: white; padding: 12px 24px; border-radius: 50px; font-weight: bold; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); backdrop-filter: blur(4px);">
             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
             <span class="small" style="line-height: 1.4; display: inline-block;">عفواً، الموقع خارج منطقة التوصيل حالياً.</span>
         </div>
@@ -1088,13 +1089,13 @@
         <div style="position: absolute; bottom: 0; left: 0; right: 0; background: white; z-index: 10002; border-radius: 20px 20px 0 0; padding: 25px 20px; box-shadow: 0 -8px 25px rgba(0,0,0,0.15);">
             <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill text-success me-2"></i> تأكيد موقع التوصيل والتفاصيل</h6>
 
-            <label class="form-label fw-bold small text-muted"><i class="bi bi-telephone-fill me-1 text-success"></i> رقم هاتف المستلم (للتواصل)</label>
+            <label for="shopOverlayPhone" class="form-label fw-bold small text-muted"><i class="bi bi-telephone-fill me-1 text-success" aria-hidden="true"></i> رقم هاتف المستلم (للتواصل)</label>
             <div class="input-group mb-3">
                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-phone text-success"></i></span>
                 <input type="tel" id="shopOverlayPhone" class="form-control border-start-0 fw-bold" placeholder="09xxxxxxxx" oninput="if(window.pendingShopOrder) window.pendingShopOrder.dropoff.receiverPhone = this.value || '0000000000'">
             </div>
 
-            <label class="form-label fw-bold small text-muted"><i class="bi bi-cash-coin me-1 text-success"></i> سعر التوصيل (قابل للتفاوض)</label>
+            <label for="shopOverlayPrice" class="form-label fw-bold small text-muted"><i class="bi bi-cash-coin me-1 text-success" aria-hidden="true"></i> سعر التوصيل (قابل للتفاوض)</label>
             <div class="input-group price-stepper input-group-lg mb-2">
                 <button type="button" id="shop-price-minus" class="btn btn-price-step" aria-label="إنقاص 100" title="إنقاص 100">
                     <i class="bi bi-dash-lg"></i>
@@ -1117,21 +1118,21 @@
     </div>
 
     <!-- Bottom Navigation -->
-    <nav class="mobile-nav-glass">
+    <nav class="mobile-nav-glass" aria-label="التنقل الرئيسي">
         <a href="index.html" class="nav-item-link">
-            <i class="bi bi-house-door"></i>
+            <i class="bi bi-house-door" aria-hidden="true"></i>
             <span class="small d-block">الرئيسية</span>
         </a>
-        <a href="client-order.html" class="nav-item-link active">
-            <i class="bi bi-shop"></i>
+        <a href="client-order.html" class="nav-item-link active" aria-current="page">
+            <i class="bi bi-shop" aria-hidden="true"></i>
             <span class="small d-block">تسوق</span>
         </a>
         <a href="client-my-orders.html" class="nav-item-link">
-            <i class="bi bi-box-seam"></i>
+            <i class="bi bi-box-seam" aria-hidden="true"></i>
             <span class="small d-block">طلباتي</span>
         </a>
         <a href="notifications.html" class="nav-item-link">
-            <i class="bi bi-bell"></i>
+            <i class="bi bi-bell" aria-hidden="true"></i>
             <span class="small d-block">الإشعارات</span>
         </a>
     </nav>
