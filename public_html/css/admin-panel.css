@@ -1286,3 +1286,11 @@ body.dark-mode .cap-fact,
 body.dark-mode .cap-empty { background: rgba(148, 163, 184, .12); }
 body.dark-mode .cap-pledge { background: rgba(245, 158, 11, .12); }
 body.dark-mode .cap-doc img { background: #1f2937; border-color: #374151; }
+
+/* ⌨️ تركيزٌ مرئيّ في لوحة الأوامر: الخيار المُبرَز يُعرَف بالخلفية وحدها،
+   فمن ينتقل بالكيبورد بلا فأرةٍ يحتاج حدّاً يراه. */
+.admin-palette-item:focus-visible,
+#adminPaletteInput:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: -2px;
+}

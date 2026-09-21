@@ -30,6 +30,15 @@
     let modalEl = null;
     let selectedIdx = 0;
     let currentResults = [];
+    // ↩️ العنصر الذي كان مركَّزاً قبل الفتح: بلا حفظه يعود التركيز إلى
+    //    أول الصفحة عند الإغلاق، فيضيع مكان المستخدم في اللوحة.
+    let lastFocused = null;
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 
     function createPaletteModal() {
         if (modalEl) return modalEl;
@@ -39,14 +48,23 @@
         overlay.className = 'admin-palette-overlay';
         overlay.style.display = 'none';
 
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', 'لوحة الأوامر والتنقّل السريع');
+
         overlay.innerHTML = `
             <div class="admin-palette-box">
                 <div class="admin-palette-header">
-                    <i class="fas fa-search admin-palette-search-icon"></i>
-                    <input type="text" id="adminPaletteInput" placeholder="ابحث عن شاشة، أمر، أو قسم إداري... (Ctrl + K)" autocomplete="off">
-                    <kbd class="admin-palette-kbd">Esc</kbd>
+                    <i class="fas fa-search admin-palette-search-icon" aria-hidden="true"></i>
+                    <input type="text" id="adminPaletteInput" role="combobox"
+                        aria-label="ابحث عن شاشة أو قسم إداري"
+                        aria-expanded="true" aria-controls="adminPaletteList"
+                        aria-autocomplete="list"
+                        placeholder="ابحث عن شاشة، أمر، أو قسم إداري... (Ctrl + K)" autocomplete="off">
+                    <kbd class="admin-palette-kbd" aria-hidden="true">Esc</kbd>
                 </div>
-                <div class="admin-palette-list" id="adminPaletteList"></div>
+                <div class="admin-palette-list" id="adminPaletteList"
+                    role="listbox" aria-label="الشاشات الإدارية"></div>
                 <div class="admin-palette-footer">
                     <span><kbd>↑</kbd> <kbd>↓</kbd> للتنقل</span>
                     <span><kbd>Enter</kbd> للفتح</span>
@@ -97,6 +115,7 @@
 
     function renderResults(query = '') {
         const list = modalEl.querySelector('#adminPaletteList');
+        const input = modalEl.querySelector('#adminPaletteInput');
         const q = query.toLowerCase();
 
         currentResults = ADMIN_SCREENS.filter(item => {
@@ -107,25 +126,33 @@
         selectedIdx = 0;
 
         if (currentResults.length === 0) {
+            // كان ${query} يُحقن خاماً في innerHTML — تهريبه إلزاميّ
+            // حتى لو كان المُدخِل هو الأدمن نفسه.
             list.innerHTML = `
-                <div class="admin-palette-empty">
-                    <i class="fas fa-search" style="font-size: 24px; opacity: 0.4; margin-bottom: 8px;"></i>
-                    <p>لم يتم العثور على نتائج تطابق "${query}"</p>
+                <div class="admin-palette-empty" role="status">
+                    <i class="fas fa-search" aria-hidden="true" style="font-size: 24px; opacity: 0.4; margin-bottom: 8px;"></i>
+                    <p>لم يتم العثور على نتائج تطابق "${esc(query)}"</p>
                 </div>
             `;
+            input.removeAttribute('aria-activedescendant');
             return;
         }
 
         list.innerHTML = currentResults.map((item, idx) => `
-            <a href="${item.url}" class="admin-palette-item ${idx === 0 ? 'active' : ''}" data-idx="${idx}">
-                <div class="admin-palette-item-icon"><i class="${item.icon}"></i></div>
+            <a href="${item.url}" id="adminPaletteOpt-${idx}" role="option"
+                aria-selected="${idx === 0 ? 'true' : 'false'}"
+                class="admin-palette-item ${idx === 0 ? 'active' : ''}" data-idx="${idx}">
+                <div class="admin-palette-item-icon" aria-hidden="true"><i class="${item.icon}"></i></div>
                 <div class="admin-palette-item-content">
                     <div class="admin-palette-item-title">${item.title}</div>
                     <div class="admin-palette-item-url">${item.url}</div>
                 </div>
-                <i class="fas fa-arrow-left admin-palette-item-arrow"></i>
+                <i class="fas fa-arrow-left admin-palette-item-arrow" aria-hidden="true"></i>
             </a>
         `).join('');
+        // الحقل يُبقي التركيز عنده بينما تتنقّل الأسهم بين الخيارات،
+        // فاسم الخيار الحالي يُبلَّغ عبر aria-activedescendant لا بالتركيز.
+        input.setAttribute('aria-activedescendant', 'adminPaletteOpt-0');
 
         // دعم النقر بالماوس
         list.querySelectorAll('.admin-palette-item').forEach(el => {
@@ -139,16 +166,18 @@
     function highlightItem() {
         const items = modalEl.querySelectorAll('.admin-palette-item');
         items.forEach((item, idx) => {
-            if (idx === selectedIdx) {
-                item.classList.add('active');
-                item.scrollIntoView({ block: 'nearest' });
-            } else {
-                item.classList.remove('active');
-            }
+            const on = idx === selectedIdx;
+            item.classList.toggle('active', on);
+            item.setAttribute('aria-selected', on ? 'true' : 'false');
+            if (on) item.scrollIntoView({ block: 'nearest' });
         });
+        const input = modalEl.querySelector('#adminPaletteInput');
+        const cur = items[selectedIdx];
+        if (input && cur) input.setAttribute('aria-activedescendant', cur.id);
     }
 
     function openPalette() {
+        lastFocused = document.activeElement;
         const modal = createPaletteModal();
         modal.style.display = 'flex';
         const input = modal.querySelector('#adminPaletteInput');
@@ -161,6 +190,11 @@
         if (modalEl) {
             modalEl.style.display = 'none';
         }
+        // إعادة التركيز إلى ما كان قبل الفتح — وإلا عاد إلى أول الصفحة
+        if (lastFocused && typeof lastFocused.focus === 'function') {
+            lastFocused.focus();
+        }
+        lastFocused = null;
     }
 
     // الاستماع لاختصار لوحة المفاتيح Ctrl + K / Cmd + K
