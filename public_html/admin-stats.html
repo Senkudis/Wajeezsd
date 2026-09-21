@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <script src="js/admin-guard.js?v=b336cfda" data-perm="view_stats"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>إحصائيات نطاقي | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="vendor/jquery/jquery-3.7.0.min.js"></script>
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+
+    <link rel="stylesheet" href="css/admin-dashboard.css?v=2a49b552">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
+
+    <script src="js/console-cleaner.js?v=d257b4ad"></script>
+    <script src="js/config.js?v=977449f7"></script>
+    <script src="js/admin-cache-buster.js?v=355a130e"></script>
+    <script src="js/auth-helper.js?v=c97361b3"></script>
+
+    <style>
+        /* 📊 بطاقات الأرقام — شبكةٌ تتنفّس مع عرض الشاشة بلا نقاط كسرٍ يدوية */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+        }
+        .kpi {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi::before {
+            content: '';
+            position: absolute;
+            inset-inline-start: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--kpi-accent, #0a8754);
+        }
+        .kpi-label { font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 6px; }
+        .kpi-value { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1.1; }
+        .kpi-sub   { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+        .kpi-delta { font-size: 12px; font-weight: 700; margin-top: 6px; }
+        .kpi-delta.up   { color: #15803d; }
+        .kpi-delta.down { color: #b91c1c; }
+        .kpi-delta.flat { color: #94a3b8; }
+
+        /* الفترة: أزرارٌ ثلاثة، الحالُ منها واضحٌ بلا قراءة */
+        .range-tabs { display: inline-flex; background: #f1f5f9; border-radius: 12px; padding: 4px; gap: 4px; }
+        .range-tab {
+            border: none; background: transparent; color: #475569;
+            font-weight: 700; font-size: 13px; padding: 8px 18px;
+            border-radius: 9px; cursor: pointer; transition: all .18s;
+        }
+        .range-tab.active { background: #fff; color: #0a8754; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+        /* 📈 الرسم اليومي — أعمدةٌ بسيطة، لا مكتبةَ رسمٍ لصفحةٍ واحدة */
+        .daybars { display: flex; align-items: flex-end; gap: 6px; height: 170px; padding-top: 10px; }
+        .daybar  { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; min-width: 0; }
+        .daybar .seg { width: 100%; border-radius: 3px 3px 0 0; }
+        .daybar .seg.delivered { background: #16a34a; }
+        .daybar .seg.cancelled { background: #ef4444; }
+        .daybar .seg.other     { background: #cbd5e1; }
+        .daybar .cap { font-size: 10px; color: #94a3b8; text-align: center; margin-top: 6px;
+                       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #64748b; }
+        .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-inline-end: 5px; }
+
+        .sbar { height: 10px; border-radius: 6px; background: #f1f5f9; overflow: hidden; }
+        .sbar > span { display: block; height: 100%; border-radius: 6px; }
+
+        .city-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;
+            border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 700;
+        }
+
+        body.dark-mode .kpi { background: #1f2937 !important; border-color: #374151 !important; }
+        body.dark-mode .kpi-value { color: #f9fafb !important; }
+        body.dark-mode .kpi-label, body.dark-mode .kpi-sub { color: #9ca3af !important; }
+        body.dark-mode .range-tabs { background: #111827 !important; }
+        body.dark-mode .range-tab { color: #9ca3af !important; }
+        body.dark-mode .range-tab.active { background: #1f2937 !important; color: #4ade80 !important; }
+        body.dark-mode .sbar { background: #374151 !important; }
+        body.dark-mode .city-chip { background: #064e3b !important; color: #6ee7b7 !important; border-color: #047857 !important; }
+        body.dark-mode .daybar .seg.other { background: #4b5563 !important; }
+    </style>
+    <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=ab12c7ad"></script>
+    <link rel="stylesheet" href="css/admin-mobile.css?v=9f8d7083">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-export.js?v=64f3a22c"></script>
+    <script src="js/admin-palette.js?v=5e60d8d8"></script>
+</head>
+
+<body>
+
+    <div class="wrapper">
+        <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="logo"><i class="fas fa-chart-line"></i></div>
+                <h2>وَجِـيـز</h2>
+                <p id="adminName">لوحة الإدارة</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-label">الإدارة</div>
+                <button class="nav-item" onclick="location.href='admin.html'">
+                    <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                </button>
+                <button class="nav-item active" onclick="loadStats()">
+                    <i class="fas fa-chart-line"></i><span>إحصائيات نطاقي</span>
+                </button>
+
+                <div class="nav-label">روابط سريعة</div>
+                <button class="nav-item" onclick="location.href='admin-captains.html'">
+                    <i class="fas fa-motorcycle"></i><span>الكباتن</span>
+                </button>
+                <button class="nav-item" onclick="location.href='admin-complaints.html'">
+                    <i class="fas fa-headset"></i><span>الشكاوى</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title d-none d-md-block">
+                    <h1>إحصائيات نطاقي</h1>
+                    <p>أرقام مدنك أنت — يوماً وأسبوعاً وشهراً</p>
+                </div>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-body">
+
+                <!-- شريط الفترة + نطاق المدن -->
+                <div class="dashboard-section active section-card">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="range-tabs" id="rangeTabs">
+                            <button class="range-tab" data-range="day">اليوم</button>
+                            <button class="range-tab active" data-range="week">الأسبوع</button>
+                            <button class="range-tab" data-range="month">الشهر</button>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap" id="cityChips"></div>
+                        <button class="admin-export-btn" onclick="exportStats()">
+                            <i class="fas fa-file-csv"></i> تصدير
+                        </button>
+                    </div>
+                </div>
+
+                <!-- الأرقام -->
+                <div class="dashboard-section active section-card">
+                    <div class="section-header">
+                        <h2 class="section-title mb-0"><i class="fas fa-gauge-high"></i> الملخّص</h2>
+                    </div>
+                    <div class="kpi-grid" id="kpiGrid"></div>
+                </div>
+
+                <!-- اليومي -->
+                <div class="dashboard-section active section-card">
+                    <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <h2 class="section-title mb-0"><i class="fas fa-calendar-day"></i> يوماً بيوم</h2>
+                        <div class="legend">
+                            <span><i style="background:#16a34a"></i>مكتملة</span>
+                            <span><i style="background:#ef4444"></i>ملغاة</span>
+                            <span><i style="background:#cbd5e1"></i>قيد التنفيذ</span>
+                        </div>
+                    </div>
+                    <div id="dayChart"></div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="dashboard-section active section-card h-100">
+                            <div class="section-header">
+                                <h2 class="section-title mb-0"><i class="fas fa-chart-bar"></i> توزيع الحالات</h2>
+                            </div>
+                            <div id="statusList"></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="dashboard-section active section-card h-100">
+                            <div class="section-header">
+                                <h2 class="section-title mb-0"><i class="fas fa-trophy"></i> أنشط الكباتن</h2>
+                            </div>
+                            <div id="topCaptains"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="dashboard-section active section-card h-100">
+                            <div class="section-header">
+                                <h2 class="section-title mb-0"><i class="fas fa-city"></i> حسب المدينة</h2>
+                            </div>
+                            <div id="cityTable"></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="dashboard-section active section-card h-100">
+                            <div class="section-header">
+                                <h2 class="section-title mb-0"><i class="fas fa-ban"></i> من ألغى الطلبات</h2>
+                            </div>
+                            <div id="cancelTable"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_URL = window.API_URL || '';
+        const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+        let currentRange = 'week';
+        let lastData = null;
+
+        const CITY_AR = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+        const STATUS_AR = {
+            pending: 'بانتظار كابتن', scheduled: 'مجدولة', accepted: 'مقبولة',
+            picked_up: 'قيد التوصيل', delivered: 'مكتملة', cancelled: 'ملغاة',
+            chat_initiated: 'محادثة'
+        };
+        const STATUS_COLOR = {
+            pending: '#f59e0b', scheduled: '#8b5cf6', accepted: '#3b82f6',
+            picked_up: '#06b6d4', delivered: '#16a34a', cancelled: '#ef4444',
+            chat_initiated: '#94a3b8'
+        };
+
+        const n = v => Number(v || 0).toLocaleString('en-US');
+        const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g,
+            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('token');
+            location.href = 'admin-login.html';
+        }
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+        /**
+         * ⬆️⬇️ المقارنة بالفترة السابقة.
+         *
+         * الرقم وحده لا يقول شيئاً: «١٤٠ طلباً» جيّدةٌ أم سيّئة؟ الجواب في
+         * الفترة التي قبلها بنفس الطول — وهي ما يُرسله الخادم.
+         */
+        function deltaHtml(now, before) {
+            if (!before) return '<div class="kpi-delta flat">لا مقارنة — لا بيانات قبلها</div>';
+            const pct = ((now - before) / before) * 100;
+            if (Math.abs(pct) < 0.5) return '<div class="kpi-delta flat">كما الفترة السابقة</div>';
+            const up = pct > 0;
+            return `<div class="kpi-delta ${up ? 'up' : 'down'}">
+                <i class="fas fa-arrow-${up ? 'up' : 'down'}"></i>
+                ${Math.abs(pct).toFixed(1)}% عن الفترة السابقة</div>`;
+        }
+
+        function kpi(label, value, accent, sub, delta) {
+            return `<div class="kpi" style="--kpi-accent:${accent}">
+                <div class="kpi-label">${esc(label)}</div>
+                <div class="kpi-value">${value}</div>
+                ${sub ? `<div class="kpi-sub">${sub}</div>` : ''}
+                ${delta || ''}
+            </div>`;
+        }
+
+        function renderKpis(d) {
+            const t = d.totals;
+            const rangeWord = { day: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر' }[d.range];
+            let html = '';
+            html += kpi('إجمالي الطلبات', n(t.orders), '#0a8754', rangeWord, deltaHtml(t.orders, t.previousOrders));
+            html += kpi('مكتملة', n(t.delivered), '#16a34a', `نسبة الإتمام ${t.deliveryRate}%`);
+            html += kpi('ملغاة', n(t.cancelled), '#ef4444', `نسبة الإلغاء ${t.cancelRate}%`);
+            html += kpi('متوسط زمن القبول',
+                t.avgAcceptMinutes == null ? '—' : t.avgAcceptMinutes + ' <span style="font-size:14px">د</span>',
+                '#3b82f6',
+                t.acceptSampleSize ? `من ${n(t.acceptSampleSize)} طلباً قُبل` : 'لم يُقبل طلبٌ بعد');
+            html += kpi('كباتن جدد', n(t.newCaptains), '#8b5cf6', rangeWord);
+            if (d.money) {
+                html += kpi('قيمة المشاوير', n(d.money.gross) + ' <span style="font-size:14px">ج.س</span>',
+                    '#7c3aed', 'المكتملة فقط');
+                html += kpi('رسوم التطبيق', n(d.money.fees) + ' <span style="font-size:14px">ج.س</span>',
+                    '#0891b2', 'المكتملة فقط');
+            }
+            document.getElementById('kpiGrid').innerHTML = html;
+        }
+
+        function renderDayChart(rows) {
+            const box = document.getElementById('dayChart');
+            if (!rows.length) {
+                box.innerHTML = '<p class="text-muted text-center py-4 mb-0">لا طلبات في هذه الفترة</p>';
+                return;
+            }
+            const max = Math.max(...rows.map(r => r.orders), 1);
+            box.innerHTML = `<div class="daybars">` + rows.map(r => {
+                const h = s => Math.round((s / max) * 150);
+                const other = Math.max(0, r.orders - r.delivered - r.cancelled);
+                const day = r._id.slice(5).replace('-', '/');
+                return `<div class="daybar" title="${r._id} — ${r.orders} طلب">
+                    <div class="seg other" style="height:${h(other)}px"></div>
+                    <div class="seg cancelled" style="height:${h(r.cancelled)}px"></div>
+                    <div class="seg delivered" style="height:${h(r.delivered)}px"></div>
+                    <div class="cap">${day}</div>
+                </div>`;
+            }).join('') + `</div>`;
+        }
+
+        function renderStatusList(counts) {
+            const box = document.getElementById('statusList');
+            const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const total = entries.reduce((s, [, v]) => s + v, 0);
+            if (!total) {
+                box.innerHTML = '<p class="text-muted text-center py-4 mb-0">لا طلبات في هذه الفترة</p>';
+                return;
+            }
+            box.innerHTML = entries.map(([k, v]) => {
+                const pct = (v / total * 100);
+                const color = STATUS_COLOR[k] || '#94a3b8';
+                return `<div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span style="font-size:13px;font-weight:700;">${esc(STATUS_AR[k] || k)}</span>
+                        <span style="font-size:12px;color:#64748b;">${n(v)} · ${pct.toFixed(1)}%</span>
+                    </div>
+                    <div class="sbar"><span style="width:${pct}%;background:${color}"></span></div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderTopCaptains(rows) {
+            const box = document.getElementById('topCaptains');
+            if (!rows.length) {
+                box.innerHTML = '<p class="text-muted text-center py-4 mb-0">لا مشاوير مكتملة في هذه الفترة</p>';
+                return;
+            }
+            box.innerHTML = `<div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                <thead><tr>
+                    <th style="width:36px">#</th><th>الكابتن</th><th>المدينة</th><th class="text-end">مشاوير</th>
+                </tr></thead><tbody>` + rows.map((r, i) => `<tr>
+                    <td class="text-muted">${i + 1}</td>
+                    <td class="fw-bold">${esc(r.name)}</td>
+                    <td><span class="text-muted" style="font-size:12px">${esc(CITY_AR[r.city] || r.city || '—')}</span></td>
+                    <td class="text-end fw-bold">${n(r.trips)}</td>
+                </tr>`).join('') + `</tbody></table></div>`;
+        }
+
+        function renderCityTable(rows) {
+            const box = document.getElementById('cityTable');
+            if (!rows.length) {
+                box.innerHTML = '<p class="text-muted text-center py-4 mb-0">لا طلبات في هذه الفترة</p>';
+                return;
+            }
+            box.innerHTML = `<div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                <thead><tr><th>المدينة</th><th class="text-end">طلبات</th><th class="text-end">مكتملة</th><th class="text-end">النسبة</th></tr></thead>
+                <tbody>` + rows.map(r => {
+                    const pct = r.orders ? (r.delivered / r.orders * 100).toFixed(1) : '0.0';
+                    return `<tr>
+                        <td class="fw-bold">${esc(CITY_AR[r._id] || r._id || '—')}</td>
+                        <td class="text-end">${n(r.orders)}</td>
+                        <td class="text-end">${n(r.delivered)}</td>
+                        <td class="text-end fw-bold">${pct}%</td>
+                    </tr>`;
+                }).join('') + `</tbody></table></div>`;
+        }
+
+        function renderCancels(rows) {
+            const box = document.getElementById('cancelTable');
+            if (!rows.length) {
+                box.innerHTML = '<p class="text-muted text-center py-4 mb-0">لا إلغاءات في هذه الفترة</p>';
+                return;
+            }
+            const WHO = { client: 'العميل', captain: 'الكابتن', admin: 'الإدارة', system: 'النظام' };
+            const total = rows.reduce((s, r) => s + r.count, 0);
+            box.innerHTML = rows.map(r => {
+                const pct = (r.count / total * 100);
+                return `<div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span style="font-size:13px;font-weight:700;">${esc(WHO[r._id] || r._id)}</span>
+                        <span style="font-size:12px;color:#64748b;">${n(r.count)} · ${pct.toFixed(1)}%</span>
+                    </div>
+                    <div class="sbar"><span style="width:${pct}%;background:#ef4444"></span></div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderCities(cities) {
+            document.getElementById('cityChips').innerHTML = cities.map(c =>
+                `<span class="city-chip"><i class="fas fa-location-dot"></i>${esc(CITY_AR[c] || c)}</span>`
+            ).join('');
+        }
+
+        function skeleton() {
+            document.getElementById('kpiGrid').innerHTML =
+                Array(5).fill('<div class="kpi"><div class="kpi-label">—</div><div class="kpi-value">…</div></div>').join('');
+            ['dayChart', 'statusList', 'topCaptains', 'cityTable', 'cancelTable'].forEach(id => {
+                document.getElementById(id).innerHTML =
+                    '<p class="text-muted text-center py-4 mb-0"><i class="fas fa-spinner fa-spin"></i> جاري التحميل…</p>';
+            });
+        }
+
+        /**
+         * ⚠️ كل مسارات الفشل تنتهي برسالة. اللوحة القديمة كانت تترك دائرة
+         *    التحميل تدور إلى الأبد حين يفشل الطلب — وهو ما اشتكى منه
+         *    الأدمن المساعد. لا دائرةَ هنا تبقى بلا نهاية.
+         */
+        async function loadStats() {
+            skeleton();
+            try {
+                const res = await fetch(`${API_URL}/api/admin/scoped-stats?range=${currentRange}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const msg = res.status === 403
+                        ? 'لا تملك صلاحية الإحصائيات. راجع المسؤول الرئيسي.'
+                        : 'تعذّر تحميل الإحصائيات';
+                    return showError(msg);
+                }
+                const d = await res.json();
+                lastData = d;
+                renderCities(d.cities || []);
+                renderKpis(d);
+                renderDayChart(d.byDay || []);
+                renderStatusList(d.statusCounts || {});
+                renderTopCaptains(d.topCaptains || []);
+                renderCityTable(d.byCity || []);
+                renderCancels(d.cancelReasons || []);
+            } catch (e) {
+                showError('تعذّر الاتصال بالخادم');
+            }
+        }
+
+        function showError(msg) {
+            const html = `<p class="text-danger text-center py-4 mb-0">
+                <i class="fas fa-triangle-exclamation"></i> ${esc(msg)}
+                <br><button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadStats()">إعادة المحاولة</button>
+            </p>`;
+            document.getElementById('kpiGrid').innerHTML = html;
+            ['dayChart', 'statusList', 'topCaptains', 'cityTable', 'cancelTable'].forEach(id => {
+                document.getElementById(id).innerHTML =
+                    '<p class="text-muted text-center py-4 mb-0">—</p>';
+            });
+        }
+
+        function exportStats() {
+            if (!lastData || !lastData.byDay || !lastData.byDay.length) {
+                Swal.fire('لا بيانات', 'لا توجد أرقام لتصديرها في هذه الفترة', 'info');
+                return;
+            }
+            const rows = [['اليوم', 'الطلبات', 'مكتملة', 'ملغاة']];
+            lastData.byDay.forEach(r => rows.push([r._id, r.orders, r.delivered, r.cancelled]));
+            const csv = '﻿' + rows.map(r => r.join(',')).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = `wajeez_stats_${lastData.range}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        document.getElementById('rangeTabs').addEventListener('click', e => {
+            const btn = e.target.closest('.range-tab');
+            if (!btn) return;
+            document.querySelectorAll('.range-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentRange = btn.dataset.range;
+            loadStats();
+        });
+
+        try {
+            const nm = localStorage.getItem('adminName') || localStorage.getItem('userName');
+            if (nm) document.getElementById('adminName').textContent = nm;
+        } catch (_) { /* التخزين قد يكون محجوباً */ }
+
+        loadStats();
+    </script>
+</body>
+
+</html>

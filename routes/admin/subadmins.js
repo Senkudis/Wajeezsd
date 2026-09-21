@@ -23,7 +23,25 @@ const logger = require('../../utils/logger');
 
 const SessionRequest = require('../../models/SessionRequest');
 
-router.get('/activity-log', protect, superAdminOnly, async (req, res) => {
+// =========================================================
+// 🔑 قائمة الصلاحيات — مشتقّةٌ من مخطّط النموذج لا مكتوبةً بجانبه.
+//
+// ⚠️ كانت مكتوبةً يدوياً مرّتين (الإنشاء والتعديل)، وتباعدت عن النموذج:
+//    view_chats و manage_chats و view_captain_details موجودةٌ في المخطّط
+//    ومعروضةٌ في الواجهة، لكن المسار كان يُسقطها بصمت — فمن يمنحها لا
+//    يراها تُحفظ ولا يُقال له لماذا. المصدر الآن واحد، فلا تتباعد ثانية.
+const VALID_PERMS = User.schema.path('permissions').caster.enumValues;
+const VALID_CITIES = ['Khartoum', 'PortSudan'];
+
+/** يُنقّي مدن الأدمن المساعد: صالحةً وبلا تكرار. فارغةً ⇒ مدينته وحدها. */
+function sanitizeCities(list) {
+    if (!Array.isArray(list)) return null;
+    return [...new Set(list.filter(c => VALID_CITIES.includes(c)))];
+}
+
+// 📜 سجلّ أفعال الإدارة — صلاحيةٌ تُمنح، لا حكرٌ على المسؤول الرئيسي.
+//    من يدير مدينةً يحتاج أن يعرف من غيّر ماذا فيها.
+router.get('/activity-log', protect, requirePermission('view_activity_log'), async (req, res) => {
     try {
         const page    = Math.max(1, parseInt(req.query.page)  || 1);
         const limit   = Math.min(100, parseInt(req.query.limit) || 50);
@@ -78,31 +96,22 @@ router.get('/sub-admins', protect, superAdminOnly, async (req, res) => {
 
 router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
     try {
-        const { name, phone, password, permissions, city } = req.body;
+        const { name, phone, password, permissions, city, cities } = req.body;
 
         if (!name || !phone || !password) {
             return res.status(400).json({ message: 'الاسم والهاتف وكلمة المرور مطلوبة' });
         }
-
-        const VALID_PERMS = [
-            'view_orders', 'manage_orders',
-            'view_captains', 'manage_captains',
-            'view_stores', 'manage_stores',
-            'view_stats', 'view_map',
-            'view_complaints',
-            'view_categories', 'manage_categories',
-            'view_users', 'manage_users',
-            'view_finance', 'manage_finance',
-            'view_revenue',
-            'send_notifications',
-            'manage_banners',
-        ];
 
         const normalizedPhone = normalizePhone(phone);
         const exists = await User.findOne({ phone: normalizedPhone });
         if (exists) return res.status(400).json({ message: 'رقم الهاتف مسجل بالفعل' });
 
         const validPerms = (permissions || []).filter(p => VALID_PERMS.includes(p));
+
+        const requested = sanitizeCities(cities);
+        const assignedCities = (requested && requested.length)
+            ? requested
+            : [VALID_CITIES.includes(city) ? city : 'Khartoum'];
 
         const subAdmin = await User.create({
             name,
@@ -111,7 +120,10 @@ router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
             role: 'admin',
             adminRole: 'sub_admin',
             permissions: validPerms,
-            city: ['Khartoum', 'PortSudan'].includes(city) ? city : 'Khartoum',
+            // 🌍 مدنه: ما أُرسل، وإلا مدينته الواحدة. و`city` تبقى الأولى
+            //    منها — بها تُختم السجلات التي ينشئها إن لم يحدّد.
+            cities: assignedCities,
+            city: assignedCities[0],
             isActive: true,
             isVerified: true,
             approvalStatus: 'approved'
@@ -119,7 +131,7 @@ router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
 
         await logAdminAction(req, 'create_sub_admin',
             `تم إنشاء أدمن مساعد: ${name}`,
-            subAdmin._id, name, { permissions: validPerms }
+            subAdmin._id, name, { permissions: validPerms, cities: assignedCities }
         );
 
         res.status(201).json({
@@ -128,6 +140,7 @@ router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
             phone: subAdmin.phone,
             adminRole: subAdmin.adminRole,
             permissions: subAdmin.permissions,
+            cities: subAdmin.cities,
             message: 'تم إنشاء الأدمن المساعد بنجاح'
         });
     } catch (error) {
@@ -141,7 +154,7 @@ router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
 
 router.put('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
     try {
-        const { permissions, isActive, adminRole } = req.body;
+        const { permissions, isActive, adminRole, cities } = req.body;
 
         const target = await User.findById(req.params.id);
         if (!target || target.role !== 'admin') {
@@ -153,16 +166,18 @@ router.put('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
             return res.status(400).json({ message: 'لا يمكنك تعديل حسابك الشخصي من هنا' });
         }
 
-        const VALID_PERMS = [
-            'view_orders', 'manage_orders', 'view_captains', 'manage_captains',
-            'view_stores', 'manage_stores', 'view_stats', 'view_map',
-            'view_complaints', 'view_categories', 'manage_categories',
-            'view_users', 'manage_users', 'view_finance', 'manage_finance',
-            'view_revenue', 'send_notifications', 'manage_banners',
-        ];
-
         const updates = {};
         if (permissions !== undefined) updates.permissions = permissions.filter(p => VALID_PERMS.includes(p));
+        if (cities !== undefined) {
+            const clean = sanitizeCities(cities);
+            // 🚫 لا نطاقَ فارغ: أدمنٌ بلا مدينةٍ واحدة لا يرى شيئاً ولا يفهم
+            //    لماذا — والخطأ يقع صامتاً وقت التعيين لا وقت الاستعمال.
+            if (!clean || !clean.length) {
+                return res.status(400).json({ message: 'اختر مدينةً واحدة على الأقل' });
+            }
+            updates.cities = clean;
+            updates.city   = clean[0];
+        }
         if (isActive !== undefined)    updates.isActive    = Boolean(isActive);
         if (adminRole && ['super_admin', 'sub_admin'].includes(adminRole)) {
             updates.adminRole = adminRole;

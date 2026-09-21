@@ -7,7 +7,7 @@ router.param('id', validateObjectId);
 
 const Feedback = require('../../models/Feedback');
 const { CANCEL_REASONS } = require('../../models/Feedback');
-const { protect, requirePermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
+const { protect, requirePermission, requireAnyPermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const logger = require('../../utils/logger');
 
@@ -16,7 +16,7 @@ const logger = require('../../utils/logger');
  * قائمة صوت العميل + ملخّص إحصائي.
  * الملخّص هو الغاية الحقيقية: "لماذا يُلغى الطلب؟" سؤال تجميعي لا فردي.
  */
-router.get('/feedback', protect, requirePermission('view_complaints'), async (req, res) => {
+router.get('/feedback', protect, requireAnyPermission(['view_feedback', 'view_complaints']), async (req, res) => {
     try {
         const cityFilter = getAdminCityFilter(req);
         const { kind, reviewed, days } = req.query;
@@ -101,7 +101,7 @@ router.get('/feedback', protect, requirePermission('view_complaints'), async (re
  * PUT /api/admin/feedback/:id/review
  * تعليم السجل كمُراجَع مع ملاحظة داخلية.
  */
-router.put('/feedback/:id/review', protect, requirePermission('view_complaints'), async (req, res) => {
+router.put('/feedback/:id/review', protect, requireAnyPermission(['view_feedback', 'view_complaints']), async (req, res) => {
     try {
         const note = String(req.body?.adminNote || '').trim().replace(/<[^>]*>/g, '').slice(0, 1000);
         const reviewed = req.body?.isReviewed !== false;

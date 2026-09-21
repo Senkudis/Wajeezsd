@@ -1492,7 +1492,8 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             title: 'طلب متجر جديد',
             message: `طلب جديد من متجر ${place.name || ''} بقيمة ${itemsTotal} ج.س${place.city ? ' — ' + place.city : ''}`,
             type: 'admin_order_alert',
-            relatedId: order._id
+            relatedId: order._id,
+            city: place.city
         });
         // 🔔 emit صريح لـ admin_room — يطلق toast + صوت + browser notif في admin-panel.js
         // (new_notification وحده يُحفظ بصمت في القائمة، لا يُشغّل الصوت أو البوب-أب)

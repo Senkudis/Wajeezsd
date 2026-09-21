@@ -4,7 +4,7 @@ const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const mongoose = require('mongoose');
-const { protect, merchantOnly, adminOnly, requirePermission } = require('../middleware/authMiddleware');
+const { protect, merchantOnly, adminOnly, requireAnyPermission, requirePermission } = require('../middleware/authMiddleware');
 const Place = require('../models/Place');
 const Product = require('../models/Product');
 const ShopOrder = require('../models/ShopOrder');
@@ -657,7 +657,8 @@ router.post('/finance/settlements', protect, merchantOnly, loadPlace, async (req
             title: 'طلب تسوية مستحقات جديد',
             message: `تاجر ${req.place.name} طلب سحب ${numericAmount} ج.س من مستحقاته.`,
             type: 'settlement_request',
-            relatedId: settlement._id
+            relatedId: settlement._id,
+            city: req.place && req.place.city
         });
 
         res.status(201).json({ message: 'تم إرسال طلب التسوية — ستصلك الموافقة بعد مراجعة الإدارة', settlement });
@@ -670,7 +671,7 @@ router.post('/finance/settlements', protect, merchantOnly, loadPlace, async (req
 // ── ADMIN: مراجعة التسويات ──
 
 // GET /api/merchant-erp/admin/settlements?status=pending
-router.get('/admin/settlements', protect, adminOnly, requirePermission('view_finance'), async (req, res) => {
+router.get('/admin/settlements', protect, adminOnly, requireAnyPermission(['view_settlements', 'view_finance']), async (req, res) => {
     try {
         const filter = {};
         if (req.query.status && ['pending', 'approved', 'rejected'].includes(req.query.status)) filter.status = req.query.status;
@@ -687,7 +688,7 @@ router.get('/admin/settlements', protect, adminOnly, requirePermission('view_fin
 
 // PUT /api/merchant-erp/admin/settlements/:id/approve
 // body: { transactionId?, receiptImage? }
-router.put('/admin/settlements/:id/approve', protect, adminOnly, requirePermission('manage_finance'), async (req, res) => {
+router.put('/admin/settlements/:id/approve', protect, adminOnly, requireAnyPermission(['manage_settlements', 'manage_finance']), async (req, res) => {
     try {
         // 🧾 تحويل إيصال التسوية من Base64 إلى ملف قبل التخزين (بدل حشوه في المستند)
         const { saveBase64ToUploads } = require('../utils/imageUpload');
@@ -743,7 +744,7 @@ router.put('/admin/settlements/:id/approve', protect, adminOnly, requirePermissi
 });
 
 // PUT /api/merchant-erp/admin/settlements/:id/reject
-router.put('/admin/settlements/:id/reject', protect, adminOnly, requirePermission('manage_finance'), async (req, res) => {
+router.put('/admin/settlements/:id/reject', protect, adminOnly, requireAnyPermission(['manage_settlements', 'manage_finance']), async (req, res) => {
     try {
         const settlement = await SettlementRequest.findOneAndUpdate(
             { _id: req.params.id, status: 'pending' },

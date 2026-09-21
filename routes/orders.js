@@ -451,7 +451,8 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                 title: 'طلب جديد',
                 message: `طلب ${_kindLabel} جديد بسعر ${order.price} ج.س — ${order.city}`,
                 type: 'admin_order_alert',
-                relatedId: order._id
+                relatedId: order._id,
+                city: order.city
             });
 
             // 📣 توزيع ذكي للكباتن: الأقرب أولاً ثم البقية جميعاً كشبكة أمان.
@@ -2306,7 +2307,8 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                                 title: 'كابتن حُجب لتجاوز الحد الائتماني',
                                 message: `${captain.name || 'كابتن'} — الرصيد ${Math.round(captain.wallet_balance)} والحد ${creditLimit}`,
                                 type: 'captain_blocked',
-                                relatedId: captain._id
+                                relatedId: captain._id,
+                                city: captain.city
                             });
                         } catch (e) { logger.error({ err: e }, 'Admin block alert failed (non-critical)'); }
 
@@ -2704,7 +2706,8 @@ router.post('/:id/complain', protect, async (req, res) => {
             title: 'شكوى جديدة',
             message: `شكوى جديدة من العميل ${req.user.name || 'أحد العملاء'} على الطلب #${order._id.toString().slice(-6)}`,
             type: 'system',
-            relatedId: order._id
+            relatedId: order._id,
+            city: order.city
         });
 
         res.json({ message: 'Complaint submitted', order });

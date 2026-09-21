@@ -151,9 +151,30 @@ const VALID_CITIES = ['Khartoum', 'PortSudan'];
 // يُرجع جزء فلتر Mongo الخاص بالمدينة حسب نوع الأدمن:
 // - sub_admin: مقيّد بمدينته فقط (يتجاهل أي ?city يرسله العميل)
 // - super_admin/قديم: فلتر اختياري عبر ?city، وإلا كل المدن
+/**
+ * 🌍 مدن الأدمن المساعد.
+ *
+ * `cities` فارغةً تعني مدينته وحدها — فالحسابات المنشأة قبل إضافة الحقل
+ * تبقى على نطاقها بلا هجرةِ بيانات. ولا تُرجع إلا مدناً صالحة: قيمةٌ
+ * غريبة تسرّبت إلى الحقل يجب أن تُضيّق النطاق لا أن تفتحه.
+ */
+function adminCities(user) {
+    if (!user) return [];
+    const list = Array.isArray(user.cities) ? user.cities.filter(c => VALID_CITIES.includes(c)) : [];
+    if (list.length) return [...new Set(list)];
+    return VALID_CITIES.includes(user.city) ? [user.city] : [];
+}
+
 function getAdminCityFilter(req) {
     if (req.user && req.user.adminRole === 'sub_admin') {
-        return { city: req.user.city };
+        const mine = adminCities(req.user);
+        // ولو طلب مدينةً بعينها من مدنه، ضيّق عليها — تبديل المدينة في
+        // اللوحة يجب أن يعمل لمن يشرف على أكثر من واحدة.
+        if (VALID_CITIES.includes(req.query.city) && mine.includes(req.query.city)) {
+            return { city: req.query.city };
+        }
+        // مدينةٌ واحدة: مساواةٌ مباشرة تستعمل الفهرس كما كانت
+        return mine.length === 1 ? { city: mine[0] } : { city: { $in: mine } };
     }
     if (VALID_CITIES.includes(req.query.city)) {
         return { city: req.query.city };
@@ -165,7 +186,13 @@ function getAdminCityFilter(req) {
 // sub_admin: مدينته إجبارياً. super_admin: المدينة المُرسلة أو الافتراضية
 function resolveCreationCity(req, requestedCity) {
     if (req.user && req.user.adminRole === 'sub_admin') {
-        return req.user.city;
+        const mine = adminCities(req.user);
+        // من يشرف على مدينتين يجب أن يختار في أيّهما يُنشئ — وإلا ذهب كل
+        // ما ينشئه إلى واحدةٍ بعينها ولو كان يعمل في الأخرى.
+        if (VALID_CITIES.includes(requestedCity) && mine.includes(requestedCity)) {
+            return requestedCity;
+        }
+        return mine[0] || 'Khartoum';
     }
     return VALID_CITIES.includes(requestedCity) ? requestedCity : 'Khartoum';
 }
@@ -177,8 +204,14 @@ function adminCanActOnUser(req, targetUser) {
     if (!targetUser) return false;
     // 🔒 الأدمن المساعد ممنوع من التصرّف في أي حساب أدمن (منع تصعيد الصلاحيات)
     if (targetUser.role === 'admin') return false;
-    // ولا في مستخدم خارج مدينته
-    return targetUser.city === req.user.city;
+    // ولا في مستخدم خارج مدنه
+    return adminCities(req.user).includes(targetUser.city);
+}
+
+/** هل تقع هذه المدينة داخل نطاق الأدمن؟ (super_admin: كل المدن) */
+function adminCoversCity(user, city) {
+    if (!user || user.adminRole !== 'sub_admin') return true;
+    return adminCities(user).includes(city);
 }
 
 const captainOnly = (req, res, next) => {
@@ -209,5 +242,6 @@ module.exports = {
     protect, adminOnly, superAdminOnly,
     requirePermission, requireAnyPermission,
     getAdminCityFilter, resolveCreationCity, adminCanActOnUser,
+    adminCities, adminCoversCity, VALID_CITIES,
     captainOnly, clientOnly, merchantOnly
 };

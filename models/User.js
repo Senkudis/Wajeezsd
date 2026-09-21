@@ -220,6 +220,21 @@ const UserSchema = new mongoose.Schema(
             required: true
         },
 
+        // 🌍 مدن الأدمن المساعد — واحدةٌ أو أكثر.
+        //
+        // `city` أعلاه تبقى مدينته الأصلية (وبها تُختم السجلات التي ينشئها
+        // إن لم يحدّد). وهذه تُوسّع نطاقه: من يشرف على الخرطوم وبورتسودان
+        // معاً يرى طلبات الاثنتين وإشعاراتهما.
+        //
+        // فارغةً = مدينته وحدها. فالأدمن المساعدون القائمون قبل هذا الحقل
+        // يبقون على ما كانوا عليه بلا هجرةِ بيانات — `adminCities()` في
+        // authMiddleware ترجع [city] حين تخلو.
+        cities: {
+            type: [String],
+            enum: ['Khartoum', 'PortSudan'],
+            default: []
+        },
+
         // 🔐 Admin Role & Permissions System
         // adminRole: تُحدد نوع الأدمن (super_admin له كل الصلاحيات، sub_admin له صلاحيات محددة)
         // null = ليس أدمن (لا يُطبق على المستخدمين العاديين)
@@ -261,6 +276,18 @@ const UserSchema = new mongoose.Schema(
                 'view_revenue',                     // لوحة الأرباح الكاملة
                 'send_notifications',               // الإشعارات والبث
                 'manage_banners',                   // البانرات الإعلانية
+                // 🆕 شاشاتٌ قائمة كانت حكراً على المسؤول الرئيسي بلا سبب:
+                //    الأدمن المساعد الذي يدير مدينةً كاملة كان يُحال إليه في
+                //    كل تسويةٍ وكل طلب تاجرٍ جديد. كلٌّ منها صلاحيةٌ مستقلة
+                //    تُمنح بقدرها.
+                'view_settlements', 'manage_settlements',  // تسويات المحافظ
+                'view_merchant_requests', 'manage_merchant_requests',
+                'view_feedback',                    // تقييمات العملاء
+                'view_reports',                     // بلاغات المستخدمين
+                'manage_promos',                    // كوبونات الخصم
+                'manage_places',                    // المناطق والأحياء
+                'manage_zones',                     // حدود مناطق التسعير
+                'view_activity_log',                // سجلّ أفعال الإدارة
             ]
         },
 

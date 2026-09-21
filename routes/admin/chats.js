@@ -15,7 +15,7 @@ const Order = require('../../models/Order');
 // populate('client'/'captain') يحتاج تسجيل مخطط User — لا نتّكل على أن ملفاً
 // آخر سجّله قبلنا (نفس ما تفعله بقية وحدات routes/admin)
 require('../../models/User');
-const { protect, requirePermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
+const { protect, requirePermission, getAdminCityFilter, adminCoversCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { CHAT_IMAGE_TTL_HOURS } = require('../../utils/chatImage');
 const logger = require('../../utils/logger');
@@ -112,7 +112,7 @@ router.get('/chats/:orderId', protect, requirePermission('view_chats'), async (r
             .lean();
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
 
-        if (req.user.adminRole === 'sub_admin' && order.city !== req.user.city) {
+        if (!adminCoversCity(req.user, order.city)) {
             return res.status(403).json({ message: 'غير مصرح — هذا الطلب خارج مدينتك' });
         }
 
@@ -171,7 +171,7 @@ router.delete('/chats/:orderId', protect, requirePermission('manage_chats'), asy
         const order = await Order.findById(orderId).select('city client').populate('client', 'name').lean();
         // الطلب قد يكون محذوفاً وبقيت رسائله — نسمح بالتنظيف، لكن عزل المدينة
         // يُطبَّق متى ما كان الطلب موجوداً
-        if (order && req.user.adminRole === 'sub_admin' && order.city !== req.user.city) {
+        if (order && !adminCoversCity(req.user, order.city)) {
             return res.status(403).json({ message: 'غير مصرح — هذا الطلب خارج مدينتك' });
         }
 

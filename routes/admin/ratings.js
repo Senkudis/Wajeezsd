@@ -23,7 +23,7 @@ const logger = require('../../utils/logger');
 
 const SessionRequest = require('../../models/SessionRequest');
 
-router.get('/ratings', protect, superAdminOnly, async (req, res) => {
+router.get('/ratings', protect, requirePermission('view_feedback'), async (req, res) => {
     try {
         const page  = Math.max(1, parseInt(req.query.page)  || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 30);

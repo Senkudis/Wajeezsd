@@ -517,7 +517,7 @@ function sanitizeObjectIds(input) {
     )];
 }
 
-router.get('/promo-codes', protect, superAdminOnly, async (req, res) => {
+router.get('/promo-codes', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
         const codes = await PromoCode.find()
             .populate('createdBy', 'name')
@@ -531,7 +531,7 @@ router.get('/promo-codes', protect, superAdminOnly, async (req, res) => {
 
 // POST /api/admin/promo-codes
 
-router.post('/promo-codes', protect, superAdminOnly, async (req, res) => {
+router.post('/promo-codes', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
         const { code, type, value, appliesTo, maxDiscount, minOrderValue, usageLimit, userUsageLimit, validFrom, validUntil, city, description, places, products, minQuantity, buyQuantity, freeQuantity } = req.body;
         if (!code || !type || value === undefined || !validUntil) {
@@ -581,7 +581,7 @@ router.post('/promo-codes', protect, superAdminOnly, async (req, res) => {
 
 // PUT /api/admin/promo-codes/:id
 
-router.put('/promo-codes/:id', protect, superAdminOnly, async (req, res) => {
+router.put('/promo-codes/:id', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
         const promo = await PromoCode.findById(req.params.id);
         if (!promo) return res.status(404).json({ message: 'الكوبون غير موجود' });
@@ -608,7 +608,7 @@ router.put('/promo-codes/:id', protect, superAdminOnly, async (req, res) => {
 
 // DELETE /api/admin/promo-codes/:id
 
-router.delete('/promo-codes/:id', protect, superAdminOnly, async (req, res) => {
+router.delete('/promo-codes/:id', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
         const promo = await PromoCode.findByIdAndDelete(req.params.id);
         if (!promo) return res.status(404).json({ message: 'الكوبون غير موجود' });
@@ -621,7 +621,7 @@ router.delete('/promo-codes/:id', protect, superAdminOnly, async (req, res) => {
 
 // GET /api/admin/promo-codes/:id/usage — من استخدم الكوبون
 
-router.get('/promo-codes/:id/usage', protect, superAdminOnly, async (req, res) => {
+router.get('/promo-codes/:id/usage', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
         const promo = await PromoCode.findById(req.params.id)
             .populate('usedBy.user', 'name phone');

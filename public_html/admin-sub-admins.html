@@ -230,12 +230,26 @@ body.dark-mode .req-name { color: #f9fafb !important; }
                                 <input type="password" class="form-control" id="aPassword">
                                 <div class="form-text">كلمة المرور مطلوبة عند الإنشاء فقط.</div>
                             </div>
+                            <!-- 🌍 مدنه: أكثر من واحدة.
+                                 كان الحقل قائمةً منسدلةً بخيارٍ واحد، فمن
+                                 يشرف على الخرطوم وبورتسودان معاً يحتاج
+                                 حسابين. الآن يرى طلبات الاثنتين وإشعاراتهما
+                                 وكل ما يخوَّل له فيهما. -->
                             <div class="col-md-6">
-                                <label class="form-label">المدينة <span class="text-danger">*</span></label>
-                                <select class="form-select" id="aCity" required>
-                                    <option value="Khartoum">الخرطوم - أم درمان</option>
-                                    <option value="PortSudan">بورتسودان</option>
-                                </select>
+                                <label class="form-label">المدن التي يشرف عليها <span class="text-danger">*</span></label>
+                                <div class="d-flex gap-3 flex-wrap pt-1" id="aCities">
+                                    <div class="form-check">
+                                        <input class="form-check-input city-cb" type="checkbox"
+                                            value="Khartoum" id="city_Khartoum" checked>
+                                        <label class="form-check-label" for="city_Khartoum">الخرطوم - أم درمان</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input city-cb" type="checkbox"
+                                            value="PortSudan" id="city_PortSudan">
+                                        <label class="form-check-label" for="city_PortSudan">بورتسودان</label>
+                                    </div>
+                                </div>
+                                <div class="form-text">اختر واحدة أو الاثنتين.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">حالة الحساب</label>
@@ -298,7 +312,18 @@ body.dark-mode .req-name { color: #f9fafb !important; }
             { id: 'view_map', label: 'الخريطة الحية' },
             { id: 'view_complaints', label: 'الشكاوى' },
             { id: 'view_chats', label: 'قراءة محادثات العملاء والكباتن' },
-            { id: 'manage_chats', label: 'حذف المحادثات (لا رجعة فيه)' }
+            { id: 'manage_chats', label: 'حذف المحادثات (لا رجعة فيه)' },
+            // 🆕 شاشاتٌ قائمة كانت حكراً على المسؤول الرئيسي
+            { id: 'view_settlements', label: 'مشاهدة تسويات التجار' },
+            { id: 'manage_settlements', label: 'اعتماد ورفض التسويات' },
+            { id: 'view_merchant_requests', label: 'مشاهدة طلبات انضمام التجار' },
+            { id: 'manage_merchant_requests', label: 'قبول ورفض طلبات التجار' },
+            { id: 'view_feedback', label: 'تقييمات العملاء' },
+            { id: 'view_reports', label: 'بلاغات المحتوى' },
+            { id: 'manage_promos', label: 'كوبونات الخصم' },
+            { id: 'manage_places', label: 'المناطق والأحياء' },
+            { id: 'manage_zones', label: 'حدود مناطق التسعير' },
+            { id: 'view_activity_log', label: 'سجلّ أفعال الإدارة' }
         ];
 
         let admins = [];
@@ -363,7 +388,8 @@ body.dark-mode .req-name { color: #f9fafb !important; }
                     <tr>
                         <td><strong>${a.name}</strong></td>
                         <td dir="ltr" style="text-align:right;">${a.phone}</td>
-                        <td>${a.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}</td>
+                        <td>${((a.cities && a.cities.length) ? a.cities : [a.city || 'Khartoum'])
+                            .map(c => c === 'PortSudan' ? 'بورتسودان' : 'الخرطوم').join(' + ')}</td>
                         <td>${roleBadge}</td>
                         <td style="max-width:250px;">
                             <div class="perms-list">${permsHtml}</div>
@@ -388,7 +414,8 @@ body.dark-mode .req-name { color: #f9fafb !important; }
             document.getElementById('aPassword').required = true;
             document.getElementById('aName').disabled = false;
             document.getElementById('aPhone').disabled = false;
-            document.getElementById('aCity').disabled = false;
+            // نطاق افتراضي للحساب الجديد: الخرطوم (reset أعاد الصناديق لحالها)
+            document.querySelectorAll('.city-cb').forEach(cb => { cb.checked = cb.value === 'Khartoum'; });
             modalInstance.show();
         }
 
@@ -404,8 +431,11 @@ body.dark-mode .req-name { color: #f9fafb !important; }
             document.getElementById('aName').disabled = true; // No edit for name/phone for now
             document.getElementById('aPhone').value = a.phone;
             document.getElementById('aPhone').disabled = true;
-            document.getElementById('aCity').value = a.city || 'Khartoum';
-            document.getElementById('aCity').disabled = true;
+            // مدنه: `cities` إن وُجدت، وإلا مدينته الواحدة (حسابات قديمة)
+            const his = (a.cities && a.cities.length) ? a.cities : [a.city || 'Khartoum'];
+            document.querySelectorAll('.city-cb').forEach(cb => { cb.checked = his.includes(cb.value); });
+            // ✅ النطاق قابلٌ للتعديل: كان مقفلاً بعد الإنشاء، فتوسيع نطاق
+            //    أدمنٍ قائم يقتضي حذفه وإنشاءه من جديد — وهو أكثر ما يُحتاج.
 
             document.getElementById('passwordGroup').style.display = 'none';
             document.getElementById('aPassword').required = false;
@@ -428,18 +458,28 @@ body.dark-mode .req-name { color: #f9fafb !important; }
             const isNew = !id;
 
             const selectedPerms = Array.from(document.querySelectorAll('.perm-cb:checked')).map(cb => cb.value);
+            const selectedCities = Array.from(document.querySelectorAll('.city-cb:checked')).map(cb => cb.value);
+
+            // 🚫 نطاقٌ فارغ يعني أدمناً لا يرى شيئاً ولا يفهم لماذا. يُمنع هنا
+            //    قبل رحلة الشبكة، والخادم يمنعه كذلك (الواجهة تُتجاوَز).
+            if (!selectedCities.length) {
+                Swal.fire('تنبيه', 'اختر مدينةً واحدة على الأقل يشرف عليها', 'warning');
+                return;
+            }
 
             const payload = {
                 permissions: selectedPerms,
                 adminRole: document.getElementById('aRole').value,
-                isActive: document.getElementById('aStatus').value === 'true'
+                isActive: document.getElementById('aStatus').value === 'true',
+                // تُرسَل في الإنشاء والتعديل معاً: تغيير نطاق أدمنٍ قائم هو
+                // أكثر ما يُحتاج — لا إنشاؤه من جديد.
+                cities: selectedCities
             };
 
             if (isNew) {
                 payload.name = document.getElementById('aName').value;
                 payload.phone = document.getElementById('aPhone').value;
                 payload.password = document.getElementById('aPassword').value;
-                payload.city = document.getElementById('aCity').value;
             }
 
             const btn = document.getElementById('saveBtn');

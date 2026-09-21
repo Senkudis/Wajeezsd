@@ -236,7 +236,8 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
                     title: 'كابتن جديد بانتظار الاعتماد',
                     message: `${req.user.name || 'كابتن'} رفع وثائقه ويحتاج مراجعة`,
                     type: 'captain_pending',
-                    relatedId: req.user._id
+                    relatedId: req.user._id,
+                    city: req.user.city
                 });
             } catch (e) {
                 logger.error({ err: e }, 'تعذّر تنبيه الإدارة برفع وثائق كابتن (غير حرج)');

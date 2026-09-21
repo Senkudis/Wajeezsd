@@ -13,7 +13,7 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, adminCoversCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -419,7 +419,7 @@ router.get('/orders/:id', protect, requirePermission('view_orders'), async (req,
         }
         if (!order) return res.status(404).json({ message: 'Not found' });
         // 🌍 sub_admin لا يرى طلباً خارج مدينته
-        if (req.user.adminRole === 'sub_admin' && order.city && order.city !== req.user.city) {
+        if (order.city && !adminCoversCity(req.user, order.city)) {
             return res.status(403).json({ message: 'غير مصرح — هذا الطلب خارج مدينتك' });
         }
         // 📊 إثراء بالخط الزمني و ETA — مصدر مشترك مع بقية المسارات

@@ -56,40 +56,48 @@
         <button class="gv-nav-item" data-page="broadcast" data-perm="send_notifications" onclick="switchPage('broadcast')">
             <i class="fas fa-bullhorn"></i><span>البث</span>
         </button>
+        <!-- 📊 إحصاءات نطاقه — كان الأدمن المساعد بلا أي إحصاءٍ إطلاقاً:
+             يدير مدينةً ولا يعرف كم طلباً جاءها أمس. -->
+        <button class="gv-nav-item" data-perm="view_stats" onclick="location.href='admin-stats.html'" id="navStats">
+            <i class="fas fa-chart-line"></i><span>إحصائيات نطاقي</span>
+        </button>
         <button class="gv-nav-item" data-perm="view_finance" onclick="location.href='admin-finance.html'" id="navFinance">
             <i class="fas fa-wallet"></i><span>المالية</span>
         </button>
         <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-complaints.html'">
             <i class="fas fa-flag"></i><span>الشكاوى</span>
         </button>
-        <button class="gv-nav-item" data-perm="view_stores" onclick="location.href='admin-places.html'">
+        <button class="gv-nav-item" data-perm="manage_places" onclick="location.href='admin-places.html'">
             <i class="fas fa-store"></i><span>المحلات</span>
         </button>
-        <button class="gv-nav-item" data-perm="manage_stores" onclick="location.href='admin-merchant-requests.html'">
+        <button class="gv-nav-item" data-perm="view_merchant_requests" onclick="location.href='admin-merchant-requests.html'">
             <i class="fas fa-shop-lock"></i><span>طلبات المتاجر</span>
         </button>
         <button class="gv-nav-item" data-perm="view_orders" onclick="location.href='admin-shop-orders.html'">
             <i class="fas fa-cart-shopping"></i><span>طلبات التسوق</span>
         </button>
-        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-zone-builder.html'" id="navZones">
+        <button class="gv-nav-item" data-perm="manage_zones" onclick="location.href='admin-zone-builder.html'" id="navZones">
             <i class="fas fa-draw-polygon"></i><span>مناطق التوصيل</span>
         </button>
         <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-settings.html'" id="navSettings">
             <i class="fas fa-cog"></i><span>الإعدادات</span>
         </button>
-        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-promo-codes.html'" id="navPromo">
+        <button class="gv-nav-item" data-perm="manage_promos" onclick="location.href='admin-promo-codes.html'" id="navPromo">
             <i class="fas fa-ticket-alt"></i><span>كوبونات الخصم</span>
         </button>
         <button class="gv-nav-item" data-perm="manage_banners" onclick="location.href='admin-banners.html'" id="navBanners">
             <i class="fas fa-images"></i><span>البانرات الإعلانية</span>
         </button>
+        <button class="gv-nav-item" data-perm="view_settlements" onclick="location.href='admin-settlements.html'" id="navSettlements">
+            <i class="fas fa-hand-holding-dollar"></i><span>تسويات التجار</span>
+        </button>
         <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-complaints.html'" id="navComplaints">
             <i class="fas fa-headset"></i><span>الدعم الفني</span>
         </button>
-        <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-reports.html'" id="navReports">
+        <button class="gv-nav-item" data-perm="view_reports" onclick="location.href='admin-reports.html'" id="navReports">
             <i class="fas fa-flag"></i><span>بلاغات المحتوى</span>
         </button>
-        <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-feedback.html'" id="navFeedback">
+        <button class="gv-nav-item" data-perm="view_feedback" onclick="location.href='admin-feedback.html'" id="navFeedback">
             <i class="fas fa-comment-dots"></i><span>صوت العميل</span>
         </button>
         <button class="gv-nav-item" data-perm="view_chats" onclick="location.href='admin-chats.html'" id="navChats">
@@ -102,7 +110,7 @@
         <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-sub-admins.html'" id="navSubAdmins">
             <i class="fas fa-user-shield"></i><span>الأدمن المساعد</span>
         </button>
-        <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-activity.html'" id="navActivity">
+        <button class="gv-nav-item" data-perm="view_activity_log" onclick="location.href='admin-activity.html'" id="navActivity">
             <i class="fas fa-history"></i><span>سجل النشاط</span>
         </button>
     </div>
@@ -474,7 +482,7 @@
 <script src="js/admin-search.js?v=7649b4af"></script>
 <script src="js/admin-dashboard.js?v=c43e9d7d"></script>
 <script src="js/img-lightbox.js?v=b97017cb"></script>
-<script src="js/admin-panel.js?v=3c54df31"></script>
+<script src="js/admin-panel.js?v=0dbb2837"></script>
 <script src="js/admin-web-push.js?v=c6ed56d1"></script>
 <script src="js/geo.js?v=9999b0e3"></script>
 <script src="js/input-hardener.js?v=95c0e89c"></script>

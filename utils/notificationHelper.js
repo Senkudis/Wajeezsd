@@ -92,11 +92,28 @@ const sendNotification = async (app, { userId, title, message, type, relatedId }
  * إشعار كل الأدمن بحدث مهم — يحفظ إشعاراً لكل أدمن (سجلّ دائم) + socket فوري + FCM push.
  * يعالج مشكلة "خانة الإشعارات صنم": الإشعارات تُحفظ فتظهر عند فتح اللوحة وتبقى بعد التحديث.
  * @param {Object} app
- * @param {Object} data - { title, message, type, relatedId }
+ * @param {Object} data - { title, message, type, relatedId, city }
+ *
+ * 🌍 `city`: حين تُمرَّر، لا يُنبَّه إلا من يشرف على تلك المدينة — المسؤول
+ *    الرئيسي دائماً، والمساعد إن كانت ضمن مدنه. وبدونها يُنبَّه الجميع كما
+ *    كان (أحداثٌ لا مدينة لها: عطلٌ في النظام، بلاغٌ عام).
+ *
+ *    ولماذا: كان كل أدمنٍ يتلقّى كل شيء. فمن عُيّن على بورتسودان وحدها
+ *    تصله تنبيهات الخرطوم كلّها — وهي الأكثر — فيتعوّد تجاهل الجرس،
+ *    ويضيع فيه ما يخصّه. التنبيه الذي لا يُقرأ ليس تنبيهاً.
  */
-const notifyAdmins = async (app, { title, message, type, relatedId }) => {
+const notifyAdmins = async (app, { title, message, type, relatedId, city }) => {
     try {
-        const admins = await User.find({ role: 'admin' }).select('_id fcmToken');
+        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        let admins = await User.find({ role: 'admin' }).select('_id fcmToken adminRole city cities');
+
+        if (VALID_CITIES.includes(city)) {
+            admins = admins.filter(a => {
+                if (a.adminRole !== 'sub_admin') return true;   // الرئيسي يرى الكل
+                const mine = (Array.isArray(a.cities) ? a.cities : []).filter(c => VALID_CITIES.includes(c));
+                return (mine.length ? mine : [a.city]).includes(city);
+            });
+        }
         if (!admins.length) return;
 
         // 🛡️ نفس حارس sendNotification — غيابه هنا هو سبب ضياع كل تنبيهات

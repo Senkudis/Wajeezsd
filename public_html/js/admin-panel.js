@@ -481,6 +481,10 @@ async function loadDashboard() {
             document.getElementById('stat-captains').textContent = fmtNum(data.totalCaptains || 0);
             document.getElementById('stat-orders').textContent = fmtNum(data.totalOrders || 0);
             document.getElementById('stat-online').textContent = fmtNum(data.activeOrders || 0); // Using activeOrders here for sub-admin
+
+            // 📊 توزيع الحالات: كان يُرسَم في فرع الأدمن الأعلى وحده، فيبقى
+            //    عند المساعد دائرةَ تحميلٍ أبدية — وهو ما اشتكى منه.
+            renderStatusBar(data.ordersByStatus || {});
             
             // Hide City Breakdown panel for sub_admin as it's not provided by dashboard-limited yet
             const cityPanel = document.getElementById('cityBreakdownContainer');
@@ -550,9 +554,10 @@ async function loadDashboard() {
 
 function renderStatusBar(counts) {
     const order = ['pending', 'scheduled', 'accepted', 'picked_up', 'delivered', 'cancelled'];
-    const total = order.reduce((sum, k) => sum + (counts[k] || 0), 0);
+    const total = order.reduce((sum, k) => sum + ((counts && counts[k]) || 0), 0);
 
     const bar = document.getElementById('statusBar');
+    if (!bar) return;
     if (total === 0) {
         bar.innerHTML = '<div class="gv-empty"><i class="fas fa-chart-bar"></i><p>لا توجد طلبات بعد</p></div>';
         return;
