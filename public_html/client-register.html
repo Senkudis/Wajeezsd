@@ -43,23 +43,23 @@
 
                 <div class="mb-3 text-end">
                     <label for="name" class="form-label fw-bold small text-muted">الاسم</label>
-                    <input type="text" id="name" class="form-control" placeholder="محمد أحمد">
+                    <input type="text" id="name" class="form-control" placeholder="محمد أحمد" autocomplete="name">
                 </div>
 
                 <div class="mb-3 text-end">
                     <label for="phone" class="form-label fw-bold small text-muted">الهاتف (09 أو 01)</label>
-                    <input type="text" id="phone" class="form-control" placeholder="09xxxxxxxx" dir="ltr">
+                    <input type="text" id="phone" class="form-control" placeholder="09xxxxxxxx" dir="ltr" autocomplete="tel" inputmode="tel">
                 </div>
 
                 <div class="mb-3 text-end">
                     <label for="email" class="form-label fw-bold small text-muted">الإيميل</label>
-                    <input type="email" id="email" class="form-control" placeholder="name@example.com" dir="ltr">
+                    <input type="email" id="email" class="form-control" placeholder="name@example.com" dir="ltr" autocomplete="email">
                 </div>
 
                 <div class="mb-4 text-end">
                     <label for="password" class="form-label fw-bold small text-muted">كلمة المرور</label>
                     <div class="input-group">
-                        <input type="password" id="password" class="form-control" placeholder="******">
+                        <input type="password" id="password" class="form-control" placeholder="******" autocomplete="new-password">
                         <button class="btn btn-outline-secondary" type="button"
                             onclick="togglePasswordVisibility('password', this)" tabindex="-1">
                             <i class="bi bi-eye-fill"></i>
@@ -125,7 +125,7 @@
                 <div class="mb-4">
                     <input type="text" id="verificationCode"
                         class="form-control form-control-lg text-center fw-bold fs-3 text-primary" placeholder="xxxxxx"
-                        maxlength="6" style="letter-spacing: 5px;">
+                        maxlength="6" style="letter-spacing: 5px;" autocomplete="one-time-code" inputmode="numeric">
                 </div>
 
                 <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="verifyStep()">
@@ -169,7 +169,7 @@
                             <i class="bi bi-telephone-fill text-success ms-1"></i> رقم الهاتف
                         </label>
                         <input type="tel" id="otp-phone" class="form-control form-control-lg"
-                            placeholder="09xxxxxxxx أو 01xxxxxxxx" dir="ltr" maxlength="15">
+                            placeholder="09xxxxxxxx أو 01xxxxxxxx" dir="ltr" maxlength="15" autocomplete="tel">
                         <button id="send-otp-btn" class="btn btn-success w-100 py-3 mt-4 fw-bold shadow-sm"
                             onclick="requestOTP()">
                             <i class="bi bi-send-fill ms-2"></i> إرسال رمز التحقق
@@ -187,7 +187,7 @@
                         </label>
                         <input type="text" id="otp-code" class="form-control form-control-lg text-center"
                             placeholder="------" dir="ltr" maxlength="6"
-                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;">
+                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;" autocomplete="one-time-code" inputmode="numeric">
                         <button id="verify-otp-btn" class="btn btn-primary w-100 py-3 mt-4 fw-bold shadow-sm"
                             onclick="verifyOTP()">
                             <i class="bi bi-check-circle-fill ms-2"></i> تحقق ودخول مجاني

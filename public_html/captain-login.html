@@ -73,18 +73,25 @@
             <div id="alert-box" class="alert d-none align-items-center mb-4" role="alert"></div>
 
             <div class="mb-3 text-end">
+                <!-- 🔑 الهاتف أولاً: الكابتن يحفظ رقمه لا بريده.
+                     كان الحقل type="email" وعنوانه «البريد الإلكتروني» وحده —
+                     والخادم يقبل الاثنين (/login يبحث بالهاتف إن خلا من @).
+                     فمن سجّل ورقمُه هو ما يذكره كان المتصفّح يرفض إدخاله
+                     أصلاً («أدخل بريداً صحيحاً») ولوحةُ المفاتيح تفتح على @.
+                     صفحة العميل تقبلهما منذ البداية؛ هذه وحدها كانت تحجب. -->
                 <label for="email" class="form-label fw-bold small text-muted">
-                    <i class="bi bi-envelope-fill text-primary ms-1"></i> البريد الإلكتروني
+                    <i class="bi bi-person-fill text-primary ms-1"></i> رقم الهاتف أو البريد الإلكتروني
                 </label>
-                <input type="email" id="email" class="form-control form-control-lg" placeholder="name@example.com"
-                    dir="ltr">
+                <input type="text" id="email" class="form-control form-control-lg"
+                    placeholder="09xxxxxxxx أو name@example.com"
+                    dir="ltr" autocomplete="username" inputmode="text">
             </div>
 
             <div class="mb-4 text-end">
                 <label for="password" class="form-label fw-bold small text-muted">
                     <i class="bi bi-lock-fill text-primary ms-1"></i> كلمة المرور
                 </label>
-                <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••">
+                <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••" autocomplete="current-password">
             </div>
 
             <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="login()">
@@ -156,7 +163,7 @@
             document.getElementById('alert-box').classList.add('d-none');
 
             if (!email || !password) {
-                showAlert("يرجى إدخال البريد الإلكتروني وكلمة المرور", "error");
+                showAlert("يرجى إدخال رقم هاتفك أو بريدك، وكلمة المرور", "error");
                 return;
             }
 

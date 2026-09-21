@@ -349,13 +349,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">الاسم الكامل</label>
-                    <input type="text" id="name" class="form-control form-control-lg" placeholder="أحمد محمد">
+                    <label class="form-label fw-bold small">الاسم الكامل *</label>
+                    <input type="text" id="name" class="form-control form-control-lg" placeholder="أحمد محمد" autocomplete="name">
                     <div class="field-error" id="name-error"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">المدينة / المنطقة</label>
+                    <label class="form-label fw-bold small">المدينة / المنطقة *</label>
                     <select id="city" class="form-select form-control-lg" required>
                     <div class="field-error" id="city-error"></div>
                         <option value="" disabled selected>— اختر المدينة —</option>
@@ -365,23 +365,23 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">البريد الإلكتروني</label>
+                    <label class="form-label fw-bold small">البريد الإلكتروني *</label>
                     <input type="email" id="email" class="form-control form-control-lg" placeholder="name@example.com"
-                        dir="ltr">
+                        dir="ltr" autocomplete="email">
                     <div class="field-error" id="email-error"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">رقم الهاتف</label>
+                    <label class="form-label fw-bold small">رقم الهاتف *</label>
                     <input type="tel" id="phone" class="form-control form-control-lg" placeholder="0912345678"
-                        dir="ltr">
+                        dir="ltr" autocomplete="tel" inputmode="tel">
                     <div class="field-error" id="phone-error"></div>
                 </div>
 
                 <div class="mb-3" id="passwordWrap">
-                    <label class="form-label fw-bold small">كلمة المرور</label>
+                    <label class="form-label fw-bold small">كلمة المرور *</label>
                     <input type="password" id="password" class="form-control form-control-lg"
-                        placeholder="6 أحرف على الأقل">
+                        placeholder="6 أحرف على الأقل" autocomplete="new-password">
                     <div class="field-error" id="password-error"></div>
                 </div>
 
@@ -434,7 +434,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold small">الرقم الوطني *</label>
                     <input type="text" id="nationalId" class="form-control form-control-lg"
-                        inputmode="numeric" maxlength="14" placeholder="11 رقماً">
+                        inputmode="numeric" maxlength="14" placeholder="11 رقماً" autocomplete="off">
                     <div class="field-error" id="nationalId-error"></div>
                     <div class="form-text small">11 رقماً بالضبط كما في بطاقتك.</div>
                 </div>
@@ -447,7 +447,7 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">رقم الواتساب *</label>
-                    <input type="tel" id="whatsapp" class="form-control form-control-lg" placeholder="0912345678" dir="ltr">
+                    <input type="tel" id="whatsapp" class="form-control form-control-lg" placeholder="0912345678" dir="ltr" autocomplete="tel" inputmode="tel">
                     <div class="field-error" id="whatsapp-error"></div>
                 </div>
 
@@ -461,7 +461,7 @@
                 <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label fw-bold small">رقمه *</label>
-                        <input type="tel" id="emergencyPhone" class="form-control" placeholder="09xxxxxxxx" dir="ltr">
+                        <input type="tel" id="emergencyPhone" class="form-control" placeholder="09xxxxxxxx" dir="ltr" autocomplete="off" inputmode="tel">
                     <div class="field-error" id="emergencyPhone-error"></div>
                     </div>
                     <div class="col-6">

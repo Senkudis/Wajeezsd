@@ -68,7 +68,7 @@
                     <i class="bi bi-person-fill text-primary ms-1"></i> رقم الهاتف أو البريد الإلكتروني
                 </label>
                 <input type="text" id="email" class="form-control form-control-lg"
-                    placeholder="09xxxxxxxx أو name@example.com" dir="ltr">
+                    placeholder="09xxxxxxxx أو name@example.com" dir="ltr" autocomplete="username">
             </div>
 
             <div class="mb-4 text-end">
@@ -76,7 +76,7 @@
                     <i class="bi bi-lock-fill text-primary ms-1"></i> كلمة المرور
                 </label>
                 <div class="input-group">
-                    <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••">
+                    <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••" autocomplete="current-password">
                     <button class="btn btn-outline-secondary" type="button"
                         onclick="togglePasswordVisibility('password', this)" tabindex="-1">
                         <i class="bi bi-eye-fill"></i>
@@ -147,7 +147,7 @@
                             <i class="bi bi-person-badge-fill text-danger ms-1"></i>رقم الهاتف
                         </label>
                         <input type="text" id="forgot-identifier" class="form-control form-control-lg"
-                            placeholder="09xxxxxxxx أو user@mail.com" dir="ltr">
+                            placeholder="09xxxxxxxx أو user@mail.com" dir="ltr" autocomplete="username">
                         <button id="send-forgot-btn" class="btn btn-danger w-100 py-3 mt-4 fw-bold shadow-sm"
                             onclick="sendForgotOtp()">
                             <i class="bi bi-send-fill ms-2"></i> إرسال الكود
@@ -161,13 +161,13 @@
                         </label>
                         <input type="text" id="forgot-code" class="form-control form-control-lg text-center mb-3"
                             placeholder="------" dir="ltr" maxlength="6"
-                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;">
+                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;" autocomplete="one-time-code" inputmode="numeric">
 
                         <label for="forgot-new-password" class="form-label fw-bold small text-muted">
                             <i class="bi bi-lock-fill text-danger ms-1"></i> كلمة المرور الجديدة
                         </label>
                         <input type="password" id="forgot-new-password" class="form-control form-control-lg"
-                            placeholder="••••••••">
+                            placeholder="••••••••" autocomplete="new-password">
 
                         <button id="reset-password-btn" class="btn btn-primary w-100 py-3 mt-4 fw-bold shadow-sm"
                             onclick="resetPassword()">
@@ -210,7 +210,7 @@
                         <input type="text" id="activation-code" class="form-control form-control-lg text-center"
                             placeholder="------" dir="ltr" maxlength="6" inputmode="numeric"
                             style="letter-spacing:6px; font-weight:bold; font-size:22px;"
-                            onkeypress="if(event.key==='Enter') verifyActivationCode()">
+                            onkeypress="if(event.key==='Enter') verifyActivationCode()" autocomplete="one-time-code">
                     </div>
 
                     <button id="activation-verify-btn" class="btn btn-warning w-100 py-3 mb-3 fw-bold shadow-sm"
@@ -256,7 +256,7 @@
                             <i class="bi bi-telephone-fill text-success ms-1"></i> رقم الهاتف
                         </label>
                         <input type="tel" id="otp-phone" class="form-control form-control-lg"
-                            placeholder="09xxxxxxxx أو 01xxxxxxxx" dir="ltr" maxlength="15">
+                            placeholder="09xxxxxxxx أو 01xxxxxxxx" dir="ltr" maxlength="15" autocomplete="tel">
                         <button id="send-otp-btn" class="btn btn-success w-100 py-3 mt-4 fw-bold shadow-sm"
                             onclick="requestOTP()">
                             <i class="bi bi-send-fill ms-2"></i> إرسال رمز التحقق
@@ -270,7 +270,7 @@
                         </label>
                         <input type="text" id="otp-code" class="form-control form-control-lg text-center"
                             placeholder="------" dir="ltr" maxlength="6"
-                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;">
+                            style="letter-spacing: 5px; font-weight: bold; font-size: 20px;" autocomplete="one-time-code" inputmode="numeric">
                         <button id="verify-otp-btn" class="btn btn-primary w-100 py-3 mt-4 fw-bold shadow-sm"
                             onclick="verifyOTP()">
                             <i class="bi bi-check-circle-fill ms-2"></i> تحقق ودخول مجاني
