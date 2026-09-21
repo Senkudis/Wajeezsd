@@ -67,6 +67,31 @@
             transition: all 0.2s;
         }
         .cat-tab.active { background: #f59e0b; border-color: #f59e0b; color: white; }
+        /* ⌨️ كانت .cat-tab و .product-name عناصرَ div بـ onclick: لا تُركَّز
+           بـ Tab ولا تُفعَّل بـ Enter — فتصفية المنتجات وفتح تفاصيلها كانا
+           مغلقين تماماً أمام من لا يستعمل الفأرة. صارت أزراراً، والتصفير
+           هنا يُبقي شكلها كما كان (الزرّ لا يرث الخطّ ولا محاذاة النصّ). */
+        .cat-tab, .product-name.product-tap {
+            font-family: inherit; text-align: inherit;
+        }
+        .product-name.product-tap {
+            display: block; width: 100%; background: none; border: 0; padding: 0;
+            color: inherit; border-radius: 6px;
+        }
+        .cat-tab:focus-visible,
+        .product-name.product-tap:focus-visible,
+        .pd-img-btn:focus-visible,
+        .product-img-btn:focus-visible {
+            outline: 2px solid var(--primary, #048c5b); outline-offset: 2px;
+        }
+        .pd-img-btn, .product-img-btn {
+            display: block; width: 100%; background: none; border: 0; padding: 0;
+            cursor: zoom-in; font: inherit; color: inherit;
+        }
+        /* حاوية الصورة في البطاقة flex بارتفاع 120px، والصورة كانت عنصرها
+           المباشر بـ height:100%. الزرّ صار بينهما، فلولا هذا السطر لانهارت
+           النسبة المئوية على ارتفاعٍ تلقائيّ وانكمشت الصورة. */
+        .product-card-img .product-img-btn { height: 100%; align-self: stretch; }
 
         .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px; }
         .product-card {
@@ -305,16 +330,17 @@
 <!-- 🔎 In-store product search -->
 <div class="px-3 pt-2">
     <div class="position-relative">
-        <i class="bi bi-search position-absolute" style="right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;"></i>
+        <i class="bi bi-search position-absolute" aria-hidden="true" style="right:14px;top:50%;transform:translateY(-50%);color:#9ca3af;"></i>
         <input type="text" id="storeProductSearch" oninput="searchStoreProducts(this.value)" autocomplete="off"
+            aria-label="ابحث في منتجات هذا المتجر"
             placeholder="ابحث في منتجات هذا المتجر..."
             class="form-control" style="padding:11px 42px 11px 14px;border-radius:13px;font-weight:600;border:1px solid #e2e8f0;">
     </div>
 </div>
 
 <!-- Category Tabs -->
-<div class="cat-tabs" id="catTabs">
-    <div class="cat-tab active" data-cat="all" onclick="filterCat('all', this)">الكل</div>
+<div class="cat-tabs" id="catTabs" role="group" aria-label="تصنيفات المنتجات">
+    <button type="button" class="cat-tab active" data-cat="all" aria-pressed="true" onclick="filterCat('all', this)">الكل</button>
 </div>
 
 <!-- Products Grid -->
@@ -358,11 +384,11 @@
 <!-- 📄 تفاصيل المنتج -->
 <div class="cart-overlay" id="productOverlay" onclick="closeProductDetails()"></div>
 <div class="cart-drawer" id="productDrawer" role="dialog" aria-modal="true" aria-label="تفاصيل المنتج">
-    <div class="cart-drawer-handle"></div>
+    <div class="cart-drawer-handle" aria-hidden="true"></div>
     <div class="cart-drawer-header d-flex justify-content-between align-items-center">
         <strong>تفاصيل المنتج</strong>
-        <button class="btn btn-sm btn-light rounded-circle" onclick="closeProductDetails()" aria-label="إغلاق">
-            <i class="bi bi-x-lg"></i>
+        <button class="btn btn-sm btn-light rounded-circle" onclick="closeProductDetails()" aria-label="إغلاق تفاصيل المنتج">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
     </div>
     <div class="cart-drawer-body" id="productDetailBody"></div>
@@ -376,16 +402,16 @@
         <div class="cart-fab-total" id="cartFabTotal">0 ج.س</div>
     </div>
     <div class="cart-fab-action">
-        عرض السلة <i class="bi bi-arrow-left-short fs-4" style="margin-right:-6px;"></i>
+        عرض السلة <i class="bi bi-arrow-left-short fs-4" aria-hidden="true" style="margin-right:-6px;"></i>
     </div>
 </button>
 
 <!-- Cart Drawer -->
-<div class="cart-drawer" id="cartDrawer">
+<div class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-label="سلة مشترياتك">
     <div class="cart-drawer-handle"></div>
     <div class="cart-drawer-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h6 class="fw-bold mb-0"><i class="bi bi-cart-fill text-warning me-2"></i>سلة مشترياتك</h6>
+            <h6 class="fw-bold mb-0"><i class="bi bi-cart-fill text-warning me-2" aria-hidden="true"></i>سلة مشترياتك</h6>
             <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="closeCart()">إغلاق</button>
         </div>
     </div>
@@ -426,7 +452,7 @@
 
                 <!-- Delivery Info -->
                 <div class="mb-4">
-                    <label class="text-muted small fw-bold d-block mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> عنوان التوصيل *</label>
+                    <label class="text-muted small fw-bold d-block mb-2" for="deliveryAddress"><i class="bi bi-geo-alt-fill text-danger me-1" aria-hidden="true"></i> عنوان التوصيل *</label>
                     <button type="button" class="btn w-100 mb-2 d-flex align-items-center map-pick-btn" onclick="openShopMap()" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;color:#0f172a;font-weight:700;">
                         <i class="bi bi-map-fill text-danger me-2"></i> تحديد من الخريطة
                         <i class="bi bi-chevron-left ms-auto text-muted"></i>
@@ -447,7 +473,7 @@
                 </div>
                 
                 <div class="mb-4">
-                    <label class="text-muted small fw-bold d-block mb-2"><i class="bi bi-cash-coin text-success me-1"></i> سعر التوصيل (قابل للتفاوض) *</label>
+                    <label class="text-muted small fw-bold d-block mb-2" for="deliveryFee"><i class="bi bi-cash-coin text-success me-1" aria-hidden="true"></i> سعر التوصيل (قابل للتفاوض) *</label>
                     <div class="input-group price-stepper input-group-lg">
                         <button type="button" id="shop-price-minus" class="btn btn-price-step" aria-label="إنقاص 100" title="إنقاص 100">
                             <i class="bi bi-dash-lg"></i>
@@ -462,27 +488,27 @@
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label fw-bold small">اسم المستلم *</label>
+                        <label class="form-label fw-bold small" for="receiverName">اسم المستلم *</label>
                         <input type="text" id="receiverName" class="form-control" placeholder="اسمك الكامل">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold small">رقم هاتفه *</label>
+                        <label class="form-label fw-bold small" for="receiverPhone">رقم هاتف المستلم *</label>
                         <input type="tel" id="receiverPhone" class="form-control" placeholder="09xxxxxxxx">
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold small"><i class="bi bi-chat-text me-1"></i>ملاحظات إضافية</label>
+                    <label class="form-label fw-bold small" for="orderNotes"><i class="bi bi-chat-text me-1" aria-hidden="true"></i>ملاحظات إضافية</label>
                     <textarea id="orderNotes" class="form-control" rows="2" placeholder="مثال: لا ثوم، أو طلب خاص..."></textarea>
                 </div>
 
                 <!-- Promo Code -->
                 <div class="mb-3">
-                    <label class="form-label fw-bold small"><i class="bi bi-ticket-perforated-fill text-warning me-1"></i>كوبون الخصم (اختياري)</label>
+                    <label class="form-label fw-bold small" for="promoCodeInput"><i class="bi bi-ticket-perforated-fill text-warning me-1" aria-hidden="true"></i>كوبون الخصم (اختياري)</label>
                     <div class="input-group">
                         <input type="text" id="promoCodeInput" class="form-control" placeholder="أدخل الكود هنا" style="text-transform:uppercase;letter-spacing:1px;font-weight:700;">
                         <button class="btn btn-outline-success fw-bold" onclick="applyPromo()" id="applyPromoBtn" type="button">تطبيق</button>
                     </div>
-                    <div id="promoResult" style="margin-top:6px;font-size:13px;"></div>
+                    <div id="promoResult" role="status" aria-live="polite" style="margin-top:6px;font-size:13px;"></div>
                 </div>
 
                 <!-- ملخص الطلب: تفصيل واضح للمبالغ -->
@@ -765,8 +791,10 @@
             const cats = [...new Set(allProducts.map(p => p.category || 'عام'))];
             const tabsEl = document.getElementById('catTabs');
             cats.forEach(cat => {
-                const el = document.createElement('div');
+                const el = document.createElement('button');
+                el.type = 'button';
                 el.className = 'cat-tab';
+                el.setAttribute('aria-pressed', 'false');
                 el.dataset.cat = cat;
                 el.textContent = cat;
                 el.onclick = () => filterCat(cat, el);
@@ -819,8 +847,12 @@
     let _storeSearch = '';
 
     function filterCat(cat, el) {
-        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.cat-tab').forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-pressed', 'false');
+        });
         el.classList.add('active');
+        el.setAttribute('aria-pressed', 'true');
         _storeCat = cat;
         _applyStoreFilters();
     }
@@ -910,10 +942,11 @@
 
         document.getElementById('productDetailBody').innerHTML = `
             ${imgSrc
-                ? `<img src="${imgSrc}" class="pd-img" alt="${escapeHtml(p.name)}" style="cursor:zoom-in"
-                        onclick="openProductImage('${imgSrc}', event)"
-                        onerror="pdImageFallback(this)">`
-                : `<div class="pd-img-ph"><i class="bi bi-box-seam-fill"></i></div>`}
+                ? `<button type="button" class="pd-img-btn" aria-label="تكبير صورة ${escapeHtml(p.name)}"
+                        onclick="openProductImage('${imgSrc}', event)"><img src="${imgSrc}"
+                        class="pd-img" alt="${escapeHtml(p.name)}"
+                        onerror="pdImageFallback(this)"></button>`
+                : `<div class="pd-img-ph" aria-hidden="true"><i class="bi bi-box-seam-fill"></i></div>`}
             <div class="pd-name">${escapeHtml(p.name)}</div>
             <div class="pd-meta">
                 <span class="pd-price">${(p.effectivePrice ?? p.price)} ج.س</span>
@@ -1056,7 +1089,9 @@
             // ⚠️ كان onerror يمسح **الحاوية كلّها**، فتذهب معها شارةُ العرض
             //    وزرُّ المشاركة: منتجٌ صورته مكسورة يفقد تخفيضه من العرض.
             //    الآن تُستبدل الصورة وحدها بأيقونةٍ في مكانها.
-            ? `<img src="${imgSrc}" alt="${escapeHtml(p.name)}" style="cursor:zoom-in" onclick="openProductImage('${imgSrc}', event)" onerror="prodImgFallback(this)">`
+            ? `<button type="button" class="product-img-btn" aria-label="تكبير صورة ${escapeHtml(p.name)}"
+                    onclick="openProductImage('${imgSrc}', event)"><img src="${imgSrc}"
+                    alt="${escapeHtml(p.name)}" onerror="prodImgFallback(this)"></button>`
             : `<i class="bi bi-box-seam-fill"></i>`;
 
         const shareBtnHtml = `<button onclick="shareProduct('${p._id}', event)"
@@ -1100,7 +1135,7 @@
                 ${shareBtnHtml}
             </div>
             <div class="product-card-body">
-                <div class="product-name product-tap" onclick="openProductDetails('${p._id}', event)">${escapeHtml(p.name)}</div>
+                <button type="button" class="product-name product-tap" onclick="openProductDetails('${p._id}', event)">${escapeHtml(p.name)}</button>
                 ${p.description ? `<div class="product-desc product-tap" onclick="openProductDetails('${p._id}', event)">${escapeHtml(p.description)}</div>
                 <button type="button" class="product-more" data-more-for="${p._id}"
                         onclick="openProductDetails('${p._id}', event)">التفاصيل والوصف كاملاً</button>` : ''}
@@ -1733,14 +1768,15 @@
                     const icon = isEstablishment ? 'bi-shop' : 'bi-geo-alt-fill';
                     const iconColor = isEstablishment ? '#b45309' : 'var(--primary)';
                     return `
-                    <div onclick="window._selectShopSearch('${p.place_id}')"
-                        style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:11px;">
-                        <i class="bi ${icon}" style="color:${iconColor};font-size:17px;flex-shrink:0;"></i>
+                    <button type="button" role="option" aria-selected="false"
+                        onclick="window._selectShopSearch('${p.place_id}')"
+                        style="width:100%;text-align:inherit;font:inherit;background:none;border:none;padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:11px;">
+                        <i class="bi ${icon}" aria-hidden="true" style="color:${iconColor};font-size:17px;flex-shrink:0;"></i>
                         <div style="flex:1;overflow:hidden;font-size:13px;font-weight:700;">${p.structured_formatting.main_text}
                           <div style="font-size:11px;color:#64748b;font-weight:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.structured_formatting.secondary_text || ''}</div>
                         </div>
-                        <i class="bi bi-arrow-up-left" style="color:#cbd5e1;font-size:13px;flex-shrink:0;"></i>
-                    </div>`;
+                        <i class="bi bi-arrow-up-left" aria-hidden="true" style="color:#cbd5e1;font-size:13px;flex-shrink:0;"></i>
+                    </button>`;
                 }).join('');
                 resultsDiv.style.display = 'block';
             });
@@ -2205,7 +2241,7 @@
                 <div style="font-size:12px;opacity:0.8;">${validItems.length} منتج من جلسة سابقة</div>
             </div>
             <button id="restoreCartBtn" style="background:#f59e0b;border:none;color:white;font-weight:800;padding:8px 14px;border-radius:10px;font-family:Cairo,sans-serif;font-size:13px;cursor:pointer;white-space:nowrap;">استرجاع</button>
-            <button id="dismissCartBtn" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:8px;border-radius:8px;cursor:pointer;flex-shrink:0;"><i class="bi bi-x-lg"></i></button>
+            <button id="dismissCartBtn" aria-label="تجاهل استرجاع السلة" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:8px;border-radius:8px;cursor:pointer;flex-shrink:0;"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         `;
         document.body.appendChild(banner);
 
@@ -2310,7 +2346,7 @@
     <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;padding:18px 18px calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 18px);box-shadow:0 -8px 40px rgba(0,0,0,0.25);">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="fw-bold mb-0"><i class="bi bi-star-fill text-warning"></i> آراء العملاء</h6>
-            <button class="btn btn-sm btn-light rounded-circle" style="width:32px;height:32px;padding:0;" onclick="closeReviews()"><i class="bi bi-x-lg"></i></button>
+            <button class="btn btn-sm btn-light rounded-circle" style="width:32px;height:32px;padding:0;" onclick="closeReviews()" aria-label="إغلاق التقييمات"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
         <div id="reviewsBody" style="overflow-y:auto;">
             <div class="text-center py-4"><div class="spinner-border text-success"></div></div>
