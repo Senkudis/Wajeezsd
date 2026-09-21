@@ -62,9 +62,9 @@
     <!-- ============================================================
          طبقة الإيقاف — تظهر فقط عندما is_blocked = true
     ============================================================ -->
-    <div id="blockedOverlay" class="cap-overlay">
-        <div class="cap-overlay-icon"><i class="bi bi-lock-fill"></i></div>
-        <h2>تم إيقاف حسابك</h2>
+    <div id="blockedOverlay" class="cap-overlay" role="dialog" aria-modal="true" aria-labelledby="blockedOverlayTitle">
+        <div class="cap-overlay-icon" aria-hidden="true"><i class="bi bi-lock-fill"></i></div>
+        <h2 id="blockedOverlayTitle">تم إيقاف حسابك</h2>
         <p>
             تجاوزت الحد الائتماني المسموح به.<br>
             سدّد المديونية عبر تطبيق بنكك لإعادة تفعيل الحساب.
@@ -75,10 +75,10 @@
         </div>
         <div class="cap-overlay-actions">
             <button id="paymentConfirmBtn" class="cap-btn cap-btn-primary" onclick="openPaymentModal()">
-                <i class="bi bi-check2-circle"></i> تأكيد السداد
+                <i class="bi bi-check2-circle" aria-hidden="true"></i> تأكيد السداد
             </button>
             <button class="cap-btn cap-btn-ghost cap-btn-sm" onclick="refreshBlockStatus()">
-                <i class="bi bi-arrow-clockwise"></i> تحديث الحالة
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> تحديث الحالة
             </button>
         </div>
     </div>
@@ -86,16 +86,16 @@
     <!-- ============================================================
          ورقة سداد المديونية
     ============================================================ -->
-    <div id="paymentModal" class="cap-sheet-backdrop">
+    <div id="paymentModal" class="cap-sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="paymentSheetTitle">
         <div class="cap-sheet">
-            <div class="cap-sheet-grip"></div>
+            <div class="cap-sheet-grip" aria-hidden="true"></div>
 
-            <h3 class="cap-sheet-title">إشعار سداد المديونية</h3>
+            <h3 class="cap-sheet-title" id="paymentSheetTitle">إشعار سداد المديونية</h3>
             <p class="cap-sheet-sub">حوّل المبلغ لحساب التطبيق أدناه ثم أدخل تفاصيل الإشعار</p>
 
             <div class="cap-bank">
                 <div class="cap-bank-head">
-                    <i class="bi bi-bank2"></i> بيانات الحساب البنكي للتحويل
+                    <i class="bi bi-bank2" aria-hidden="true"></i> بيانات الحساب البنكي للتحويل
                 </div>
                 <div class="cap-bank-row">
                     <span class="cap-bank-k">اسم البنك</span>
@@ -108,8 +108,8 @@
                 <div class="cap-bank-row" style="margin-bottom:0;">
                     <span class="cap-bank-k">رقم الحساب</span>
                     <span id="bankAccNum" class="cap-bank-num">7702038</span>
-                    <button onclick="copyAccountNumber()" id="copyAccBtn" class="cap-copy">
-                        <i class="bi bi-clipboard"></i> نسخ
+                    <button onclick="copyAccountNumber()" id="copyAccBtn" class="cap-copy" aria-label="نسخ رقم الحساب">
+                        <i class="bi bi-clipboard" aria-hidden="true"></i> نسخ
                     </button>
                 </div>
             </div>
@@ -126,31 +126,31 @@
             </div>
 
             <div class="cap-field">
-                <label class="cap-label">صورة الإشعار</label>
+                <label class="cap-label" for="payReceipt">صورة الإشعار</label>
                 <div id="receiptPreviewWrap" style="display:none;margin-bottom:10px;text-align:center;">
                     <img id="receiptPreview" src="" alt="معاينة الإشعار"
                         style="max-height:130px;border-radius:12px;border:1px solid var(--cap-line);">
                 </div>
                 <label for="payReceipt" class="cap-drop">
-                    <i class="bi bi-camera-fill"></i> اضغط لاختيار صورة الإشعار
+                    <i class="bi bi-camera-fill" aria-hidden="true"></i> اضغط لاختيار صورة الإشعار
                 </label>
                 <input id="payReceipt" type="file" accept="image/*" style="display:none"
                     onchange="previewReceipt(this)">
             </div>
 
-            <div id="payError" class="cap-error"></div>
+            <div id="payError" class="cap-error" role="alert"></div>
 
             <button id="paySubmitBtn" onclick="submitPayment()" class="cap-btn cap-btn-primary"
                 style="margin-bottom:10px;">
-                <i class="bi bi-send-fill"></i> إرسال إشعار السداد
+                <i class="bi bi-send-fill" aria-hidden="true"></i> إرسال إشعار السداد
             </button>
             <button onclick="closePaymentModal()" class="cap-btn cap-btn-ghost cap-btn-sm">إلغاء</button>
         </div>
     </div>
 
     <!-- تنبيه الاقتراب من الحد (80% مديونية) -->
-    <div id="warningBanner" class="cap-banner">
-        <i class="bi bi-exclamation-triangle-fill"></i>
+    <div id="warningBanner" class="cap-banner" role="alert">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
         اقتربت من الحد الأقصى للمديونية — يرجى تصفية الحساب
     </div>
 
@@ -161,30 +161,31 @@
         <div class="cap-wrap" style="padding:0;">
             <div class="cap-topbar-row">
                 <div class="cap-identity">
-                    <div id="captainAvatar" class="cap-avatar"><i class="bi bi-person-fill"></i></div>
+                    <div id="captainAvatar" class="cap-avatar" aria-hidden="true"><i class="bi bi-person-fill"></i></div>
                     <div class="cap-hello">
                         <h1 id="captainName" class="cap-hello-name">مرحباً بك</h1>
                         <p class="cap-hello-sub">لوحة الكابتن</p>
                     </div>
                 </div>
-                <button id="availabilityToggle" class="cap-status is-offline" onclick="checkOnboarding(true)">
-                    <span class="cap-dot"></span><span>غير متصل</span>
+                <button id="availabilityToggle" class="cap-status is-offline" onclick="checkOnboarding(true)"
+                    aria-pressed="false" title="أنت غير متصل ولا تصلك طلبات — اضغط لبدء الوردية">
+                    <span class="cap-dot" aria-hidden="true"></span><span>غير متصل</span>
                 </button>
             </div>
 
             <!-- المقياس البطل: رقم واحد ضخم يُقرأ بنظرة خاطفة -->
-            <div class="cap-hero">
+            <div class="cap-hero" role="status" aria-live="polite">
                 <div class="cap-hero-label">أرباح <span id="heroPeriodLabel">اليوم</span></div>
                 <div id="totalEarnings" class="cap-hero-value">0</div>
                 <div class="cap-hero-unit">جنيه سوداني</div>
             </div>
 
-            <div class="cap-seg" id="periodTabs">
-                <button class="cap-seg-btn period-tab active" data-period="today"
+            <div class="cap-seg" id="periodTabs" role="group" aria-label="فترة الأرباح">
+                <button class="cap-seg-btn period-tab active" data-period="today" aria-pressed="true"
                     onclick="setStatsPeriod('today')">اليوم</button>
-                <button class="cap-seg-btn period-tab" data-period="week"
+                <button class="cap-seg-btn period-tab" data-period="week" aria-pressed="false"
                     onclick="setStatsPeriod('week')">الأسبوع</button>
-                <button class="cap-seg-btn period-tab" data-period="all"
+                <button class="cap-seg-btn period-tab" data-period="all" aria-pressed="false"
                     onclick="setStatsPeriod('all')">الكل</button>
             </div>
         </div>
@@ -193,8 +194,8 @@
     <div class="cap-wrap">
 
         <!-- 🚨 وردية متوقّفة: أول ما يراه الكابتن حين لا يكون متصلاً -->
-        <div class="cap-offline-banner cap-section" id="offlineBanner">
-            <div class="cob-ic"><i class="bi bi-pause-circle-fill"></i></div>
+        <div class="cap-offline-banner cap-section" id="offlineBanner" role="status">
+            <div class="cob-ic" aria-hidden="true"><i class="bi bi-pause-circle-fill"></i></div>
             <div class="cob-txt">
                 <div class="cob-title">ورديتك متوقّفة — لن تصلك طلبات</div>
                 <div class="cob-sub">اضغط «ابدأ الوردية» ليبدأ استقبال الطلبات ويرى العميل موقعك.</div>
@@ -205,17 +206,17 @@
         <!-- مؤشرات ثانوية -->
         <div class="cap-metrics cap-section">
             <div class="cap-metric tone-green">
-                <i class="bi bi-box-seam-fill"></i>
+                <i class="bi bi-box-seam-fill" aria-hidden="true"></i>
                 <div id="completedOrders" class="cap-metric-val">0</div>
                 <div class="cap-metric-lbl">الرحلات</div>
             </div>
             <div class="cap-metric tone-amber">
-                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill" aria-hidden="true"></i>
                 <div id="rating-val" class="cap-metric-val">-</div>
                 <div class="cap-metric-lbl"><span id="rating-badge">التقييم</span></div>
             </div>
             <a href="captain-wallet.html" class="cap-metric">
-                <i class="bi bi-wallet2"></i>
+                <i class="bi bi-wallet2" aria-hidden="true"></i>
                 <div id="metricWallet" class="cap-metric-val">—</div>
                 <div class="cap-metric-lbl">المحفظة</div>
             </a>
@@ -225,23 +226,23 @@
         <div class="cap-section">
             <div class="cap-actions">
                 <a href="captain-orders.html" class="cap-action">
-                    <div class="cap-action-icon tone-green"><i class="bi bi-bicycle"></i></div>
+                    <div class="cap-action-icon tone-green" aria-hidden="true"><i class="bi bi-bicycle"></i></div>
                     <div class="cap-action-body">
                         <p class="cap-action-title">الطلبات المتاحة</p>
                         <p class="cap-action-sub">تصفّح واقبل الطلبات الجديدة</p>
                     </div>
-                    <span id="availableCount" class="cap-count">0</span>
-                    <i class="bi bi-chevron-left cap-action-arrow"></i>
+                    <span id="availableCount" class="cap-count" aria-label="لا طلبات متاحة">0</span>
+                    <i class="bi bi-chevron-left cap-action-arrow" aria-hidden="true"></i>
                 </a>
 
                 <a href="captain-missions.html" class="cap-action">
-                    <div class="cap-action-icon tone-amber"><i class="bi bi-list-check"></i></div>
+                    <div class="cap-action-icon tone-amber" aria-hidden="true"><i class="bi bi-list-check"></i></div>
                     <div class="cap-action-body">
                         <p class="cap-action-title">مهامي الحالية</p>
                         <p class="cap-action-sub">متابعة الطلبات النشطة</p>
                     </div>
-                    <span id="missionsCount" class="cap-count">0</span>
-                    <i class="bi bi-chevron-left cap-action-arrow"></i>
+                    <span id="missionsCount" class="cap-count" aria-label="لا مهامّ نشطة">0</span>
+                    <i class="bi bi-chevron-left cap-action-arrow" aria-hidden="true"></i>
                 </a>
             </div>
         </div>
@@ -336,21 +337,21 @@
         </div>
     </div>
 
-    <nav class="captain-nav">
-        <a href="captain-dashboard.html" class="active">
-            <i class="bi bi-house-door-fill"></i><span>الرئيسية</span>
+    <nav class="captain-nav" aria-label="تنقل الكابتن">
+        <a href="captain-dashboard.html" class="active" aria-current="page">
+            <i class="bi bi-house-door-fill" aria-hidden="true"></i><span>الرئيسية</span>
         </a>
         <a href="captain-orders.html">
-            <i class="bi bi-bicycle"></i><span>الطلبات</span>
+            <i class="bi bi-bicycle" aria-hidden="true"></i><span>الطلبات</span>
         </a>
         <a href="captain-missions.html">
-            <i class="bi bi-card-checklist"></i><span>مهامي</span>
+            <i class="bi bi-card-checklist" aria-hidden="true"></i><span>مهامي</span>
         </a>
         <a href="captain-notifications.html">
-            <i class="bi bi-bell-fill"></i><span>الإشعارات</span>
+            <i class="bi bi-bell-fill" aria-hidden="true"></i><span>الإشعارات</span>
         </a>
         <a href="captain-profile.html">
-            <i class="bi bi-person-circle"></i><span>حسابي</span>
+            <i class="bi bi-person-circle" aria-hidden="true"></i><span>حسابي</span>
         </a>
     </nav>
 
@@ -555,8 +556,11 @@
 
         function setStatsPeriod(p) {
             statsPeriod = p;
-            document.querySelectorAll('.period-tab').forEach(b =>
-                b.classList.toggle('active', b.dataset.period === p));
+            document.querySelectorAll('.period-tab').forEach(b => {
+                const on = b.dataset.period === p;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
             const lbl = document.getElementById('heroPeriodLabel');
             if (lbl) lbl.innerText = PERIOD_LABEL[p] || '';
             renderStatsCards();
@@ -593,6 +597,10 @@
                 const val = Number(n) || 0;
                 el.textContent = val > 99 ? '99+' : val;
                 el.classList.toggle('show', val > 0);
+                // الشارة رقمٌ عارٍ بلا سياق حين تُقرأ — نُسمّيها بما تعنيه
+                el.setAttribute('aria-label', id === 'availableCount'
+                    ? (val ? val + ' طلب متاح' : 'لا طلبات متاحة')
+                    : (val ? val + ' مهمّة نشطة' : 'لا مهامّ نشطة'));
             });
         }
 
