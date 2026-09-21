@@ -129,12 +129,22 @@
         .of-tab {
             flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px;
             padding: 8px 16px; border-radius: 50px; cursor: pointer;
+            font-family: inherit;
             background: #ffffff; border: 1.5px solid #e2e8f0;
             font-size: 13px; font-weight: 700; color: #64748b;
             white-space: nowrap; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
         .of-tab i { font-size: 14px; opacity: 0.8; }
+        .of-tab:focus-visible, .rate-star:focus-visible {
+            outline: 2px solid var(--primary); outline-offset: 3px;
+        }
+        /* ⭐ النجوم كانت <i> بـ onclick: لا تُركَّز بالكيبورد ولا اسم لها،
+           فكان التقييم مستحيلاً على من لا يستعمل الفأرة. صارت أزراراً. */
+        .rate-star {
+            background: none; border: 0; padding: 0; line-height: 1;
+            cursor: pointer; border-radius: 6px; font-family: inherit;
+        }
         .of-tab:active { transform: scale(0.95); }
         .of-tab.active {
             background: var(--primary-gradient);
@@ -422,12 +432,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
                     <div class="header-brand-badge">
-                        <i class="bi bi-box-seam-fill text-white" style="font-size: 1.4rem;"></i>
+                        <i class="bi bi-box-seam-fill text-white" style="font-size: 1.4rem;" aria-hidden="true"></i>
                     </div>
                     <div>
                         <h2 class="h5 fw-bold mb-0 text-white">سجل طلباتي</h2>
                         <div class="live-status-pill">
-                            <span class="pulse-dot"></span>
+                            <span class="pulse-dot" aria-hidden="true"></span>
                             <span>متابعة حالة الطلبات مباشرة</span>
                         </div>
                     </div>
@@ -438,10 +448,10 @@
     </div>
 
     <!-- 🗂️ فلاتر الطلبات التفاعلية -->
-    <div class="orders-filterbar" id="ordersFilterBar"></div>
+    <div class="orders-filterbar" id="ordersFilterBar" role="group" aria-label="تصفية الطلبات"></div>
 
     <div class="container pt-3">
-        <div id="orders-list" class="d-flex flex-column gap-3">
+        <div id="orders-list" class="d-flex flex-column gap-3" role="region" aria-label="قائمة طلباتي" aria-live="polite">
             <div class="o-card p-3 border-0 mb-2" style="background:#fff;border-radius:20px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="skeleton-text skeleton" style="width:100px;height:24px;border-radius:50px;"></div>
@@ -473,11 +483,11 @@
         </div>
     </div>
 
-    <div class="modal fade" id="imgModal" tabindex="-1">
+    <div class="modal fade" id="imgModal" tabindex="-1" aria-label="عرض الصورة بالحجم الكامل">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content glass-card border-0">
                 <div class="modal-body p-0 overflow-hidden rounded-4">
-                    <img src="" id="full-img" class="w-100 object-fit-cover">
+                    <img src="" id="full-img" class="w-100 object-fit-cover" alt="صورة مرفقة بالطلب">
                 </div>
                 <div class="modal-footer border-top-0 p-2">
                     <button type="button" class="btn btn-secondary w-100 rounded-pill fw-bold"
@@ -489,21 +499,21 @@
 
     <!-- Bottom Navigation: Built immediately to avoid flash -->
     <div id="mobile-nav-container">
-        <nav class="mobile-nav-glass">
+        <nav class="mobile-nav-glass" aria-label="التنقل الرئيسي">
             <a href="index.html" class="nav-item-link">
-                <i class="bi bi-house-door"></i>
+                <i class="bi bi-house-door" aria-hidden="true"></i>
                 <span>الرئيسية</span>
             </a>
             <a href="client-order.html" class="nav-item-link">
-                <i class="bi bi-shop"></i>
+                <i class="bi bi-shop" aria-hidden="true"></i>
                 <span>تسوق</span>
             </a>
-            <a href="client-my-orders.html" class="nav-item-link active">
-                <i class="bi bi-box-seam"></i>
+            <a href="client-my-orders.html" class="nav-item-link active" aria-current="page">
+                <i class="bi bi-box-seam" aria-hidden="true"></i>
                 <span>طلباتي</span>
             </a>
             <a href="notifications.html" class="nav-item-link">
-                <i class="bi bi-bell"></i>
+                <i class="bi bi-bell" aria-hidden="true"></i>
                 <span>الإشعارات</span>
             </a>
         </nav>
@@ -859,12 +869,13 @@
                 bar.style.display = 'flex';
                 bar.innerHTML = ORDER_TABS.map(t => {
                     const n = _ordersSeen.filter(o => t.match(o.fstatus)).length;
-                    return `<div class="of-tab ${_activeFilter === t.key ? 'active' : ''}"
-                        onclick="applyOrderFilter('${t.key}')">
-                        <i class="bi ${t.icon}"></i>
+                    const on = _activeFilter === t.key;
+                    return `<button type="button" class="of-tab ${on ? 'active' : ''}"
+                        aria-pressed="${on}" onclick="applyOrderFilter('${t.key}')">
+                        <i class="bi ${t.icon}" aria-hidden="true"></i>
                         <span>${t.label}</span>
-                        <span class="cnt">${n}</span>
-                    </div>`;
+                        <span class="cnt" aria-label="${n} طلب">${n}</span>
+                    </button>`;
                 }).join('');
             }
 
@@ -1644,14 +1655,19 @@
                 const maxTags = tagSets.maxTags || 4;
 
                 const starHtml = `
-                    <div id="starRating" style="display:flex;justify-content:center;gap:10px;margin:16px 0;">
+                    <div id="starRating" role="group" aria-label="تقييم الكابتن من نجمة إلى خمس"
+                         style="display:flex;justify-content:center;gap:10px;margin:16px 0;">
                         ${[1,2,3,4,5].map(i => `
-                            <i class="bi bi-star-fill" data-val="${i}"
-                               style="font-size:2.2rem;cursor:pointer;color:#d1d5db;transition:color .15s;"
-                               onmouseover="hoverStars(${i})" onmouseout="resetStars()" onclick="selectStar(${i})"></i>
+                            <button type="button" class="rate-star" data-val="${i}" aria-pressed="false"
+                               aria-label="${i} من 5 — ${['','ضعيف','مقبول','جيد','جيد جداً','ممتاز'][i]}"
+                               onmouseover="hoverStars(${i})" onmouseout="resetStars()"
+                               onfocus="hoverStars(${i})" onblur="resetStars()" onclick="selectStar(${i})">
+                               <i class="bi bi-star-fill" aria-hidden="true"
+                                  style="font-size:2.2rem;color:#d1d5db;transition:color .15s;"></i>
+                            </button>
                         `).join('')}
                     </div>
-                    <div id="starLabel" style="font-size:1rem;color:#64748b;min-height:24px;"></div>
+                    <div id="starLabel" role="status" aria-live="polite" style="font-size:1rem;color:#64748b;min-height:24px;"></div>
                     <!-- 🏷️ الوسوم مخفية حتى تُختار النجوم: مجموعة الوسوم نفسها
                          تتبع التقييم (ثناء عند 4-5، شكوى عند 1-3)، وعرضُ الاثنين
                          معاً يُنتج تقييماً متناقضاً مثل "سريع" و"تأخّر كثيراً". -->
@@ -1719,6 +1735,8 @@
                         window.selectStar = (val) => {
                             const prev = parseInt(document.getElementById('selectedStar').value) || 0;
                             document.getElementById('selectedStar').value = val;
+                            document.querySelectorAll('#starRating .rate-star').forEach(b =>
+                                b.setAttribute('aria-pressed', Number(b.dataset.val) === val ? 'true' : 'false'));
                             resetStars();
                             // 🔄 العبور بين مجموعتَي الوسوم يُفرغ الاختيار: وسمُ ثناءٍ
                             //    بقي محدَّداً تحت تقييمٍ منخفض تناقضٌ لا يقصده أحد.
@@ -1791,11 +1809,16 @@
             function showPlaceRatingModal(orderId, placeId) {
                 const starHtml = `
                     <p style="color:#64748b;font-size:13px;">كيف تقيّم تجربتك مع المتجر؟</p>
-                    <div id="placeStars" style="display:flex;justify-content:center;gap:10px;margin:12px 0;">
+                    <div id="placeStars" role="group" aria-label="تقييم المتجر من نجمة إلى خمس"
+                         style="display:flex;justify-content:center;gap:10px;margin:12px 0;">
                         ${[1,2,3,4,5].map(i => `
-                            <i class="bi bi-star-fill" data-val="${i}"
-                               style="font-size:2rem;cursor:pointer;color:#d1d5db;"
-                               onmouseover="hoverPS(${i})" onmouseout="resetPS()" onclick="selectPS(${i})"></i>
+                            <button type="button" class="rate-star" data-val="${i}" aria-pressed="false"
+                               aria-label="${i} من 5"
+                               onmouseover="hoverPS(${i})" onmouseout="resetPS()"
+                               onfocus="hoverPS(${i})" onblur="resetPS()" onclick="selectPS(${i})">
+                               <i class="bi bi-star-fill" aria-hidden="true"
+                                  style="font-size:2rem;color:#d1d5db;"></i>
+                            </button>
                         `).join('')}
                     </div>
                     <textarea id="placeComment" class="form-control mt-2" rows="2" placeholder="أترك تعليقاً (اختياري)..."></textarea>
@@ -1819,6 +1842,8 @@
                         };
                         window.selectPS = (val) => {
                             document.getElementById('placeSelectedStar').value = val;
+                            document.querySelectorAll('#placeStars .rate-star').forEach(b =>
+                                b.setAttribute('aria-pressed', Number(b.dataset.val) === val ? 'true' : 'false'));
                             resetPS();
                         };
                     },
@@ -1945,8 +1970,8 @@
             async function openFeedbackForm(orderId) {
                 const stars = [5, 4, 3, 2, 1].map(n => `
                     <label class="fb-star" title="${n}">
-                        <input type="radio" name="fbRating" value="${n}">
-                        <i class="bi bi-star-fill"></i>
+                        <input type="radio" name="fbRating" value="${n}" aria-label="${n} من 5">
+                        <i class="bi bi-star-fill" aria-hidden="true"></i>
                     </label>`).join('');
 
                 const res = await Swal.fire({
