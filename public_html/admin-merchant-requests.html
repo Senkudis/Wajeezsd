@@ -87,7 +87,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <div class="logo"><i class="fas fa-shop-lock"></i></div>
+                <div class="logo"><i class="fas fa-shop-lock" aria-hidden="true"></i></div>
                 <h2>وَجِـيـز</h2>
                 <p id="adminName">لوحة الإدارة</p>
             </div>
@@ -95,30 +95,30 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             <nav class="sidebar-nav">
                 <div class="nav-label">الإدارة</div>
                 <button class="nav-item" onclick="location.href='admin.html'">
-                    <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i><span>العودة للوحة التحكم</span>
                 </button>
                 <button class="nav-item active" onclick="loadRequests()">
-                    <i class="fas fa-shop"></i><span>طلبات انضمام المتاجر</span>
+                    <i class="fas fa-shop" aria-hidden="true"></i><span>طلبات انضمام المتاجر</span>
                 </button>
 
                 <div class="nav-label">روابط سريعة</div>
                 <button class="nav-item" onclick="location.href='admin-places.html'">
-                    <i class="fas fa-store"></i><span>المحلات والتصنيفات</span>
+                    <i class="fas fa-store" aria-hidden="true"></i><span>المحلات والتصنيفات</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-merchants-list.html'">
-                    <i class="fas fa-store"></i><span>لائحة التجار</span>
+                    <i class="fas fa-store" aria-hidden="true"></i><span>لائحة التجار</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-settlements.html'">
-                    <i class="fas fa-hand-holding-usd"></i><span>تسويات التجار</span>
+                    <i class="fas fa-hand-holding-usd" aria-hidden="true"></i><span>تسويات التجار</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-finance.html'">
-                    <i class="fas fa-wallet"></i><span>الإدارة المالية 💳</span>
+                    <i class="fas fa-wallet" aria-hidden="true"></i><span>الإدارة المالية 💳</span>
                 </button>
             </nav>
 
             <div class="sidebar-footer">
                 <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                    <i class="fas fa-power-off" aria-hidden="true"></i><span>تسجيل الخروج</span>
                 </button>
             </div>
         </aside>
@@ -126,19 +126,19 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
         <!-- Main Content Area -->
         <main class="main-content">
             <header class="top-header">
-                <button class="menu-toggle" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
+                <button aria-label="فتح القائمة الجانبية" class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
                 <div class="header-title d-none d-md-block">
                     <h1>طلبات انضمام المتاجر 🛍️</h1>
                     <p>مراجعة طلبات الانضمام واتخاذ القرارات</p>
                 </div>
                 <div class="ms-auto d-flex align-items-center gap-2">
-                    <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-                        <i class="fas fa-search"></i>
+                    <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                        <i class="fas fa-search" aria-hidden="true"></i>
                     </button>
-                    <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                        <i class="fas fa-moon"></i>
+                    <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                        <i class="fas fa-moon" aria-hidden="true"></i>
                     </button>
                 </div>
             </header>
@@ -146,9 +146,9 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             <div class="content-body">
                 <div class="dashboard-section active section-card">
                     <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <h2 class="section-title mb-0"><i class="fas fa-list"></i> قائمة الطلبات</h2>
+                        <h2 class="section-title mb-0"><i class="fas fa-list" aria-hidden="true"></i> قائمة الطلبات</h2>
                         <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.table', 'wajeez_merchant_requests')">
-                            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                            <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
                         </button>
                     </div>
 
@@ -169,7 +169,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                                 </tr>
                             </thead>
                             <tbody id="requestsTable">
-                                <tr><td colspan="7" class="text-center py-4"><i class="fas fa-spinner fa-spin text-primary"></i> جاري التحميل...</td></tr>
+                                <tr><td colspan="7" class="text-center py-4"><i class="fas fa-spinner fa-spin text-primary" aria-hidden="true"></i> جاري التحميل...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -181,14 +181,14 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
     <!-- Request Details Modal -->
     <div id="requestModal" class="modal-overlay">
         <div class="modal-box p-4" style="max-width:800px; max-height:90vh; overflow-y:auto;">
-            <button class="modal-close-btn shadow-sm" onclick="closeModal()"><i class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-file-signature"></i> تفاصيل وتعديل الطلب</h2>
+            <button aria-label="إغلاق النافذة" class="modal-close-btn shadow-sm" onclick="closeModal()"><i class="fas fa-times" aria-hidden="true"></i></button>
+            <h2 class="modal-title"><i class="fas fa-file-signature" aria-hidden="true"></i> تفاصيل وتعديل الطلب</h2>
             
             <form id="requestForm" onsubmit="event.preventDefault();">
                 <input type="hidden" id="reqId">
                 <div class="row g-3">
                     <div class="col-md-7">
-                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="fas fa-info-circle me-1"></i> البيانات القابلة للتعديل</h6>
+                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="fas fa-info-circle me-1" aria-hidden="true"></i> البيانات القابلة للتعديل</h6>
                         <div class="row g-2">
                             <div class="col-6">
                                 <label class="form-label small text-muted">الاسم التجاري</label>
@@ -215,15 +215,15 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                                 <textarea id="dAddress" class="form-control" rows="2"></textarea>
                             </div>
                             <div class="col-12 mt-2">
-                                <label class="form-label small text-muted"><i class="fas fa-info-circle me-1"></i> نبذة عن المتجر</label>
+                                <label class="form-label small text-muted"><i class="fas fa-info-circle me-1" aria-hidden="true"></i> نبذة عن المتجر</label>
                                 <textarea id="dDescription" class="form-control" rows="2" placeholder="نبذة موجزة كتبها صاحب المتجر"></textarea>
                             </div>
                             <div class="col-12 mt-2">
-                                <label class="form-label small text-muted"><i class="fas fa-bullhorn me-1"></i> كيف عرف علينا</label>
+                                <label class="form-label small text-muted"><i class="fas fa-bullhorn me-1" aria-hidden="true"></i> كيف عرف علينا</label>
                                 <div id="dReferral" class="form-control bg-light fw-bold text-dark" style="min-height:38px;">—</div>
                             </div>
                             <div class="col-12 mt-2 form-group p-2 border rounded-3 bg-white shadow-sm border-start border-4 border-primary">
-                                <label class="form-label fw-bold small text-primary"><i class="fas fa-map-pin me-1"></i> موقع المتجر (يمكنك التعديل)</label>
+                                <label class="form-label fw-bold small text-primary"><i class="fas fa-map-pin me-1" aria-hidden="true"></i> موقع المتجر (يمكنك التعديل)</label>
                                 <div style="position:relative;">
                                     <div id="reqMap" style="display: block; height:220px; border-radius:12px; border:1px solid #ced4da; overflow:hidden; width: 100%; background:#e8f5e9;"></div>
                                 </div>
@@ -233,7 +233,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                             </div>
                         </div>
 
-                        <h6 class="fw-bold text-success border-bottom pb-2 mt-4 mb-3"><i class="fas fa-university me-1"></i> البيانات البنكية (للاطلاع)</h6>
+                        <h6 class="fw-bold text-success border-bottom pb-2 mt-4 mb-3"><i class="fas fa-university me-1" aria-hidden="true"></i> البيانات البنكية (للاطلاع)</h6>
                         <div class="row g-2">
                             <div class="col-12">
                                 <div class="p-2 bg-light rounded border">
@@ -258,7 +258,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
 
                     <!-- Column 2: Docs -->
                     <div class="col-md-5">
-                        <h6 class="fw-bold text-warning border-bottom pb-2 mb-3"><i class="fas fa-images me-1"></i> المستندات (قابلة للتعديل)</h6>
+                        <h6 class="fw-bold text-warning border-bottom pb-2 mb-3"><i class="fas fa-images me-1" aria-hidden="true"></i> المستندات (قابلة للتعديل)</h6>
                         <div class="mb-3">
                             <label class="form-label small text-muted">شعار المتجر</label>
                             <img src="" id="dLogo" class="img-preview" onclick="viewFullImg(this.src)">
@@ -430,18 +430,18 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                 else badge = '<span class="badge-rejected">مرفوض</span>';
 
                 let actionButtons = `
-                    <button class="btn btn-sm btn-light rounded-circle shadow-sm border border-secondary border-opacity-25" onclick="viewRequest('${req._id}')" title="عرض والتعديل">
-                        <i class="fas fa-edit text-primary"></i>
+                    <button aria-label="عرض والتعديل" class="btn btn-sm btn-light rounded-circle shadow-sm border border-secondary border-opacity-25" onclick="viewRequest('${req._id}')" title="عرض والتعديل">
+                        <i class="fas fa-edit text-primary" aria-hidden="true"></i>
                     </button>
                 `;
 
                 if (req.status === 'pending') {
                     actionButtons += `
-                        <button class="btn btn-sm btn-success rounded-circle shadow-sm ms-1" onclick="quickApprove('${req._id}')" title="قبول فوري">
-                            <i class="fas fa-check"></i>
+                        <button aria-label="قبول فوري" class="btn btn-sm btn-success rounded-circle shadow-sm ms-1" onclick="quickApprove('${req._id}')" title="قبول فوري">
+                            <i class="fas fa-check" aria-hidden="true"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger rounded-circle shadow-sm ms-1" onclick="quickReject('${req._id}')" title="رفض فوري">
-                            <i class="fas fa-times"></i>
+                        <button aria-label="رفض فوري" class="btn btn-sm btn-danger rounded-circle shadow-sm ms-1" onclick="quickReject('${req._id}')" title="رفض فوري">
+                            <i class="fas fa-times" aria-hidden="true"></i>
                         </button>
                     `;
                 }
@@ -450,7 +450,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                 // الموافقة، وإخفاؤه داخل النافذة يعني ألّا يراه أحد.
                 const rc = readRequestCategory(req.category);
                 const catCell = rc.suggested
-                    ? `<span class="cat-chip new" title="اقتراح من التاجر"><i class="fas fa-lightbulb"></i> ${window.escapeHtml(rc.suggested)}</span>`
+                    ? `<span class="cat-chip new" title="اقتراح من التاجر"><i class="fas fa-lightbulb" aria-hidden="true"></i> ${window.escapeHtml(rc.suggested)}</span>`
                     : (rc.name
                         ? `<span class="cat-chip">${window.escapeHtml(rc.name)}</span>`
                         : '<span class="cat-chip none">بلا تصنيف</span>');
@@ -555,7 +555,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
 
                 const originEl = document.getElementById('dCategoryOrigin');
                 originEl.classList.remove('is-new');
-                originEl.innerHTML = `<i class="fas fa-check-circle"></i> أُنشئ التصنيف واختير: <strong>${window.escapeHtml(clean)}</strong>`;
+                originEl.innerHTML = `<i class="fas fa-check-circle" aria-hidden="true"></i> أُنشئ التصنيف واختير: <strong>${window.escapeHtml(clean)}</strong>`;
                 Swal.fire({ icon: 'success', title: 'تم إنشاء التصنيف', timer: 1600, showConfirmButton: false });
             } catch (e) {
                 Swal.fire('خطأ', e.message, 'error');
@@ -582,14 +582,14 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             if (cat.suggested) {
                 originEl.classList.add('is-new');
                 originEl.innerHTML =
-                    `<i class="fas fa-lightbulb"></i> التاجر اقترح تصنيفاً جديداً: `
+                    `<i class="fas fa-lightbulb" aria-hidden="true"></i> التاجر اقترح تصنيفاً جديداً: `
                     + `<strong>${window.escapeHtml(cat.suggested)}</strong>`
                     + `<button type="button" class="cat-origin-btn" onclick="createSuggestedCategory('${window.escapeHtml(cat.suggested).replace(/'/g, '&#39;')}')">`
-                    + `<i class="fas fa-plus"></i> أنشئه واختره</button>`;
+                    + `<i class="fas fa-plus" aria-hidden="true"></i> أنشئه واختره</button>`;
             } else if (cat.name) {
-                originEl.innerHTML = `<i class="fas fa-check-circle"></i> اختاره التاجر: <strong>${window.escapeHtml(cat.name)}</strong>`;
+                originEl.innerHTML = `<i class="fas fa-check-circle" aria-hidden="true"></i> اختاره التاجر: <strong>${window.escapeHtml(cat.name)}</strong>`;
             } else {
-                originEl.innerHTML = `<i class="fas fa-triangle-exclamation"></i> لم يصل تصنيف مع الطلب — اختر واحداً قبل الموافقة`;
+                originEl.innerHTML = `<i class="fas fa-triangle-exclamation" aria-hidden="true"></i> لم يصل تصنيف مع الطلب — اختر واحداً قبل الموافقة`;
                 originEl.classList.add('is-new');
             }
 
@@ -627,10 +627,10 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             if (req.status === 'pending') {
                 actionsDiv.innerHTML = `
                     <button type="button" class="btn-success-custom btn-custom w-100" onclick="updateStatus('${req._id}', 'approved', true)">
-                        <i class="fas fa-check-circle"></i> حفظ التعديلات وقبول المتجر
+                        <i class="fas fa-check-circle" aria-hidden="true"></i> حفظ التعديلات وقبول المتجر
                     </button>
                     <button type="button" class="btn-danger-custom btn-custom w-100 mt-0 ms-2" onclick="updateStatus('${req._id}', 'rejected', false)">
-                        <i class="fas fa-times-circle"></i> رفض
+                        <i class="fas fa-times-circle" aria-hidden="true"></i> رفض
                     </button>
                 `;
             } else if (req.status === 'approved') {
@@ -642,10 +642,10 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                     <button type="button" class="btn-custom w-100 mb-2"
                         style="background:#25d366;color:#fff;border:none;"
                         onclick="sendMerchantApproval('${req._id}')">
-                        <i class="fab fa-whatsapp"></i> إرسال رسالة القبول عبر واتساب
+                        <i class="fab fa-whatsapp" aria-hidden="true"></i> إرسال رسالة القبول عبر واتساب
                     </button>
                     <button type="button" class="btn-primary-custom btn-custom w-100" onclick="updateStatus('${req._id}', 'approved', true)">
-                        <i class="fas fa-save"></i> حفظ التعديلات
+                        <i class="fas fa-save" aria-hidden="true"></i> حفظ التعديلات
                     </button>
                 `;
             } else {

@@ -183,46 +183,46 @@
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
-            <div class="logo"><i class="fas fa-crown"></i></div>
+            <div class="logo"><i class="fas fa-crown" aria-hidden="true"></i></div>
             <h2>وَجِيز</h2>
             <p id="adminName">المدير العام</p>
         </div>
         <nav class="sidebar-nav">
             <div class="nav-label">الإدارة</div>
             <button class="nav-item" onclick="location.href='admin.html'">
-                <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                <i class="fas fa-arrow-right" aria-hidden="true"></i><span>العودة للوحة التحكم</span>
             </button>
             <button class="nav-item active">
-                <i class="fas fa-id-card"></i><span>ملفّات الكباتن</span>
+                <i class="fas fa-id-card" aria-hidden="true"></i><span>ملفّات الكباتن</span>
             </button>
             <div class="nav-label">روابط سريعة</div>
             <button class="nav-item" onclick="location.href='admin-finance.html'">
-                <i class="fas fa-wallet"></i><span>الإدارة المالية</span>
+                <i class="fas fa-wallet" aria-hidden="true"></i><span>الإدارة المالية</span>
             </button>
             <button class="nav-item" onclick="location.href='admin-live-map.html'">
-                <i class="fas fa-map-location-dot"></i><span>الخريطة الحية</span>
+                <i class="fas fa-map-location-dot" aria-hidden="true"></i><span>الخريطة الحية</span>
             </button>
         </nav>
         <div class="sidebar-footer">
             <button class="logout-btn" onclick="logout()">
-                <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                <i class="fas fa-power-off" aria-hidden="true"></i><span>تسجيل الخروج</span>
             </button>
         </div>
     </aside>
 
     <main class="main-content">
         <header class="top-header">
-            <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <button aria-label="فتح القائمة الجانبية" class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars" aria-hidden="true"></i></button>
             <div class="header-title d-none d-md-block">
                 <h1>ملفّات الكباتن</h1>
                 <p>البيانات الثبوتية، الوثائق، الأداء، وحالة الطلب</p>
             </div>
             <div class="ms-auto d-flex align-items-center gap-2">
-                <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                    <i class="fas fa-moon"></i>
+                <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                    <i class="fas fa-moon" aria-hidden="true"></i>
                 </button>
                 <button class="admin-export-btn" onclick="exportCaptains()" title="تصدير CSV">
-                    <i class="fas fa-file-excel" style="color:#16a34a;"></i>
+                    <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i>
                     <span class="d-none d-sm-inline">تصدير</span>
                 </button>
             </div>
@@ -234,7 +234,7 @@
             <div class="cap-toolbar">
                 <div class="cap-search">
                     <input type="text" id="q" placeholder="ابحث بالاسم أو الهاتف أو البريد أو الرقم الوطني…" autocomplete="off">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search" aria-hidden="true"></i>
                 </div>
                 <div class="cap-chips" id="chips"></div>
             </div>
@@ -317,12 +317,12 @@ const phoneHtml = (p) => p ? '<bdi dir="ltr">' + esc(p) + '</bdi>' : '—';
 
 async function load() {
     const list = document.getElementById('list');
-    list.innerHTML = '<div class="cap-empty"><i class="fas fa-spinner fa-spin"></i>جارٍ التحميل…</div>';
+    list.innerHTML = '<div class="cap-empty"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i>جارٍ التحميل…</div>';
     try {
         const res = await fetch(API + '/api/admin/captains-detailed', { headers: authHeaders() });
         if (!res.ok) {
             const e = await res.json().catch(() => ({}));
-            list.innerHTML = '<div class="cap-empty"><i class="fas fa-lock"></i>' + esc(e.message || 'تعذّر الجلب') + '</div>';
+            list.innerHTML = '<div class="cap-empty"><i class="fas fa-lock" aria-hidden="true"></i>' + esc(e.message || 'تعذّر الجلب') + '</div>';
             return;
         }
         const data = await res.json();
@@ -331,7 +331,7 @@ async function load() {
         renderChips();
         render();
     } catch (err) {
-        list.innerHTML = '<div class="cap-empty"><i class="fas fa-wifi"></i>تعذّر الاتصال</div>';
+        list.innerHTML = '<div class="cap-empty"><i class="fas fa-wifi" aria-hidden="true"></i>تعذّر الاتصال</div>';
     }
 }
 
@@ -354,7 +354,7 @@ function renderStats() {
     ];
     document.getElementById('stats').innerHTML = tiles.map(t =>
         '<div class="cap-stat">' +
-            '<div class="cap-stat-ico" style="background:' + t[4] + ';color:' + t[3] + ';"><i class="fas ' + t[0] + '"></i></div>' +
+            '<div class="cap-stat-ico" style="background:' + t[4] + ';color:' + t[3] + ';"><i class="fas ' + t[0] + '" aria-hidden="true"></i></div>' +
             '<div><div class="cap-stat-v">' + t[1] + '</div><div class="cap-stat-l">' + t[2] + '</div></div>' +
         '</div>').join('');
 }
@@ -394,7 +394,7 @@ function render() {
     const rows = visible();
     const list = document.getElementById('list');
     if (!rows.length) {
-        list.innerHTML = '<div class="cap-empty"><i class="fas fa-user-slash"></i>لا كباتن مطابقون</div>';
+        list.innerHTML = '<div class="cap-empty"><i class="fas fa-user-slash" aria-hidden="true"></i>لا كباتن مطابقون</div>';
         return;
     }
     list.innerHTML = '<div class="cap-grid">' + rows.map(cardHtml).join('') + '</div>';
@@ -410,7 +410,7 @@ function cardHtml(c) {
     const pills = Object.keys(c.requiredDocs).map(k => {
         const ok = c.requiredDocs[k];
         return '<span class="doc-pill ' + (ok ? 'doc-ok' : 'doc-miss') + '">' +
-               '<i class="fas fa-' + (ok ? 'check' : 'xmark') + '"></i>' + DOC_LABELS[k] + '</span>';
+               '<i class="fas fa-' + (ok ? 'check' : 'xmark') + '" aria-hidden="true"></i>' + DOC_LABELS[k] + '</span>';
     }).join('');
 
     return '<div class="cap-card" onclick="openDrawer(\'' + c._id + '\')">' +
@@ -442,7 +442,7 @@ document.addEventListener('error', (e) => {
     } else if (img.closest('.doc-box')) {
         const d = document.createElement('div');
         d.className = 'doc-none';
-        d.innerHTML = '<i class="fas fa-triangle-exclamation"></i>';
+        d.innerHTML = '<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>';
         d.title = 'الملف غير موجود على الخادم';
         img.replaceWith(d);
     }
@@ -470,7 +470,7 @@ function openDrawer(id) {
         return '<div class="doc-box">' +
             (url
                 ? '<img src="' + esc(url) + '" alt="' + DOC_LABELS[key] + '" data-lightbox loading="lazy">'
-                : '<div class="doc-none"><i class="fas fa-xmark"></i></div>') +
+                : '<div class="doc-none"><i class="fas fa-xmark" aria-hidden="true"></i></div>') +
             '<div class="doc-cap">' + DOC_LABELS[key] + '</div></div>';
     }).join('');
 
@@ -488,7 +488,7 @@ function openDrawer(id) {
 
     document.getElementById('drawerBody').innerHTML =
         '<div class="sec">' +
-            '<div class="sec-t"><i class="fas fa-address-card"></i> البيانات الثبوتية</div>' +
+            '<div class="sec-t"><i class="fas fa-address-card" aria-hidden="true"></i> البيانات الثبوتية</div>' +
             _noAppNote +
             kv('الرقم الوطني', ltr(a.nationalId)) +
             kv('المنطقة', esc(a.address) || '—') +
@@ -498,31 +498,31 @@ function openDrawer(id) {
         '</div>' +
 
         '<div class="sec">' +
-            '<div class="sec-t"><i class="fas fa-truck-fast"></i> وسيلة التوصيل</div>' +
+            '<div class="sec-t"><i class="fas fa-truck-fast" aria-hidden="true"></i> وسيلة التوصيل</div>' +
             kv('النوع', esc(vehicle(c.vehicleType))) +
             kv('رقم اللوحة', ltr(a.plateNumber)) +
             kv('صندوق حمل', esc(a.hasCarrier) || '—') +
         '</div>' +
 
         '<div class="sec">' +
-            '<div class="sec-t"><i class="fas fa-phone-volume"></i> جهة الطوارئ</div>' +
+            '<div class="sec-t"><i class="fas fa-phone-volume" aria-hidden="true"></i> جهة الطوارئ</div>' +
             kv('الاسم', esc(a.emergencyContactName) || '—') +
             kv('الصلة', esc(a.emergencyRelation) || '—') +
             kv('الهاتف', phoneHtml(a.emergencyPhone)) +
         '</div>' +
 
         '<div class="sec">' +
-            '<div class="sec-t"><i class="fas fa-images"></i> الوثائق — اضغط للتكبير</div>' +
+            '<div class="sec-t"><i class="fas fa-images" aria-hidden="true"></i> الوثائق — اضغط للتكبير</div>' +
             '<div class="docs-row">' + docs + '</div>' +
             (c.missingDocsCount
                 ? '<div class="mt-2 small fw-bold" style="color:var(--bad);">' +
-                  '<i class="fas fa-triangle-exclamation"></i> ' + c.missingDocsCount +
+                  '<i class="fas fa-triangle-exclamation" aria-hidden="true"></i> ' + c.missingDocsCount +
                   ' وثيقة إجبارية ناقصة — لا يمكن اعتماده قبل رفعها</div>'
                 : '') +
         '</div>' +
 
         '<div class="sec">' +
-            '<div class="sec-t"><i class="fas fa-chart-simple"></i> الأداء والمحفظة</div>' +
+            '<div class="sec-t"><i class="fas fa-chart-simple" aria-hidden="true"></i> الأداء والمحفظة</div>' +
             kv('توصيلات مكتملة', c.deliveredCount) +
             kv('التقييم', c.ratingCount ? (c.averageRating.toFixed(1) + ' من ' + c.ratingCount + ' تقييم') : 'لا تقييمات') +
             kv('رصيد المحفظة', money(c.walletBalance)) +
@@ -531,7 +531,7 @@ function openDrawer(id) {
         '</div>' +
 
         '<div class="sec">' +
-            '<div class="sec-t"><i class="fas fa-clock-rotate-left"></i> التواريخ</div>' +
+            '<div class="sec-t"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> التواريخ</div>' +
             kv('الانضمام', fmtDate(c.joinedAt)) +
             kv('تقديم الطلب', fmtDate(a.submittedAt)) +
             (c.rejectionReason ? kv('سبب الرفض', esc(c.rejectionReason)) : '') +
@@ -539,7 +539,7 @@ function openDrawer(id) {
 
         (a.pledgeText
             ? '<div class="sec">' +
-              '<div class="sec-t"><i class="fas fa-file-signature"></i> الإقرار والتعهّد</div>' +
+              '<div class="sec-t"><i class="fas fa-file-signature" aria-hidden="true"></i> الإقرار والتعهّد</div>' +
               '<div class="pledge">' + esc(a.pledgeText) + '</div></div>'
             : '');
 
@@ -550,7 +550,7 @@ function openDrawer(id) {
     // وإعادته. والرسالة نصٌّ مشتقّ لا حدثٌ يمرّ، فتُطلب متى شاء.
     document.getElementById('drawerBody').insertAdjacentHTML('afterbegin',
         '<button type="button" class="wa-send-btn" onclick="sendApprovalMessage('' + c._id + '')">' +
-        '<i class="fab fa-whatsapp"></i> إرسال رسالة القبول عبر واتساب</button>');
+        '<i class="fab fa-whatsapp" aria-hidden="true"></i> إرسال رسالة القبول عبر واتساب</button>');
 
     document.getElementById('drawer').classList.add('open');
     document.body.style.overflow = 'hidden';

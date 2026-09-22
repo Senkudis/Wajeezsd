@@ -540,12 +540,12 @@
 
     <div class="login-container">
         <div class="login-box" style="position:relative;">
-            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي" style="position:absolute;top:18px;left:18px;width:36px;height:36px;">
-                <i class="fas fa-moon"></i>
+            <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي" style="position:absolute;top:18px;left:18px;width:36px;height:36px;">
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
             <div class="logo-container">
                 <div class="logo-icon">
-                    <i class="fas fa-user-shield"></i>
+                    <i class="fas fa-user-shield" aria-hidden="true"></i>
                 </div>
                 <h2>وَجِـيـز · الإدارة</h2>
                 <p class="subtitle">تسجيل دخول المدير والمشرفين</p>
@@ -553,12 +553,12 @@
 
             <form id="loginForm">
                 <div class="input-group">
-                    <i class="fas fa-user"></i>
+                    <i class="fas fa-user" aria-hidden="true"></i>
                     <input type="text" id="email" placeholder="البريد الإلكتروني أو رقم الهاتف" required autocomplete="username" dir="ltr" style="text-align:right;">
                 </div>
 
                 <div class="input-group">
-                    <i class="fas fa-lock"></i>
+                    <i class="fas fa-lock" aria-hidden="true"></i>
                     <input type="password" id="password" placeholder="كلمة المرور" required autocomplete="current-password">
                 </div>
 
@@ -572,7 +572,7 @@
 
             <div class="divider">
                 <a href="index.html" class="back-link">
-                    <i class="fas fa-arrow-left"></i>
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
                     العودة للرئيسية
                 </a>
             </div>
@@ -582,7 +582,7 @@
         <div class="login-box" id="waitingBox" style="display:none;">
             <div class="waiting-icon">
                 <div class="waiting-ring"></div>
-                <i class="fas fa-shield-alt" style="position:relative;z-index:1;font-size:32px;color:#f59e0b;"></i>
+                <i class="fas fa-shield-alt" style="position:relative;z-index:1;font-size:32px;color:#f59e0b;" aria-hidden="true"></i>
             </div>
             <h3 style="font-weight:800;margin:16px 0 8px;color:#1a202c;">جهاز جديد!</h3>
             <p style="color:#718096;font-size:14px;line-height:1.7;margin-bottom:20px;">
@@ -733,7 +733,7 @@
             const successHtml = `
                 <div style="text-align:center;padding:30px 0;">
                     <div style="width:70px;height:70px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
-                        <i class="fas fa-check" style="color:white;font-size:28px;"></i>
+                        <i class="fas fa-check" style="color:white;font-size:28px;" aria-hidden="true"></i>
                     </div>
                     <h3 style="font-weight:800;color:#16a34a;">تمت الموافقة!</h3>
                     <p style="color:#718096;font-size:14px;">جارٍ تسجيل الدخول...</p>
@@ -790,7 +790,7 @@
                         // دخول مباشر (جهاز موثوق)
                         completeLogin(data.token, data.user);
 
-                        loginBtn.innerHTML = '<i class="fas fa-check"></i> تم بنجاح';
+                        loginBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> تم بنجاح';
                         loginBtn.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
 
                     } else {
@@ -849,7 +849,7 @@
                 if (remaining <= 0) {
                     clearInterval(_countdownTimer);
                     _countdownTimer = null;
-                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> دخول';
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt" aria-hidden="true"></i> دخول';
                     loginBtn.disabled = false;
                     errorMsg.style.display = 'none';
                 } else {

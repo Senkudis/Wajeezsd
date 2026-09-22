@@ -163,15 +163,15 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
 </head>
 <body>
 <div class="page-header">
-    <h1><i class="fas fa-images" style="margin-left:8px;"></i> إدارة البانرات الإعلانية</h1>
+    <h1><i class="fas fa-images" style="margin-left:8px;" aria-hidden="true"></i> إدارة البانرات الإعلانية</h1>
     <div class="d-flex align-items-center gap-2">
-        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-            <i class="fas fa-search"></i>
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
         </button>
-        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-            <i class="fas fa-moon"></i>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
         </button>
-        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
     </div>
 </div>
 
@@ -182,13 +182,13 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
             <p style="font-size:0.85rem;color:#64748b;">تُعرض في الصفحة الرئيسية للتطبيق</p>
         </div>
         <button class="btn btn-primary" onclick="openModal()">
-            <i class="fas fa-plus"></i> إضافة بانر جديد
+            <i class="fas fa-plus" aria-hidden="true"></i> إضافة بانر جديد
         </button>
     </div>
 
     <div class="banners-grid" id="bannersGrid">
         <div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">
-            <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+            <i class="fas fa-spinner fa-spin" style="font-size:2rem;" aria-hidden="true"></i>
             <p style="margin-top:12px;">جاري التحميل...</p>
         </div>
     </div>
@@ -197,7 +197,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
 <!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-        <h2><i class="fas fa-image" style="color:var(--primary);"></i> <span id="modalTitle">إضافة بانر جديد</span></h2>
+        <h2><i class="fas fa-image" style="color:var(--primary);" aria-hidden="true"></i> <span id="modalTitle">إضافة بانر جديد</span></h2>
         <input type="hidden" id="editingId">
         <div class="form-group">
             <label>العنوان *</label>
@@ -286,7 +286,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
             <button class="btn btn-primary" id="saveBtn" onclick="saveBanner()">
-                <i class="fas fa-save"></i> حفظ البانر
+                <i class="fas fa-save" aria-hidden="true"></i> حفظ البانر
             </button>
         </div>
     </div>
@@ -315,7 +315,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
         } catch (e) {
             document.getElementById('bannersGrid').innerHTML = `
                 <div class="empty-state" style="grid-column:1/-1;">
-                    <i class="fas fa-exclamation-circle" style="color:#ef4444;"></i>
+                    <i class="fas fa-exclamation-circle" style="color:#ef4444;" aria-hidden="true"></i>
                     <p>فشل تحميل البانرات: ${e.message}</p>
                 </div>`;
         }
@@ -324,7 +324,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
     function renderBanners() {
         const grid = document.getElementById('bannersGrid');
         if (!banners.length) {
-            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-images"></i><p>لا توجد بانرات بعد. أضف أول بانر!</p></div>`;
+            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-images" aria-hidden="true"></i><p>لا توجد بانرات بعد. أضف أول بانر!</p></div>`;
             return;
         }
 
@@ -337,8 +337,8 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
             <div class="banner-card ${!b.isActive || expired ? 'inactive' : ''}">
                 ${b.image_url
                     ? `<img src="${b.image_url}" alt="${b.title}" class="banner-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                       <div class="banner-img-placeholder" style="display:none;"><i class="fas fa-image"></i></div>`
-                    : `<div class="banner-img-placeholder"><i class="fas fa-image"></i></div>`
+                       <div class="banner-img-placeholder" style="display:none;"><i class="fas fa-image" aria-hidden="true"></i></div>`
+                    : `<div class="banner-img-placeholder"><i class="fas fa-image" aria-hidden="true"></i></div>`
                 }
                 <div class="banner-body">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -352,19 +352,19 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
                         ${b.targetType !== 'none' ? `<span class="badge badge-orange">${typeLabel[b.targetType]}</span>` : ''}
                     </div>
                     <div class="banner-stats">
-                        <span><i class="fas fa-eye"></i> ${(b.viewsCount || 0).toLocaleString('en')} مشاهدة</span>
-                        <span><i class="fas fa-mouse-pointer"></i> ${(b.clicksCount || 0).toLocaleString('en')} نقرة</span>
+                        <span><i class="fas fa-eye" aria-hidden="true"></i> ${(b.viewsCount || 0).toLocaleString('en')} مشاهدة</span>
+                        <span><i class="fas fa-mouse-pointer" aria-hidden="true"></i> ${(b.clicksCount || 0).toLocaleString('en')} نقرة</span>
                     </div>
                     <div class="banner-actions">
                         <button class="btn btn-ghost btn-sm" onclick='editBanner(${JSON.stringify(b).replace(/'/g, "&#39;")})'>
-                            <i class="fas fa-pen"></i> تعديل
+                            <i class="fas fa-pen" aria-hidden="true"></i> تعديل
                         </button>
                         <button class="btn btn-danger btn-sm" onclick="deleteBanner('${b._id}')">
-                            <i class="fas fa-trash"></i> حذف
+                            <i class="fas fa-trash" aria-hidden="true"></i> حذف
                         </button>
-                        <button class="btn btn-sm" style="background:${b.isActive ? '#fef9c3' : '#dcfce7'};color:${b.isActive ? '#854d0e' : '#166534'};"
+                        <button aria-label="${b.isActive ? 'إيقاف البانر' : 'تفعيل البانر'}" class="btn btn-sm" style="background:${b.isActive ? '#fef9c3' : '#dcfce7'};color:${b.isActive ? '#854d0e' : '#166534'};"
                             onclick="toggleBanner('${b._id}', ${!b.isActive})">
-                            <i class="fas fa-${b.isActive ? 'pause' : 'play'}"></i>
+                            <i class="fas fa-${b.isActive ? 'pause' : 'play'}" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -512,7 +512,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
 
         const saveBtn = document.getElementById('saveBtn');
         saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+        saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>';
 
         try {
             const url    = id ? `${BASE}/api/banners/admin/${id}` : `${BASE}/api/banners/admin`;
@@ -527,7 +527,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
             Swal.fire({ icon: 'error', title: 'خطأ', text: e.message, confirmButtonColor: '#dc3545' });
         } finally {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ البانر';
+            saveBtn.innerHTML = '<i class="fas fa-save" aria-hidden="true"></i> حفظ البانر';
         }
     }
 

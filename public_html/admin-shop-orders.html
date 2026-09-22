@@ -104,20 +104,20 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
 
 <div class="topbar">
     <div class="topbar-title">
-        <i class="fas fa-shopping-basket" style="color:var(--brand, var(--primary));"></i>
+        <i class="fas fa-shopping-basket" style="color:var(--brand, var(--primary));" aria-hidden="true"></i>
         طلبات المتاجر
         <small style="font-weight:700;font-size:11px;color:var(--muted);margin-right:6px;">
             <span class="live-dot" id="liveDot"></span> <span id="liveLbl">لحظي</span>
         </small>
     </div>
     <div class="d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:8px;">
-        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-            <i class="fas fa-search"></i>
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
         </button>
-        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-            <i class="fas fa-moon"></i>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
         </button>
-        <a href="admin.html" class="topbar-back"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+        <a href="admin.html" class="topbar-back"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
     </div>
 </div>
 
@@ -131,7 +131,7 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
                 <option value="PortSudan">بورتسودان</option>
             </select>
             <button class="admin-export-btn" onclick="exportOrdersCSV()">
-                <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير
+                <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير
             </button>
         </div>
     </div>
@@ -220,17 +220,17 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
             !['cancelled', 'delivered'].includes(o.deliveryStatus);
         const canCancel = o.status !== 'cancelled' && o.status !== 'delivered';
         const cancelBtn = !canCancel ? '' : (liveDelivery
-            ? `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o.deliveryOrderId}', true)"><i class="bi bi-x-circle"></i> إلغاء الطلب والتوصيل</button>`
-            : `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o._id}', false)"><i class="bi bi-x-circle"></i> إلغاء إجباري</button>`);
+            ? `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o.deliveryOrderId}', true)"><i class="bi bi-x-circle" aria-hidden="true"></i> إلغاء الطلب والتوصيل</button>`
+            : `<button class="btn btn-sm btn-outline-danger mt-1" style="font-size:11px;" onclick="forceCancel('${o._id}', false)"><i class="bi bi-x-circle" aria-hidden="true"></i> إلغاء إجباري</button>`);
         return `
         <div class="so-card ${flash ? 'flash' : ''}" id="so-${o._id}">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <div class="so-shop"><i class="bi bi-shop" style="color:var(--brand);"></i> ${shop}
+                    <div class="so-shop"><i class="bi bi-shop" style="color:var(--brand);" aria-hidden="true"></i> ${shop}
                         <span style="font-size:11px;font-weight:700;color:var(--muted);">(${city})</span></div>
                     <div class="so-meta">
                         #${o._id.slice(-5)} · ${timeAgo(o.createdAt)} · ${client}
-                        ${clientPhone ? ` · <a href="tel:${clientPhone}"><i class="bi bi-telephone-fill"></i> ${clientPhone}</a>` : ''}
+                        ${clientPhone ? ` · <a href="tel:${clientPhone}"><i class="bi bi-telephone-fill" aria-hidden="true"></i> ${clientPhone}</a>` : ''}
                     </div>
                     <div class="so-meta">${(o.items || []).length} منتج · بضاعة ${o.itemsTotal || 0} ج.س · إجمالي ${o.totalAmount || 0} ج.س${cap}</div>
                 </div>
@@ -248,7 +248,7 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
     function renderList() {
         const el = document.getElementById('list');
         if (!orders.length) {
-            el.innerHTML = `<div class="empty"><i class="bi bi-bag-x"></i><div class="fw-bold">لا توجد طلبات في هذه الفئة</div></div>`;
+            el.innerHTML = `<div class="empty"><i class="bi bi-bag-x" aria-hidden="true"></i><div class="fw-bold">لا توجد طلبات في هذه الفئة</div></div>`;
         } else {
             el.innerHTML = orders.map(o => cardHtml(o)).join('');
         }
@@ -281,7 +281,7 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
             renderList();
         } catch (e) {
             if (e.message !== 'auth')
-                document.getElementById('list').innerHTML = `<div class="empty"><i class="bi bi-wifi-off"></i>
+                document.getElementById('list').innerHTML = `<div class="empty"><i class="bi bi-wifi-off" aria-hidden="true"></i>
                     <div class="fw-bold">تعذر التحميل</div>
                     <button class="btn btn-sm btn-outline-secondary mt-2" onclick="reload()">إعادة المحاولة</button></div>`;
         }

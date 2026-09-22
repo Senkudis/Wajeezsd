@@ -50,7 +50,7 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <div class="logo"><i class="fas fa-hand-holding-usd"></i></div>
+                <div class="logo"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></div>
                 <h2>وَجِـيـز</h2>
                 <p id="adminName">لوحة الإدارة</p>
             </div>
@@ -58,27 +58,27 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
             <nav class="sidebar-nav">
                 <div class="nav-label">الإدارة</div>
                 <button class="nav-item" onclick="location.href='admin.html'">
-                    <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i><span>العودة للوحة التحكم</span>
                 </button>
                 <button class="nav-item active" onclick="loadSettlements()">
-                    <i class="fas fa-hand-holding-usd"></i><span>تسويات التجار</span>
+                    <i class="fas fa-hand-holding-usd" aria-hidden="true"></i><span>تسويات التجار</span>
                 </button>
 
                 <div class="nav-label">روابط سريعة</div>
                 <button class="nav-item" onclick="location.href='admin-finance.html'">
-                    <i class="fas fa-wallet"></i><span>الإدارة المالية</span>
+                    <i class="fas fa-wallet" aria-hidden="true"></i><span>الإدارة المالية</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-places.html'">
-                    <i class="fas fa-store"></i><span>المحلات والتصنيفات</span>
+                    <i class="fas fa-store" aria-hidden="true"></i><span>المحلات والتصنيفات</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-shop-orders.html'">
-                    <i class="fas fa-shopping-basket"></i><span>طلبات المتاجر</span>
+                    <i class="fas fa-shopping-basket" aria-hidden="true"></i><span>طلبات المتاجر</span>
                 </button>
             </nav>
 
             <div class="sidebar-footer">
                 <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                    <i class="fas fa-power-off" aria-hidden="true"></i><span>تسجيل الخروج</span>
                 </button>
             </div>
         </aside>
@@ -86,19 +86,19 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
         <!-- Main Content Area -->
         <main class="main-content">
             <header class="top-header">
-                <button class="menu-toggle" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
+                <button aria-label="فتح القائمة الجانبية" class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
                 <div class="header-title d-none d-md-block">
                     <h1>تسويات مستحقات التجار</h1>
                     <p>مراجعة طلبات سحب المستحقات وتحويلها للتجار</p>
                 </div>
                 <div class="ms-auto d-flex align-items-center gap-2">
-                    <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-                        <i class="fas fa-search"></i>
+                    <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                        <i class="fas fa-search" aria-hidden="true"></i>
                     </button>
-                    <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                        <i class="fas fa-moon"></i>
+                    <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                        <i class="fas fa-moon" aria-hidden="true"></i>
                     </button>
                 </div>
             </header>
@@ -106,9 +106,9 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
             <div class="content-body">
                 <div class="dashboard-section active section-card">
                     <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <h2 class="section-title mb-0"><i class="fas fa-list"></i> طلبات التسوية</h2>
+                        <h2 class="section-title mb-0"><i class="fas fa-list" aria-hidden="true"></i> طلبات التسوية</h2>
                         <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.table', 'wajeez_settlements_report')">
-                            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                            <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
                         </button>
                     </div>
 
@@ -213,8 +213,8 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
                        </div>`
                     : '<span class="text-muted small">غير مسجل</span>';
                 const actions = s.status === 'pending'
-                    ? `<button class="btn btn-sm btn-success fw-bold me-1" onclick="approveSettlement('${s._id}', ${s.amount})"><i class="fas fa-check"></i> تحويل وموافقة</button>
-                       <button class="btn btn-sm btn-outline-danger fw-bold" onclick="rejectSettlement('${s._id}')"><i class="fas fa-times"></i> رفض</button>`
+                    ? `<button class="btn btn-sm btn-success fw-bold me-1" onclick="approveSettlement('${s._id}', ${s.amount})"><i class="fas fa-check" aria-hidden="true"></i> تحويل وموافقة</button>
+                       <button class="btn btn-sm btn-outline-danger fw-bold" onclick="rejectSettlement('${s._id}')"><i class="fas fa-times" aria-hidden="true"></i> رفض</button>`
                     : (s.status === 'approved' && s.transactionId
                         ? `<span class="text-muted small">إشعار: ${s.transactionId}</span>`
                         : (s.adminNote ? `<span class="text-muted small">${s.adminNote}</span>` : '-'));

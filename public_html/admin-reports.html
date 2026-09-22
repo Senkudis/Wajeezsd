@@ -69,8 +69,8 @@
 <body>
 
 <div class="page-head">
-    <h1><i class="bi bi-flag-fill" style="color:#dc2626;"></i> بلاغات المحتوى</h1>
-    <a href="admin.html" class="back-link"><i class="bi bi-arrow-left"></i> لوحة الإدارة</a>
+    <h1><i class="bi bi-flag-fill" style="color:#dc2626;" aria-hidden="true"></i> بلاغات المحتوى</h1>
+    <a href="admin.html" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i> لوحة الإدارة</a>
 </div>
 
 <div class="tabs">
@@ -127,7 +127,7 @@
 
             const rows = d.reports || [];
             if (!rows.length) {
-                list.innerHTML = `<div class="empty"><i class="bi bi-shield-check"></i>
+                list.innerHTML = `<div class="empty"><i class="bi bi-shield-check" aria-hidden="true"></i>
                     ${currentStatus === 'pending' ? 'لا بلاغات تنتظر المراجعة' : 'لا شيء هنا'}</div>`;
                 return;
             }
@@ -139,7 +139,7 @@
                 return `
                 <div class="report-card">
                     <div class="rc-top">
-                        <span class="rc-reason"><i class="bi bi-flag-fill"></i> ${esc(REASON_AR[r.reason] || r.reason)}</span>
+                        <span class="rc-reason"><i class="bi bi-flag-fill" aria-hidden="true"></i> ${esc(REASON_AR[r.reason] || r.reason)}</span>
                         <span class="rc-type">${esc(TYPE_AR[r.targetType] || r.targetType)} · ${esc(when)}</span>
                     </div>
 
@@ -155,12 +155,12 @@
                     ${r.status === 'pending' ? `
                     <div class="rc-actions">
                         ${canHide ? `<button class="btn btn-sm btn-danger" onclick="act('${esc(r._id)}','hide')">
-                            <i class="bi bi-eye-slash"></i> إخفاء المحتوى</button>` : ''}
+                            <i class="bi bi-eye-slash" aria-hidden="true"></i> إخفاء المحتوى</button>` : ''}
                         <button class="btn btn-sm btn-outline-secondary" onclick="act('${esc(r._id)}','dismiss')">
-                            <i class="bi bi-check2"></i> صرف النظر</button>
+                            <i class="bi bi-check2" aria-hidden="true"></i> صرف النظر</button>
                         ${r.targetOwner?._id ? `<a class="btn btn-sm btn-outline-dark"
                             href="admin.html?user=${esc(r.targetOwner._id)}">
-                            <i class="bi bi-person-x"></i> إدارة الحساب</a>` : ''}
+                            <i class="bi bi-person-x" aria-hidden="true"></i> إدارة الحساب</a>` : ''}
                     </div>` : `
                     <div class="rc-status ${esc(r.status)}" style="margin-top:10px;">
                         ${r.status === 'actioned' ? '✔ أُخفي المحتوى' : '— صُرف النظر'}

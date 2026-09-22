@@ -68,24 +68,24 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
 
 <body>
     <div class="page-header">
-        <h1><i class="fas fa-comments"></i> المحادثات</h1>
+        <h1><i class="fas fa-comments" aria-hidden="true"></i> المحادثات</h1>
         <div class="d-flex align-items-center gap-2">
-            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                <i class="fas fa-moon"></i>
+            <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
-            <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+            <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
         </div>
     </div>
 
     <div class="main">
         <div class="notice">
-            <i class="fas fa-shield-halved" style="margin-top:2px;"></i>
+            <i class="fas fa-shield-halved" style="margin-top:2px;" aria-hidden="true"></i>
             <div>
                 محتوى المحادثات خاص بين العميل والكابتن. كل اطّلاع يُسجَّل في سجل التدقيق باسمك،
                 وصور المحادثات تُحذف تلقائياً بعد <strong id="ttlHours">48</strong> ساعة.
             </div>
         </div>
-        <div id="list"><div class="empty"><i class="fas fa-spinner fa-spin fa-2x"></i></div></div>
+        <div id="list"><div class="empty"><i class="fas fa-spinner fa-spin fa-2x" aria-hidden="true"></i></div></div>
     </div>
 
     <div class="modal-overlay" id="threadModal">
@@ -95,7 +95,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
             <div style="margin-top:12px;display:flex;justify-content:space-between;gap:10px;">
                 <!-- 🗑️ الحذف لا رجعة فيه — التأكيد يذكر ما سيُمحى بالعدد -->
                 <button class="btn btn-danger" id="deleteChatBtn" onclick="deleteChat()">
-                    <i class="fas fa-trash"></i> حذف المحادثة
+                    <i class="fas fa-trash" aria-hidden="true"></i> حذف المحادثة
                 </button>
                 <button class="btn btn-close" onclick="closeThread()">إغلاق</button>
             </div>
@@ -148,7 +148,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
                 if (!res.ok) throw new Error('failed');
                 const rows = await res.json();
                 if (!rows.length) {
-                    box.innerHTML = '<div class="empty"><i class="fas fa-inbox fa-2x"></i><p style="margin-top:10px;">لا محادثات بعد</p></div>';
+                    box.innerHTML = '<div class="empty"><i class="fas fa-inbox fa-2x" aria-hidden="true"></i><p style="margin-top:10px;">لا محادثات بعد</p></div>';
                     return;
                 }
                 box.innerHTML = rows.map(r => `
@@ -161,7 +161,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
                             </div>
                             <span class="chip chip-status">${STATUS[r.status] || r.status}</span>
                             <span class="chip chip-count">${r.count} رسالة</span>
-                            ${r.images ? `<span class="chip chip-img"><i class="fas fa-image"></i> ${r.images}</span>` : ''}
+                            ${r.images ? `<span class="chip chip-img"><i class="fas fa-image" aria-hidden="true"></i> ${r.images}</span>` : ''}
                             <span class="chip chip-time">${relTime(r.lastAt)}</span>
                         </div>
                         <div class="preview">${esc(r.preview) || '—'}</div>
@@ -175,7 +175,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
         async function openThread(orderId) {
             const modal = document.getElementById('threadModal');
             const thread = document.getElementById('thread');
-            thread.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i></div>';
+            thread.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>';
             modal.classList.add('active');
             openOrderId = orderId;
             openMessagesCount = 0;
@@ -201,7 +201,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
                         ? `<img src="${imgUrl(m.imageUrl)}" alt="صورة" data-lightbox>`
                         : (m.imageExpiredAt
                             ? `<div style="font-size:.72rem;color:#94a3b8;margin-top:5px;">
-                                 <i class="fas fa-image"></i> حُذفت الصورة بعد ${data.imageTtlHours || 48} ساعة</div>`
+                                 <i class="fas fa-image" aria-hidden="true"></i> حُذفت الصورة بعد ${data.imageTtlHours || 48} ساعة</div>`
                             : '');
                     const txt = (m.text || '').trim();
                     return `
@@ -254,7 +254,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
 
             const btn = document.getElementById('deleteChatBtn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحذف';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> جاري الحذف';
             try {
                 const res = await fetch(`${BASE}/api/admin/chats/${openOrderId}`, {
                     method: 'DELETE', headers: hdr()
@@ -272,7 +272,7 @@ body.dark-mode .btn-close { background: #374151 !important; color: #9ca3af !impo
                 Swal.fire('فشل الحذف', e.message || 'حاول مجدداً', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-trash"></i> حذف المحادثة';
+                btn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i> حذف المحادثة';
             }
         }
 

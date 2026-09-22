@@ -105,18 +105,18 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
     <div class="topbar">
         <div class="topbar-brand">
             <span class="dot"></span>
-            <i class="fas fa-history" style="color:var(--primary);margin-left:4px;"></i>
+            <i class="fas fa-history" style="color:var(--primary);margin-left:4px;" aria-hidden="true"></i>
             سجل النشاط
         </div>
         <div class="d-flex align-items-center gap-2">
-            <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-                <i class="fas fa-search"></i>
+            <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                <i class="fas fa-search" aria-hidden="true"></i>
             </button>
-            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                <i class="fas fa-moon"></i>
+            <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
             <a href="admin.html" class="topbar-back">
-                <i class="fas fa-arrow-right"></i> الرئيسية
+                <i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية
             </a>
         </div>
     </div>
@@ -152,10 +152,10 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
                 <input type="date" id="fTo">
             </div>
             <button class="btn-brand" onclick="loadLogs(1)">
-                <i class="fas fa-filter"></i> تطبيق الفلتر
+                <i class="fas fa-filter" aria-hidden="true"></i> تطبيق الفلتر
             </button>
             <button class="admin-export-btn ms-auto" style="height:42px;" onclick="exportActivityCSV()">
-                <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
             </button>
         </div>
 
@@ -165,9 +165,9 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
         </div>
 
         <div class="pagination">
-            <button class="page-btn" id="btnPrev" onclick="loadLogs(currentPage - 1)"><i class="fas fa-chevron-right"></i> السابق</button>
+            <button class="page-btn" id="btnPrev" onclick="loadLogs(currentPage - 1)"><i class="fas fa-chevron-right" aria-hidden="true"></i> السابق</button>
             <span style="align-self:center; font-weight:700; color:var(--muted);" id="pageInfo">صفحة 1</span>
-            <button class="page-btn" id="btnNext" onclick="loadLogs(currentPage + 1)">التالي <i class="fas fa-chevron-left"></i></button>
+            <button class="page-btn" id="btnNext" onclick="loadLogs(currentPage + 1)">التالي <i class="fas fa-chevron-left" aria-hidden="true"></i></button>
         </div>
     </div>
 
@@ -231,13 +231,13 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
 
                     return `
                         <div class="tl-item">
-                            <div class="tl-icon ${colorCls}"><i class="fas ${iconCls}"></i></div>
+                            <div class="tl-icon ${colorCls}"><i class="fas ${iconCls}" aria-hidden="true"></i></div>
                             <div class="tl-content">
                                 <div class="tl-header">
                                     <div class="tl-title">${log.description}</div>
                                     <div class="tl-time">${dateStr} - ${timeStr}</div>
                                 </div>
-                                <div class="tl-admin"><i class="fas fa-user-shield"></i> ${adminName} (${adminRole})</div>
+                                <div class="tl-admin"><i class="fas fa-user-shield" aria-hidden="true"></i> ${adminName} (${adminRole})</div>
                                 ${log.targetName ? `<div class="tl-desc"><strong>العنصر المتأثر:</strong> ${log.targetName}</div>` : ''}
                             </div>
                         </div>

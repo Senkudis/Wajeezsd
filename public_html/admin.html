@@ -34,89 +34,89 @@
     <div class="brand">و</div>
     <div class="nav-items">
         <button class="gv-nav-item active" data-page="overview" onclick="switchPage('overview')">
-            <i class="fas fa-th-large"></i><span>نظرة عامة</span>
+            <i class="fas fa-th-large" aria-hidden="true"></i><span>نظرة عامة</span>
         </button>
         <button class="gv-nav-item" data-page="orders" data-perm="view_orders" onclick="switchPage('orders')">
-            <i class="fas fa-box-open"></i><span>الطلبات</span>
+            <i class="fas fa-box-open" aria-hidden="true"></i><span>الطلبات</span>
             <div class="badge-dot" id="ordersBadge" style="display:none;"></div>
         </button>
         <button class="gv-nav-item" data-page="livemap" data-perm="view_map" onclick="switchPage('livemap')">
-            <i class="fas fa-map-marked-alt"></i><span>الخريطة الحية</span>
+            <i class="fas fa-map-marked-alt" aria-hidden="true"></i><span>الخريطة الحية</span>
         </button>
         <button class="gv-nav-item" data-page="captains" data-perm="view_captains" onclick="switchPage('captains')">
-            <i class="fas fa-motorcycle"></i><span>الكباتن</span>
+            <i class="fas fa-motorcycle" aria-hidden="true"></i><span>الكباتن</span>
             <div class="badge-dot" id="captainsBadge" style="display:none;"></div>
         </button>
         <button class="gv-nav-item" data-perm="view_captain_details" onclick="location.href='admin-captains.html'">
-            <i class="fas fa-id-card"></i><span>ملفّات الكباتن</span>
+            <i class="fas fa-id-card" aria-hidden="true"></i><span>ملفّات الكباتن</span>
         </button>
         <button class="gv-nav-item" data-page="users" data-perm="view_users" onclick="switchPage('users')" id="navUsers">
-            <i class="fas fa-users"></i><span>المستخدمين</span>
+            <i class="fas fa-users" aria-hidden="true"></i><span>المستخدمين</span>
         </button>
         <button class="gv-nav-item" data-page="broadcast" data-perm="send_notifications" onclick="switchPage('broadcast')">
-            <i class="fas fa-bullhorn"></i><span>البث</span>
+            <i class="fas fa-bullhorn" aria-hidden="true"></i><span>البث</span>
         </button>
         <!-- 📊 إحصاءات نطاقه — كان الأدمن المساعد بلا أي إحصاءٍ إطلاقاً:
              يدير مدينةً ولا يعرف كم طلباً جاءها أمس. -->
         <button class="gv-nav-item" data-perm="view_stats" onclick="location.href='admin-stats.html'" id="navStats">
-            <i class="fas fa-chart-line"></i><span>إحصائيات نطاقي</span>
+            <i class="fas fa-chart-line" aria-hidden="true"></i><span>إحصائيات نطاقي</span>
         </button>
         <button class="gv-nav-item" data-perm="view_finance" onclick="location.href='admin-finance.html'" id="navFinance">
-            <i class="fas fa-wallet"></i><span>المالية</span>
+            <i class="fas fa-wallet" aria-hidden="true"></i><span>المالية</span>
         </button>
         <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-complaints.html'">
-            <i class="fas fa-flag"></i><span>الشكاوى</span>
+            <i class="fas fa-flag" aria-hidden="true"></i><span>الشكاوى</span>
         </button>
         <button class="gv-nav-item" data-perm="manage_places" onclick="location.href='admin-places.html'">
-            <i class="fas fa-store"></i><span>المحلات</span>
+            <i class="fas fa-store" aria-hidden="true"></i><span>المحلات</span>
         </button>
         <button class="gv-nav-item" data-perm="view_merchant_requests" onclick="location.href='admin-merchant-requests.html'">
-            <i class="fas fa-shop-lock"></i><span>طلبات المتاجر</span>
+            <i class="fas fa-shop-lock" aria-hidden="true"></i><span>طلبات المتاجر</span>
         </button>
         <button class="gv-nav-item" data-perm="view_orders" onclick="location.href='admin-shop-orders.html'">
-            <i class="fas fa-cart-shopping"></i><span>طلبات التسوق</span>
+            <i class="fas fa-cart-shopping" aria-hidden="true"></i><span>طلبات التسوق</span>
         </button>
         <button class="gv-nav-item" data-perm="manage_zones" onclick="location.href='admin-zone-builder.html'" id="navZones">
-            <i class="fas fa-draw-polygon"></i><span>مناطق التوصيل</span>
+            <i class="fas fa-draw-polygon" aria-hidden="true"></i><span>مناطق التوصيل</span>
         </button>
         <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-settings.html'" id="navSettings">
-            <i class="fas fa-cog"></i><span>الإعدادات</span>
+            <i class="fas fa-cog" aria-hidden="true"></i><span>الإعدادات</span>
         </button>
         <button class="gv-nav-item" data-perm="manage_promos" onclick="location.href='admin-promo-codes.html'" id="navPromo">
-            <i class="fas fa-ticket-alt"></i><span>كوبونات الخصم</span>
+            <i class="fas fa-ticket-alt" aria-hidden="true"></i><span>كوبونات الخصم</span>
         </button>
         <button class="gv-nav-item" data-perm="manage_banners" onclick="location.href='admin-banners.html'" id="navBanners">
-            <i class="fas fa-images"></i><span>البانرات الإعلانية</span>
+            <i class="fas fa-images" aria-hidden="true"></i><span>البانرات الإعلانية</span>
         </button>
         <button class="gv-nav-item" data-perm="view_settlements" onclick="location.href='admin-settlements.html'" id="navSettlements">
-            <i class="fas fa-hand-holding-dollar"></i><span>تسويات التجار</span>
+            <i class="fas fa-hand-holding-dollar" aria-hidden="true"></i><span>تسويات التجار</span>
         </button>
         <button class="gv-nav-item" data-perm="view_complaints" onclick="location.href='admin-complaints.html'" id="navComplaints">
-            <i class="fas fa-headset"></i><span>الدعم الفني</span>
+            <i class="fas fa-headset" aria-hidden="true"></i><span>الدعم الفني</span>
         </button>
         <button class="gv-nav-item" data-perm="view_reports" onclick="location.href='admin-reports.html'" id="navReports">
-            <i class="fas fa-flag"></i><span>بلاغات المحتوى</span>
+            <i class="fas fa-flag" aria-hidden="true"></i><span>بلاغات المحتوى</span>
         </button>
         <button class="gv-nav-item" data-perm="view_feedback" onclick="location.href='admin-feedback.html'" id="navFeedback">
-            <i class="fas fa-comment-dots"></i><span>صوت العميل</span>
+            <i class="fas fa-comment-dots" aria-hidden="true"></i><span>صوت العميل</span>
         </button>
         <button class="gv-nav-item" data-perm="view_chats" onclick="location.href='admin-chats.html'" id="navChats">
-            <i class="fas fa-comments"></i><span>المحادثات</span>
+            <i class="fas fa-comments" aria-hidden="true"></i><span>المحادثات</span>
         </button>
         <button class="gv-nav-item" data-perm="manage_captains" onclick="location.href='admin-team.html'" id="navTeam">
-            <i class="fas fa-id-card"></i><span>بطاقات الفريق</span>
+            <i class="fas fa-id-card" aria-hidden="true"></i><span>بطاقات الفريق</span>
         </button>
         <hr style="border:none;border-top:1px solid #334155;margin:10px 15px;" id="navDivider1">
         <button class="gv-nav-item" data-perm="__super__" onclick="location.href='admin-sub-admins.html'" id="navSubAdmins">
-            <i class="fas fa-user-shield"></i><span>الأدمن المساعد</span>
+            <i class="fas fa-user-shield" aria-hidden="true"></i><span>الأدمن المساعد</span>
         </button>
         <button class="gv-nav-item" data-perm="view_activity_log" onclick="location.href='admin-activity.html'" id="navActivity">
-            <i class="fas fa-history"></i><span>سجل النشاط</span>
+            <i class="fas fa-history" aria-hidden="true"></i><span>سجل النشاط</span>
         </button>
     </div>
     <div class="nav-footer">
         <button class="gv-logout-btn" onclick="logout()">
-            <i class="fas fa-power-off"></i><span>خروج</span>
+            <i class="fas fa-power-off" aria-hidden="true"></i><span>خروج</span>
         </button>
     </div>
 </aside>
@@ -131,13 +131,13 @@
 <!-- Notification Panel -->
 <div class="gv-notif-panel" id="notifPanel">
     <div class="gv-notif-header">
-        <h3><i class="fas fa-bell"></i> الإشعارات</h3>
-        <button class="gv-btn gv-btn-ghost gv-btn-sm" onclick="toggleNotifPanel(false)">
-            <i class="fas fa-times"></i>
+        <h3><i class="fas fa-bell" aria-hidden="true"></i> الإشعارات</h3>
+        <button aria-label="إغلاق لوحة الإشعارات" class="gv-btn gv-btn-ghost gv-btn-sm" onclick="toggleNotifPanel(false)">
+            <i class="fas fa-times" aria-hidden="true"></i>
         </button>
     </div>
     <div class="gv-notif-list" id="notifList">
-        <div class="gv-empty"><i class="fas fa-bell-slash"></i><p>لا توجد إشعارات</p></div>
+        <div class="gv-empty"><i class="fas fa-bell-slash" aria-hidden="true"></i><p>لا توجد إشعارات</p></div>
     </div>
 </div>
 
@@ -146,27 +146,27 @@
     <!-- Top Bar -->
     <div class="gv-topbar">
         <div class="gv-topbar-right">
-            <button class="gv-topbar-btn" onclick="toggleMobileSidebar()" id="menuToggle">
-                <i class="fas fa-bars"></i>
+            <button aria-label="فتح القائمة الجانبية" class="gv-topbar-btn" onclick="toggleMobileSidebar()" id="menuToggle">
+                <i class="fas fa-bars" aria-hidden="true"></i>
             </button>
             <span class="page-title" id="pageTitle">نظرة عامة</span>
         </div>
         <div class="gv-topbar-left">
-            <button class="gv-topbar-btn admin-search-btn" data-admin-search title="بحث سريع وتنقل (Ctrl + K)">
-                <i class="fas fa-search"></i>
+            <button aria-label="بحث سريع وتنقل (Ctrl + K)" class="gv-topbar-btn admin-search-btn" data-admin-search title="بحث سريع وتنقل (Ctrl + K)">
+                <i class="fas fa-search" aria-hidden="true"></i>
             </button>
-            <button class="gv-topbar-btn" onclick="AdminAlerts.toggleMute(); this.querySelector('i').className = AdminAlerts.isMuted() ? 'fas fa-volume-mute' : 'fas fa-volume-up';" title="كتم/تفعيل صوت التنبيهات">
-                <i class="fas fa-volume-up"></i>
+            <button aria-label="كتم/تفعيل صوت التنبيهات" class="gv-topbar-btn" onclick="AdminAlerts.toggleMute(); this.querySelector('i').className = AdminAlerts.isMuted() ? 'fas fa-volume-mute' : 'fas fa-volume-up';" title="كتم/تفعيل صوت التنبيهات">
+                <i class="fas fa-volume-up" aria-hidden="true"></i>
             </button>
-            <button class="gv-topbar-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                <i class="fas fa-moon"></i>
+            <button aria-label="تبديل الوضع الليلي" class="gv-topbar-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
             <button class="gv-topbar-btn" onclick="toggleNotifPanel(true)" id="notifBtn">
-                <i class="fas fa-bell"></i>
+                <i class="fas fa-bell" aria-hidden="true"></i>
                 <span class="notif-count" id="notifCount" style="display:none;">0</span>
             </button>
-            <button class="gv-topbar-btn" onclick="refreshCurrentPage()" title="تحديث">
-                <i class="fas fa-sync-alt"></i>
+            <button aria-label="تحديث" class="gv-topbar-btn" onclick="refreshCurrentPage()" title="تحديث">
+                <i class="fas fa-sync-alt" aria-hidden="true"></i>
             </button>
         </div>
     </div>
@@ -179,23 +179,23 @@
             <!-- Stats Cards -->
             <div class="gv-stats-grid">
                 <div class="gv-stat-card" id="cardClients">
-                    <div class="gv-stat-icon blue"><i class="fas fa-users"></i></div>
+                    <div class="gv-stat-icon blue"><i class="fas fa-users" aria-hidden="true"></i></div>
                     <div class="gv-stat-info"><h4>العملاء</h4><h2 id="stat-clients">0</h2></div>
                 </div>
                 <div class="gv-stat-card">
-                    <div class="gv-stat-icon amber"><i class="fas fa-motorcycle"></i></div>
+                    <div class="gv-stat-icon amber"><i class="fas fa-motorcycle" aria-hidden="true"></i></div>
                     <div class="gv-stat-info"><h4>الكباتن</h4><h2 id="stat-captains">0</h2></div>
                 </div>
                 <div class="gv-stat-card">
-                    <div class="gv-stat-icon green"><i class="fas fa-box-open"></i></div>
+                    <div class="gv-stat-icon green"><i class="fas fa-box-open" aria-hidden="true"></i></div>
                     <div class="gv-stat-info"><h4>الطلبات</h4><h2 id="stat-orders">0</h2></div>
                 </div>
                 <div class="gv-stat-card" id="cardRevenue">
-                    <div class="gv-stat-icon red"><i class="fas fa-coins"></i></div>
+                    <div class="gv-stat-icon red"><i class="fas fa-coins" aria-hidden="true"></i></div>
                     <div class="gv-stat-info"><h4>الأرباح</h4><h2 id="stat-revenue">0</h2></div>
                 </div>
                 <div class="gv-stat-card">
-                    <div class="gv-stat-icon cyan"><i class="fas fa-satellite-dish"></i></div>
+                    <div class="gv-stat-icon cyan"><i class="fas fa-satellite-dish" aria-hidden="true"></i></div>
                     <div class="gv-stat-info"><h4>كباتن نشطين</h4><h2 id="stat-online">0</h2></div>
                 </div>
             </div>
@@ -203,11 +203,11 @@
             <!-- 🌍 City Breakdown Panel -->
             <div class="gv-panel" style="margin-bottom:20px;">
                 <div class="gv-panel-header">
-                    <div class="gv-panel-title"><i class="fas fa-city text-primary"></i> إحصائيات المدن</div>
+                    <div class="gv-panel-title"><i class="fas fa-city text-primary" aria-hidden="true"></i> إحصائيات المدن</div>
                 </div>
                 <div class="gv-panel-body">
                     <div id="cityBreakdownContainer" style="display: flex; gap: 15px; flex-wrap: wrap;">
-                        <div class="gv-loading"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
+                        <div class="gv-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> جاري التحميل...</div>
                     </div>
                 </div>
             </div>
@@ -215,11 +215,11 @@
             <!-- Status Distribution Bar (like a health dashboard) -->
             <div class="gv-panel" style="margin-bottom:20px;">
                 <div class="gv-panel-header">
-                    <div class="gv-panel-title"><i class="fas fa-chart-bar"></i> توزيع حالات الطلبات</div>
+                    <div class="gv-panel-title"><i class="fas fa-chart-bar" aria-hidden="true"></i> توزيع حالات الطلبات</div>
                 </div>
                 <div class="gv-panel-body">
                     <div class="gv-status-bar" id="statusBar">
-                        <div class="gv-loading"><i class="fas fa-spinner fa-spin"></i></div>
+                        <div class="gv-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
                     </div>
                 </div>
             </div>
@@ -228,24 +228,24 @@
             <div class="gv-grid-3">
                 <div class="gv-panel">
                     <div class="gv-panel-header">
-                        <div class="gv-panel-title"><i class="fas fa-bolt"></i> الطلبات الحية</div>
+                        <div class="gv-panel-title"><i class="fas fa-bolt" aria-hidden="true"></i> الطلبات الحية</div>
                         <span id="liveOrdersCount" style="font-size:12px;color:var(--gv-dark-2);font-weight:700;">0 طلب</span>
                     </div>
                     <div class="gv-panel-body">
                         <div class="gv-orders-feed" id="liveOrdersFeed">
-                            <div class="gv-loading"><i class="fas fa-spinner fa-spin"></i></div>
+                            <div class="gv-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
                         </div>
                     </div>
                 </div>
                 <div class="gv-panel">
                     <div class="gv-panel-header">
-                        <div class="gv-panel-title"><i class="fas fa-map"></i> الخريطة</div>
+                        <div class="gv-panel-title"><i class="fas fa-map" aria-hidden="true"></i> الخريطة</div>
                         <div style="display:flex;gap:5px;">
                             <button onclick="switchMapCity('miniMap','Khartoum')" id="miniMapCityKhartoum" class="gv-map-city-btn active">
-                                <i class="fas fa-city" style="margin-left:4px;"></i> الخرطوم
+                                <i class="fas fa-city" style="margin-left:4px;" aria-hidden="true"></i> الخرطوم
                             </button>
                             <button onclick="switchMapCity('miniMap','PortSudan')" id="miniMapCityPortSudan" class="gv-map-city-btn">
-                                <i class="fas fa-anchor" style="margin-left:4px;"></i> بورتسودان
+                                <i class="fas fa-anchor" style="margin-left:4px;" aria-hidden="true"></i> بورتسودان
                             </button>
                         </div>
                     </div>
@@ -260,7 +260,7 @@
         <div class="gv-page" id="page-orders">
             <div class="gv-panel">
                 <div class="gv-panel-header">
-                    <div class="gv-panel-title"><i class="fas fa-box-open"></i> جميع الطلبات</div>
+                    <div class="gv-panel-title"><i class="fas fa-box-open" aria-hidden="true"></i> جميع الطلبات</div>
                     <div class="gv-toolbar">
                         <input type="text" id="orderSearch" placeholder="بحث..." oninput="filterOrders()"
                             class="gv-toolbar-search">
@@ -277,7 +277,7 @@
                             <option value="stuck">عالق</option>
                         </select>
                         <button class="admin-export-btn gv-btn gv-btn-secondary gv-btn-sm" style="height:36px;" onclick="AdminExport.tableToCSV('#page-orders table', 'wajeez_orders_report')" title="تصدير إلى Excel/CSV">
-                            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير
+                            <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير
                         </button>
                     </div>
                 </div>
@@ -291,7 +291,7 @@
                             </tr>
                         </thead>
                         <tbody id="allOrdersBody">
-                            <tr><td colspan="8"><div class="gv-loading"><i class="fas fa-spinner fa-spin"></i></div></td></tr>
+                            <tr><td colspan="8"><div class="gv-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -303,18 +303,18 @@
             <div class="gv-panel" style="height: calc(100vh - 140px);">
                 <div class="gv-panel-header" style="flex-direction:column; align-items:start; gap:10px;">
                     <div style="display:flex; justify-content:space-between; width:100%;">
-                        <div class="gv-panel-title"><i class="fas fa-satellite-dish"></i> تتبع الكباتن</div>
+                        <div class="gv-panel-title"><i class="fas fa-satellite-dish" aria-hidden="true"></i> تتبع الكباتن</div>
                         <span id="mapOnlineCount" style="font-size:12px;color:var(--gv-success);font-weight:700;">
-                            <i class="fas fa-circle" style="font-size:8px;"></i> 0 نشط
+                            <i class="fas fa-circle" style="font-size:8px;" aria-hidden="true"></i> 0 نشط
                         </span>
                     </div>
                     <!-- City Filter Buttons -->
                     <div style="display:flex; gap:6px; width:100%;">
                         <button id="fullMapCityKhartoum" onclick="switchMapCity('fullMap','Khartoum')" class="gv-map-city-btn active" style="flex:1;">
-                            <i class="fas fa-city" style="margin-left:6px;"></i> الخرطوم
+                            <i class="fas fa-city" style="margin-left:6px;" aria-hidden="true"></i> الخرطوم
                         </button>
                         <button id="fullMapCityPortSudan" onclick="switchMapCity('fullMap','PortSudan')" class="gv-map-city-btn" style="flex:1;">
-                            <i class="fas fa-anchor" style="margin-left:6px;"></i> بورتسودان
+                            <i class="fas fa-anchor" style="margin-left:6px;" aria-hidden="true"></i> بورتسودان
                         </button>
                     </div>
                     <div style="width:100%; display:flex; gap:8px;">
@@ -333,14 +333,14 @@
             <!-- Pending Approvals -->
             <div class="gv-panel" id="pendingPanel">
                 <div class="gv-panel-header">
-                    <div class="gv-panel-title"><i class="fas fa-user-clock"></i> طلبات انضمام معلقة</div>
+                    <div class="gv-panel-title"><i class="fas fa-user-clock" aria-hidden="true"></i> طلبات انضمام معلقة</div>
                 </div>
                 <div class="gv-panel-body" id="pendingCaptainsBody"></div>
             </div>
             <!-- All Captains -->
             <div class="gv-panel">
                 <div class="gv-panel-header" style="flex-wrap:wrap;gap:10px;">
-                    <div class="gv-panel-title"><i class="fas fa-motorcycle"></i> جميع الكباتن</div>
+                    <div class="gv-panel-title"><i class="fas fa-motorcycle" aria-hidden="true"></i> جميع الكباتن</div>
                     <div class="gv-toolbar">
                         <select id="captainCityFilter" onchange="loadCaptains()" class="gv-toolbar-select">
                             <option value="all">كل المدن</option>
@@ -350,10 +350,10 @@
                         <input type="text" id="captainSearch" placeholder="بحث بالاسم أو الهاتف..." oninput="filterCaptains()"
                             class="gv-toolbar-search">
                         <button class="admin-export-btn gv-btn gv-btn-secondary gv-btn-sm" style="height:36px;" onclick="AdminExport.tableToCSV('#page-captains table', 'wajeez_captains_report')" title="تصدير إلى Excel/CSV">
-                            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير
+                            <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير
                         </button>
                         <button class="gv-btn gv-btn-primary gv-btn-sm" onclick="openAddCaptainModal()">
-                            <i class="fas fa-plus"></i> إضافة كابتن
+                            <i class="fas fa-plus" aria-hidden="true"></i> إضافة كابتن
                         </button>
                     </div>
                 </div>
@@ -370,7 +370,7 @@
         <div class="gv-page" id="page-users">
             <div class="gv-panel">
                 <div class="gv-panel-header" style="flex-wrap:wrap;gap:10px;">
-                    <div class="gv-panel-title"><i class="fas fa-users"></i> جميع المستخدمين</div>
+                    <div class="gv-panel-title"><i class="fas fa-users" aria-hidden="true"></i> جميع المستخدمين</div>
                     <!-- ⚠️ flex-wrap ضروري: بدونه كان الفلتران + حقل البحث (220px ثابتة) يتجاوزون
                          عرض شاشة الهاتف فيُقصّ حقل البحث خارج الشاشة ولا يظهر إطلاقاً.
                          البحث يأخذ المساحة المتبقية (flex) ويهبط لسطر كامل عند الضيق. -->
@@ -388,7 +388,7 @@
                         <input type="text" id="userSearch" placeholder="بحث بالاسم أو الهاتف..." oninput="filterUsers()"
                             class="gv-toolbar-search">
                         <button class="admin-export-btn gv-btn gv-btn-secondary gv-btn-sm" style="height:36px;" onclick="AdminExport.tableToCSV('#page-users table', 'wajeez_users_report')" title="تصدير إلى Excel/CSV">
-                            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير
+                            <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير
                         </button>
                     </div>
                 </div>
@@ -405,7 +405,7 @@
         <div class="gv-page" id="page-broadcast">
             <div class="gv-panel" style="max-width:600px;">
                 <div class="gv-panel-header">
-                    <div class="gv-panel-title"><i class="fas fa-bullhorn"></i> إرسال إشعار جماعي</div>
+                    <div class="gv-panel-title"><i class="fas fa-bullhorn" aria-hidden="true"></i> إرسال إشعار جماعي</div>
                 </div>
                 <div class="gv-panel-body">
                     <div style="margin-bottom:16px;">
@@ -431,7 +431,7 @@
                             <div id="broadcastUserResults" style="max-height:220px;overflow-y:auto;border:1px solid var(--gv-border);border-radius:10px;margin-top:6px;display:none;background:var(--gv-white, #fff);box-shadow:0 4px 12px rgba(0,0,0,.15);"></div>
                             <!-- رسالة إذا ما لقاش -->
                             <div id="broadcastUserNotFound" class="gv-user-not-found" style="display:none;">
-                                <i class="fas fa-exclamation-circle" style="margin-left:6px;"></i> لا يوجد مستخدم بهذا الاسم أو الرقم
+                                <i class="fas fa-exclamation-circle" style="margin-left:6px;" aria-hidden="true"></i> لا يوجد مستخدم بهذا الاسم أو الرقم
                             </div>
                             <!-- المستخدم المختار -->
                             <div id="selectedUserBadge" style="display:none;margin-top:8px;padding:12px 16px;background:linear-gradient(135deg,rgba(10,135,84,.08),rgba(10,135,84,.04));border-radius:10px;border:1.5px solid var(--gv-primary);display:none;align-items:center;justify-content:space-between;">
@@ -439,7 +439,7 @@
                                     <div id="selectedUserName" style="font-weight:700;font-size:14px;"></div>
                                     <div id="selectedUserInfo" style="font-size:12px;color:var(--gv-dark-2);margin-top:2px;"></div>
                                 </div>
-                                <button class="gv-btn gv-btn-ghost gv-btn-sm" onclick="clearSelectedUser()" style="color:var(--gv-danger);"><i class="fas fa-times"></i></button>
+                                <button aria-label="إلغاء اختيار المستخدم" class="gv-btn gv-btn-ghost gv-btn-sm" onclick="clearSelectedUser()" style="color:var(--gv-danger);"><i class="fas fa-times" aria-hidden="true"></i></button>
                             </div>
                         </div>
                     </div>
@@ -452,7 +452,7 @@
                             style="width:100%;padding:12px 16px;border:1px solid var(--gv-border);border-radius:10px;font-family:inherit;font-size:14px;resize:vertical;"></textarea>
                     </div>
                     <button class="gv-btn gv-btn-primary" onclick="sendBroadcast()" style="width:100%;justify-content:center;padding:14px;">
-                        <i class="fas fa-paper-plane"></i> إرسال الإشعار
+                        <i class="fas fa-paper-plane" aria-hidden="true"></i> إرسال الإشعار
                     </button>
                 </div>
             </div>
@@ -462,7 +462,7 @@
 </div><!-- /gv-main -->
 
 <!-- Toast -->
-<div class="gv-toast" id="gvToast"><i class="fas fa-bell"></i><span id="gvToastText"></span></div>
+<div class="gv-toast" id="gvToast"><i class="fas fa-bell" aria-hidden="true"></i><span id="gvToastText"></span></div>
 
 <!-- Socket.io -->
 <script src="vendor/socket.io/socket.io.min.js"></script>
@@ -645,7 +645,7 @@
         const sendBtn = document.querySelector('[onclick="sendBroadcast()"]');
         const origHtml = sendBtn.innerHTML;
         sendBtn.disabled = true;
-        sendBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> جارِ الإرسال...';
+        sendBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> جارِ الإرسال...';
 
         try {
             const body = { target: _broadcastTarget, title, message };
@@ -690,19 +690,19 @@
 <!-- 📱 Mobile Bottom Navigation Bar (شريط التنقل السفلي للهواتف) -->
 <div class="gv-mobile-bottom-nav" id="gvMobileBottomNav">
     <button class="gv-bottom-nav-item active" data-page="overview" onclick="switchPage('overview')">
-        <i class="fas fa-th-large"></i><span>الرئيسية</span>
+        <i class="fas fa-th-large" aria-hidden="true"></i><span>الرئيسية</span>
     </button>
     <button class="gv-bottom-nav-item" data-page="orders" onclick="switchPage('orders')">
-        <i class="fas fa-box-open"></i><span>الطلبات</span>
+        <i class="fas fa-box-open" aria-hidden="true"></i><span>الطلبات</span>
     </button>
     <button class="gv-bottom-nav-item" data-page="livemap" onclick="switchPage('livemap')">
-        <i class="fas fa-map-marked-alt"></i><span>الخريطة</span>
+        <i class="fas fa-map-marked-alt" aria-hidden="true"></i><span>الخريطة</span>
     </button>
     <button class="gv-bottom-nav-item" data-page="captains" onclick="switchPage('captains')">
-        <i class="fas fa-motorcycle"></i><span>الكباتن</span>
+        <i class="fas fa-motorcycle" aria-hidden="true"></i><span>الكباتن</span>
     </button>
     <button class="gv-bottom-nav-item" onclick="toggleMobileSidebar(true)">
-        <i class="fas fa-bars"></i><span>القائمة</span>
+        <i class="fas fa-bars" aria-hidden="true"></i><span>القائمة</span>
     </button>
 </div>
 

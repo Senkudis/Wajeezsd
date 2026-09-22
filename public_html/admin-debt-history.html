@@ -242,18 +242,18 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
 <header class="topbar">
     <div class="topbar-brand">
         <span class="dot"></span>
-        <i class="fas fa-file-invoice-dollar" style="color:var(--primary);margin-left:4px;"></i>
+        <i class="fas fa-file-invoice-dollar" style="color:var(--primary);margin-left:4px;" aria-hidden="true"></i>
         <span>سجل المديونيات</span>
     </div>
     <div class="d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:8px;">
-        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-            <i class="fas fa-search"></i>
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
         </button>
-        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-            <i class="fas fa-moon"></i>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
         </button>
         <a href="admin-finance.html" class="topbar-back">
-            <i class="fas fa-arrow-right"></i> المالية
+            <i class="fas fa-arrow-right" aria-hidden="true"></i> المالية
         </a>
     </div>
 </header>
@@ -261,32 +261,32 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
 <div class="page-wrap">
 
     <div class="page-header">
-        <h1><i class="fas fa-history" style="color:var(--brand);"></i> سجل تعديلات المديونية</h1>
+        <h1><i class="fas fa-history" style="color:var(--brand);" aria-hidden="true"></i> سجل تعديلات المديونية</h1>
         <p>عرض كامل لكل عمليات تعديل أرصدة الكباتن من الإدارة، مع التأثير على الأرباح.</p>
     </div>
 
     <!-- KPIS -->
     <div class="kpi-grid">
         <div class="kpi-card green">
-            <div class="kpi-icon green"><i class="fas fa-plus-circle"></i></div>
+            <div class="kpi-icon green"><i class="fas fa-plus-circle" aria-hidden="true"></i></div>
             <div class="kpi-label">مديونيات مُضافة (إيرادات)</div>
             <div class="kpi-value" id="kpiAdded">0 ج.س</div>
             <div class="kpi-sub" id="kpiAddedCount">0 عملية</div>
         </div>
         <div class="kpi-card red">
-            <div class="kpi-icon red"><i class="fas fa-minus-circle"></i></div>
+            <div class="kpi-icon red"><i class="fas fa-minus-circle" aria-hidden="true"></i></div>
             <div class="kpi-label">مديونيات مُعفاة (خسائر)</div>
             <div class="kpi-value" id="kpiForgiven">0 ج.س</div>
             <div class="kpi-sub" id="kpiForgivenCount">0 عملية</div>
         </div>
         <div class="kpi-card blue">
-            <div class="kpi-icon blue"><i class="fas fa-balance-scale"></i></div>
+            <div class="kpi-icon blue"><i class="fas fa-balance-scale" aria-hidden="true"></i></div>
             <div class="kpi-label">الصافي</div>
             <div class="kpi-value" id="kpiNet">0 ج.س</div>
             <div class="kpi-sub">المُضاف − المُعفَى</div>
         </div>
         <div class="kpi-card orange">
-            <div class="kpi-icon orange"><i class="fas fa-list-ol"></i></div>
+            <div class="kpi-icon orange"><i class="fas fa-list-ol" aria-hidden="true"></i></div>
             <div class="kpi-label">عدد العمليات</div>
             <div class="kpi-value" id="kpiCount">0</div>
             <div class="kpi-sub">في النطاق المُحدّد</div>
@@ -296,13 +296,13 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
     <!-- FILTERS -->
     <div class="section-card">
         <div class="section-card-header">
-            <h2><i class="fas fa-filter"></i> الفلاتر</h2>
+            <h2><i class="fas fa-filter" aria-hidden="true"></i> الفلاتر</h2>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="btn-ghost" onclick="resetFilters()"><i class="fas fa-undo"></i> إعادة تعيين</button>
+                <button class="btn-ghost" onclick="resetFilters()"><i class="fas fa-undo" aria-hidden="true"></i> إعادة تعيين</button>
                 <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.pay-table', 'wajeez_debt_history')">
-                    <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                    <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
                 </button>
-                <button class="btn-brand" onclick="applyFilters()"><i class="fas fa-search"></i> تطبيق</button>
+                <button class="btn-brand" onclick="applyFilters()"><i class="fas fa-search" aria-hidden="true"></i> تطبيق</button>
             </div>
         </div>
         <div class="section-card-body">
@@ -335,7 +335,7 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
     <!-- TABLE -->
     <div class="section-card">
         <div class="section-card-header">
-            <h2><i class="fas fa-table"></i> العمليات</h2>
+            <h2><i class="fas fa-table" aria-hidden="true"></i> العمليات</h2>
             <span id="resultsCount" style="font-size:13px; color:var(--muted);"></span>
         </div>
         <div class="section-card-body" style="padding:0;">
@@ -354,7 +354,7 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
                     </tr>
                     </thead>
                     <tbody id="historyTbody">
-                    <tr><td colspan="8" class="loading-state"><i class="fas fa-circle-notch spin"></i> جارِ التحميل...</td></tr>
+                    <tr><td colspan="8" class="loading-state"><i class="fas fa-circle-notch spin" aria-hidden="true"></i> جارِ التحميل...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -427,7 +427,7 @@ async function applyFilters() {
     const to   = document.getElementById('filterTo').value;
 
     const tbody = document.getElementById('historyTbody');
-    tbody.innerHTML = `<tr><td colspan="8" class="loading-state"><i class="fas fa-circle-notch spin"></i> جارِ التحميل...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="loading-state"><i class="fas fa-circle-notch spin" aria-hidden="true"></i> جارِ التحميل...</td></tr>`;
 
     const params = new URLSearchParams();
     if (from) params.set('from', from);
@@ -458,7 +458,7 @@ async function applyFilters() {
         console.error('Load history error:', err);
         // نص الخطأ الخام (رسالة المتصفح أو رد السيرفر) لا يُحقن في DOM —
         // غير مفهوم للمستخدم، وقد يكون undefined، والحقن عبر innerHTML خطر.
-        tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><i class="fas fa-exclamation-circle"></i> تعذّر تحميل البيانات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="applyFilters()">أعد المحاولة</button></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><i class="fas fa-exclamation-circle" aria-hidden="true"></i> تعذّر تحميل البيانات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="applyFilters()">أعد المحاولة</button></td></tr>';
     }
 }
 
@@ -478,7 +478,7 @@ function filterClientSide() {
 function renderTable(entries) {
     const tbody = document.getElementById('historyTbody');
     if (!entries.length) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="fas fa-inbox"></i> لا توجد عمليات في هذا النطاق</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="fas fa-inbox" aria-hidden="true"></i> لا توجد عمليات في هذا النطاق</td></tr>`;
         return;
     }
 

@@ -132,7 +132,7 @@ body.dark-mode .od-btn-ghost { background: #1f2937 !important; border-color: #37
 
 <div class="od-container" id="mainContainer">
     <div class="od-loading" id="loadingState">
-        <i class="fas fa-spinner fa-spin"></i>
+        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
         <p style="margin-top:12px;font-weight:700;">جاري تحميل تفاصيل الطلب...</p>
     </div>
 </div>
@@ -187,7 +187,7 @@ async function loadOrder() {
         renderOrder(order);
     } catch(e) {
         document.getElementById('mainContainer').innerHTML = `
-            <button class="od-back" onclick="history.back()"><i class="fas fa-arrow-right"></i> رجوع</button>
+            <button class="od-back" onclick="history.back()"><i class="fas fa-arrow-right" aria-hidden="true"></i> رجوع</button>
             <div style="text-align:center;padding:40px;"><p style="font-weight:700;color:#ef4444;">فشل تحميل الطلب</p></div>
         `;
     }
@@ -218,11 +218,11 @@ function renderTimelineCard(o) {
     }).join('');
     const eta = (o.eta && o.eta.text && !['delivered', 'cancelled'].includes(o.status))
         ? `<div style="margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#4338ca;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;">
-             <i class="fas fa-clock"></i> زمن الوصول المتوقّع ~${o.eta.text}${o.eta.distanceKm != null ? ` · ${o.eta.distanceKm} كم` : ''}
+             <i class="fas fa-clock" aria-hidden="true"></i> زمن الوصول المتوقّع ~${o.eta.text}${o.eta.distanceKm != null ? ` · ${o.eta.distanceKm} كم` : ''}
            </div>` : '';
     return `
         <div class="od-card" style="margin-bottom:16px;">
-            <div class="od-card-title"><i class="fas fa-stream" style="color:#6366f1;"></i> الخط الزمني للطلب</div>
+            <div class="od-card-title"><i class="fas fa-stream" style="color:#6366f1;" aria-hidden="true"></i> الخط الزمني للطلب</div>
             ${eta}
             <ul class="od-timeline">${items}</ul>
         </div>`;
@@ -285,7 +285,7 @@ function renderNegotiationsCard(o) {
     return `
         <div class="od-card" style="margin-bottom:16px;">
             <div class="od-card-title">
-                <i class="fas fa-comments-dollar" style="color:#d97706;"></i> عروض المفاوضة
+                <i class="fas fa-comments-dollar" style="color:#d97706;" aria-hidden="true"></i> عروض المفاوضة
                 <span style="font-size:12px;font-weight:800;color:#b45309;background:#fef3c7;border-radius:99px;padding:3px 10px;margin-right:8px;">
                     ${openCount} مفتوح من ${list.length}
                 </span>
@@ -304,15 +304,15 @@ function renderOrder(o) {
 
     container.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-            <button class="od-back" onclick="history.back()" style="margin-bottom:0;"><i class="fas fa-arrow-right"></i> رجوع للوحة التحكم</button>
-            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                <i class="fas fa-moon"></i>
+            <button class="od-back" onclick="history.back()" style="margin-bottom:0;"><i class="fas fa-arrow-right" aria-hidden="true"></i> رجوع للوحة التحكم</button>
+            <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
         </div>
 
         <div class="od-header">
             <div class="od-header-right">
-                <h1><i class="fas fa-receipt" style="color:var(--primary, #048c5b);"></i> طلب #${o._id.slice(-6).toUpperCase()}</h1>
+                <h1><i class="fas fa-receipt" style="color:var(--primary, #048c5b);" aria-hidden="true"></i> طلب #${o._id.slice(-6).toUpperCase()}</h1>
                 <p>تم الإنشاء: ${createdDate}</p>
             </div>
             <span class="od-status-badge ${o.status}">${statusMap[o.status] || o.status}</span>
@@ -321,14 +321,14 @@ function renderOrder(o) {
         <div class="od-grid">
             <!-- Client Info -->
             <div class="od-card">
-                <div class="od-card-title"><i class="fas fa-user"></i> بيانات العميل</div>
+                <div class="od-card-title"><i class="fas fa-user" aria-hidden="true"></i> بيانات العميل</div>
                 <div class="od-field"><label>الاسم</label><span>${esc(o.client?.name) || '—'}</span></div>
                 <div class="od-field"><label>الهاتف</label><span dir="ltr">${esc(o.client?.phone) || '—'}</span></div>
             </div>
 
             <!-- Captain Info -->
             <div class="od-card">
-                <div class="od-card-title"><i class="fas fa-motorcycle"></i> بيانات الكابتن</div>
+                <div class="od-card-title"><i class="fas fa-motorcycle" aria-hidden="true"></i> بيانات الكابتن</div>
                 ${o.captain ? `
                     <div class="od-field"><label>الاسم</label><span>${esc(o.captain.name)}</span></div>
                     <div class="od-field"><label>الهاتف</label><span dir="ltr">${esc(o.captain.phone) || '—'}</span></div>
@@ -337,7 +337,7 @@ function renderOrder(o) {
 
             <!-- Pickup -->
             <div class="od-card">
-                <div class="od-card-title"><i class="fas fa-map-pin" style="color:#10b981;"></i> نقطة الاستلام</div>
+                <div class="od-card-title"><i class="fas fa-map-pin" style="color:#10b981;" aria-hidden="true"></i> نقطة الاستلام</div>
                 <div class="od-field"><label>العنوان</label><span>${esc(o.pickup?.address) || '—'}</span></div>
                 <div class="od-field"><label>اسم جهة الاتصال</label><span>${esc(o.pickup?.contactName) || '—'}</span></div>
                 <div class="od-field"><label>هاتف جهة الاتصال</label><span dir="ltr">${esc(o.pickup?.contactPhone) || '—'}</span></div>
@@ -345,7 +345,7 @@ function renderOrder(o) {
 
             <!-- Dropoff -->
             <div class="od-card">
-                <div class="od-card-title"><i class="fas fa-flag-checkered" style="color:#ef4444;"></i> نقطة التسليم</div>
+                <div class="od-card-title"><i class="fas fa-flag-checkered" style="color:#ef4444;" aria-hidden="true"></i> نقطة التسليم</div>
                 <div class="od-field"><label>العنوان</label><span>${esc(o.dropoff?.address) || '—'}</span></div>
                 <div class="od-field"><label>اسم المستلم</label><span>${esc(o.dropoff?.receiverName) || '—'}</span></div>
                 <div class="od-field"><label>هاتف المستلم</label><span dir="ltr">${esc(o.dropoff?.receiverPhone) || '—'}</span></div>
@@ -356,7 +356,7 @@ function renderOrder(o) {
         <!-- 🧭 Multi-stop trip stations -->
         <div class="od-card" style="margin-bottom:16px;">
             <div class="od-card-title">
-                <i class="fas fa-route" style="color:#0ea5e9;"></i> محطات الرحلة متعددة النقاط
+                <i class="fas fa-route" style="color:#0ea5e9;" aria-hidden="true"></i> محطات الرحلة متعددة النقاط
                 <span style="font-size:12px;font-weight:800;color:#0ea5e9;background:#e0f2fe;border-radius:99px;padding:3px 10px;margin-right:8px;">
                     ${o.stops.filter(s=>s.done).length} / ${o.stops.length} اكتملت
                 </span>
@@ -365,7 +365,7 @@ function renderOrder(o) {
             <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i < o.stops.length - 1 ? 'border-bottom:1px dashed #e2e8f0;' : ''}">
                 <span style="width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;
                     background:${s.done ? '#dcfce7' : (s.type === 'pickup' ? '#dbeafe' : '#fee2e2')};color:${s.done ? '#16a34a' : (s.type === 'pickup' ? '#2563eb' : '#dc2626')};">
-                    ${s.done ? '<i class="fas fa-check"></i>' : (i + 1)}
+                    ${s.done ? '<i class="fas fa-check" aria-hidden="true"></i>' : (i + 1)}
                 </span>
                 <div style="min-width:0;flex:1;">
                     <div style="font-size:11px;color:#94a3b8;font-weight:700;">${s.type === 'pickup' ? 'استلام' : 'تسليم'}${s.contactName ? ' — ' + esc(s.contactName) : ''}${s.contactPhone ? ' — ' + esc(s.contactPhone) : ''}</div>
@@ -384,14 +384,14 @@ function renderOrder(o) {
         <!-- 💬 محادثة العميل والكابتن — تُحمَّل بطلب صريح لا تلقائياً -->
         <div class="od-card" style="margin-bottom:16px;">
             <div class="od-card-title">
-                <i class="fas fa-comments" style="color:#0ea5e9;"></i> محادثة العميل والكابتن
+                <i class="fas fa-comments" style="color:#0ea5e9;" aria-hidden="true"></i> محادثة العميل والكابتن
             </div>
             <div id="chatViewer">
                 <p style="color:#64748b;font-size:12.5px;margin:0 0 10px;">
                     محتوى المحادثة خاص، ويُسجَّل كل اطّلاع عليه في سجل التدقيق باسمك.
                 </p>
                 <button class="od-btn od-btn-primary" onclick="loadChat('${o._id}')">
-                    <i class="fas fa-eye"></i> عرض المحادثة
+                    <i class="fas fa-eye" aria-hidden="true"></i> عرض المحادثة
                 </button>
             </div>
         </div>
@@ -402,7 +402,7 @@ function renderOrder(o) {
         <!-- Pricing & Details -->
         <div class="od-grid">
             <div class="od-card">
-                <div class="od-card-title"><i class="fas fa-coins"></i> التسعير</div>
+                <div class="od-card-title"><i class="fas fa-coins" aria-hidden="true"></i> التسعير</div>
                 <div class="od-field"><label>السعر الإجمالي</label><span style="font-size:18px;color:#10b981;">${o.price} ج.س</span></div>
                 <div class="od-field"><label>عمولة التطبيق</label><span>${o.appFee || 0} ج.س</span></div>
                 <div class="od-field"><label>صافي الكابتن</label><span>${o.netRevenue || (o.price - (o.appFee || 0))} ج.س</span></div>
@@ -411,7 +411,7 @@ function renderOrder(o) {
             </div>
 
             <div class="od-card">
-                <div class="od-card-title"><i class="fas fa-info-circle"></i> تفاصيل إضافية</div>
+                <div class="od-card-title"><i class="fas fa-info-circle" aria-hidden="true"></i> تفاصيل إضافية</div>
                 <div class="od-field"><label>ملاحظات</label><span>${esc(o.details) || 'لا توجد'}</span></div>
                 ${o.shopName ? `<div class="od-field"><label>المحل</label><span>${esc(o.shopName)}</span></div>` : ''}
                 ${o.items && o.items.length ? `<div class="od-field"><label>العناصر</label><span>${esc(o.items.join('، '))}</span></div>` : ''}
@@ -424,7 +424,7 @@ function renderOrder(o) {
         <!-- Images -->
         ${o.parcelImage || o.receiptImage ? `
         <div class="od-card" style="margin-bottom:20px;">
-            <div class="od-card-title"><i class="fas fa-image"></i> الصور المرفقة</div>
+            <div class="od-card-title"><i class="fas fa-image" aria-hidden="true"></i> الصور المرفقة</div>
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
                 ${o.parcelImage ? `<img src="${esc(getFullImageUrl(o.parcelImage))}" class="od-img-preview" data-lightbox alt="صورة الطرد" onerror="this.style.display='none'">` : ''}
                 ${o.receiptImage ? `<img src="${esc(getFullImageUrl(o.receiptImage))}" class="od-img-preview" data-lightbox alt="إيصال الدفع" onerror="this.style.display='none'">` : ''}
@@ -434,16 +434,16 @@ function renderOrder(o) {
         <!-- Map -->
         ${hasMappableRoute(o) ? `
         <div class="od-card" style="margin-bottom:20px;">
-            <div class="od-card-title"><i class="fas fa-route"></i> مسار التوصيل</div>
+            <div class="od-card-title"><i class="fas fa-route" aria-hidden="true"></i> مسار التوصيل</div>
             <div class="od-map" id="orderMap"></div>
             <div id="orderRouteSummary" style="padding:8px 4px 0;font-size:12px;color:#64748b;"></div>
         </div>` : `
         <!-- ⚠️ طرفٌ بلا إحداثيات: الصمت هنا كان يترك الأدمن يظنّ أن الخريطة
              معطّلة، بينما المشكلة في بيانات الطلب نفسه. -->
         <div class="od-card" style="margin-bottom:20px;">
-            <div class="od-card-title"><i class="fas fa-route"></i> مسار التوصيل</div>
+            <div class="od-card-title"><i class="fas fa-route" aria-hidden="true"></i> مسار التوصيل</div>
             <div style="padding:16px;border-radius:12px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;font-size:13px;line-height:1.9;">
-                <b><i class="fas fa-triangle-exclamation"></i> تعذّر رسم المسار</b><br>
+                <b><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> تعذّر رسم المسار</b><br>
                 ${missingCoordLabels(o).length
                     ? `لا توجد إحداثيات محفوظة لـ <b>${missingCoordLabels(o).join(' و')}</b>.`
                     : 'إحداثيات الطلب غير مكتملة.'}
@@ -453,14 +453,14 @@ function renderOrder(o) {
 
         <!-- Actions -->
         <div class="od-card">
-            <div class="od-card-title"><i class="fas fa-tools"></i> إجراءات الإدارة</div>
+            <div class="od-card-title"><i class="fas fa-tools" aria-hidden="true"></i> إجراءات الإدارة</div>
             <div class="od-actions">
-                <button class="od-btn od-btn-primary" onclick="changeStatus('${o._id}')"><i class="fas fa-exchange-alt"></i> تغيير الحالة</button>
-                <button class="od-btn od-btn-warning" onclick="editPrice('${o._id}', ${o.price})"><i class="fas fa-edit"></i> تعديل السعر</button>
-                ${!['delivered','cancelled'].includes(o.status) ? `<button class="od-btn" style="background:#0ea5e9;color:#fff;" onclick="openRouteEditor()"><i class="fas fa-route"></i> تعديل المسار</button>` : ''}
-                ${['accepted','picked_up'].includes(o.status) ? `<button class="od-btn" style="background:#8b5cf6;color:white;" onclick="reassignCaptain('${o._id}')"><i class="fas fa-sync-alt"></i> تبديل الكابتن</button>` : ''}
-                ${o.status !== 'cancelled' ? `<button class="od-btn od-btn-danger" onclick="forceCancel('${o._id}')"><i class="fas fa-ban"></i> إلغاء إجباري</button>` : ''}
-                <button class="od-btn od-btn-ghost" onclick="deleteOrder('${o._id}')"><i class="fas fa-trash"></i> حذف</button>
+                <button class="od-btn od-btn-primary" onclick="changeStatus('${o._id}')"><i class="fas fa-exchange-alt" aria-hidden="true"></i> تغيير الحالة</button>
+                <button class="od-btn od-btn-warning" onclick="editPrice('${o._id}', ${o.price})"><i class="fas fa-edit" aria-hidden="true"></i> تعديل السعر</button>
+                ${!['delivered','cancelled'].includes(o.status) ? `<button class="od-btn" style="background:#0ea5e9;color:#fff;" onclick="openRouteEditor()"><i class="fas fa-route" aria-hidden="true"></i> تعديل المسار</button>` : ''}
+                ${['accepted','picked_up'].includes(o.status) ? `<button class="od-btn" style="background:#8b5cf6;color:white;" onclick="reassignCaptain('${o._id}')"><i class="fas fa-sync-alt" aria-hidden="true"></i> تبديل الكابتن</button>` : ''}
+                ${o.status !== 'cancelled' ? `<button class="od-btn od-btn-danger" onclick="forceCancel('${o._id}')"><i class="fas fa-ban" aria-hidden="true"></i> إلغاء إجباري</button>` : ''}
+                <button class="od-btn od-btn-ghost" onclick="deleteOrder('${o._id}')"><i class="fas fa-trash" aria-hidden="true"></i> حذف</button>
             </div>
 
         </div>
@@ -845,7 +845,7 @@ async function deleteOrder(id) {
 // ========================================
 async function loadChat(id) {
     const box = document.getElementById('chatViewer');
-    box.innerHTML = '<div style="text-align:center;padding:18px;"><i class="fas fa-spinner fa-spin"></i></div>';
+    box.innerHTML = '<div style="text-align:center;padding:18px;"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>';
     try {
         const res = await fetch(`${BASE}/api/admin/chats/${id}`, { headers });
         if (res.status === 403) {
@@ -877,7 +877,7 @@ async function loadChat(id) {
                        onerror="this.replaceWith(document.createTextNode('تعذّر تحميل الصورة'))"></div>`
                 : (m.imageExpiredAt
                     ? `<div style="margin-top:6px;font-size:11.5px;color:#94a3b8;">
-                         <i class="fas fa-image"></i> حُذفت الصورة بعد ${data.imageTtlHours || 48} ساعة</div>`
+                         <i class="fas fa-image" aria-hidden="true"></i> حُذفت الصورة بعد ${data.imageTtlHours || 48} ساعة</div>`
                     : '');
             const text = (m.text || '').trim();
             return `
@@ -905,7 +905,7 @@ async function loadChat(id) {
             </div>
             <div style="margin-top:10px;">
                 <button class="od-btn od-btn-danger" onclick="deleteChat('${id}', ${msgs.length}, ${images})">
-                    <i class="fas fa-trash"></i> حذف المحادثة من قاعدة البيانات
+                    <i class="fas fa-trash" aria-hidden="true"></i> حذف المحادثة من قاعدة البيانات
                 </button>
             </div>`;
     } catch (e) {
@@ -1026,7 +1026,7 @@ async function reassignCaptain(orderId) {
      onclick="if(event.target===this)closeRouteEditor()">
   <div style="background:#f8fafc;border-radius:18px;width:min(560px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
     <div style="background:#fff;padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;">
-      <i class="fas fa-route" style="color:#0ea5e9;"></i>
+      <i class="fas fa-route" style="color:#0ea5e9;" aria-hidden="true"></i>
       <b style="font-size:15px;">تعديل مسار الرحلة</b>
       <button onclick="closeRouteEditor()" style="margin-inline-start:auto;border:0;background:#f1f5f9;border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:16px;">&times;</button>
     </div>
@@ -1040,7 +1040,7 @@ async function reassignCaptain(orderId) {
 
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
         <div style="font-size:12px;font-weight:800;color:#0369a1;margin-bottom:8px;">
-          <i class="fas fa-calculator"></i> التسعيرة — تُحسب في الخادم بنفس إعدادات المدينة
+          <i class="fas fa-calculator" aria-hidden="true"></i> التسعيرة — تُحسب في الخادم بنفس إعدادات المدينة
         </div>
         <div id="routePricing" style="font-size:13px;">—</div>
         <label style="display:block;margin-top:10px;font-size:12px;font-weight:700;color:#475569;">السعر النهائي (ج.س)</label>

@@ -112,7 +112,7 @@
 
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <div class="logo"><i class="fas fa-chart-line"></i></div>
+                <div class="logo"><i class="fas fa-chart-line" aria-hidden="true"></i></div>
                 <h2>وَجِـيـز</h2>
                 <p id="adminName">لوحة الإدارة</p>
             </div>
@@ -120,43 +120,43 @@
             <nav class="sidebar-nav">
                 <div class="nav-label">الإدارة</div>
                 <button class="nav-item" onclick="location.href='admin.html'">
-                    <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i><span>العودة للوحة التحكم</span>
                 </button>
                 <button class="nav-item active" onclick="loadStats()">
-                    <i class="fas fa-chart-line"></i><span>إحصائيات نطاقي</span>
+                    <i class="fas fa-chart-line" aria-hidden="true"></i><span>إحصائيات نطاقي</span>
                 </button>
 
                 <div class="nav-label">روابط سريعة</div>
                 <button class="nav-item" onclick="location.href='admin-captains.html'">
-                    <i class="fas fa-motorcycle"></i><span>الكباتن</span>
+                    <i class="fas fa-motorcycle" aria-hidden="true"></i><span>الكباتن</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-complaints.html'">
-                    <i class="fas fa-headset"></i><span>الشكاوى</span>
+                    <i class="fas fa-headset" aria-hidden="true"></i><span>الشكاوى</span>
                 </button>
             </nav>
 
             <div class="sidebar-footer">
                 <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                    <i class="fas fa-power-off" aria-hidden="true"></i><span>تسجيل الخروج</span>
                 </button>
             </div>
         </aside>
 
         <main class="main-content">
             <header class="top-header">
-                <button class="menu-toggle" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
+                <button aria-label="فتح القائمة الجانبية" class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
                 <div class="header-title d-none d-md-block">
                     <h1>إحصائيات نطاقي</h1>
                     <p>أرقام مدنك أنت — يوماً وأسبوعاً وشهراً</p>
                 </div>
                 <div class="ms-auto d-flex align-items-center gap-2">
-                    <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-                        <i class="fas fa-search"></i>
+                    <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                        <i class="fas fa-search" aria-hidden="true"></i>
                     </button>
-                    <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                        <i class="fas fa-moon"></i>
+                    <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                        <i class="fas fa-moon" aria-hidden="true"></i>
                     </button>
                 </div>
             </header>
@@ -173,7 +173,7 @@
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap" id="cityChips"></div>
                         <button class="admin-export-btn" onclick="exportStats()">
-                            <i class="fas fa-file-csv"></i> تصدير
+                            <i class="fas fa-file-csv" aria-hidden="true"></i> تصدير
                         </button>
                     </div>
                 </div>
@@ -181,7 +181,7 @@
                 <!-- الأرقام -->
                 <div class="dashboard-section active section-card">
                     <div class="section-header">
-                        <h2 class="section-title mb-0"><i class="fas fa-gauge-high"></i> الملخّص</h2>
+                        <h2 class="section-title mb-0"><i class="fas fa-gauge-high" aria-hidden="true"></i> الملخّص</h2>
                     </div>
                     <div class="kpi-grid" id="kpiGrid"></div>
                 </div>
@@ -189,11 +189,11 @@
                 <!-- اليومي -->
                 <div class="dashboard-section active section-card">
                     <div class="section-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <h2 class="section-title mb-0"><i class="fas fa-calendar-day"></i> يوماً بيوم</h2>
+                        <h2 class="section-title mb-0"><i class="fas fa-calendar-day" aria-hidden="true"></i> يوماً بيوم</h2>
                         <div class="legend">
-                            <span><i style="background:#16a34a"></i>مكتملة</span>
-                            <span><i style="background:#ef4444"></i>ملغاة</span>
-                            <span><i style="background:#cbd5e1"></i>قيد التنفيذ</span>
+                            <span><i style="background:#16a34a" aria-hidden="true"></i>مكتملة</span>
+                            <span><i style="background:#ef4444" aria-hidden="true"></i>ملغاة</span>
+                            <span><i style="background:#cbd5e1" aria-hidden="true"></i>قيد التنفيذ</span>
                         </div>
                     </div>
                     <div id="dayChart"></div>
@@ -203,7 +203,7 @@
                     <div class="col-lg-6">
                         <div class="dashboard-section active section-card h-100">
                             <div class="section-header">
-                                <h2 class="section-title mb-0"><i class="fas fa-chart-bar"></i> توزيع الحالات</h2>
+                                <h2 class="section-title mb-0"><i class="fas fa-chart-bar" aria-hidden="true"></i> توزيع الحالات</h2>
                             </div>
                             <div id="statusList"></div>
                         </div>
@@ -211,7 +211,7 @@
                     <div class="col-lg-6">
                         <div class="dashboard-section active section-card h-100">
                             <div class="section-header">
-                                <h2 class="section-title mb-0"><i class="fas fa-trophy"></i> أنشط الكباتن</h2>
+                                <h2 class="section-title mb-0"><i class="fas fa-trophy" aria-hidden="true"></i> أنشط الكباتن</h2>
                             </div>
                             <div id="topCaptains"></div>
                         </div>
@@ -222,7 +222,7 @@
                     <div class="col-lg-6">
                         <div class="dashboard-section active section-card h-100">
                             <div class="section-header">
-                                <h2 class="section-title mb-0"><i class="fas fa-city"></i> حسب المدينة</h2>
+                                <h2 class="section-title mb-0"><i class="fas fa-city" aria-hidden="true"></i> حسب المدينة</h2>
                             </div>
                             <div id="cityTable"></div>
                         </div>
@@ -230,7 +230,7 @@
                     <div class="col-lg-6">
                         <div class="dashboard-section active section-card h-100">
                             <div class="section-header">
-                                <h2 class="section-title mb-0"><i class="fas fa-ban"></i> من ألغى الطلبات</h2>
+                                <h2 class="section-title mb-0"><i class="fas fa-ban" aria-hidden="true"></i> من ألغى الطلبات</h2>
                             </div>
                             <div id="cancelTable"></div>
                         </div>
@@ -285,7 +285,7 @@
             if (Math.abs(pct) < 0.5) return '<div class="kpi-delta flat">كما الفترة السابقة</div>';
             const up = pct > 0;
             return `<div class="kpi-delta ${up ? 'up' : 'down'}">
-                <i class="fas fa-arrow-${up ? 'up' : 'down'}"></i>
+                <i class="fas fa-arrow-${up ? 'up' : 'down'}" aria-hidden="true"></i>
                 ${Math.abs(pct).toFixed(1)}% عن الفترة السابقة</div>`;
         }
 
@@ -418,7 +418,7 @@
 
         function renderCities(cities) {
             document.getElementById('cityChips').innerHTML = cities.map(c =>
-                `<span class="city-chip"><i class="fas fa-location-dot"></i>${esc(CITY_AR[c] || c)}</span>`
+                `<span class="city-chip"><i class="fas fa-location-dot" aria-hidden="true"></i>${esc(CITY_AR[c] || c)}</span>`
             ).join('');
         }
 
@@ -427,7 +427,7 @@
                 Array(5).fill('<div class="kpi"><div class="kpi-label">—</div><div class="kpi-value">…</div></div>').join('');
             ['dayChart', 'statusList', 'topCaptains', 'cityTable', 'cancelTable'].forEach(id => {
                 document.getElementById(id).innerHTML =
-                    '<p class="text-muted text-center py-4 mb-0"><i class="fas fa-spinner fa-spin"></i> جاري التحميل…</p>';
+                    '<p class="text-muted text-center py-4 mb-0"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> جاري التحميل…</p>';
             });
         }
 
@@ -464,7 +464,7 @@
 
         function showError(msg) {
             const html = `<p class="text-danger text-center py-4 mb-0">
-                <i class="fas fa-triangle-exclamation"></i> ${esc(msg)}
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> ${esc(msg)}
                 <br><button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadStats()">إعادة المحاولة</button>
             </p>`;
             document.getElementById('kpiGrid').innerHTML = html;

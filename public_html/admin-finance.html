@@ -474,18 +474,18 @@
 <!-- ── TOPBAR ─────────────────────────────────────── -->
 <header class="topbar">
     <div class="topbar-brand">
-        <div class="brand-badge"><i class="fas fa-wallet"></i></div>
+        <div class="brand-badge"><i class="fas fa-wallet" aria-hidden="true"></i></div>
         الإدارة المالية والمحافظ
     </div>
     <div class="topbar-actions">
-        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-            <i class="fas fa-search"></i>
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
         </button>
-        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-            <i class="fas fa-moon"></i>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
         </button>
         <a href="admin.html" class="topbar-back">
-            <i class="fas fa-arrow-right"></i> لوحة التحكم
+            <i class="fas fa-arrow-right" aria-hidden="true"></i> لوحة التحكم
         </a>
     </div>
 </header>
@@ -493,7 +493,7 @@
 <!-- ── TOAST & LIGHTBOX ────────────────────────────── -->
 <div id="toastBox"></div>
 <div id="receiptLightbox">
-    <button class="close-lb" onclick="closeLightbox()"><i class="fas fa-times"></i></button>
+    <button aria-label="إغلاق الصورة" class="close-lb" onclick="closeLightbox()"><i class="fas fa-times" aria-hidden="true"></i></button>
     <img id="lightboxImg" src="" alt="إشعار السداد">
 </div>
 
@@ -503,7 +503,7 @@
     <!-- ── CITY SELECTOR BANNER ──────────────────────── -->
     <div class="city-banner">
         <div class="city-info">
-            <div class="city-icon"><i class="fas fa-city"></i></div>
+            <div class="city-icon"><i class="fas fa-city" aria-hidden="true"></i></div>
             <div>
                 <div class="city-text-title">المدينة الحالية للإدارة المالية</div>
                 <div class="city-text-sub">الإعدادات المالية والتسعيرة تُطبق على المدينة المختارة فقط</div>
@@ -511,10 +511,10 @@
         </div>
         <div class="city-pills">
             <button id="cityBtn-Khartoum" class="city-btn active-city" onclick="switchFinanceCity('Khartoum')">
-                <i class="fas fa-building"></i> الخرطوم
+                <i class="fas fa-building" aria-hidden="true"></i> الخرطوم
             </button>
             <button id="cityBtn-PortSudan" class="city-btn" onclick="switchFinanceCity('PortSudan')">
-                <i class="fas fa-anchor"></i> بورتسودان
+                <i class="fas fa-anchor" aria-hidden="true"></i> بورتسودان
             </button>
         </div>
     </div>
@@ -527,10 +527,10 @@
         </div>
         <div class="page-header-actions">
             <a href="admin-debt-history.html" class="btn-brand" style="text-decoration:none;">
-                <i class="fas fa-history"></i> سجل المديونيات
+                <i class="fas fa-history" aria-hidden="true"></i> سجل المديونيات
             </a>
             <a href="admin-settlements.html" class="btn-brand" style="text-decoration:none;background:linear-gradient(135deg,#3b82f6,#1d4ed8);">
-                <i class="fas fa-hand-holding-usd"></i> تسويات التجار
+                <i class="fas fa-hand-holding-usd" aria-hidden="true"></i> تسويات التجار
             </a>
         </div>
     </div>
@@ -540,28 +540,28 @@
         <div class="kpi-card green">
             <div class="kpi-top">
                 <span class="kpi-label">طلبات سداد معلقة</span>
-                <div class="kpi-icon green"><i class="fas fa-clock"></i></div>
+                <div class="kpi-icon green"><i class="fas fa-clock" aria-hidden="true"></i></div>
             </div>
             <div class="kpi-value" id="kpiPending">—</div>
         </div>
         <div class="kpi-card red">
             <div class="kpi-top">
                 <span class="kpi-label">كباتن محجوبون</span>
-                <div class="kpi-icon red"><i class="fas fa-user-lock"></i></div>
+                <div class="kpi-icon red"><i class="fas fa-user-lock" aria-hidden="true"></i></div>
             </div>
             <div class="kpi-value" id="kpiBlocked">—</div>
         </div>
         <div class="kpi-card orange">
             <div class="kpi-top">
                 <span class="kpi-label">في منطقة التحذير (80%+)</span>
-                <div class="kpi-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="kpi-icon orange"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div>
             </div>
             <div class="kpi-value" id="kpiWarning">—</div>
         </div>
         <div class="kpi-card blue">
             <div class="kpi-top">
                 <span class="kpi-label">إجمالي العمولات المحصلة</span>
-                <div class="kpi-icon blue"><i class="fas fa-coins"></i></div>
+                <div class="kpi-icon blue"><i class="fas fa-coins" aria-hidden="true"></i></div>
             </div>
             <div class="kpi-value" id="kpiRevenue">—</div>
         </div>
@@ -570,16 +570,16 @@
     <!-- ── EXECUTIVE TAB NAVIGATION ───────────────────── -->
     <div class="nav-tabs-wrapper">
         <button class="tab-btn active" onclick="switchTab('payments', this)">
-            <i class="fas fa-file-invoice-dollar"></i> طلبات السداد الإشعارات <span id="tab-badge-pending" class="badge bg-warning text-dark ms-1" style="display:none;">0</span>
+            <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> طلبات السداد الإشعارات <span id="tab-badge-pending" class="badge bg-warning text-dark ms-1" style="display:none;">0</span>
         </button>
         <button class="tab-btn" onclick="switchTab('debts', this)">
-            <i class="fas fa-user-shield"></i> المحجوبون والمديونيات
+            <i class="fas fa-user-shield" aria-hidden="true"></i> المحجوبون والمديونيات
         </button>
         <button class="tab-btn" onclick="switchTab('ledger', this)">
-            <i class="fas fa-book"></i> كشف الحساب المالي
+            <i class="fas fa-book" aria-hidden="true"></i> كشف الحساب المالي
         </button>
         <button class="tab-btn" onclick="switchTab('settings', this)">
-            <i class="fas fa-sliders-h"></i> التسعيرة وإعدادات النظام
+            <i class="fas fa-sliders-h" aria-hidden="true"></i> التسعيرة وإعدادات النظام
         </button>
     </div>
 
@@ -589,10 +589,10 @@
     <div id="tab-payments" class="tab-content active">
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-receipt"></i> طلبات إثبات السداد</h2>
+                <h2><i class="fas fa-receipt" aria-hidden="true"></i> طلبات إثبات السداد</h2>
                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
                     <div class="search-box">
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-search" aria-hidden="true"></i>
                         <input type="text" id="paymentsSearchInput" placeholder="بحث باسم الكابتن أو الهاتف..." onkeyup="filterPaymentsTable()">
                     </div>
                     <div class="filter-pills">
@@ -600,12 +600,12 @@
                         <div class="pill"        id="pill-approved" onclick="setFilter('approved')">مقبول</div>
                         <div class="pill"        id="pill-rejected" onclick="setFilter('rejected')">مرفوض</div>
                         <div class="pill"        id="pill-all"      onclick="setFilter('')">الكل</div>
-                        <button class="pill" style="background:var(--bg);" onclick="loadPaymentRequests()">
-                            <i class="fas fa-sync-alt"></i>
+                        <button aria-label="تحديث طلبات السداد" class="pill" style="background:var(--bg);" onclick="loadPaymentRequests()">
+                            <i class="fas fa-sync-alt" aria-hidden="true"></i>
                         </button>
                     </div>
                     <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.pay-table', 'wajeez_payments_report')">
-                        <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+                        <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
                     </button>
                 </div>
             </div>
@@ -626,7 +626,7 @@
                     <tbody id="paymentsTableBody">
                         <tr class="loading-row">
                             <td colspan="8">
-                                <i class="fas fa-circle-notch spin" style="font-size:24px;color:var(--primary);"></i>
+                                <i class="fas fa-circle-notch spin" style="font-size:24px;color:var(--primary);" aria-hidden="true"></i>
                                 <br><span style="font-size:13px;margin-top:8px;display:block;">جاري تحميل البيانات...</span>
                             </td>
                         </tr>
@@ -644,7 +644,7 @@
         <!-- DEBT ADJUSTMENT TOOL -->
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-sliders-h"></i> إدارة وتعديل مديونية كابتن يدوياً</h2>
+                <h2><i class="fas fa-sliders-h" aria-hidden="true"></i> إدارة وتعديل مديونية كابتن يدوياً</h2>
                 <span style="font-size:12px;color:var(--muted);">تصفير / تخفيض / إضافة مديونية من قِبل الإدارة</span>
             </div>
             <div class="section-card-body">
@@ -653,7 +653,7 @@
                     <div class="col-md-6">
                         <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-md);padding:20px;height:100%;">
                             <div style="font-size:14px;font-weight:800;color:#15803d;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-                                <i class="fas fa-arrow-down"></i> تسوية / تخفيض مديونية كابتن
+                                <i class="fas fa-arrow-down" aria-hidden="true"></i> تسوية / تخفيض مديونية كابتن
                             </div>
                             <div class="field-group mb-3">
                                 <label class="field-label">اختر الكابتن المدين</label>
@@ -673,10 +673,10 @@
                             </div>
                             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
                                 <button class="btn-brand" onclick="adjustDebt('zero')" style="background:var(--danger-gradient);box-shadow:0 4px 14px rgba(239,68,68,0.25);">
-                                    <i class="fas fa-times-circle"></i> تصفير المديونية
+                                    <i class="fas fa-times-circle" aria-hidden="true"></i> تصفير المديونية
                                 </button>
                                 <button class="btn-brand" onclick="adjustDebt('partial')">
-                                    <i class="fas fa-minus-circle"></i> تخفيض جزئي
+                                    <i class="fas fa-minus-circle" aria-hidden="true"></i> تخفيض جزئي
                                 </button>
                             </div>
                         </div>
@@ -686,7 +686,7 @@
                     <div class="col-md-6">
                         <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-md);padding:20px;height:100%;">
                             <div style="font-size:14px;font-weight:800;color:#c2410c;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-                                <i class="fas fa-plus-circle"></i> إضافة مديونية يدوياً لكابتن
+                                <i class="fas fa-plus-circle" aria-hidden="true"></i> إضافة مديونية يدوياً لكابتن
                             </div>
                             <div class="field-group mb-3">
                                 <label class="field-label">اختر الكابتن</label>
@@ -709,7 +709,7 @@
                                 <input type="text" id="addDebtNote" class="field-input" placeholder="مثال: مخالفة, غرامة تأخير...">
                             </div>
                             <button class="btn-brand" onclick="addDebt()" style="background:var(--warning-gradient);box-shadow:0 4px 14px rgba(245,158,11,0.25);">
-                                <i class="fas fa-plus-circle"></i> إضافة المديونية
+                                <i class="fas fa-plus-circle" aria-hidden="true"></i> إضافة المديونية
                             </button>
                         </div>
                     </div>
@@ -720,9 +720,9 @@
         <!-- BLOCKED CAPTAINS LIST -->
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-user-lock"></i> الكباتن المحجوبون</h2>
+                <h2><i class="fas fa-user-lock" aria-hidden="true"></i> الكباتن المحجوبون</h2>
                 <button class="btn-brand" style="font-size:13px;padding:8px 18px;" onclick="loadBlockedCaptains()">
-                    <i class="fas fa-sync-alt"></i> تحديث
+                    <i class="fas fa-sync-alt" aria-hidden="true"></i> تحديث
                 </button>
             </div>
             <div class="table-wrap">
@@ -737,7 +737,7 @@
                         </tr>
                     </thead>
                     <tbody id="blockedTableBody">
-                        <tr class="loading-row"><td colspan="5"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>
+                        <tr class="loading-row"><td colspan="5"><i class="fas fa-circle-notch spin" style="font-size:20px;" aria-hidden="true"></i></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -746,9 +746,9 @@
         <!-- INDEBTED CAPTAINS LIST -->
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-hand-holding-usd"></i> قائمة الكباتن المدينين</h2>
+                <h2><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> قائمة الكباتن المدينين</h2>
                 <button class="btn-brand" style="font-size:13px;padding:8px 18px;" onclick="loadIndebtedCaptains()">
-                    <i class="fas fa-sync-alt"></i> تحديث
+                    <i class="fas fa-sync-alt" aria-hidden="true"></i> تحديث
                 </button>
             </div>
             <div class="table-wrap">
@@ -764,7 +764,7 @@
                         </tr>
                     </thead>
                     <tbody id="indebtedTableBody">
-                        <tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>
+                        <tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;" aria-hidden="true"></i></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -778,7 +778,7 @@
     <div id="tab-ledger" class="tab-content">
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-book"></i> كشف الحساب المالي العام</h2>
+                <h2><i class="fas fa-book" aria-hidden="true"></i> كشف الحساب المالي العام</h2>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                     <select id="ledgerCityFilter" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
                         <option value="">كل المدن</option>
@@ -788,7 +788,7 @@
                     <input type="date" id="ledgerFrom" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
                     <input type="date" id="ledgerTo" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
                     <button class="btn-brand" style="font-size:13px;padding:8px 18px;" onclick="loadLedger()">
-                        <i class="fas fa-sync-alt"></i> تحديث
+                        <i class="fas fa-sync-alt" aria-hidden="true"></i> تحديث
                     </button>
                 </div>
             </div>
@@ -805,7 +805,7 @@
                         </tr>
                     </thead>
                     <tbody id="ledgerTableBody">
-                        <tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>
+                        <tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;" aria-hidden="true"></i></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -820,7 +820,7 @@
         <!-- SYSTEM COMMISSION SETTINGS -->
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-cog"></i> إعدادات نظام المحفظة والعمولة</h2>
+                <h2><i class="fas fa-cog" aria-hidden="true"></i> إعدادات نظام المحفظة والعمولة</h2>
                 <span style="font-size:12px;color:var(--muted);">تُطبق فوراً على الكباتن في المدينة المختارة</span>
             </div>
             <div class="section-card-body">
@@ -838,7 +838,7 @@
                 </div>
                 <div style="margin-top:24px;">
                     <button class="btn-brand" id="saveSettingsBtn" onclick="saveFinancialSettings()">
-                        <i class="fas fa-save"></i> حفظ الإعدادات المالية
+                        <i class="fas fa-save" aria-hidden="true"></i> حفظ الإعدادات المالية
                     </button>
                 </div>
             </div>
@@ -847,12 +847,12 @@
         <!-- PRICING CALCULATOR SETTINGS -->
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-calculator"></i> تسعيرة التوصيل للمدينة</h2>
+                <h2><i class="fas fa-calculator" aria-hidden="true"></i> تسعيرة التوصيل للمدينة</h2>
                 <span style="font-size:12px;color:var(--muted);">تؤثر مباشرة على حساب سعر الطلبات الجديدة للعملاء</span>
             </div>
             <div class="section-card-body">
                 <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:10px;">
-                    <i class="fas fa-exclamation-circle" style="font-size:18px;"></i>
+                    <i class="fas fa-exclamation-circle" style="font-size:18px;" aria-hidden="true"></i>
                     تنبيه: التغيير في التسعيرة يؤثر فوراً على جميع الرحلات الجديدة التي يتم طلبها.
                 </div>
                 <div class="settings-grid">
@@ -883,7 +883,7 @@
                     </div>
                 </div>
                 <div style="background:rgba(4,140,91,0.06);border:1px solid rgba(4,140,91,0.2);border-radius:12px;padding:14px 18px;margin-top:20px;margin-bottom:20px;">
-                    <div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:6px;"><i class="fas fa-calculator me-1"></i> معادلة الاحتساب وحدود السعر:</div>
+                    <div style="font-weight:700;font-size:13px;color:var(--primary);margin-bottom:6px;"><i class="fas fa-calculator me-1" aria-hidden="true"></i> معادلة الاحتساب وحدود السعر:</div>
                     <code style="font-size:13px;color:var(--primary-dark);direction:ltr;display:block;text-align:left;">
                         App Price = BaseFare + (DistanceKm × CostPerKm) + (ExtraStopFee × ExtraStops)<br>
                         Min Allowed Price = App Price × (1 - MaxDiscountPercent / 100)<br>
@@ -892,7 +892,7 @@
                 </div>
                 <div style="margin-top:24px;">
                     <button class="btn-brand" id="savePricingBtn" onclick="savePricingSettings()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);box-shadow:0 4px 15px rgba(124,58,237,0.3);">
-                        <i class="fas fa-save"></i> حفظ التسعيرة
+                        <i class="fas fa-save" aria-hidden="true"></i> حفظ التسعيرة
                     </button>
                 </div>
             </div>
@@ -901,7 +901,7 @@
         <!-- BANK DETAILS SETTINGS -->
         <div class="section-card">
             <div class="section-card-header">
-                <h2><i class="fas fa-university"></i> بيانات الحساب البنكي للسداد</h2>
+                <h2><i class="fas fa-university" aria-hidden="true"></i> بيانات الحساب البنكي للسداد</h2>
                 <span style="font-size:12px;color:var(--muted);">تظهر للكباتن في محفظة التطبيق عند إرسال السداد</span>
             </div>
             <div class="section-card-body">
@@ -921,7 +921,7 @@
                 </div>
                 <div style="margin-top:24px;">
                     <button class="btn-brand" id="saveBankBtn" onclick="saveBankDetails()" style="background:linear-gradient(135deg,#1a73e8,#0d5bba);">
-                        <i class="fas fa-save"></i> حفظ بيانات البنك
+                        <i class="fas fa-save" aria-hidden="true"></i> حفظ بيانات البنك
                     </button>
                 </div>
             </div>
@@ -1027,7 +1027,7 @@ function toast(msg, type = 'success') {
     const box  = document.getElementById('toastBox');
     const el   = document.createElement('div');
     el.className = `toast-msg ${type}`;
-    el.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
+    el.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}" aria-hidden="true"></i> ${msg}`;
     box.appendChild(el);
     setTimeout(() => el.remove(), 4000);
 }
@@ -1112,7 +1112,7 @@ async function saveFinancialSettings() {
     if (isNaN(lim)  || lim > 0)                return toast('الحد الائتماني يجب أن يكون سالبًا', 'error');
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> جارٍ الحفظ...';
+    btn.innerHTML = '<i class="fas fa-circle-notch spin" aria-hidden="true"></i> جارٍ الحفظ...';
 
     try {
         const payload = { city: financeCity, commissionRate: comm / 100, defaultCreditLimit: lim };
@@ -1132,7 +1132,7 @@ async function saveFinancialSettings() {
     } catch (e) { toast('خطأ في الاتصال بالخادم', 'error'); }
 
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i> حفظ الإعدادات المالية';
+    btn.innerHTML = '<i class="fas fa-save" aria-hidden="true"></i> حفظ الإعدادات المالية';
 }
 
 async function savePricingSettings() {
@@ -1150,7 +1150,7 @@ async function savePricingSettings() {
     if (isNaN(surge) || surge < 0 || surge > 500) return toast('سقف السعر يجب أن يكون بين 0% و 500%', 'error');
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> جارٍ الحفظ...';
+    btn.innerHTML = '<i class="fas fa-circle-notch spin" aria-hidden="true"></i> جارٍ الحفظ...';
 
     try {
         const res = await fetch(`${API}/api/admin/settings`, {
@@ -1170,7 +1170,7 @@ async function savePricingSettings() {
     } catch (e) { toast('خطأ في الاتصال بالخادم', 'error'); }
 
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i> حفظ التسعيرة';
+    btn.innerHTML = '<i class="fas fa-save" aria-hidden="true"></i> حفظ التسعيرة';
 }
 
 async function saveBankDetails() {
@@ -1183,7 +1183,7 @@ async function saveBankDetails() {
         return toast('يرجى إدخال بيانات البنك أولاً', 'error');
     }
 
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> جارٍ الحفظ...'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch spin" aria-hidden="true"></i> جارٍ الحفظ...'; }
 
     try {
         const payload = {};
@@ -1205,7 +1205,7 @@ async function saveBankDetails() {
         }
     } catch (e) { toast('خطأ في الاتصال بالخادم', 'error'); }
 
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> حفظ بيانات البنك'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save" aria-hidden="true"></i> حفظ بيانات البنك'; }
 }
 
 // ──────────────────────────────────────────
@@ -1213,7 +1213,7 @@ async function saveBankDetails() {
 // ──────────────────────────────────────────
 async function loadPaymentRequests() {
     const tbody = document.getElementById('paymentsTableBody');
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="8"><i class="fas fa-circle-notch spin" style="font-size:24px;color:var(--primary);"></i></td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="8"><i class="fas fa-circle-notch spin" style="font-size:24px;color:var(--primary);" aria-hidden="true"></i></td></tr>`;
 
     try {
         allPayments = await once('/api/admin/payment-requests');
@@ -1254,7 +1254,7 @@ function renderPayments() {
         tbody.innerHTML = `
             <tr><td colspan="8">
                 <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
+                    <i class="fas fa-inbox" aria-hidden="true"></i>
                     <p>لا توجد طلبات ${currentFilter === 'pending' ? 'معلقة' : ''} مطابقة للبحث</p>
                 </div>
             </td></tr>`;
@@ -1269,7 +1269,7 @@ function renderPayments() {
         const initial = name.charAt(0);
 
         const balChip = `<span class="balance-chip ${balance < 0 ? 'neg' : 'pos'}">
-            <i class="fas fa-${balance < 0 ? 'arrow-down' : 'arrow-up'}"></i>
+            <i class="fas fa-${balance < 0 ? 'arrow-down' : 'arrow-up'}" aria-hidden="true"></i>
             ${balance.toFixed(0)} ج.س
         </span>`;
 
@@ -1283,7 +1283,7 @@ function renderPayments() {
 
         let finalReceiptUrl = r.receiptImage ? getFullImageUrl(r.receiptImage) : '';
 
-        let receiptCell = `<span class="no-receipt"><i class="fas fa-image" style="opacity:.3;"></i> لا يوجد</span>`;
+        let receiptCell = `<span class="no-receipt"><i class="fas fa-image" style="opacity:.3;" aria-hidden="true"></i> لا يوجد</span>`;
         if (finalReceiptUrl) {
             const rKey = `admin_receipt_${r._id}`;
             adminImagesMap[rKey] = finalReceiptUrl;
@@ -1297,10 +1297,10 @@ function renderPayments() {
         const actions = r.status === 'pending'
             ? `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
                    <button class="btn-approve" id="approve-${r._id}" onclick="approvePayment('${r._id}', this)">
-                       <i class="fas fa-check"></i> موافقة
+                       <i class="fas fa-check" aria-hidden="true"></i> موافقة
                    </button>
                    <button class="btn-reject" id="reject-${r._id}" onclick="rejectPayment('${r._id}', this)">
-                       <i class="fas fa-times"></i> رفض
+                       <i class="fas fa-times" aria-hidden="true"></i> رفض
                    </button>
                </div>`
             : `<span style="font-size:12px;color:var(--muted);">${esc(r.adminNote) || '—'}</span>`;
@@ -1319,7 +1319,7 @@ function renderPayments() {
             <td><strong style="color:var(--primary);font-size:15px;">${(r.amount || 0).toLocaleString()} ج.س</strong></td>
             <td><code style="background:var(--bg);padding:3px 8px;border-radius:6px;font-size:12px;direction:ltr;">${esc(r.transactionId) || '—'}</code></td>
             <td>${receiptCell}</td>
-            <td><span class="status-badge ${s.cls}"><i class="fas fa-${s.icon}"></i> ${s.label}</span></td>
+            <td><span class="status-badge ${s.cls}"><i class="fas fa-${s.icon}" aria-hidden="true"></i> ${s.label}</span></td>
             <td><span style="font-size:13px;color:var(--muted);">${date}</span></td>
             <td>${actions}</td>
         </tr>`;
@@ -1479,7 +1479,7 @@ function setRowBusy(requestId, busy) {
         const btn = document.getElementById(`${a}-${requestId}`);
         if (btn) {
             btn.disabled = busy;
-            if (busy) btn.innerHTML = '<i class="fas fa-circle-notch spin"></i>';
+            if (busy) btn.innerHTML = '<i class="fas fa-circle-notch spin" aria-hidden="true"></i>';
         }
     });
 }
@@ -1489,14 +1489,14 @@ function setRowBusy(requestId, busy) {
 // ──────────────────────────────────────────
 async function loadBlockedCaptains() {
     const tbody = document.getElementById('blockedTableBody');
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="5"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="5"><i class="fas fa-circle-notch spin" style="font-size:20px;" aria-hidden="true"></i></td></tr>`;
 
     try {
         const all  = await once('/api/admin/captains');
         const captains = all.filter(c => c.is_blocked);
 
         if (!captains.length) {
-            tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><i class="fas fa-user-check"></i><p>لا يوجد كباتن محجوبون حالياً 🎉</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><i class="fas fa-user-check" aria-hidden="true"></i><p>لا يوجد كباتن محجوبون حالياً 🎉</p></div></td></tr>`;
             return;
         }
 
@@ -1515,11 +1515,11 @@ async function loadBlockedCaptains() {
                         </div>
                     </div>
                 </td>
-                <td><span class="balance-chip neg"><i class="fas fa-arrow-down"></i> ${balance.toFixed(0)} ج.س</span></td>
+                <td><span class="balance-chip neg"><i class="fas fa-arrow-down" aria-hidden="true"></i> ${balance.toFixed(0)} ج.س</span></td>
                 <td><span style="color:var(--muted);font-size:14px;">${limit.toFixed(0)} ج.س</span></td>
                 <td>
                     <div style="display:flex;align-items:center;gap:8px;flex-direction:column;align-items:flex-start;">
-                        <span class="status-badge rejected"><i class="fas fa-lock"></i> محجوب</span>
+                        <span class="status-badge rejected"><i class="fas fa-lock" aria-hidden="true"></i> محجوب</span>
                         <div style="background:rgba(239,68,68,0.15);border-radius:30px;height:6px;width:120px;overflow:hidden;">
                             <div style="background:var(--danger);height:6px;border-radius:30px;width:${Math.min(pct,100)}%;"></div>
                         </div>
@@ -1528,7 +1528,7 @@ async function loadBlockedCaptains() {
                 </td>
                 <td class="text-center">
                     <button class="btn-approve" id="unblock-${c._id}" onclick="unblockCaptain('${c._id}', this)">
-                        <i class="fas fa-unlock"></i> رفع الحجب يدوياً
+                        <i class="fas fa-unlock" aria-hidden="true"></i> رفع الحجب يدوياً
                     </button>
                 </td>
             </tr>`;
@@ -1553,7 +1553,7 @@ async function unblockCaptain(captainId, btn) {
     if (!confirm.isConfirmed) return;
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-circle-notch spin"></i>';
+    btn.innerHTML = '<i class="fas fa-circle-notch spin" aria-hidden="true"></i>';
 
     try {
         const res = await fetch(`${API}/api/admin/users/${captainId}`, {
@@ -1568,18 +1568,18 @@ async function unblockCaptain(captainId, btn) {
             const d = await res.json();
             toast(d.message || 'فشلت العملية', 'error');
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-unlock"></i> رفع الحجب يدوياً';
+            btn.innerHTML = '<i class="fas fa-unlock" aria-hidden="true"></i> رفع الحجب يدوياً';
         }
     } catch (e) {
         toast('خطأ في الاتصال', 'error');
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-unlock"></i> رفع الحجب';
+        btn.innerHTML = '<i class="fas fa-unlock" aria-hidden="true"></i> رفع الحجب';
     }
 }
 
 async function loadIndebtedCaptains() {
     const tbody = document.getElementById('indebtedTableBody');
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;" aria-hidden="true"></i></td></tr>`;
 
     try {
         const all = await once('/api/admin/captains');
@@ -1589,7 +1589,7 @@ async function loadIndebtedCaptains() {
             .sort((a, b) => (a.wallet_balance ?? 0) - (b.wallet_balance ?? 0));
 
         if (!indebted.length) {
-            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-smile-beam"></i><p>لا يوجد كباتن مدينون حالياً 🎉</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-smile-beam" aria-hidden="true"></i><p>لا يوجد كباتن مدينون حالياً 🎉</p></div></td></tr>`;
             return;
         }
 
@@ -1600,10 +1600,10 @@ async function loadIndebtedCaptains() {
             const isBlocked = c.is_blocked;
 
             const statusBadge = isBlocked
-                ? `<span class="status-badge rejected"><i class="fas fa-lock"></i> محجوب</span>`
+                ? `<span class="status-badge rejected"><i class="fas fa-lock" aria-hidden="true"></i> محجوب</span>`
                 : pct >= 80
-                    ? `<span class="status-badge pending"><i class="fas fa-exclamation-triangle"></i> تحذير</span>`
-                    : `<span class="status-badge approved"><i class="fas fa-check"></i> نشط</span>`;
+                    ? `<span class="status-badge pending"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> تحذير</span>`
+                    : `<span class="status-badge approved"><i class="fas fa-check" aria-hidden="true"></i> نشط</span>`;
 
             const barColor = pct >= 80 ? 'var(--danger)' : pct >= 50 ? 'var(--warning)' : 'var(--primary)';
 
@@ -1617,7 +1617,7 @@ async function loadIndebtedCaptains() {
                         </div>
                     </div>
                 </td>
-                <td><span class="balance-chip neg"><i class="fas fa-arrow-down"></i> ${balance.toFixed(0)} ج.س</span></td>
+                <td><span class="balance-chip neg"><i class="fas fa-arrow-down" aria-hidden="true"></i> ${balance.toFixed(0)} ج.س</span></td>
                 <td><span style="color:var(--muted);font-size:14px;">${limit.toFixed(0)} ج.س</span></td>
                 <td>
                     <div style="display:flex;align-items:center;gap:8px;">
@@ -1631,10 +1631,10 @@ async function loadIndebtedCaptains() {
                 <td class="text-center">
                     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
                         <button class="btn-reject" style="font-size:12px;padding:6px 12px;" onclick="quickAdjustDebt('${c._id}', ${balance}, 'zero')">
-                            <i class="fas fa-times-circle"></i> تصفير
+                            <i class="fas fa-times-circle" aria-hidden="true"></i> تصفير
                         </button>
                         <button class="btn-approve" style="font-size:12px;padding:6px 12px;background:var(--warning-gradient);" onclick="quickAdjustDebt('${c._id}', ${balance}, 'partial')">
-                            <i class="fas fa-minus-circle"></i> نقص جزء
+                            <i class="fas fa-minus-circle" aria-hidden="true"></i> نقص جزء
                         </button>
                     </div>
                 </td>
@@ -1841,7 +1841,7 @@ async function _sendDebtAdjust(captainId, captainName, currentBalance, mode, amo
 // ──────────────────────────────────────────
 async function loadLedger() {
     const tbody = document.getElementById('ledgerTableBody');
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;"></i></td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="6"><i class="fas fa-circle-notch spin" style="font-size:20px;" aria-hidden="true"></i></td></tr>`;
 
     const city = document.getElementById('ledgerCityFilter')?.value || '';
     const from = document.getElementById('ledgerFrom')?.value || '';
@@ -1865,17 +1865,17 @@ async function loadLedger() {
         const data = await res.json();
 
         if (!data.entries || !data.entries.length) {
-            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-book-open"></i><p>لا توجد حركات مالية في هذه الفترة</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-book-open" aria-hidden="true"></i><p>لا توجد حركات مالية في هذه الفترة</p></div></td></tr>`;
             return;
         }
 
         tbody.innerHTML = data.entries.map(e => {
             const cfg  = typeConfig[e.type] || typeConfig.commission;
             const date = new Date(e.date).toLocaleString('ar-SA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-            const cityLbl = e.city === 'Khartoum' ? '<span style="background:rgba(59,130,246,0.1);color:#1d4ed8;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-city"></i> الخرطوم</span>'
-                          : '<span style="background:rgba(14,165,233,0.1);color:#0369a1;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-anchor"></i> بورتسودان</span>';
+            const cityLbl = e.city === 'Khartoum' ? '<span style="background:rgba(59,130,246,0.1);color:#1d4ed8;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-city" aria-hidden="true"></i> الخرطوم</span>'
+                          : '<span style="background:rgba(14,165,233,0.1);color:#0369a1;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-anchor" aria-hidden="true"></i> بورتسودان</span>';
             return `<tr>
-                <td><span class="status-badge ${cfg.cls}" style="font-size:11px;"><i class="fas fa-${cfg.icon}"></i> ${cfg.label}</span></td>
+                <td><span class="status-badge ${cfg.cls}" style="font-size:11px;"><i class="fas fa-${cfg.icon}" aria-hidden="true"></i> ${cfg.label}</span></td>
                 <td style="font-size:12px;color:var(--muted);">${date}</td>
                 <td>
                     <div style="font-weight:700;font-size:13px;color:var(--text);">${esc(e.captain?.name) || '—'}</div>

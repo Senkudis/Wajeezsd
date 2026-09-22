@@ -103,38 +103,38 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
 </head>
 <body>
 <div class="page-header">
-    <h1><i class="fas fa-headset" style="margin-left:8px;"></i> الدعم الفني / الشكاوى</h1>
+    <h1><i class="fas fa-headset" style="margin-left:8px;" aria-hidden="true"></i> الدعم الفني / الشكاوى</h1>
     <div class="d-flex align-items-center gap-2">
-        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-            <i class="fas fa-search"></i>
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
         </button>
-        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-            <i class="fas fa-moon"></i>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
         </button>
-        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
     </div>
 </div>
 <div class="main">
     <div class="stats-bar">
-        <div class="stat-chip"><div class="icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-ticket-alt"></i></div><div><div class="num" id="stat-all">—</div><div class="lbl">الكل</div></div></div>
-        <div class="stat-chip"><div class="icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-circle-exclamation"></i></div><div><div class="num" id="stat-open">—</div><div class="lbl">مفتوحة</div></div></div>
-        <div class="stat-chip"><div class="icon" style="background:#fef9c3;color:#ca8a04;"><i class="fas fa-spinner"></i></div><div><div class="num" id="stat-progress">—</div><div class="lbl">قيد المعالجة</div></div></div>
-        <div class="stat-chip"><div class="icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-check-circle"></i></div><div><div class="num" id="stat-resolved">—</div><div class="lbl">محلولة</div></div></div>
-        <div class="stat-chip"><div class="icon" style="background:#ffedd5;color:#ea580c;"><i class="fas fa-fire"></i></div><div><div class="num" id="stat-urgent">—</div><div class="lbl">عاجلة</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-ticket-alt" aria-hidden="true"></i></div><div><div class="num" id="stat-all">—</div><div class="lbl">الكل</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-circle-exclamation" aria-hidden="true"></i></div><div><div class="num" id="stat-open">—</div><div class="lbl">مفتوحة</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#fef9c3;color:#ca8a04;"><i class="fas fa-spinner" aria-hidden="true"></i></div><div><div class="num" id="stat-progress">—</div><div class="lbl">قيد المعالجة</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-check-circle" aria-hidden="true"></i></div><div><div class="num" id="stat-resolved">—</div><div class="lbl">محلولة</div></div></div>
+        <div class="stat-chip"><div class="icon" style="background:#ffedd5;color:#ea580c;"><i class="fas fa-fire" aria-hidden="true"></i></div><div><div class="num" id="stat-urgent">—</div><div class="lbl">عاجلة</div></div></div>
     </div>
     <div class="filter-bar">
         <div class="filter-group"><label>الحالة</label><select id="fStatus" onchange="loadComplaints(1)"><option value="">الكل</option><option value="open">مفتوحة</option><option value="in_progress">قيد المعالجة</option><option value="resolved">محلولة</option><option value="dismissed">مرفوضة</option></select></div>
         <div class="filter-group"><label>الأولوية</label><select id="fPriority" onchange="loadComplaints(1)"><option value="">الكل</option><option value="urgent">عاجلة</option><option value="high">عالية</option><option value="medium">متوسطة</option><option value="low">منخفضة</option></select></div>
         <div class="filter-group"><label>الفئة</label><select id="fCategory" onchange="loadComplaints(1)"><option value="">الكل</option><option value="late_delivery">تأخر التوصيل</option><option value="wrong_item">منتج خاطئ</option><option value="captain_behavior">سلوك الكابتن</option><option value="payment">مشكلة دفع</option><option value="app_bug">خطأ تطبيق</option><option value="other">أخرى</option></select></div>
-        <button class="btn btn-primary" onclick="loadComplaints(1)"><i class="fas fa-filter"></i> تطبيق</button>
+        <button class="btn btn-primary" onclick="loadComplaints(1)"><i class="fas fa-filter" aria-hidden="true"></i> تطبيق</button>
         <button class="admin-export-btn" style="margin-right:auto;" onclick="AdminExport.tableToCSV('table', 'wajeez_complaints_report')">
-            <i class="fas fa-file-excel" style="color:#16a34a;"></i> تصدير Excel
+            <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
         </button>
     </div>
     <div class="table-wrap">
         <table>
             <thead><tr><th>العميل</th><th>الموضوع</th><th>الفئة</th><th>الأولوية</th><th>الحالة</th><th>الردود</th><th>التاريخ</th><th>الإجراءات</th></tr></thead>
-            <tbody id="complaintsBody"><tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</td></tr></tbody>
+            <tbody id="complaintsBody"><tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> جاري التحميل...</td></tr></tbody>
         </table>
     </div>
     <div class="pagination" id="paginationBar"></div>
@@ -142,13 +142,13 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
 
 <div class="modal-overlay" id="detailModal">
     <div class="modal">
-        <h2><i class="fas fa-headset" style="color:var(--primary);"></i> تفاصيل التذكرة</h2>
+        <h2><i class="fas fa-headset" style="color:var(--primary);" aria-hidden="true"></i> تفاصيل التذكرة</h2>
         <div class="info-grid"  id="ticketInfo"></div>
         <div class="action-bar" id="ticketActions"></div>
         <div class="chat-thread" id="chatThread"></div>
         <div class="chat-input">
             <textarea id="replyText" placeholder="اكتب ردك هنا..."></textarea>
-            <button class="btn btn-primary" onclick="sendReply()" id="sendReplyBtn"><i class="fas fa-paper-plane"></i></button>
+            <button aria-label="إرسال الرد" class="btn btn-primary" onclick="sendReply()" id="sendReplyBtn"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
         </div>
         <div style="margin-top:14px;display:flex;justify-content:flex-end;">
             <button class="btn btn-sm btn-dismiss" onclick="document.getElementById('detailModal').classList.remove('active')">إغلاق</button>
@@ -235,9 +235,9 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
                 <td style="font-size:0.8rem;color:#64748b;white-space:nowrap;">${new Date(c.createdAt).toLocaleDateString('ar-EG')}</td>
                 <td onclick="event.stopPropagation()">
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <button class="btn btn-sm btn-reply" onclick="openDetail('${c._id}')"><i class="fas fa-eye"></i></button>
-                        ${c.status!=='resolved'?`<button class="btn btn-sm btn-resolve" onclick="event.stopPropagation();resolveTicket('${c._id}')"><i class="fas fa-check"></i></button>`:''}
-                        ${c.status!=='dismissed'?`<button class="btn btn-sm btn-dismiss" onclick="event.stopPropagation();dismissTicket('${c._id}')"><i class="fas fa-ban"></i></button>`:''}
+                        <button aria-label="عرض تفاصيل الشكوى" class="btn btn-sm btn-reply" onclick="openDetail('${c._id}')"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                        ${c.status!=='resolved'?`<button aria-label="إنهاء الشكوى" class="btn btn-sm btn-resolve" onclick="event.stopPropagation();resolveTicket('${c._id}')"><i class="fas fa-check" aria-hidden="true"></i></button>`:''}
+                        ${c.status!=='dismissed'?`<button aria-label="رفض الشكوى" class="btn btn-sm btn-dismiss" onclick="event.stopPropagation();dismissTicket('${c._id}')"><i class="fas fa-ban" aria-hidden="true"></i></button>`:''}
                     </div>
                 </td>
             </tr>`).join('');
@@ -246,16 +246,16 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
     function renderPagination() {
         const bar = document.getElementById('paginationBar');
         if (totalPages<=1){bar.innerHTML='';return;}
-        let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="loadComplaints(${currentPage-1})"><i class="fas fa-chevron-right"></i></button>`;
+        let html = `<button aria-label="الصفحة السابقة" class="page-btn" ${currentPage===1?'disabled':''} onclick="loadComplaints(${currentPage-1})"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`;
         for(let i=1;i<=totalPages;i++) html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="loadComplaints(${i})">${i}</button>`;
-        html+=`<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="loadComplaints(${currentPage+1})"><i class="fas fa-chevron-left"></i></button>`;
+        html+=`<button aria-label="الصفحة التالية" class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="loadComplaints(${currentPage+1})"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>`;
         bar.innerHTML = html;
     }
 
     async function openDetail(id) {
         activeTicketId = id;
         document.getElementById('detailModal').classList.add('active');
-        document.getElementById('ticketInfo').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i></div>';
+        document.getElementById('ticketInfo').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>';
         document.getElementById('chatThread').innerHTML='';
         document.getElementById('ticketActions').innerHTML='';
         try {
@@ -274,9 +274,9 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
                 <option value="high" ${c.priority==='high'?'selected':''}>🟠 عالية</option>
                 <option value="urgent" ${c.priority==='urgent'?'selected':''}>🔴 عاجلة</option>
             </select>
-            <button class="btn btn-sm btn-reply" onclick="changePriority('${id}')"><i class="fas fa-tag"></i> تحديث الأولوية</button>`;
-            if(c.status!=='resolved') actions+=`<button class="btn btn-sm btn-resolve" onclick="resolveTicket('${id}');document.getElementById('detailModal').classList.remove('active')"><i class="fas fa-check"></i> حل التذكرة</button>`;
-            if(c.status!=='dismissed') actions+=`<button class="btn btn-sm btn-dismiss" onclick="dismissTicket('${id}');document.getElementById('detailModal').classList.remove('active')"><i class="fas fa-ban"></i> رفض</button>`;
+            <button class="btn btn-sm btn-reply" onclick="changePriority('${id}')"><i class="fas fa-tag" aria-hidden="true"></i> تحديث الأولوية</button>`;
+            if(c.status!=='resolved') actions+=`<button class="btn btn-sm btn-resolve" onclick="resolveTicket('${id}');document.getElementById('detailModal').classList.remove('active')"><i class="fas fa-check" aria-hidden="true"></i> حل التذكرة</button>`;
+            if(c.status!=='dismissed') actions+=`<button class="btn btn-sm btn-dismiss" onclick="dismissTicket('${id}');document.getElementById('detailModal').classList.remove('active')"><i class="fas fa-ban" aria-hidden="true"></i> رفض</button>`;
             document.getElementById('ticketActions').innerHTML=actions;
 
             const thread=document.getElementById('chatThread');
@@ -302,14 +302,14 @@ body.dark-mode .action-bar { background: #111827 !important; border-color: #3741
         const text=document.getElementById('replyText').value.trim();
         if(!text)return;
         const btn=document.getElementById('sendReplyBtn');
-        btn.disabled=true; btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i>';
+        btn.disabled=true; btn.innerHTML='<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>';
         try {
             const res=await fetch(`${BASE}/api/complaints/${activeTicketId}/reply`,{method:'POST',headers:hdr(),body:JSON.stringify({message:text})});
             if(!res.ok) throw new Error();
             document.getElementById('replyText').value='';
             openDetail(activeTicketId);
         } catch { Swal.fire({icon:'error',title:'خطأ',text:'فشل إرسال الرد',confirmButtonColor:'#dc3545'}); }
-        finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i>'; }
+        finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane" aria-hidden="true"></i>'; }
     }
 
     async function resolveTicket(id) {

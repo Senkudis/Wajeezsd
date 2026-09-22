@@ -102,15 +102,15 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
 </head>
 <body>
 <div class="page-header">
-    <h1><i class="fas fa-ticket-alt" style="margin-left:8px;"></i> كوبونات الخصم</h1>
+    <h1><i class="fas fa-ticket-alt" style="margin-left:8px;" aria-hidden="true"></i> كوبونات الخصم</h1>
     <div class="d-flex align-items-center gap-2">
-        <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-            <i class="fas fa-search"></i>
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
         </button>
-        <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-            <i class="fas fa-moon"></i>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
         </button>
-        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
     </div>
 </div>
 
@@ -120,18 +120,18 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
             <h2 style="font-size:1.1rem;color:#1e293b;font-weight:800;">إدارة كوبونات الخصم</h2>
             <p style="font-size:0.85rem;color:#64748b;">تحكم في عروض الخصم وكوبونات العملاء</p>
         </div>
-        <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> إنشاء كوبون جديد</button>
+        <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus" aria-hidden="true"></i> إنشاء كوبون جديد</button>
     </div>
 
     <div class="cards-grid" id="promoGrid">
-        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i></div>
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;" aria-hidden="true"></i></div>
     </div>
 </div>
 
 <!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-        <h2><i class="fas fa-ticket-alt" style="color:var(--primary);margin-left:8px;"></i> <span id="modalTitle">إنشاء كوبون جديد</span></h2>
+        <h2><i class="fas fa-ticket-alt" style="color:var(--primary);margin-left:8px;" aria-hidden="true"></i> <span id="modalTitle">إنشاء كوبون جديد</span></h2>
         <input type="hidden" id="editingId">
 
         <div class="form-group">
@@ -225,7 +225,7 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
-            <button class="btn btn-primary" id="saveBtn" onclick="savePromo()"><i class="fas fa-save"></i> حفظ الكوبون</button>
+            <button class="btn btn-primary" id="saveBtn" onclick="savePromo()"><i class="fas fa-save" aria-hidden="true"></i> حفظ الكوبون</button>
         </div>
     </div>
 </div>
@@ -254,14 +254,14 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
         } catch(e) {
             // data.message قد يكون undefined فيُعرض حرفياً "undefined".
             console.error('Load promo codes error:', e);
-            document.getElementById('promoGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-exclamation-circle" style="color:#ef4444;font-size:2rem;"></i><p>تعذّر تحميل الكوبونات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="loadPromos()">أعد المحاولة</button></p></div>';
+            document.getElementById('promoGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-exclamation-circle" style="color:#ef4444;font-size:2rem;" aria-hidden="true"></i><p>تعذّر تحميل الكوبونات. تحقّق من الاتصال ثم <button type="button" class="btn btn-sm btn-link p-0" onclick="loadPromos()">أعد المحاولة</button></p></div>';
         }
     }
 
     function renderPromos() {
         const grid = document.getElementById('promoGrid');
         if (!promos.length) {
-            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-ticket-alt"></i><p>لا توجد كوبونات. أنشئ أول كوبون!</p></div>';
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-ticket-alt" aria-hidden="true"></i><p>لا توجد كوبونات. أنشئ أول كوبون!</p></div>';
             return;
         }
         const now = new Date();
@@ -300,14 +300,14 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
                 ${p.description ? `<div style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">${p.description}</div>` : ''}
                 <div class="card-actions">
                     <button class="btn btn-ghost btn-sm" onclick='openModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>
-                        <i class="fas fa-pen"></i> تعديل
+                        <i class="fas fa-pen" aria-hidden="true"></i> تعديل
                     </button>
                     <button class="btn btn-danger btn-sm" onclick="deletePromo('${p._id}')">
-                        <i class="fas fa-trash"></i> حذف
+                        <i class="fas fa-trash" aria-hidden="true"></i> حذف
                     </button>
-                    <button class="btn btn-sm" style="background:${p.isActive?'#fef9c3':'#dcfce7'};color:${p.isActive?'#854d0e':'#166534'};"
+                    <button aria-label="${p.isActive ? 'إيقاف الكوبون' : 'تفعيل الكوبون'}" class="btn btn-sm" style="background:${p.isActive?'#fef9c3':'#dcfce7'};color:${p.isActive?'#854d0e':'#166534'};"
                         onclick="togglePromo('${p._id}',${!p.isActive})">
-                        <i class="fas fa-${p.isActive?'pause':'play'}"></i>
+                        <i class="fas fa-${p.isActive?'pause':'play'}" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>`;
@@ -427,7 +427,7 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
             places:         getSelectedPlaceIds()   // 🏪 فارغة = كل المتاجر
         };
         const saveBtn = document.getElementById('saveBtn');
-        saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+        saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>';
         try {
             const url    = id ? `${BASE}/api/admin/promo-codes/${id}` : `${BASE}/api/admin/promo-codes`;
             const method = id ? 'PUT' : 'POST';
@@ -439,7 +439,7 @@ body.dark-mode .form-control { background: #111827 !important; color: #f9fafb !i
         } catch(e) {
             Swal.fire({ icon:'error', title:'خطأ', text:e.message, confirmButtonColor:'#dc3545' });
         } finally {
-            saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الكوبون';
+            saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save" aria-hidden="true"></i> حفظ الكوبون';
         }
     }
 

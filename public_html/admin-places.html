@@ -191,7 +191,7 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
-                <div class="logo"><i class="fas fa-crown"></i></div>
+                <div class="logo"><i class="fas fa-crown" aria-hidden="true"></i></div>
                 <h2>وَجِـيـز</h2>
                 <p id="adminName">لوحة الإدارة</p>
             </div>
@@ -199,32 +199,32 @@
             <nav class="sidebar-nav">
                 <div class="nav-label">الإدارة</div>
                 <button class="nav-item" onclick="location.href='admin.html'">
-                    <i class="fas fa-arrow-right"></i><span>العودة للوحة التحكم</span>
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i><span>العودة للوحة التحكم</span>
                 </button>
                 <!-- ⚠️ كان ينادي loadPlacesData() وهي غير موجودة — زرٌّ ميّت.
                      الدالّة الفعليّة في js/admin-places.js اسمها loadAdminPlaces. -->
                 <button class="nav-item active" onclick="loadAdminPlaces()">
-                    <i class="fas fa-store"></i><span>المحلات والتصنيفات</span>
+                    <i class="fas fa-store" aria-hidden="true"></i><span>المحلات والتصنيفات</span>
                 </button>
 
                 <div class="nav-label">روابط سريعة</div>
                 <button class="nav-item" onclick="location.href='admin-merchant-requests.html'">
-                    <i class="fas fa-user-clock"></i><span>طلبات التجار</span>
+                    <i class="fas fa-user-clock" aria-hidden="true"></i><span>طلبات التجار</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-merchants-list.html'">
-                    <i class="fas fa-store"></i><span>لائحة التجار</span>
+                    <i class="fas fa-store" aria-hidden="true"></i><span>لائحة التجار</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-settlements.html'">
-                    <i class="fas fa-hand-holding-usd"></i><span>تسويات التجار</span>
+                    <i class="fas fa-hand-holding-usd" aria-hidden="true"></i><span>تسويات التجار</span>
                 </button>
                 <button class="nav-item" onclick="location.href='admin-finance.html'">
-                    <i class="fas fa-wallet"></i><span>الإدارة المالية</span>
+                    <i class="fas fa-wallet" aria-hidden="true"></i><span>الإدارة المالية</span>
                 </button>
             </nav>
 
             <div class="sidebar-footer">
                 <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-power-off"></i><span>تسجيل الخروج</span>
+                    <i class="fas fa-power-off" aria-hidden="true"></i><span>تسجيل الخروج</span>
                 </button>
             </div>
         </aside>
@@ -233,19 +233,19 @@
         <main class="main-content">
             <!-- Top Sticky Header -->
             <header class="top-header">
-                <button class="menu-toggle" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
+                <button aria-label="فتح القائمة الجانبية" class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
                 </button>
                 <div class="header-title d-none d-md-block">
                     <h1>إدارة المحلات والتصنيفات 🏪</h1>
                     <p>أضف وعدّل فروع المحلات والأقسام التجارية</p>
                 </div>
                 <div class="header-actions d-flex align-items-center gap-2">
-                    <button class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
-                        <i class="fas fa-search"></i>
+                    <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+                        <i class="fas fa-search" aria-hidden="true"></i>
                     </button>
-                    <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                        <i class="fas fa-moon"></i>
+                    <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                        <i class="fas fa-moon" aria-hidden="true"></i>
                     </button>
                 </div>
             </header>
@@ -256,22 +256,22 @@
                 <!-- Section: Places & Categories -->
                 <div id="places" class="dashboard-section active section-card">
                     <div class="section-header flex-wrap gap-3">
-                        <h2 class="section-title"><i class="fas fa-store"></i> شبكة المحلات التجارية</h2>
+                        <h2 class="section-title"><i class="fas fa-store" aria-hidden="true"></i> شبكة المحلات التجارية</h2>
                         <div class="d-flex gap-2">
                             <button class="btn-primary-custom btn-custom"
                                 onclick="openAddCategoryModal()">
-                                <i class="fas fa-folder-plus"></i> تصنيف جديد
+                                <i class="fas fa-folder-plus" aria-hidden="true"></i> تصنيف جديد
                             </button>
                             <button class="btn-success-custom btn-custom"
                                 onclick="openAddPlaceModal('merchant')">
-                                <i class="fas fa-plus-circle"></i> متجر بتاجر
+                                <i class="fas fa-plus-circle" aria-hidden="true"></i> متجر بتاجر
                             </button>
                             <!-- 🛍️ مدخل صريح لمحل "اشترِ لي": كان الوحيد لإضافته هو
                                  إنشاء متجر كامل ثم فتح نافذة التعديل وتفعيل مفتاح مدفون —
                                  خطوتان ومعرفةٌ ضمنية، فلم يُضَف أيّ محل عملياً. -->
                             <button class="btn-custom" onclick="openAddPlaceModal('errand')"
                                 style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;">
-                                <i class="fas fa-bag-shopping"></i> محل بدون تاجر
+                                <i class="fas fa-bag-shopping" aria-hidden="true"></i> محل بدون تاجر
                             </button>
                         </div>
                     </div>
@@ -281,7 +281,7 @@
                         <div class="col-md-3">
                             <div class="stat-card bg-primary text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;">
                                 <div class="stat-icon bg-white text-primary rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
-                                    <i class="fas fa-store"></i>
+                                    <i class="fas fa-store" aria-hidden="true"></i>
                                 </div>
                                 <div>
                                     <h6 class="mb-1" style="opacity:0.9;">إجمالي المتاجر</h6>
@@ -292,7 +292,7 @@
                         <div class="col-md-3">
                             <div class="stat-card bg-success text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #198754, #157347) !important;">
                                 <div class="stat-icon bg-white text-success rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
-                                    <i class="fas fa-check-circle"></i>
+                                    <i class="fas fa-check-circle" aria-hidden="true"></i>
                                 </div>
                                 <div>
                                     <h6 class="mb-1" style="opacity:0.9;">المتاجر النشطة (مفتوحة)</h6>
@@ -303,7 +303,7 @@
                         <div class="col-md-3">
                             <div class="stat-card bg-warning text-dark p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #ffc107, #ffb300) !important;">
                                 <div class="stat-icon bg-white text-warning rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;">
-                                    <i class="fas fa-tags"></i>
+                                    <i class="fas fa-tags" aria-hidden="true"></i>
                                 </div>
                                 <div>
                                     <h6 class="mb-1" style="opacity:0.9;">إجمالي التصنيفات</h6>
@@ -316,7 +316,7 @@
                         <div class="col-md-3">
                             <div class="stat-card text-white p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;">
                                 <div class="stat-icon bg-white rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:24px;color:#7c3aed;">
-                                    <i class="fas fa-bag-shopping"></i>
+                                    <i class="fas fa-bag-shopping" aria-hidden="true"></i>
                                 </div>
                                 <div>
                                     <h6 class="mb-1" style="opacity:0.9;">محلات "اشترِ لي"</h6>
@@ -331,7 +331,7 @@
                          كانت تُجاب بمسح الجدول بالعين صفّاً صفّاً. -->
                     <div class="places-toolbar">
                         <div class="pt-search">
-                            <i class="fas fa-search"></i>
+                            <i class="fas fa-search" aria-hidden="true"></i>
                             <input type="text" id="placeSearch" autocomplete="off"
                                 placeholder="ابحث بالاسم أو الهاتف أو التصنيف...">
                         </div>
@@ -359,7 +359,7 @@
                             <option value="status">ترتيب: الحالة</option>
                         </select>
                         <button type="button" id="placeFiltersReset" class="pt-reset d-none">
-                            <i class="fas fa-times"></i> تفريغ التصفية
+                            <i class="fas fa-times" aria-hidden="true"></i> تفريغ التصفية
                         </button>
                     </div>
                     <div id="placesResultCount" class="places-count"></div>
@@ -378,7 +378,7 @@
                             <tbody>
                                 <tr>
                                     <td colspan="5" class="loading-spinner">
-                                        <i class="fas fa-circle-notch fa-spin"></i> جلب السجلات...
+                                        <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> جلب السجلات...
                                     </td>
                                 </tr>
                             </tbody>
@@ -388,10 +388,10 @@
                     <!-- التصنيفات: قائمة قصيرة نادرة التعديل، فلا تستحقّ ثلث عرض
                          الشاشة بجانب الجدول كما كانت. -->
                     <div class="p-4 border rounded-4 bg-light mt-4">
-                        <h6 class="fw-bold mb-4 text-secondary"><i class="fas fa-tags me-2"></i> التصنيفات المعتمدة</h6>
+                        <h6 class="fw-bold mb-4 text-secondary"><i class="fas fa-tags me-2" aria-hidden="true"></i> التصنيفات المعتمدة</h6>
                         <div id="adminCategoriesList" class="admin-cats-grid">
                             <div class="loading-spinner">
-                                <i class="fas fa-circle-notch fa-spin"></i>
+                                <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
                             </div>
                         </div>
                     </div>
@@ -406,10 +406,10 @@
     <!-- Add Category Modal -->
     <div id="addCategoryModal" class="modal-overlay">
         <div class="modal-box p-4" style="max-width:420px;">
-            <button class="modal-close-btn shadow-sm"
+            <button aria-label="إغلاق نافذة إضافة تصنيف" class="modal-close-btn shadow-sm"
                 onclick="closeAddCategoryModal()"><i
-                    class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-folder-plus"></i> استحداث قسم</h2>
+                    class="fas fa-times" aria-hidden="true"></i></button>
+            <h2 class="modal-title"><i class="fas fa-folder-plus" aria-hidden="true"></i> استحداث قسم</h2>
             <form id="addCategoryForm" onsubmit="createCategory(event)">
                 <div class="form-group">
                     <label class="form-label">الاسم التجاري للقسم</label>
@@ -430,7 +430,7 @@
                         placeholder="ملاحظات تظهر للعميل عند فتح هذا التصنيف..."></textarea>
                 </div>
                 <button type="submit" class="btn-primary-custom btn-custom w-100 justify-content-center mt-3 py-3">
-                    <i class="fas fa-plus"></i> إنزال القسم
+                    <i class="fas fa-plus" aria-hidden="true"></i> إنزال القسم
                 </button>
             </form>
         </div>
@@ -439,16 +439,16 @@
     <!-- Add Place Modal -->
     <div id="addPlaceModal" class="modal-overlay">
         <div class="modal-box p-4" style="max-width:550px;">
-            <button class="modal-close-btn shadow-sm"
+            <button aria-label="إغلاق نافذة إضافة محل" class="modal-close-btn shadow-sm"
                 onclick="closeAddPlaceModal()"><i
-                    class="fas fa-times"></i></button>
-            <h2 class="modal-title" id="addPlaceTitle"><i class="fas fa-store-alt"></i> إدراج منشأة</h2>
+                    class="fas fa-times" aria-hidden="true"></i></button>
+            <h2 class="modal-title" id="addPlaceTitle"><i class="fas fa-store-alt" aria-hidden="true"></i> إدراج منشأة</h2>
 
             <!-- 🛍️ لافتة وضع "اشترِ لي" — الأدمن يجب أن يعرف قبل أن يكتب أنه لا
                  يُنشئ متجراً بمنتجات وأسعار، بل نقطةً على الخريطة يشتري منها الكابتن. -->
             <div id="addPlaceErrandBanner" class="p-3 rounded-3 mb-3" style="display:none;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;">
                 <div class="fw-bold mb-1" style="color:#4f46e5;">
-                    <i class="fas fa-bag-shopping me-1"></i> محل بدون تاجر — خدمة "اشترِ لي"
+                    <i class="fas fa-bag-shopping me-1" aria-hidden="true"></i> محل بدون تاجر — خدمة "اشترِ لي"
                 </div>
                 <div class="small text-muted" style="line-height:1.8;">
                     محلٌّ مشهور غير مسجّل عندنا: بلا حساب تاجر ولا منتجات ولا أسعار.
@@ -477,7 +477,7 @@
                 
                 <!-- 🌍 City Selection (Add Place) -->
                 <div class="form-group mt-3">
-                    <label class="form-label"><i class="bi bi-geo-alt-fill text-success"></i> المدينة / المنطقة*</label>
+                    <label class="form-label"><i class="bi bi-geo-alt-fill text-success" aria-hidden="true"></i> المدينة / المنطقة*</label>
                     <select id="placeCity" class="form-select" required>
                         <option value="" disabled selected>— حدد المدينة —</option>
                         <option value="Khartoum">الخرطوم - أم درمان</option>
@@ -486,17 +486,17 @@
                 </div>
 
                 <div class="form-group p-3 border rounded-3 bg-light">
-                    <label class="form-label mb-2"><i class="fas fa-image text-primary"></i> واجهة المحل</label>
+                    <label class="form-label mb-2"><i class="fas fa-image text-primary" aria-hidden="true"></i> واجهة المحل</label>
 
                     <!-- Mode Tabs -->
                     <div class="btn-group w-100 mb-3" role="group">
                         <button type="button" id="placeImgModeFile" onclick="setPlaceImageMode('file')"
                             class="btn btn-primary btn-sm">
-                            <i class="fas fa-upload me-1"></i> رفع من الجهاز
+                            <i class="fas fa-upload me-1" aria-hidden="true"></i> رفع من الجهاز
                         </button>
                         <button type="button" id="placeImgModeUrl" onclick="setPlaceImageMode('url')"
                             class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-link me-1"></i> رابط خارجي
+                            <i class="fas fa-link me-1" aria-hidden="true"></i> رابط خارجي
                         </button>
                     </div>
 
@@ -505,7 +505,7 @@
                         <label for="placeImageFile" id="placeImageUploadLabel"
                             class="d-flex flex-column align-items-center justify-content-center p-3 border border-2 border-dashed border-primary rounded-3 bg-white"
                             style="cursor:pointer; transition:all .2s;">
-                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;"></i>
+                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;" aria-hidden="true"></i>
                             <span class="small fw-bold text-secondary">انقر لرفع ملف الصورة</span>
                         </label>
                         <input type="file" id="placeImageFile" accept="image/*" class="d-none"
@@ -515,7 +515,7 @@
                     <!-- Mode: External URL -->
                     <div id="placeImgUrlMode" style="display:none;">
                         <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-link"></i></span>
+                            <span class="input-group-text"><i class="fas fa-link" aria-hidden="true"></i></span>
                             <input type="url" id="placeImageUrl" class="form-control" dir="ltr"
                                 placeholder="https://i.ibb.co/xxx/photo.jpg" oninput="previewPlaceImageUrl(this.value)">
                         </div>
@@ -527,9 +527,9 @@
                     <div id="placeImagePreview" class="mt-3 position-relative" style="display:none;">
                         <img id="placeImagePreviewImg" src="" class="w-100 rounded-3 shadow-sm"
                             style="height:150px; object-fit:cover;">
-                        <button type="button" onclick="clearPlaceImage()"
+                        <button aria-label="حذف صورة المحل" type="button" onclick="clearPlaceImage()"
                             class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 rounded-circle"
-                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times"></i></button>
+                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </div>
                     <input type="hidden" id="placeImage">
                 </div>
@@ -554,7 +554,7 @@
                 <!-- ⚙️ خيارات إضافية (اختيارية) — مطويّة لتبسيط النموذج -->
                 <details class="mt-3 p-2 border rounded-3" style="background:#fafafa;" data-merchant-only>
                     <summary class="fw-bold text-secondary" style="cursor:pointer;">
-                        <i class="fas fa-sliders-h"></i> خيارات إضافية (اختيارية) — منيو وملاحظات
+                        <i class="fas fa-sliders-h" aria-hidden="true"></i> خيارات إضافية (اختيارية) — منيو وملاحظات
                     </summary>
 
                 <div class="form-group mt-3">
@@ -564,18 +564,18 @@
                 </div>
 
                 <div class="form-group p-3 border rounded-3 bg-light mt-3">
-                    <label class="form-label mb-2"><i class="fas fa-file-alt text-warning"></i> قائمة الأسعار
+                    <label class="form-label mb-2"><i class="fas fa-file-alt text-warning" aria-hidden="true"></i> قائمة الأسعار
                         (المنيو)</label>
 
                     <!-- Menu Mode Tabs -->
                     <div class="btn-group w-100 mb-3" role="group">
                         <button type="button" id="menuImgModeFile" onclick="setMenuImageMode('file')"
                             class="btn btn-warning btn-sm text-dark">
-                            <i class="fas fa-upload me-1"></i> رفع من الجهاز
+                            <i class="fas fa-upload me-1" aria-hidden="true"></i> رفع من الجهاز
                         </button>
                         <button type="button" id="menuImgModeUrl" onclick="setMenuImageMode('url')"
                             class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-link me-1"></i> رابط خارجي
+                            <i class="fas fa-link me-1" aria-hidden="true"></i> رابط خارجي
                         </button>
                     </div>
 
@@ -584,7 +584,7 @@
                         <label for="menuImageFile" id="menuImageUploadLabel"
                             class="d-flex flex-column align-items-center justify-content-center p-3 border border-2 border-dashed border-warning rounded-3 bg-white"
                             style="cursor:pointer; transition:all .2s;">
-                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;"></i>
+                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;" aria-hidden="true"></i>
                             <span class="small fw-bold text-secondary">انقر لرفع صورة المنيو</span>
                         </label>
                         <input type="file" id="menuImageFile" accept="image/*" class="d-none"
@@ -594,7 +594,7 @@
                     <!-- Menu Mode: External URL -->
                     <div id="menuImgUrlMode" style="display:none;">
                         <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-link"></i></span>
+                            <span class="input-group-text"><i class="fas fa-link" aria-hidden="true"></i></span>
                             <input type="url" id="menuImageUrl" class="form-control" dir="ltr"
                                 placeholder="https://i.ibb.co/xxx/menu.jpg" oninput="previewMenuImageUrl(this.value)">
                         </div>
@@ -604,16 +604,16 @@
                     <div id="menuImagePreview" class="mt-3 position-relative" style="display:none;">
                         <img id="menuImagePreviewImg" src="" class="w-100 rounded-3 shadow-sm"
                             style="height:150px; object-fit:contain; background:#fff;">
-                        <button type="button" onclick="clearMenuImage()"
+                        <button aria-label="حذف صورة المنيو" type="button" onclick="clearMenuImage()"
                             class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 rounded-circle"
-                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times"></i></button>
+                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </div>
                     <input type="hidden" id="placeMenu">
                 </div>
                 </details>
 
                 <div class="form-group p-3 border rounded-3 bg-white shadow-sm border-start border-4 border-info">
-                    <label class="form-label"><i class="fas fa-map-pin text-danger"></i> موقع المتجر*</label>
+                    <label class="form-label"><i class="fas fa-map-pin text-danger" aria-hidden="true"></i> موقع المتجر*</label>
                     <p class="small text-muted mb-2">
                         <b>حرّك الدبوس على الخريطة</b> لتحديد الموقع — هذا كل المطلوب.
                     </p>
@@ -621,12 +621,12 @@
                     <!-- 🗺️ خريطة تحديد الموقع — ظاهرة دائماً (مصدر الموقع الأساسي) -->
                     <div id="adminPlaceMapWrapper" class="mt-1">
                         <label class="form-label fw-bold text-dark mb-1">
-                            <i class="fas fa-map-pin text-danger me-1"></i>
+                            <i class="fas fa-map-pin text-danger me-1" aria-hidden="true"></i>
                             تحقق من الموقع على الخريطة — اسحب لضبط الدقة
                         </label>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <button type="button" onclick="adminMapLocateMe()" class="btn btn-outline-danger btn-sm rounded-pill fw-bold">
-                                <i class="fas fa-crosshairs me-1"></i> موقعي
+                                <i class="fas fa-crosshairs me-1" aria-hidden="true"></i> موقعي
                             </button>
                             <div id="adminPlaceMapCoords" class="text-muted small"></div>
                         </div>
@@ -671,7 +671,7 @@
                 <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
                 <div id="addPlaceOwnerSection" class="form-group p-3 border rounded-3 mt-3" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border-color:#6ee7b7!important;">
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <i class="fas fa-user-tie text-success" style="font-size:1.2rem;"></i>
+                        <i class="fas fa-user-tie text-success" style="font-size:1.2rem;" aria-hidden="true"></i>
                         <span class="fw-bold" style="color:#065f46;">بيانات التاجر (اختياري)</span>
                         <span class="badge bg-success-subtle text-success ms-auto" style="font-size:11px;">لإنشاء حساب للتاجر</span>
                     </div>
@@ -680,11 +680,11 @@
                     <div class="btn-group w-100 mb-3" role="group">
                         <button type="button" id="ownerModeNew" onclick="setOwnerMode('new')"
                             class="btn btn-success btn-sm">
-                            <i class="fas fa-user-plus me-1"></i> تاجر جديد
+                            <i class="fas fa-user-plus me-1" aria-hidden="true"></i> تاجر جديد
                         </button>
                         <button type="button" id="ownerModeNone" onclick="setOwnerMode('none')"
                             class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-store me-1"></i> متجر بدون تاجر
+                            <i class="fas fa-store me-1" aria-hidden="true"></i> متجر بدون تاجر
                         </button>
                     </div>
 
@@ -720,7 +720,7 @@
                                 dir="ltr" placeholder="xxxxxxxxxxxx — اسم البنك / رقم الحساب">
                         </div>
                         <div class="alert alert-success py-2 px-3 mb-0" style="font-size:12px;border-radius:8px;">
-                            <i class="fas fa-info-circle me-1"></i>
+                            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
                             سيتم إنشاء حساب تاجر تلقائياً ويمكنه تسجيل الدخول بالهاتف وكلمة المرور
                         </div>
                     </div>
@@ -728,7 +728,7 @@
                     <!-- حالة: بدون تاجر -->
                     <div id="ownerNoneInfo" style="display:none;">
                         <div class="alert alert-warning py-2 px-3 mb-2" style="font-size:12px;border-radius:8px;">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            <i class="fas fa-exclamation-triangle me-1" aria-hidden="true"></i>
                             سيُضاف المتجر بدون حساب تاجر. لن يتمكن أحد من إدارته حتى يتم ربطه لاحقاً.
                         </div>
                         <!-- ⚠️ متجرٌ بلا تاجر لا يملك منتجات ولا من يستقبل طلباته: الطريق
@@ -737,7 +737,7 @@
                         <div class="form-check form-switch p-3 rounded-3" style="background:#f5f3ff;border:1px solid #ddd6fe;">
                             <input class="form-check-input" type="checkbox" id="placeErrandEnabled" checked style="cursor:pointer;">
                             <label class="form-check-label fw-bold" for="placeErrandEnabled" style="cursor:pointer;color:#4f46e5;">
-                                <i class="fas fa-bag-shopping me-1"></i> إتاحته في خدمة "اشترِ لي"
+                                <i class="fas fa-bag-shopping me-1" aria-hidden="true"></i> إتاحته في خدمة "اشترِ لي"
                             </label>
                             <div class="small text-muted mt-1">
                                 يظهر في بحث العملاء وفي منتقي "اشترِ لي" — والكابتن يشتري منه نيابةً عنهم.
@@ -747,7 +747,7 @@
                 </div>
 
                 <button type="submit" id="addPlaceSubmitBtn" class="btn-success-custom btn-custom w-100 justify-content-center mt-4 py-3">
-                    <i class="fas fa-check-double"></i> تأكيد وإدراج المنشأة
+                    <i class="fas fa-check-double" aria-hidden="true"></i> تأكيد وإدراج المنشأة
                 </button>
             </form>
         </div>
@@ -757,9 +757,9 @@
     <!-- ✏️ Edit Place Modal -->
     <div id="editPlaceModal" class="modal-overlay">
         <div class="modal-box p-4" style="max-width:580px; max-height:90vh; overflow-y:auto;">
-            <button class="modal-close-btn shadow-sm" onclick="closeEditPlaceModal()"><i
-                    class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-store-alt"></i> تعديل المنشأة</h2>
+            <button aria-label="إغلاق نافذة تعديل المحل" class="modal-close-btn shadow-sm" onclick="closeEditPlaceModal()"><i
+                    class="fas fa-times" aria-hidden="true"></i></button>
+            <h2 class="modal-title"><i class="fas fa-store-alt" aria-hidden="true"></i> تعديل المنشأة</h2>
             <form id="editPlaceForm" onsubmit="submitEditPlace(event)">
                 <div class="form-group">
                     <label class="form-label">الاسم *</label>
@@ -779,7 +779,7 @@
                 
                 <!-- 🌍 City Selection (Edit Place) -->
                 <div class="form-group mt-3">
-                    <label class="form-label"><i class="bi bi-geo-alt-fill text-success"></i> المدينة / المنطقة *</label>
+                    <label class="form-label"><i class="bi bi-geo-alt-fill text-success" aria-hidden="true"></i> المدينة / المنطقة *</label>
                     <select id="editPlaceCity" class="form-select" required>
                         <option value="">— حدد المدينة —</option>
                         <option value="Khartoum">الخرطوم - أم درمان</option>
@@ -817,17 +817,17 @@
                 </div>
 
                 <div class="form-group p-3 border rounded-3 bg-light mt-3">
-                    <label class="form-label mb-2"><i class="fas fa-image text-primary"></i> واجهة المحل</label>
+                    <label class="form-label mb-2"><i class="fas fa-image text-primary" aria-hidden="true"></i> واجهة المحل</label>
 
                     <!-- Edit Image Mode Tabs -->
                     <div class="btn-group w-100 mb-3" role="group">
                         <button type="button" id="editPlaceImgModeFile" onclick="setEditPlaceImageMode('file')"
                             class="btn btn-primary btn-sm">
-                            <i class="fas fa-upload me-1"></i> رفع من الجهاز
+                            <i class="fas fa-upload me-1" aria-hidden="true"></i> رفع من الجهاز
                         </button>
                         <button type="button" id="editPlaceImgModeUrl" onclick="setEditPlaceImageMode('url')"
                             class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-link me-1"></i> رابط خارجي
+                            <i class="fas fa-link me-1" aria-hidden="true"></i> رابط خارجي
                         </button>
                     </div>
 
@@ -836,7 +836,7 @@
                         <label for="editPlaceImageFile" id="editPlaceImageUploadLabel"
                             class="d-flex flex-column align-items-center justify-content-center p-3 border border-2 border-dashed border-primary rounded-3 bg-white"
                             style="cursor:pointer; transition:all .2s;">
-                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;"></i>
+                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;" aria-hidden="true"></i>
                             <span class="small fw-bold text-secondary">انقر لرفع ملف الصورة</span>
                         </label>
                         <input type="file" id="editPlaceImageFile" accept="image/*" class="d-none"
@@ -846,7 +846,7 @@
                     <!-- Edit Image Mode: External URL -->
                     <div id="editPlaceImgUrlMode" style="display:none;">
                         <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-link"></i></span>
+                            <span class="input-group-text"><i class="fas fa-link" aria-hidden="true"></i></span>
                             <input type="url" id="editPlaceImageUrl" class="form-control" dir="ltr"
                                 placeholder="https://i.ibb.co/xxx/photo.jpg" oninput="previewEditPlaceImageUrl(this.value)">
                         </div>
@@ -856,26 +856,26 @@
                     <div id="editPlaceImagePreview" class="mt-3 position-relative" style="display:none;">
                         <img id="editPlaceImagePreviewImg" src="" class="w-100 rounded-3 shadow-sm"
                             style="height:150px; object-fit:cover;">
-                        <button type="button" onclick="clearEditPlaceImage()"
+                        <button aria-label="حذف صورة المحل" type="button" onclick="clearEditPlaceImage()"
                             class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 rounded-circle"
-                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times"></i></button>
+                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </div>
                     <input type="hidden" id="editPlaceImage">
                 </div>
 
                 <div class="form-group p-3 border rounded-3 bg-light mt-3">
-                    <label class="form-label mb-2"><i class="fas fa-file-alt text-warning"></i> قائمة الأسعار
+                    <label class="form-label mb-2"><i class="fas fa-file-alt text-warning" aria-hidden="true"></i> قائمة الأسعار
                         (المنيو)</label>
 
                     <!-- Edit Menu Mode Tabs -->
                     <div class="btn-group w-100 mb-3" role="group">
                         <button type="button" id="editMenuImgModeFile" onclick="setEditMenuImageMode('file')"
                             class="btn btn-warning btn-sm text-dark">
-                            <i class="fas fa-upload me-1"></i> رفع من الجهاز
+                            <i class="fas fa-upload me-1" aria-hidden="true"></i> رفع من الجهاز
                         </button>
                         <button type="button" id="editMenuImgModeUrl" onclick="setEditMenuImageMode('url')"
                             class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-link me-1"></i> رابط خارجي
+                            <i class="fas fa-link me-1" aria-hidden="true"></i> رابط خارجي
                         </button>
                     </div>
 
@@ -884,7 +884,7 @@
                         <label for="editMenuImageFile" id="editMenuImageUploadLabel"
                             class="d-flex flex-column align-items-center justify-content-center p-3 border border-2 border-dashed border-warning rounded-3 bg-white"
                             style="cursor:pointer; transition:all .2s;">
-                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;"></i>
+                            <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size: 2rem;" aria-hidden="true"></i>
                             <span class="small fw-bold text-secondary">انقر لرفع صورة المنيو الجديدة</span>
                         </label>
                         <input type="file" id="editMenuImageFile" accept="image/*" class="d-none"
@@ -894,7 +894,7 @@
                     <!-- Edit Menu Mode: External URL -->
                     <div id="editMenuImgUrlMode" style="display:none;">
                         <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-link"></i></span>
+                            <span class="input-group-text"><i class="fas fa-link" aria-hidden="true"></i></span>
                             <input type="url" id="editMenuImageUrl" class="form-control" dir="ltr"
                                 placeholder="https://i.ibb.co/xxx/menu.jpg"
                                 oninput="previewEditMenuImageUrl(this.value)">
@@ -905,9 +905,9 @@
                     <div id="editMenuImagePreview" class="mt-3 position-relative" style="display:none;">
                         <img id="editMenuImagePreviewImg" src="" class="w-100 rounded-3 shadow-sm"
                             style="height:150px; object-fit:contain; background:#fff;">
-                        <button type="button" onclick="clearEditMenuImage()"
+                        <button aria-label="حذف صورة المنيو" type="button" onclick="clearEditMenuImage()"
                             class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 rounded-circle"
-                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times"></i></button>
+                            style="width:30px;height:30px;padding:0;"><i class="fas fa-times" aria-hidden="true"></i></button>
                     </div>
                     <input type="hidden" id="editPlaceMenu">
                 </div>
@@ -916,12 +916,12 @@
                 <div
                     class="form-group p-3 border rounded-3 bg-white shadow-sm mt-3 border-start border-4 border-success">
                     <label class="form-label fw-bold">
-                        <i class="fas fa-map-pin text-danger me-1"></i>
+                        <i class="fas fa-map-pin text-danger me-1" aria-hidden="true"></i>
                         موقع المحل — اسحب لضبط الدقة
                     </label>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <button type="button" onclick="editPlaceMapLocateMe()" class="btn btn-outline-danger btn-sm rounded-pill fw-bold">
-                            <i class="fas fa-crosshairs me-1"></i> موقعي
+                            <i class="fas fa-crosshairs me-1" aria-hidden="true"></i> موقعي
                         </button>
                         <div id="editPlaceMapCoords" class="text-muted small"></div>
                     </div>
@@ -945,16 +945,16 @@
                 </div>
                 <input type="hidden" id="editPlaceIsOpen">
                 <button type="submit" class="btn-success-custom btn-custom w-100 justify-content-center mt-4 py-3">
-                    <i class="fas fa-save"></i> حفظ التعديلات
+                    <i class="fas fa-save" aria-hidden="true"></i> حفظ التعديلات
                 </button>
             </form>
 
             <!-- 🛒 إدارة منتجات المتجر -->
             <div id="placeProductsSection" class="mt-4 pt-3 border-top">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h3 class="modal-title m-0" style="font-size:1rem;"><i class="fas fa-box"></i> منتجات المتجر</h3>
+                    <h3 class="modal-title m-0" style="font-size:1rem;"><i class="fas fa-box" aria-hidden="true"></i> منتجات المتجر</h3>
                     <button type="button" class="btn btn-sm btn-success" onclick="toggleProductForm()">
-                        <i class="fas fa-plus"></i> إضافة منتج
+                        <i class="fas fa-plus" aria-hidden="true"></i> إضافة منتج
                     </button>
                 </div>
 
@@ -973,7 +973,7 @@
                         <div class="col-12"><textarea id="productDesc" class="form-control form-control-sm" rows="2" placeholder="وصف المنتج (اختياري)"></textarea></div>
                         <div class="col-12">
                             <label class="d-flex align-items-center gap-2 p-2 border border-2 border-dashed rounded-3 bg-white m-0" style="cursor:pointer;">
-                                <i class="fas fa-image text-muted"></i>
+                                <i class="fas fa-image text-muted" aria-hidden="true"></i>
                                 <span class="small text-secondary">صورة المنتج (اختياري)</span>
                                 <img id="productImgPreview" src="" style="height:36px;width:36px;object-fit:cover;border-radius:8px;margin-inline-start:auto;display:none;">
                                 <input type="file" id="productImgFile" accept="image/*" class="d-none" onchange="previewProductImg(this)">
@@ -982,7 +982,7 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2 mt-2">
-                        <button type="button" id="saveProductBtn" class="btn btn-sm btn-success flex-grow-1" onclick="saveProduct()"><i class="fas fa-save"></i> حفظ المنتج</button>
+                        <button type="button" id="saveProductBtn" class="btn btn-sm btn-success flex-grow-1" onclick="saveProduct()"><i class="fas fa-save" aria-hidden="true"></i> حفظ المنتج</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleProductForm(false)">إلغاء</button>
                     </div>
                 </div>
@@ -997,9 +997,9 @@
     <!-- ✏️ Edit Category Modal -->
     <div id="editCategoryModal" class="modal-overlay">
         <div class="modal-box p-4" style="max-width:420px;">
-            <button class="modal-close-btn shadow-sm" onclick="closeEditCategoryModal()"><i
-                    class="fas fa-times"></i></button>
-            <h2 class="modal-title"><i class="fas fa-folder-open"></i> تعديل التصنيف</h2>
+            <button aria-label="إغلاق نافذة تعديل التصنيف" class="modal-close-btn shadow-sm" onclick="closeEditCategoryModal()"><i
+                    class="fas fa-times" aria-hidden="true"></i></button>
+            <h2 class="modal-title"><i class="fas fa-folder-open" aria-hidden="true"></i> تعديل التصنيف</h2>
             <form id="editCategoryForm" onsubmit="submitEditCategory(event)">
                 <div class="form-group">
                     <label class="form-label">اسم التصنيف</label>
@@ -1019,7 +1019,7 @@
                         placeholder="ملاحظات تظهر للعميل عند فتح هذا التصنيف..."></textarea>
                 </div>
                 <button type="submit" class="btn-success-custom btn-custom w-100 justify-content-center mt-4 py-3">
-                    <i class="fas fa-save"></i> حفظ التعديلات
+                    <i class="fas fa-save" aria-hidden="true"></i> حفظ التعديلات
                 </button>
             </form>
         </div>

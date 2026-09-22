@@ -153,37 +153,37 @@ body.dark-mode .msg { color: #d1d5db !important; }
 
 <body>
     <div class="page-header">
-        <h1><i class="fas fa-comment-dots" style="margin-left:8px;"></i> صوت العميل</h1>
+        <h1><i class="fas fa-comment-dots" style="margin-left:8px;" aria-hidden="true"></i> صوت العميل</h1>
         <div class="d-flex align-items-center gap-2">
-            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                <i class="fas fa-moon"></i>
+            <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
-            <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+            <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
         </div>
     </div>
 
     <div class="main">
         <div class="stats-bar">
             <div class="stat-chip">
-                <div class="icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-ban"></i></div>
+                <div class="icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-ban" aria-hidden="true"></i></div>
                 <div><div class="num" id="stat-cancel">—</div><div class="lbl">أسباب إلغاء</div></div>
             </div>
             <div class="stat-chip">
-                <div class="icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-star"></i></div>
+                <div class="icon" style="background:#dbeafe;color:#1d4ed8;"><i class="fas fa-star" aria-hidden="true"></i></div>
                 <div><div class="num" id="stat-first">—</div><div class="lbl">آراء أول طلب</div></div>
             </div>
             <div class="stat-chip">
-                <div class="icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-envelope-open-text"></i></div>
+                <div class="icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-envelope-open-text" aria-hidden="true"></i></div>
                 <div><div class="num" id="stat-unreviewed">—</div><div class="lbl">لم تُراجَع</div></div>
             </div>
             <div class="stat-chip">
-                <div class="icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-simple"></i></div>
+                <div class="icon" style="background:#dcfce7;color:#16a34a;"><i class="fas fa-chart-simple" aria-hidden="true"></i></div>
                 <div><div class="num" id="stat-avg">—</div><div class="lbl">متوسط التقييم</div></div>
             </div>
         </div>
 
         <div class="reasons">
-            <h2><i class="fas fa-circle-question" style="color:var(--primary);"></i> لماذا يُلغي العملاء طلباتهم؟</h2>
+            <h2><i class="fas fa-circle-question" style="color:var(--primary);" aria-hidden="true"></i> لماذا يُلغي العملاء طلباتهم؟</h2>
             <div id="reasonsBox"><div class="empty-note">جاري التحميل...</div></div>
         </div>
 
@@ -213,7 +213,7 @@ body.dark-mode .msg { color: #d1d5db !important; }
                     <option value="90">آخر ٩٠ يوماً</option>
                 </select>
             </div>
-            <button class="btn btn-primary" onclick="load(1)"><i class="fas fa-rotate"></i> تحديث</button>
+            <button class="btn btn-primary" onclick="load(1)"><i class="fas fa-rotate" aria-hidden="true"></i> تحديث</button>
         </div>
 
         <div class="table-wrap">
@@ -232,7 +232,7 @@ body.dark-mode .msg { color: #d1d5db !important; }
                 <tbody id="tbody">
                     <tr>
                         <td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">
-                            <i class="fas fa-spinner fa-spin"></i> جاري التحميل...
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i> جاري التحميل...
                         </td>
                     </tr>
                 </tbody>
@@ -297,13 +297,13 @@ body.dark-mode .msg { color: #d1d5db !important; }
             }
 
             const note = f.adminNote
-                ? `<div class="admin-note"><i class="fas fa-note-sticky"></i> ${esc(f.adminNote)}</div>` : '';
+                ? `<div class="admin-note"><i class="fas fa-note-sticky" aria-hidden="true"></i> ${esc(f.adminNote)}</div>` : '';
 
             const action = f.isReviewed
                 ? `<span class="pill pill-done">مُراجَعة</span>
                    <button class="btn btn-sm btn-undo" style="margin-top:6px" onclick="review('${f._id}', false)">تراجع</button>`
                 : `<button class="btn btn-sm btn-review" onclick="review('${f._id}', true)">
-                       <i class="fas fa-check"></i> مراجعة
+                       <i class="fas fa-check" aria-hidden="true"></i> مراجعة
                    </button>`;
 
             return `<tr>

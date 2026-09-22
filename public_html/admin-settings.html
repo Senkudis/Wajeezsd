@@ -199,19 +199,19 @@
     <div class="container">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
             <a href="admin.html" class="back-btn">
-                <i class="fas fa-arrow-right"></i> العودة للوحة التحكم
+                <i class="fas fa-arrow-right" aria-hidden="true"></i> العودة للوحة التحكم
             </a>
-            <button class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
-                <i class="fas fa-moon"></i>
+            <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+                <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
         </div>
 
         <div class="settings-card">
-            <h1><i class="fas fa-cog" style="color:var(--primary);"></i> إعدادات الأسعار الديناميكية</h1>
+            <h1><i class="fas fa-cog" style="color:var(--primary);" aria-hidden="true"></i> إعدادات الأسعار الديناميكية</h1>
             <p class="text-muted">تحكم في أسعار الرحلات بدون تعديل الكود</p>
 
             <div class="info-box">
-                <i class="bi bi-info-circle-fill text-primary"></i>
+                <i class="bi bi-info-circle-fill text-primary" aria-hidden="true"></i>
                 <strong>ملاحظة:</strong> التغييرات ستؤثر على جميع الطلبات الجديدة فوراً
             </div>
 
@@ -220,7 +220,7 @@
                     <!-- 🌍 City Selector -->
                     <div class="col-md-12 mb-3">
                         <label class="form-label fw-bold">
-                            <i class="bi bi-geo-alt-fill text-danger"></i> اختر المدينة لإدارة إعداداتها
+                            <i class="bi bi-geo-alt-fill text-danger" aria-hidden="true"></i> اختر المدينة لإدارة إعداداتها
                         </label>
                         <select id="citySelector" class="form-select border-primary" style="font-size: 1.1rem; padding: 12px; background-color: #f8f9fa;">
                             <option value="Khartoum">الخرطوم (أم درمان)</option>
@@ -230,7 +230,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-cash-coin"></i> السعر الأساسي (فتح العداد)
+                            <i class="bi bi-cash-coin" aria-hidden="true"></i> السعر الأساسي (فتح العداد)
                         </label>
                         <div class="input-group">
                             <input type="number" id="baseFare" class="form-control" min="0" step="0.1" required>
@@ -240,7 +240,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-speedometer2"></i> السعر لكل كيلومتر
+                            <i class="bi bi-speedometer2" aria-hidden="true"></i> السعر لكل كيلومتر
                         </label>
                         <div class="input-group">
                             <input type="number" id="costPerKm" class="form-control" min="0" step="0.1" required>
@@ -250,7 +250,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-signpost-split"></i> رسم النقطة الإضافية (توصيل متعدد النقاط)
+                            <i class="bi bi-signpost-split" aria-hidden="true"></i> رسم النقطة الإضافية (توصيل متعدد النقاط)
                         </label>
                         <div class="input-group">
                             <input type="number" id="extraStopFee" class="form-control" min="0" step="0.1">
@@ -261,7 +261,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-bag-heart"></i> رسوم انتقال "اشترِ لي" عند الرفض
+                            <i class="bi bi-bag-heart" aria-hidden="true"></i> رسوم انتقال "اشترِ لي" عند الرفض
                         </label>
                         <div class="input-group">
                             <input type="number" id="errandTripFee" class="form-control" min="0" step="0.1">
@@ -272,7 +272,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-clock"></i> السعر لكل دقيقة
+                            <i class="bi bi-clock" aria-hidden="true"></i> السعر لكل دقيقة
                         </label>
                         <div class="input-group">
                             <input type="number" id="costPerMinute" class="form-control" min="0" step="0.1" required>
@@ -282,7 +282,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-percent"></i> نسبة العمولة
+                            <i class="bi bi-percent" aria-hidden="true"></i> نسبة العمولة
                         </label>
                         <div class="input-group">
                             <input type="number" id="commissionRate" class="form-control" min="0" max="1" step="0.01"
@@ -294,7 +294,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-success fw-bold">
-                            <i class="bi bi-arrow-down-circle-fill"></i> أقصى نسبة تخفيض مسموحة للعميل (%)
+                            <i class="bi bi-arrow-down-circle-fill" aria-hidden="true"></i> أقصى نسبة تخفيض مسموحة للعميل (%)
                         </label>
                         <div class="input-group">
                             <input type="number" id="maxDiscountPercent" class="form-control border-success" min="0" max="90" step="1" required>
@@ -305,7 +305,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-primary fw-bold">
-                            <i class="bi bi-arrow-up-circle-fill"></i> سقف السعر / أقصى نسبة زيادة مسموحة (%)
+                            <i class="bi bi-arrow-up-circle-fill" aria-hidden="true"></i> سقف السعر / أقصى نسبة زيادة مسموحة (%)
                         </label>
                         <div class="input-group">
                             <input type="number" id="maxPriceSurgePercent" class="form-control border-primary" min="0" max="500" step="1" required>
@@ -316,7 +316,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-success fw-bold">
-                            <i class="bi bi-heart-fill"></i> أقصى إكرامية للكابتن (ج.س)
+                            <i class="bi bi-heart-fill" aria-hidden="true"></i> أقصى إكرامية للكابتن (ج.س)
                         </label>
                         <div class="input-group">
                             <input type="number" id="maxTipAmount" class="form-control border-success" min="0" max="1000000" step="500">
@@ -327,19 +327,19 @@
 
                     <div class="col-12 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-phone"></i> رقم الأدمن للطوارئ
+                            <i class="bi bi-phone" aria-hidden="true"></i> رقم الأدمن للطوارئ
                         </label>
                         <input type="tel" id="adminPhone" class="form-control" placeholder="249XXXXXXXXX" required>
                         <small class="text-muted">سيتم إرسال تنبيهات SOS لهذا الرقم</small>
                     </div>
 
                     <div class="col-12 mt-4 mb-2 border-top pt-3">
-                        <h4 class="text-primary"><i class="bi bi-phone"></i> إعدادات التطبيق والتحديثات</h4>
+                        <h4 class="text-primary"><i class="bi bi-phone" aria-hidden="true"></i> إعدادات التطبيق والتحديثات</h4>
                     </div>
 
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-tag"></i> أحدث إصدار (مثال: 1.2.1)
+                            <i class="bi bi-tag" aria-hidden="true"></i> أحدث إصدار (مثال: 1.2.1)
                         </label>
                         <input type="text" id="appVersion" class="form-control" placeholder="1.2.1" required>
                         <small class="text-muted">أحدث إصدار متوفر</small>
@@ -347,7 +347,7 @@
 
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-shield-lock"></i> الحد الأدنى للإصدار (مثال: 1.2.1)
+                            <i class="bi bi-shield-lock" aria-hidden="true"></i> الحد الأدنى للإصدار (مثال: 1.2.1)
                         </label>
                         <input type="text" id="minVersion" class="form-control" placeholder="1.2.1" required>
                         <small class="text-muted">الإصدارات الأقدم ستجبر على التحديث</small>
@@ -355,7 +355,7 @@
 
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-google-play"></i> رابط جوجل بلاي
+                            <i class="bi bi-google-play" aria-hidden="true"></i> رابط جوجل بلاي
                         </label>
                         <input type="url" id="playStoreLink" class="form-control" placeholder="https://play.google.com/..." required>
                         <small class="text-muted">يُرسل لمستخدمي أندرويد</small>
@@ -363,7 +363,7 @@
 
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-apple"></i> رابط App Store
+                            <i class="bi bi-apple" aria-hidden="true"></i> رابط App Store
                         </label>
                         <input type="url" id="appStoreLink" class="form-control" placeholder="https://apps.apple.com/app/id...">
                         <small class="text-muted">يُرسل لمستخدمي آيفون</small>
@@ -375,7 +375,7 @@
                          في رسالة قبولٍ أسوأ من لا رابط. -->
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-whatsapp"></i> رابط مجموعة الكباتن
+                            <i class="bi bi-whatsapp" aria-hidden="true"></i> رابط مجموعة الكباتن
                         </label>
                         <input type="url" id="captainGroupLink" class="form-control"
                             placeholder="https://chat.whatsapp.com/...">
@@ -384,7 +384,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            <i class="bi bi-whatsapp"></i> رابط مجموعة التجار
+                            <i class="bi bi-whatsapp" aria-hidden="true"></i> رابط مجموعة التجار
                         </label>
                         <input type="url" id="merchantGroupLink" class="form-control"
                             placeholder="https://chat.whatsapp.com/...">
@@ -400,7 +400,7 @@
                         </div>
                     </div>
                     <div class="col-12 mt-4 mb-2 border-top pt-3">
-                        <h4 class="text-primary"><i class="bi bi-bell"></i> عتبات التنبيهات الاستباقية</h4>
+                        <h4 class="text-primary"><i class="bi bi-bell" aria-hidden="true"></i> عتبات التنبيهات الاستباقية</h4>
                         <small class="text-muted d-block mb-2">
                             متى ينبّه النظام العميل والكابتن تلقائياً. القيم بالدقائق ما لم يُذكر غير ذلك،
                             وتُطبَّق على المدينة المختارة أعلاه وحدها.
@@ -502,16 +502,16 @@
 
                 <div class="text-center mt-4">
                     <button type="submit" class="btn btn-save btn-lg">
-                        <i class="bi bi-check-circle"></i> حفظ الإعدادات
+                        <i class="bi bi-check-circle" aria-hidden="true"></i> حفظ الإعدادات
                     </button>
                 </div>
             </form>
 
             <div class="mt-4 pt-3 border-top">
-                <h5 class="text-primary"><i class="bi bi-images"></i> صيانة الصور</h5>
+                <h5 class="text-primary"><i class="bi bi-images" aria-hidden="true"></i> صيانة الصور</h5>
                 <p class="text-muted small mb-2">ضغط الصور القديمة المرفوعة قبل تفعيل الضغط التلقائي (صور المنتجات والمتاجر). تعمل العملية في الخلفية على السيرفر ولا تؤثر على عمل التطبيق.</p>
                 <button type="button" id="compressImagesBtn" class="btn btn-outline-primary">
-                    <i class="bi bi-file-zip"></i> ضغط الصور القديمة
+                    <i class="bi bi-file-zip" aria-hidden="true"></i> ضغط الصور القديمة
                 </button>
                 <div id="compressStatus" class="small text-muted mt-2"></div>
             </div>
@@ -519,9 +519,9 @@
             <!-- 📊 تكلفة بحث "اشترِ لي" — هل تعمل طبقات خفض التكلفة فعلاً؟ -->
             <div class="mt-4 pt-3 border-top">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                    <h5 class="text-primary mb-0"><i class="bi bi-graph-up-arrow"></i> بحث "اشترِ لي" — التكلفة والاستخدام</h5>
+                    <h5 class="text-primary mb-0"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> بحث "اشترِ لي" — التكلفة والاستخدام</h5>
                     <button type="button" id="reloadSearchStatsBtn" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-arrow-clockwise"></i> تحديث
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> تحديث
                     </button>
                 </div>
                 <p class="text-muted small mb-3">
@@ -534,9 +534,9 @@
             <!-- 🐞 أخطاء الإنتاج — كانت تُسجَّل ولا يراها أحد إلا بـ curl يدوي -->
             <div class="mt-4 pt-3 border-top">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                    <h5 class="text-primary mb-0"><i class="bi bi-bug-fill"></i> أخطاء الإنتاج</h5>
+                    <h5 class="text-primary mb-0"><i class="bi bi-bug-fill" aria-hidden="true"></i> أخطاء الإنتاج</h5>
                     <button type="button" id="reloadErrorsBtn" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-arrow-clockwise"></i> تحديث
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> تحديث
                     </button>
                 </div>
                 <p class="text-muted small mb-3">

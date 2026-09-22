@@ -166,10 +166,10 @@
 
 <div class="topbar">
     <div class="topbar-brand">
-        <i class="fas fa-id-card" style="color:var(--brand);"></i>
+        <i class="fas fa-id-card" style="color:var(--brand);" aria-hidden="true"></i>
         بطاقات الفريق
     </div>
-    <a href="admin.html" class="topbar-back"><i class="fas fa-arrow-right"></i> الرئيسية</a>
+    <a href="admin.html" class="topbar-back"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
 </div>
 
 <div class="container-main">
@@ -179,7 +179,7 @@
     </div>
 
     <div class="hint">
-        <i class="fas fa-circle-info" style="margin-top:2px;"></i>
+        <i class="fas fa-circle-info" style="margin-top:2px;" aria-hidden="true"></i>
         <span>
             المسمّى الوظيفي والقسم يُشتقّان تلقائياً من الدور ونوع المركبة. اترك الحقل فارغاً ليبقى
             الاشتقاق التلقائي، أو اكتب قيمة لتتجاوزه. أرقام الهواتف لا تظهر في الصفحة العامة إطلاقاً.
@@ -194,9 +194,9 @@
             <option value="admin">الإدارة</option>
             <option value="merchant">الشركاء</option>
         </select>
-        <button class="btn-ghost" id="reloadBtn"><i class="fas fa-rotate"></i> تحديث</button>
-        <button class="btn-brand" id="saveOrderBtn" disabled><i class="fas fa-arrow-down-1-9"></i> حفظ الترتيب</button>
-        <a class="btn-ghost" id="viewSiteBtn" href="#" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> عرض الصفحة</a>
+        <button class="btn-ghost" id="reloadBtn"><i class="fas fa-rotate" aria-hidden="true"></i> تحديث</button>
+        <button class="btn-brand" id="saveOrderBtn" disabled><i class="fas fa-arrow-down-1-9" aria-hidden="true"></i> حفظ الترتيب</button>
+        <a class="btn-ghost" id="viewSiteBtn" href="#" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> عرض الصفحة</a>
     </div>
 
     <div id="content" class="loading"></div>
@@ -218,7 +218,7 @@
             <label>المسمّيات الوظيفية</label>
             <div class="titles-list" id="titlesList"></div>
             <button type="button" class="btn-ghost" style="margin-top:8px;min-height:38px;" id="addTitleBtn">
-                <i class="fas fa-plus"></i> إضافة مسمّى
+                <i class="fas fa-plus" aria-hidden="true"></i> إضافة مسمّى
             </button>
             <small id="derivedTitleHint"></small>
         </div>
@@ -237,7 +237,7 @@
 
         <div class="modal-actions">
             <button class="btn-ghost" id="cancelEditBtn">إلغاء</button>
-            <button class="btn-brand" id="saveEditBtn"><i class="fas fa-check"></i> حفظ</button>
+            <button class="btn-brand" id="saveEditBtn"><i class="fas fa-check" aria-hidden="true"></i> حفظ</button>
         </div>
     </div>
 </div>
@@ -251,7 +251,7 @@
         <div class="qr-url" id="qrUrl"></div>
         <div class="modal-actions">
             <button class="btn-ghost" id="closeQrBtn">إغلاق</button>
-            <button class="btn-brand" id="downloadQrBtn"><i class="fas fa-download"></i> تنزيل PNG</button>
+            <button class="btn-brand" id="downloadQrBtn"><i class="fas fa-download" aria-hidden="true"></i> تنزيل PNG</button>
         </div>
     </div>
 </div>
@@ -344,7 +344,7 @@
 
         return '' +
         '<div class="row-card' + (m.show ? '' : ' is-hidden') + '" draggable="true" data-id="' + m.id + '">' +
-            '<div class="drag-handle" title="اسحب لتغيير الترتيب"><i class="fas fa-grip-lines"></i></div>' +
+            '<div class="drag-handle" title="اسحب لتغيير الترتيب"><i class="fas fa-grip-lines" aria-hidden="true"></i></div>' +
             // ⚠️ لا onerror نصية هنا. encodeURIComponent لا يهرّب علامة الاقتباس
             // المفردة، والصورة الرمزية تحوي xmlns='http://…' — فكانت سلسلة JS
             // داخل السمة تنتهي عند xmlns= ويصير http معرّفاً شارداً:
@@ -365,9 +365,9 @@
             '<div class="row-actions">' +
                 '<button class="icon-btn' + (m.show ? ' is-on' : '') + '" data-act="toggle" ' +
                         'title="' + (m.show ? 'إخفاء من الصفحة' : 'إظهار في الصفحة') + '">' +
-                    '<i class="fas fa-' + (m.show ? 'eye' : 'eye-slash') + '"></i></button>' +
-                '<button class="icon-btn" data-act="edit" title="تعديل البطاقة"><i class="fas fa-pen"></i></button>' +
-                '<button class="icon-btn" data-act="qr" title="رمز QR"><i class="fas fa-qrcode"></i></button>' +
+                    '<i class="fas fa-' + (m.show ? 'eye' : 'eye-slash') + '" aria-hidden="true"></i></button>' +
+                '<button aria-label="تعديل البطاقة" class="icon-btn" data-act="edit" title="تعديل البطاقة"><i class="fas fa-pen" aria-hidden="true"></i></button>' +
+                '<button aria-label="رمز QR" class="icon-btn" data-act="qr" title="رمز QR"><i class="fas fa-qrcode" aria-hidden="true"></i></button>' +
             '</div>' +
         '</div>';
     }
@@ -483,7 +483,7 @@
     function titleRowHtml(value) {
         return '<div class="title-row">' +
             '<input type="text" maxlength="100" value="' + escapeHtml(value) + '" placeholder="مثال: كابتن دراجة نارية">' +
-            '<button type="button" class="icon-btn" data-remove-title><i class="fas fa-xmark"></i></button>' +
+            '<button aria-label="حذف اللقب" type="button" class="icon-btn" data-remove-title><i class="fas fa-xmark" aria-hidden="true"></i></button>' +
         '</div>';
     }
 
