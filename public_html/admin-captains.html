@@ -549,7 +549,7 @@ function openDrawer(id) {
     // — أو قَبِل ثم انشغل — فقدها ولا سبيل لبنائها إلا بإلغاء القبول
     // وإعادته. والرسالة نصٌّ مشتقّ لا حدثٌ يمرّ، فتُطلب متى شاء.
     document.getElementById('drawerBody').insertAdjacentHTML('afterbegin',
-        '<button type="button" class="wa-send-btn" onclick="sendApprovalMessage('' + c._id + '')">' +
+        '<button type="button" class="wa-send-btn" onclick="sendApprovalMessage(\'' + c._id + '\')">' +
         '<i class="fab fa-whatsapp" aria-hidden="true"></i> إرسال رسالة القبول عبر واتساب</button>');
 
     document.getElementById('drawer').classList.add('open');
