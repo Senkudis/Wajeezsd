@@ -29,7 +29,10 @@ router.get('/settings', protect, adminOnly, async (req, res) => {
         const city = VALID_CITIES.includes(req.query.city) ? req.query.city : 'Khartoum';
         // 🌍 Uses getSettings(city) — auto-creates doc with defaults if missing
         const settings = await Settings.getSettings(city);
-        res.json(settings);
+        // 🔒 الوثائق السابقة للميزة لا تحمل الحقل (lean بلا افتراضيات)، فيصل
+        //    undefined — والمفتاح في الواجهة يحتاج قيمةً صريحة يُعرض بها.
+        //    المعنى نفسه في الخادم: كل ما ليس true مغلق.
+        res.json({ ...settings, captainRegistrationOpen: settings.captainRegistrationOpen === true });
     } catch (error) {
         logger.error('Settings Error:', error);
         res.status(500).json({ message: 'Server Error' });
@@ -116,7 +119,9 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             'bankName', 'bankAccountName', 'bankAccountNumber',
             'appVersion', 'minVersion', 'playStoreLink', 'appStoreLink', 'forceUpdate',
             // 👥 روابط مجموعات واتساب — لكل مدينة مجموعتها
-            'captainGroupLink', 'merchantGroupLink'
+            'captainGroupLink', 'merchantGroupLink',
+            // 🔒 باب تسجيل الكباتن — لكل مدينة
+            'captainRegistrationOpen'
         ];
 
         const updates = { updatedBy: req.user._id };
@@ -138,6 +143,16 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
                 });
             }
             updates[f] = v;
+        }
+
+        // 🔒 باب التسجيل: true أو false فقط. mongoose يحوّل أيّ نصٍّ آخر
+        //    إلى خطأ cast بصيغة 500 إنجليزية — والأسوأ أن «1» أو «yes» قد
+        //    تُفهم فتحاً لم يقصده أحد. قرارٌ كهذا يُكتب صريحاً أو يُرفض.
+        if (updates.captainRegistrationOpen !== undefined) {
+            const v = updates.captainRegistrationOpen;
+            if (v === true || v === 'true') updates.captainRegistrationOpen = true;
+            else if (v === false || v === 'false') updates.captainRegistrationOpen = false;
+            else return res.status(400).json({ message: 'حالة باب تسجيل الكباتن يجب أن تكون مفتوحاً أو مغلقاً' });
         }
 
         const numericFields = ['baseFare', 'costPerKm', 'costPerMinute', 'extraStopFee', 'errandTripFee', 'errandQuoteReminderMin', 'errandQuoteExpiryMin', 'commissionRate', 'maxDiscountPercent', 'maxPriceSurgePercent', 'maxTipAmount', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin', 'defaultCreditLimit'];
@@ -288,6 +303,16 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             `تم تحديث إعدادات ${city}: ${Object.keys(updates).filter(k => k !== 'updatedBy').join(', ')}`,
             '', city, { city, updatedFields: Object.keys(updates).filter(k => k !== 'updatedBy') }
         );
+
+        // 🔒 فتح باب التسجيل وإغلاقه قرارٌ يُسأل عنه لاحقاً («من فتحه؟ متى؟»)
+        //    والسطر العامّ أعلاه يذكر اسم الحقل لا اتجاهه. فله سطرٌ صريح.
+        if (updates.captainRegistrationOpen !== undefined) {
+            const cityLabel = city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم';
+            await logAdminAction(req, 'captain_registration_toggle',
+                `${updates.captainRegistrationOpen ? 'فُتح' : 'أُغلق'} باب تسجيل الكباتن في ${cityLabel}`,
+                '', city, { city, open: updates.captainRegistrationOpen }
+            );
+        }
 
         res.json({ message: `تم تحديث إعدادات ${city} بنجاح`, city, settings });
     } catch (error) {

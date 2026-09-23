@@ -21,6 +21,7 @@ const { generateOtpCode } = require('../utils/otp');
 // 📈 عدّادات المسار — «أطلق وانسَ»، لا تُنتظر ولا تُفشل طلباً
 const analytics = require('../utils/analytics');
 const { signUserToken } = require('../utils/authToken');
+const { isCaptainRegistrationOpen, captainRegistrationStatus, closedMessage } = require('../utils/captainRegistration');
 
 // 🔒 هوية Google بلا بريد مؤكَّد لا تُقبل إطلاقاً.
 //    البريد هنا هو مفتاح مطابقة الحساب الموجود (User.findOne({ email }))،
@@ -130,6 +131,17 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
             return res.status(409).json({
                 message: 'طلبك قيد المراجعة بالفعل. سنبلغك عند اتخاذ القرار.',
                 applicationStatus: 'pending'
+            });
+        }
+
+        // 🔒 الباب الثاني إلى دور الكابتن — يُفحص كالأول وإلا صار المغلق
+        //    مفتوحاً من هنا. بعد فحص «قيد المراجعة» عمداً: صاحب الطلب
+        //    المعلّق يرى حالة طلبه، لا «التسجيل مغلق» كأنه لم يتقدّم.
+        //    والترقية لا تغيّر المدينة، فيُفحص باب مدينة حسابه.
+        if (!(await isCaptainRegistrationOpen(user.city))) {
+            return res.status(403).json({
+                message: closedMessage(user.city),
+                registrationClosed: true
             });
         }
 
@@ -306,8 +318,32 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
 // ==========================================
 // 🚀 تسجيل كابتن جديد (Captain Self-Signup)
 // ==========================================
+// 🔒 حالة باب تسجيل الكباتن لكل مدينة — تسألها صفحة التسجيل قبل أن تعرض
+//    النموذج، فلا يملأ المتقدّم عشرة حقولٍ ويرفع وثائقه ثم يُقال له «مغلق».
+//    عامٌّ بلا مصادقة (الزائر غير مسجَّل)، ولا يُعيد إلا قيمتين منطقيّتين.
+//    no-store: فتحُ الإدارة للباب يجب أن يظهر فوراً لا بعد انتهاء كاش.
+router.get('/captain-registration-status', async (req, res) => {
+    try {
+        res.set('Cache-Control', 'no-store');
+        res.json({ open: await captainRegistrationStatus() });
+    } catch (error) {
+        logger.error({ err: error }, 'captain-registration-status failed');
+        res.status(500).json({ message: 'تعذّر التحقّق من حالة التسجيل' });
+    }
+});
+
 router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), async (req, res) => {
     try {
+        // 🔒 الباب أولاً — قبل أي بحثٍ في الحسابات. لو فُحص بعد البحث عن
+        //    حسابٍ قائم لكشف التسجيلُ المغلق أيَّ هاتفٍ مسجَّلٌ مسبقاً.
+        //    المدينة تُحلَّل بالقاعدة نفسها التي يُنشأ بها الحساب أدناه.
+        if (!(await isCaptainRegistrationOpen(req.body.city))) {
+            return res.status(403).json({
+                message: closedMessage(req.body.city),
+                registrationClosed: true
+            });
+        }
+
         let { name, email, phone, password, vehicleType } = req.body;
 
         if (!name || !email || !phone || !password || !vehicleType) {

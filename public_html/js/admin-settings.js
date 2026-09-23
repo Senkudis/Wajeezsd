@@ -31,7 +31,10 @@ async function loadSettings() {
         if (document.getElementById('maxPriceSurgePercent')) document.getElementById('maxPriceSurgePercent').value = settings.maxPriceSurgePercent ?? 100;
         if (document.getElementById('maxTipAmount')) document.getElementById('maxTipAmount').value = settings.maxTipAmount ?? 20000;
         document.getElementById('adminPhone').value = settings.adminPhone || '249112046348';
-        
+
+        // 🔒 باب تسجيل الكباتن — الخادم يُرسلها منطقيةً صريحة دائماً
+        renderRegGate(settings.captainRegistrationOpen === true);
+
         // App Settings
         if (document.getElementById('appVersion')) {
             // بلا احتياطي برقم مكتوب: حقل فارغ يقول للأدمن "لم يُضبط بعد"،
@@ -240,6 +243,83 @@ loadSettings();
 if (document.getElementById('citySelector')) {
     document.getElementById('citySelector').addEventListener('change', loadSettings);
 }
+
+// ─── 🔒 باب تسجيل الكباتن ───────────────────────────────────
+// يُحفظ فور تبديله بطلبٍ مستقلّ يحمل هذا الحقل وحده (المسار يضبط ما يُرسَل
+// فقط)، فلا ينتظر زرّ الحفظ أسفل الصفحة ولا يُعيد حفظ التسعير معه.
+
+const REG_CITY_LABEL = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+
+function renderRegGate(open) {
+    const card = document.getElementById('regGateCard');
+    const sw = document.getElementById('captainRegistrationOpen');
+    const sub = document.getElementById('regGateSub');
+    if (!card || !sw || !sub) return;
+    sw.checked = open;
+    card.dataset.open = open ? 'true' : 'false';
+    sub.textContent = open
+        ? 'مفتوح — يستطيع أيّ شخصٍ التقدّم ككابتن في هذه المدينة'
+        : 'مغلق — لا تُقبل طلبات انتساب جديدة في هذه المدينة';
+}
+
+(function bindRegGate() {
+    const sw = document.getElementById('captainRegistrationOpen');
+    const card = document.getElementById('regGateCard');
+    if (!sw || !card) return;
+
+    sw.addEventListener('change', async () => {
+        const wantOpen = sw.checked;
+        const city = document.getElementById('citySelector')?.value || 'Khartoum';
+        const cityLabel = REG_CITY_LABEL[city] || city;
+
+        // التأكيد قبل التنفيذ: الفتح قد يُغرق المراجعة بطلبات، والإغلاق
+        // يصدّ من كان على وشك التقدّم. وكلاهما يُنفَّذ فوراً بلا «حفظ».
+        const ok = window.Swal
+            ? (await Swal.fire({
+                icon: wantOpen ? 'question' : 'warning',
+                title: wantOpen ? `فتح التسجيل في ${cityLabel}؟` : `إغلاق التسجيل في ${cityLabel}؟`,
+                text: wantOpen
+                    ? 'سيستطيع أيّ شخصٍ التقدّم ككابتن فوراً، وتصلك طلباته للمراجعة.'
+                    : 'لن تُقبل طلبات جديدة. الطلبات المعلّقة تبقى وتُراجَع كما هي.',
+                showCancelButton: true,
+                confirmButtonText: wantOpen ? 'نعم، افتح' : 'نعم، أغلق',
+                cancelButtonText: 'إلغاء',
+                confirmButtonColor: wantOpen ? '#15803d' : '#b91c1c',
+                reverseButtons: true
+            })).isConfirmed
+            : confirm(wantOpen ? `فتح التسجيل في ${cityLabel}؟` : `إغلاق التسجيل في ${cityLabel}؟`);
+
+        if (!ok) { renderRegGate(!wantOpen); return; }   // يعود المفتاح لحاله
+
+        card.classList.add('is-busy');
+        try {
+            const res = await fetch(`${API_URL}/api/admin/settings`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ city, captainRegistrationOpen: wantOpen })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || '');
+
+            // الحقيقة من الخادم لا من المفتاح: ما حُفظ فعلاً هو ما يُعرض
+            renderRegGate(data.settings ? data.settings.captainRegistrationOpen === true : wantOpen);
+            if (window.Swal) {
+                Swal.fire({
+                    toast: true, position: 'top-end', timer: 2200, showConfirmButton: false,
+                    icon: 'success',
+                    title: wantOpen ? `فُتح التسجيل في ${cityLabel}` : `أُغلق التسجيل في ${cityLabel}`
+                });
+            }
+        } catch (err) {
+            renderRegGate(!wantOpen);   // الفشل لا يترك المفتاح يكذب
+            const msg = window.friendlyError ? friendlyError(err, 'تعذّر تغيير حالة التسجيل') : 'تعذّر تغيير حالة التسجيل';
+            if (window.Swal) Swal.fire({ icon: 'error', title: 'لم يتغيّر شيء', text: msg });
+            else alert(msg);
+        } finally {
+            card.classList.remove('is-busy');
+        }
+    });
+})();
 
 // ─── صيانة: ضغط الصور القديمة على السيرفر ───────────────────
 const compressBtn = document.getElementById('compressImagesBtn');

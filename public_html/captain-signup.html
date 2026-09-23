@@ -57,6 +57,36 @@
             background: rgba(31, 41, 55, 0.97);
         }
 
+        /* 🔒 باب التسجيل مغلق: تختفي خطوات المعالج كلّها وتحلّ اللوحة محلّها */
+        .signup-box.is-closed .step-indicator,
+        .signup-box.is-closed .step-section,
+        .signup-box.is-closed #alert-box,
+        .signup-box.is-closed .signup-subtitle { display: none !important; }
+
+        .reg-closed { text-align: center; padding: 8px 4px 4px; }
+        .reg-closed-ic {
+            width: 72px; height: 72px; margin: 6px auto 14px; border-radius: 50%;
+            display: grid; place-items: center; font-size: 1.9rem;
+            background: rgba(4, 85, 58, .08); color: var(--primary, #04553A);
+        }
+        .reg-closed-title { font-weight: 900; margin-bottom: 8px; }
+        .reg-closed-text { color: #64748b; line-height: 1.8; margin: 0 auto 14px; max-width: 34ch; }
+        .reg-closed-alt {
+            background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;
+            border-radius: 12px; padding: 12px 14px; font-size: .92rem;
+            font-weight: 700; line-height: 1.7; margin-bottom: 12px;
+        }
+        body.dark-mode .reg-closed-text { color: #94a3b8; }
+        body.dark-mode .reg-closed-alt { background: #052e1a; border-color: #166534; color: #86efac; }
+
+        /* مدينةٌ مغلقة ومدينةٌ مفتوحة: الملاحظة تقول أيّهما قبل أن يختار */
+        .reg-city-note {
+            margin-top: 8px; font-size: .86rem; line-height: 1.7;
+            color: #92400e; background: #fffbeb; border: 1px solid #fde68a;
+            border-radius: 10px; padding: 8px 12px;
+        }
+        body.dark-mode .reg-city-note { background: #2a1f05; border-color: #78350f; color: #fcd34d; }
+
         .step-indicator {
             display: flex;
             justify-content: center;
@@ -314,7 +344,7 @@
             <!-- Logo -->
             <div class="text-center mb-3">
                 <a href="index.html">
-                    <img src="logo-mark-white.png" alt="???? ????" height="80" style="object-fit:contain; background:var(--primary); border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
+                    <img src="logo-mark-white.png" alt="وجيز" height="80" style="object-fit:contain; background:var(--primary); border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
                 </a>
             </div>
 
@@ -322,7 +352,22 @@
                 <i class="bi bi-scooter text-success ms-2"></i>
                 سجّل كـكابتن
             </h3>
-            <p class="text-center text-muted small mb-3">انضم لفريق وجيز وابدأ الربح!</p>
+            <p class="text-center text-muted small mb-3 signup-subtitle">انضم لفريق وجيز وابدأ الربح!</p>
+
+            <!-- 🔒 باب التسجيل مغلق — تفتحه الإدارة لكل مدينة. يُسأل الخادم قبل
+                 عرض النموذج، فلا يملأ المتقدّم عشرة حقولٍ ويرفع وثائقه ثم
+                 يُقال له «مغلق». -->
+            <div id="regClosed" class="reg-closed d-none" role="status" aria-live="polite">
+                <div class="reg-closed-ic" aria-hidden="true"><i class="bi bi-hourglass-split"></i></div>
+                <h4 class="reg-closed-title">التسجيل مغلق حالياً</h4>
+                <p class="reg-closed-text" id="regClosedText">
+                    لا نستقبل طلبات انتساب كباتن جدد في الوقت الحالي. تابعنا — سنعلن عند فتح التسجيل.
+                </p>
+                <div class="reg-closed-alt d-none" id="regClosedAlt"></div>
+                <a href="index.html" class="btn btn-success w-100 py-3 fw-bold mt-2">
+                    <i class="bi bi-house-door ms-1" aria-hidden="true"></i> العودة للرئيسية
+                </a>
+            </div>
 
             <!-- Step Indicator -->
             <div class="step-indicator">
@@ -357,11 +402,12 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold small">المدينة / المنطقة *</label>
                     <select id="city" class="form-select form-control-lg" required>
-                    <div class="field-error" id="city-error"></div>
                         <option value="" disabled selected>— اختر المدينة —</option>
                         <option value="Khartoum">الخرطوم - أم درمان</option>
                         <option value="PortSudan">البحر الأحمر - بورتسودان</option>
                     </select>
+                    <div class="field-error" id="city-error"></div>
+                    <div class="reg-city-note d-none" id="regCityNote" role="status"></div>
                 </div>
 
                 <div class="mb-3">
@@ -856,6 +902,87 @@
 
         detectExistingSession();
 
+        // ── 🔒 باب التسجيل ─────────────────────────────────────────────────
+        // الإدارة تفتحه وتغلقه لكل مدينة. نسأل الخادم قبل أن يبدأ المتقدّم،
+        // فلا يملأ عشرة حقولٍ ويرفع وثائقه ثم يُقال له «مغلق».
+        //
+        // والقفل الحقيقيّ على الخادم لا هنا: لو فشل هذا السؤال (شبكة) نُبقي
+        // النموذج ظاهراً — الخادم يردّ الطلب المغلق بـ 403 عند الإرسال
+        // فيظهر الإغلاق حينها. حجبُ النموذج على عطلٍ عابر أسوأ.
+        const REG_CITY_LABEL = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+
+        function showRegClosed(message, altCity) {
+            const box = document.querySelector('.signup-box');
+            const panel = document.getElementById('regClosed');
+            if (!box || !panel) return;
+            // تنبيهٌ سابق («اختر مدينتك») لا معنى له بعد أن أُغلق الباب
+            if (typeof hideAlert === 'function') hideAlert();
+            if (message) document.getElementById('regClosedText').textContent = message;
+            const alt = document.getElementById('regClosedAlt');
+            if (altCity && !upgradeMode) {
+                alt.textContent = `التسجيل مفتوح حالياً في ${REG_CITY_LABEL[altCity]} — إن كنت تعمل هناك يمكنك التقدّم الآن.`;
+                alt.classList.remove('d-none');
+            } else {
+                alt.classList.add('d-none');
+            }
+            box.classList.add('is-closed');
+            panel.classList.remove('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /** مدينةٌ مغلقة وأخرى مفتوحة: تُعطَّل المغلقة في القائمة وتُذكر السبب. */
+        function applyCityGate(open) {
+            const sel = document.getElementById('city');
+            const note = document.getElementById('regCityNote');
+            if (!sel) return;
+            const closed = [];
+            for (const opt of sel.options) {
+                if (!opt.value || !(opt.value in open)) continue;
+                if (!open[opt.value]) {
+                    opt.disabled = true;
+                    if (!opt.dataset.label) opt.dataset.label = opt.textContent;
+                    opt.textContent = opt.dataset.label + ' (التسجيل مغلق)';
+                    closed.push(REG_CITY_LABEL[opt.value]);
+                    if (sel.value === opt.value) sel.value = '';
+                }
+            }
+            if (note && closed.length) {
+                note.textContent = `التسجيل مغلق حالياً في ${closed.join(' و')}.`;
+                note.classList.remove('d-none');
+            }
+        }
+
+        async function checkRegistrationGate() {
+            let open;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/captain-registration-status`, { cache: 'no-store' });
+                if (!res.ok) return;                       // الخادم يحسم عند الإرسال
+                open = (await res.json()).open;
+            } catch (_) { return; }
+            if (!open || typeof open !== 'object') return;
+
+            const cities = Object.keys(open);
+            const openCities = cities.filter(c => open[c] === true);
+
+            // الترقية لا تغيّر المدينة: يُفحص باب مدينة الحساب وحده
+            if (upgradeMode) {
+                let myCity = 'Khartoum';
+                try {
+                    const u = JSON.parse(localStorage.getItem('user') || 'null');
+                    if (u && (u.city === 'Khartoum' || u.city === 'PortSudan')) myCity = u.city;
+                } catch (_) {}
+                if (open[myCity] !== true) {
+                    showRegClosed(`التسجيل ككابتن في ${REG_CITY_LABEL[myCity]} مغلقٌ حالياً. تابعنا — سنعلن عند فتحه.`);
+                }
+                return;
+            }
+
+            if (!openCities.length) { showRegClosed(); return; }
+            if (openCities.length < cities.length) applyCityGate(open);
+        }
+
+        checkRegistrationGate();
+
         /** يعود به بعد الدخول إلى هنا — returnUrl هو ما تقرأه صفحة الدخول. */
         function goToLogin() {
             try { localStorage.setItem('returnUrl', 'captain-signup.html'); } catch (_) {}
@@ -1068,6 +1195,14 @@
                 const data = await res.json();
 
                 if (!res.ok) {
+                    // 🔒 أُغلق الباب بينما كان يملأ النموذج — أو فشل سؤال
+                    //    الحالة عند التحميل. الخادم هو الحَكَم في الحالتين.
+                    if (res.status === 403 && data.registrationClosed) {
+                        showRegClosed(data.message);
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        return;
+                    }
                     // الحساب موجود أصلاً: «مسجل مسبقاً» وحدها تُنهي الطريق.
                     // نعطيه الطريق — يدخل بحسابه ثم يعود فتُضاف بياناته عليه.
                     if (data.accountExists && data.existingRole === 'client') {

@@ -46,6 +46,8 @@ const adminLogSchema = new mongoose.Schema({
             // الإعدادات
             'update_settings', 'update_pricing', 'update_bank',
             'update_zone',
+            // 🔒 فتح باب تسجيل الكباتن وإغلاقه — بسطرٍ يذكر الاتجاه لا اسم الحقل
+            'captain_registration_toggle',
             // الأدمن المساعد
             'create_sub_admin', 'update_sub_admin', 'delete_sub_admin',
             // 💬 المحادثات — قراءة محتوى خاص وحذفه: كلاهما يجب أن يكون قابلاً

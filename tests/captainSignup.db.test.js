@@ -16,6 +16,7 @@ const { startMongo, stopMongo, clearMongo, assertRanInCI } = require('./helpers/
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-anywhere-else';
 
 const User = require('../models/User');
+const Settings = require('../models/Settings');
 
 const db = await startMongo();
 assertRanInCI(db);
@@ -29,7 +30,17 @@ if (db.ok) {
 }
 
 afterAll(async () => { if (db.ok) await stopMongo(); });
-beforeEach(async () => { if (db.ok) await clearMongo(); });
+beforeEach(async () => {
+    if (!db.ok) return;
+    await clearMongo();
+    // 🔒 باب التسجيل مغلقٌ افتراضياً (captainRegistrationOpen). هذا الملف
+    //    يفحص ما بعد الباب — التوكن والرفع والدخول — فيفتحه للخرطوم،
+    //    مدينة application() كلّها. والباب نفسه يُفحص في ملفّه:
+    //    captainRegistrationLock.db.test.js
+    await Settings.findOneAndUpdate(
+        { city: 'Khartoum' }, { $set: { captainRegistrationOpen: true } }, { upsert: true }
+    );
+});
 
 const maybe = () => (db.ok ? describe : describe.skip);
 

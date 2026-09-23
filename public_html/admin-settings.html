@@ -178,6 +178,36 @@
             border-color: #374151 !important;
         }
 
+        /* 🔒 بطاقة باب تسجيل الكباتن — حالتان لا تُخطئهما العين:
+           رماديةٌ حين يُغلق، خضراء حين يُفتح. اللون ليس الإشارة الوحيدة:
+           النصّ تحتها يقول الحالة صراحةً، فلا يعتمد الأدمن على التمييز اللونيّ. */
+        .reg-gate {
+            display: flex; align-items: center; gap: 14px;
+            padding: 16px 18px; border-radius: 14px;
+            border: 1.5px solid #e2e8f0; background: #f8fafc;
+            transition: background .25s ease, border-color .25s ease;
+        }
+        .reg-gate-ic {
+            width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px;
+            display: grid; place-items: center; font-size: 1.35rem;
+            background: #e2e8f0; color: #64748b;
+            transition: background .25s ease, color .25s ease;
+        }
+        .reg-gate-body { flex: 1; min-width: 0; }
+        .reg-gate-title { font-weight: 800; font-size: 1rem; color: #0f172a; }
+        .reg-gate-sub { font-size: .86rem; color: #64748b; margin-top: 2px; line-height: 1.6; }
+        .reg-gate[data-open="true"] { background: #f0fdf4; border-color: #86efac; }
+        .reg-gate[data-open="true"] .reg-gate-ic { background: #dcfce7; color: #15803d; }
+        .reg-gate[data-open="true"] .reg-gate-sub { color: #15803d; font-weight: 700; }
+        .reg-gate.is-busy { opacity: .6; pointer-events: none; }
+
+        body.dark-mode .reg-gate { background: #111827; border-color: #374151; }
+        body.dark-mode .reg-gate-title { color: #f9fafb; }
+        body.dark-mode .reg-gate-ic { background: #1f2937; color: #94a3b8; }
+        body.dark-mode .reg-gate[data-open="true"] { background: #052e1a; border-color: #166534; }
+        body.dark-mode .reg-gate[data-open="true"] .reg-gate-ic { background: #14532d; color: #86efac; }
+        body.dark-mode .reg-gate[data-open="true"] .reg-gate-sub { color: #86efac; }
+
         body.dark-mode .input-group-text {
             background: #1e293b !important;
             border-color: #374151 !important;
@@ -226,6 +256,29 @@
                             <option value="Khartoum">الخرطوم (أم درمان)</option>
                             <option value="PortSudan">بورتسودان</option>
                         </select>
+                    </div>
+
+                    <!-- 🔒 باب تسجيل الكباتن — لكل مدينة، مغلقٌ افتراضياً.
+                         يُحفظ فور تبديله بطلبٍ مستقلّ: مفتاحٌ تشغيليّ لا يصحّ أن
+                         يبقى معلّقاً حتى يُضغط «حفظ» أسفل صفحة التسعير. -->
+                    <div class="col-md-12 mb-4">
+                        <div class="reg-gate" id="regGateCard" data-open="false">
+                            <div class="reg-gate-ic" aria-hidden="true"><i class="bi bi-person-badge" aria-hidden="true"></i></div>
+                            <div class="reg-gate-body">
+                                <div class="reg-gate-title">تسجيل الكباتن الجدد</div>
+                                <div class="reg-gate-sub" id="regGateSub" role="status" aria-live="polite">
+                                    مغلق — لا تُقبل طلبات انتساب جديدة في هذه المدينة
+                                </div>
+                            </div>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="captainRegistrationOpen"
+                                    aria-describedby="regGateSub" style="transform: scale(1.4);">
+                                <label class="form-check-label visually-hidden" for="captainRegistrationOpen">فتح تسجيل الكباتن في هذه المدينة</label>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            الإغلاق يمنع الطلبات الجديدة فقط — الطلبات المعلّقة تبقى وتُراجَع كما هي.
+                        </small>
                     </div>
 
                     <div class="col-md-6 mb-3">
@@ -553,7 +606,7 @@
         </div>
     </div>
 
-    <script src="js/admin-settings.js?v=2011b3b8"></script>
+    <script src="js/admin-settings.js?v=01ff3e33"></script>
     <script src="js/geo.js?v=9999b0e3"></script>
     <script src="js/input-hardener.js?v=95c0e89c"></script>
 <script type="module" src="js/app-core.js?v=89e250fd"></script>

@@ -195,6 +195,20 @@ const settingsSchema = new mongoose.Schema({
         default: false
     },
 
+    // 🔒 باب تسجيل الكباتن — مغلقٌ افتراضياً، تفتحه الإدارة وتغلقه لكل مدينة.
+    //
+    // التسجيل المفتوح دائماً يُغرق الإدارة بطلباتٍ في مدينةٍ مكتفية، ويترك
+    // متقدّمين ينتظرون مراجعةً لن تأتي. الإغلاق يمنع الطلبات **الجديدة**
+    // فقط: الطلبات المعلّقة تبقى، وتُقبل وتُرفض كما كانت.
+    //
+    // ⚠️ getSettings تستعمل .lean() فلا تُطبَّق هذه القيمة الافتراضية على
+    //    الوثائق الموجودة — الحقل يُقرأ undefined. لذلك يُفحص دائماً بـ
+    //    `=== true` في utils/captainRegistration.js: كل ما ليس true مغلق.
+    captainRegistrationOpen: {
+        type: Boolean,
+        default: false
+    },
+
     // Delivery Zone (Geofencing Polygon)
     deliveryZone: {
         type: [{
