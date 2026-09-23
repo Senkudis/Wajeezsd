@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="style.css?v=3.4">
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=977449f7"></script>
+    <script src="js/config.js?v=21463b97"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <style>
         :root {
@@ -103,7 +103,7 @@
     </style>
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=ab12c7ad"></script>
+    <script src="js/ui-states.js?v=46719181"></script>
 </head>
 <body>
     <div class="support-hero">
@@ -303,7 +303,8 @@
                 if (!res.ok) throw new Error(data.message);
                 renderTickets(data.complaints || data);
             } catch (e) {
-                list.innerHTML = `<div class="empty-state"><i class="bi bi-exclamation-circle text-danger"></i><p>${e.message}</p></div>`;
+                if (window.UIState) UIState.error(list, { text: friendlyError(e), onRetry: loadMyTickets });
+                else list.innerHTML = `<div class="empty-state"><p>${escapeHtml(friendlyError(e))}</p></div>`;
             }
         }
 
@@ -360,7 +361,7 @@
                     footer.style.display = 'none';
                 }
             } catch (e) {
-                document.getElementById('threadBody').innerHTML = `<div class="text-center text-danger p-4">${e.message}</div>`;
+                document.getElementById('threadBody').innerHTML = `<div class="text-center text-danger p-4">${escapeHtml(friendlyError(e))}</div>`;
             }
         }
 

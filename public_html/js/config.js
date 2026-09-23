@@ -117,6 +117,41 @@ window.escapeHtml = function(unsafe) {
 };
 
 /**
+ * 💬 رسالة خطأٍ تصلح أن تُعرض للمستخدم.
+ *
+ * كان كثيرٌ من الشاشات يعرض err.message كما هو. وهذا صحيحٌ حين يكون
+ * الخطأ مرميّاً من ردّ الخادم («الطلب منتهٍ») — تلك رسائل عربية كُتبت
+ * للمستخدم. وخاطئٌ حين يأتي من المتصفّح نفسه: انقطاع الشبكة يرمي
+ * «Failed to fetch» في Chrome و«Load failed» في Safari و«NetworkError…»
+ * في Firefox، وردٌّ غير JSON يرمي «Unexpected token <». فيرى العميل
+ * نصّاً إنجليزياً تقنياً بالأحمر في تطبيقٍ عربيّ.
+ *
+ * القاعدة: التطبيق عربيٌّ كلّه، ورسائل الخادم عربيةٌ كلّها — فرسالةٌ بلا
+ * حرفٍ عربيٍّ واحد رسالةٌ تقنية لم تُكتب للمستخدم، ولا تُعرض خاماً أبداً.
+ * والعربية تمرّ كما هي.
+ *
+ *     friendlyError(err)                  ← النصّ المناسب
+ *     friendlyError(err, 'فشل الإرسال')  ← بديلٌ حين لا يصلح النصّ
+ */
+window.friendlyError = function (err, fallback) {
+    var generic = fallback || 'حدث خطأ غير متوقّع. حاول مجدداً.';
+    var msg = (err && (err.message || (typeof err === 'string' ? err : ''))) || '';
+    msg = String(msg).trim();
+    if (!msg) return generic;
+    // انقطاع الشبكة — بصيغ المتصفّحات الثلاثة ومهلة الطلب وإلغائه
+    if (/failed to fetch|load failed|networkerror|network request failed|internet connection|timed? ?out|timeout|aborted|abort/i.test(msg)) {
+        return 'تعذّر الاتصال بالخادم. تحقّق من اتصالك ثم أعد المحاولة.';
+    }
+    // الخادم ردّ بصفحة HTML (خطأ 502 من الوكيل مثلاً) لا بـ JSON
+    if (/unexpected token|json|syntaxerror/i.test(msg)) {
+        return 'استجابةٌ غير متوقّعة من الخادم. حاول مجدداً بعد قليل.';
+    }
+    // لا حرف عربياً ⇒ رسالةٌ تقنية لم تُكتب للمستخدم
+    if (!/[\u0600-\u06FF]/.test(msg)) return generic;
+    return msg;
+};
+
+/**
  * 🎓 طابور الشرح اللحظي.
  *
  * صفحات كثيرة تجلب بياناتها في سكربت مضمّن يبدأ فوراً، بينما coach.js

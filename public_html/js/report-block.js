@@ -130,7 +130,7 @@
             Swal.fire({ icon: 'success', title: 'وصلنا بلاغك', text: d.message,
                         confirmButtonColor: '#04553A' });
         } catch (e) {
-            Swal.fire({ icon: 'error', title: 'تعذّر الإرسال', text: e.message,
+            Swal.fire({ icon: 'error', title: 'تعذّر الإرسال', text: friendlyError(e),
                         confirmButtonColor: '#dc2626' });
         }
     };
@@ -166,7 +166,7 @@
                         confirmButtonColor: '#04553A' });
             if (typeof onDone === 'function') onDone();
         } catch (e) {
-            Swal.fire({ icon: 'error', title: 'تعذّر الحظر', text: e.message,
+            Swal.fire({ icon: 'error', title: 'تعذّر الحظر', text: friendlyError(e),
                         confirmButtonColor: '#dc2626' });
         }
     };
@@ -180,7 +180,7 @@
             if (!res.ok) throw new Error(d.message || 'تعذّر رفع الحظر');
             return true;
         } catch (e) {
-            Swal.fire({ icon: 'error', title: 'خطأ', text: e.message, confirmButtonColor: '#dc2626' });
+            Swal.fire({ icon: 'error', title: 'خطأ', text: friendlyError(e), confirmButtonColor: '#dc2626' });
             return false;
         }
     };

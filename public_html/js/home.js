@@ -1462,7 +1462,7 @@ window.createOrder = async function() {
             setTimeout(() => window.location.href = 'client-my-orders.html', 3500);
         } else {
             const err = await res.json();
-            Swal.fire({ icon: 'error', text: err.message || 'فشل إرسال الطلب' });
+            Swal.fire({ icon: 'error', text: friendlyError(err, 'فشل إرسال الطلب') });
             btn.disabled = false; btn.innerHTML = originalHTML;
         }
     } catch (err) {

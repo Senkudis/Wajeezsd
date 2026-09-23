@@ -195,7 +195,15 @@ async function fetchCategories() {
 
     } catch (err) {
         // الكاش معروض بالفعل؟ لا تستبدله برسالة خطأ
-        if (!hadCache && grid) grid.innerHTML = `<div style="padding:12px;color:#ef4444;font-size:13px;font-weight:700;"><i class="bi bi-exclamation-triangle me-1"></i>${err.message}</div>`;
+        // كان يُعرض err.message خاماً بالأحمر: «Failed to fetch» بالإنجليزية في
+        // تطبيقٍ عربيّ، وبلا زرّ إعادة محاولة — فيبقى العميل أمام شاشةٍ ميتة.
+        if (!hadCache && grid) {
+            if (window.UIState) {
+                UIState.error(grid, { text: friendlyError(err), onRetry: fetchCategories });
+            } else {
+                grid.innerHTML = `<div class="text-center text-muted py-4">${escapeHtml(friendlyError(err))}</div>`;
+            }
+        }
     }
 }
 
@@ -499,9 +507,9 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
         if (hadCache) return; // المحتوى المعروض من الكاش أفضل من رسالة خطأ
         const safeName = (categoryName || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         listContainer.innerHTML = `<div class="empty-state">
-            <div class="empty-icon" style="font-size:40px;">📍</div>
+            <div class="empty-icon" style="font-size:40px;"><i class="bi bi-geo-alt" aria-hidden="true"></i></div>
             <h6 class="text-danger">فشل تحميل المحلات</h6>
-            <p>${err.message}</p>
+            <p>${escapeHtml(friendlyError(err))}</p>
             <button class="btn btn-success rounded-pill px-4 mt-2 fw-bold" onclick="loadPlaces('${categoryId}', '${safeName}')">
                 <i class="bi bi-arrow-clockwise me-1"></i>إعادة المحاولة
             </button>
@@ -1253,7 +1261,7 @@ window.openShopOrderConfirmModal = async function() {
                     });
                 }
             } catch (e) {
-                Swal.fire({ icon: 'warning', text: e.message || 'تعذّر تحديد موقعك، تأكد من تفعيل الـ GPS', confirmButtonColor: '#04553A' });
+                Swal.fire({ icon: 'warning', text: friendlyError(e, 'تعذّر تحديد موقعك، تأكد من تفعيل الـ GPS'), confirmButtonColor: '#04553A' });
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = ogHtml; }
             }
@@ -1519,7 +1527,7 @@ window.openShopOrderConfirmModal = async function() {
         if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.innerHTML = ogHtml; }
 
     } catch (err) {
-        Swal.fire({ icon: 'error', text: err.message || 'حدث خطأ في تجهيز الطلب' });
+        Swal.fire({ icon: 'error', text: friendlyError(err, 'حدث خطأ في تجهيز الطلب') });
         if (btn && btn.tagName === 'BUTTON') { btn.disabled = false; btn.innerHTML = ogHtml; }
     } finally {
         window._shopOrderSubmitting = false;
@@ -1615,7 +1623,7 @@ window.submitFinalShopOrder = async function() {
             setTimeout(() => window.location.href = 'client-my-orders.html', 3000);
         } else {
             const err = await res.json();
-            Swal.fire({ icon: 'error', text: err.message || 'فشل إرسال الطلب' });
+            Swal.fire({ icon: 'error', text: friendlyError(err, 'فشل إرسال الطلب') });
         }
     } catch (err) {
         Swal.fire({ icon: 'error', text: 'حدث خطأ في الاتصال' });

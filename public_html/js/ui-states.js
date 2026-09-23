@@ -42,9 +42,13 @@
         '.uis-sk-cell{padding:14px 12px!important}',
         '.uis-sk-cell .uis-sk-line{margin:0}',
 
-        /* الفراغ والخطأ: بطاقة واحدة بمقاسٍ واحد في كل الصفحات */
+        /* الفراغ والخطأ: بطاقة واحدة بمقاسٍ واحد في كل الصفحات.
+           grid-column: الحاوية كثيراً ما تكون شبكةً (شبكة التصنيفات بأربعة
+           أعمدة، شبكة المنتجات بعمودين) فكانت البطاقة تُحشر في الخلية الأولى
+           وحدها — 146px من 343 — فيتكسّر نصّها على خمسة أسطر وزرّها على
+           سطرين. في الحاويات غير الشبكية تُتجاهَل الخاصية فلا أثر لها. */
         '.uis-state{display:flex;flex-direction:column;align-items:center;justify-content:center;',
-        'text-align:center;padding:38px 20px;gap:10px;color:inherit}',
+        'text-align:center;padding:38px 20px;gap:10px;color:inherit;grid-column:1/-1;width:100%}',
         '.uis-state-ic{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;',
         'font-size:1.7rem;background:rgba(4,85,58,.08);color:#0d8a5e;margin-bottom:2px}',
         '.uis-state-err .uis-state-ic{background:rgba(220,38,38,.09);color:#dc2626}',

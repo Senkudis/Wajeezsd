@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="css/splash.css?v=3e93bd55">
 
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=977449f7"></script>
+    <script src="js/config.js?v=21463b97"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/vehicle-types.js?v=3a11758f"></script>
@@ -407,7 +407,7 @@
         body.dark-mode .offer-price-box .val { color: #34d399; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=ab12c7ad"></script>
+    <script src="js/ui-states.js?v=46719181"></script>
 </head>
 
 <body class="bg-light">
@@ -1289,7 +1289,13 @@
 
                 } catch (e) {
                     console.error("Failed to load orders:", e);
-                    if (!append) list.innerHTML = `<div class="alert alert-danger text-center m-3">فشل تحميل الطلبات. تأكد من الاتصال بالإنترنت.<br><small>${e.message}</small></div>`;
+                    if (!append) {
+                        if (window.UIState) {
+                            UIState.error(list, { title: 'فشل تحميل الطلبات', text: friendlyError(e), onRetry: () => loadOrders(1) });
+                        } else {
+                            list.innerHTML = `<div class="alert alert-danger text-center m-3">فشل تحميل الطلبات.<br><small>${escapeHtml(friendlyError(e))}</small></div>`;
+                        }
+                    }
                 }
             }
 
@@ -1311,7 +1317,7 @@
                     if (data.parcelImage) viewImage(getFullImageUrl(data.parcelImage));
                     else throw new Error('لا توجد صورة');
                 } catch (e) {
-                    Swal.fire({ icon: 'info', text: e.message || 'تعذّر عرض الصورة', confirmButtonColor: '#0a8754' });
+                    Swal.fire({ icon: 'info', text: friendlyError(e, 'تعذّر عرض الصورة'), confirmButtonColor: '#0a8754' });
                 } finally {
                     if (btn) { btn.disabled = false; btn.innerHTML = original; }
                 }
@@ -1933,7 +1939,7 @@
                         setTimeout(() => loadOrders(), 1500);
                     } else {
                         const err = await res.json();
-                        statusText.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>${err.message || 'فشل في الرفع'}</span>`;
+                        statusText.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1" aria-hidden="true"></i>${escapeHtml(friendlyError(err, 'فشل في الرفع'))}</span>`;
                     }
                 } catch (e) {
                     console.error(e);

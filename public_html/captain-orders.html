@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="css/captain-ui.css?v=31f0fe4e">
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=977449f7"></script>
+    <script src="js/config.js?v=21463b97"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/theme-manager.js?v=ef048761"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
@@ -46,7 +46,7 @@
         #orders-list .card img { max-height: 150px !important; }
     </style>
     <script src="js/safe-area.js?v=8b338400"></script>
-    <script src="js/ui-states.js?v=ab12c7ad"></script>
+    <script src="js/ui-states.js?v=46719181"></script>
 </head>
 
 <body class="bg-light">
@@ -232,7 +232,7 @@
                     `<div class="col-12 text-center text-muted py-5">
                         <i class="bi bi-wifi-off fs-1 text-secondary mb-3"></i>
                         <p class="fw-bold">فشل في تحميل البيانات</p>
-                        <small class="text-danger">${err.message}</small>
+                        <small class="text-danger">${escapeHtml(friendlyError(err))}</small>
                         <div class="mt-3"><button class="btn btn-outline-success rounded-pill" onclick="fetchOrders()">إعادة المحاولة</button></div>
                     </div>`;
             }
