@@ -14,6 +14,7 @@
         { title: 'لائحة المتاجر والشركاء', icon: 'fas fa-shop', url: 'admin-merchants-list.html', tags: 'merchants list محلات شركاء' },
         { title: 'المحلات والأماكن والتصنيفات', icon: 'fas fa-map-marked-alt', url: 'admin-places.html', tags: 'places categories تصنيفات أقسام' },
         { title: 'الخريطة المباشرة للكباتن', icon: 'fas fa-satellite-dish', url: 'admin-live-map.html', tags: 'live map خريطة مباشر كباتن تتبع' },
+        { title: 'لوحة التتبّع — الرحلات الجارية', icon: 'fas fa-route', url: 'admin-tracking.html', tags: 'tracking trips تتبع رحلات تأخير متأخر تنبيه كابتن استلم' },
         { title: 'منسق مناطق التوصيل (Geofence)', icon: 'fas fa-draw-polygon', url: 'admin-zone-builder.html', tags: 'zone builder مناطق ترسيم حدود' },
         { title: 'سجل المديونيات والتحصيل', icon: 'fas fa-file-invoice-dollar', url: 'admin-debt-history.html', tags: 'debt history ديون سداد' },
         { title: 'الدعم الفني والشكاوى', icon: 'fas fa-headset', url: 'admin-complaints.html', tags: 'complaints support تذاكر بلاغات' },

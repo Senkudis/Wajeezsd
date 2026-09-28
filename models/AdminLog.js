@@ -48,6 +48,8 @@ const adminLogSchema = new mongoose.Schema({
             'update_zone',
             // 🔒 فتح باب تسجيل الكباتن وإغلاقه — بسطرٍ يذكر الاتجاه لا اسم الحقل
             'captain_registration_toggle',
+            // 🛰️ تنبيهٌ أُرسل من لوحة التتبّع لكابتنٍ أو عميل على طلبٍ جارٍ
+            'nudge_user',
             // الأدمن المساعد
             'create_sub_admin', 'update_sub_admin', 'delete_sub_admin',
             // 💬 المحادثات — قراءة محتوى خاص وحذفه: كلاهما يجب أن يكون قابلاً

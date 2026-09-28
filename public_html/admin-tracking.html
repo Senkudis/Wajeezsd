@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <script src="js/admin-guard.js?v=691df92a" data-perm="view_map,view_orders"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>لوحة التتبّع | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="js/console-cleaner.js?v=d257b4ad"></script>
+    <script src="js/config.js?v=21463b97"></script>
+    <style>
+        :root {
+            --primary: #048c5b;
+            --primary-dark: #036943;
+            --ink: #0f172a;
+            --ink-2: #475569;
+            --ink-3: #94a3b8;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --bg: #f1f5f9;
+            --ok: #15803d;     --ok-bg: #dcfce7;
+            --warn: #b45309;   --warn-bg: #fef3c7;
+            --late: #b91c1c;   --late-bg: #fee2e2;
+            --info: #1d4ed8;   --info-bg: #dbeafe;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--ink); }
+
+        /* الترويسة: لونها وخلفيتها من admin-panel.css المشترك (موحّدة لكل
+           صفحات الإدارة) — هنا التخطيط وحده */
+        .page-header { padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+        .page-header h1 { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .page-header h1 i { color: var(--primary); }
+        .page-header .hdr-tools { display: flex; align-items: center; gap: 8px; }
+
+        .main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 40px; }
+
+        /* ── الشريط العلوي: حالة التحديث والأدوات ── */
+        .trk-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+        .trk-live { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 700; color: var(--ink-2); }
+        .trk-live .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 rgba(21,128,61,.5); animation: pulse 2s infinite; }
+        .trk-live.is-error .dot { background: var(--late); animation: none; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(21,128,61,.45); } 70% { box-shadow: 0 0 0 8px rgba(21,128,61,0); } 100% { box-shadow: 0 0 0 0 rgba(21,128,61,0); } }
+        .trk-tools { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
+        .trk-tools input, .trk-tools select {
+            border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; font-family: inherit;
+            font-size: .88rem; background: var(--surface); color: var(--ink); outline: none; min-width: 0;
+        }
+        .trk-tools input { flex: 1; max-width: 340px; }
+        .trk-tools input:focus, .trk-tools select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(4,140,91,.12); }
+
+        .btn { border: none; border-radius: 10px; padding: 9px 14px; font-family: inherit; font-size: .86rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; text-decoration: none; transition: background .15s, transform .1s; white-space: nowrap; }
+        .btn:active { transform: scale(.97); }
+        .btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .btn-ghost { background: var(--surface); color: var(--ink-2); border: 1.5px solid var(--line); }
+        .btn-ghost:hover { background: #f8fafc; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-warn { background: var(--warn-bg); color: var(--warn); }
+        .btn-info { background: var(--info-bg); color: var(--info); }
+        .btn[disabled] { opacity: .55; cursor: default; }
+
+        /* ── رقائق الملخّص: تُصفّي أيضاً ── */
+        .trk-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+        .chip {
+            background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px;
+            display: flex; align-items: center; gap: 10px; cursor: pointer; font-family: inherit; text-align: start;
+            color: var(--ink); transition: border-color .15s, box-shadow .15s;
+        }
+        .chip:hover { border-color: #cbd5e1; }
+        .chip[aria-pressed="true"] { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(4,140,91,.12); }
+        .chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .chip .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; font-size: .95rem; }
+        .chip .num { font-size: 1.35rem; font-weight: 900; line-height: 1.1; }
+        .chip .lbl { font-size: .76rem; color: var(--ink-2); font-weight: 700; }
+
+        /* ── البطاقات ── */
+        .trk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+        .trip {
+            background: var(--surface); border-radius: 16px; border: 1.5px solid var(--line);
+            padding: 16px; display: flex; flex-direction: column; gap: 14px;
+            border-inline-start: 5px solid var(--ok);
+        }
+        .trip.lv-warn { border-inline-start-color: #f59e0b; }
+        .trip.lv-late { border-inline-start-color: #dc2626; }
+        .trip.st-delivered { border-inline-start-color: #64748b; background: #fbfdfc; }
+
+        .trip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .cap { display: flex; align-items: center; gap: 11px; min-width: 0; }
+        .avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; object-fit: cover; background: #e2e8f0; display: grid; place-items: center; font-weight: 900; color: var(--ink-2); font-size: 1.05rem; }
+        .cap-name { font-weight: 900; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cap-sub { font-size: .8rem; color: var(--ink-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+        .cap-sub a { color: var(--info); text-decoration: none; font-weight: 700; direction: ltr; }
+
+        .badge { font-size: .78rem; font-weight: 900; padding: 5px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .badge.ok { background: var(--ok-bg); color: var(--ok); }
+        .badge.warn { background: var(--warn-bg); color: var(--warn); }
+        .badge.late { background: var(--late-bg); color: var(--late); }
+        .badge.done { background: #e2e8f0; color: #334155; }
+
+        /* شريط المراحل الأربع */
+        .steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); position: relative; }
+        .steps::before { content: ''; position: absolute; top: 17px; inset-inline: 12.5%; height: 3px; background: var(--line); border-radius: 3px; }
+        .step { display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; text-align: center; }
+        .step .dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #f1f5f9; color: var(--ink-3); border: 2px solid var(--line); font-size: .85rem; z-index: 1; }
+        .step.done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+        .step.current .dot { background: #fff; border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 4px rgba(4,140,91,.15); }
+        .trip.lv-warn .step.current .dot { border-color: #f59e0b; color: var(--warn); box-shadow: 0 0 0 4px rgba(245,158,11,.18); }
+        .trip.lv-late .step.current .dot { border-color: #dc2626; color: var(--late); box-shadow: 0 0 0 4px rgba(220,38,38,.15); }
+        .step .s-lbl { font-size: .72rem; font-weight: 800; color: var(--ink-2); line-height: 1.3; }
+        .step.done .s-lbl, .step.current .s-lbl { color: var(--ink); }
+        .step .s-at { font-size: .7rem; color: var(--ink-3); direction: ltr; min-height: 1em; }
+
+        /* المسار: من ← إلى */
+        .route { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: .86rem; background: #f8fafc; border-radius: 12px; padding: 10px 12px; }
+        .route i { color: var(--ink-3); margin-top: 3px; }
+        .route .from i { color: var(--info); }
+        .route .to i { color: var(--late); }
+        .route b { font-weight: 800; }
+        .route span { color: var(--ink-2); }
+
+        .facts { display: flex; flex-wrap: wrap; gap: 6px; }
+        .fact { font-size: .76rem; font-weight: 700; background: #f1f5f9; color: var(--ink-2); border-radius: 8px; padding: 4px 9px; display: inline-flex; align-items: center; gap: 6px; }
+        .fact.gps-stale, .fact.gps-none { background: var(--warn-bg); color: var(--warn); }
+        .fact.gps-fresh { background: var(--ok-bg); color: var(--ok); }
+
+        .last-nudge { font-size: .78rem; color: var(--info); background: var(--info-bg); border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; gap: 7px; font-weight: 700; }
+
+        .trip-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .trip-actions .wide { grid-column: 1 / -1; }
+
+        .trk-empty { grid-column: 1 / -1; text-align: center; padding: 50px 20px; color: var(--ink-2); background: var(--surface); border-radius: 16px; border: 1.5px dashed var(--line); }
+        .trk-empty i { font-size: 2rem; color: var(--ink-3); margin-bottom: 10px; display: block; }
+        .trk-empty b { display: block; font-size: 1.05rem; color: var(--ink); margin-bottom: 4px; }
+
+        /* ── نافذة التنبيه ── */
+        .trk-modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 2000; }
+        .trk-modal[hidden] { display: none; }
+        .trk-modal-box { background: var(--surface); border-radius: 18px; width: 100%; max-width: 520px; max-height: 92vh; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+        .trk-modal-head { display: flex; align-items: center; justify-content: space-between; }
+        .trk-modal-head h2 { font-size: 1.1rem; font-weight: 900; }
+        .icon-x { background: #f1f5f9; border: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; color: var(--ink-2); font-size: .95rem; }
+        .nudge-for { font-size: .85rem; color: var(--ink-2); background: #f8fafc; border-radius: 10px; padding: 9px 12px; line-height: 1.7; }
+        .seg { display: grid; grid-template-columns: 1fr 1fr; background: #f1f5f9; border-radius: 12px; padding: 4px; gap: 4px; }
+        .seg button { border: none; background: transparent; border-radius: 9px; padding: 9px; font-family: inherit; font-weight: 800; font-size: .88rem; color: var(--ink-2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; }
+        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+        .seg button[disabled] { opacity: .45; cursor: default; }
+        .tpl-list { display: flex; flex-direction: column; gap: 8px; }
+        .tpl { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; background: var(--surface); text-align: start; font-family: inherit; color: var(--ink); }
+        .tpl[aria-checked="true"] { border-color: var(--primary); background: #f0fdf4; }
+        .tpl:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .tpl .radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #cbd5e1; flex-shrink: 0; margin-top: 3px; }
+        .tpl[aria-checked="true"] .radio { border: 6px solid var(--primary); }
+        .tpl .t-title { font-weight: 900; font-size: .9rem; }
+        .tpl .t-msg { font-size: .8rem; color: var(--ink-2); line-height: 1.7; margin-top: 2px; }
+        .custom-wrap textarea { width: 100%; min-height: 84px; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; font-family: inherit; font-size: .9rem; resize: vertical; outline: none; }
+        .custom-wrap textarea:focus { border-color: var(--primary); }
+        .custom-count { font-size: .74rem; color: var(--ink-3); text-align: end; margin-top: 4px; }
+        .nudge-err { color: var(--late); font-weight: 800; font-size: .84rem; min-height: 1em; }
+        .modal-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+
+        @media (max-width: 560px) {
+            .page-header { padding: 14px 14px; }
+            .page-header h1 { font-size: 1.05rem; }
+            .trk-grid { grid-template-columns: 1fr; }
+            .trk-tools input { max-width: none; }
+            .step .s-lbl { font-size: .66rem; }
+        }
+
+        /* الوضع الليلي */
+        body.dark-mode { --ink: #f1f5f9; --ink-2: #cbd5e1; --ink-3: #64748b; --line: #334155; --surface: #1e293b; --bg: #0f172a;
+            --ok-bg: #052e1a; --warn-bg: #2a1f05; --late-bg: #2b0b0b; --info-bg: #0b1f45; --ok: #4ade80; --warn: #fbbf24; --late: #f87171; --info: #93c5fd; }
+        body.dark-mode .route, body.dark-mode .nudge-for, body.dark-mode .fact, body.dark-mode .seg, body.dark-mode .icon-x, body.dark-mode .step .dot { background: #0f172a; }
+        body.dark-mode .trip.st-delivered { background: #172033; }
+        body.dark-mode .tpl[aria-checked="true"] { background: #052e1a; }
+        body.dark-mode .custom-wrap textarea, body.dark-mode .trk-tools input, body.dark-mode .trk-tools select { background: #0f172a; color: var(--ink); }
+    </style>
+    <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=46719181"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=dde88f2c">
+    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=e580d006">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-palette.js?v=176f6253"></script>
+</head>
+<body>
+<div class="page-header">
+    <h1><i class="fas fa-route" aria-hidden="true"></i> لوحة التتبّع</h1>
+    <div class="hdr-tools">
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
+        </button>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
+        </button>
+        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
+    </div>
+</div>
+
+<main class="main">
+    <div class="trk-top">
+        <div class="trk-live" id="trkLive" role="status" aria-live="polite">
+            <span class="dot" aria-hidden="true"></span><span id="trkLiveText">جارٍ التحميل…</span>
+        </div>
+        <div class="trk-tools">
+            <input id="trkSearch" type="search" autocomplete="off"
+                   placeholder="ابحث بالكابتن أو العميل أو رقم الطلب"
+                   aria-label="ابحث بالكابتن أو العميل أو رقم الطلب">
+            <select id="trkCity" aria-label="المدينة">
+                <option value="">كل المدن</option>
+                <option value="Khartoum">الخرطوم</option>
+                <option value="PortSudan">بورتسودان</option>
+            </select>
+            <button type="button" class="btn btn-ghost" id="trkRefresh">
+                <i class="fas fa-rotate" aria-hidden="true"></i> تحديث
+            </button>
+        </div>
+    </div>
+
+    <div class="trk-chips" id="trkChips" role="group" aria-label="تصفية الرحلات"></div>
+
+    <div class="trk-grid" id="trkList" role="region" aria-label="الرحلات الجارية" aria-live="polite" aria-busy="true"></div>
+</main>
+
+<!-- نافذة التنبيه -->
+<div class="trk-modal" id="nudgeModal" hidden>
+    <div class="trk-modal-box" role="dialog" aria-modal="true" aria-labelledby="nudgeTitle">
+        <div class="trk-modal-head">
+            <h2 id="nudgeTitle">إرسال تنبيه</h2>
+            <button type="button" class="icon-x" id="nudgeClose" aria-label="إغلاق">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="nudge-for" id="nudgeFor"></div>
+        <div class="seg" role="group" aria-label="المستلم">
+            <button type="button" data-to="captain" aria-pressed="true"><i class="fas fa-motorcycle" aria-hidden="true"></i> الكابتن</button>
+            <button type="button" data-to="client" aria-pressed="false"><i class="fas fa-user" aria-hidden="true"></i> العميل</button>
+        </div>
+        <div class="tpl-list" id="nudgeTemplates" role="radiogroup" aria-label="نصّ التنبيه"></div>
+        <div class="custom-wrap" id="nudgeCustomWrap" hidden>
+            <label for="nudgeCustom" class="wj-sr-only">نصّ التنبيه</label>
+            <textarea id="nudgeCustom" maxlength="300" placeholder="اكتب رسالتك…"></textarea>
+            <div class="custom-count" id="nudgeCount">0 / 300</div>
+        </div>
+        <div class="nudge-err" id="nudgeErr" role="alert"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary" id="nudgeSend">
+                <i class="fas fa-paper-plane" aria-hidden="true"></i> إرسال التنبيه
+            </button>
+            <button type="button" class="btn btn-ghost" id="nudgeCancel">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<script src="js/admin-tracking.js?v=fae7e902"></script>
+</body>
+</html>

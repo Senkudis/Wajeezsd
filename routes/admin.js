@@ -16,5 +16,6 @@ router.use(require('./admin/subadmins'));
 router.use(require('./admin/ratings'));
 router.use(require('./admin/chats'));
 router.use(require('./admin/reports'));   // 🚩 بلاغات المحتوى المسيء
+router.use(require('./admin/tracking'));  // 🛰️ لوحة التتبّع: الكباتن الذين يحملون طلباً
 
 module.exports = router;

@@ -35,6 +35,7 @@ function resolvePushUrl(role, type, relatedId) {
                     //    فكان العميل يبحث عن طلبه في مكانين. الصفحة القديمة
                     //    صارت تحويلاً، وهذا السطر يقصّ القفزة.
                     return `/client-my-orders.html${r ? `?highlight=${r}` : ''}`;
+                case 'admin_nudge':    // 🛰️ «نتابع طلبك» من الإدارة — مكانه تتبّع الطلب نفسه
                 case 'errand_quote':   // 🛒 سعر البضاعة بانتظار تأكيد العميل — يفتح التتبّع للتأكيد
                 case 'order_searching':// 🔍 استلمنا طلبك ونبحث عن كابتن
                 case 'order_delayed':  // ⏳ تأخّر القبول — التتبّع يتيح رفع السعر أو الإلغاء
@@ -69,6 +70,7 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'order_accepted':
                 case 'order_update':
                 case 'order_tip':   // 💚 إكرامية على طلبٍ بيده الآن — مكانها شاشة المهمة
+                case 'admin_nudge': // 🛰️ «تأخّرت — تحرّك» من الإدارة — يفتح المهمة الجارية
                     return '/captain-missions.html';
                 case 'order_cancelled':
                 case 'order_delivered':

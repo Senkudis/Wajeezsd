@@ -71,9 +71,12 @@
     var isSuper = !user || !user.adminRole || user.adminRole === 'super_admin';
     var perms = (user && Array.isArray(user.permissions)) ? user.permissions : [];
 
+    // data-perm="a,b" — أيٌّ منها يكفي، كـ requireAnyPermission في الخادم.
+    // صلاحيةٌ واحدة (كل الصفحات القائمة) تبقى كما كانت.
+    var anyOf = required.split(',').map(function (p) { return p.trim(); }).filter(Boolean);
     var allowed = !required ||
                   isSuper ||
-                  (required !== SUPER_ONLY && perms.indexOf(required) !== -1);
+                  (required !== SUPER_ONLY && anyOf.some(function (p) { return perms.indexOf(p) !== -1; }));
 
     if (allowed) {
         onReady(reveal);

@@ -43,6 +43,8 @@ const NotificationSchema = new mongoose.Schema({
             'order_tip',
             // 🚨 Emergency SOS
             'emergency',
+            // 🛰️ تنبيهٌ من الإدارة عبر لوحة التتبّع (للكابتن أو للعميل)
+            'admin_nudge',
             // 🛡️ تنبيهات الإدارة — يرسلها utils/notificationHelper.notifyAdmins.
             // ⚠️ كانت غائبة عن هذه القائمة بينما الكود يرسلها وpushRouting.js يعرف
             // وجهاتها، فكان insertMany يرمي في notifyAdmins قبل خطوة الـ push:

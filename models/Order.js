@@ -126,6 +126,19 @@ const OrderSchema = new mongoose.Schema(
         // فلو كان المفتاح هو الرقم لأدّى تعديل ٣٠ إلى ٤٥ إلى إعادة إشعار كل
         // طلب سبق إشعاره. وثائق قديمة قد تحمل أرقاماً — scheduler.js يترجمها.
         delayNoticesSent: { type: [String], default: [] },
+        // 🛰️ تنبيهات الإدارة من لوحة التتبّع — تُعرض على البطاقة («نبّهته
+        //    الإدارة قبل ٤ د») وتمنع التكرار المزعج. آخر عشرين فقط.
+        adminNudges: {
+            type: [{
+                at:       { type: Date, default: Date.now },
+                by:       { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+                byName:   { type: String, default: '' },
+                to:       { type: String, enum: ['captain', 'client'] },
+                template: { type: String, default: '' },
+                message:  { type: String, default: '' }
+            }],
+            default: []
+        },
 
         // 🏍️ تنبيهات الكابتن المُرسلة لهذا الطلب — مفاتيح نصّية مثل
         // 'pickup_15' و'deliver_30' و'gps_stale'. نصّية لا رقمية لأن

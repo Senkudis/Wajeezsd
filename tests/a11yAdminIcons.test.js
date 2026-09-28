@@ -32,8 +32,10 @@ const pages = files.map(f => ({ name: f, html: fs.readFileSync(path.join(ROOT, f
 const ICON_ONLY = /<(button|a)\b([^>]*)>((?:\s|<i\b[^>]*><\/i>)+)<\/\1>/g;
 
 describe('كل صفحات الإدارة مشمولة', () => {
-    it('أربعٌ وعشرون صفحة', () => {
-        expect(pages.length).toBe(24);
+    // العدد ثابتٌ عمداً: صفحة إدارةٍ جديدة تمرّ من هنا فيُسأل صاحبها — هل
+    // أيقوناتها صامتة وأزرارها مسمّاة؟ (٢٥: لوحة التتبّع admin-tracking.html)
+    it('خمسٌ وعشرون صفحة', () => {
+        expect(pages.length).toBe(25);
     });
 });
 

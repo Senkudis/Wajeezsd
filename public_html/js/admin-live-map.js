@@ -338,6 +338,14 @@ async function loadInitialCaptains() {
         // 🚨 قدِم من إشعار نجدة؟ تمركّز على موقع التنبيه (?alert=<id>)
         focusEmergencyFromUrl();
 
+        // 🛰️ قدِم من لوحة التتبّع؟ تمركّز على الكابتن نفسه (?focus=<captainId>)
+        const focusId = new URLSearchParams(location.search).get('focus');
+        if (focusId && loadedOnInit[focusId]) {
+            selectCaptain(focusId, loadedOnInit[focusId].name);
+        } else if (focusId) {
+            showToast('هذا الكابتن ليس له موقعٌ على الخريطة الآن', 'info');
+        }
+
     } catch (err) {
         console.error('Fetch active-captains error:', err);
     }
