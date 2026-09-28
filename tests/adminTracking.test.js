@@ -130,6 +130,70 @@ describe('نصّ التنبيه — يُبنى في الخادم', () => {
     });
 });
 
+describe('الإثبات — صورة الاستلام وموقع التسليم', () => {
+    const delivered = (dp, over = {}) => T.proofOf({ status: 'delivered', proofOfPickupImage: '/uploads/p.jpg', deliveryProof: dp, ...over });
+
+    it('استلم بصورة: رابطها يصل البطاقة', () => {
+        const p = T.proofOf({ status: 'picked_up', proofOfPickupImage: '/uploads/p.jpg' });
+        expect(p.pickupPhoto).toBe('/uploads/p.jpg');
+        expect(p.pickupPhotoMissing).toBe(false);
+        expect(p.suspicious).toBe(false);
+    });
+
+    it('🔑 استلم بلا صورة: مشكوكٌ فيه', () => {
+        const p = T.proofOf({ status: 'picked_up' });
+        expect(p.pickupPhotoMissing).toBe(true);
+        expect(p.suspicious).toBe(true);
+    });
+
+    it('لم يستلم بعد: غياب الصورة طبيعيّ', () => {
+        const p = T.proofOf({ status: 'accepted' });
+        expect(p.pickupPhotoMissing).toBe(false);
+        expect(p.delivery).toBe(null);
+        expect(p.suspicious).toBe(false);
+    });
+
+    it('«اشترِ لي»: الفاتورة هي صورة الاستلام', () => {
+        const p = T.proofOf({ status: 'picked_up', orderType: 'errand', errand: { receiptImage: '/uploads/r.jpg' } });
+        expect(p.pickupPhoto).toBe('/uploads/r.jpg');
+        expect(p.suspicious).toBe(false);
+    });
+
+    it('سُلِّم عند العميل: سليم، بالمسافة', () => {
+        const p = delivered({ verified: true, reason: 'ok', distanceM: 40, locationAgeSec: 30 });
+        expect(p.delivery).toEqual({ state: 'ok', distanceM: 40, locationAgeMin: 1 });
+        expect(p.suspicious).toBe(false);
+    });
+
+    it('🔑 أُعلن بعيداً عن العميل: مشكوكٌ فيه', () => {
+        const p = delivered({ verified: false, reason: 'too_far', distanceM: 1200 });
+        expect(p.delivery.state).toBe('far');
+        expect(p.delivery.distanceM).toBe(1200);
+        expect(p.suspicious).toBe(true);
+    });
+
+    it('بلا موقعٍ حديث للكابتن: مشكوكٌ فيه', () => {
+        expect(delivered({ verified: false, reason: 'no_captain_location' }).delivery.state).toBe('no_location');
+        expect(delivered({ verified: false, reason: 'stale_location' }).suspicious).toBe(true);
+    });
+
+    it('ما لا يمكن الحكم عليه لا يُتّهم به الكابتن', () => {
+        // عنوان العميل بلا إحداثيات، أو الفحص معطّل، أو طلبٌ قديم قبل الميزة
+        expect(delivered({ verified: false, reason: 'no_dropoff_coords' }).delivery.state).toBe('no_address');
+        expect(delivered({ verified: false, reason: 'disabled' }).delivery.state).toBe('unchecked');
+        expect(delivered(undefined).delivery.state).toBe('unchecked');
+        for (const r of ['no_dropoff_coords', 'disabled']) {
+            expect(delivered({ verified: false, reason: r }).suspicious).toBe(false);
+        }
+        expect(delivered(undefined).suspicious).toBe(false);
+    });
+
+    it('والبطاقة تحمله', () => {
+        const t = T.buildTrip({ _id: '64f0000000000000000000b1', status: 'picked_up', pickedUpAt: ago(5), captain: cap() }, N, now);
+        expect(t.proof.suspicious).toBe(true);
+    });
+});
+
 describe('المسار في الخادم', () => {
     const src = read('routes/admin/tracking.js');
 
@@ -151,6 +215,12 @@ describe('المسار في الخادم', () => {
         expect(src).toContain("logAdminAction(req, 'nudge_user'");
         expect(src).toContain('T.cooldownLeft(order.adminNudges, to)');
         expect(src).toContain('nudgeLimiter');
+    });
+
+    it('يجلب حقول الإثبات ويعدّ المشكوك فيه ويعطي نصف القطر', () => {
+        for (const f of ['proofOfPickupImage', 'errand.receiptImage', 'deliveryProof']) expect(src).toContain(f);
+        expect(src).toContain('suspicious: count(t => t.proof.suspicious)');
+        expect(src).toContain('deliveryProofRadiusMeters');
     });
 
     it('ومركّب تحت /api/admin', () => {
@@ -196,6 +266,22 @@ describe('الصفحة', () => {
         expect(js).toContain('data-to="client"');
         expect(js).toContain('admin-live-map.html?focus=');
         expect(read('public_html/js/admin-live-map.js')).toContain("get('focus')");
+    });
+
+    it('فلتر «إثبات مشكوك فيه» وعارض صورة الاستلام', () => {
+        expect(js).toContain("key: 'suspicious'");
+        expect(js).toContain('t.proof.suspicious');
+        expect(js).toContain('data-photo=');
+        expect(html).toContain('id="photoModal"');
+        expect(html).toMatch(/id="photoModal"[^>]*>\s*<div[^>]*role="dialog" aria-modal="true" aria-labelledby="photoTitle"/);
+        // الصورة مرفوعة على خادم الـ API لا على الواجهة
+        expect(js).toContain('getFullImageUrl');
+    });
+
+    it('التركيز يعود لنظير الزرّ إن أعاد التحديث رسم البطاقات', () => {
+        expect(js).toContain('el.isConnected');
+        expect(js).toContain('backTo(photoFocus');
+        expect(js).toContain('backTo(lastFocus');
     });
 
     it('النصوص تُهرَّب قبل الحقن', () => {

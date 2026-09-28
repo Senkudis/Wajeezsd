@@ -65,6 +65,7 @@
         { key: 'to_pickup', label: 'في الطريق للاستلام', icon: 'fa-store',                 color: ['#e0e7ff', '#4338ca'], n: s => s.toPickup },
         { key: 'to_dropoff',label: 'استلم — للعميل',     icon: 'fa-motorcycle',            color: ['#dcfce7', '#15803d'], n: s => s.toDropoff },
         { key: 'gps',       label: 'التتبّع متوقّف',     icon: 'fa-location-crosshairs',   color: ['#fef3c7', '#b45309'], n: s => s.gpsStale },
+        { key: 'suspicious',label: 'إثبات مشكوك فيه',   icon: 'fa-shield-halved',         color: ['#fee2e2', '#b91c1c'], n: s => s.suspicious },
         { key: 'delivered', label: 'سُلِّمت مؤخراً',     icon: 'fa-house-circle-check',    color: ['#f1f5f9', '#334155'], n: s => s.delivered }
     ];
 
@@ -97,6 +98,7 @@
             to_pickup: t.stage === 'to_pickup',
             to_dropoff: t.stage === 'to_dropoff',
             gps: running && t.captain && t.captain.gps.state === 'stale',
+            suspicious: t.proof && t.proof.suspicious,
             delivered: t.stage === 'delivered'
         }[filter];
         if (!byFilter) return false;
@@ -141,6 +143,41 @@
         return `<span class="fact gps-fresh"><i class="fas fa-location-dot" aria-hidden="true"></i> آخر موقع قبل ${dur(g.ageMin)}</span>`;
     }
 
+    /** 40 ← «40 م»، 1234 ← «1.2 كم» */
+    function dist(m) {
+        if (m == null) return '';
+        return m < 1000 ? `${m} م` : `${(m / 1000).toFixed(1)} كم`;
+    }
+
+    /**
+     * 📸📍 سطر الإثبات: صورة الاستلام، وأين كان الكابتن حين أعلن التسليم.
+     * التسليم في وضع «المراقبة» لا يُمنع من بعيد — يُسجَّل فقط، وهنا يُرى.
+     */
+    function proofHtml(t) {
+        const p = t.proof || {};
+        const out = [];
+        if (p.pickupPhoto) {
+            out.push(`<button type="button" class="proof-btn" data-photo="${esc(p.pickupPhoto)}" data-cap="${esc(t.captain.name)}" data-ref="${esc(t.ref)}"
+                aria-label="عرض صورة إثبات الاستلام للطلب #${esc(t.ref)}">
+                <i class="fas fa-camera" aria-hidden="true"></i> صورة الاستلام</button>`);
+        } else if (p.pickupPhotoMissing) {
+            out.push(`<span class="proof bad"><i class="fas fa-camera" aria-hidden="true"></i> استُلم بلا صورة إثبات</span>`);
+        }
+        const d = p.delivery;
+        if (d) {
+            const radius = data && data.deliveryRadius ? data.deliveryRadius[t.city] : null;
+            const row = {
+                ok:          ['ok',   'fa-location-dot',        `سُلِّم عند العميل — على بُعد ${dist(d.distanceM)}${radius ? ` (المسموح ${dist(radius)})` : ''}`],
+                far:         ['bad',  'fa-triangle-exclamation', `أُعلن التسليم على بُعد ${dist(d.distanceM)} من العميل`],
+                no_location: ['warn', 'fa-location-crosshairs', 'لا موقع حديث للكابتن لحظة التسليم'],
+                no_address:  ['muted','fa-circle-question',     'عنوان العميل بلا إحداثيات — تعذّر التحقّق'],
+                unchecked:   ['muted','fa-circle-question',     'لم يُفحص موقع التسليم']
+            }[d.state];
+            if (row) out.push(`<span class="proof ${row[0]}"><i class="fas ${row[1]}" aria-hidden="true"></i> ${row[2]}</span>`);
+        }
+        return out.length ? `<div class="proofs" aria-label="إثبات الرحلة">${out.join('')}</div>` : '';
+    }
+
     function card(t) {
         const c = t.captain;
         const v = VEHICLE[c.vehicleType] || ['fa-motorcycle', 'كابتن'];
@@ -150,7 +187,7 @@
         const sinceLbl = t.stage === 'to_pickup' ? 'منذ القبول' : 'منذ الاستلام';
 
         return `
-        <article class="trip lv-${running ? t.late.level : 'ok'} st-${t.stage}" aria-label="رحلة ${esc(c.name)} — طلب #${esc(t.ref)}">
+        <article class="trip lv-${running ? t.late.level : 'ok'} st-${t.stage}${t.proof && t.proof.suspicious ? ' proof-bad' : ''}" aria-label="رحلة ${esc(c.name)} — طلب #${esc(t.ref)}">
             <header class="trip-head">
                 <div class="cap">
                     ${photo ? `<img class="avatar" src="${esc(photo)}" alt="" data-i="${initial}"
@@ -184,6 +221,8 @@
                 <span class="fact"><i class="fas fa-tag" aria-hidden="true"></i> ${esc(t.typeLabel)} · #${esc(t.ref)}</span>
             </div>
 
+            ${proofHtml(t)}
+
             ${t.lastNudge ? `<div class="last-nudge"><i class="fas fa-bell" aria-hidden="true"></i>
                 نُبِّه ${t.lastNudge.to === 'captain' ? 'الكابتن' : 'العميل'} قبل ${dur(t.lastNudge.agoMin)}${t.lastNudge.byName ? ' — ' + esc(t.lastNudge.byName) : ''}</div>` : ''}
 
@@ -208,6 +247,7 @@
         to_pickup:  ['fa-store', 'لا كابتن في الطريق للاستلام', ''],
         to_dropoff: ['fa-motorcycle', 'لا طلب في الطريق للعميل', ''],
         gps:        ['fa-location-dot', 'كل الكباتن يُرسلون مواقعهم', ''],
+        suspicious: ['fa-shield-halved', 'لا إثبات مشكوك فيه', 'كل الاستلامات مصوّرة، وكل التسليمات أُعلنت عند العميل.'],
         delivered:  ['fa-house-circle-check', 'لا تسليم في آخر ساعات', '']
     };
 
@@ -345,13 +385,48 @@
 
     function closeNudge() {
         modal.hidden = true;
-        if (lastFocus && lastFocus.focus) lastFocus.focus();
+        backTo(lastFocus, nTrip && `[data-nudge="${nTrip.id}"][data-to="${nTo}"]`);
     }
 
     $('trkList').addEventListener('click', (e) => {
         const b = e.target.closest('[data-nudge]');
         if (b && !b.disabled) openNudge(b.dataset.nudge, b.dataset.to);
+        const p = e.target.closest('[data-photo]');
+        if (p) openPhoto(p);
     });
+
+    // ─── صورة إثبات الاستلام ─────────────────────────────────────────────
+    const photoModal = $('photoModal');
+    let photoFocus = null;
+    function openPhoto(btn) {
+        const url = window.getFullImageUrl ? getFullImageUrl(btn.dataset.photo) : btn.dataset.photo;
+        const img = $('photoImg');
+        img.alt = `صورة إثبات الاستلام — طلب #${btn.dataset.ref}`;
+        img.src = url;
+        $('photoCap').textContent = `التقطها ${btn.dataset.cap} عند استلام الطلب #${btn.dataset.ref}`;
+        $('photoOpen').href = url;
+        photoFocus = btn;
+        photoModal.hidden = false;
+        $('photoClose').focus();
+    }
+    function closePhoto() {
+        photoModal.hidden = true;
+        $('photoImg').src = '';
+        // التحديث كل 20 ث يُعيد رسم البطاقات، فالزرّ المحفوظ قد صار منفصلاً
+        // عن الصفحة ولا يقبل التركيز — نعود إلى نظيره الحاليّ بمعرّف الطلب
+        backTo(photoFocus, photoFocus && `.proof-btn[data-ref="${photoFocus.dataset.ref}"]`);
+    }
+
+    /** يعيد التركيز لعنصرٍ ما زال في الصفحة، أو لنظيره بعد إعادة الرسم */
+    function backTo(el, selector) {
+        const target = (el && el.isConnected) ? el : (selector ? document.querySelector(selector) : null);
+        if (target && target.focus) target.focus();
+        else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    }
+    $('photoClose').addEventListener('click', closePhoto);
+    photoModal.addEventListener('click', (e) => { if (e.target === photoModal) closePhoto(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !photoModal.hidden) closePhoto(); });
+    $('photoImg').addEventListener('error', () => { $('photoCap').textContent = 'تعذّر تحميل الصورة — ربما حُذفت من الخادم'; });
     document.querySelector('.seg').addEventListener('click', (e) => {
         const b = e.target.closest('button[data-to]');
         if (!b || b.disabled) return;

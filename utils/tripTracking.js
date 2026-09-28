@@ -110,6 +110,53 @@ function gpsOf(captain, nudges, now = new Date()) {
     };
 }
 
+/**
+ * 📸📍 إثبات الرحلة: صورة الاستلام، وموقع الكابتن لحظة إعلان التسليم.
+ *
+ * الاستلام: /pickup يرفض بلا صورة، فغيابها على طلبٍ «مستلَم» يعني أنه لم
+ * يمرّ بذلك الطريق — تغيير حالةٍ يدويّ أو طلبٌ أقدم من الشرط. يُعلَّم.
+ *
+ * التسليم: لا صورة فيه — الإثبات بالموقع (utils/deliveryProof). وفي الوضع
+ * الافتراضيّ «مراقبة» يُسجَّل ولا يمنع، فكابتنٌ أعلن التسليم على بُعد
+ * كيلومترين يُغلق طلبه بصمت — والسجلّ على الطلب لا يراه أحد. هنا يُرى.
+ *
+ *   ok          كان عند العميل (ضمن نصف القطر)
+ *   far         أعلن التسليم بعيداً عن العميل
+ *   no_location لا موقع له لحظة الإعلان، أو موقعه قديم
+ *   no_address  عنوان العميل بلا إحداثيات — لا يمكن الحكم (لا ذنب للكابتن)
+ *   unchecked   لم يُفحص (الفحص معطّل، أو طلبٌ أقدم من الميزة)
+ */
+function proofOf(order) {
+    const photo = order.proofOfPickupImage || (order.errand && order.errand.receiptImage) || null;
+    const pickedUp = order.status === 'picked_up' || order.status === 'delivered';
+
+    let delivery = null;
+    if (order.status === 'delivered') {
+        const dp = order.deliveryProof || null;
+        const r = dp && dp.reason;
+        const state =
+            !r || r === 'disabled'                              ? 'unchecked' :
+            r === 'ok' && dp.verified                           ? 'ok' :
+            r === 'too_far'                                     ? 'far' :
+            r === 'no_captain_location' || r === 'stale_location' ? 'no_location' :
+            r === 'no_dropoff_coords'                           ? 'no_address' : 'unchecked';
+        delivery = {
+            state,
+            distanceM: dp && Number.isFinite(dp.distanceM) ? dp.distanceM : null,
+            locationAgeMin: dp && Number.isFinite(dp.locationAgeSec) ? Math.round(dp.locationAgeSec / 60) : null
+        };
+    }
+
+    const pickupPhotoMissing = pickedUp && !photo;
+    return {
+        pickupPhoto: photo,
+        pickupPhotoMissing,
+        delivery,
+        // «مشكوكٌ فيه»: ما يستحقّ نظرة أدمن — لا ما لا يمكن الحكم عليه
+        suspicious: pickupPhotoMissing || !!(delivery && (delivery.state === 'far' || delivery.state === 'no_location'))
+    };
+}
+
 const TYPE_LABEL = { delivery: 'توصيل', shop: 'طلب متجر', errand: 'اشترِ لي' };
 
 function short(s, n = 90) {
@@ -150,6 +197,7 @@ function buildTrip(order, nudges, now = new Date()) {
             address: short(order.dropoff && order.dropoff.address),
             name: short(order.dropoff && order.dropoff.receiverName, 40)
         },
+        proof: proofOf(order),
         stops: (order.isMultiStop && stops.length)
             ? { total: stops.length, done: stops.filter(s => s.done || s.doneAt).length } : null,
         captain: cap ? {
@@ -243,6 +291,6 @@ function cooldownLeft(adminNudges, to, now = new Date()) {
 }
 
 module.exports = {
-    minutesBetween, stageOf, stepsOf, latenessOf, gpsOf, buildTrip, compareTrips,
+    minutesBetween, stageOf, stepsOf, latenessOf, gpsOf, proofOf, buildTrip, compareTrips,
     NUDGE_TEMPLATES, buildNudge, cooldownLeft, NUDGE_COOLDOWN_MIN, CUSTOM_MAX, STAGES
 };

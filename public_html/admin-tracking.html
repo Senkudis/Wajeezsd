@@ -125,6 +125,22 @@
         .fact.gps-stale, .fact.gps-none { background: var(--warn-bg); color: var(--warn); }
         .fact.gps-fresh { background: var(--ok-bg); color: var(--ok); }
 
+        /* سطر الإثبات */
+        .proofs { display: flex; flex-wrap: wrap; gap: 6px; }
+        .proof { font-size: .78rem; font-weight: 800; border-radius: 8px; padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; line-height: 1.5; }
+        .proof.ok { background: var(--ok-bg); color: var(--ok); }
+        .proof.bad { background: var(--late-bg); color: var(--late); }
+        .proof.warn { background: var(--warn-bg); color: var(--warn); }
+        .proof.muted { background: #f1f5f9; color: var(--ink-2); }
+        .proof-btn { font-family: inherit; font-size: .78rem; font-weight: 800; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .proof-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .proof-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        /* تسليمٌ مشكوكٌ فيه يبرز حتى بين المُسلَّمة الرمادية */
+        .trip.st-delivered.proof-bad { border-inline-start-color: #dc2626; }
+        .photo-box { max-width: 560px; }
+        .photo-img { width: 100%; max-height: 62vh; object-fit: contain; border-radius: 12px; background: #0f172a; }
+        .photo-cap { font-size: .85rem; color: var(--ink-2); text-align: center; }
+
         .last-nudge { font-size: .78rem; color: var(--info); background: var(--info-bg); border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; gap: 7px; font-weight: 700; }
 
         .trip-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -173,6 +189,7 @@
             --ok-bg: #052e1a; --warn-bg: #2a1f05; --late-bg: #2b0b0b; --info-bg: #0b1f45; --ok: #4ade80; --warn: #fbbf24; --late: #f87171; --info: #93c5fd; }
         body.dark-mode .route, body.dark-mode .nudge-for, body.dark-mode .fact, body.dark-mode .seg, body.dark-mode .icon-x, body.dark-mode .step .dot { background: #0f172a; }
         body.dark-mode .trip.st-delivered { background: #172033; }
+        body.dark-mode .proof.muted { background: #0f172a; }
         body.dark-mode .tpl[aria-checked="true"] { background: #052e1a; }
         body.dark-mode .custom-wrap textarea, body.dark-mode .trk-tools input, body.dark-mode .trk-tools select { background: #0f172a; color: var(--ink); }
     </style>
@@ -255,7 +272,24 @@
     </div>
 </div>
 
+<!-- صورة إثبات الاستلام -->
+<div class="trk-modal" id="photoModal" hidden>
+    <div class="trk-modal-box photo-box" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
+        <div class="trk-modal-head">
+            <h2 id="photoTitle">صورة إثبات الاستلام</h2>
+            <button type="button" class="icon-x" id="photoClose" aria-label="إغلاق الصورة">
+                <i class="fas fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <img id="photoImg" class="photo-img" src="" alt="">
+        <div class="photo-cap" id="photoCap"></div>
+        <a class="btn btn-ghost" id="photoOpen" href="#" target="_blank" rel="noopener">
+            <i class="fas fa-up-right-from-square" aria-hidden="true"></i> فتح بالحجم الكامل
+        </a>
+    </div>
+</div>
+
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-<script src="js/admin-tracking.js?v=fae7e902"></script>
+<script src="js/admin-tracking.js?v=f75e116d"></script>
 </body>
 </html>

@@ -82,6 +82,23 @@ maybe()('GET /api/admin/tracking', () => {
         expect(body.summary).toMatchObject({ carrying: 2, active: 2, late: 1, delivered: 1 });
     });
 
+    it('🔑 الإثبات: صورة الاستلام تصل البطاقة، والبعيد والمُستلَم بلا صورة يُعدّان', async () => {
+        const s = await scene();
+        await Order.updateOne({ _id: s.fineOrder._id }, { proofOfPickupImage: '/uploads/proofs/p1.jpg' });
+        await Order.updateOne({ _id: s.done._id }, {
+            proofOfPickupImage: '/uploads/proofs/p2.jpg',
+            deliveryProof: { verified: false, reason: 'too_far', distanceM: 1200, at: ago(20) }
+        });
+        const { body } = await request(app).get('/api/admin/tracking').set('Authorization', `Bearer ${s.adminToken}`);
+        const byId = Object.fromEntries(body.trips.map(t => [t.id, t]));
+        expect(byId[String(s.fineOrder._id)].proof).toMatchObject({ pickupPhoto: '/uploads/proofs/p1.jpg', suspicious: false });
+        expect(byId[String(s.done._id)].proof.delivery).toMatchObject({ state: 'far', distanceM: 1200 });
+        // المتأخّر لم يستلم بعد — غياب صورته ليس شبهة
+        expect(byId[String(s.lateOrder._id)].proof.suspicious).toBe(false);
+        expect(body.summary.suspicious).toBe(1);
+        expect(body.deliveryRadius).toMatchObject({ Khartoum: expect.any(Number), PortSudan: expect.any(Number) });
+    });
+
     it('🌍 الأدمن المساعد لبورتسودان لا يرى الخرطوم', async () => {
         await scene();
         const { token } = await mkUser({ role: 'admin', adminRole: 'sub_admin', city: 'PortSudan', permissions: ['view_map'] });

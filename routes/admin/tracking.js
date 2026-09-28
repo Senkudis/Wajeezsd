@@ -33,7 +33,7 @@ const RECENT_MAX_MIN = 720;
 
 const ORDER_FIELDS = '_id status city orderType price createdAt acceptedAt pickedUpAt deliveredAt ' +
     'pickup.address pickup.contactName dropoff.address dropoff.receiverName isMultiStop stops.done stops.doneAt ' +
-    'captain client adminNudges';
+    'captain client adminNudges proofOfPickupImage errand.receiptImage deliveryProof';
 const CAPTAIN_FIELDS = 'name phone vehicleType currentLocation documents.profilePhoto';
 const CLIENT_FIELDS = 'name phone';
 
@@ -94,8 +94,15 @@ router.get('/tracking', protect, CAN_VIEW, async (req, res) => {
                 delivered: count(t => t.stage === 'delivered'),
                 late: count(t => running(t) && t.late.level === 'late'),
                 warn: count(t => running(t) && t.late.level === 'warn'),
-                gpsStale: count(t => running(t) && t.captain.gps.state === 'stale')
+                gpsStale: count(t => running(t) && t.captain.gps.state === 'stale'),
+                // إثباتٌ يستحقّ نظرة: مُستلَمٌ بلا صورة، أو تسليمٌ أُعلن بعيداً أو بلا موقع
+                suspicious: count(t => t.proof.suspicious)
             },
+            // نصف قطر قبول التسليم لكل مدينة — لتقول الشارة «ضمن 500 م»
+            deliveryRadius: Object.fromEntries(await Promise.all(VALID_CITIES.map(async c => {
+                try { const s = await Settings.getSettings(c); return [c, s.deliveryProofRadiusMeters ?? 500]; }
+                catch (e) { return [c, 500]; }
+            }))),
             templates: T.NUDGE_TEMPLATES,
             trips
         });
