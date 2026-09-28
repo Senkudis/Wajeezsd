@@ -11,6 +11,7 @@ const { sendNotification } = require('../../utils/notificationHelper');
 const { logAdminAction } = require('../../utils/adminLogger');
 const logger = require('../../utils/logger');
 const T = require('../../utils/tripTracking');
+const { captainReport } = require('../../utils/trackingReport');
 
 /**
  * 🛰️ لوحة التتبّع — كل رحلةٍ جارية: أين وصلت، ومنذ متى، وهل هذا طبيعيّ.
@@ -111,6 +112,42 @@ router.get('/tracking', protect, CAN_VIEW, async (req, res) => {
     } catch (err) {
         logger.error({ err: err.message }, '[admin/tracking] load failed');
         res.status(500).json({ message: 'تعذّر تحميل لوحة التتبّع' });
+    }
+});
+
+// ─── GET /api/admin/tracking/report ──────────────────────────────────────
+// تقرير الكباتن لفترة: الرحلات المُسلَّمة، وكم منها تأخّر أو أُعلن تسليمه
+// بعيداً أو استُلم بلا صورة. انظر utils/trackingReport.js.
+const REPORT_DAYS = [1, 7, 30];
+
+router.get('/tracking/report', protect, CAN_VIEW, async (req, res) => {
+    try {
+        const days = REPORT_DAYS.includes(Number(req.query.days)) ? Number(req.query.days) : 7;
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        const orders = await Order.find({
+            ...getAdminCityFilter(req),
+            status: 'delivered',
+            captain: { $ne: null },
+            deliveredAt: { $gte: since }
+        })
+            .select(ORDER_FIELDS)
+            .populate('captain', 'name phone')
+            .limit(5000)
+            .lean();
+
+        const nudges = await nudgeMap([...new Set(orders.map(o => o.city || 'Khartoum').concat(VALID_CITIES))]);
+        const captains = captainReport(orders, (c) => nudges[c] || nudges.Khartoum);
+        const sum = (k) => captains.reduce((a, c) => a + c[k], 0);
+        res.json({
+            days, since,
+            truncated: orders.length >= 5000,
+            totals: { captains: captains.length, trips: sum('trips'), late: sum('late'), far: sum('far'),
+                      noLocation: sum('noLocation'), noPhoto: sum('noPhoto'), nudged: sum('nudged'), acked: sum('acked') },
+            captains
+        });
+    } catch (err) {
+        logger.error({ err: err.message }, '[admin/tracking] report failed');
+        res.status(500).json({ message: 'تعذّر تحميل تقرير الكباتن' });
     }
 });
 

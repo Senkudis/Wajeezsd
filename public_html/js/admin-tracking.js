@@ -11,6 +11,7 @@
     const API = (typeof API_URL !== 'undefined' && API_URL) || '';
     const token = localStorage.getItem('adminToken');
     const REFRESH_MS = 20000;
+    const STOPPED_TXT = '10 دقائق';   // utils/tripTracking.STOPPED_MIN
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s));
@@ -65,6 +66,7 @@
         { key: 'to_pickup', label: 'في الطريق للاستلام', icon: 'fa-store',                 color: ['#e0e7ff', '#4338ca'], n: s => s.toPickup },
         { key: 'to_dropoff',label: 'استلم — للعميل',     icon: 'fa-motorcycle',            color: ['#dcfce7', '#15803d'], n: s => s.toDropoff },
         { key: 'gps',       label: 'التتبّع متوقّف',     icon: 'fa-location-crosshairs',   color: ['#fef3c7', '#b45309'], n: s => s.gpsStale },
+        { key: 'stopped',   label: 'واقف لا يتحرّك',     icon: 'fa-circle-pause',          color: ['#ffedd5', '#c2410c'], n: s => s.stopped },
         { key: 'suspicious',label: 'إثبات مشكوك فيه',   icon: 'fa-shield-halved',         color: ['#fee2e2', '#b91c1c'], n: s => s.suspicious },
         { key: 'delivered', label: 'سُلِّمت مؤخراً',     icon: 'fa-house-circle-check',    color: ['#f1f5f9', '#334155'], n: s => s.delivered }
     ];
@@ -98,6 +100,7 @@
             to_pickup: t.stage === 'to_pickup',
             to_dropoff: t.stage === 'to_dropoff',
             gps: running && t.captain && t.captain.gps.state === 'stale',
+            stopped: running && t.motion && t.motion.state === 'stopped',
             suspicious: t.proof && t.proof.suspicious,
             delivered: t.stage === 'delivered'
         }[filter];
@@ -147,6 +150,39 @@
     function dist(m) {
         if (m == null) return '';
         return m < 1000 ? `${m} م` : `${(m / 1000).toFixed(1)} كم`;
+    }
+
+    /**
+     * 🧭 أين هو من وجهته، وهل يتحرّك. الوقت وحده لا يفرّق بين متأخّرٍ على
+     * بُعد ٣٠٠ م ومتأخّرٍ لم يغادر مكانه.
+     */
+    function motionFact(t) {
+        const m = t.motion;
+        if (!m || m.state === 'unknown') return '';
+        const where = m.target === 'pickup' ? 'المحلّ' : 'العميل';
+        if (m.state === 'at_target') {
+            return `<span class="fact motion-at"><i class="fas fa-location-pin" aria-hidden="true"></i> عند ${where}${m.stoppedMin ? ` منذ ${dur(m.stoppedMin)}` : ''}</span>`;
+        }
+        const far = m.distanceM != null ? ` — على بُعد ${dist(m.distanceM)} من ${where}` : '';
+        if (m.state === 'stopped') {
+            return `<span class="fact motion-stopped"><i class="fas fa-circle-pause" aria-hidden="true"></i> واقف منذ ${dur(m.stoppedMin)}${far}</span>`;
+        }
+        return m.distanceM != null
+            ? `<span class="fact motion-moving"><i class="fas fa-person-biking" aria-hidden="true"></i> يتحرّك — ${dist(m.distanceM)} عن ${where}</span>`
+            : '';
+    }
+
+    function nudgeLine(t) {
+        const n = t.lastNudge;
+        if (!n) return '';
+        const who = n.to === 'captain' ? 'الكابتن' : 'العميل';
+        const ack = n.to === 'captain'
+            ? (n.ack
+                ? `<span class="ack ok"><i class="fas fa-reply" aria-hidden="true"></i> ردّ: «${esc(n.ack.text)}» قبل ${dur(n.ack.agoMin)}</span>`
+                : `<span class="ack none">لم يردّ بعد</span>`)
+            : '';
+        return `<div class="last-nudge"><i class="fas fa-bell" aria-hidden="true"></i>
+            <span>نُبِّه ${who} قبل ${dur(n.agoMin)}${n.byName ? ' — ' + esc(n.byName) : ''}</span>${ack}</div>`;
     }
 
     /**
@@ -210,12 +246,14 @@
                 <i class="fas fa-store from" aria-hidden="true"></i>
                 <div class="from"><b>من:</b> <span>${esc(t.pickup.address || '—')}</span></div>
                 <i class="fas fa-location-dot to" aria-hidden="true"></i>
-                <div class="to"><b>إلى:</b> <span>${esc(t.dropoff.address || '—')}${t.client ? ` — ${esc(t.client.name)}` : ''}</span></div>
+                <div class="to"><b>إلى:</b> <span>${esc(t.dropoff.address || '—')}${t.client ? ` — ${esc(t.client.name)}` : ''}</span>
+                    ${t.client && t.client.phone ? `<a class="call-client" href="tel:${esc(t.client.phone)}" aria-label="اتصال بالعميل ${esc(t.client.name)}"><i class="fas fa-phone" aria-hidden="true"></i> ${esc(t.client.phone)}</a>` : ''}</div>
             </div>
 
             <div class="facts">
                 ${running ? `<span class="fact"><i class="fas fa-stopwatch" aria-hidden="true"></i> ${sinceLbl} ${dur(t.late.elapsed)}</span>` : ''}
                 ${t.totalMin != null ? `<span class="fact"><i class="fas fa-clock" aria-hidden="true"></i> ${running ? 'الرحلة حتى الآن' : 'مدّة الرحلة'} ${dur(t.totalMin)}</span>` : ''}
+                ${motionFact(t)}
                 ${gpsFact(t)}
                 ${t.stops ? `<span class="fact"><i class="fas fa-flag-checkered" aria-hidden="true"></i> المحطّات ${t.stops.done}/${t.stops.total}</span>` : ''}
                 <span class="fact"><i class="fas fa-tag" aria-hidden="true"></i> ${esc(t.typeLabel)} · #${esc(t.ref)}</span>
@@ -223,8 +261,7 @@
 
             ${proofHtml(t)}
 
-            ${t.lastNudge ? `<div class="last-nudge"><i class="fas fa-bell" aria-hidden="true"></i>
-                نُبِّه ${t.lastNudge.to === 'captain' ? 'الكابتن' : 'العميل'} قبل ${dur(t.lastNudge.agoMin)}${t.lastNudge.byName ? ' — ' + esc(t.lastNudge.byName) : ''}</div>` : ''}
+            ${nudgeLine(t)}
 
             <footer class="trip-actions">
                 ${running ? `
@@ -247,6 +284,7 @@
         to_pickup:  ['fa-store', 'لا كابتن في الطريق للاستلام', ''],
         to_dropoff: ['fa-motorcycle', 'لا طلب في الطريق للعميل', ''],
         gps:        ['fa-location-dot', 'كل الكباتن يُرسلون مواقعهم', ''],
+        stopped:    ['fa-person-running', 'كل الكباتن يتحرّكون', `يظهر هنا من وقف ${STOPPED_TXT} بعيداً عن المحلّ أو العميل.`],
         suspicious: ['fa-shield-halved', 'لا إثبات مشكوك فيه', 'كل الاستلامات مصوّرة، وكل التسليمات أُعلنت عند العميل.'],
         delivered:  ['fa-house-circle-check', 'لا تسليم في آخر ساعات', '']
     };
@@ -288,6 +326,7 @@
             renderChips();
             renderList();
             tickLive();
+            checkAlerts();
         } catch (err) {
             const msg = window.friendlyError ? friendlyError(err, 'تعذّر تحميل لوحة التتبّع') : 'تعذّر تحميل لوحة التتبّع';
             if (!data && window.UIState) {
@@ -301,8 +340,104 @@
         if (!lastOk) return;
         const s = Math.round((Date.now() - lastOk) / 1000);
         const n = data ? data.summary.carrying : 0;
-        setLive(`${n} كابتن يحمل طلباً · آخر تحديث ${s < 5 ? 'الآن' : 'قبل ' + s + ' ث'}`, false);
+        setLive(`${n} كابتن يحمل طلباً · ${live ? 'مباشر · ' : ''}آخر تحديث ${s < 5 ? 'الآن' : 'قبل ' + s + ' ث'}`, false);
     }
+
+    // ─── مباشر: كل تغيّرٍ في طلبٍ يُعيد التحميل فوراً ─────────────────────
+    // الخادم يبثّ admin_order_update لغرفة الإدارة عند القبول والاستلام
+    // والتسليم والإلغاء وردّ الكابتن على التنبيه. التحديث الدوريّ يبقى
+    // احتياطاً (ولأعمار المواقع والتوقّف التي تتغيّر بلا حدث).
+    let live = false;
+    let soonTimer = null;
+    function soon() { clearTimeout(soonTimer); soonTimer = setTimeout(load, 700); }
+    function connectLive() {
+        if (typeof io !== 'function' || !token) return;
+        try {
+            const sock = io(API || undefined, {
+                transports: ['websocket', 'polling'], reconnection: true,
+                reconnectionDelay: 2000, auth: { token }
+            });
+            sock.on('connect', () => { sock.emit('admin_join'); live = true; tickLive(); soon(); });
+            sock.on('disconnect', () => { live = false; tickLive(); });
+            sock.on('admin_order_update', soon);
+        } catch (_) { /* بلا socket — التحديث الدوريّ يكفي */ }
+    }
+
+    // ─── تنبيهٌ صوتيّ حين تحتاج رحلةٌ تدخّلاً ─────────────────────────────
+    // لا يُطلب من الأدمن أن يحدّق في الشاشة: رحلةٌ **صارت** متأخّرة أو واقفة
+    // تُسمِع نغمةً (وإشعار متصفّح إن كانت الصفحة في الخلفية). ما كان كذلك
+    // عند فتح الصفحة لا يُنبَّه عليه — يراه في القائمة.
+    let soundOn = false;
+    try { soundOn = localStorage.getItem('trk_sound') === '1'; } catch (_) {}
+    let alarmed = null;        // مفاتيح «رحلة:سبب» نُبِّه عليها — null قبل أول تحميل
+    let audioCtx = null;
+
+    function beep() {
+        try {
+            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            [0, 0.22].forEach((offset, i) => {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                const t0 = audioCtx.currentTime + offset;
+                o.type = 'sine';
+                o.frequency.value = i ? 660 : 880;
+                g.gain.setValueAtTime(0.0001, t0);
+                g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+                o.connect(g).connect(audioCtx.destination);
+                o.start(t0); o.stop(t0 + 0.2);
+            });
+        } catch (_) { /* لا صوت في هذا المتصفّح */ }
+    }
+
+    function alertKeys(trips) {
+        const keys = [];
+        for (const t of trips) {
+            if (t.stage === 'delivered') continue;
+            if (t.late.level === 'late') keys.push(`${t.id}:late`);
+            if (t.motion && t.motion.state === 'stopped') keys.push(`${t.id}:stopped`);
+        }
+        return keys;
+    }
+
+    function checkAlerts() {
+        if (!data) return;
+        const nowKeys = new Set(alertKeys(data.trips));
+        if (alarmed === null) { alarmed = nowKeys; return; }
+        const fresh = [...nowKeys].filter(k => !alarmed.has(k));
+        alarmed = nowKeys;            // ما زال سببه يُنبَّه عليه إن عاد لاحقاً
+        if (!fresh.length || !soundOn) return;
+
+        const [id, why] = fresh[0].split(':');
+        const t = data.trips.find(x => x.id === id);
+        const text = fresh.length > 1
+            ? `${fresh.length} رحلات تحتاج تدخّلاً`
+            : `${t ? t.captain.name : 'كابتن'} — ${why === 'late' ? 'تأخّر' : 'واقف لا يتحرّك'} (طلب #${t ? t.ref : ''})`;
+        beep();
+        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+            try { new Notification('لوحة التتبّع', { body: text, tag: 'trk-alert' }); } catch (_) {}
+        } else if (window.Swal) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'warning', timer: 5000, showConfirmButton: false, title: text });
+        }
+    }
+
+    function renderSound() {
+        const b = $('trkSound');
+        b.setAttribute('aria-pressed', String(soundOn));
+        b.querySelector('i').className = `fas ${soundOn ? 'fa-volume-high' : 'fa-volume-xmark'}`;
+        b.querySelector('span').textContent = soundOn ? 'التنبيه الصوتي مفعّل' : 'تنبيه صوتي';
+    }
+    $('trkSound').addEventListener('click', () => {
+        soundOn = !soundOn;
+        try { localStorage.setItem('trk_sound', soundOn ? '1' : '0'); } catch (_) {}
+        renderSound();
+        if (soundOn) {
+            beep();   // نغمةٌ للتجربة — وتفتح الصوت في المتصفّح بلمسة المستخدم
+            if ('Notification' in window && Notification.permission === 'default') {
+                try { Notification.requestPermission(); } catch (_) {}
+            }
+        }
+    });
 
     function schedule() {
         clearInterval(timer);
@@ -315,7 +450,9 @@
     $('trkRefresh').addEventListener('click', load);
     $('trkCity').addEventListener('change', () => {
         try { localStorage.setItem('trk_city', $('trkCity').value); } catch (_) {}
+        alarmed = null;   // مدينةٌ أخرى: ما فيها من متأخّر ليس «جديداً»
         load();
+        if (view === 'report') loadReport();
     });
     let qTimer = null;
     $('trkSearch').addEventListener('input', (e) => {
@@ -337,13 +474,15 @@
     /**
      * الأنسب أولاً — والتأخّر قبل الموقع: كابتنٌ متأخّر نصف ساعة وموقعه
      * متوقّف يحتاج «تحرّك» قبل «شغّل الموقع».
-     *   متأخّر جداً   ← «تأخّرت — تحرّك الآن»
+     *   متأخّر جداً، أو واقف بعيداً عن وجهته ← «تأخّرت — تحرّك الآن»
      *   قارب التأخّر ← «لم تستلم الطلب بعد» / «العميل ينتظر» بحسب المرحلة
      *   في الوقت     ← «موقعك لا يتحدّث» إن توقّف، وإلا «اتصل بالعميل»
      */
     function suggested(to, trip) {
         if (to === 'client') return 'on_the_way';
         if (trip.late.level === 'late') return 'move_now';
+        // واقفٌ بعيداً عن وجهته: «تحرّك» ولو لم يتأخّر بعد
+        if (trip.motion && trip.motion.state === 'stopped') return 'move_now';
         if (trip.late.level === 'warn') return trip.stage === 'to_pickup' ? 'pickup_late' : 'deliver_late';
         if (trip.captain && trip.captain.gps.state === 'stale') return 'gps_off';
         return 'call_client';
@@ -484,9 +623,109 @@
         }
     });
 
+    // ─── تقرير الكباتن ───────────────────────────────────────────────────
+    // البطاقات تُري الرحلة، وهذا يُري الكابتن: من يتكرّر تأخّره أو تسليمه
+    // البعيد. الأحكام نفسها في الخادم (utils/trackingReport.js).
+    let view = 'trips';
+    try { view = localStorage.getItem('trk_view') === 'report' ? 'report' : 'trips'; } catch (_) {}
+    let report = null;
+
+    function cell(n, total, kind) {
+        if (!n) return `<td class="num zero">0</td>`;
+        const pct = total ? Math.round((n / total) * 100) : 0;
+        // في وحدة القيمة: جدول الجوّال يوزّع أبناء الخليّة على طرفيها
+        return `<td class="num ${kind}"><span>${n} <small>(${pct}%)</small></span></td>`;
+    }
+
+    function renderReport() {
+        const box = $('repBody');
+        box.setAttribute('aria-busy', 'false');
+        if (!report) return;
+        const tt = report.totals;
+        $('repTotals').innerHTML = [
+            ['fa-route', 'رحلات مُسلَّمة', tt.trips, ['#dbeafe', '#1d4ed8']],
+            ['fa-triangle-exclamation', 'متأخّرة', tt.late, ['#fee2e2', '#b91c1c']],
+            ['fa-location-crosshairs', 'تسليمٌ بعيد عن العميل', tt.far, ['#fee2e2', '#b91c1c']],
+            ['fa-camera', 'استلامٌ بلا صورة', tt.noPhoto, ['#fef3c7', '#b45309']],
+            ['fa-reply', 'ردّوا على التنبيه', `${tt.acked}/${tt.nudged}`, ['#dcfce7', '#15803d']]
+        ].map(c => `<div class="chip stat">
+            <span class="ic" style="background:${c[3][0]};color:${c[3][1]}" aria-hidden="true"><i class="fas ${c[0]}"></i></span>
+            <span><span class="num">${c[2]}</span><span class="lbl" style="display:block">${c[1]}</span></span></div>`).join('');
+
+        if (!report.captains.length) {
+            box.innerHTML = `<div class="trk-empty" role="status"><i class="fas fa-chart-simple" aria-hidden="true"></i><b>لا رحلات مُسلَّمة في هذه الفترة</b></div>`;
+            return;
+        }
+        box.innerHTML = `
+            <div class="rep-wrap" tabindex="0" role="region" aria-label="جدول تقرير الكباتن"><table class="rep">
+                <caption class="wj-sr-only">تقرير الكباتن — الأكثر ملاحظاتٍ أولاً</caption>
+                <thead><tr>
+                    <th scope="col">الكابتن</th><th scope="col">رحلات</th><th scope="col">متأخّرة</th>
+                    <th scope="col">بعيد عن العميل</th><th scope="col">بلا موقع</th><th scope="col">بلا صورة</th>
+                    <th scope="col">متوسط المدّة</th><th scope="col">ردّ على التنبيه</th>
+                </tr></thead>
+                <tbody>${report.captains.map(c => `<tr>
+                    <th scope="row"><span class="rep-name">${esc(c.name)}</span>
+                        ${c.phone ? `<a href="tel:${esc(c.phone)}" class="rep-phone">${esc(c.phone)}</a>` : ''}</th>
+                    <td class="num">${c.trips}</td>
+                    ${cell(c.late, c.trips, 'bad')}
+                    ${cell(c.far, c.trips, 'bad')}
+                    ${cell(c.noLocation, c.trips, 'warn')}
+                    ${cell(c.noPhoto, c.trips, 'warn')}
+                    <td class="num">${dur(c.avgMin)}</td>
+                    <td class="num">${c.nudged ? `${c.acked}/${c.nudged}` : '—'}</td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+            ${report.truncated ? '<p class="rep-note">عُرضت أول 5000 رحلة فقط — اختر فترةً أقصر.</p>' : ''}`;
+    }
+
+    async function loadReport() {
+        const city = $('trkCity').value;
+        const days = $('repDays').value;
+        if (window.UIState && !report) UIState.skeleton($('repBody'), { count: 3 });
+        try {
+            const qs = new URLSearchParams({ days });
+            if (city) qs.set('city', city);
+            const res = await fetch(`${API}/api/admin/tracking/report?${qs}`, { headers: headers() });
+            if (res.status === 401) { location.href = 'admin-login.html'; return; }
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.message || '');
+            report = body;
+            renderReport();
+        } catch (err) {
+            const msg = window.friendlyError ? friendlyError(err, 'تعذّر تحميل تقرير الكباتن') : 'تعذّر تحميل تقرير الكباتن';
+            if (window.UIState) UIState.error($('repBody'), { text: msg, onRetry: loadReport });
+        }
+    }
+
+    function setView(v, focus) {
+        view = v;
+        try { localStorage.setItem('trk_view', v); } catch (_) {}
+        const tabs = { trips: $('tabTrips'), report: $('tabReport') };
+        for (const k of Object.keys(tabs)) {
+            tabs[k].setAttribute('aria-selected', String(k === v));
+            tabs[k].tabIndex = k === v ? 0 : -1;
+        }
+        $('viewTrips').hidden = v !== 'trips';
+        $('viewReport').hidden = v !== 'report';
+        if (focus) tabs[v].focus();
+        if (v === 'report') loadReport();
+    }
+    $('tabTrips').addEventListener('click', () => setView('trips'));
+    $('tabReport').addEventListener('click', () => setView('report'));
+    $('viewTabs').addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        setView(view === 'trips' ? 'report' : 'trips', true);
+    });
+    $('repDays').addEventListener('change', loadReport);
+
     // ─── البداية ─────────────────────────────────────────────────────────
     renderChips();
+    renderSound();
     if (window.UIState) UIState.skeleton($('trkList'), { count: 4 });
     load();
     schedule();
+    connectLive();
+    setView(view);
 })();

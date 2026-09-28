@@ -818,4 +818,72 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
     }
 });
 
+// ==========================================
+// 🛰️ ردّ الكابتن على تنبيه الإدارة — «حاضر، في الطريق»
+// ==========================================
+// التنبيه من لوحة التتبّع كان باتجاهٍ واحد: لا يعرف الأدمن هل رآه الكابتن،
+// فيعيد التنبيه أو يتصل. ردٌّ بضغطة من شاشة المهمة يظهر على البطاقة فوراً.
+// الردود ثابتة لا نصٌّ حرّ: الكابتن يقود، والأدمن يحتاج حالةً لا رسالة.
+const NUDGE_REPLIES = {
+    on_way:  'حاضر، في الطريق',
+    arrived: 'وصلت',
+    issue:   'عندي مشكلة — اتصلوا بي'
+};
+
+router.post('/nudges/:orderId/ack', protect, captainOnly, async (req, res) => {
+    try {
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(req.params.orderId)) {
+            return res.status(400).json({ message: 'معرّف الطلب غير صالح' });
+        }
+        const reply = NUDGE_REPLIES[req.body && req.body.reply];
+        if (!reply) return res.status(400).json({ message: 'ردٌّ غير معروف' });
+
+        // على مهمّته الجارية وحدها — لا يردّ على تنبيهٍ لطلبٍ نُقل عنه
+        const order = await Order.findOne({
+            _id: req.params.orderId,
+            captain: req.user._id,
+            status: { $in: ['accepted', 'picked_up'] }
+        }).select('status city adminNudges captainAssignedAt').lean();
+        if (!order) return res.status(404).json({ message: 'لا مهمّة جارية بهذا الرقم' });
+
+        const { currentNudges } = require('../utils/tripTracking');
+        const last = currentNudges(order).filter(x => x.to === 'captain').slice(-1)[0];
+        if (!last || !last._id) return res.status(404).json({ message: 'لا تنبيه من الإدارة على هذه المهمّة' });
+
+        const at = new Date();
+        await Order.updateOne(
+            { _id: order._id, 'adminNudges._id': last._id },
+            { $set: { 'adminNudges.$.ackAt': at, 'adminNudges.$.ackText': reply } }
+        );
+
+        // اللوحة المفتوحة تتحدّث فوراً (تستمع لهذا الحدث)
+        const io = req.app.get('io');
+        if (io) {
+            io.to('admin_room').emit('admin_order_update', {
+                orderId: order._id, status: order.status, city: order.city, nudgeAck: reply
+            });
+        }
+        // «عندي مشكلة» يحتاج من يتصل به — لا يكفي أن يُرى على بطاقة
+        if (req.body.reply === 'issue') {
+            try {
+                const { notifyAdmins } = require('../utils/notificationHelper');
+                await notifyAdmins(req.app, {
+                    title: `الكابتن ${req.user.name || ''} يطلب اتصالاً`,
+                    message: `ردّ على تنبيه الإدارة للطلب #${String(order._id).slice(-6).toUpperCase()}: ${reply}`,
+                    type: 'admin_alert',
+                    relatedId: order._id,
+                    city: order.city
+                });
+            } catch (e) {
+                logger.warn({ err: e.message }, 'nudge ack admin alert failed');
+            }
+        }
+        res.json({ ok: true, reply, at });
+    } catch (error) {
+        logger.error({ err: error.message }, 'Nudge ack error');
+        res.status(500).json({ message: 'تعذّر إرسال الردّ' });
+    }
+});
+
 module.exports = router;

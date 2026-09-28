@@ -141,7 +141,43 @@
         .photo-img { width: 100%; max-height: 62vh; object-fit: contain; border-radius: 12px; background: #0f172a; }
         .photo-cap { font-size: .85rem; color: var(--ink-2); text-align: center; }
 
-        .last-nudge { font-size: .78rem; color: var(--info); background: var(--info-bg); border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; gap: 7px; font-weight: 700; }
+        .last-nudge { font-size: .78rem; color: var(--info); background: var(--info-bg); border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; gap: 7px; font-weight: 700; flex-wrap: wrap; }
+        .last-nudge .ack { margin-inline-start: auto; border-radius: 6px; padding: 2px 8px; }
+        .last-nudge .ack.ok { background: var(--ok-bg); color: var(--ok); }
+        .last-nudge .ack.none { color: var(--ink-2); font-weight: 700; }
+
+        /* الحركة: واقف بعيداً / عند الوجهة / يتحرّك */
+        .fact.motion-stopped { background: #ffedd5; color: #c2410c; }
+        .fact.motion-at { background: var(--info-bg); color: var(--info); }
+        .fact.motion-moving { background: var(--ok-bg); color: var(--ok); }
+        .route .call-client { display: inline-flex; align-items: center; gap: 5px; margin-inline-start: 6px; color: var(--info); font-weight: 800; text-decoration: none; direction: ltr; font-size: .8rem; }
+
+        /* ── العرضان: الرحلات / التقرير ── */
+        .view-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .view-tabs { display: inline-flex; background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; }
+        .view-tabs [role="tab"] { border: none; background: transparent; border-radius: 9px; padding: 8px 14px; font-family: inherit; font-weight: 800; font-size: .88rem; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+        .view-tabs [role="tab"][aria-selected="true"] { background: var(--primary); color: #fff; }
+        .view-tabs [role="tab"]:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .city-select, #repDays { border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; font-family: inherit; font-size: .88rem; background: var(--surface); color: var(--ink); }
+        #trkSound[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
+
+        .rep-intro { font-size: .85rem; color: var(--ink-2); flex: 1; min-width: 220px; line-height: 1.7; }
+        .chip.stat { cursor: default; }
+        .rep-wrap { overflow-x: auto; background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; }
+        .rep-wrap:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .rep { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 720px; }
+        .rep th, .rep td { padding: 11px 12px; text-align: start; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        .rep thead th { font-size: .76rem; color: var(--ink-2); font-weight: 800; background: #f8fafc; }
+        .rep tbody tr:last-child > * { border-bottom: none; }
+        .rep tbody th { font-weight: 800; }
+        .rep-name { display: block; }
+        .rep-phone { font-size: .76rem; color: var(--info); text-decoration: none; direction: ltr; display: inline-block; font-weight: 700; }
+        .rep td.num { font-variant-numeric: tabular-nums; font-weight: 800; }
+        .rep td.zero { color: var(--ink-3); font-weight: 600; }
+        .rep td.bad { color: var(--late); }
+        .rep td.warn { color: var(--warn); }
+        .rep td small { font-weight: 700; opacity: .8; }
+        .rep-note { font-size: .8rem; color: var(--ink-2); margin-top: 8px; }
 
         .trip-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .trip-actions .wide { grid-column: 1 / -1; }
@@ -180,8 +216,11 @@
             .page-header { padding: 14px 14px; }
             .page-header h1 { font-size: 1.05rem; }
             .trk-grid { grid-template-columns: 1fr; }
-            .trk-tools input { max-width: none; }
+            .trk-tools input { max-width: none; flex-basis: 100%; }
             .step .s-lbl { font-size: .66rem; }
+            .view-tabs { width: 100%; }
+            .view-tabs [role="tab"] { flex: 1; justify-content: center; padding: 8px 6px; }
+            .city-select { width: 100%; }
         }
 
         /* الوضع الليلي */
@@ -190,6 +229,9 @@
         body.dark-mode .route, body.dark-mode .nudge-for, body.dark-mode .fact, body.dark-mode .seg, body.dark-mode .icon-x, body.dark-mode .step .dot { background: #0f172a; }
         body.dark-mode .trip.st-delivered { background: #172033; }
         body.dark-mode .proof.muted { background: #0f172a; }
+        body.dark-mode .fact.motion-stopped { background: #2a1405; color: #fdba74; }
+        body.dark-mode .rep thead th { background: #172033; }
+        body.dark-mode .city-select, body.dark-mode #repDays { background: #0f172a; color: var(--ink); }
         body.dark-mode .tpl[aria-checked="true"] { background: #052e1a; }
         body.dark-mode .custom-wrap textarea, body.dark-mode .trk-tools input, body.dark-mode .trk-tools select { background: #0f172a; color: var(--ink); }
     </style>
@@ -218,28 +260,59 @@
 </div>
 
 <main class="main">
-    <div class="trk-top">
-        <div class="trk-live" id="trkLive" role="status" aria-live="polite">
-            <span class="dot" aria-hidden="true"></span><span id="trkLiveText">جارٍ التحميل…</span>
+    <!-- العرضان يتشاركان المدينة: تقرير بورتسودان لا يُقرأ بجانب رحلات الخرطوم -->
+    <div class="view-bar">
+        <div class="view-tabs" id="viewTabs" role="tablist" aria-label="العرض">
+            <button type="button" role="tab" id="tabTrips" aria-controls="viewTrips" aria-selected="true">
+                <i class="fas fa-route" aria-hidden="true"></i> الرحلات الجارية</button>
+            <button type="button" role="tab" id="tabReport" aria-controls="viewReport" aria-selected="false" tabindex="-1">
+                <i class="fas fa-chart-simple" aria-hidden="true"></i> تقرير الكباتن</button>
         </div>
-        <div class="trk-tools">
-            <input id="trkSearch" type="search" autocomplete="off"
-                   placeholder="ابحث بالكابتن أو العميل أو رقم الطلب"
-                   aria-label="ابحث بالكابتن أو العميل أو رقم الطلب">
-            <select id="trkCity" aria-label="المدينة">
-                <option value="">كل المدن</option>
-                <option value="Khartoum">الخرطوم</option>
-                <option value="PortSudan">بورتسودان</option>
-            </select>
-            <button type="button" class="btn btn-ghost" id="trkRefresh">
-                <i class="fas fa-rotate" aria-hidden="true"></i> تحديث
-            </button>
-        </div>
+        <select id="trkCity" class="city-select" aria-label="المدينة">
+            <option value="">كل المدن</option>
+            <option value="Khartoum">الخرطوم</option>
+            <option value="PortSudan">بورتسودان</option>
+        </select>
     </div>
 
-    <div class="trk-chips" id="trkChips" role="group" aria-label="تصفية الرحلات"></div>
+    <section id="viewTrips" role="tabpanel" aria-labelledby="tabTrips">
+        <div class="trk-top">
+            <div class="trk-live" id="trkLive" role="status" aria-live="polite">
+                <span class="dot" aria-hidden="true"></span><span id="trkLiveText">جارٍ التحميل…</span>
+            </div>
+            <div class="trk-tools">
+                <input id="trkSearch" type="search" autocomplete="off"
+                       placeholder="ابحث بالكابتن أو العميل أو رقم الطلب"
+                       aria-label="ابحث بالكابتن أو العميل أو رقم الطلب">
+                <button type="button" class="btn btn-ghost" id="trkSound" aria-pressed="false"
+                        title="نغمة حين تصير رحلةٌ متأخّرة أو يقف كابتنٌ بعيداً عن وجهته">
+                    <i class="fas fa-volume-xmark" aria-hidden="true"></i> <span>تنبيه صوتي</span>
+                </button>
+                <button type="button" class="btn btn-ghost" id="trkRefresh">
+                    <i class="fas fa-rotate" aria-hidden="true"></i> تحديث
+                </button>
+            </div>
+        </div>
 
-    <div class="trk-grid" id="trkList" role="region" aria-label="الرحلات الجارية" aria-live="polite" aria-busy="true"></div>
+        <div class="trk-chips" id="trkChips" role="group" aria-label="تصفية الرحلات"></div>
+
+        <div class="trk-grid" id="trkList" role="region" aria-label="الرحلات الجارية" aria-live="polite" aria-busy="true"></div>
+    </section>
+
+    <section id="viewReport" role="tabpanel" aria-labelledby="tabReport" hidden>
+        <div class="trk-top">
+            <p class="rep-intro">من يتكرّر تأخّره أو تسليمه البعيد — الأكثر ملاحظاتٍ أولاً. المتأخّرة: ما تجاوز الحدّ الثاني لمدينتها في الاستلام أو التوصيل.</p>
+            <div class="trk-tools">
+                <select id="repDays" aria-label="الفترة">
+                    <option value="1">آخر 24 ساعة</option>
+                    <option value="7" selected>آخر 7 أيام</option>
+                    <option value="30">آخر 30 يوماً</option>
+                </select>
+            </div>
+        </div>
+        <div class="trk-chips" id="repTotals"></div>
+        <div id="repBody" aria-busy="true"></div>
+    </section>
 </main>
 
 <!-- نافذة التنبيه -->
@@ -290,6 +363,7 @@
 </div>
 
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
-<script src="js/admin-tracking.js?v=f75e116d"></script>
+<script src="vendor/socket.io/socket.io.min.js"></script>
+<script src="js/admin-tracking.js?v=fa1def7f"></script>
 </body>
 </html>

@@ -126,6 +126,8 @@
                 socket.on('new_order_available', () => fetchMissions());
                 socket.on('errand_quote_confirmed', () => fetchMissions());
                 socket.on('order_tip_updated', () => fetchMissions());   // 💚 إكرامية أُضيفت لمهمّة جارية
+                // 🛰️ تنبيهٌ من الإدارة يظهر على المهمّة فوراً ومعه أزرار الردّ
+                socket.on('new_notification', (n) => { if (n && n.type === 'admin_nudge') fetchMissions(); });
             }
         }
 
@@ -141,6 +143,59 @@
         const esc = (v) => String(v == null ? '' : v)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+        /**
+         * 🛰️ آخر تنبيهٍ من الإدارة على هذه المهمّة — وردٌّ بضغطة.
+         * كان التنبيه باتجاهٍ واحد: لا يعرف الأدمن هل رآه الكابتن، فيعيد
+         * التنبيه أو يتصل. الردّ يظهر على بطاقة الرحلة في لوحة التتبّع فوراً.
+         * ما أُرسل قبل إسناد المهمّة لهذا الكابتن ليس له (نُقل الطلب إليه).
+         */
+        const NUDGE_REPLIES = [
+            ['on_way', 'حاضر، في الطريق', 'bi-check2-circle', 'btn-success'],
+            ['arrived', 'وصلت', 'bi-geo-alt-fill', 'btn-outline-success'],
+            ['issue', 'عندي مشكلة', 'bi-telephone-fill', 'btn-outline-danger']
+        ];
+        function adminNudgeHtml(order) {
+            const since = order.captainAssignedAt ? new Date(order.captainAssignedAt).getTime() : 0;
+            const list = (order.adminNudges || []).filter(n => n.to === 'captain' && new Date(n.at).getTime() >= since);
+            const n = list[list.length - 1];
+            if (!n) return '';
+            const ageMin = Math.floor((Date.now() - new Date(n.at).getTime()) / 60000);
+            if (ageMin > 90) return '';   // تنبيهٌ قديم لا يُطلب الردّ عليه
+            if (n.ackAt) {
+                return `<div class="alert alert-success py-2 px-3 mb-3 rounded-3 small fw-bold d-flex align-items-center gap-2" role="status">
+                    <i class="bi bi-reply-fill"></i> ردّك على الإدارة: «${esc(n.ackText)}»</div>`;
+            }
+            return `<div class="alert alert-warning py-2 px-3 mb-3 rounded-3" role="alert">
+                <div class="fw-bold small mb-1"><i class="bi bi-megaphone-fill me-1"></i> رسالة من الإدارة${ageMin >= 1 ? ` — قبل ${ageMin} د` : ''}</div>
+                <div class="small mb-2">${esc(n.message)}</div>
+                <div class="d-flex flex-wrap gap-2">
+                    ${NUDGE_REPLIES.map(r => `<button type="button" class="btn btn-sm ${r[3]} fw-bold rounded-pill"
+                        onclick="ackNudge('${order._id}', '${r[0]}', this)"><i class="bi ${r[2]} me-1"></i>${r[1]}</button>`).join('')}
+                </div></div>`;
+        }
+        async function ackNudge(orderId, reply, btn) {
+            const box = btn && btn.closest('.alert');
+            if (box) box.querySelectorAll('button').forEach(b => { b.disabled = true; });
+            try {
+                const res = await fetchWithRetry(`${API_URL}/api/captain/nudges/${orderId}/ack`, {
+                    method: 'POST',
+                    headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reply })
+                });
+                const out = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(out.message || '');
+                if (box) {
+                    box.className = 'alert alert-success py-2 px-3 mb-3 rounded-3 small fw-bold d-flex align-items-center gap-2';
+                    box.setAttribute('role', 'status');
+                    box.innerHTML = `<i class="bi bi-reply-fill"></i> وصل ردّك للإدارة: «${esc(out.reply)}»`;
+                }
+            } catch (err) {
+                if (box) box.querySelectorAll('button').forEach(b => { b.disabled = false; });
+                const msg = window.friendlyError ? friendlyError(err, 'تعذّر إرسال الردّ') : 'تعذّر إرسال الردّ';
+                if (window.Swal) Swal.fire({ toast: true, position: 'top', icon: 'error', title: msg, timer: 3000, showConfirmButton: false });
+            }
+        }
 
         function missionProgressHtml(order) {
             let html = '';
@@ -349,6 +404,7 @@
                                 </div>
                                 
                                 <div class="p-3">
+                                    ${adminNudgeHtml(order)}
                                     ${missionProgressHtml(order)}
                                     ${locationBlock !== null ? locationBlock : `
                                     <div class="mb-3">
