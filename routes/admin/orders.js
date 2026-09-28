@@ -594,6 +594,19 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
         // التعيين اليدوي على طلب معلّق ينقله لحالة "مقبول" — وبحفظه عبر save()
         // يمرّ على خطّاف المزامنة فيصير ShopOrder = captain_assigned تلقائياً
         if (isManualAssign) order.status = 'accepted';
+
+        // ⏱️ ساعة الكابتن الجديد تبدأ الآن.
+        //    ١) التعيين اليدويّ لم يكن يضبط acceptedAt: فتقيس لوحة التتبّع من
+        //       إنشاء الطلب (طلبٌ انتظر ٤٠ د يظهر «متأخّراً» لحظة تعيينه)،
+        //       والمُجدوِل يشترط acceptedAt فلا يُنبّه هذا الكابتن أبداً.
+        //    ٢) النقل كان يُورث الجديد ساعة القديم، وcaptainNudges يقول إن
+        //       تنبيهاته أُرسلت — فلا يصله تنبيهٌ آليّ واحد.
+        //    acceptedAt يُضبط في التعيين وحده: في النقل يبقى الأصليّ لإحصاءات
+        //    زمن القبول، وcaptainAssignedAt يحمل ساعة الجديد.
+        const assignedAt = new Date();
+        if (isManualAssign) order.acceptedAt = assignedAt;
+        order.captainAssignedAt = assignedAt;
+        order.captainNudges = [];
         await order.save();
 
         const io = req.app.get('io');

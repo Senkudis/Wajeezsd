@@ -62,14 +62,20 @@ describe('عمر القراءة يسافر إلى الخادم', () => {
 
     it('والخادم يحفظ لحظة القياس لا لحظة الوصول وحدها', () => {
         expect(model).toContain('fixedAt: { type: Date }');
-        expect(route).toContain('fixedAt: new Date(now.getTime() - fixAge)');
+        // الحساب انتقل إلى utils/locationMotion — كاتبٌ واحد للمسارين
+        expect(route).toContain('nextLocation(prev && prev.currentLocation, { lat, lng, fixAge })');
+        const { nextLocation } = require('../utils/locationMotion');
+        const now = new Date('2026-01-01T00:00:00Z');
+        expect(nextLocation(null, { lat: 15.6, lng: 32.5, now, fixAge: 60000 }).fixedAt)
+            .toEqual(new Date(now.getTime() - 60000));
     });
 
     it('مع حارسٍ ضد قيمةٍ عبثية أو غائبة', () => {
-        const i = route.indexOf('const rawAge = Number(req.body.fixAge)');
-        const blk = route.slice(i, i + 320);
-        expect(blk).toContain('Math.min(rawAge, 24 * 60 * 60 * 1000)');
-        expect(blk).toContain(': 0;');
+        expect(route).toContain('clampFixAge(req.body.fixAge)');
+        const { clampFixAge } = require('../utils/locationMotion');
+        expect(clampFixAge(1e12)).toBe(24 * 60 * 60 * 1000);
+        expect(clampFixAge('x')).toBe(0);
+        expect(clampFixAge(undefined)).toBe(0);
     });
 
     it('ويُبثّ للعميل مع الموقع الحيّ', () => {

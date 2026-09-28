@@ -26,6 +26,7 @@ const Order        = require('./models/Order');
 const Notification = require('./models/Notification');
 const { sanitizeChatImageUrl } = require('./utils/chatImage');
 const { isUsableCoord } = require('./utils/coords');
+const { nextLocation } = require('./utils/locationMotion');
 
 // معاينة نص الإشعار: رسالة الصورة قد تأتي بلا نص، و`text.substring` كانت ترمي عليها
 const chatPreview = (text, imageUrl) => {
@@ -858,7 +859,13 @@ io.on('connection', (socket) => {
             if (locationThrottle[userId] && _now - locationThrottle[userId] < 3000) return;
             locationThrottle[userId] = _now;
 
-            await User.findByIdAndUpdate(userId, { currentLocation: { lat, lng, updatedAt: new Date() } });
+            // 🛰️ الكاتب نفسه الذي يستعمله مسار HTTP — كان هذا يكتب
+            //    { lat, lng, updatedAt } وحده فيمحو fixedAt ونقطة الثبات،
+            //    فيُحكم على حداثة الموقع بوقت وصوله لا وقت قياسه.
+            const prevLoc = await User.findById(userId).select('currentLocation').lean();
+            await User.findByIdAndUpdate(userId, {
+                currentLocation: nextLocation(prevLoc && prevLoc.currentLocation, { lat, lng, fixAge: data.fixAge })
+            });
 
             if (orderId) {
                 // Direct: forward to the specific order's client

@@ -35,7 +35,13 @@ const UserSchema = new mongoose.Schema(
             updatedAt: { type: Date },
             // 🛰️ متى **قِيس** الموقع فعلاً على الجهاز. هذا ما يُبنى عليه
             //    الحكم: طازجٌ أم قديم.
-            fixedAt: { type: Date }
+            fixedAt: { type: Date },
+            // 🧭 نقطة الثبات ومتى تحرّك منها آخر مرة — «متوقّف منذ ١٢ د» في
+            //    لوحة التتبّع. اهتزاز GPS في مكانه ليس حركة؛ انظر
+            //    utils/locationMotion.js.
+            anchorLat: { type: Number },
+            anchorLng: { type: Number },
+            movedAt:   { type: Date }
         },
 
         isActive: { type: Boolean, default: true }, // ← Admin-controlled: false = account suspended

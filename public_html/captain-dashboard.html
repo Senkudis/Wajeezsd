@@ -1018,7 +1018,8 @@
                     // ✅ Resend location on reconnect
                     if (isWorking && window.CaptainService && window.CaptainService.lastLocation) {
                         const { lat, lng } = window.CaptainService.lastLocation;
-                        window.socket.emit('update_location', { userId, lat, lng });
+                        // إعادة إرسالٍ بعد انقطاع: القراءة قديمة، وعمرها يقول ذلك
+                        window.socket.emit('update_location', { userId, lat, lng, fixAge: window.CaptainService._fixAge() });
                         console.log('📍 Resent location after reconnect');
                     }
                 });
@@ -1184,7 +1185,7 @@
     <script src="js/input-hardener.js?v=95c0e89c"></script>
 <script type="module" src="js/app-core.js?v=89e250fd"></script>
     <script type="module" src="js/native-notifications.js?v=6426d1e7"></script>
-    <script type="module" src="js/captain-service.js?v=aa3851d2"></script>
+    <script type="module" src="js/captain-service.js?v=fbb4309b"></script>
     <script src="js/tour.js?v=d6d632d6"></script>
     <script src="js/tour-captain.js?v=89bd03b8"></script>
 </body>

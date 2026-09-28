@@ -17,6 +17,8 @@
  *    مصدرٌ واحد للحكم.
  */
 
+const { haversineKm } = require('./geofence');
+
 const MIN = 60 * 1000;
 
 /** دقائق صحيحة بين طابعين — null إن غاب أحدهما */
@@ -35,17 +37,46 @@ const STAGES = {
     cancelled: { key: 'cancelled',  label: 'ملغى' }
 };
 
+/** أحدث الطوابع الصالحة — null إن لم يصحّ أيّها */
+function latest(...dates) {
+    let best = null;
+    for (const d of dates) {
+        if (!d) continue;
+        const t = new Date(d).getTime();
+        if (Number.isFinite(t) && (best === null || t > best)) best = t;
+    }
+    return best === null ? null : new Date(best);
+}
+
+/**
+ * ⏱️ متى بدأت ساعة **الكابتن الحاليّ** في هذه المرحلة.
+ *
+ * القبول والاستلام طابعان على الطلب لا على الكابتن. فإن نقلت الإدارة الطلب
+ * لكابتنٍ آخر، ورث الجديد ساعة القديم: «متأخّر ٣٥ د» منذ أول دقيقة، والمُجدوِل
+ * يراه قد تجاوز العتبات. captainAssignedAt (يُضبط عند الإسناد اليدويّ) يبدأ
+ * ساعته هو — ويبقى acceptedAt الأصليّ كما هو لإحصاءات زمن القبول.
+ *
+ * @param stage 'accepted' | 'picked_up' (حالة الطلب)
+ * يستعمله المُجدوِل أيضاً — مصدرٌ واحد للحكم.
+ */
+function clockStart(order, stage) {
+    if (stage === 'accepted') return latest(order.acceptedAt || order.createdAt, order.captainAssignedAt);
+    if (stage === 'picked_up') return latest(order.pickedUpAt || order.acceptedAt, order.captainAssignedAt);
+    return null;
+}
+
 /**
  * المرحلة الجارية ومن أيّ طابعٍ تُقاس.
  * بانتظار كابتن: من الإنشاء. في الطريق للاستلام: من القبول. استلم: من
- * الاستلام. سُلِّم: لا تُقاس — انتهت.
+ * الاستلام — وكلاهما من إسناد الكابتن الحاليّ إن جاء بعدهما. سُلِّم: لا
+ * تُقاس — انتهت.
  */
 function stageOf(order) {
     const s = STAGES[order.status] || STAGES.pending;
     const since =
         s.key === 'waiting'    ? order.createdAt :
-        s.key === 'to_pickup'  ? (order.acceptedAt || order.createdAt) :
-        s.key === 'to_dropoff' ? (order.pickedUpAt || order.acceptedAt) :
+        s.key === 'to_pickup'  ? clockStart(order, 'accepted') :
+        s.key === 'to_dropoff' ? clockStart(order, 'picked_up') :
         s.key === 'delivered'  ? order.deliveredAt : null;
     return { ...s, since: since || null };
 }
@@ -110,6 +141,69 @@ function gpsOf(captain, nudges, now = new Date()) {
     };
 }
 
+/** العتبات: «عند الهدف» ضمن هذا النطاق، و«متوقّف» بعد هذه الدقائق بلا حركة */
+const AT_TARGET_M = 150;
+const STOPPED_MIN = 10;
+
+/**
+ * 🎯 وجهة الكابتن الآن: المحلّ في الطريق للاستلام، والعميل بعده. وفي الرحلة
+ * متعدّدة النقاط: أوّل محطّةٍ لم تكتمل من النوع المناسب.
+ */
+function targetOf(order, stageKey) {
+    const kind = stageKey === 'to_pickup' ? 'pickup' : stageKey === 'to_dropoff' ? 'dropoff' : null;
+    if (!kind) return null;
+    const stops = Array.isArray(order.stops) ? order.stops : [];
+    const next = order.isMultiStop ? stops.find(x => x.type === kind && !x.done && !x.doneAt) : null;
+    const p = next || order[kind] || {};
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return { kind, lat: null, lng: null };
+    return { kind, lat: p.lat, lng: p.lng };
+}
+
+/**
+ * 🧭 هل الكابتن يتحرّك؟ وكم يبعد عن وجهته؟
+ *
+ * الوقت وحده لا يجيب «هل هو في الطريق فعلاً؟» — كابتنٌ متأخّر ٥ دقائق وهو
+ * على بُعد ٣٠٠ م غير كابتنٍ متأخّر ٥ دقائق ولم يتحرّك من مكانه.
+ *
+ *   moving     تحرّك مؤخّراً
+ *   at_target  عند المحلّ أو العميل (ينتظر التجهيز — طبيعيّ)
+ *   stopped    لم يتحرّك منذ STOPPED_MIN دقيقة وهو بعيدٌ عن وجهته
+ *   unknown    لا موقع حديث — لا حكم (حالة GPS تقول ذلك وحدها)
+ *
+ * movedAt يُضبط على الخادم حين يبتعد الكابتن عن آخر نقطة ثبات بأكثر من
+ * utils/locationMotion.MOVE_THRESHOLD_M — فاهتزاز GPS في مكانه ليس حركة.
+ */
+function motionOf(captain, order, stageKey, gps, now = new Date()) {
+    const target = targetOf(order, stageKey);
+    if (!target) return null;
+    const loc = captain && captain.currentLocation;
+    const here = gps && (gps.state === 'fresh') && loc ? { lat: loc.lat, lng: loc.lng } : null;
+    const distanceM = here && target.lat !== null ? Math.round(haversineKm(here, target) * 1000) : null;
+
+    if (!here) return { target: target.kind, distanceM: null, stoppedMin: null, state: 'unknown' };
+
+    // ساعة التوقّف لا تسبق بداية المرحلة: من استلم للتوّ بعد انتظارٍ عند
+    // المحلّ لم «يتوقّف ٢٠ دقيقة في الطريق للعميل»
+    const stillSince = latest(loc.movedAt, stageOf(order).since);
+    const stoppedMin = loc.movedAt ? minutesBetween(stillSince, now) : null;
+    const state =
+        distanceM !== null && distanceM <= AT_TARGET_M ? 'at_target' :
+        stoppedMin !== null && stoppedMin >= STOPPED_MIN ? 'stopped' : 'moving';
+    return { target: target.kind, distanceM, stoppedMin, state };
+}
+
+/**
+ * تنبيهات الإدارة التي تخصّ **الطرفين الحاليّين**: ما أُرسل للكابتن السابق
+ * قبل نقل الطلب لا يُعرض على بطاقة الجديد («نُبِّه قبل ٥ د» وهو لم يُنبَّه)،
+ * ولا يمنع تنبيهه بمهلة الدقيقتين.
+ */
+function currentNudges(order) {
+    const all = Array.isArray(order.adminNudges) ? order.adminNudges : [];
+    const since = order.captainAssignedAt ? new Date(order.captainAssignedAt).getTime() : null;
+    if (!since) return all;
+    return all.filter(x => x.to !== 'captain' || new Date(x.at).getTime() >= since);
+}
+
 /**
  * 📸📍 إثبات الرحلة: صورة الاستلام، وموقع الكابتن لحظة إعلان التسليم.
  *
@@ -171,8 +265,10 @@ function buildTrip(order, nudges, now = new Date()) {
     const stage = stageOf(order);
     const late = latenessOf(order, nudges, now);
     const stops = Array.isArray(order.stops) ? order.stops : [];
-    const lastNudge = Array.isArray(order.adminNudges) && order.adminNudges.length
-        ? order.adminNudges[order.adminNudges.length - 1] : null;
+    const nudgesNow = currentNudges(order);
+    const lastNudge = nudgesNow.length ? nudgesNow[nudgesNow.length - 1] : null;
+    const gps = cap ? gpsOf(cap, nudges, now) : null;
+    const running = stage.key === 'to_pickup' || stage.key === 'to_dropoff';
 
     return {
         id: String(order._id),
@@ -206,12 +302,18 @@ function buildTrip(order, nudges, now = new Date()) {
             phone: cap.phone || '',
             vehicleType: cap.vehicleType || '',
             photo: (cap.documents && cap.documents.profilePhoto) || null,
-            gps: gpsOf(cap, nudges, now)
+            gps
         } : null,
+        motion: running && cap ? motionOf(cap, order, stage.key, gps, now) : null,
         client: cli ? { id: String(cli._id), name: cli.name || 'عميل', phone: cli.phone || '' } : null,
         lastNudge: lastNudge ? {
             at: lastNudge.at, to: lastNudge.to, byName: lastNudge.byName || '',
-            agoMin: minutesBetween(lastNudge.at, now)
+            agoMin: minutesBetween(lastNudge.at, now),
+            // ردّ الكابتن على التنبيه من شاشته («حاضر، في الطريق»)
+            ack: lastNudge.ackAt ? {
+                at: lastNudge.ackAt, text: lastNudge.ackText || '',
+                agoMin: minutesBetween(lastNudge.ackAt, now)
+            } : null
         } : null
     };
 }
@@ -291,6 +393,7 @@ function cooldownLeft(adminNudges, to, now = new Date()) {
 }
 
 module.exports = {
-    minutesBetween, stageOf, stepsOf, latenessOf, gpsOf, proofOf, buildTrip, compareTrips,
+    minutesBetween, latest, clockStart, stageOf, stepsOf, latenessOf, gpsOf, proofOf, buildTrip, compareTrips,
+    targetOf, motionOf, currentNudges, AT_TARGET_M, STOPPED_MIN,
     NUDGE_TEMPLATES, buildNudge, cooldownLeft, NUDGE_COOLDOWN_MIN, CUSTOM_MAX, STAGES
 };

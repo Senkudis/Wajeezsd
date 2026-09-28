@@ -135,7 +135,10 @@ const OrderSchema = new mongoose.Schema(
                 byName:   { type: String, default: '' },
                 to:       { type: String, enum: ['captain', 'client'] },
                 template: { type: String, default: '' },
-                message:  { type: String, default: '' }
+                message:  { type: String, default: '' },
+                // ردّ الكابتن من شاشته — «حاضر، في الطريق». يراه الأدمن على البطاقة
+                ackAt:    { type: Date, default: null },
+                ackText:  { type: String, default: '' }
             }],
             default: []
         },
@@ -145,6 +148,11 @@ const OrderSchema = new mongoose.Schema(
         // العتبات هنا تنتمي لمراحل مختلفة، والرقم وحده لا يميّز
         // "٣٠ دقيقة بلا استلام" عن "٣٠ دقيقة بلا تسليم".
         captainNudges: { type: [String], default: [] },
+        // ⏱️ متى أُسند الطلب للكابتن **الحاليّ** يدوياً (تعيين أو نقل من الإدارة).
+        //    ساعة التأخّر تبدأ منه إن جاء بعد القبول/الاستلام — وإلا ورث الكابتن
+        //    الجديد تأخّر من قبله. acceptedAt يبقى الأصليّ لإحصاءات زمن القبول.
+        //    انظر utils/tripTracking.clockStart.
+        captainAssignedAt: { type: Date, default: null },
         location: {
             lat: { type: Number },
             lng: { type: Number }

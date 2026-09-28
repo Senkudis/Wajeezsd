@@ -305,15 +305,13 @@ router.put('/update-location', protect, captainOnly, async (req, res) => {
         //    نفترض أن كل وصولٍ يعني قياساً جديداً — وهو غير صحيح: النبض يعيد
         //    إرسال آخر قراءة، فيبدو الكابتن متتبَّعاً وهو ليس كذلك.
         //    نقبل الغياب (نسخ قديمة من التطبيق) بافتراض أنها لحظية.
-        const now = new Date();
-        const rawAge = Number(req.body.fixAge);
-        const fixAge = Number.isFinite(rawAge) && rawAge >= 0
-            ? Math.min(rawAge, 24 * 60 * 60 * 1000)   // حارس ضد قيم عبثية
-            : 0;
+        const { nextLocation, clampFixAge } = require('../utils/locationMotion');
+        const fixAge = clampFixAge(req.body.fixAge);   // حارس ضد قيم عبثية
 
         const User = require('../models/User');
+        const prev = await User.findById(req.user._id).select('currentLocation').lean();
         await User.findByIdAndUpdate(req.user._id, {
-            currentLocation: { lat, lng, updatedAt: now, fixedAt: new Date(now.getTime() - fixAge) }
+            currentLocation: nextLocation(prev && prev.currentLocation, { lat, lng, fixAge })
         });
 
         // Also emit to connected clients for real-time tracking

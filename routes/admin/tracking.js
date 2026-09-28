@@ -33,7 +33,7 @@ const RECENT_MAX_MIN = 720;
 
 const ORDER_FIELDS = '_id status city orderType price createdAt acceptedAt pickedUpAt deliveredAt ' +
     'pickup.address pickup.contactName dropoff.address dropoff.receiverName isMultiStop stops.done stops.doneAt ' +
-    'captain client adminNudges proofOfPickupImage errand.receiptImage deliveryProof';
+    'captain client adminNudges captainAssignedAt proofOfPickupImage errand.receiptImage deliveryProof';
 const CAPTAIN_FIELDS = 'name phone vehicleType currentLocation documents.profilePhoto';
 const CLIENT_FIELDS = 'name phone';
 
@@ -95,6 +95,8 @@ router.get('/tracking', protect, CAN_VIEW, async (req, res) => {
                 late: count(t => running(t) && t.late.level === 'late'),
                 warn: count(t => running(t) && t.late.level === 'warn'),
                 gpsStale: count(t => running(t) && t.captain.gps.state === 'stale'),
+                // واقفٌ بعيداً عن وجهته — الوقت وحده لا يكشفه
+                stopped: count(t => t.motion && t.motion.state === 'stopped'),
                 // إثباتٌ يستحقّ نظرة: مُستلَمٌ بلا صورة، أو تسليمٌ أُعلن بعيداً أو بلا موقع
                 suspicious: count(t => t.proof.suspicious)
             },
@@ -143,7 +145,8 @@ router.post('/tracking/:id/notify', protect, CAN_NUDGE, nudgeLimiter, async (req
 
         // لا يُكرَّر لنفس المستلم على نفس الطلب في دقيقتين — ضغطتان متتاليتان
         // أو أدمنان في آنٍ واحد لا تُمطران الكابتن بإشعارين متطابقين
-        const wait = T.cooldownLeft(order.adminNudges, to);
+        // تنبيهات الكابتن السابق (قبل نقل الطلب) لا تمنع تنبيه الحاليّ
+        const wait = T.cooldownLeft(T.currentNudges(order), to);
         if (wait > 0) {
             return res.status(429).json({ message: `نُبِّه للتوّ — انتظر ${wait} ثانية قبل إعادة التنبيه`, retryAfter: wait });
         }

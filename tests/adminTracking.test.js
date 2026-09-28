@@ -213,7 +213,7 @@ describe('المسار في الخادم', () => {
         expect(src).toContain("type: 'admin_nudge'");
         expect(src).toContain('$push: { adminNudges: { $each: [entry], $slice: -20 } }');
         expect(src).toContain("logAdminAction(req, 'nudge_user'");
-        expect(src).toContain('T.cooldownLeft(order.adminNudges, to)');
+        expect(src).toContain('T.cooldownLeft(T.currentNudges(order), to)');
         expect(src).toContain('nudgeLimiter');
     });
 

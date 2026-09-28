@@ -4,6 +4,7 @@ const User  = require('./models/User');
 const nodemailer = require('nodemailer');
 const logger = require('./utils/logger');
 const { planNudge } = require('./utils/nudgePlanner');
+const { clockStart } = require('./utils/tripTracking');
 
 // إعداد الإيميل
 const transporter = nodemailer.createTransport({
@@ -401,7 +402,7 @@ const startScheduler = (app) => {
                         $gte: new Date(now - NUDGE_MAX_AGE_MS)
                     }
                 })
-                    .select(`_id captain city captainNudges ${stampField}`)
+                    .select(`_id captain city captainNudges createdAt acceptedAt pickedUpAt captainAssignedAt`)
                     .limit(300)
                     .lean();
 
@@ -410,7 +411,9 @@ const startScheduler = (app) => {
                     const cityNudges = nudgeFor(order.city);
                     if (!cityNudges.enabled) continue;
 
-                    const stamp = order[stampField];
+                    // ساعة الكابتن **الحاليّ** — بعد نقل الطلب تبدأ من إسناده،
+                    // لا من قبول من قبله. نفس حكم لوحة التتبّع (utils/tripTracking).
+                    const stamp = clockStart(order, stage);
                     if (!stamp) continue;
                     const ageMin = (now - new Date(stamp).getTime()) / 60000;
 
@@ -450,10 +453,13 @@ const startScheduler = (app) => {
             if (active.length) {
                 const captainIds = [...new Set(active.map(o => String(o.captain)))];
                 const captains = await User.find({ _id: { $in: captainIds } })
-                    .select('currentLocation.updatedAt')
+                    .select('currentLocation.updatedAt currentLocation.fixedAt')
                     .lean();
+                // 🛰️ متى **قيس** الموقع لا متى وصل: النبض يعيد إرسال آخر قراءة
+                //    فيبقى updatedAt طازجاً بموقعٍ عمره دقائق — فكانت لوحة التتبّع
+                //    تقول «GPS متوقّف» والكابتن لا يصله تنبيهٌ أبداً.
                 const lastSeen = new Map(
-                    captains.map(c => [String(c._id), c.currentLocation?.updatedAt || null])
+                    captains.map(c => [String(c._id), c.currentLocation?.fixedAt || c.currentLocation?.updatedAt || null])
                 );
 
                 for (const order of active) {

@@ -332,7 +332,9 @@ const CaptainService = {
 
         // ── Socket (في المقدمة فقط) ──
         if (!_appInBackground && window.socket && window.socket.connected) {
-            window.socket.emit('update_location', { userId, lat, lng });
+            // عمر القراءة مع الـ socket أيضاً — كان يصل بلا عمر فيُعدّ كل
+            // إرسالٍ قياساً جديداً
+            window.socket.emit('update_location', { userId, lat, lng, fixAge: CaptainService._fixAge() });
         }
 
         // ── HTTP (دائماً في الخلفية، أو كنسخة احتياطية كل 5 ثوانٍ) ──
@@ -390,7 +392,8 @@ const CaptainService = {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ lat: last.lat, lng: last.lng })
+                // موقعٌ قيس قبل الانقطاع ليس «الكابتن هنا الآن» — عمره يسافر معه
+                body: JSON.stringify({ lat: last.lat, lng: last.lng, fixAge: Math.max(0, Date.now() - last.timestamp) })
             });
             
         } catch (e) {
