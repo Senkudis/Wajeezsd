@@ -117,7 +117,16 @@ const UserSchema = new mongoose.Schema(
                 enum: ['none', 'pending', 'approved', 'rejected'],
                 default: 'none'
             },
-            rejectionReason: { type: String, default: '' }
+            rejectionReason: { type: String, default: '' },
+
+            // 🔁 إعادة التقديم بعد الرفض. الرفض العاديّ يترك الباب مفتوحاً —
+            //    أغلب أسبابه قابلٌ للإصلاح (صورة غير واضحة، وثيقة ناقصة).
+            //    reapplyBlocked يضعه الأدمن صراحةً («رفض نهائي») لمن لا يُعاد
+            //    النظر فيه: تزوير، سلوك، سوابق.
+            reapplyBlocked:          { type: Boolean, default: false },
+            reapplyCount:            { type: Number,  default: 0 },
+            // سبب الرفض السابق يبقى ظاهراً للمراجِع: هل صُحِّح فعلاً؟
+            previousRejectionReason: { type: String,  default: '' }
         },
 
         // 👇 الإضافات الجديدة للتفعيل والأمان 👇

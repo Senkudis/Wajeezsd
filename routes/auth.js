@@ -22,6 +22,7 @@ const { generateOtpCode } = require('../utils/otp');
 const analytics = require('../utils/analytics');
 const { signUserToken } = require('../utils/authToken');
 const { isCaptainRegistrationOpen, captainRegistrationStatus, closedMessage } = require('../utils/captainRegistration');
+const { canReapply, isFinallyRejected, rejectedLoginMessage, reopenApplication } = require('../utils/captainReapply');
 
 // 🔒 هوية Google بلا بريد مؤكَّد لا تُقبل إطلاقاً.
 //    البريد هنا هو مفتاح مطابقة الحساب الموجود (User.findOne({ email }))،
@@ -133,6 +134,12 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
                 applicationStatus: 'pending'
             });
         }
+        if (isFinallyRejected(user)) {
+            return res.status(403).json({
+                message: 'تم رفض طلب انتسابك نهائياً. للاستفسار تواصل مع الإدارة.',
+                applicationStatus: 'rejected', reapplyBlocked: true
+            });
+        }
 
         // 🔒 الباب الثاني إلى دور الكابتن — يُفحص كالأول وإلا صار المغلق
         //    مفتوحاً من هنا. بعد فحص «قيد المراجعة» عمداً: صاحب الطلب
@@ -167,20 +174,17 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
         //    الآن: ملفّ الانتساب يُحفظ، وحالته 'pending'، والحساب يعمل كعميل
         //    طوال المراجعة. الترقية تقع في approve-captain وحده.
         user.vehicleType = req.body.vehicleType;
-        user.captainApplication = {
-            status: 'pending',
-            rejectionReason: '',
-            nationalId,
-            address:              req.body.address,
-            plateNumber:          req.body.plateNumber || '',
-            whatsapp:             req.body.whatsapp,
-            emergencyPhone:       req.body.emergencyPhone,
-            emergencyContactName: req.body.emergencyContactName,
-            emergencyRelation:    req.body.emergencyRelation,
-            hasCarrier:           req.body.hasCarrier || '',
-            pledgeText:           req.body.pledgeText,
-            submittedAt:          new Date()
-        };
+        if (user.captainApplication && user.captainApplication.status === 'rejected') {
+            // محاولةٌ ثانية: يبقى سبب الرفض السابق وعدد المرّات أمام المراجِع
+            reopenApplication(user, captainAppFields(req.body, nationalId));
+        } else {
+            user.captainApplication = {
+                ...captainAppFields(req.body, nationalId),
+                status: 'pending',
+                rejectionReason: '',
+                submittedAt:          new Date()
+            };
+        }
         await user.save();
 
         // التوكن يبقى كما هو: الدور لم يتغيّر. ونُعيده ليستعمله رفع الوثائق
@@ -332,6 +336,73 @@ router.get('/captain-registration-status', async (req, res) => {
     }
 });
 
+/** حقول ملفّ الانتساب من جسم الطلب — واحدةٌ للتسجيل الجديد ولإعادة التقديم */
+function captainAppFields(body, nationalId) {
+    return {
+        nationalId,
+        address:              body.address,
+        plateNumber:          body.plateNumber || '',
+        whatsapp:             body.whatsapp,
+        emergencyPhone:       body.emergencyPhone,
+        emergencyContactName: body.emergencyContactName,
+        emergencyRelation:    body.emergencyRelation,
+        hasCarrier:           body.hasCarrier || '',
+        pledgeText:           body.pledgeText
+    };
+}
+
+/**
+ * 🔁 كابتنٌ مرفوض يعيد التقديم من صفحة التسجيل.
+ * يُحدَّث حسابه نفسه (لا حسابٌ ثانٍ برقمٍ وطنيّ مكرّر)، ويعود «قيد المراجعة»
+ * بملفٍّ جديد، ويُعطى توكن الرفع المقيّد ليرفع وثائقه المصحّحة.
+ */
+async function reapplyRejectedCaptain(req, res, userId, { name, password, vehicleType }) {
+    const user = await User.findById(userId);
+    if (!user || !canReapply(user)) {
+        return res.status(409).json({ message: 'لديك حساب كابتن بالفعل. سجّل الدخول لمتابعته.', accountExists: true, existingRole: 'captain' });
+    }
+
+    const ok = await bcrypt.compare(String(password || ''), user.password || '');
+    if (!ok) {
+        return res.status(409).json({
+            message: 'لديك طلب كابتن مرفوض بهذا الرقم. لإعادة التقديم اكتب كلمة المرور نفسها التي سجّلت بها — '
+                + 'وإن نسيتها فاستعدها من «نسيت كلمة المرور» في صفحة دخول الكباتن.',
+            accountExists: true, existingRole: 'captain', canReapply: true, wrongPassword: true
+        });
+    }
+
+    const nationalId = String(req.body.nationalId || '').replace(/\s/g, '');
+    const dupId = await User.findOne({ 'captainApplication.nationalId': nationalId, _id: { $ne: user._id } })
+        .select('_id').lean();
+    if (dupId) {
+        return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.' });
+    }
+
+    const VALID_CITIES_CAP = ['Khartoum', 'PortSudan'];
+    user.name = name;
+    user.vehicleType = vehicleType;
+    user.city = VALID_CITIES_CAP.includes(req.body.city) ? req.body.city : (user.city || 'Khartoum');
+    user.approvalStatus = 'pending';
+    // الرفض أطفأ الحساب؛ «قيد المراجعة» يُمنع من الدخول برسالته هو لا بـ«موقوف»
+    user.isActive = true;
+    reopenApplication(user, captainAppFields(req.body, nationalId));
+    await user.save();
+
+    logger.info({ userId: String(user._id), reapplyCount: user.captainApplication.reapplyCount }, 'captain re-applied after rejection');
+
+    const uploadToken = signUserToken(user, {
+        role: 'captain',
+        expiresIn: '1h',
+        claims: { scope: 'upload_only' }
+    });
+    return res.status(201).json({
+        message: 'أُعيد تقديم طلبك. ارفع الوثائق المصحّحة، وستراجعه الإدارة من جديد وتصلك رسالة بالقرار.',
+        uploadToken,
+        userId: user._id,
+        reapplied: true
+    });
+}
+
 router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), async (req, res) => {
     try {
         // 🔒 الباب أولاً — قبل أي بحثٍ في الحسابات. لو فُحص بعد البحث عن
@@ -367,8 +438,22 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
         // POST /api/auth/captain-application (مُصادَق). ونقول له ذلك صراحةً
         // بدل «مسجل مسبقاً» التي تتركه في طريق مسدود.
         const existing = await User.findOne({ $or: [{ email }, { phone }] })
-            .select('role approvalStatus').lean();
+            .select('role approvalStatus deletedAt rejectionReason captainApplication').lean();
         if (existing) {
+            // 🔁 كابتنٌ مرفوض يعيد التقديم — بنفس رقمه وكلمة مروره.
+            //    كان يُقال له «لديك حساب كابتن — مرفوض. سجّل الدخول»، والدخول
+            //    ممنوعٌ على المرفوض: طريقٌ مسدود من طرفيه، بينما رسالة الرفض
+            //    تَعِده بأن يقدّم من جديد. كلمة المرور هنا هي المصادقة: بدونها
+            //    يستطيع من يعرف رقم أي متقدّم أن يكتب طلباً فوق طلبه.
+            if (existing.role === 'captain' && canReapply(existing)) {
+                return reapplyRejectedCaptain(req, res, existing._id, { name, password, vehicleType });
+            }
+            if (existing.role === 'captain' && isFinallyRejected(existing)) {
+                return res.status(409).json({
+                    message: 'تم رفض طلبك نهائياً ولا يمكن إعادة التقديم بهذا الحساب. للاستفسار تواصل مع الإدارة.',
+                    accountExists: true, existingRole: 'captain', reapplyBlocked: true
+                });
+            }
             if (existing.role === 'captain') {
                 const st = existing.approvalStatus === 'approved' ? 'مقبول'
                          : existing.approvalStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
@@ -395,7 +480,14 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
         //    الشخص نفسه مرّات ببريد وهاتف مختلفين فيتكرّر الملف على المراجعة.
         const nationalId = String(req.body.nationalId || '').replace(/\s/g, '');
         const dupId = await User.findOne({ 'captainApplication.nationalId': nationalId })
-            .select('approvalStatus').lean();
+            .select('approvalStatus deletedAt captainApplication').lean();
+        if (dupId && canReapply(dupId)) {
+            // مرفوضٌ جرّب رقماً جديداً ليتجاوز الرفض — طريقه حسابه القديم
+            return res.status(409).json({
+                message: 'هذا الرقم الوطني له طلبٌ مرفوض سابقاً. أعد التقديم بنفس رقم الهاتف وكلمة المرور التي سجّلت بها أول مرة.',
+                canReapply: true
+            });
+        }
         if (dupId) {
             const st = dupId.approvalStatus === 'approved' ? 'مقبول'
                      : dupId.approvalStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
@@ -418,15 +510,7 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
             // 🪪 ملفّ الانتساب كما كان يجمعه الموقع الخارجي — يراه الأدمن في
             //    شاشة «الكباتن المعلّقون» ويبني عليه قرار القبول.
             captainApplication: {
-                nationalId,
-                address:              req.body.address,
-                plateNumber:          req.body.plateNumber || '',
-                whatsapp:             req.body.whatsapp,
-                emergencyPhone:       req.body.emergencyPhone,
-                emergencyContactName: req.body.emergencyContactName,
-                emergencyRelation:    req.body.emergencyRelation,
-                hasCarrier:           req.body.hasCarrier || '',
-                pledgeText:           req.body.pledgeText,
+                ...captainAppFields(req.body, nationalId),
                 submittedAt:          new Date()
             },
             isVerified: false
@@ -496,6 +580,15 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'بيانات الدخول غير صحيحة' });
 
+        // 🔁 المرفوض **قبل** «موقوف»: الرفض يضع isActive=false، فكان يُقال له
+        //    «حسابك موقوف» ولا يصل أبداً إلى رسالة الرفض — لا سبب، ولا طريق.
+        if (user.role === 'captain' && user.approvalStatus === 'rejected' && !user.deletedAt) {
+            return res.status(403).json({
+                message: rejectedLoginMessage(user),
+                rejected: true,
+                canReapply: canReapply(user)
+            });
+        }
         if (!user.isActive) {
             return res.status(403).json({ message: 'حسابك موقوف. تواصل مع الإدارة.' });
         }
@@ -509,9 +602,6 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
         //    حسابه لا ينقصه كود، بل ينقصه قرار.
         if (user.role === 'captain' && user.approvalStatus === 'pending') {
             return res.status(403).json({ message: 'طلبك قيد المراجعة من الإدارة. سيتم إشعارك عند الموافقة.' });
-        }
-        if (user.role === 'captain' && user.approvalStatus === 'rejected') {
-            return res.status(403).json({ message: 'تم رفض طلبك. تواصل مع الإدارة لمزيد من التفاصيل.' });
         }
 
         // ✅ OTP Auto-Redirect: لو الحساب غير مفعّل، ابعت كود جديد وأعد توجيه الفرونت
@@ -1380,14 +1470,20 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
         // الإيقاف والموافقة: حساب أوقفته الإدارة (isActive) أو كابتن مرفوض/معلّق
         // يستعيد وصوله عبر SMS. (الحسابات المُنشأة للتوّ أعلاه isActive=true وapproved.)
         // التجّار لا يُحجبون هنا تماشياً مع /login — إيقافهم يتم عبر isActive.
+        // 🔁 المرفوض **قبل** «موقوف»: الرفض يضع isActive=false، فكان يُقال له
+        //    «حسابك موقوف» ولا يصل أبداً إلى رسالة الرفض — لا سبب، ولا طريق.
+        if (user.role === 'captain' && user.approvalStatus === 'rejected' && !user.deletedAt) {
+            return res.status(403).json({
+                message: rejectedLoginMessage(user),
+                rejected: true,
+                canReapply: canReapply(user)
+            });
+        }
         if (!user.isActive) {
             return res.status(403).json({ message: 'حسابك موقوف. تواصل مع الإدارة.' });
         }
         if (user.role === 'captain' && user.approvalStatus === 'pending') {
             return res.status(403).json({ message: 'حسابك قيد المراجعة من الإدارة. سيتم إشعارك عند الموافقة.' });
-        }
-        if (user.role === 'captain' && user.approvalStatus === 'rejected') {
-            return res.status(403).json({ message: 'تم رفض طلبك. تواصل مع الإدارة لمزيد من التفاصيل.' });
         }
 
         // 4. Generate JWT & Return

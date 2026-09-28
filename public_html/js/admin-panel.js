@@ -1357,6 +1357,19 @@ function _captainDossier(c) {
     </details>`;
 }
 
+/* طلبٌ أُعيد تقديمه بعد رفض: المراجِع يرى أنها محاولةٌ ثانية وماذا كان
+   ينقص الأولى — ليتحقّق أن السبب صُحِّح فعلاً لا أن الطلب تكرّر كما هو. */
+function _reapplyNote(c) {
+    const a = c.captainApplication || {};
+    const n = Number(a.reapplyCount) || 0;
+    if (!n) return '';
+    return `<div style="margin-top:6px;font-size:12px;background:#fef3c7;color:#92400e;border-radius:8px;padding:6px 10px;line-height:1.6;">
+        <i class="fas fa-rotate-right" aria-hidden="true"></i>
+        <b>إعادة تقديم${n > 1 ? ` (المرة ${n + 1})` : ''}</b>
+        ${a.previousRejectionReason ? ` — رُفض سابقاً: ${window.escapeHtml(a.previousRejectionReason)}` : ''}
+    </div>`;
+}
+
 function renderPendingCaptains(pending) {
     const body = document.getElementById('pendingCaptainsBody');
     if (!pending.length) {
@@ -1373,6 +1386,7 @@ function renderPendingCaptains(pending) {
             <div style="flex:1;min-width:140px;">
                 <div style="font-weight:700;font-size:14px;">${window.escapeHtml(c.name)}</div>
                 <div style="font-size:12px;color:var(--gv-dark-2);" dir="ltr">${window.escapeHtml(formattedPhone)} ${c.email ? '| ' + window.escapeHtml(c.email) : ''}</div>
+                ${_reapplyNote(c)}
             </div>
             <div style="display:flex;gap:8px;">
                 <button class="gv-btn gv-btn-success gv-btn-sm" onclick="approveCaptain('${c._id}')"><i class="fas fa-check"></i> قبول</button>
@@ -1436,20 +1450,45 @@ async function approveCaptain(id) {
     } catch(e) { console.error(e); }
 }
 
+/* نموذج الرفض: السبب، و«رفض نهائي» يُغلق باب إعادة التقديم.
+   الافتراضيّ مفتوح — أغلب الأسباب قابلٌ للإصلاح (صورة، وثيقة ناقصة). */
+function rejectFormHtml() {
+    return `
+        <label for="rejReason" style="display:block;text-align:right;font-weight:700;font-size:13px;margin-bottom:6px;">سبب الرفض</label>
+        <textarea id="rejReason" class="swal2-textarea" style="margin:0;width:100%;box-sizing:border-box;" rows="3"
+            placeholder="مثال: صورة الهوية غير واضحة"></textarea>
+        <label style="display:flex;gap:8px;align-items:flex-start;text-align:right;margin-top:12px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="rejFinal" style="margin-top:3px;">
+            <span><b>رفض نهائي</b> — لا يستطيع إعادة التقديم بهذا الحساب ولا برقمه الوطني.
+                اتركه فارغاً إن كان السبب قابلاً للتصحيح.</span>
+        </label>`;
+}
+function readRejectForm() {
+    const reason = document.getElementById('rejReason').value.trim();
+    if (!reason) { Swal.showValidationMessage('اكتب سبب الرفض — يصله ليعرف ما يصحّحه'); return false; }
+    return { reason, final: document.getElementById('rejFinal').checked };
+}
+
 async function rejectCaptain(id) {
-    const { value: reason } = await Swal.fire({
-        title: 'سبب الرفض', input: 'text', inputPlaceholder: 'اكتب السبب...',
-        showCancelButton: true, confirmButtonText: 'رفض', cancelButtonText: 'إلغاء'
+    const { value: form } = await Swal.fire({
+        title: 'رفض طلب الكابتن',
+        html: rejectFormHtml(),
+        focusConfirm: false,
+        showCancelButton: true, confirmButtonText: 'رفض', cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#ef4444',
+        didOpen: () => document.getElementById('rejReason').focus(),
+        preConfirm: readRejectForm
     });
-    if (!reason) return;
+    if (!form) return;
+    const { reason, final } = form;
     try {
         const res = await fetch(`${BASE}/api/admin/reject-captain/${id}`, {
-            method: 'PUT', headers: headers(), body: JSON.stringify({ reason })
+            method: 'PUT', headers: headers(), body: JSON.stringify({ reason, final })
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) { showToast(data.message || 'تعذّر الرفض'); return; }
 
-        showToast('تم الرفض');
+        showToast(final ? 'تم الرفض نهائياً' : 'تم الرفض');
         loadCaptains();
 
         // السبب مكتوبٌ أصلاً — إخفاؤه عن المتقدّم يتركه ينتظر بلا خبر،
@@ -1457,8 +1496,8 @@ async function rejectCaptain(id) {
         if (data.rejectionMessage) {
             Swal.fire({
                 icon: 'info',
-                title: 'تم الرفض',
-                text: 'أبلغه بالسبب — أغلب الأسباب يمكن تصحيحها وإعادة التقديم.',
+                title: final ? 'تم الرفض نهائياً' : 'تم الرفض',
+                text: final ? 'أبلغه بالقرار والسبب.' : 'أبلغه بالسبب — يستطيع تصحيحه وإعادة التقديم بنفس رقمه.',
                 confirmButtonText: 'إرسال عبر واتساب',
                 confirmButtonColor: '#25d366',
                 showCancelButton: true,

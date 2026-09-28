@@ -1209,6 +1209,11 @@
                         showAlert(`${data.message} <div class="mt-2">`
                             + `<button type="button" class="btn btn-sm btn-primary fw-bold" `
                             + `onclick="goToLogin()">تسجيل الدخول بحسابي</button></div>`, 'error');
+                    } else if (data.wrongPassword) {
+                        // 🔁 مرفوضٌ يعيد التقديم بكلمة مرورٍ غير التي سجّل بها —
+                        //    والأرجح أنه نسيها. نعطيه الاستعادة لا طريقاً مسدوداً.
+                        showAlert(`${data.message} <div class="mt-2">`
+                            + `<a href="client-login.html?forgot=1" class="btn btn-sm btn-primary fw-bold">استعادة كلمة المرور</a></div>`, 'error');
                     } else {
                         showAlert(data.message || 'حدث خطأ', 'error');
                     }
@@ -1274,6 +1279,10 @@
                 goToStep(5);
                 showGetAppCard();
 
+                if (data.reapplied && docsUploaded) {
+                    const note = document.querySelector('#step-5 .success-animation p');
+                    if (note) note.textContent = 'أُعيد تقديم طلبك بالوثائق الجديدة، وسيراجعه فريقنا من جديد. ستصلك رسالة بالقرار.';
+                }
                 if (!docsUploaded) {
                     // الحساب أُنشئ فعلاً، فلا نُفشل التسجيل — لكن لا نُخفي أن
                     // الوثائق لم تصل، مع طريق واضح لإكمالها.

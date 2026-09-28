@@ -620,6 +620,14 @@
             modal.show();
         }
 
+        // ?forgot=1 يفتح الاستعادة مباشرة — صفحة دخول الكباتن وصفحة التسجيل
+        // تحيلان إليها بدل تكرار النافذة كلّها هناك
+        window.addEventListener('load', () => {
+            try {
+                if (new URLSearchParams(location.search).get('forgot') === '1') openForgotPassword();
+            } catch (_) { /* bootstrap لم يُحمَّل — الرابط في الصفحة يبقى */ }
+        });
+
         async function sendForgotOtp() {
             const identifier = document.getElementById('forgot-identifier').value.trim();
             const alertEl = document.getElementById('forgot-modal-alert');

@@ -694,6 +694,9 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
 router.put('/reject-captain/:id', protect, requirePermission('manage_captains'), async (req, res) => {
     try {
         const { reason } = req.body;
+        // «رفض نهائي» يُغلق باب إعادة التقديم. الافتراضيّ مفتوح: أغلب أسباب
+        // الرفض قابلٌ للإصلاح، ومن يُغلق عليه يجب أن يُقصد إغلاقه.
+        const final = req.body.final === true;
         const captain = await User.findById(req.params.id);
         if (!captain) return res.status(404).json({ message: 'الكابتن غير موجود' });
         const isUpgrade = captain.role !== 'captain'
@@ -720,6 +723,7 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
         if (captain.captainApplication) {
             captain.captainApplication.status = 'rejected';
             captain.captainApplication.rejectionReason = captain.rejectionReason;
+            captain.captainApplication.reapplyBlocked = final;
         }
 
         if (isUpgrade || isLegacyUpgrade) {
@@ -738,8 +742,8 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
         await captain.save();
 
         await logAdminAction(req, 'reject_captain',
-            `تم رفض طلب الكابتن: ${captain.name}`,
-            captain._id, captain.name, { reason: captain.rejectionReason }
+            `تم رفض طلب الكابتن${final ? ' نهائياً' : ''}: ${captain.name}`,
+            captain._id, captain.name, { reason: captain.rejectionReason, final }
         );
 
         const { sendNotification } = require('../../utils/notificationHelper');
@@ -763,7 +767,8 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
             rejectionMessage = buildCaptainRejectionMessage({
                 name: captain.name,
                 reason: captain.rejectionReason,
-                supportPhone: settings && settings.adminPhone
+                supportPhone: settings && settings.adminPhone,
+                final
             });
         } catch (e) {
             logger.warn({ err: e.message }, 'captain rejection message build failed');

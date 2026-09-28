@@ -93,6 +93,9 @@
                     <i class="bi bi-lock-fill text-primary ms-1"></i> كلمة المرور
                 </label>
                 <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••" autocomplete="current-password">
+                <div class="text-start mt-2">
+                    <a href="client-login.html?forgot=1" class="text-primary small text-decoration-none fw-bold">نسيت كلمة المرور؟</a>
+                </div>
             </div>
 
             <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="login()">
@@ -109,6 +112,11 @@
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script>
+        function escHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        }
+
         function showAlert(msg, type) {
             const box = document.getElementById('alert-box');
             box.className = 'alert d-flex align-items-start gap-2 mb-3';
@@ -207,8 +215,15 @@
                 } else {
                     if (res.status === 429 && data.retryAfter) {
                         startRateLimitCountdown(data.retryAfter, btn, originalBtnText);
+                    } else if (data.rejected && data.canReapply) {
+                        // 🔁 المرفوض يُدَلّ على طريقه: السبب، وزرّ إعادة التقديم.
+                        //    السبب كتبه الأدمن — يُهرَّب قبل الحقن.
+                        showAlert(`${escHtml(data.message)}<div class="mt-2">`
+                            + `<a href="captain-signup.html" class="btn btn-sm btn-primary fw-bold">إعادة التقديم</a></div>`, "error");
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
                     } else {
-                        showAlert(data.message || 'بيانات الدخول غير صحيحة', "error");
+                        showAlert(escHtml(data.message || 'بيانات الدخول غير صحيحة'), "error");
                         btn.innerHTML = originalBtnText;
                         btn.disabled = false;
                     }
