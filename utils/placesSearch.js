@@ -355,5 +355,115 @@ async function searchByCategory({ categoryKey, city, lat, lng, zone }) {
     return { results: clampToCity(data, city, zone), cached };
 }
 
+// ─── 🏪 رابط محلٍّ ملصوق ← موقعه ──────────────────────────────────────
+//
+// رابط المحلّ من خرائط جوجل لا يحمل إحداثياته — اسمه ومعرّفاته فقط (انظر
+// public_html/js/maps-link.js › placeRef). وصفحة جوجل لا تُفيد: الخادم
+// الذي يجلبها يتلقّى مركز الخريطة الافتراضيّ لا موقع المحل. فالطريق
+// الموثوق الوحيد هو Places API بمعرّفات الرابط.
+//
+// ⚠️ مستقلّةٌ عن callGoogle عمداً: تلك مبنيّة لبحث «اشترِ لي» فتحذف المحالّ
+//    المغلقة نهائياً والفئات المحظورة على الشراء. أمّا هنا فالمطلوب **عنوان
+//    تسليم** — ومبنى فندقٍ مغلق أو صيدلية ما زالا عنواناً صحيحاً. لو مرّ
+//    الرابط بتلك المرشّحات لرُفض محلٌّ موجودٌ بعينه.
+
+const LINK_SEARCH_MASK = 'places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri';
+const LINK_DETAILS_MASK = 'id,displayName,formattedAddress,location,googleMapsUri';
+
+/** googleMapsUri بشكل https://maps.google.com/?cid=… — ومنه CID المكان */
+function cidOf(uri) {
+    const m = String(uri || '').match(/[?&]cid=(\d+)/);
+    return m ? m[1] : '';
+}
+
+function linkPlace(p) {
+    return {
+        lat: p && p.location ? p.location.latitude : null,
+        lng: p && p.location ? p.location.longitude : null,
+        name: (p && p.displayName && p.displayName.text) || '',
+        address: (p && p.formattedAddress) || '',
+        placeId: (p && p.id) || '',
+        cid: cidOf(p && p.googleMapsUri)
+    };
+}
+
+async function placesFetch(url, { method = 'GET', body, mask }) {
+    const key = apiKey();
+    if (!key) throw new Error('PLACES_KEY_MISSING');
+    const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': mask },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(8000)
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        const msg = (json.error && json.error.message) || `HTTP ${res.status}`;
+        logger.error({ status: res.status, msg }, 'places link lookup failed');
+        throw new Error(msg);
+    }
+    return json;
+}
+
+/**
+ * يجد المحلّ الذي يشير إليه رابطٌ ملصوق.
+ *
+ *   ١. placeId (ChIJ…) ← جلبٌ مباشر. دقيق.
+ *   ٢. اسمٌ ← بحثٌ نصّيّ، ثم **مطابقة CID**: كل نتيجة تحمل googleMapsUri
+ *      بـ ?cid=… ، ورابط المحل يحمل CID في نصف ftid الثاني. التطابق يعني
+ *      المحلّ عينه لا فرعاً آخر بالاسم نفسه ولا محلاً يشبهه.
+ *   ٣. بلا تطابق ← أولى النتائج مع exact:false — والواجهة تقول صراحةً
+ *      «تأكّد أن الدبوس على المحل الصحيح» قبل الاعتماد. لا تخمينٌ صامت.
+ *
+ * @param {{placeId?:string, cid?:string, name?:string, hint?:string, city?:string}} ref
+ * @returns {Promise<{lat,lng,name,address,placeId,cid,exact:boolean,via:string}|null>}
+ */
+async function resolvePlaceRef({ placeId = '', cid = '', name = '', hint = '', city = 'Khartoum' } = {}) {
+    const query = String(name || hint || '').trim().slice(0, 150);
+    const id = placeId ? `p:${placeId}` : cid ? `c:${cid}` : `n:${normalizeQuery(query)}`;
+    const cacheKey = `link:${id}:${city}`;
+
+    const hit = await cacheGet(cacheKey);
+    if (hit && hit[0]) return hit[0];
+
+    let out = null;
+
+    if (placeId) {
+        const p = await placesFetch(
+            `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=ar`,
+            { mask: LINK_DETAILS_MASK }
+        );
+        const r = linkPlace(p);
+        if (Number.isFinite(r.lat) && Number.isFinite(r.lng)) out = { ...r, exact: true, via: 'placeId' };
+    }
+
+    if (!out && query.length >= 2) {
+        const json = await placesFetch('https://places.googleapis.com/v1/places:searchText', {
+            method: 'POST',
+            mask: LINK_SEARCH_MASK,
+            // ترجيحٌ لا حصر: المحلّ قد يقع خارج مستطيل المدينة قليلاً،
+            // وفحص نطاق التوصيل في الصفحة يحسم ذلك بعد المعاينة.
+            body: {
+                textQuery: query,
+                languageCode: 'ar',
+                regionCode: 'SD',
+                maxResultCount: 10,
+                locationBias: { rectangle: cityRectangle(city) }
+            }
+        });
+        const list = (json.places || []).map(linkPlace)
+            .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+        if (list.length) {
+            const same = cid ? list.find(p => p.cid === cid) : null;
+            out = same ? { ...same, exact: true, via: 'cid' } : { ...list[0], exact: false, via: 'name' };
+        }
+    }
+
+    // لا يُخزَّن إلا الدقيق: التقريبيّ قد يُصيب في طلبٍ لاحق بنصٍّ أوضح
+    if (out && out.exact) await cacheSet(cacheKey, [out]);
+    return out;
+}
+
 module.exports = {
-    BLOCKED_TYPES, searchText, searchByCategory, diagnose, clampToCity, centerFor, normalizeQuery, textSearchBody, nearbySearchBody, ERRAND_CATEGORIES, CITY_CENTERS };
+    BLOCKED_TYPES, searchText, searchByCategory, diagnose, clampToCity, centerFor, normalizeQuery, textSearchBody, nearbySearchBody, ERRAND_CATEGORIES, CITY_CENTERS,
+    resolvePlaceRef, cidOf };

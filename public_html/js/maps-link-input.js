@@ -85,7 +85,10 @@
               '<div class="mli-hint">افتح الموقع في خرائط جوجل ← <b>مشاركة</b> ← <b>نسخ الرابط</b>، ثم الصقه هنا. ' +
                 'يمكنك أيضاً لصق إحداثيات مباشرة مثل <span dir="ltr">15.60, 32.53</span></div>' +
               '<div class="mli-row">' +
-                '<input id="' + id + '-in" type="url" dir="ltr" inputmode="url" ' +
+                // type=text لا url: بطاقة مشاركة المحل نصٌّ فيه اسمٌ وعنوانٌ ورابط،
+                // وحقل url يُعلِّمها «غير صالحة» ويخفي لوحة المفاتيح المناسبة للّصق
+                '<input id="' + id + '-in" type="text" dir="ltr" inputmode="url" ' +
+                  'aria-label="رابط الموقع من خرائط جوجل" ' +
                   'placeholder="https://maps.app.goo.gl/..." autocomplete="off">' +
                 '<button id="' + id + '-go" type="button">تحقّق</button>' +
               '</div>' +
@@ -105,14 +108,17 @@
         var prev  = document.getElementById(id + '-prev');
         var okBtn = document.getElementById(id + '-ok');
         var picked = null, map = null, marker = null;
+        // نصّ الحافظة كاملاً بأسطره — الحقل سطرٌ واحد فيُلصق «الاسم⏎العنوان⏎الرابط»
+        // متلاصقةً، فنقرؤه من حدث اللصق قبل أن يُتلفه الحقل
+        var pastedText = '';
 
         function say(text, kind) {
             msg.className = 'mli-msg' + (kind ? ' ' + kind : '');
             msg.innerHTML = text || '';
         }
 
-        function showPreview(lat, lng) {
-            picked = { lat: lat, lng: lng };
+        function showPreview(lat, lng, place) {
+            picked = { lat: lat, lng: lng, place: place || null };
             document.getElementById(id + '-coords').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
             prev.classList.add('show');
 
@@ -129,9 +135,19 @@
                     position: pos, map: map,
                     icon: (window.WajeezMarkers && WajeezMarkers.dropoff) ? WajeezMarkers.dropoff() : undefined
                 });
-                reverseGeocode(lat, lng);
             } else {
                 document.getElementById(id + '-map').style.display = 'none';
+            }
+            // المحلّ معروفٌ باسمه وعنوانه من جوجل — أدقّ من عكس الإحداثيات
+            // إلى أقرب شارع، والكابتن يبحث عن اسم المحل لا عن رقم مبنى
+            var out = document.getElementById(id + '-addr');
+            if (place && (place.name || place.address)) {
+                out.textContent = [place.name, place.address].filter(Boolean).join(' — ')
+                    .replace(/،?\s*(السودان|Sudan)\s*$/, '').trim();
+            } else if (typeof google !== 'undefined' && google.maps) {
+                reverseGeocode(lat, lng);
+            } else {
+                out.textContent = 'موقع محدّد على الخريطة';
             }
         }
 
@@ -151,33 +167,52 @@
         }
 
         async function check() {
-            var raw = (input.value || '').trim();
+            var typed = (input.value || '').trim();
             prev.classList.remove('show');
             picked = null;
-            if (!raw) { say('الصق الرابط أولاً', 'warn'); return; }
+            if (!typed) { say('الصق الرابط أولاً', 'warn'); return; }
 
-            // ١) تحليل فوريّ — أغلب الروابط تحمل إحداثياتها
-            var found = window.MapsLink && MapsLink.parse(raw);
+            // بطاقة المشاركة كاملةً إن كان الحقل يعرض رابطها — وإلا ما كُتب
+            var full = (pastedText && MapsLink.extractUrl(pastedText) === MapsLink.extractUrl(typed))
+                ? pastedText : typed;
+
+            // ١) تحليل فوريّ — أغلب روابط الدبابيس تحمل إحداثياتها
+            var found = window.MapsLink && MapsLink.parse(full);
             if (found) { say('تم استخراج الموقع من الرابط', 'ok'); showPreview(found.lat, found.lng); return; }
 
-            // ٢) رابط مختصر ⇒ الخادم وحده يفكّه
-            if (!(window.MapsLink && MapsLink.isShortLink(raw))) {
-                say(MapsLink && MapsLink.looksLikeMapsLink(raw)
+            // ٢) رابط مختصر أو رابط محلّ ⇒ الخادم وحده يحلّه
+            if (!(window.MapsLink && MapsLink.needsServer(full))) {
+                say(MapsLink && MapsLink.looksLikeMapsLink(full)
                     ? 'لم نجد إحداثيات في هذا الرابط — جرّب زرّ «مشاركة» في خرائط جوجل'
                     : 'هذا لا يبدو رابط خرائط جوجل', 'err');
                 return;
             }
 
             go.disabled = true; go.textContent = '...';
-            say('جارٍ فكّ الرابط المختصر…');
+            say(MapsLink.placeRef(full) ? 'جارٍ البحث عن المحل…' : 'جارٍ قراءة الرابط…');
             try {
                 var res = await fetch(apiBase() + '/api/maps/resolve', {
-                    method: 'POST', headers: authHeaders(), body: JSON.stringify({ url: raw })
+                    method: 'POST', headers: authHeaders(),
+                    body: JSON.stringify({
+                        url: MapsLink.extractUrl(full) || full,
+                        // اسم المحل وعنوانه من البطاقة — يجده الخادم بهما إن
+                        // لم يحمل الرابط اسمه
+                        hint: MapsLink.shareHint(full)
+                    })
                 });
                 var data = await res.json().catch(function () { return {}; });
                 if (!res.ok) { say(data.message || 'تعذّر قراءة الرابط', 'err'); return; }
-                say('تم استخراج الموقع من الرابط', 'ok');
-                showPreview(data.lat, data.lng);
+
+                var place = data.source === 'place'
+                    ? { name: data.name || '', address: data.address || '', exact: data.exact === true }
+                    : null;
+                if (place && !place.exact) {
+                    // أقرب تطابقٍ للاسم لا المحلّ عينه — قد يكون فرعاً آخر
+                    say('وجدنا محلاً بهذا الاسم — تأكّد أن الدبوس على المحل الصحيح قبل الاعتماد', 'warn');
+                } else {
+                    say(place ? 'تم العثور على المحل' : 'تم استخراج الموقع من الرابط', 'ok');
+                }
+                showPreview(data.lat, data.lng, place);
             } catch (e) {
                 say('تعذّر الاتصال — تحقّق من الإنترنت', 'err');
             } finally {
@@ -187,18 +222,41 @@
 
         go.addEventListener('click', check);
         input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); check(); } });
-        // اللصق يفحص من تلقائه — خطوةٌ أقلّ على من لا يعرف
-        input.addEventListener('paste', function () { setTimeout(check, 60); });
+        // تعديلٌ يدويّ بعد اللصق يُسقط البطاقة الملصوقة — ما في الحقل هو الحَكَم
+        input.addEventListener('input', function (e) { if (e.inputType !== 'insertFromPaste') pastedText = ''; });
+        // اللصق يفحص من تلقائه — خطوةٌ أقلّ على من لا يعرف.
+        // ونقرأ الحافظة بأسطرها قبل أن يُلصقها الحقل: بطاقة مشاركة المحل
+        // «الاسم⏎العنوان⏎الرابط» تصير في الحقل نصّاً ملتصقاً لا يبدأ برابط.
+        input.addEventListener('paste', function (e) {
+            var text = '';
+            try { text = (e.clipboardData || window.clipboardData).getData('text') || ''; } catch (_) {}
+            var url = text && window.MapsLink ? MapsLink.extractUrl(text) : '';
+            if (url && url !== text.trim()) {
+                e.preventDefault();
+                pastedText = text;
+                input.value = url;              // الحقل يعرض الرابط نظيفاً
+                setTimeout(check, 0);
+                return;
+            }
+            pastedText = text;
+            setTimeout(check, 60);
+        });
 
         okBtn.addEventListener('click', function () {
             if (!picked) return;
             var addr = (document.getElementById(id + '-addr').textContent || '').trim();
-            if (typeof opts.onPick === 'function') opts.onPick(picked.lat, picked.lng, { address: addr });
+            if (typeof opts.onPick === 'function') {
+                opts.onPick(picked.lat, picked.lng, {
+                    address: addr,
+                    placeName: picked.place ? picked.place.name : '',
+                    exact: picked.place ? picked.place.exact : true
+                });
+            }
             say('تم اعتماد الموقع', 'ok');
         });
 
         return {
-            reset: function () { input.value = ''; say(''); prev.classList.remove('show'); picked = null; },
+            reset: function () { input.value = ''; pastedText = ''; say(''); prev.classList.remove('show'); picked = null; },
             get value() { return picked; }
         };
     }

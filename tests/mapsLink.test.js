@@ -121,9 +121,11 @@ describe('🖥️ المكوّن في الواجهة', () => {
     const w = read('public_html/js/maps-link-input.js');
 
     it('🔑 لا يحلّل بنفسه — يستدعي الوحدة المشتركة', () => {
-        // نسختان تفترقان تعنيان رابطاً يُقبل هنا ويُرفض في الخادم
-        expect(w).toContain('MapsLink.parse(raw)');
-        expect(w).toContain('MapsLink.isShortLink(raw)');
+        // نسختان تفترقان تعنيان رابطاً يُقبل هنا ويُرفض في الخادم.
+        // needsServer تشمل isShortLink وروابط المحالّ معاً (انظر mapsLinkPlaces.test.js)
+        expect(w).toContain('MapsLink.parse(full)');
+        expect(w).toContain('MapsLink.needsServer(full)');
+        expect(w).toContain('MapsLink.extractUrl(');
         expect(w).toContain('/api/maps/resolve');
     });
 

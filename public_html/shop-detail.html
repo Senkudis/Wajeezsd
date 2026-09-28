@@ -15,8 +15,8 @@
     <!-- شاشة تحديد الموقع — نفس مصدر index.html -->
     <link rel="stylesheet" href="css/map-ui.css?v=22cf50c4">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/maps-link-input.js?v=4c2ac8f8"></script>
-    <script src="js/maps-link.js?v=ca39f0c5"></script>
+    <script src="js/maps-link-input.js?v=bc848321"></script>
+    <script src="js/maps-link.js?v=b5e20727"></script>
     <script src="js/config.js?v=21463b97"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=46719181"></script>
@@ -2031,6 +2031,59 @@
         }
     }
 
+    // 💰 حدود سعر التوصيل من المسافة بين المتجر ونقطة التسليم.
+    //
+    // ⚠️ كانت معرَّفةً **داخل** confirmShopMap، فلا يراها أحدٌ خارجها. وأزرار
+    //    ±100 تسألها بحارس `typeof getShopDeliveryLimits === 'function'` —
+    //    فتجدها غير معرَّفة دائماً وتسقط إلى حدودٍ مفتوحة (صفر إلى مليون):
+    //    الحدّ الأدنى لسعر التوصيل لم يكن يُطبَّق بالأزرار قطّ، رغم رسالة
+    //    «أقل سعر توصيل مسموح» المكتوبة له. وفي المستوى الأعلى يستعملها
+    //    الثلاثة: منتقي الخريطة، ورابط الموقع، والأزرار.
+    function getShopDeliveryLimits(lat, lng) {
+        const destLat = lat || (_chosenCoords && _chosenCoords.lat);
+        const destLng = lng || (_chosenCoords && _chosenCoords.lng);
+        const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
+        const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
+        const maxDiscountPercent = (pricingConfig && typeof pricingConfig.maxDiscountPercent === 'number')
+            ? pricingConfig.maxDiscountPercent : 10;
+        const maxPriceSurgePercent = (pricingConfig && typeof pricingConfig.maxPriceSurgePercent === 'number')
+            ? pricingConfig.maxPriceSurgePercent : 100;
+
+        if (!shopData || !shopData.location || !destLat || !destLng) {
+            return { estimated: baseFare, minAllowed: baseFare, maxAllowed: 1000000, maxDiscountPercent, maxPriceSurgePercent };
+        }
+
+        const distKm = calculateDistance(destLat, destLng, shopData.location.lat, shopData.location.lng);
+        let estimated = baseFare + (distKm * perKm);
+        estimated = Math.ceil(estimated / 100) * 100;
+
+        const minAllowed = Math.max(baseFare, Math.ceil((estimated * (1 - (maxDiscountPercent / 100))) / 100) * 100);
+        const maxAllowed = Math.ceil((estimated * (1 + (maxPriceSurgePercent / 100))) / 100) * 100;
+
+        return { estimated, distKm, minAllowed, maxAllowed, maxDiscountPercent, maxPriceSurgePercent };
+    }
+
+    /**
+     * 💰 سعر التوصيل المقترح لنقطة تسليمٍ جديدة — طريقٌ واحد لكل من يضع النقطة.
+     *
+     * كان هذا الحساب داخل confirmShopMap وحده، ورابط الموقع الملصوق يكتب
+     * الإحداثيات في الحقلين المخفيّين فقط: يتغيّر الموقع في الخفاء ويبقى
+     * سعر التوصيل صفراً أو سعرَ الموقع السابق، والملخّص كما هو. «الرابط
+     * ما بظبط» كان هذا.
+     */
+    function updateShopDeliveryFee(lat, lng) {
+        if (!(shopData && shopData.location && shopData.location.lat && shopData.location.lng)) return;
+        if (isPriceManuallyEdited) return;   // سعرٌ عدّله العميل بيده لا يُمحى
+        const limits = getShopDeliveryLimits(lat, lng);
+        const feeInput = document.getElementById('deliveryFee');
+        feeInput.value = limits.estimated;
+        feeInput.classList.add('border-warning', 'border-2');
+        document.getElementById('deliveryFeeHint').innerHTML = `المسافة التقديرية: <b>${limits.distKm.toFixed(1)} كم</b> | أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>`;
+        // تغيّر سعر التوصيل المقترح يُبطل أي كوبون ويحدّث الملخص
+        resetPromoOnChange();
+        renderOrderSummary();
+    }
+
     async function confirmShopMap() {
         const c = shopMap.getCenter();
         const lat = c.lat();
@@ -2081,45 +2134,8 @@
             });
         }
 
-        function getShopDeliveryLimits(lat, lng) {
-            const destLat = lat || (_chosenCoords && _chosenCoords.lat);
-            const destLng = lng || (_chosenCoords && _chosenCoords.lng);
-            const baseFare = (pricingConfig && pricingConfig.baseFare) || 1000;
-            const perKm = (pricingConfig && pricingConfig.costPerKm) || 200;
-            const maxDiscountPercent = (pricingConfig && typeof pricingConfig.maxDiscountPercent === 'number')
-                ? pricingConfig.maxDiscountPercent : 10;
-            const maxPriceSurgePercent = (pricingConfig && typeof pricingConfig.maxPriceSurgePercent === 'number')
-                ? pricingConfig.maxPriceSurgePercent : 100;
-
-            if (!shopData || !shopData.location || !destLat || !destLng) {
-                return { estimated: baseFare, minAllowed: baseFare, maxAllowed: 1000000, maxDiscountPercent, maxPriceSurgePercent };
-            }
-
-            const distKm = calculateDistance(destLat, destLng, shopData.location.lat, shopData.location.lng);
-            let estimated = baseFare + (distKm * perKm);
-            estimated = Math.ceil(estimated / 100) * 100;
-
-            const minAllowed = Math.max(baseFare, Math.ceil((estimated * (1 - (maxDiscountPercent / 100))) / 100) * 100);
-            const maxAllowed = Math.ceil((estimated * (1 + (maxPriceSurgePercent / 100))) / 100) * 100;
-
-            return { estimated, distKm, minAllowed, maxAllowed, maxDiscountPercent, maxPriceSurgePercent };
-        }
-
-        // حساب سعر التوصيل
-        if (shopData && shopData.location && shopData.location.lat && shopData.location.lng) {
-            if (!isPriceManuallyEdited) {
-                const limits = getShopDeliveryLimits(lat, lng);
-                const finalPrice = limits.estimated;
-
-                const feeInput = document.getElementById('deliveryFee');
-                feeInput.value = finalPrice;
-                feeInput.classList.add('border-warning', 'border-2');
-                document.getElementById('deliveryFeeHint').innerHTML = `المسافة التقديرية: <b>${limits.distKm.toFixed(1)} كم</b> | أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>`;
-                // تغيّر سعر التوصيل المقترح يُبطل أي كوبون ويحدّث الملخص
-                resetPromoOnChange();
-                renderOrderSummary();
-            }
-        }
+        // حساب سعر التوصيل — الدالّة نفسها التي يستعملها رابط الموقع
+        updateShopDeliveryFee(lat, lng);
 
         closeShopMap();
     }
@@ -2465,8 +2481,19 @@
                 var ln = document.getElementById('deliveryLng');
                 if (la) la.value = lat;
                 if (ln) ln.value = lng;
+                // ⚠️ كان العنوان يُكتب **فقط إن كان الحقل فارغاً** — فمن اختار
+                //    موقعاً قبلُ ثم لصق رابطاً آخر بقي عنوانه القديم أمام الكابتن
+                //    مع إحداثياتٍ جديدة. الرابط الجديد موقعٌ جديد: عنوانه جديد.
                 var addr = document.getElementById('deliveryAddress');
-                if (addr && !addr.value.trim() && meta && meta.address) addr.value = meta.address;
+                if (addr) {
+                    var text = (meta && meta.address) || '';
+                    addr.value = text || 'موقع من رابط خرائط جوجل';
+                    if (!text && typeof _resolveAddress === 'function') {
+                        _resolveAddress(lat, lng).then(function (a) { if (a) addr.value = a; });
+                    }
+                }
+                // والسعر: الحساب نفسه الذي يُجريه منتقي الخريطة عند التأكيد
+                if (typeof updateShopDeliveryFee === 'function') updateShopDeliveryFee(lat, lng);
                 if (window.shopMap && window.google && google.maps) {
                     window.shopMap.panTo({ lat: lat, lng: lng });
                     window.shopMap.setZoom(17);
