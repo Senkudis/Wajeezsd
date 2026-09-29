@@ -919,6 +919,9 @@ router.put('/orders/:id/reject', protect, merchantOnly, async (req, res) => {
         );
         if (!order) return res.status(400).json({ message: 'الطلب غير موجود أو تم تعيين كابتن في هذه اللحظة — لا يمكن إلغاؤه' });
 
+        // 🎟️ رفض التاجر ليس ذنب العميل — كوبونه يعود
+        await require('../utils/promoRelease').releasePromoUsage([order._id, linkedDelivery && linkedDelivery._id]);
+
         // 🧹 إلغاء طلب التوصيل المرتبط — وإلا بقي معروضاً على الكباتن لطلبٍ
         //    لم يعد قائماً، فيأتي أحدهم إلى متجرٍ لا شيء فيه.
         if (linkedDelivery) {

@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const logger = require('./utils/logger');
 const { planNudge } = require('./utils/nudgePlanner');
 const { clockStart } = require('./utils/tripTracking');
+const { releasePromoUsage } = require('./utils/promoRelease');
 
 // إعداد الإيميل
 const transporter = nodemailer.createTransport({
@@ -62,6 +63,31 @@ const startScheduler = (app) => {
             logger.info({ count: staleOrders.length }, 'Found stale orders to archive');
 
             for (const order of staleOrders) {
+                // 🛡️ الإلغاء **أولاً وبشرط**، ثم الإشعارات.
+                //    كانت القائمة تُقرأ، ثم تُرسَل لكل طلبٍ إشعاراتٌ وبريد (ثوانٍ
+                //    من الشبكة)، ثم يُلغى بلا شرط. كابتنٌ يقبل الطلب في تلك
+                //    الثواني يجد مهمّته ملغاةً وهو في الطريق — والعميل يُبلَّغ
+                //    بإلغاء طلبٍ قُبل فعلاً. الآن: ما لم يعد معلّقاً يُترك.
+                const claimed = await Order.updateOne(
+                    {
+                        _id: order._id,
+                        status: 'pending',
+                        negotiations: { $not: { $elemMatch: { status: 'pending' } } }
+                    },
+                    { $set: {
+                        status: 'cancelled',
+                        cancelledBy: 'system',
+                        cancelledAt: new Date(),
+                        cancelReason: 'انتهت المهلة تلقائياً — 6 ساعات بلا قبول من أي كابتن'
+                    } }
+                );
+                if (!claimed.modifiedCount) {
+                    logger.info({ orderId: order._id }, 'Stale order changed before cancellation — skipped');
+                    continue;
+                }
+                // 🎟️ الكوبون يعود للعميل: لم يقبل أحدٌ طلبه
+                await releasePromoUsage([order._id]);
+
                 // ✅ FIX #6: إشعار الكباتن المتفاوضين قبل إلغاء الطلب
                 if (order.negotiations && order.negotiations.length > 0) {
                     const io = app ? app.get('io') : null;
@@ -156,13 +182,7 @@ const startScheduler = (app) => {
                         logger.error({ orderId: order._id, err: mailErr }, 'Failed to send cancellation email');
                     }
                 }
-                // BUG-M4 FIX: أرشفة الطلب بدل حذفه نهائياً — لضمان التتبع وحل النزاعات
-                await Order.findByIdAndUpdate(order._id, {
-                    status: 'cancelled',
-                    cancelledBy: 'system',
-                    cancelledAt: new Date(),
-                    cancelReason: 'انتهت المهلة تلقائياً — 6 ساعات بلا قبول من أي كابتن'
-                });
+                // BUG-M4 FIX: أرشفة الطلب بدل حذفه (أُلغي أعلاه بشرط قبل الإشعارات)
                 logger.info({ orderId: order._id }, 'Archived stale order (status=cancelled)');
             }
 
@@ -814,6 +834,7 @@ const startScheduler = (app) => {
                         }
                     );
                     if (!expired.modifiedCount) continue;
+                    await releasePromoUsage([order._id]);   // 🎟️ لم يُستفد من الكوبون
 
                     await sendNotification(app, {
                         userId: order.client,

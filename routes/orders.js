@@ -22,6 +22,7 @@ const { validateOrderLocations } = require('../utils/geofence');
 const { evaluateDeliveryProof } = require('../utils/deliveryProof');
 const { NEGOTIATION_TTL_MS } = require('../utils/negotiation');
 const logger = require('../utils/logger');
+const { releasePromoUsage } = require('../utils/promoRelease');
 // 📈 عدّادات المسار — «أطلق وانسَ»، لا تُنتظر ولا تُفشل طلباً
 const analytics = require('../utils/analytics');
 
@@ -653,12 +654,23 @@ router.put('/:id/cancel', protect, async (req, res) => {
             if (shopOrder.status !== 'shop_pending') {
                 return res.status(400).json({ message: 'لا يمكن إلغاء الطلب لأن المتجر بدأ في تجهيزه' });
             }
-            
-            shopOrder.status = 'cancelled';
-            shopOrder.cancelledBy = 'client';
-            shopOrder.cancelReason = 'إلغاء من قبل العميل';
-            shopOrder.cancelledAt = new Date();   // ⏱️ للخط الزمني
-            await shopOrder.save();
+
+            // 🛡️ انتقالٌ ذرّيّ: كان فحصاً ثم save(). ضغطتان على «إلغاء» (أو إلغاءٌ
+            //    والتاجر يقبل في اللحظة نفسها) تمرّان كلتاهما بالفحص — فيُعاد
+            //    المخزون أدناه **مرّتين**، أو يُلغى طلبٌ بدأ المتجر تجهيزه.
+            const cancelledShop = await ShopOrder.findOneAndUpdate(
+                { _id: shopOrder._id, client: req.user._id, status: 'shop_pending' },
+                { $set: {
+                    status: 'cancelled',
+                    cancelledBy: 'client',
+                    cancelReason: 'إلغاء من قبل العميل',
+                    cancelledAt: new Date()   // ⏱️ للخط الزمني
+                } },
+                { new: true }
+            );
+            if (!cancelledShop) {
+                return res.status(400).json({ message: 'لا يمكن إلغاء الطلب لأن المتجر بدأ في تجهيزه' });
+            }
 
             // BUG-BL1 FIX: العميل ألغى ShopOrder، يجب إلغاء طلب التوصيل المرتبط (إن وجد)
             const linkedOrder = await Order.findOne({ shopOrderId: shopOrder._id, status: { $in: ['pending', 'accepted'] } });
@@ -668,6 +680,9 @@ router.put('/:id/cancel', protect, async (req, res) => {
                 await linkedOrder.save();
                 logger.info(`🔗 Linked delivery Order ${linkedOrder._id} cancelled with ShopOrder ${shopOrder._id}`);
             }
+
+            // 🎟️ الكوبون يعود: لم يُستفد منه
+            await releasePromoUsage([shopOrder._id, linkedOrder && linkedOrder._id]);
 
             // BUG-C2 FIX: استعادة المخزون بشكل ذري — حذف الاستعلام المنفصل findById
             if (shopOrder.items && shopOrder.items.length > 0) {
@@ -779,6 +794,9 @@ router.put('/:id/cancel', protect, async (req, res) => {
             return res.status(400).json({ message: 'This order cannot be cancelled as it is already in progress or completed' });
         }
         order = cancelledOrder; // update the local reference
+
+        // 🎟️ الكوبون يعود: أُلغي قبل أن يقبله كابتن، فلم يُستفد منه
+        await releasePromoUsage([order._id]);
 
         // 🚀 FIX 3: Notify negotiating captains when client cancels
         const io = req.app.get('io');
@@ -1675,7 +1693,24 @@ router.put('/:id/release', protect, captainOnly, async (req, res) => {
         // 🛡️ Atomic: only the assigned captain can release, and only while 'accepted'
         const released = await Order.findOneAndUpdate(
             { _id: req.params.id, captain: req.user.id, status: 'accepted' },
-            { $set: { status: 'pending', captain: null } },
+            { $set: {
+                status: 'pending', captain: null,
+                // 🧹 الكابتن التالي يبدأ نظيفاً:
+                //    • captainNudges: مفاتيح تنبيهات المُجدوِل الآلية لمن تنازل —
+                //      بقاؤها يعني أن من يقبل بعده لا يصله تنبيهٌ آليّ واحد.
+                //    • captainAssignedAt: ساعة إسنادٍ يدويّ سابق ليست ساعته.
+                //    • errand: سعر البضاعة الذي أدخله المتنازل. بقاؤه يُري الكابتن
+                //      الجديد «بانتظار تأكيد العميل للسعر» لسعرٍ لم يُعطِه، ومن محلٍّ
+                //      قد لا يشتري منه. (قبل الاستلام لم يُشترَ شيء بعد.)
+                captainNudges: [],
+                captainAssignedAt: null,
+                'errand.goodsQuote': null,
+                'errand.quoteStatus': 'none',
+                'errand.quotedAt': null,
+                'errand.reminderSentAt': null,
+                'errand.respondedAt': null,
+                'errand.finalGoodsCost': null
+            } },
             { new: true }
         );
 
@@ -2559,6 +2594,7 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
         order.cancelReason = 'رفض العميل سعر البضاعة';
         order.cancelledAt = new Date();
         await order.save();
+        await releasePromoUsage([order._id, order.shopOrderId]);   // 🎟️ لم يُستفد من الكوبون
 
         // BUG-L12 FIX: مزامنة ShopOrder المرتبط إذا وُجد (حالة نادرة لكن ممكنة)
         if (order.shopOrderId) {

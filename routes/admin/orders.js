@@ -15,6 +15,7 @@ const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
 const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, adminCoversCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
+const { releasePromoUsage } = require('../../utils/promoRelease');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -309,11 +310,20 @@ router.put('/shop-orders/:id/cancel-force', protect, requirePermission('manage_o
             return res.status(400).json({ message: 'تم إرسال الطلب للتوصيل بالفعل. يرجى إلغاء طلب التوصيل من شاشة الطلبات الرئيسية.' });
         }
 
-        shopOrder.status = 'cancelled';
-        shopOrder.cancelledBy = 'admin';
-        shopOrder.cancelReason = 'إلغاء إداري (من قِبل لوحة التحكم)';
-        shopOrder.cancelledAt = new Date();   // ⏱️ للخط الزمني
-        await shopOrder.save();
+        // 🛡️ انتقالٌ ذرّيّ: كان فحصاً ثم save()، فضغطتان متتاليتان تمرّان
+        //    كلتاهما ويُعاد المخزون أدناه مرّتين.
+        const cancelled = await ShopOrder.findOneAndUpdate(
+            { _id: shopOrder._id, status: { $nin: ['cancelled', 'ready_for_pickup', 'captain_assigned', 'picked_up', 'delivered'] } },
+            { $set: {
+                status: 'cancelled',
+                cancelledBy: 'admin',
+                cancelReason: 'إلغاء إداري (من قِبل لوحة التحكم)',
+                cancelledAt: new Date()   // ⏱️ للخط الزمني
+            } },
+            { new: true }
+        );
+        if (!cancelled) return res.status(400).json({ message: 'تغيّرت حالة الطلب للتوّ — حدّث الصفحة' });
+        await releasePromoUsage([shopOrder._id]);   // 🎟️ الكوبون يعود للعميل
 
         // 📦 استعادة المخزون
         if (shopOrder.items && shopOrder.items.length > 0) {
@@ -497,6 +507,8 @@ router.put('/orders/:id/cancel-force', protect, requirePermission('manage_orders
             }
         }
         await order.save();
+        // 🎟️ الكوبون يعود للعميل — للطلب ولطلب المتجر المرتبط (يُلغى بخطّاف المزامنة)
+        await releasePromoUsage([order._id, order.shopOrderId]);
 
         // BUG #18 FIX: All socket emits and notifications are now AFTER save
         for (const capId of pendingCapIds) {
