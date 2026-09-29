@@ -114,7 +114,8 @@
             streetViewControl: false,
             mapTypeControl: false,
             fullscreenControl: false,
-            zoomControl: true,
+            // على الهاتف تقع أزرار التكبير تحت اللوحة — والقرص بإصبعين يكفي
+            zoomControl: window.innerWidth >= 900,
             styles: [
                 { featureType: 'poi', stylers: [{ visibility: 'off' }] },
                 { featureType: 'transit', stylers: [{ visibility: 'off' }] }
@@ -243,12 +244,26 @@
         glideRaf = requestAnimationFrame(step);
     }
 
+    // ما يظهر من اللوحة مطويّةً: حتى نهاية صفّ الكابتن — لا نصفه
+    let peek = 150;
+    function measurePeek() {
+        const sheet = $('tmSheet'), facts = $('tmFacts');
+        if (!sheet || !facts) return;
+        const p = Math.round(facts.offsetTop) + 4;
+        if (p > 60 && p !== peek) {
+            peek = p;
+            document.documentElement.style.setProperty('--peek', p + 'px');
+        }
+    }
+
     function boundsPad() {
         const sheet = $('tmSheet');
         const wide = window.innerWidth >= 900;
         // المطويّة تُظهر شريطاً صغيراً — حسابها بطولها الكامل يترك فراغاً كبيراً
-        const h = !sheet ? 0 : sheet.classList.contains('collapsed') ? 118 : sheet.getBoundingClientRect().height;
-        return wide ? { top: 90, bottom: 40, left: 40, right: 420 } : { top: 90, bottom: Math.min(h, window.innerHeight * 0.6) + 24, left: 30, right: 30 };
+        const h = !sheet ? 0 : sheet.classList.contains('collapsed') ? peek : sheet.getBoundingClientRect().height;
+        // الخريطة على الهاتف تنتهي أصلاً عند حافّة اللوحة المطويّة (--peek)
+        return wide ? { top: 90, bottom: 40, left: 40, right: 420 }
+                    : { top: 80, bottom: Math.max(24, Math.min(h, window.innerHeight * 0.6) - peek + 44), left: 30, right: 30 };
     }
 
     function fitAll() {
@@ -277,7 +292,8 @@
         // المُسلَّمة: اسم المرحلة يكفي — شارة «تمّ التسليم» بجانبه تكرارٌ له
         const lv = data.running ? (LEVEL[t.late.level] || LEVEL.ok) : null;
         document.title = `رحلة #${t.ref} | وجيز`;
-        $('tmTitle').textContent = `رحلة #${t.ref}`;
+        // #A7C3F1 داخل نصٍّ عربي تنقلب علامته إلى «A7C3F1#» — نعزله باتجاهه
+        $('tmTitle').innerHTML = `رحلة <bdi dir="ltr">#${esc(t.ref)}</bdi>`;
 
         const initial = c ? esc((c.name || 'ك').trim().charAt(0)) : '?';
         const html = `
@@ -295,19 +311,20 @@
 
             <div id="tmFacts" class="tm-facts"></div>
 
+            <div class="tm-actions">
+                <button type="button" class="tm-btn" id="tmFit"><i class="fas fa-expand" aria-hidden="true"></i> الرحلة كاملة</button>
+                ${data.running ? `<button type="button" class="tm-btn" id="tmFollow" aria-pressed="${follow}"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> تتبّع الكابتن</button>` : ''}
+                <a class="tm-btn ghost" href="admin-order-details.html?id=${encodeURIComponent(t.id)}"><i class="fas fa-file-lines" aria-hidden="true"></i> التفاصيل</a>
+            </div>
+
             <ul class="tm-route">
                 <li><span class="tm-dot a">A</span><div><b>الاستلام</b><span>${esc(t.pickup.address || '—')}${t.pickup.name ? ' — ' + esc(t.pickup.name) : ''}</span></div></li>
                 <li><span class="tm-dot b">B</span><div><b>التسليم</b><span>${esc(t.dropoff.address || '—')}${t.client ? ' — ' + esc(t.client.name) : ''}</span></div>
                     ${t.client && t.client.phone ? `<a class="tm-call sm" href="${esc(telHref(t.client.phone))}" aria-label="اتصال بالعميل ${esc(t.client.name)}"><i class="fas fa-phone" aria-hidden="true"></i></a>` : ''}</li>
             </ul>
-            ${noPinsNote()}
-
-            <div class="tm-actions">
-                <button type="button" class="tm-btn" id="tmFit"><i class="fas fa-expand" aria-hidden="true"></i> الرحلة كاملة</button>
-                ${data.running ? `<button type="button" class="tm-btn" id="tmFollow" aria-pressed="${follow}"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> تتبّع الكابتن</button>` : ''}
-                <a class="tm-btn ghost" href="admin-order-details.html?id=${encodeURIComponent(t.id)}"><i class="fas fa-file-lines" aria-hidden="true"></i> تفاصيل الطلب</a>
-            </div>`;
+            ${noPinsNote()}`;
         if (html !== lastSheet) { $('tmSheetBody').innerHTML = html; lastSheet = html; }
+        measurePeek();
         setFollow(follow);
         renderFacts();
     }
@@ -351,7 +368,7 @@
         if (mo && mo.state === 'stopped' && !movedSince) out.push(`<span class="tm-fact warn"><i class="fas fa-hand" aria-hidden="true"></i> واقف منذ ${dur(mo.stoppedMin)}</span>`);
         const dp = data.points.deliveredAt;
         if (dp && dp.distanceM != null) {
-            out.push(`<span class="tm-fact ${dp.verified === false ? 'bad' : ''}"><i class="fas fa-circle-dot" aria-hidden="true"></i> أعلن التسليم على بُعد ${dist(dp.distanceM)} من العميل</span>`);
+            out.push(`<span class="tm-fact ${dp.verified === false ? 'bad' : ''}"><i class="fas fa-circle-dot" style="color:${dp.verified === false ? '#dc2626' : '#2563eb'}" aria-hidden="true"></i> أعلن التسليم على بُعد ${dist(dp.distanceM)} من العميل</span>`);
         }
         box.innerHTML = out.join('');
     }
@@ -387,7 +404,7 @@
             if (first && !data.running) setFollow(false);
             renderSheet();
             draw();
-            setLive(live ? 'مباشر' : 'يتحدّث كل 20 ث', false);
+            setLive(!data.running ? 'انتهت الرحلة' : live ? 'مباشر' : 'يتحدّث كل 20 ث', false);
         } catch (e) {
             if (seq !== loadSeq) return;
             setLive('لا اتصال', true);
@@ -399,7 +416,7 @@
         if (typeof io !== 'function' || !token) return;
         try {
             const sock = io(API || undefined, { transports: ['websocket', 'polling'], reconnection: true, reconnectionDelay: 2000, auth: { token } });
-            sock.on('connect', () => { sock.emit('admin_join'); live = true; setLive('مباشر', false); });
+            sock.on('connect', () => { sock.emit('admin_join'); live = true; if (!data || data.running) setLive('مباشر', false); });
             sock.on('disconnect', () => { live = false; setLive('انقطع البثّ — يتحدّث كل 20 ث', true); });
             // كل الكباتن يبثّون لغرفة الإدارة — نأخذ كابتن هذا الطلب وحده
             sock.on('captain_location_update', (d) => {
@@ -433,6 +450,8 @@
             const s = $('tmSheet');
             const open = s.classList.toggle('collapsed');
             e.target.closest('#tmHandle').setAttribute('aria-expanded', open ? 'false' : 'true');
+            // تغيّرت المساحة الظاهرة من الخريطة — نعيد التأطير بعد انتهاء الحركة
+            setTimeout(() => { if (follow && capPos && map) map.panTo(capPos); else fitAll(); }, 280);
         }
     });
 
