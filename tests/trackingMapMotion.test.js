@@ -52,39 +52,54 @@ describe('🛵 قرص الكابتن', () => {
     });
 });
 
-describe('🎞️ الحركة', () => {
-    const fn = tracking.slice(tracking.indexOf('function animateMarker'), tracking.indexOf('async function fetchOrder'));
+describe('🎞️ الحركة — js/marker-motion.js (المصدر الواحد للعميل والإدارة)', () => {
+    // ⚠️ تغيّرت عمداً نقطتان هنا (انظر tests/markerMotion.test.js):
+    //   • المدّة كانت «تتبع المسافة» (dist × 14 م.ث) ثم يقف الدبّوس حتى القراءة
+    //     التالية — ٨٦٪ من الوقت واقفاً. الآن تتبع **الفاصل بين القراءتين**
+    //     فيسير بلا توقّف.
+    //   • التسارع الناعم (easeInOutCubic) كان يكبح الدبّوس قبل كل قراءة. الآن
+    //     سرعةٌ ثابتة — وهي ما يجعل القراءات المتتالية سيراً واحداً.
+    const mm = read('public_html/js/marker-motion.js');
+    const move = mm.slice(mm.indexOf('function moveTo'), mm.indexOf('return {', mm.indexOf('function moveTo')));
 
-    it('🔑 المدّة تتبع المسافة — لا 500ms لكل شيء', () => {
-        expect(fn).toMatch(/Math\.max\(420, Math\.min\(2600, dist \* 14\)\)/);
+    it('🔑 المدّة = الفاصل بين القراءتين ضمن حدّين — لا مدّة ثابتة ولا «ركضة ووقفة»', () => {
+        expect(mm).toMatch(/Math\.max\(MIN_MS, Math\.min\(MAX_MS, gapMs\)\)/);
+        expect(move).toContain('var dur = durationFor(gap)');
     });
 
-    it('🔑 وتسارعٌ ناعم الطرفين لا سرعة خطّية', () => {
-        expect(tracking).toContain('easeInOutCubic');
+    it('🔑 سرعةٌ ثابتة داخل الحركة', () => {
+        expect(move).toContain('from.lat + (to.lat - from.lat) * p');
+        expect(tracking).not.toContain('easeInOutCubic');
     });
 
     it('🔑 والقرص يدور نحو وجهته', () => {
-        expect(tracking).toContain('function bearing(');
-        expect(fn).toContain('setCaptainIcon(marker, h)');
+        expect(mm).toContain('function bearing(');
+        expect(move).toContain('applyIcon(heading)');
     });
 
     it('🔒 أقصر دوران — لا لفّة كاملة عند عبور 360°', () => {
-        expect(tracking).toContain('function shortestTurn');
-        expect(tracking).toMatch(/\(\(to - from \+ 540\) % 360\) - 180/);
+        expect(mm).toContain('function shortestTurn');
+        expect(mm).toMatch(/\(\(to - from \+ 540\) % 360\) - 180/);
     });
 
     it('🔒 قفزة بعيدة تُنقَل فوراً — الطيران عبر المدينة يكذب على العين', () => {
-        expect(fn).toMatch(/if \(dist > 600\)/);
-        expect(fn).toMatch(/marker\.setPosition\(to\)/);
+        expect(mm).toContain('var TELEPORT_M = 600;');
+        expect(move).toContain('d > TELEPORT_M');
     });
 
     it('🔒 وحركةٌ أحدث تُلغي سابقتها فلا تتصارعان', () => {
-        expect(fn).toContain('captainAnimId');
-        expect(fn).toMatch(/if \(id !== captainAnimId\) return;/);
+        expect(move).toContain('var id = ++anim;');
+        expect(move).toContain('if (id !== anim) return;');
     });
 
-    it('وضجيج GPS دون المتر لا يُحرّك شيئاً', () => {
-        expect(fn).toMatch(/if \(dist < 1\) return;/);
+    it('وضجيج GPS لا يُحرّك شيئاً ولا يُدير السهم', () => {
+        expect(move).toContain("if (d < 0.5)");
+        expect(move).toContain('d >= HEADING_MIN_M ? bearing(from, to) : heading');
+    });
+
+    it('شاشة التتبّع تستعمله', () => {
+        expect(tracking).toContain('src="js/marker-motion.js');
+        expect(tracking).toContain('MarkerMotion.create(captainMarker, { iconFor: captainIconFor })');
     });
 });
 
@@ -107,8 +122,10 @@ describe('💓 الهالة النابضة', () => {
 
 describe('🔗 التتبّع يستعمل القرص لا الدبوس القديم', () => {
     it('عند إنشاء العلامة أول مرّة', () => {
-        const fn = tracking.slice(tracking.indexOf('function placeCaptainMarker'));
-        expect(fn.slice(0, 900)).toContain('WajeezMarkers.captainPuck');
+        // placeCaptainMarker ينشئ الدبّوس بـ captainIconFor(null) — والقرص فيها
+        const fn = tracking.slice(tracking.indexOf('function captainIconFor'));
+        expect(fn.slice(0, 600)).toContain('WajeezMarkers.captainPuck');
+        expect(tracking.slice(tracking.indexOf('function placeCaptainMarker')).slice(0, 1200)).toContain('icon: captainIconFor(null)');
     });
 
     it('وبنوع وسيلة الكابتن الفعليّ', () => {

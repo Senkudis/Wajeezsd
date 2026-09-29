@@ -75,8 +75,11 @@ function makeCaptainIcon(status, isHighlighted = false) {
 
 // ── MarkerPool — بدون Memory Leak ────────────────────────────
 const MarkerPool = {
-    _pool:       {},   // { captainId: { marker, infoWindow } }
+    _pool:       {},   // { captainId: { marker, infoWindow, mover, iconKey, hl } }
     _captainData: {},  // { captainId: { name, phone, status, lat, lng } }
+    // بعد أوّل تحميل: الكابتن الذي يظهر لاحقاً «يسقط» على الخريطة ليُلحظ. قبله
+    // لا — كان فتح الصفحة يُسقط خمسين دبّوساً معاً في فوضى واحدة.
+    _ready:      false,
 
     upsert(map, captainId, lat, lng, name, status, isHighlighted = false) {
         if (!map || !lat || !lng) return;
@@ -89,21 +92,28 @@ const MarkerPool = {
         this._captainData[captainId] = { name, status, lat, lng,
             phone: this._captainData[captainId]?.phone || '' };
 
+        const iconKey = status + (isHighlighted ? ':hl' : '');
         if (existing) {
-            existing.marker.setPosition({ lat, lng });
-            existing.marker.setIcon(icon);
+            // سيرٌ متّصل بدل القفز — js/marker-motion.js
+            existing.mover.moveTo({ lat, lng });
+            // الأيقونة تُعاد فقط إن تغيّرت الحالة — لا صورةً جديدة مع كل موقع
+            if (existing.iconKey !== iconKey) { existing.marker.setIcon(icon); existing.iconKey = iconKey; }
             existing.marker.setTitle(name || captainId);
-            if (isHighlighted) {
+            existing.marker.setZIndex(isHighlighted ? 999 : undefined);
+            // القفز لحظةَ التحديد وحدها — كان يتكرّر مع كل تحديث موقعٍ للمحدَّد
+            // (كل ٣ ثوانٍ)، فيقفز الدبّوس بلا توقّف
+            if (isHighlighted && !existing.hl && !MarkerMotion.reducedMotion()) {
                 existing.marker.setAnimation(google.maps.Animation.BOUNCE);
-                setTimeout(() => existing.marker.setAnimation(null), 2200);
+                setTimeout(() => existing.marker.setAnimation(null), 1400);
             }
+            existing.hl = !!isHighlighted;
         } else {
             const marker = new google.maps.Marker({
                 position:  { lat, lng },
                 map,
                 title:     name || captainId,
                 icon,
-                animation: google.maps.Animation.DROP,
+                animation: (this._ready && !MarkerMotion.reducedMotion()) ? google.maps.Animation.DROP : null,
                 zIndex:    isHighlighted ? 999 : undefined
             });
 
@@ -115,13 +125,14 @@ const MarkerPool = {
                 infoWindow.open(map, marker);
             });
 
-            this._pool[captainId] = { marker, infoWindow };
+            this._pool[captainId] = { marker, infoWindow, mover: MarkerMotion.create(marker), iconKey, hl: !!isHighlighted };
         }
     },
 
     remove(captainId) {
         const entry = this._pool[captainId];
         if (entry) {
+            entry.mover.stop();
             entry.marker.setMap(null);
             entry.infoWindow.close();
             delete this._pool[captainId];
@@ -130,7 +141,8 @@ const MarkerPool = {
     },
 
     clearAll() {
-        Object.values(this._pool).forEach(({ marker, infoWindow }) => {
+        Object.values(this._pool).forEach(({ marker, infoWindow, mover }) => {
+            mover.stop();
             marker.setMap(null);
             infoWindow.close();
         });
@@ -336,8 +348,11 @@ async function loadInitialCaptains() {
         
         updateCounters();
 
-        // Render search list immediately
-        renderSearchList(captains);
+        MarkerPool._ready = true;
+
+        // ⚠️ كان هنا renderSearchList(captains) — دالةٌ غير معرّفة في أيّ ملف، فكان
+        //    كل تحميلٍ ناجح يرمي ReferenceError: لا يُخفى غطاء التحميل، ولا يُتمركز
+        //    على نجدةٍ ولا على كابتنٍ قادمٍ من لوحة التتبّع. البحث يعمل من loadedOnInit.
         setTimeout(() => document.getElementById('mapLoader').style.display = 'none', 800);
 
         // 🚨 قدِم من إشعار نجدة؟ تمركّز على موقع التنبيه (?alert=<id>)

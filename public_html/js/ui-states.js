@@ -80,6 +80,29 @@
         '.uis-sk{animation:none}.uis-offline{transition:none}}'
     ].join('');
 
+    /**
+     * 🧘 «تقليل الحركة» في إعدادات الهاتف يُحترم في كل الصفحات لا ستٍّ منها:
+     * النبض والتوهّج واللمعان المتكرّر يتوقّف، والانتقالات فورية. من يضبط هذا
+     * الخيار يفعل ذلك لسبب (دوار، صداع، تشتّت) — ولا تضيع معلومة: كل حالةٍ
+     * تُعرض بنصّها ولونها، والحركة زينةٌ فوقها. (MarkerMotion يقرأ الإعداد
+     * نفسه للخرائط.)
+     *
+     * يُحقن عند التحميل لا مع أنماط الحالات (التي تُحقن عند أوّل استعمالٍ فقط):
+     * هذا الملف في ٦٨ صفحة، وهو المكان الوحيد المشترك بينها.
+     */
+    var MOTION_ID = 'ui-motion-style';
+    var MOTION_CSS = '@media (prefers-reduced-motion:reduce){' +
+        '*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;' +
+        'transition-duration:.01ms!important;scroll-behavior:auto!important}}';
+
+    function injectMotionPreference() {
+        if (document.getElementById(MOTION_ID)) return;
+        var el = document.createElement('style');
+        el.id = MOTION_ID;
+        el.textContent = MOTION_CSS;
+        (document.head || document.documentElement).appendChild(el);
+    }
+
     function injectStyle() {
         if (document.getElementById(STYLE_ID)) return;
         var el = document.createElement('style');
@@ -250,5 +273,6 @@
         }
     };
 
+    injectMotionPreference();
     bindNetwork();
 })();

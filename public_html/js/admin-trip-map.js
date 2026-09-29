@@ -26,7 +26,8 @@
     let lines = { toTarget: null, route: null };
     let capPos = null;          // موقع الكابتن المعروض الآن
     let capAt = null;           // وقت قياسه
-    let heading = null;
+    let mover = null;           // حركة دبّوس الكابتن — js/marker-motion.js
+    let capTarget = null;       // آخر موقعٍ أُرسل إليه الدبّوس
     let follow = true;          // الخريطة تتبع الكابتن حتى يسحبها الأدمن
     let fitted = false;
     let live = false;
@@ -61,14 +62,6 @@
         const x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
         return 2 * R * Math.asin(Math.sqrt(x));
     }
-    function bearing(a, b) {
-        const rad = (d) => d * Math.PI / 180;
-        const y = Math.sin(rad(b.lng - a.lng)) * Math.cos(rad(b.lat));
-        const x = Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) -
-                  Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lng - a.lng));
-        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-    }
-
     // الهاتف محفوظٌ 249XXXXXXXXX — بلا «+» يُطلب رقماً محلياً خاطئاً
     function telHref(phone) {
         const p = String(phone || '').replace(/[^\d+]/g, '');
@@ -131,9 +124,9 @@
         if (typeof WajeezMarkers === 'undefined') return undefined;
         return kind === 'pickup' ? WajeezMarkers.pickup() : WajeezMarkers.dropoff();
     }
-    function capIcon() {
+    function capIcon(h) {
         const v = (data && data.trip.captain && data.trip.captain.vehicleType) || 'motorcycle';
-        if (typeof WajeezMarkers !== 'undefined' && WajeezMarkers.captainPuck) return WajeezMarkers.captainPuck(v, heading);
+        if (typeof WajeezMarkers !== 'undefined' && WajeezMarkers.captainPuck) return WajeezMarkers.captainPuck(v, h == null ? null : h);
         return undefined;
     }
 
@@ -199,21 +192,28 @@
             }) : null;
         }
 
-        drawCaptain(false);
+        drawCaptain();
 
         if (!fitted) { fitAll(); fitted = true; }
     }
 
-    function drawCaptain(animate) {
+    function drawCaptain() {
         if (!map || !data) return;
         const showCap = !!capPos;
         if (!showCap) {
             place('captain', null);
-        } else if (mk.captain && animate) {
-            glide(mk.captain, capPos);
-            mk.captain.setIcon(capIcon());
+            mover = null; capTarget = null;
+        } else if (mk.captain && mover) {
+            // التحميل الدوريّ يعيد الموقع نفسه غالباً — تحريكه إليه كان يقطع
+            // الحركة الجارية بقفزة. لا نحرّك إلا إلى موقعٍ جديد فعلاً.
+            if (!capTarget || capTarget.lat !== capPos.lat || capTarget.lng !== capPos.lng) {
+                mover.moveTo(capPos);
+                capTarget = { lat: capPos.lat, lng: capPos.lng };
+            }
         } else {
-            place('captain', capPos, { icon: capIcon(), title: (data.trip.captain && data.trip.captain.name) || 'الكابتن', zIndex: 100 });
+            place('captain', capPos, { icon: capIcon(null), title: (data.trip.captain && data.trip.captain.name) || 'الكابتن', zIndex: 100 });
+            mover = MarkerMotion.create(mk.captain, { iconFor: capIcon });
+            capTarget = { lat: capPos.lat, lng: capPos.lng };
         }
 
         // خطٌّ متّصل من الكابتن إلى وجهته الآن
@@ -226,22 +226,6 @@
 
         if (follow && showCap && data.running) map.panTo(capPos);
         renderFacts();
-    }
-
-    // تنقّلٌ سلس بدل القفز — التحديث كل ثوانٍ ويبدو الكابتن «يمشي»
-    let glideRaf = null;
-    function glide(marker, to) {
-        const from = marker.getPosition();
-        if (!from) { marker.setPosition(to); return; }
-        const a = { lat: from.lat(), lng: from.lng() };
-        const t0 = performance.now(), D = 900;
-        cancelAnimationFrame(glideRaf);
-        const step = (now) => {
-            const k = Math.min(1, (now - t0) / D);
-            marker.setPosition({ lat: a.lat + (to.lat - a.lat) * k, lng: a.lng + (to.lng - a.lng) * k });
-            if (k < 1) glideRaf = requestAnimationFrame(step);
-        };
-        glideRaf = requestAnimationFrame(step);
     }
 
     // ما يظهر من اللوحة مطويّةً: حتى نهاية صفّ الكابتن — لا نصفه
@@ -396,7 +380,7 @@
             data = body;
             const cap = data.trip.captain && data.trip.captain.id;
             // نُقل الطلب لكابتنٍ آخر، أو انتهت الرحلة: موقع السابق لا يخصّ هذه الخريطة
-            if ((prevCap && prevCap !== cap) || !data.running) { capPos = null; capAt = null; heading = null; }
+            if ((prevCap && prevCap !== cap) || !data.running) { capPos = null; capAt = null; }
             // الموقع من الخادم يُعتمد فقط إن كان أحدث مما وصل عبر المقبس
             const srv = data.captainLocation;
             if (data.running && srv && (!capAt || new Date(srv.at || 0) > new Date(capAt))) { capPos = { lat: srv.lat, lng: srv.lng }; capAt = srv.at; }
@@ -428,11 +412,9 @@
                 // وقت القياس من الخادم؛ والأقدم ممّا نعرضه (وصل متأخّراً) لا يُرجعه للوراء
                 const at = d.fixedAt ? new Date(d.fixedAt).toISOString() : new Date(serverNow()).toISOString();
                 if (capAt && new Date(at) < new Date(capAt)) return;
-                const next = { lat, lng };
-                if (capPos && metersBetween(capPos, next) > 5) heading = bearing(capPos, next);
-                capPos = next;
+                capPos = { lat, lng };
                 capAt = at;
-                drawCaptain(true);
+                drawCaptain();
             });
             sock.on('admin_order_update', (d) => {
                 if (d && String(d.orderId) === String(orderId)) load();

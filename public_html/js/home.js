@@ -458,7 +458,15 @@ function initMap() {
                 const pos = new google.maps.LatLng(lat, lng);
                 
                 if (this.markers[captainId]) {
-                    this.markers[captainId].setPosition(pos); // Smooth updates
+                    // سيرٌ متّصل بدل القفز — js/marker-motion.js (كان تعليقه «Smooth
+                    // updates» وهو setPosition مجرّد: الكباتن حول العميل يقفزون)
+                    const m = this.markers[captainId];
+                    if (window.MarkerMotion) {
+                        m._mover = m._mover || MarkerMotion.create(m);
+                        m._mover.moveTo({ lat, lng });
+                    } else {
+                        m.setPosition(pos);
+                    }
                 } else {
                     this.markers[captainId] = new google.maps.Marker({
                         position: pos,
@@ -473,6 +481,7 @@ function initMap() {
             
             removeCaptain(captainId) {
                 if (this.markers[captainId]) {
+                    if (this.markers[captainId]._mover) this.markers[captainId]._mover.stop();
                     this.markers[captainId].setMap(null);
                     delete this.markers[captainId];
                 }
