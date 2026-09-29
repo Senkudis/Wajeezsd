@@ -1315,6 +1315,28 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
         }
         if (deliveryFee > 1000000) deliveryFee = 1000000; // حماية من القيم الشاذة
 
+        // 🛡️ حدود سعر التوصيل من إعدادات المدينة — كانت تُفحص في الصفحة وحدها،
+        //    فطلبٌ يُرسَل للـ API مباشرة بسعرٍ زهيد لمشوارٍ طويل كان يُقبل.
+        //    الصيغة نفسها التي في الصفحة (utils/shopDeliveryLimits.js).
+        {
+            const Settings = require('../models/Settings');
+            const { shopDeliveryLimits } = require('../utils/shopDeliveryLimits');
+            const settings = await Settings.getSettings(place.city || 'Khartoum').catch(() => null);
+            const lim = shopDeliveryLimits(settings, place.location, dropoff);
+            if (deliveryFee < lim.minAllowed) {
+                return res.status(400).json({
+                    message: `أقل سعر توصيل لهذا المشوار ${lim.minAllowed.toLocaleString('en-US')} ج.س`,
+                    field: 'deliveryFee', minAllowed: lim.minAllowed
+                });
+            }
+            if (deliveryFee > lim.maxAllowed) {
+                return res.status(400).json({
+                    message: `أعلى سعر توصيل لهذا المشوار ${lim.maxAllowed.toLocaleString('en-US')} ج.س`,
+                    field: 'deliveryFee', maxAllowed: lim.maxAllowed
+                });
+            }
+        }
+
         const originalTotal = itemsTotal + deliveryFee;
 
         // 🎟️ إعادة التحقق من كود الخصم في السيرفر (لا نثق بقيمة الخصم من العميل).
@@ -1360,6 +1382,40 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
         }
 
         const totalAmount = Math.max(0, originalTotal - discountAmount);
+
+        // 🎟️ حجز الكوبون **ذرّياً** قبل إنشاء الطلب.
+        //    كان يُحتسب بعد الإنشاء بـ $inc بلا شرط: طلبان في اللحظة نفسها
+        //    يتجاوزان الحدّ العام وحدّ المستخدم معاً (الفحص قرأ العدّاد قبل أن
+        //    يزيده أيٌّ منهما). الآن الشرط في التحديث نفسه، ومعرّف الطلب يُولَّد
+        //    مسبقاً ليُسجَّل في usedBy — وإن فشل ما بعده يُعاد الكوبون.
+        const orderId = new mongoose.Types.ObjectId();
+        let promoClaimed = false;
+        if (promoDoc && appliedPromoCode) {
+            const perUser = promoDoc.userUsageLimit ?? 1;
+            const claimed = await PromoCode.findOneAndUpdate(
+                {
+                    _id: promoDoc._id,
+                    $and: [
+                        { $or: [{ usageLimit: null }, { $expr: { $lt: ['$usedCount', '$usageLimit'] } }] },
+                        { $expr: { $lt: [
+                            { $size: { $filter: { input: { $ifNull: ['$usedBy', []] }, as: 'u', cond: { $eq: ['$$u.user', req.user._id] } } } },
+                            perUser
+                        ] } }
+                    ]
+                },
+                {
+                    $inc: { usedCount: 1 },
+                    $push: { usedBy: { user: req.user._id, orderId, discountAmount } }
+                }
+            );
+            if (!claimed) {
+                return res.status(409).json({
+                    message: 'الكوبون وصل حدّ استخدامه للتوّ — أزله وأرسل الطلب بدونه',
+                    field: 'promoCode'
+                });
+            }
+            promoClaimed = true;
+        }
 
         // 🛡️ CRITICAL FIX: Atomic Stock Reservation with Rollback
         const reservedItems = [];
@@ -1437,11 +1493,13 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
                     });
                 }
             }
+            if (promoClaimed) await require('../utils/promoRelease').releasePromoUsage([orderId]);
             return res.status(400).json({ message: stockError });
         }
 
         // Now that stock is safely reserved, create the order
         const order = await ShopOrder.create({
+            _id: orderId,
             client: req.user._id,
             place: place._id,
             items: validatedItems,
@@ -1454,6 +1512,10 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             promoAppliesTo,
             dropoff,
             notes: notes || '',
+        }).catch(async (e) => {
+            // فشل الإنشاء بعد حجز الكوبون: يعود للعميل — لا طلب استفاد منه
+            if (promoClaimed) await require('../utils/promoRelease').releasePromoUsage([orderId]);
+            throw e;
         });
 
         // 💼 ERP: تسجيل حركات المخزون (بيع) مرتبطة بالطلب
@@ -1469,13 +1531,7 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             }
         }
 
-        // 🎟️ تسجيل استخدام الكوبون بعد نجاح إنشاء الطلب
-        if (promoDoc && appliedPromoCode) {
-            await PromoCode.findByIdAndUpdate(promoDoc._id, {
-                $inc: { usedCount: 1 },
-                $push: { usedBy: { user: req.user._id, orderId: order._id, discountAmount } }
-            }).catch(err => logger.error('Promo usage record error:', err.message));
-        }
+        // 🎟️ الكوبون حُجز ذرّياً قبل إنشاء الطلب (أعلاه) — لا تسجيل ثانٍ هنا
 
         // Notify the merchant
         if (place.ownerId) {

@@ -1533,7 +1533,7 @@
             } else {
                 const inline = window.FieldErrors ? FieldErrors.fromServer(data, {
                     'dropoff.address': 'deliveryAddress', 'dropoff.receiverName': 'receiverName',
-                    'dropoff.receiverPhone': 'receiverPhone', deliveryFee: 'deliveryFee'
+                    'dropoff.receiverPhone': 'receiverPhone', deliveryFee: 'deliveryFee', promoCode: 'promoCodeInput'
                 }) : [];
                 if (inline.length) FieldErrors.report(inline, { form: 'shop_order', source: 'server' });
                 else {
