@@ -720,6 +720,9 @@ window.confirmLocationSelection = function() {
 
     // 📍 وصف دقيق للكابتن: العنوان المحلول (بحث/geocode)
     const addrEl = document.getElementById(`${mode}-addr`);
+    // حُدّد الموقع: خطأ «حدّد الموقع من الخريطة» تحت هذه الخانة زال سببه
+    // (الخانة تُملأ برمجياً، فلا حدث input يُزيله وحده)
+    if (window.FieldErrors) FieldErrors.clear(addrEl);
 
     // رتّب مصادر الوصف: (1) نتيجة بحث قريبة، (2) عنوان مركز محلول، (3) حلّ آني
     let resolvedAddr = '';
@@ -1000,7 +1003,7 @@ window.addStop = function(type) {
         <input type="hidden" id="${id}-lat"><input type="hidden" id="${id}-lng">
         <div class="d-flex align-items-center justify-content-between mb-1">
             <span class="fw-bold small" style="color:${color};"><i class="bi ${icon} me-1"></i>${title}</span>
-            <button type="button" class="btn btn-sm text-danger p-0" onclick="removeStop('${id}')" style="font-size:1rem;"><i class="bi bi-x-circle-fill"></i></button>
+            <button type="button" class="btn btn-sm text-danger p-0" onclick="removeStop('${id}')" style="font-size:1rem;" aria-label="حذف ${title}"><i class="bi bi-x-circle-fill" aria-hidden="true"></i></button>
         </div>
         <input type="text" class="form-control form-control-sm bg-white mb-1" id="${id}-addr"
             placeholder="حدّد الموقع من الخريطة" readonly style="cursor:pointer;" onclick="openMapModal('${id}')">
@@ -1287,56 +1290,145 @@ window.clearImage = function() {
 };
 
 // 🚀 Validation & Submission
-function validateOrder() {
-    const pLat = document.getElementById('pickup-lat').value;
-    const dLat = document.getElementById('dropoff-lat').value;
-    const pPhone = document.getElementById('pickup-phone').value;
-    const dPhone = document.getElementById('dropoff-phone').value;
-    const priceVal = document.getElementById('price').value;
-    const price = parseFloat(priceVal);
 
-    const warn = (msg) => {
-        Swal.fire({ icon: 'warning', text: msg, confirmButtonText: 'حسناً', confirmButtonColor: '#04553A' });
-        return false;
-    };
+/** أعلى سعرٍ يقبله الخادم لأيّ طلب (routes/orders.js — MAX_PRICE) */
+const ORDER_MAX_PRICE = 1000000;
+
+/**
+ * رسالة الهاتف بحسب سبب الرفض — «غير صحيح» وحدها لا تقول ماذا يُصلَح.
+ * @param who 'المرسل' | 'المستلم'
+ */
+function phoneMessage(who, problem) {
+    if (problem === 'empty') return `اكتب رقم هاتف ${who}`;
+    if (problem === 'short') return `رقم هاتف ${who} ناقص — الرقم السوداني 10 أرقام، مثال: 0912345678`;
+    return `رقم هاتف ${who} غير صحيح — اكتبه هكذا: 0912345678`;
+}
+
+/**
+ * 🎯 كل ما ينقص الطلب، وكلٌّ في خانته.
+ *
+ * كانت تتوقّف عند أول خطأ وتعرضه في نافذةٍ لا تشير إلى حقل: «رقم هاتف المرسل
+ * غير صحيح» يقرؤها من ملأ هاتف المستلم فلا يعرف أيّ خانةٍ يُقصد، والرقم
+ * الصحيح بلا صفرٍ في أوّله (912345678) كان يُرفض لأن الفحص عدّ الأحرف.
+ * والاسمان لم يُفحصا أصلاً، فيرفض الخادم بـ«بيانات الاستلام غير مكتملة».
+ *
+ * @returns {Array<{target, message, focus?}>} فارغةٌ = الطلب سليم
+ */
+function collectOrderErrors() {
+    const val = (id) => (document.getElementById(id)?.value || '').trim();
+    const errors = [];
+    const add = (target, message, focus) => errors.push({ target, message, focus });
 
     // 🛍️ "اشترِ لي": الطرف الآخر محلٌّ لا مُرسِل — العميل لا يعرف رقم هاتف المحل،
     // وطلبه منه كان يوقف الطلب برسالة "رقم هاتف المرسل غير صحيح" بلا مخرج.
     const isErrand = !!window._errandMode;
+    const mapBtn = (block) => document.querySelector(`#${block} .map-select-btn`) || null;
 
-    if (!pLat) return warn(isErrand ? 'يرجى تحديد موقع المحل من الخريطة' : 'يرجى تحديد موقع الاستلام من الخريطة');
-    if (!dLat) return warn('يرجى تحديد وجهة التسليم من الخريطة');
-    if (!isErrand && (!pPhone || pPhone.length < 10)) return warn('رقم هاتف المرسل غير صحيح');
-    if (!dPhone || dPhone.length < 10) return warn('رقم هاتف المستلم غير صحيح');
-    if (!priceVal || isNaN(price) || price <= 0) return warn('يرجى تحديد سعر العرض');
-
-    // 🛡️ فحص حدود السعر النسبي (الأرضية والسقف)
-    const limits = getPriceLimits();
-    if (limits.estimated > 0 && price < limits.minAllowed) {
-        return warn(`أقل سعر مسموح به لهذا المشوار هو ${limits.minAllowed.toLocaleString()} ج.س (الحد الأقصى للتخفيض المسموح به هو ${limits.maxDiscountPercent}% من تسعيرة التطبيق المقدرة بـ ${limits.estimated.toLocaleString()} ج.س)`);
+    // ── الاستلام
+    if (!val('pickup-lat')) {
+        add('pickup-addr', isErrand ? 'حدّد موقع المحل من الخريطة' : 'حدّد موقع الاستلام من الخريطة', mapBtn('pickup-block'));
     }
-    if (limits.estimated > 0 && price > limits.maxAllowed) {
-        return warn(`أعلى سعر مسموح به لهذا المشوار هو ${limits.maxAllowed.toLocaleString()} ج.س`);
-    }
-
-    // 🧭 تحقق من النقاط الإضافية — كل نقطة تحتاج موقعاً محدداً
-    const extras = Array.from(document.querySelectorAll('#extraStopsList [data-stopid]'));
-    for (const card of extras) {
-        const id = card.getAttribute('data-stopid');
-        const lat = document.getElementById(`${id}-lat`).value;
-        if (!lat) return warn('يرجى تحديد موقع كل النقاط الإضافية من الخريطة (أو احذف النقطة الفارغة)');
-    }
-
-    // التفاصيل إجبارية — لازم العميل يوضح للكابتن.
-    // إلا في "اشترِ لي": قائمة الأصناف هي التفاصيل، وتُتحقَّق في createOrder — فطلب
-    // وصفٍ إضافيٍّ فوقها تكرارٌ يعطّل الطلب بلا فائدة.
     if (!isErrand) {
-        const details = (document.getElementById('details')?.value || '').trim();
-        if (!details) return warn('يرجى كتابة تفاصيل الطلب عشان الكابتن يفهم المطلوب');
+        if (!val('pickup-name')) add('pickup-name', 'اكتب اسم المرسل (أو اسم المحل)');
+        const p = SudanPhone.problem(val('pickup-phone'));
+        if (p) add('pickup-phone', phoneMessage('المرسل', p));
     }
 
-    return true;
+    // ── التسليم
+    if (!val('dropoff-lat')) {
+        add('dropoff-addr', 'حدّد وجهة التسليم من الخريطة',
+            document.querySelector('[aria-labelledby="dropoff-section-label"] .map-select-btn'));
+    }
+    if (!val('dropoff-name')) add('dropoff-name', 'اكتب اسم المستلم');
+    {
+        const p = SudanPhone.problem(val('dropoff-phone'));
+        if (p) add('dropoff-phone', phoneMessage('المستلم', p));
+    }
+
+    // 🧭 النقاط الإضافية — كل نقطة تحتاج موقعاً محدداً
+    document.querySelectorAll('#extraStopsList [data-stopid]').forEach(card => {
+        const id = card.getAttribute('data-stopid');
+        // خانة العنوان نفسها تفتح الخريطة، فهي ما يُركَّز عليه
+        if (!val(`${id}-lat`)) {
+            add(`${id}-addr`, 'حدّد موقع هذه النقطة من الخريطة — أو احذفها إن لم تعد تحتاجها');
+        }
+        // هاتف النقطة اختياريّ — لكن إن كُتب فليكن رقماً يُتّصل به
+        const sp = val(`${id}-phone`);
+        if (sp && SudanPhone.problem(sp)) add(`${id}-phone`, 'رقم الهاتف غير صحيح — اكتبه هكذا: 0912345678');
+    });
+
+    // ── التفاصيل
+    if (isErrand) {
+        // "مكان آخر": بلا اسم لا يعرف الكابتن أين يشتري
+        const nameWrap = document.getElementById('errand-shop-name-wrap');
+        const typed = val('errand-shop-input');
+        const known = window._errandCtx && window._errandCtx.shopName;
+        if (!typed && !known && nameWrap && !nameWrap.classList.contains('d-none')) {
+            add('errand-shop-input', 'اكتب اسم المحل الذي يشتري منه الكابتن');
+        }
+        const items = val('errand-items').split('\n').map(s => s.trim()).filter(Boolean);
+        if (!items.length) add('errand-items', 'اكتب ما تريد شراءه — صنفاً واحداً على الأقل، كل صنفٍ في سطر');
+    } else if (!val('details')) {
+        // التفاصيل إجبارية — لازم العميل يوضح للكابتن. (في "اشترِ لي" الأصناف هي التفاصيل)
+        add('details', 'اكتب وصفاً للطلب عشان الكابتن يعرف المطلوب');
+    }
+
+    // ── السعر
+    const priceVal = val('price');
+    const price = parseFloat(SudanPhone.fold(priceVal));
+    if (!priceVal || isNaN(price) || price <= 0) {
+        add('price', 'حدّد سعر العرض');
+    } else {
+        // 🛡️ حدود السعر النسبي (الأرضية والسقف)
+        const limits = getPriceLimits();
+        if (limits.estimated > 0 && price < limits.minAllowed) {
+            add('price', `أقل سعر لهذا المشوار ${limits.minAllowed.toLocaleString()} ج.س — التخفيض المسموح حتى ${limits.maxDiscountPercent}% من تسعيرة التطبيق (${limits.estimated.toLocaleString()} ج.س)`);
+        } else if (limits.estimated > 0 && price > limits.maxAllowed) {
+            add('price', `أعلى سعر لهذا المشوار ${limits.maxAllowed.toLocaleString()} ج.س`);
+        } else if (price > ORDER_MAX_PRICE) {
+            add('price', `أعلى سعر لأي طلب ${ORDER_MAX_PRICE.toLocaleString()} ج.س`);
+        }
+    }
+
+    return errors;
 }
+
+/** يعرض الأخطاء في خاناتها — ويُبقي الملخّص للقارئ الشاشيّ ولمن لا يرى الخانة */
+function reportOrderErrors(errors, source) {
+    const shown = window.FieldErrors ? FieldErrors.showAll(errors) : 0;
+    if (!shown) {
+        // لا خانة لهذا الخطأ (نسخةٌ قديمة من الصفحة، أو خطأٌ عامّ): النافذة كما كانت
+        Swal.fire({ icon: 'warning', text: errors[0].message, confirmButtonText: 'حسناً', confirmButtonColor: '#04553A' });
+    } else {
+        Swal.fire({
+            toast: true, position: 'top', icon: 'warning', timer: 3500, showConfirmButton: false,
+            title: shown === 1 ? 'في خانة تحتاج تصحيح — موضّحة بالأحمر'
+                 : shown === 2 ? 'في خانتين تحتاجان تصحيح — موضّحتان بالأحمر'
+                 : `في ${shown} خانات تحتاج تصحيح — موضّحة بالأحمر`
+        });
+    }
+    if (window.ClientErrors) ClientErrors.report('order', errors, source);
+}
+
+function validateOrder() {
+    const errors = collectOrderErrors();
+    if (!errors.length) {
+        if (window.FieldErrors) FieldErrors.clearAll();
+        return true;
+    }
+    reportOrderErrors(errors, 'client');
+    return false;
+}
+
+/**
+ * خطأ الخادم في خانته: الخادم يعيد `field` (مثل dropoff.receiverPhone)
+ * مع الرسالة، فيُعرض حيث يُصلَح لا في نافذةٍ عامة.
+ */
+const SERVER_FIELD_TO_INPUT = {
+    'pickup.address': 'pickup-addr', 'pickup.contactName': 'pickup-name', 'pickup.contactPhone': 'pickup-phone',
+    'dropoff.address': 'dropoff-addr', 'dropoff.receiverName': 'dropoff-name', 'dropoff.receiverPhone': 'dropoff-phone',
+    'price': 'price', 'details': 'details', 'items': 'errand-items', 'shopName': 'errand-shop-input'
+};
 
 window.createOrder = async function() {
     // Guard
@@ -1376,20 +1468,24 @@ window.createOrder = async function() {
             pickup: {
                 address: document.getElementById('pickup-addr').value,
                 contactName: document.getElementById('pickup-name').value,
-                contactPhone: document.getElementById('pickup-phone').value,
+                // 📞 بالصيغة المحلية النظيفة (0912345678): الأرقام العربية والمسافات
+                //    و+249 تُوحَّد هنا، فيتّصل الكابتن بضغطةٍ لا بنسخٍ وتعديل
+                contactPhone: window._errandMode
+                    ? document.getElementById('pickup-phone').value
+                    : SudanPhone.toLocal(document.getElementById('pickup-phone').value),
                 lat: parseFloat(document.getElementById('pickup-lat').value),
                 lng: parseFloat(document.getElementById('pickup-lng').value)
             },
             dropoff: {
                 address: document.getElementById('dropoff-addr').value,
                 receiverName: document.getElementById('dropoff-name').value,
-                receiverPhone: document.getElementById('dropoff-phone').value,
+                receiverPhone: SudanPhone.toLocal(document.getElementById('dropoff-phone').value),
                 lat: parseFloat(document.getElementById('dropoff-lat').value),
                 lng: parseFloat(document.getElementById('dropoff-lng').value)
             },
             details: document.getElementById('details').value,
             distanceType: 'custom', // السعر دائماً يُحسب من المسافة الحقيقية
-            price: parseFloat(document.getElementById('price').value),
+            price: parseFloat(SudanPhone.fold(document.getElementById('price').value)),
             parcelImage: parcelImageToSend,
             scheduledAt: document.getElementById('scheduled-at')?.value || null // ⏰ Scheduling
         };
@@ -1398,8 +1494,8 @@ window.createOrder = async function() {
         if (window._errandMode) {
             const itemsRaw = (document.getElementById('errand-items')?.value || '').trim();
             const items = itemsRaw.split('\n').map(s => s.trim()).filter(Boolean);
-            if (items.length === 0) {
-                Swal.fire({ icon: 'info', text: 'اكتب تفاصيل طلبك (صنف واحد على الأقل)', confirmButtonColor: '#4f46e5' });
+            if (items.length === 0) {   // يفحصه collectOrderErrors قبل الوصول هنا
+                reportOrderErrors([{ target: 'errand-items', message: 'اكتب ما تريد شراءه — صنفاً واحداً على الأقل' }], 'client');
                 btn.disabled = false; btn.innerHTML = originalHTML;
                 return;
             }
@@ -1419,7 +1515,7 @@ window.createOrder = async function() {
                 const typedName = (document.getElementById('errand-shop-input')?.value || '').trim();
                 data.shopName = typedName || window._errandCtx.shopName || '';
                 if (!data.shopName) {
-                    Swal.fire({ icon: 'info', text: 'اكتب اسم المحل الذي يشتري منه الكابتن', confirmButtonColor: '#4f46e5' });
+                    reportOrderErrors([{ target: 'errand-shop-input', message: 'اكتب اسم المحل الذي يشتري منه الكابتن' }], 'client');
                     btn.disabled = false; btn.innerHTML = originalHTML;
                     return;
                 }
@@ -1438,7 +1534,7 @@ window.createOrder = async function() {
                 type: s.type,
                 address: (s.addrEl && s.addrEl.value) || '',
                 contactName: (s.nameEl && s.nameEl.value) || '',
-                contactPhone: (s.phoneEl && s.phoneEl.value) || '',
+                contactPhone: s.phoneEl && s.phoneEl.value ? SudanPhone.toLocal(s.phoneEl.value) : '',
                 lat: parseFloat(s.latEl && s.latEl.value),
                 lng: parseFloat(s.lngEl && s.lngEl.value)
             }));
@@ -1458,11 +1554,18 @@ window.createOrder = async function() {
 
         if (res.ok) {
             const result = await res.json();
-            Swal.fire({ icon: 'success', title: 'تم! 🎉', text: result.message, timer: 3500, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: 'تم إرسال طلبك', text: result.message, timer: 3500, showConfirmButton: false });
             setTimeout(() => window.location.href = 'client-my-orders.html', 3500);
         } else {
-            const err = await res.json();
-            Swal.fire({ icon: 'error', text: friendlyError(err, 'فشل إرسال الطلب') });
+            const err = await res.json().catch(() => ({}));
+            const input = err && err.field && SERVER_FIELD_TO_INPUT[err.field];
+            if (input && document.getElementById(input) && err.message) {
+                // 🎯 الخادم سمّى الخانة: الخطأ يظهر تحتها لا في نافذةٍ عامة
+                reportOrderErrors([{ target: input, message: err.message }], 'server');
+            } else {
+                Swal.fire({ icon: 'error', text: friendlyError(err, 'فشل إرسال الطلب') });
+                if (window.ClientErrors) ClientErrors.report('order', [{ target: err.field || 'server', message: err.message || String(res.status) }], 'server');
+            }
             btn.disabled = false; btn.innerHTML = originalHTML;
         }
     } catch (err) {
@@ -1634,9 +1737,12 @@ if (localStorage.getItem('token')) loadSavedAddresses();
         localStorage.removeItem('reorder_payload');
 
         const set = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; };
-        set('pickup-addr', d.pAddr); set('pickup-name', d.pName); set('pickup-phone', d.pPhone);
+        // '-' هاتف المحل الوهميّ في "اشترِ لي": نسخه إلى طلب توصيلٍ عاديّ كان
+        // يُظهر للعميل خانةً فيها '-' ثم يرفض الطلب بـ«رقم هاتف المرسل غير صحيح»
+        const realPhone = (p) => (window.SudanPhone && SudanPhone.isValid(p) ? p : '');
+        set('pickup-addr', d.pAddr); set('pickup-name', d.pName); set('pickup-phone', realPhone(d.pPhone));
         set('pickup-lat', d.pLat); set('pickup-lng', d.pLng);
-        set('dropoff-addr', d.dAddr); set('dropoff-name', d.dName); set('dropoff-phone', d.dPhone);
+        set('dropoff-addr', d.dAddr); set('dropoff-name', d.dName); set('dropoff-phone', realPhone(d.dPhone));
         set('dropoff-lat', d.dLat); set('dropoff-lng', d.dLng);
         set('details', d.details);
         if (typeof calculatePrice === 'function') { try { calculatePrice(); } catch (e) {} }

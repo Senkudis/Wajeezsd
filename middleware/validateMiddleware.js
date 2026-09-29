@@ -1,3 +1,17 @@
+/**
+ * 🎯 كل رفضٍ يسمّي خانته (`field`) مع رسالةٍ تقول ما يُصلَح — واجهة الطلب
+ * تعرضه تحت الخانة نفسها (public_html/js/home.js ← SERVER_FIELD_TO_INPUT).
+ * كان «بيانات الاستلام غير مكتملة» يُقال لمن نسي الاسم، فيبحث العميل في
+ * العنوان والهاتف ولا يدري ما الناقص.
+ *
+ * ⚠️ شروط القبول نفسها لم تتغيّر — الرسائل وحدها صارت دقيقة. (تشديد الفحص
+ *    يرفض طلباتٍ تقبلها نسخ التطبيق المثبّتة اليوم.)
+ */
+const reject = (res, field, message) => res.status(400).json({ message, field });
+
+/** أعلى سعرٍ لأيّ طلب — الحدّ نفسه في التفاوض (routes/orders.js MAX_PRICE) */
+const MAX_ORDER_PRICE = 1000000;
+
 const validateOrder = (req, res, next) => {
     const { pickup, dropoff, details, price, distanceType } = req.body;
 
@@ -6,16 +20,19 @@ const validateOrder = (req, res, next) => {
     // أصلاً. فمطالبته بإرسالهما تعني رفض كل طلبات المتاجر بـ 400.
     const isShopOrder = req.body.orderType === 'shop';
 
-    if (!pickup || !pickup.address || (!isShopOrder && (!pickup.contactName || !pickup.contactPhone))) {
-        return res.status(400).json({ message: 'بيانات الاستلام غير مكتملة' });
-    }
+    if (!pickup || !pickup.address) return reject(res, 'pickup.address', 'حدّد موقع الاستلام من الخريطة');
+    if (!isShopOrder && !pickup.contactName) return reject(res, 'pickup.contactName', 'اكتب اسم المرسل');
+    if (!isShopOrder && !pickup.contactPhone) return reject(res, 'pickup.contactPhone', 'اكتب رقم هاتف المرسل');
 
-    if (!dropoff || !dropoff.address || !dropoff.receiverName || !dropoff.receiverPhone) {
-        return res.status(400).json({ message: 'بيانات التسليم غير مكتملة' });
-    }
+    if (!dropoff || !dropoff.address) return reject(res, 'dropoff.address', 'حدّد وجهة التسليم من الخريطة');
+    if (!dropoff.receiverName) return reject(res, 'dropoff.receiverName', 'اكتب اسم المستلم');
+    if (!dropoff.receiverPhone) return reject(res, 'dropoff.receiverPhone', 'اكتب رقم هاتف المستلم');
 
-    if (!price || isNaN(price) || price <= 0 || price > 100000) {
-        return res.status(400).json({ message: 'السعر غير صالح (الحد الأقصى 100,000)' });
+    // كان السقف 100,000 — أدنى من سقف التفاوض (مليون) ومن «سقف الزيادة» في
+    // الإعدادات: مشوارٌ طويل بسعرٍ مسموحٍ في الإعدادات يُرفض هنا بلا سبب.
+    if (!price || isNaN(price) || price <= 0) return reject(res, 'price', 'حدّد سعر العرض');
+    if (price > MAX_ORDER_PRICE) {
+        return reject(res, 'price', `أعلى سعر لأي طلب ${MAX_ORDER_PRICE.toLocaleString('en-US')} ج.س`);
     }
 
     if (!['short', 'medium', 'long', 'custom'].includes(distanceType)) {
@@ -24,15 +41,15 @@ const validateOrder = (req, res, next) => {
 
     // ✅ maxLength: منع الـ payloads الضخمة
     if (details && typeof details === 'string' && details.length > 500) {
-        return res.status(400).json({ message: 'وصف الطلب طويل جداً (الحد الأقصى 500 حرف)' });
+        return reject(res, 'details', 'وصف الطلب طويل جداً (الحد الأقصى 500 حرف)');
     }
 
     if (pickup.address && pickup.address.length > 300) {
-        return res.status(400).json({ message: 'عنوان الاستلام طويل جداً (الحد الأقصى 300 حرف)' });
+        return reject(res, 'pickup.address', 'عنوان الاستلام طويل جداً (الحد الأقصى 300 حرف)');
     }
 
     if (dropoff.address && dropoff.address.length > 300) {
-        return res.status(400).json({ message: 'عنوان التسليم طويل جداً (الحد الأقصى 300 حرف)' });
+        return reject(res, 'dropoff.address', 'عنوان التسليم طويل جداً (الحد الأقصى 300 حرف)');
     }
 
     if (req.body.receiptImage && typeof req.body.receiptImage === 'string' && req.body.receiptImage.length > 2000000) {
@@ -88,4 +105,4 @@ const validateAuth = (req, res, next) => {
     next();
 };
 
-module.exports = { validateOrder, validateAuth };
+module.exports = { validateOrder, validateAuth, MAX_ORDER_PRICE };

@@ -303,6 +303,9 @@ const apiRoutes = express.Router();
 apiRoutes.use('/config', require('./routes/config'));
 apiRoutes.use('/auth', require('./routes/auth'));
 apiRoutes.use('/orders', require('./routes/orders'));
+// 🧭 تعثّر العملاء في النماذج (POST /client-errors، وGET /admin/client-errors للإدارة) —
+//    قبل /admin كي لا يلتقط مسارٌ إداريّ عامّ مساره
+apiRoutes.use(require('./routes/clientErrors'));
 apiRoutes.use('/admin', require('./routes/admin'));
 apiRoutes.use('/complaints', complaintsRoutes);
 apiRoutes.use('/feedback', require('./routes/feedback'));

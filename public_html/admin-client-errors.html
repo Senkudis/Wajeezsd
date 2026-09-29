@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <script src="js/admin-guard.js?v=691df92a" data-perm="view_orders,view_complaints"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>تعثّر العملاء | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="js/console-cleaner.js?v=d257b4ad"></script>
+    <script src="js/config.js?v=21463b97"></script>
+    <style>
+        :root {
+            --primary: #048c5b; --primary-dark: #036943;
+            --ink: #0f172a; --ink-2: #475569; --ink-3: #94a3b8; --line: #e2e8f0;
+            --surface: #ffffff; --bg: #f1f5f9;
+            --late: #b91c1c; --late-bg: #fee2e2; --warn: #b45309; --warn-bg: #fef3c7;
+            --info: #1d4ed8; --info-bg: #dbeafe;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--ink); }
+
+        /* الترويسة: من admin-panel.css المشترك — هنا التخطيط وحده */
+        .page-header { padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+        .page-header h1 { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .page-header h1 i { color: var(--primary); }
+        .page-header .hdr-tools { display: flex; align-items: center; gap: 8px; }
+
+        .main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+        .intro { color: var(--ink-2); font-size: .9rem; line-height: 1.8; margin-bottom: 14px; max-width: 75ch; }
+        .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+        .bar select { border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; font-family: inherit; font-size: .88rem; background: var(--surface); color: var(--ink); }
+
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 18px; }
+        .stat { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; gap: 10px; align-items: center; }
+        .stat .ic { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+        .stat .num { font-size: 1.35rem; font-weight: 900; line-height: 1.1; }
+        .stat .lbl { font-size: .76rem; color: var(--ink-2); font-weight: 700; }
+
+        .panel { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; margin-bottom: 18px; overflow: hidden; }
+        .panel h2 { font-size: 1rem; font-weight: 900; padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+        .panel h2 i { color: var(--primary); }
+
+        .field-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+        .field-row:last-child { border-bottom: none; }
+        .field-name { font-weight: 800; }
+        .field-count { font-weight: 900; font-variant-numeric: tabular-nums; text-align: end; }
+        .field-meta { grid-column: 1 / -1; font-size: .78rem; color: var(--ink-2); display: flex; gap: 12px; flex-wrap: wrap; }
+        .meter { grid-column: 1 / -1; height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+        .meter span { display: block; height: 100%; background: linear-gradient(90deg, #f59e0b, #dc2626); border-radius: 99px; }
+        .msgs { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+        .msg { font-size: .76rem; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; color: var(--ink-2); }
+        .tag { font-size: .7rem; font-weight: 800; border-radius: 6px; padding: 2px 7px; }
+        .tag.server { background: var(--late-bg); color: var(--late); }
+        .tag.client { background: var(--info-bg); color: var(--info); }
+
+        .recent-row { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; padding: 11px 16px; border-bottom: 1px solid var(--line); font-size: .85rem; }
+        .recent-row:last-child { border-bottom: none; }
+        .recent-row time { color: var(--ink-3); font-size: .76rem; direction: ltr; white-space: nowrap; }
+        .recent-row .who { font-weight: 800; }
+        .recent-row .who a { color: var(--info); text-decoration: none; font-weight: 700; direction: ltr; unicode-bidi: isolate; margin-inline-start: 6px; }
+        .recent-row .what { grid-column: 2; color: var(--ink-2); }
+
+        .empty { text-align: center; padding: 40px 16px; color: var(--ink-2); }
+        .empty i { font-size: 1.8rem; color: var(--ink-3); display: block; margin-bottom: 8px; }
+
+        body.dark-mode { --ink: #f1f5f9; --ink-2: #cbd5e1; --ink-3: #64748b; --line: #334155; --surface: #1e293b; --bg: #0f172a;
+            --late-bg: #2b0b0b; --late: #f87171; --info-bg: #0b1f45; --info: #93c5fd; }
+        body.dark-mode .msg, body.dark-mode .meter { background: #0f172a; }
+        body.dark-mode .bar select { background: #0f172a; color: var(--ink); }
+        @media (max-width: 560px) { .page-header { padding: 14px; } .page-header h1 { font-size: 1.05rem; } }
+    </style>
+    <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=46719181"></script>
+    <link rel="stylesheet" href="css/admin-panel.css?v=dde88f2c">
+    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=e580d006">
+    <script src="js/admin-mobile.js?v=5b949b76"></script>
+    <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/admin-alerts.js?v=197ebabe"></script>
+    <script src="js/admin-palette.js?v=0220454b"></script>
+</head>
+<body>
+<div class="page-header">
+    <h1><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> تعثّر العملاء عند الطلب</h1>
+    <div class="hdr-tools">
+        <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
+            <i class="fas fa-search" aria-hidden="true"></i>
+        </button>
+        <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
+            <i class="fas fa-moon" aria-hidden="true"></i>
+        </button>
+        <a href="admin.html" class="admin-back-btn"><i class="fas fa-arrow-right" aria-hidden="true"></i> الرئيسية</a>
+    </div>
+</div>
+
+<main class="main">
+    <p class="intro">
+        كل مرّةٍ يضغط فيها عميلٌ «اطلب» وتُرفض خانة، تُسجَّل الخانة والرسالة التي رآها — لا ما كتبه.
+        الخانة التي يتعثّر فيها كثيرون مشكلةٌ في النموذج أو في صياغة الرسالة، لا في العملاء.
+    </p>
+
+    <div class="bar">
+        <label class="wj-sr-only" for="days">الفترة</label>
+        <select id="days">
+            <option value="1">آخر 24 ساعة</option>
+            <option value="7" selected>آخر 7 أيام</option>
+            <option value="30">آخر 30 يوماً</option>
+        </select>
+        <label class="wj-sr-only" for="city">المدينة</label>
+        <select id="city">
+            <option value="">كل المدن</option>
+            <option value="Khartoum">الخرطوم</option>
+            <option value="PortSudan">بورتسودان</option>
+        </select>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <section class="panel" aria-labelledby="byFieldTitle">
+        <h2 id="byFieldTitle"><i class="fas fa-list-ol" aria-hidden="true"></i> الخانات الأكثر تعثّراً</h2>
+        <div id="byField" aria-busy="true"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="recentTitle">
+        <h2 id="recentTitle"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i> آخر المحاولات</h2>
+        <div id="recent" aria-busy="true"></div>
+    </section>
+</main>
+
+<script>
+(function () {
+    'use strict';
+    const API = (typeof API_URL !== 'undefined' && API_URL) || '';
+    const token = localStorage.getItem('adminToken');
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s)
+        .replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]));
+    const when = (d) => { try { return new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (_) { return ''; } };
+
+    try { $('city').value = localStorage.getItem('ce_city') || ''; } catch (_) {}
+
+    function render(data) {
+        const t = data.totals;
+        const top = data.fields[0];
+        $('stats').innerHTML = [
+            ['fa-triangle-exclamation', 'محاولة رُفضت فيها خانة', t.events, ['#fee2e2', '#b91c1c']],
+            ['fa-users', 'عميلاً تعثّر', t.users, ['#dbeafe', '#1d4ed8']],
+            ['fa-bullseye', top ? `الأكثر: ${esc(top.label)}` : 'لا تعثّر', top ? top.count : 0, ['#fef3c7', '#b45309']]
+        ].map(s => `<div class="stat"><span class="ic" style="background:${s[3][0]};color:${s[3][1]}" aria-hidden="true"><i class="fas ${s[0]}" aria-hidden="true"></i></span>
+            <span><span class="num" style="display:block">${s[2]}</span><span class="lbl">${s[1]}</span></span></div>`).join('');
+
+        const byField = $('byField');
+        byField.setAttribute('aria-busy', 'false');
+        if (!data.fields.length) {
+            byField.innerHTML = '<div class="empty" role="status"><i class="fas fa-circle-check" aria-hidden="true"></i>لم يتعثّر أحد في هذه الفترة</div>';
+        } else {
+            const max = data.fields[0].count || 1;
+            byField.innerHTML = data.fields.map(f => `
+                <div class="field-row">
+                    <span class="field-name">${esc(f.label)}</span>
+                    <span class="field-count">${f.count}</span>
+                    <div class="meter" aria-hidden="true"><span style="width:${Math.max(4, Math.round(f.count / max * 100))}%"></span></div>
+                    <div class="field-meta">
+                        <span>${f.users} عميل</span>
+                        ${f.fromServer ? `<span class="tag server">${f.fromServer} رفضها الخادم بعد الإرسال</span>` : ''}
+                        <span>آخرها ${esc(when(f.lastAt))}</span>
+                    </div>
+                    ${f.messages && f.messages.length ? `<div class="msgs">${f.messages.filter(Boolean).map(m => `<span class="msg">${esc(m)}</span>`).join('')}</div>` : ''}
+                </div>`).join('');
+        }
+
+        const recent = $('recent');
+        recent.setAttribute('aria-busy', 'false');
+        recent.innerHTML = data.recent.length ? data.recent.map(r => `
+            <div class="recent-row">
+                <time datetime="${esc(r.at)}">${esc(when(r.at))}</time>
+                <span class="who">${r.user ? esc(r.user.name || 'عميل') : 'عميل'}${r.user && r.user.phone ? `<a href="tel:${esc(r.user.phone)}" aria-label="اتصال بـ ${esc(r.user.name || 'العميل')}">${esc(r.user.phone)}</a>` : ''}</span>
+                <span></span>
+                <span class="what"><b>${esc(r.label)}</b> — ${esc(r.message)}
+                    <span class="tag ${r.source === 'server' ? 'server' : 'client'}">${r.source === 'server' ? 'الخادم' : 'قبل الإرسال'}</span>
+                    ${r.appVersion ? `<span class="msg">نسخة ${esc(r.appVersion)}</span>` : ''}</span>
+            </div>`).join('')
+            : '<div class="empty" role="status"><i class="fas fa-inbox" aria-hidden="true"></i>لا محاولات مسجّلة</div>';
+    }
+
+    async function load() {
+        const qs = new URLSearchParams({ days: $('days').value });
+        if ($('city').value) qs.set('city', $('city').value);
+        if (window.UIState) { UIState.skeleton($('byField'), { count: 3 }); }
+        try {
+            const res = await fetch(`${API}/api/admin/client-errors?${qs}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.status === 401) { location.href = 'admin-login.html'; return; }
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.message || '');
+            render(body);
+        } catch (err) {
+            const msg = window.friendlyError ? friendlyError(err, 'تعذّر تحميل أخطاء العملاء') : 'تعذّر تحميل أخطاء العملاء';
+            if (window.UIState) UIState.error($('byField'), { text: msg, onRetry: load });
+        }
+    }
+
+    $('days').addEventListener('change', load);
+    $('city').addEventListener('change', () => {
+        try { localStorage.setItem('ce_city', $('city').value); } catch (_) {}
+        load();
+    });
+    load();
+})();
+</script>
+</body>
+</html>

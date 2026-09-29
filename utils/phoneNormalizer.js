@@ -30,6 +30,10 @@ function normalizePhone(phone) {
     if (!phone) return null;
     let cleaned = foldDigits(phone).replace(/[^0-9]/g, '');
 
+    // 00249… — صيغة الاتصال الدوليّ كما يكتبها كثيرون. كانت تمرّ على فرع «يبدأ
+    // بصفر» فتصير '2490249…' وتُرفض رقماً صحيحاً. (مرآتها في public_html/js/field-errors.js)
+    if (cleaned.startsWith('00249')) cleaned = cleaned.slice(2);
+
     // Handle 24909... case (Common user error)
     if (cleaned.startsWith('2490')) return '249' + cleaned.substring(4);
 
