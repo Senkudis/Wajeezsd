@@ -1,0 +1,25 @@
+# وجيز - wajeezsd — https://wajeezsd.com
+# الصفحات العامة مفتوحة للفهرسة. لوحات التحكّم وملفات المستخدمين لا:
+# لا قيمة لها في نتائج البحث، وبعضها بيانات شخصية (وثائق الكباتن،
+# صور إثبات التسليم، مرفقات المحادثات).
+
+User-agent: *
+Allow: /
+Allow: /captain-signup.html
+Allow: /client-register-shop.html
+
+Disallow: /api/
+Disallow: /admin
+Disallow: /admin-*.html
+Disallow: /merchant-*.html
+Disallow: /captain-*.html
+Disallow: /client-*.html
+Disallow: /tracking.html
+Disallow: /chat.html
+Disallow: /uploads/documents/
+Disallow: /uploads/proofs/
+Disallow: /uploads/chat/
+Disallow: /uploads/parcels/
+Disallow: /uploads/profiles/
+
+Sitemap: https://wajeezsd.com/sitemap.xml

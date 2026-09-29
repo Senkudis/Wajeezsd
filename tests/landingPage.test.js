@@ -66,7 +66,7 @@ describe('المتجران معاً — التطبيق نُشر على آبل', 
 
     it('والبيانات المنظَّمة تذكر المتجرين', () => {
         const i = page.indexOf('"@type": "MobileApplication"');
-        const blk = page.slice(i, i + 700);
+        const blk = page.slice(i, page.indexOf('</script>', i));
         expect(blk).toContain('apps.apple.com');
         expect(blk).toContain('play.google.com');
     });
@@ -182,9 +182,9 @@ describe('نظامٌ بصري واحد، لا أقسامٌ متجاورة', () =
         expect(page).toContain('mask-image: radial-gradient(ellipse 130% 70% at 50% 0%');
     });
 
-    it('والأقسام تتناوب: ثلاثة فصولٍ مُشرَّطة', () => {
+    it('والأقسام تتناوب: أربعة فصولٍ مُشرَّطة (الخدمات، كيف يعمل، الشروحات، الأسئلة)', () => {
         const bands = page.match(/<section id="[^"]+" class="band">/g) || [];
-        expect(bands.length).toBe(3);
+        expect(bands.length).toBe(4);
         expect(page).toContain('.band::before, .band::after');
     });
 
@@ -215,7 +215,7 @@ describe('المعرض لا يبتلع الشاشة', () => {
 
 describe('بلاطاتٌ متفاوتة لا ستّ نسخٍ متطابقة', () => {
     it('١ و٤ و٥ تأخذ عمودين فتمتلئ الصفوف الثلاثة بلا فجوة', () => {
-        expect(page).toContain('#featGrid > .card:nth-child(1),');
+        expect(page).toContain('.feat-grid > .card:nth-child(1),');
         expect(page).toMatch(/nth-child\(5\) \{ grid-column: span 2; \}/);
     });
 
