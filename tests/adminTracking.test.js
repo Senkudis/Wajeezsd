@@ -261,11 +261,11 @@ describe('الصفحة', () => {
         }
     });
 
-    it('زرّا التنبيه والطمأنة، والخريطة مركّزة على الكابتن', () => {
+    it('زرّا التنبيه والطمأنة، والخريطة خريطة الرحلة نفسها لا كل الكباتن', () => {
         expect(js).toContain('data-to="captain"');
         expect(js).toContain('data-to="client"');
-        expect(js).toContain('admin-live-map.html?focus=');
-        expect(read('public_html/js/admin-live-map.js')).toContain("get('focus')");
+        expect(js).toContain('admin-trip-map.html?order=${encodeURIComponent(t.id)}');
+        expect(js).not.toContain('admin-live-map.html?focus=');
     });
 
     it('فلتر «إثبات مشكوك فيه» وعارض صورة الاستلام', () => {

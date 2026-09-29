@@ -261,6 +261,9 @@ function initMapLogic() {
         streetViewControl: false,
         mapTypeControl:    false,
         fullscreenControl: true,
+        // إصبعٌ واحد يسحب الخريطة على الهاتف — «auto» يطلب إصبعين أحياناً
+        // فتبدو الخريطة لا تستجيب للمس
+        gestureHandling:   'greedy',
         styles: [
             { featureType: 'poi', stylers: [{ visibility: 'off' }] },
             { featureType: 'transit', stylers: [{ visibility: 'off' }] }
@@ -295,6 +298,8 @@ async function loadInitialCaptains() {
 
         if (!res.ok) {
             console.warn('active-captains fetch failed:', res.status);
+            hideLoader();
+            showToast('تعذّر تحميل مواقع الكباتن', 'error');
             return;
         }
 
@@ -348,7 +353,16 @@ async function loadInitialCaptains() {
 
     } catch (err) {
         console.error('Fetch active-captains error:', err);
+        hideLoader();
+        showToast('تعذّر الاتصال بالخادم', 'error');
     }
+}
+
+// الغطاء لا يبقى فوق الخريطة إن فشل التحميل — كان يبقى بعد تبديل
+// المدينة فتبدو الخريطة ميّتة لا تستجيب للمس
+function hideLoader() {
+    const l = document.getElementById('mapLoader');
+    if (l) l.style.display = 'none';
 }
 
 // 🚨 تمركُز الخريطة على موقع نجدة الكابتن عند القدوم من إشعار الطوارئ.

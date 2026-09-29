@@ -291,7 +291,7 @@
                     <i class="fas fa-bell" aria-hidden="true"></i> تنبيه الكابتن</button>
                 <button type="button" class="btn btn-info" data-nudge="${t.id}" data-to="client" ${t.client ? '' : 'disabled'}>
                     <i class="fas fa-user-check" aria-hidden="true"></i> طمأنة العميل</button>` : ''}
-                <a class="btn btn-ghost" href="admin-live-map.html?focus=${encodeURIComponent(c.id)}">
+                <a class="btn btn-ghost" href="admin-trip-map.html?order=${encodeURIComponent(t.id)}">
                     <i class="fas fa-map-location-dot" aria-hidden="true"></i> على الخريطة</a>
                 <a class="btn btn-ghost" href="admin-order-details.html?id=${encodeURIComponent(t.id)}">
                     <i class="fas fa-file-lines" aria-hidden="true"></i> تفاصيل الطلب</a>

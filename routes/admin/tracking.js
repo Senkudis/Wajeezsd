@@ -152,6 +152,64 @@ router.get('/tracking/report', protect, CAN_VIEW, async (req, res) => {
     }
 });
 
+// ─── GET /api/admin/tracking/:id/map ─────────────────────────────────────
+// خريطة رحلةٍ واحدة: كابتنها وحده، ونقطتا الاستلام والتسليم (ومحطّات
+// المتعدّد)، ووجهته الآن، وموقع إعلان التسليم. الخريطة الحيّة العامة تُظهر
+// كل الكباتن — وهذا ما لا يريده من يتابع طلباً بعينه.
+const MAP_ORDER_FIELDS = ORDER_FIELDS + ' pickup.lat pickup.lng dropoff.lat dropoff.lng ' +
+    'stops.type stops.address stops.lat stops.lng';
+
+function pointOf(p, extra = {}) {
+    if (!p || !Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return null;
+    return { lat: p.lat, lng: p.lng, ...extra };
+}
+
+router.get('/tracking/:id/map', protect, CAN_VIEW, async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id)
+            .select(MAP_ORDER_FIELDS)
+            .populate('captain', CAPTAIN_FIELDS)
+            .populate('client', CLIENT_FIELDS)
+            .lean();
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (!adminCoversCity(req.user, order.city || 'Khartoum')) {
+            return res.status(403).json({ message: 'هذا الطلب خارج نطاق مدينتك' });
+        }
+
+        const now = new Date();
+        const nudges = await Settings.getNudgeSettings(order.city || 'Khartoum');
+        const trip = T.buildTrip(order, nudges, now);
+        const running = trip.stage === 'to_pickup' || trip.stage === 'to_dropoff';
+        const stops = order.isMultiStop && Array.isArray(order.stops) ? order.stops : [];
+        const loc = order.captain && order.captain.currentLocation;
+        const proof = order.deliveryProof || {};
+
+        res.json({
+            now,
+            trip,
+            running,
+            points: {
+                pickup: pointOf(order.pickup, { address: trip.pickup.address, name: trip.pickup.name }),
+                dropoff: pointOf(order.dropoff, { address: trip.dropoff.address, name: trip.dropoff.name }),
+                stops: stops.map((s, i) => pointOf(s, {
+                    n: i + 1, type: s.type, address: String(s.address || '').slice(0, 120), done: !!(s.done || s.doneAt)
+                })).filter(Boolean),
+                // أين كان الكابتن حين أعلن التسليم — يُقارَن بدبّوس العميل
+                deliveredAt: order.status === 'delivered'
+                    ? pointOf(proof, { distanceM: proof.distanceM ?? null, verified: proof.verified ?? null }) : null
+            },
+            // وجهته الآن (أول محطّةٍ لم تكتمل في المتعدّد) — يُرسم إليها خطّ
+            target: running ? T.targetOf(order, trip.stage) : null,
+            // الموقع المحفوظ حتى لو قديماً — العمر يُعرض بجانبه، والإخفاء يُضلّل
+            captainLocation: loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)
+                ? { lat: loc.lat, lng: loc.lng, at: loc.fixedAt || loc.updatedAt || null } : null
+        });
+    } catch (err) {
+        logger.error({ err: err.message }, '[admin/tracking] trip map failed');
+        res.status(500).json({ message: 'تعذّر تحميل خريطة الرحلة' });
+    }
+});
+
 // ─── POST /api/admin/tracking/:id/notify ─────────────────────────────────
 const nudgeLimiter = rateLimit({
     windowMs: 60 * 1000,

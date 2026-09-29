@@ -3,7 +3,7 @@
 <head>
     <script src="js/admin-guard.js?v=691df92a" data-perm="view_map"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>الخريطة المباشرة | وجيز</title>
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
@@ -238,6 +238,39 @@
             70%  { transform: scale(2.2); opacity: 0;  }
             100% { transform: scale(2.2); opacity: 0;  }
         }
+        /* ── الهاتف: كانت اللوحتان (230 + 170 بكسل) تتراكبان على شاشة 375،
+           وشريط البحث عرضه calc(100vw - 380px) = سالب فيختفي، والخريطة
+           تحت ذلك كله لا يصلها إصبع. هنا: شريطٌ علويّ مضغوط، والبحث تحته
+           بعرض الشاشة، والإحصاءات صفٌّ واحد، ودليل الألوان مخفيّ. ── */
+        #map { height: 100vh; height: 100dvh; }
+        #mapLoader { pointer-events: none; }
+        @media (max-width: 640px) {
+            .map-header {
+                top: calc(var(--sat, 0px) + 8px); right: 8px; left: 8px; min-width: 0;
+                padding: 8px 12px; border-radius: 14px;
+                display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            }
+            .map-header > div:first-child { flex: 1; min-width: 0; }
+            .map-header h1 { font-size: 15px; margin: 0; }
+            #connectionStatus { font-size: 11px; flex: 0 0 auto; }
+            #liveCitySelector { margin-top: 0 !important; width: auto !important; flex: 1 1 100%; }
+            #searchBar {
+                top: calc(var(--sat, 0px) + 122px); left: 8px; right: 8px;
+                transform: none; width: auto;
+            }
+            .search-box { padding: 8px 12px; }
+            .stats-panel {
+                top: auto; left: 8px; right: auto; bottom: calc(var(--sab, 0px) + 20px);
+                min-width: 0; padding: 8px 12px; display: flex; gap: 12px; align-items: center;
+            }
+            .stats-panel h6 { display: none; }
+            .stat-row { margin: 0; gap: 5px; }
+            .stat-label { display: none; }
+            .stat-value { font-size: 15px; }
+            .legend { display: none; }
+            .back-btn { bottom: calc(var(--sab, 0px) + 20px); right: 8px; padding: 10px 14px; font-size: 13px; }
+            .refresh-btn { bottom: calc(var(--sab, 0px) + 76px); left: 8px; width: 44px; height: 44px; }
+        }
 body.dark-mode .map-header { background: #1f2937 !important; border-color: #374151 !important; color: #f9fafb !important; box-shadow: 0 2px 12px rgba(0,0,0,0.5) !important; }
 body.dark-mode .map-header h1 { color: #f9fafb !important; }
 body.dark-mode .stats-panel { background: #1f2937 !important; border-color: #374151 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important; }
@@ -366,7 +399,7 @@ body.dark-mode .search-result-item:hover, body.dark-mode .search-result-item.hig
 
     <!-- Admin Map Logic -->
     <script src="js/admin-search.js?v=7649b4af"></script>
-    <script src="js/admin-live-map.js?v=2f038276"></script>
+    <script src="js/admin-live-map.js?v=086acf76"></script>
 
 </body>
 </html>

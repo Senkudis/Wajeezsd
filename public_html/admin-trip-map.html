@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <script src="js/admin-guard.js?v=691df92a" data-perm="view_map,view_orders"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>خريطة الرحلة | وجيز</title>
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+    <script src="js/console-cleaner.js?v=d257b4ad"></script>
+    <script src="js/config.js?v=21463b97"></script>
+    <style>
+        :root {
+            --primary: #048c5b;
+            --ink: #0f172a;
+            --ink-2: #475569;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --chip: #f1f5f9;
+            --ok: #15803d;   --ok-bg: #dcfce7;
+            --warn: #b45309; --warn-bg: #fef3c7;
+            --late: #b91c1c; --late-bg: #fee2e2;
+            --done: #1d4ed8; --done-bg: #dbeafe;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body { font-family: 'Cairo', sans-serif; color: var(--ink); background: #e5e7eb; overflow: hidden; }
+
+        /* الخريطة تملأ الشاشة؛ ولا غطاء فوقها يحجب اللمس */
+        #tmMap { position: fixed; inset: 0; }
+
+        /* ── الشريط العلوي ── */
+        .tm-top {
+            position: fixed; z-index: 10;
+            top: calc(var(--sat, 0px) + 10px); right: 12px; left: 12px;
+            display: flex; align-items: center; gap: 8px;
+            pointer-events: none;   /* الفراغ بين الأزرار يمرّر اللمس للخريطة */
+        }
+        .tm-top > * { pointer-events: auto; }
+        .tm-round {
+            width: 44px; height: 44px; border-radius: 50%; border: 0; flex-shrink: 0;
+            background: var(--surface); color: var(--ink); font-size: 17px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,.18); text-decoration: none;
+        }
+        .tm-titlebox {
+            flex: 1; min-width: 0; background: var(--surface); border-radius: 22px;
+            padding: 6px 16px; box-shadow: 0 2px 10px rgba(0,0,0,.18);
+            display: flex; flex-direction: column; line-height: 1.3;
+        }
+        .tm-titlebox h1 { font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #tmLive { font-size: 12px; font-weight: 700; color: var(--ok); display: flex; align-items: center; gap: 6px; }
+        #tmLive::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        #tmLive.bad { color: var(--warn); }
+
+        /* ── اللوحة: سفلية على الهاتف، جانبية على الشاشة العريضة ── */
+        .tm-sheet {
+            position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
+            background: var(--surface); border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 24px rgba(0,0,0,.18);
+            padding: 0 16px calc(var(--sab, 0px) + 14px);
+            max-height: 52vh; max-height: 52dvh; overflow-y: auto; overscroll-behavior: contain;
+            transition: transform .25s ease;
+        }
+        .tm-handle {
+            display: block; width: 100%; border: 0; background: transparent; cursor: pointer;
+            padding: 10px 0 6px; position: sticky; top: 0; background: var(--surface); z-index: 1;
+        }
+        .tm-handle span { display: block; width: 44px; height: 5px; border-radius: 3px; background: #cbd5e1; margin: 0 auto; }
+        .tm-sheet.collapsed { transform: translateY(calc(100% - 118px - var(--sab, 0px))); }
+
+        .tm-stage { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; font-size: 15px; }
+        .tm-pill { font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; }
+        .tm-pill.ok { background: var(--ok-bg); color: var(--ok); }
+        .tm-pill.warn { background: var(--warn-bg); color: var(--warn); }
+        .tm-pill.late { background: var(--late-bg); color: var(--late); }
+        .tm-pill.done { background: var(--done-bg); color: var(--done); }
+        .tm-muted { color: var(--ink-2); font-size: 13px; }
+
+        .tm-person { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+        .tm-avatar {
+            width: 46px; height: 46px; border-radius: 50%; background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .tm-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .tm-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .tm-who b { font-size: 15px; }
+        .tm-call {
+            width: 46px; height: 46px; border-radius: 50%; background: var(--ok-bg); color: var(--ok);
+            display: inline-flex; align-items: center; justify-content: center; font-size: 17px;
+            text-decoration: none; flex-shrink: 0;
+        }
+        .tm-call.sm { width: 40px; height: 40px; font-size: 15px; }
+
+        .tm-facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+        .tm-fact { background: var(--chip); border-radius: 10px; padding: 5px 10px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+        .tm-fact.warn { background: var(--warn-bg); color: var(--warn); }
+        .tm-fact.bad { background: var(--late-bg); color: var(--late); }
+
+        .tm-route { list-style: none; border-top: 1px solid var(--line); }
+        .tm-route li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .tm-route li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+        .tm-route li span:not(.tm-dot) { color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+        .tm-dot { width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tm-dot.a { background: #10b981; }
+        .tm-dot.b { background: #e63946; }
+        .tm-note { font-size: 13px; color: var(--warn); margin-top: 10px; }
+
+        .tm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+        .tm-btn {
+            flex: 1 1 140px; min-height: 44px; border-radius: 12px; border: 0; cursor: pointer;
+            background: var(--primary); color: #fff; font: 700 14px 'Cairo', sans-serif;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            text-decoration: none; padding: 8px 12px; touch-action: manipulation;
+        }
+        .tm-btn.ghost, #tmFollow:not(.on) { background: var(--chip); color: var(--ink); }
+        .tm-btn:focus-visible, .tm-round:focus-visible, .tm-call:focus-visible { outline: 3px solid #60a5fa; outline-offset: 2px; }
+
+        .tm-empty { text-align: center; padding: 20px 0; }
+        .tm-empty i { font-size: 30px; color: var(--warn); margin-bottom: 8px; }
+        .tm-empty p { margin-bottom: 14px; }
+        .tm-skel { height: 14px; border-radius: 7px; background: var(--chip); margin: 10px 0; }
+
+        @media (min-width: 900px) {
+            .tm-sheet {
+                top: 76px; bottom: 16px; right: 16px; left: auto; width: 380px;
+                border-radius: 18px; max-height: none; box-shadow: 0 4px 24px rgba(0,0,0,.18);
+            }
+            .tm-sheet.collapsed { transform: none; }
+            .tm-handle { display: none; }
+            .tm-sheet { padding-top: 16px; }
+            .tm-top { left: auto; width: 380px; right: 16px; }
+        }
+
+        body.dark-mode { --ink: #f1f5f9; --ink-2: #94a3b8; --line: #334155; --surface: #1e293b; --chip: #0f172a;
+                         --ok-bg: #14532d; --ok: #86efac; --warn-bg: #451a03; --warn: #fcd34d;
+                         --late-bg: #450a0a; --late: #fca5a5; --done-bg: #172554; --done: #93c5fd; }
+    </style>
+    <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=46719181"></script>
+    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <script src="js/theme-manager.js?v=ef048761"></script>
+</head>
+<body>
+    <div id="tmMap" role="application" aria-label="خريطة الرحلة"></div>
+
+    <header class="tm-top">
+        <a class="tm-round" href="admin-tracking.html" aria-label="العودة إلى لوحة التتبّع"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        <div class="tm-titlebox">
+            <h1 id="tmTitle">خريطة الرحلة</h1>
+            <span id="tmLive" aria-live="polite">جارٍ التحميل</span>
+        </div>
+        <button type="button" class="tm-round" data-theme-toggle aria-label="تبديل الوضع الليلي"><i class="fas fa-moon" aria-hidden="true"></i></button>
+    </header>
+
+    <section class="tm-sheet" id="tmSheet" aria-label="تفاصيل الرحلة">
+        <button type="button" class="tm-handle" id="tmHandle" aria-label="طيّ أو فتح التفاصيل" aria-expanded="true"><span></span></button>
+        <div id="tmSheetBody">
+            <div class="tm-skel" style="width:60%"></div>
+            <div class="tm-skel"></div>
+            <div class="tm-skel" style="width:80%"></div>
+        </div>
+    </section>
+
+    <script src="vendor/socket.io/socket.io.min.js"></script>
+    <script src="js/maps-loader.js?v=9c3cdf9b"></script>
+    <script src="js/map-markers.js?v=34f3acc0"></script>
+    <script src="js/vehicle-types.js?v=3a11758f"></script>
+    <script src="js/admin-trip-map.js?v=352ff9d7"></script>
+    <script>loadGoogleMaps({ callback: 'initTripMap' }).catch(function () {
+        var l = document.getElementById('tmLive'); if (l) { l.textContent = 'تعذّر تحميل الخريطة'; l.classList.add('bad'); }
+    });</script>
+</body>
+</html>
