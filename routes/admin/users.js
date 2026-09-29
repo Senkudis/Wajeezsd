@@ -23,6 +23,33 @@ const logger = require('../../utils/logger');
 const SessionRequest = require('../../models/SessionRequest');
 const Place = require('../../models/Place');
 const Product = require('../../models/Product');
+const { withSignedDocs, sign, SENSITIVE_DOC_FIELDS } = require('../../utils/privateFiles');
+
+/**
+ * 🔒 هوية الكابتن وسيلفيه ورخصته لمن يُصرَّح له بها وحده.
+ * view_users (قائمة المستخدمين) لا تعني الاطّلاع على البطاقات القومية —
+ * تلك view_captain_details أو manage_captains (من يقبل ويرفض). لمن يحقّ:
+ * روابط موقّعة مؤقّتة (utils/privateFiles.js)؛ ولغيره: تُفرَّغ.
+ */
+function canSeeIdDocs(user) {
+    if (!user || user.role !== 'admin') return false;
+    if (!user.adminRole || user.adminRole === 'super_admin') return true;
+    const p = user.permissions || [];
+    return p.includes('view_captain_details') || p.includes('manage_captains');
+}
+function docsForAdmin(req, users) {
+    if (canSeeIdDocs(req.user)) return withSignedDocs(users);
+    const strip = (u) => {
+        if (!u) return u;
+        const o = typeof u.toObject === 'function' ? u.toObject() : { ...u };
+        if (o.documents) {
+            o.documents = { ...o.documents };
+            for (const k of SENSITIVE_DOC_FIELDS) if (o.documents[k]) o.documents[k] = '';
+        }
+        return o;
+    };
+    return Array.isArray(users) ? users.map(strip) : strip(users);
+}
 
 router.get('/user/:id', protect, requireAnyPermission(['view_users', 'view_captains', 'manage_captains', 'manage_users']), async (req, res) => {
     try {
@@ -34,7 +61,7 @@ router.get('/user/:id', protect, requireAnyPermission(['view_users', 'view_capta
         if (!adminCanActOnUser(req, user)) {
             return res.status(403).json({ message: 'غير مصرح — هذا المستخدم خارج مدينتك' });
         }
-        res.json(user);
+        res.json(docsForAdmin(req, user));
     } catch (error) {
         logger.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -53,7 +80,7 @@ router.get('/users', protect, requirePermission('view_users'), async (req, res) 
     try {
         // 🌍 sub_admin يرى مستخدمي مدينته فقط
         const users = await User.find(getAdminCityFilter(req)).select('-password').sort({ createdAt: -1 });
-        res.json(users);
+        res.json(docsForAdmin(req, users));
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
@@ -174,12 +201,13 @@ router.get('/captains-detailed', protect, requirePermission('view_captain_detail
                     pledgeText:           app.pledgeText || '',
                     submittedAt:          app.submittedAt || null
                 },
+                // 🔒 المسار يتطلّب view_captain_details — الروابط الحسّاسة موقّعة مؤقّتة
                 documents: {
-                    idImage:       docs.idImage || '',
-                    selfieImage:   docs.selfieImage || '',
+                    idImage:       sign(docs.idImage || ''),
+                    selfieImage:   sign(docs.selfieImage || ''),
                     profilePhoto:  docs.profilePhoto || '',
                     vehiclePhoto:  docs.vehiclePhoto || '',
-                    driverLicense: docs.driverLicense || ''
+                    driverLicense: sign(docs.driverLicense || '')
                 },
                 requiredDocs,
                 missingDocsCount: Object.values(requiredDocs).filter(v => !v).length
@@ -571,7 +599,7 @@ router.get('/pending-captains', protect, requirePermission('view_captains'), asy
         })
             .select('-password')
             .sort({ createdAt: -1 });
-        res.json(captains);
+        res.json(docsForAdmin(req, captains));
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }

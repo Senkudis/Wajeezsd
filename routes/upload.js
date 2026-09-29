@@ -225,8 +225,13 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
         if (bad) return res.status(400).json({ message: bad });
 
         const updates = {};
+        // 🔒 الهوية والسيلفي والرخصة إلى المجلد الخاصّ — لا يخدمها أحدٌ مباشرة،
+        //    وتُقرأ برابطٍ موقّعٍ مؤقّت لمن يحقّ له (utils/privateFiles.js).
+        //    الصورة الشخصية وصورة المركبة تبقيان عامّتين: يراهما العميل.
+        const { moveToPrivate } = require('../utils/privateFiles');
+        const priv = (field) => moveToPrivate(req.files[field][0].path, 'documents');
         if (req.files.driverLicense) {
-            updates['documents.driverLicense'] = `/uploads/documents/${req.files.driverLicense[0].filename}`;
+            updates['documents.driverLicense'] = priv('driverLicense');
         }
         if (req.files.profilePhoto) {
             updates['documents.profilePhoto'] = `/uploads/documents/${req.files.profilePhoto[0].filename}`;
@@ -235,10 +240,10 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
             updates['documents.vehiclePhoto'] = `/uploads/documents/${req.files.vehiclePhoto[0].filename}`;
         }
         if (req.files.idImage) {
-            updates['documents.idImage'] = `/uploads/documents/${req.files.idImage[0].filename}`;
+            updates['documents.idImage'] = priv('idImage');
         }
         if (req.files.selfieImage) {
-            updates['documents.selfieImage'] = `/uploads/documents/${req.files.selfieImage[0].filename}`;
+            updates['documents.selfieImage'] = priv('selfieImage');
         }
 
         if (Object.keys(updates).length > 0) {
@@ -370,7 +375,10 @@ router.post('/proof-image', protect, requireRole('captain'), setUploadType('proo
         const bad = await rejectNonImages(req);
         if (bad) return res.status(400).json({ message: bad });
 
-        const fileUrl = `/uploads/proofs/${req.file.filename}`;
+        // 🔒 هوية التاجر (?kind=id) إلى المجلد الخاصّ؛ الشعار يبقى عامّاً — يُعرض في متجره
+        const fileUrl = req.query.kind === 'id'
+            ? require('../utils/privateFiles').moveToPrivate(req.file.path, 'merchant-ids')
+            : `/uploads/proofs/${req.file.filename}`;
         res.json({
             success: true,
             message: 'تم رفع صورة الإثبات بنجاح',
@@ -394,7 +402,10 @@ router.post('/merchant-proof', protect, setUploadType('proofs'), (req, res) => {
         const bad = await rejectNonImages(req);
         if (bad) return res.status(400).json({ message: bad });
 
-        const fileUrl = `/uploads/proofs/${req.file.filename}`;
+        // 🔒 هوية التاجر (?kind=id) إلى المجلد الخاصّ؛ الشعار يبقى عامّاً — يُعرض في متجره
+        const fileUrl = req.query.kind === 'id'
+            ? require('../utils/privateFiles').moveToPrivate(req.file.path, 'merchant-ids')
+            : `/uploads/proofs/${req.file.filename}`;
         res.json({
             success: true,
             message: 'تم رفع الصورة بنجاح',

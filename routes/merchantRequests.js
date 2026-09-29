@@ -145,8 +145,14 @@ router.get('/admin/all', protect, adminOnly,
         const requests = await MerchantRequest.find(getAdminCityFilter(req))
             .populate('userId', 'name phone email')
             .sort({ createdAt: -1 });
-            
-        res.json(requests);
+
+        // 🔒 هوية التاجر (إن كانت في المجلد الخاصّ) برابطٍ موقّعٍ مؤقّت
+        const { sign } = require('../utils/privateFiles');
+        res.json(requests.map(r => {
+            const o = r.toObject();
+            if (o.idImage) o.idImage = sign(o.idImage);
+            return o;
+        }));
     } catch (error) {
         logger.error('Error fetching all requests:', error);
         res.status(500).json({ message: 'Server error' });
