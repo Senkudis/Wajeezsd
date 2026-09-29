@@ -2727,32 +2727,11 @@ router.put('/:id/tip', protect, tipLimiter, async (req, res) => {
     }
 });
 
-router.post('/:id/complain', protect, async (req, res) => {
-    try {
-        const { text } = req.body;
-        const order = await Order.findById(req.params.id);
-        if (!order) return res.status(404).json({ message: 'Order not found' });
-        if (order.client.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
-
-        order.complaint = { text, status: 'pending', createdAt: new Date() };
-        await order.save();
-
-        // ✅ Send unified notification to all admins about the complaint
-        notifyAdmins(req.app, {
-            title: 'شكوى جديدة',
-            message: `شكوى جديدة من العميل ${req.user.name || 'أحد العملاء'} على الطلب #${order._id.toString().slice(-6)}`,
-            type: 'system',
-            relatedId: order._id,
-            city: order.city
-        });
-
-        res.json({ message: 'Complaint submitted', order });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-
+// 🗑️ كان هنا POST /:id/complain — نظام الشكاوى القديم (order.complaint).
+//    لا تستدعيه أيّ شاشة ولا نسخة التطبيق المجمَّعة: العميل والإدارة كلاهما
+//    على نظام التذاكر (routes/complaints.js). وكان بابُ إزعاجٍ مفتوحاً: نصٌّ بلا
+//    تحقّق ولا حدّ، كل إرسالٍ يُنبّه كل الأدمنية، ويكتب فوق شكوى قيد المراجعة،
+//    ويُعيد الطلب كاملاً بحقوله الداخلية (appFee/netRevenue).
 
 // ==========================================
 // ⭐ تقييم الكابتن (جديد)

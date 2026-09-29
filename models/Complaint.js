@@ -42,6 +42,16 @@ const ComplaintSchema = new mongoose.Schema(
             default: 'Order'
         },
 
+        // ── المدينة — ليراها أدمن مدينتها وحده ──
+        //    مدينة الطلب إن ارتبطت به، وإلا مدينة العميل. بلا قيمةٍ افتراضية
+        //    عمداً: التذاكر الأقدم من الحقل تبقى بلا مدينة (للأدمن الرئيسيّ
+        //    وحده) حتى تُملأ بـ scripts/backfill-complaint-city.js — لا نُخمّن.
+        city: {
+            type: String,
+            enum: ['Khartoum', 'PortSudan'],
+            index: true
+        },
+
         // ── عنوان التذكرة ──
         subject: {
             type: String,

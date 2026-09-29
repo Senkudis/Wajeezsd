@@ -1,14 +1,62 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const Complaint = require('../models/Complaint');
 const Order = require('../models/Order');
 const User = require('../models/User');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const {
+    protect, requirePermission, getAdminCityFilter, adminCoversCity, VALID_CITIES
+} = require('../middleware/authMiddleware');
 const { sendNotification } = require('../utils/notificationHelper');
 const logger = require('../utils/logger');
+
+/**
+ * 🔐 مَن يعمل على التذاكر.
+ *
+ * كانت مسارات الإدارة هنا `adminOnly` وحده: أدمنٌ مساعد **بلا** صلاحية
+ * view_complaints، أو مُعيَّنٌ على مدينةٍ أخرى، يقرأ كل التذاكر (بأسماء
+ * العملاء وهواتفهم) ويردّ عليها ويغلقها. صفحة الشكاوى تحرسها
+ * data-perm="view_complaints" — لكن ذلك في المتصفّح، والـ API مفتوح.
+ * الآن: الصلاحية نفسها على الخادم، ونطاق المدينة كبقية لوحة الإدارة.
+ */
+const STAFF = requirePermission('view_complaints');
+
+function isStaff(user) {
+    if (!user || user.role !== 'admin') return false;
+    if (!user.adminRole || user.adminRole === 'super_admin') return true;
+    return Array.isArray(user.permissions) && user.permissions.includes('view_complaints');
+}
+
+/** التذكرة ضمن نطاق هذا الأدمن؟ (تذكرةٌ قديمة بلا مدينة: للأدمن الرئيسيّ وحده حتى تُملأ) */
+function coversTicket(user, complaint) {
+    return adminCoversCity(user, complaint && complaint.city);
+}
+
+/** من يُبلَّغ بتذكرةٍ في مدينة: من يملك الصلاحية ويغطّي المدينة — لا كل الأدمنية */
+async function staffFor(city) {
+    const admins = await User.find({ role: 'admin', isActive: true })
+        .select('_id adminRole permissions city cities').lean();
+    return admins.filter(a => isStaff(a) && adminCoversCity(a, city));
+}
+
+const CATEGORIES = Complaint.schema.path('category').enumValues;
+const MAX_TEXT = 2000;
+
+/** نصٌّ من المستخدم: نصٌّ فعلاً، مقصوص الأطراف، في حدوده — أو null */
+function cleanText(v, max) {
+    if (typeof v !== 'string') return null;
+    const t = v.trim();
+    return t && t.length <= max ? t : null;
+}
+
+/** روابط الصور المرفقة: نصوصٌ من مسار الرفع أو https، بحدٍّ أعلى */
+function cleanImages(v) {
+    if (!Array.isArray(v)) return [];
+    return v.filter(x => typeof x === 'string' && x.length <= 500 && /^(\/uploads\/|\/api\/uploads\/|https:\/\/)/.test(x)).slice(0, 5);
+}
 
 // ═══════════════════════════════════════════════
 // 📱 Client Routes
@@ -19,16 +67,29 @@ const logger = require('../utils/logger');
 // @access Client
 router.post('/', protect, async (req, res) => {
     try {
-        const { orderId, subject, category, reason, description, images } = req.body;
+        const { orderId, subject, category, reason } = req.body || {};
+
+        // ⚠️ وصفٌ غائب كان يُسقط المسار بـ 500 (description.substring على
+        //    undefined)، ونوعٌ غير نصّيّ كذلك — الرسالة الصحيحة 400.
+        const description = cleanText(req.body && req.body.description, MAX_TEXT);
+        if (!description) {
+            return res.status(400).json({ message: `اكتب وصف المشكلة (حتى ${MAX_TEXT} حرف)` });
+        }
+        const safeSubject = cleanText(subject, 200) || 'شكوى جديدة';
+        const safeCategory = CATEGORIES.includes(category) ? category : 'other';
 
         let orderModel = 'Order';
+        let order = null;
 
         // التحقق من الطلب إذا كان موجوداً
         if (orderId) {
-            let order = await Order.findOne({ _id: orderId, client: req.user._id });
+            if (!mongoose.isValidObjectId(orderId)) {
+                return res.status(400).json({ message: 'رقم الطلب غير صالح' });
+            }
+            order = await Order.findOne({ _id: orderId, client: req.user._id }).select('city').lean();
             if (!order) {
                 const ShopOrder = require('../models/ShopOrder');
-                order = await ShopOrder.findOne({ _id: orderId, client: req.user._id });
+                order = await ShopOrder.findOne({ _id: orderId, client: req.user._id }).select('city').lean();
                 if (order) orderModel = 'ShopOrder';
             }
             if (!order) {
@@ -36,27 +97,30 @@ router.post('/', protect, async (req, res) => {
             }
         }
 
+        // 🌍 المدينة: مدينة الطلب إن وُجد، وإلا مدينة العميل — ليراها أدمن مدينتها
+        const city = [order && order.city, req.user.city].find(c => VALID_CITIES.includes(c)) || 'Khartoum';
+
         const complaint = await Complaint.create({
             orderId:     orderId    || null,
             orderModel:  orderModel,
             client:      req.user._id,
-            subject:     subject    || 'شكوى جديدة',
-            category:    category   || 'other',
-            reason:      reason     || '',
+            city,
+            subject:     safeSubject,
+            category:    safeCategory,
+            reason:      cleanText(reason, 200) || '',
             description,
-            images:      images     || [],
+            images:      cleanImages(req.body.images),
             status:      'open',
             priority:    'medium',
             lastReplyAt: new Date()
         });
 
-        // إشعار الأدمن
-        const admins = await User.find({ role: 'admin', isActive: true });
-        for (const admin of admins) {
+        // إشعار من يعمل على تذاكر هذه المدينة
+        for (const admin of await staffFor(city)) {
             await sendNotification(req.app, {
                 userId:    admin._id,
                 title:     'تذكرة دعم جديدة',
-                message:   `${req.user.name || 'عميل'}: ${subject || description.substring(0, 50)}`,
+                message:   `${req.user.name || 'عميل'}: ${safeSubject !== 'شكوى جديدة' ? safeSubject : description.substring(0, 50)}`,
                 type:      'system',
                 relatedId: complaint._id
             }).catch(() => {});
@@ -67,7 +131,8 @@ router.post('/', protect, async (req, res) => {
             io.to('admin_room').emit('new_complaint', {
                 id:      complaint._id,
                 subject: complaint.subject,
-                client:  req.user.name
+                client:  req.user.name,
+                city
             });
         }
 
@@ -105,7 +170,7 @@ router.get('/mine', protect, async (req, res) => {
 
 // @route  GET /api/complaints/stats
 // @desc   عدّادات شريط الإحصاء في لوحة الشكاوى — استعلامٌ واحد
-// @access Admin
+// @access Admin (view_complaints)
 //
 // ⚠️ معرَّف قبل /:id عمداً: مسار المعرّف يلتقط أي مقطع، فلو جاء بعده لصار
 // "stats" معرّفَ تذكرة ورُدّ بـ 404.
@@ -114,11 +179,12 @@ router.get('/mine', protect, async (req, res) => {
 // GET /api/complaints?limit=1 لا تقرأ من كلٍّ منها غير `total` — خمس رحلات
 // شبكة وخمسة countDocuments لأجل خمسة أرقام في شريط. تجميعةٌ واحدة تُعطيها
 // كلها: القاعدة تمرّ على المجموعة مرّة لا خمساً.
-router.get('/stats', protect, adminOnly, async (req, res) => {
+router.get('/stats', protect, STAFF, async (req, res) => {
     try {
+        const scope = getAdminCityFilter(req);
         const [byStatus, urgent] = await Promise.all([
-            Complaint.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
-            Complaint.countDocuments({ priority: 'urgent' })
+            Complaint.aggregate([{ $match: scope }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
+            Complaint.countDocuments({ ...scope, priority: 'urgent' })
         ]);
 
         const counts = {};
@@ -144,10 +210,14 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
 
 // @route  GET /api/complaints/:id
 // @desc   تفاصيل تذكرة واحدة (للعميل أو الأدمن)
-// @access Client | Admin
+// @access Client | Admin (view_complaints)
 router.get('/:id', protect, async (req, res) => {
     try {
-        const query = req.user.role === 'admin'
+        const asAdmin = req.user.role === 'admin';
+        if (asAdmin && !isStaff(req.user)) {
+            return res.status(403).json({ message: 'غير مصرح — تحتاج صلاحية: view_complaints' });
+        }
+        const query = asAdmin
             ? { _id: req.params.id }
             : { _id: req.params.id, client: req.user._id };
 
@@ -156,7 +226,10 @@ router.get('/:id', protect, async (req, res) => {
             .populate('assignedTo', 'name')
             .populate('replies.sender', 'name role');
 
-        if (!complaint) return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        // خارج مدينته = غير موجودة له (لا نؤكّد وجودها)
+        if (!complaint || (asAdmin && !coversTicket(req.user, complaint))) {
+            return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        }
 
         res.json(complaint);
     } catch (error) {
@@ -167,20 +240,28 @@ router.get('/:id', protect, async (req, res) => {
 
 // @route  POST /api/complaints/:id/reply
 // @desc   إضافة رد على تذكرة (من العميل أو الأدمن)
-// @access Client | Admin
+// @access Client | Admin (view_complaints)
 router.post('/:id/reply', protect, async (req, res) => {
     try {
-        const { message, images } = req.body;
-        if (!message || !message.trim()) {
-            return res.status(400).json({ message: 'نص الرد مطلوب' });
+        const asAdmin = req.user.role === 'admin';
+        if (asAdmin && !isStaff(req.user)) {
+            return res.status(403).json({ message: 'غير مصرح — تحتاج صلاحية: view_complaints' });
+        }
+        // نصٌّ غير نصّيّ كان يُسقط المسار بـ 500 (message.trim)، والطويل
+        // يسقط في تحقّق المخطّط بخطأٍ إنجليزيّ
+        const message = cleanText(req.body && req.body.message, MAX_TEXT);
+        if (!message) {
+            return res.status(400).json({ message: `نص الرد مطلوب (حتى ${MAX_TEXT} حرف)` });
         }
 
-        const query = req.user.role === 'admin'
+        const query = asAdmin
             ? { _id: req.params.id }
             : { _id: req.params.id, client: req.user._id };
 
         const complaint = await Complaint.findOne(query);
-        if (!complaint) return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        if (!complaint || (asAdmin && !coversTicket(req.user, complaint))) {
+            return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        }
 
         if (['resolved', 'dismissed'].includes(complaint.status)) {
             return res.status(400).json({ message: 'التذكرة مغلقة ولا يمكن الرد عليها' });
@@ -188,20 +269,20 @@ router.post('/:id/reply', protect, async (req, res) => {
 
         const reply = {
             sender:     req.user._id,
-            senderRole: req.user.role === 'admin' ? 'admin' : 'client',
-            message:    message.trim(),
-            images:     images || []
+            senderRole: asAdmin ? 'admin' : 'client',
+            message,
+            images:     cleanImages(req.body.images)
         };
 
         complaint.replies.push(reply);
         complaint.lastReplyAt = new Date();
-        if (req.user.role === 'admin' && complaint.status === 'open') {
+        if (asAdmin && complaint.status === 'open') {
             complaint.status = 'in_progress';
         }
         await complaint.save();
 
         // إشعار الطرف الآخر
-        if (req.user.role === 'admin') {
+        if (asAdmin) {
             await sendNotification(req.app, {
                 userId:    complaint.client,
                 title:     'رد على تذكرتك',
@@ -210,8 +291,11 @@ router.post('/:id/reply', protect, async (req, res) => {
                 relatedId: complaint._id
             }).catch(() => {});
         } else {
-            const admins = await User.find({ role: 'admin', isActive: true });
-            for (const admin of admins) {
+            // المسؤول عنها إن عُيِّن، وإلا من يعمل على تذاكر مدينتها
+            const targets = complaint.assignedTo
+                ? [{ _id: complaint.assignedTo }]
+                : await staffFor(complaint.city);
+            for (const admin of targets) {
                 await sendNotification(req.app, {
                     userId:    admin._id,
                     title:     'رد عميل على تذكرة',
@@ -230,23 +314,28 @@ router.post('/:id/reply', protect, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════
-// 🔐 Admin-Only Routes
+// 🔐 Admin Routes (view_complaints + نطاق المدينة)
 // ═══════════════════════════════════════════════
+
+const STATUSES = Complaint.schema.path('status').enumValues;
+const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
 // @route  GET /api/complaints
 // @desc   جميع الشكاوى مع فلترة
-// @access Admin
-router.get('/', protect, adminOnly, async (req, res) => {
+// @access Admin (view_complaints)
+router.get('/', protect, STAFF, async (req, res) => {
     try {
         const page     = Math.max(1, parseInt(req.query.page)  || 1);
         const limit    = Math.min(100, parseInt(req.query.limit) || 30);
         const skip     = (page - 1) * limit;
-        const filter   = {};
+        const filter   = { ...getAdminCityFilter(req) };
 
-        if (req.query.status)   filter.status   = req.query.status;
-        if (req.query.priority) filter.priority  = req.query.priority;
-        if (req.query.category) filter.category  = req.query.category;
-        if (req.query.assigned) filter.assignedTo = req.query.assigned;
+        // قيمٌ من قوائم معروفة فقط: كائنٌ في الاستعلام (?status[$ne]=x) كان
+        // يصل إلى find كما هو
+        if (STATUSES.includes(req.query.status))       filter.status   = req.query.status;
+        if (PRIORITIES.includes(req.query.priority))   filter.priority = req.query.priority;
+        if (CATEGORIES.includes(req.query.category))   filter.category = req.query.category;
+        if (mongoose.isValidObjectId(req.query.assigned)) filter.assignedTo = req.query.assigned;
 
         const [complaints, total] = await Promise.all([
             Complaint.find(filter)
@@ -266,13 +355,23 @@ router.get('/', protect, adminOnly, async (req, res) => {
     }
 });
 
+/** التذكرة ضمن نطاق الأدمن أو 404 — للمسارات التي تعدّلها */
+async function scopedTicket(req, res) {
+    const complaint = await Complaint.findOne({ _id: req.params.id, ...getAdminCityFilter({ user: req.user, query: {} }) });
+    if (!complaint) {
+        res.status(404).json({ message: 'التذكرة غير موجودة' });
+        return null;
+    }
+    return complaint;
+}
+
 // @route  PUT /api/complaints/:id/resolve
 // @desc   حل التذكرة
-// @access Admin
-router.put('/:id/resolve', protect, adminOnly, async (req, res) => {
+// @access Admin (view_complaints)
+router.put('/:id/resolve', protect, STAFF, async (req, res) => {
     try {
-        const complaint = await Complaint.findById(req.params.id);
-        if (!complaint) return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        const complaint = await scopedTicket(req, res);
+        if (!complaint) return;
 
         complaint.status     = 'resolved';
         complaint.resolvedAt = new Date();
@@ -295,57 +394,67 @@ router.put('/:id/resolve', protect, adminOnly, async (req, res) => {
 
 // @route  PUT /api/complaints/:id/dismiss
 // @desc   رفض التذكرة
-// @access Admin
-router.put('/:id/dismiss', protect, adminOnly, async (req, res) => {
+// @access Admin (view_complaints)
+router.put('/:id/dismiss', protect, STAFF, async (req, res) => {
     try {
-        const complaint = await Complaint.findByIdAndUpdate(
-            req.params.id,
-            { status: 'dismissed' },
-            { new: true }
-        );
-        if (!complaint) return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        const complaint = await scopedTicket(req, res);
+        if (!complaint) return;
+        complaint.status = 'dismissed';
+        await complaint.save();
         res.json({ message: 'تم رفض التذكرة', complaint });
     } catch (error) {
+        logger.error('Complaint dismiss error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
 // @route  PUT /api/complaints/:id/assign
 // @desc   تعيين أدمن مسؤول للتذكرة
-// @access Admin
-router.put('/:id/assign', protect, adminOnly, async (req, res) => {
+// @access Admin (view_complaints)
+router.put('/:id/assign', protect, STAFF, async (req, res) => {
     try {
-        const { adminId } = req.body;
-        const complaint = await Complaint.findByIdAndUpdate(
-            req.params.id,
-            { assignedTo: adminId || null, status: 'in_progress' },
-            { new: true }
-        ).populate('assignedTo', 'name');
-        if (!complaint) return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        const { adminId } = req.body || {};
+        // المعيَّن أدمنٌ يعمل على التذاكر ويغطّي مدينتها — لا أيّ معرّف
+        // (كان يقبل معرّف عميلٍ أو كابتن فيصير «المسؤول» عن التذكرة)
+        if (adminId && !mongoose.isValidObjectId(adminId)) {
+            return res.status(400).json({ message: 'معرّف المسؤول غير صالح' });
+        }
+        const complaint = await scopedTicket(req, res);
+        if (!complaint) return;
+        if (adminId) {
+            const target = await User.findOne({ _id: adminId, role: 'admin', isActive: true })
+                .select('_id adminRole permissions city cities').lean();
+            if (!target || !isStaff(target) || !adminCoversCity(target, complaint.city)) {
+                return res.status(400).json({ message: 'لا يمكن تعيين هذا الحساب — ليس أدمناً يعمل على تذاكر هذه المدينة' });
+            }
+        }
+        complaint.assignedTo = adminId || null;
+        complaint.status = 'in_progress';
+        await complaint.save();
+        await complaint.populate('assignedTo', 'name');
         res.json({ message: 'تم التعيين بنجاح', complaint });
     } catch (error) {
+        logger.error('Complaint assign error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
 // @route  PUT /api/complaints/:id/priority
 // @desc   تغيير أولوية التذكرة
-// @access Admin
-router.put('/:id/priority', protect, adminOnly, async (req, res) => {
+// @access Admin (view_complaints)
+router.put('/:id/priority', protect, STAFF, async (req, res) => {
     try {
-        const { priority } = req.body;
-        const valid = ['low', 'medium', 'high', 'urgent'];
-        if (!valid.includes(priority)) {
+        const { priority } = req.body || {};
+        if (!PRIORITIES.includes(priority)) {
             return res.status(400).json({ message: 'قيمة الأولوية غير صحيحة' });
         }
-        const complaint = await Complaint.findByIdAndUpdate(
-            req.params.id,
-            { priority },
-            { new: true }
-        );
-        if (!complaint) return res.status(404).json({ message: 'التذكرة غير موجودة' });
+        const complaint = await scopedTicket(req, res);
+        if (!complaint) return;
+        complaint.priority = priority;
+        await complaint.save();
         res.json({ message: 'تم تحديث الأولوية', complaint });
     } catch (error) {
+        logger.error('Complaint priority error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });
