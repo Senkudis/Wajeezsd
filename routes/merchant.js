@@ -1261,6 +1261,20 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
             dropoff.lng = ok ? Number(dropoff.lng) : null;
         }
 
+        // 📞 المستلم: الاسم والهاتف كما تفحصهما الواجهة (shop-detail.html) — كان
+        //    الخادم يقبل ما يصله، فنسخةٌ قديمة أو طلبٌ مباشر يُدخل رقماً لا
+        //    يتّصل به الكابتن. الرفض في خانته، والمقبول بالصيغة المحلية.
+        {
+            const { phoneProblem, phoneMessage, toLocalPhone } = require('../utils/phoneNormalizer');
+            const name = typeof dropoff.receiverName === 'string' ? dropoff.receiverName.trim() : '';
+            if (!name) return res.status(400).json({ message: 'اكتب اسم المستلم', field: 'dropoff.receiverName' });
+            if (name.length > 80) return res.status(400).json({ message: 'اسم المستلم طويل جداً', field: 'dropoff.receiverName' });
+            const p = phoneProblem(dropoff.receiverPhone);
+            if (p) return res.status(400).json({ message: phoneMessage('المستلم', p), field: 'dropoff.receiverPhone' });
+            dropoff.receiverName = name;
+            dropoff.receiverPhone = toLocalPhone(dropoff.receiverPhone);
+        }
+
         const place = await Place.findById(req.params.placeId);
         if (!place || !place.isActive) return res.status(404).json({ message: 'المتجر غير متاح' });
 

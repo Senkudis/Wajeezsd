@@ -4,9 +4,14 @@
  * كان «بيانات الاستلام غير مكتملة» يُقال لمن نسي الاسم، فيبحث العميل في
  * العنوان والهاتف ولا يدري ما الناقص.
  *
- * ⚠️ شروط القبول نفسها لم تتغيّر — الرسائل وحدها صارت دقيقة. (تشديد الفحص
- *    يرفض طلباتٍ تقبلها نسخ التطبيق المثبّتة اليوم.)
+ * 📞 والهاتف يُفحص هنا كما تفحصه الواجهة (utils/phoneNormalizer.phoneProblem
+ *    مرآة SudanPhone.problem): كانت الواجهة وحدها تفحصه، فنسخةٌ قديمة من
+ *    التطبيق — أو طلبٌ مباشر — تُدخل «٠٩١٢» أو «123» أو «-» فيصل الكابتن رقمٌ
+ *    لا يُتّصل به. الرفض برسالة الواجهة نفسها وفي خانته، والنسخ القديمة تعرض
+ *    الرسالة في نافذتها فيصحّح العميل الرقم. والمقبول يُحفظ بالصيغة المحلية.
  */
+const { phoneProblem, phoneMessage, toLocalPhone } = require('../utils/phoneNormalizer');
+
 const reject = (res, field, message) => res.status(400).json({ message, field });
 
 /** أعلى سعرٍ لأيّ طلب — الحدّ نفسه في التفاوض (routes/orders.js MAX_PRICE) */
@@ -19,14 +24,24 @@ const validateOrder = (req, res, next) => {
     // مستند المتجر (routes/orders.js) لا من العميل — لأن رقم المتجر محجوب عنه
     // أصلاً. فمطالبته بإرسالهما تعني رفض كل طلبات المتاجر بـ 400.
     const isShopOrder = req.body.orderType === 'shop';
+    // 🛍️ «اشترِ لي»: الطرف الآخر محلٌّ لا يعرف العميل رقمه — الواجهة ترسل '-'
+    const isErrand = req.body.orderType === 'errand';
 
     if (!pickup || !pickup.address) return reject(res, 'pickup.address', 'حدّد موقع الاستلام من الخريطة');
     if (!isShopOrder && !pickup.contactName) return reject(res, 'pickup.contactName', 'اكتب اسم المرسل');
-    if (!isShopOrder && !pickup.contactPhone) return reject(res, 'pickup.contactPhone', 'اكتب رقم هاتف المرسل');
+    if (!isShopOrder && !isErrand) {
+        const p = phoneProblem(pickup.contactPhone);
+        if (p) return reject(res, 'pickup.contactPhone', phoneMessage('المرسل', p));
+    } else if (!isShopOrder && !pickup.contactPhone) {
+        return reject(res, 'pickup.contactPhone', 'اكتب رقم هاتف المرسل');
+    }
 
     if (!dropoff || !dropoff.address) return reject(res, 'dropoff.address', 'حدّد وجهة التسليم من الخريطة');
     if (!dropoff.receiverName) return reject(res, 'dropoff.receiverName', 'اكتب اسم المستلم');
-    if (!dropoff.receiverPhone) return reject(res, 'dropoff.receiverPhone', 'اكتب رقم هاتف المستلم');
+    {
+        const p = phoneProblem(dropoff.receiverPhone);
+        if (p) return reject(res, 'dropoff.receiverPhone', phoneMessage('المستلم', p));
+    }
 
     // كان السقف 100,000 — أدنى من سقف التفاوض (مليون) ومن «سقف الزيادة» في
     // الإعدادات: مشوارٌ طويل بسعرٍ مسموحٍ في الإعدادات يُرفض هنا بلا سبب.
@@ -80,6 +95,20 @@ const validateOrder = (req, res, next) => {
                 return res.status(400).json({ message: 'عنوان إحدى النقاط طويل جداً (الحد الأقصى 300 حرف)' });
             }
         }
+        // هاتف المحطة اختياريّ — لكن المكتوب منه يجب أن يُتّصل به
+        for (let i = 0; i < stops.length; i++) {
+            const ph = stops[i].contactPhone;
+            if (ph && String(ph).trim() && phoneProblem(ph)) {
+                return reject(res, 'stops', `رقم هاتف المحطة ${i + 1} غير صحيح — اكتبه هكذا: 0912345678`);
+            }
+        }
+    }
+
+    // الصيغة المحلية النظيفة: الكابتن يضغط فيتّصل، لا ينسخ «+249 91-234» ويعدّله
+    if (!isShopOrder && !isErrand) pickup.contactPhone = toLocalPhone(pickup.contactPhone);
+    dropoff.receiverPhone = toLocalPhone(dropoff.receiverPhone);
+    if (Array.isArray(stops)) {
+        for (const s of stops) if (s.contactPhone) s.contactPhone = toLocalPhone(s.contactPhone);
     }
 
     next();

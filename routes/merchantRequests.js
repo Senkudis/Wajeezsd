@@ -47,7 +47,14 @@ router.post('/', protect, async (req, res) => {
             return res.status(400).json({ message: 'لديك طلب قيد المراجعة بالفعل' });
         }
 
-        const { businessName, ownerName, phone, location, address, category, description, bankAccount, bankAccountNumber, bankAccountOwner, logoImage, idImage, referralSource, referralDetail, referralCode } = req.body;
+        const { businessName, ownerName, location, address, category, description, bankAccount, bankAccountNumber, bankAccountOwner, logoImage, idImage, referralSource, referralDetail, referralCode } = req.body;
+
+        // 📞 رقم المتجر يصير واتساب المتجر ورقم استلام الكابتن — ما لا يُتّصل
+        //    به يُرفض هنا في خانته، لا بعد القبول. والمقبول بالصيغة المحلية.
+        const { phoneProblem, phoneMessage, toLocalPhone } = require('../utils/phoneNormalizer');
+        const phoneErr = phoneProblem(req.body.phone);
+        if (phoneErr) return res.status(400).json({ message: phoneMessage('المتجر', phoneErr), field: 'phone' });
+        const phone = toLocalPhone(req.body.phone);
 
         // 🌍 مدينة الطلب: من إحداثيات المتجر إن صحّت، وإلا من مدينة صاحبه.
         //    نفس منطق القبول (cityFromCoords) — فلا تختلف المدينة بين
@@ -262,7 +269,13 @@ router.put('/admin/:id/status', protect, adminOnly,
             const { businessName, ownerName, phone, category, address, description, location, logoImage, idImage } = req.body;
             if (businessName) request.businessName = businessName;
             if (ownerName) request.ownerName = ownerName;
-            if (phone) request.phone = phone;
+            if (phone) {
+                // الأدمن يعدّل الرقم عند القبول — بالفحص نفسه، فلا يُنشأ متجرٌ برقمٍ معطوب
+                const { phoneProblem, phoneMessage, toLocalPhone } = require('../utils/phoneNormalizer');
+                const pe = phoneProblem(phone);
+                if (pe) return res.status(400).json({ message: phoneMessage('المتجر', pe), field: 'phone' });
+                request.phone = toLocalPhone(phone);
+            }
             if (category) request.category = category;
             if (address) request.address = address;
             if (description !== undefined) request.description = description;

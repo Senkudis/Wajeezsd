@@ -64,7 +64,39 @@ function isValidSudanPhone(phone) {
     return !!n && /^249[19]\d{8}$/.test(n);
 }
 
+/**
+ * سبب رفض الرقم بكلمات المستخدم — مرآة SudanPhone.problem في
+ * public_html/js/field-errors.js، فيقول الخادم ما تقوله الواجهة حرفياً.
+ * @returns {null|'empty'|'short'|'invalid'}
+ */
+function phoneProblem(phone) {
+    const digits = foldDigits(phone).replace(/[^0-9]/g, '');
+    if (!digits) return 'empty';
+    if (!isValidSudanPhone(phone)) return digits.length < 9 ? 'short' : 'invalid';
+    return null;
+}
+
+/** «اكتب رقم هاتف المستلم» — نصّ phoneMessage في public_html/js/home.js */
+function phoneMessage(who, problem) {
+    if (problem === 'empty') return `اكتب رقم هاتف ${who}`;
+    if (problem === 'short') return `رقم هاتف ${who} ناقص — الرقم السوداني 10 أرقام، مثال: 0912345678`;
+    return `رقم هاتف ${who} غير صحيح — اكتبه هكذا: 0912345678`;
+}
+
+/**
+ * الصيغة المحلية النظيفة 0912345678 — ما يضغطه الكابتن فيتّصل. الأرقام
+ * العربية والمسافات و+249 تُوحَّد هنا (مرآة SudanPhone.toLocal).
+ * الرقم غير الصالح يُعاد كما هو بعد التشذيب.
+ */
+function toLocalPhone(phone) {
+    const n = normalizePhone(phone);
+    return n && /^249[19]\d{8}$/.test(n) ? '0' + n.slice(3) : String(phone == null ? '' : phone).trim();
+}
+
 module.exports = normalizePhone;
+module.exports.phoneProblem = phoneProblem;
+module.exports.phoneMessage = phoneMessage;
+module.exports.toLocalPhone = toLocalPhone;
 module.exports.normalizePhone = normalizePhone;
 module.exports.isValidSudanPhone = isValidSudanPhone;
 module.exports.foldDigits = foldDigits;

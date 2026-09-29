@@ -1052,10 +1052,20 @@
                 showStatus('pending', 'طلبك قيد المراجعة', 'نقوم حالياً بمراجعة طلب انضمام متجرك. سيتم إشعارك قريباً فور الانتهاء.');
             } else {
                 let errMsg = 'حدث خطأ أثناء إرسال الطلب';
+                let errField = null;
                 try {
                     const err = await reqRes.json();
                     errMsg = err.message || errMsg;
+                    errField = err.field || null;
                 } catch (_) {}
+
+                // 🎯 الخادم سمّى الخانة: الخطأ تحتها لا في نافذةٍ عامة
+                if (errField === 'phone' && window.FieldErrors) {
+                    FieldErrors.show('fPhone', errMsg);
+                    btn.disabled = false;
+                    btn.innerHTML = 'إرسال طلب الانضمام <i class="bi bi-send-fill ms-2"></i>';
+                    return;
+                }
 
                 if (reqRes.status === 409) {
                     errMsg = 'لديك طلب قيد المراجعة بالفعل. انتظر رد الإدارة.';
