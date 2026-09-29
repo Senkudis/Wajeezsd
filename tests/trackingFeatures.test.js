@@ -112,7 +112,7 @@ describe('اللوحة', () => {
         expect(js).toMatch(/motion\.state === 'stopped'\) return 'move_now'/);
     });
     it('زرّ الاتصال بالعميل', () => {
-        expect(js).toContain('class="call-client" href="tel:${esc(t.client.phone)}"');
+        expect(js).toContain('class="call-client" href="${esc(telHref(t.client.phone))}"');
     });
     it('ردّ الكابتن يظهر على البطاقة — والنصّ مهرَّب', () => {
         expect(js).toContain('«${esc(n.ack.text)}»');

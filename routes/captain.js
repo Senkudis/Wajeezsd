@@ -305,18 +305,23 @@ router.put('/update-location', protect, captainOnly, async (req, res) => {
         //    نفترض أن كل وصولٍ يعني قياساً جديداً — وهو غير صحيح: النبض يعيد
         //    إرسال آخر قراءة، فيبدو الكابتن متتبَّعاً وهو ليس كذلك.
         //    نقبل الغياب (نسخ قديمة من التطبيق) بافتراض أنها لحظية.
-        const { nextLocation, clampFixAge } = require('../utils/locationMotion');
+        const { nextLocation, isOlderReading, clampFixAge } = require('../utils/locationMotion');
         const fixAge = clampFixAge(req.body.fixAge);   // حارس ضد قيم عبثية
 
         const User = require('../models/User');
+        const now = new Date();
         const prev = await User.findById(req.user._id).select('currentLocation').lean();
-        await User.findByIdAndUpdate(req.user._id, {
-            currentLocation: nextLocation(prev && prev.currentLocation, { lat, lng, fixAge })
-        });
+        const prevLoc = prev && prev.currentLocation;
+        const loc = nextLocation(prevLoc, { lat, lng, fixAge, now });
+        await User.findByIdAndUpdate(req.user._id, { currentLocation: loc });
+
+        // قراءةٌ أقدم من المحفوظة لا تُبثّ — وإلا قفز الكابتن على خريطة
+        // العميل والإدارة إلى مكانٍ غادره
+        const older = isOlderReading(prevLoc, { now, fixAge });
 
         // Also emit to connected clients for real-time tracking
         const io = req.app.get('io');
-        if (io) {
+        if (io && !older) {
             const Order = require('../models/Order');
             const activeOrders = await Order.find({
                 captain: req.user._id,
@@ -340,6 +345,11 @@ router.put('/update-location', protect, captainOnly, async (req, res) => {
                 userId: req.user._id,
                 captainId: req.user._id,
                 lat, lng,
+                // وقت القياس لا الوصول — خريطة الرحلة تقول «قبل ٣ د» لقراءةٍ قديمة
+                fixedAt: loc.fixedAt,
+                // بلا مدينة كانت الخريطة الحيّة تعرض كباتن المدن الأخرى
+                // (تُصفّي بـ data.city وتُمرّر الغائب)
+                city: req.user.city || 'Khartoum',
                 name: req.user.name || 'كابتن',
                 status: req.user.isAvailableForWork ? 'available' : 'offline'
             });

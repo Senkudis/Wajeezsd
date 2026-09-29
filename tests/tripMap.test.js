@@ -90,3 +90,81 @@ describe('الخريطة الحيّة العامة على الهاتف', () => {
         expect(liveJs).toContain("gestureHandling:   'greedy'");
     });
 });
+
+describe('مراجعة المنطق — البثّ', () => {
+    const { nextLocation, isOlderReading } = require('../utils/locationMotion');
+    const now = new Date('2026-09-29T12:00:00Z');
+    const prev = { lat: 15.6, lng: 32.5, fixedAt: new Date(now - 10000), updatedAt: new Date(now - 10000) };
+
+    it('قراءةٌ أقدم من المحفوظة تُعرَف — ولا تغيّر الموقع', () => {
+        // قيست قبل دقيقة (طابورٌ أُفرغ) والمحفوظ قيس قبل عشر ثوانٍ
+        expect(isOlderReading(prev, { now, fixAge: 60000 })).toBe(true);
+        const loc = nextLocation(prev, { lat: 15.7, lng: 32.7, now, fixAge: 60000 });
+        expect(loc.lat).toBe(15.6);
+        expect(isOlderReading(prev, { now, fixAge: 0 })).toBe(false);
+        expect(isOlderReading(null, { now, fixAge: 60000 })).toBe(false);
+    });
+
+    it('المساران لا يبثّان القراءة الأقدم — لا قفز للخلف على الخرائط', () => {
+        const cap = read('routes/captain.js');
+        expect(cap).toContain('const older = isOlderReading(prevLoc, { now, fixAge })');
+        expect(cap).toContain('if (io && !older)');
+        const idx = read('index.js');
+        expect(idx).toMatch(/if \(isOlderReading\(prevLoc && prevLoc\.currentLocation, \{ now: locNow, fixAge: data\.fixAge \}\)\) return;/);
+    });
+
+    it('بثّ الإدارة يحمل وقت القياس والمدينة في المسارين', () => {
+        const cap = read('routes/captain.js');
+        const e = cap.slice(cap.indexOf("io.to('admin_room').emit('captain_location_update'"));
+        expect(e.slice(0, 600)).toContain('fixedAt: loc.fixedAt');
+        expect(e.slice(0, 600)).toContain("city: req.user.city || 'Khartoum'");
+        const idx = read('index.js');
+        const e2 = idx.slice(idx.indexOf("io.to('admin_room').emit('captain_location_update'"));
+        expect(e2.slice(0, 400)).toContain('fixedAt: loc.fixedAt');
+        expect(e2.slice(0, 400)).toContain('city:');
+    });
+});
+
+describe('مراجعة المنطق — الصفحة', () => {
+    it('ردٌّ أقدم لا يكتب فوق أحدث', () => {
+        expect(js).toContain('const seq = ++loadSeq;');
+        expect(js).toContain('if (seq !== loadSeq) return;');
+    });
+
+    it('الأعمار بساعة الخادم لا ساعة الجهاز', () => {
+        expect(js).toContain('skew = new Date(body.now).getTime() - Date.now()');
+        expect(js).not.toMatch(/Date\.now\(\) - new Date\((at|capAt)\)/);
+    });
+
+    it('عطلٌ عابر لا يمحو الرحلة المعروضة', () => {
+        expect(js).toContain('if (!data || res.status < 500)');
+    });
+
+    it('البثّ: وقت القياس، والأقدم لا يُرجع الكابتن', () => {
+        expect(js).toContain('d.fixedAt ? new Date(d.fixedAt).toISOString()');
+        expect(js).toContain('if (capAt && new Date(at) < new Date(capAt)) return;');
+    });
+
+    it('لا وقت وصول من موقعٍ قديم، ولا «متوقّف» بعد أن تحرّك', () => {
+        expect(js).toContain('if (m > 150 && !stale)');
+        expect(js).toContain("mo.state === 'stopped' && !movedSince");
+    });
+
+    it('لا إعادة رسمٍ بلا تغيّر، ولا طلبات والصفحة في الخلفية', () => {
+        expect(js).toContain('if (html !== lastSheet)');
+        expect(js).toContain('if (routeChanged)');
+        expect(js).toContain('if (!document.hidden) load();');
+    });
+
+    it('شارة التسليم للمُسلَّمة وحدها — لا للملغاة والمنتظرة', () => {
+        expect(js).toContain("t.stage === 'delivered' ? '<span class=\"tm-pill done\">");
+    });
+
+    it('رقم الاتصال دوليّ', () => {
+        const src = js.slice(js.indexOf('function telHref'), js.indexOf('function photoUrl'));
+        const telHref = new Function(src + '; return telHref;')();
+        expect(telHref('249912345678')).toBe('tel:+249912345678');
+        expect(telHref('+249912345678')).toBe('tel:+249912345678');
+        expect(telHref('')).toBe('tel:');
+    });
+});

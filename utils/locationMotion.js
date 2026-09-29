@@ -23,6 +23,17 @@ function clampFixAge(raw) {
 }
 
 /**
+ * هل هذه القراءة أقدم من المحفوظة؟ nextLocation يُبقي المحفوظ حينها —
+ * ومن يبثّ الموقع (للعميل وللإدارة) يجب أن يسكت أيضاً، وإلا قفز الكابتن
+ * على الخرائط إلى مكانٍ غادره بينما قاعدة البيانات لم تتغيّر.
+ */
+function isOlderReading(prev, { now = new Date(), fixAge = 0 } = {}) {
+    const fixedAt = new Date(now.getTime() - clampFixAge(fixAge));
+    const prevFixed = prev && prev.fixedAt ? new Date(prev.fixedAt) : null;
+    return !!(prevFixed && fixedAt < prevFixed && Number.isFinite(prev.lat));
+}
+
+/**
  * الموقع الجديد كما يُحفظ على الكابتن.
  * @param {object|null} prev  currentLocation الحاليّ
  * @param {{lat:number,lng:number,now?:Date,fixAge?:number}} next
@@ -32,8 +43,7 @@ function nextLocation(prev, { lat, lng, now = new Date(), fixAge = 0 }) {
 
     // قراءةٌ أقدم ممّا عندنا (طابورٌ أُفرغ بعد انقطاع) لا تُرجع الكابتن
     // لمكانٍ غادره ولا الساعة للوراء
-    const prevFixed = prev && prev.fixedAt ? new Date(prev.fixedAt) : null;
-    if (prevFixed && fixedAt < prevFixed && Number.isFinite(prev.lat)) {
+    if (isOlderReading(prev, { now, fixAge })) {
         return { ...prev, updatedAt: now };
     }
 
@@ -53,4 +63,4 @@ function nextLocation(prev, { lat, lng, now = new Date(), fixAge = 0 }) {
     };
 }
 
-module.exports = { nextLocation, clampFixAge, MOVE_THRESHOLD_M };
+module.exports = { nextLocation, isOlderReading, clampFixAge, MOVE_THRESHOLD_M };

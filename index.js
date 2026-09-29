@@ -26,7 +26,7 @@ const Order        = require('./models/Order');
 const Notification = require('./models/Notification');
 const { sanitizeChatImageUrl } = require('./utils/chatImage');
 const { isUsableCoord } = require('./utils/coords');
-const { nextLocation } = require('./utils/locationMotion');
+const { nextLocation, isOlderReading } = require('./utils/locationMotion');
 
 // معاينة نص الإشعار: رسالة الصورة قد تأتي بلا نص، و`text.substring` كانت ترمي عليها
 const chatPreview = (text, imageUrl) => {
@@ -867,10 +867,14 @@ io.on('connection', (socket) => {
             // 🛰️ الكاتب نفسه الذي يستعمله مسار HTTP — كان هذا يكتب
             //    { lat, lng, updatedAt } وحده فيمحو fixedAt ونقطة الثبات،
             //    فيُحكم على حداثة الموقع بوقت وصوله لا وقت قياسه.
+            const locNow = new Date();
             const prevLoc = await User.findById(userId).select('currentLocation').lean();
-            await User.findByIdAndUpdate(userId, {
-                currentLocation: nextLocation(prevLoc && prevLoc.currentLocation, { lat, lng, fixAge: data.fixAge })
-            });
+            const loc = nextLocation(prevLoc && prevLoc.currentLocation, { lat, lng, fixAge: data.fixAge, now: locNow });
+            await User.findByIdAndUpdate(userId, { currentLocation: loc });
+
+            // قراءةٌ أقدم من المحفوظة (طابورٌ أُفرغ بعد انقطاع) حُفظ منها وقت
+            // الوصول وحده — لا تُبثّ، وإلا قفز الكابتن على الخرائط لمكانٍ غادره
+            if (isOlderReading(prevLoc && prevLoc.currentLocation, { now: locNow, fixAge: data.fixAge })) return;
 
             if (orderId) {
                 // Direct: forward to the specific order's client
@@ -920,6 +924,7 @@ io.on('connection', (socket) => {
                 userId,
                 captainId: userId,
                 lat, lng,
+                fixedAt: loc.fixedAt,   // وقت القياس لا الوصول
                 city:   captainDoc?.city || 'Khartoum',
                 name:   captainDoc?.name   || 'كابتن',
                 status: captainDoc?.isAvailableForWork ? 'available' : 'offline'

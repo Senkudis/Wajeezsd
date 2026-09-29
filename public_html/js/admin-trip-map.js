@@ -30,6 +30,11 @@
     let follow = true;          // الخريطة تتبع الكابتن حتى يسحبها الأدمن
     let fitted = false;
     let live = false;
+    let skew = 0;               // ساعة الخادم − ساعة الجهاز: «قبل ٣ د» بساعة الخادم
+    let loadSeq = 0;            // ردٌّ أقدم يصل بعد أحدث لا يكتب فوقه
+    let loadPos = null;         // موقع الكابتن حين حكم الخادم بـ«متوقّف»
+    let lastSheet = '';         // لا نعيد رسم اللوحة (ونُضيّع التركيز) بلا تغيّر
+    let routeSig = '';          // ولا نعيد رسم خطّ الرحلة والمحطّات بلا تغيّر
 
     // ─── تنسيق ────────────────────────────────────────────────────────────
     function dur(min) {
@@ -42,9 +47,10 @@
         if (m == null) return '—';
         return m < 1000 ? `${Math.round(m)} م` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} كم`;
     }
+    const serverNow = () => Date.now() + skew;
     function ago(at) {
         if (!at) return 'غير معروف';
-        const s = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000));
+        const s = Math.max(0, Math.round((serverNow() - new Date(at).getTime()) / 1000));
         if (s < 30) return 'الآن';
         if (s < 90) return 'قبل دقيقة';
         return `قبل ${dur(Math.round(s / 60))}`;
@@ -61,6 +67,15 @@
         const x = Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) -
                   Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lng - a.lng));
         return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
+    // الهاتف محفوظٌ 249XXXXXXXXX — بلا «+» يُطلب رقماً محلياً خاطئاً
+    function telHref(phone) {
+        const p = String(phone || '').replace(/[^\d+]/g, '');
+        return 'tel:' + (/^249\d{9}$/.test(p) ? '+' + p : p);
+    }
+    function photoUrl(u) {
+        return typeof window.getFullImageUrl === 'function' ? window.getFullImageUrl(u) : u;
     }
 
     function vehicleLabel(v) {
@@ -151,9 +166,16 @@
         const P = data.points;
         const multi = (P.stops || []).length > 0;
 
+        const sig = JSON.stringify([P.stops, P.pickup, P.dropoff]);
+        const routeChanged = sig !== routeSig;
+        routeSig = sig;
+
         place('pickup', multi ? null : P.pickup, { icon: pinIcon('pickup'), title: 'الاستلام: ' + (P.pickup && P.pickup.address || ''), zIndex: 10 });
         place('dropoff', multi ? null : P.dropoff, { icon: pinIcon('dropoff'), title: 'التسليم: ' + (P.dropoff && P.dropoff.address || ''), zIndex: 10 });
-        if (multi) drawStops();
+        if (routeChanged) {
+            if (multi) drawStops();
+            else { mk.stops.forEach(m => m.setMap(null)); mk.stops = []; }
+        }
 
         // أين أعلن الكابتن التسليم — دائرةٌ صغيرة بجانب دبّوس العميل
         place('proof', P.deliveredAt, {
@@ -166,13 +188,15 @@
         });
 
         // خطّ الرحلة الباهت: الاستلام ← التسليم
-        const routePath = multi ? P.stops.map(s => ({ lat: s.lat, lng: s.lng }))
-            : [P.pickup, P.dropoff].filter(Boolean).map(p => ({ lat: p.lat, lng: p.lng }));
-        if (lines.route) lines.route.setMap(null);
-        lines.route = routePath.length > 1 ? new google.maps.Polyline({
-            path: routePath, map, geodesic: true, strokeColor: '#64748b', strokeOpacity: 0, zIndex: 1,
-            icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.55, strokeWeight: 3, scale: 3 }, offset: '0', repeat: '14px' }]
-        }) : null;
+        if (routeChanged) {
+            const routePath = multi ? P.stops.map(s => ({ lat: s.lat, lng: s.lng }))
+                : [P.pickup, P.dropoff].filter(Boolean).map(p => ({ lat: p.lat, lng: p.lng }));
+            if (lines.route) lines.route.setMap(null);
+            lines.route = routePath.length > 1 ? new google.maps.Polyline({
+                path: routePath, map, geodesic: true, strokeColor: '#64748b', strokeOpacity: 0, zIndex: 1,
+                icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.55, strokeWeight: 3, scale: 3 }, offset: '0', repeat: '14px' }]
+            }) : null;
+        }
 
         drawCaptain(false);
 
@@ -222,7 +246,8 @@
     function boundsPad() {
         const sheet = $('tmSheet');
         const wide = window.innerWidth >= 900;
-        const h = sheet ? sheet.getBoundingClientRect().height : 0;
+        // المطويّة تُظهر شريطاً صغيراً — حسابها بطولها الكامل يترك فراغاً كبيراً
+        const h = !sheet ? 0 : sheet.classList.contains('collapsed') ? 118 : sheet.getBoundingClientRect().height;
         return wide ? { top: 90, bottom: 40, left: 40, right: 420 } : { top: 90, bottom: Math.min(h, window.innerHeight * 0.6) + 24, left: 30, right: 30 };
     }
 
@@ -255,17 +280,17 @@
         $('tmTitle').textContent = `رحلة #${t.ref}`;
 
         const initial = c ? esc((c.name || 'ك').trim().charAt(0)) : '?';
-        $('tmSheetBody').innerHTML = `
+        const html = `
             <div class="tm-stage">
-                ${lv ? `<span class="tm-pill ${lv[1]}">${lv[0]}</span>` : '<span class="tm-pill done"><i class="fas fa-check" aria-hidden="true"></i></span>'}
+                ${lv ? `<span class="tm-pill ${lv[1]}">${lv[0]}</span>` : t.stage === 'delivered' ? '<span class="tm-pill done"><i class="fas fa-check" aria-hidden="true"></i></span>' : ''}
                 <strong>${esc(t.stageLabel)}</strong>
                 ${data.running ? `<span class="tm-muted">منذ ${dur(t.late.elapsed)}</span>` : ''}
             </div>
 
             ${c ? `<div class="tm-person">
-                <div class="tm-avatar" aria-hidden="true">${c.photo ? `<img src="${esc(c.photo)}" alt="" loading="lazy">` : initial}</div>
+                <div class="tm-avatar" aria-hidden="true">${c.photo ? `<img src="${esc(photoUrl(c.photo))}" alt="" loading="lazy">` : initial}</div>
                 <div class="tm-who"><b>${esc(c.name)}</b><span class="tm-muted">الكابتن${c.vehicleType ? ' · ' + esc(vehicleLabel(c.vehicleType)) : ''}</span></div>
-                ${c.phone ? `<a class="tm-call" href="tel:${esc(c.phone)}" aria-label="اتصال بالكابتن ${esc(c.name)}"><i class="fas fa-phone" aria-hidden="true"></i></a>` : ''}
+                ${c.phone ? `<a class="tm-call" href="${esc(telHref(c.phone))}" aria-label="اتصال بالكابتن ${esc(c.name)}"><i class="fas fa-phone" aria-hidden="true"></i></a>` : ''}
             </div>` : '<p class="tm-muted">لا كابتن على هذا الطلب الآن.</p>'}
 
             <div id="tmFacts" class="tm-facts"></div>
@@ -273,7 +298,7 @@
             <ul class="tm-route">
                 <li><span class="tm-dot a">A</span><div><b>الاستلام</b><span>${esc(t.pickup.address || '—')}${t.pickup.name ? ' — ' + esc(t.pickup.name) : ''}</span></div></li>
                 <li><span class="tm-dot b">B</span><div><b>التسليم</b><span>${esc(t.dropoff.address || '—')}${t.client ? ' — ' + esc(t.client.name) : ''}</span></div>
-                    ${t.client && t.client.phone ? `<a class="tm-call sm" href="tel:${esc(t.client.phone)}" aria-label="اتصال بالعميل ${esc(t.client.name)}"><i class="fas fa-phone" aria-hidden="true"></i></a>` : ''}</li>
+                    ${t.client && t.client.phone ? `<a class="tm-call sm" href="${esc(telHref(t.client.phone))}" aria-label="اتصال بالعميل ${esc(t.client.name)}"><i class="fas fa-phone" aria-hidden="true"></i></a>` : ''}</li>
             </ul>
             ${noPinsNote()}
 
@@ -282,6 +307,7 @@
                 ${data.running ? `<button type="button" class="tm-btn" id="tmFollow" aria-pressed="${follow}"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> تتبّع الكابتن</button>` : ''}
                 <a class="tm-btn ghost" href="admin-order-details.html?id=${encodeURIComponent(t.id)}"><i class="fas fa-file-lines" aria-hidden="true"></i> تفاصيل الطلب</a>
             </div>`;
+        if (html !== lastSheet) { $('tmSheetBody').innerHTML = html; lastSheet = html; }
         setFollow(follow);
         renderFacts();
     }
@@ -307,7 +333,7 @@
         } else if (!capPos) {
             out.push(`<span class="tm-fact bad"><i class="fas fa-location-dot" aria-hidden="true"></i> لا موقع للكابتن — لم يُرسل تطبيقه موقعاً بعد</span>`);
         } else {
-            const ageMin = capAt ? (Date.now() - new Date(capAt).getTime()) / 60000 : null;
+            const ageMin = capAt ? (serverNow() - new Date(capAt).getTime()) / 60000 : null;
             const staleAfter = (data.trip.captain && data.trip.captain.gps && data.trip.captain.gps.staleAfter) || 12;
             const stale = ageMin != null && ageMin >= staleAfter;
             out.push(`<span class="tm-fact ${stale ? 'bad' : ''}"><i class="fas fa-satellite-dish" aria-hidden="true"></i> الموقع ${ago(capAt)}${stale ? ' — قديم' : ''}</span>`);
@@ -315,11 +341,14 @@
                 const m = metersBetween(capPos, t);
                 const where = t.kind === 'pickup' ? 'الاستلام' : 'العميل';
                 out.push(`<span class="tm-fact"><i class="fas fa-route" aria-hidden="true"></i> ${m <= 150 ? 'عند ' + where : 'يبعد ' + dist(m) + ' عن ' + where}</span>`);
-                if (m > 150) out.push(`<span class="tm-fact"><i class="fas fa-hourglass-half" aria-hidden="true"></i> يصل خلال نحو ${dur(etaMin(m))}</span>`);
+                // قراءةٌ قديمة لا يُبنى عليها وقت وصول — المسافة وحدها مع عمرها
+                if (m > 150 && !stale) out.push(`<span class="tm-fact"><i class="fas fa-hourglass-half" aria-hidden="true"></i> يصل خلال نحو ${dur(etaMin(m))}</span>`);
             }
         }
         const mo = data.trip.motion;
-        if (mo && mo.state === 'stopped') out.push(`<span class="tm-fact warn"><i class="fas fa-hand" aria-hidden="true"></i> واقف منذ ${dur(mo.stoppedMin)}</span>`);
+        // «متوقّف» حكمٌ من آخر تحميل — إن تحرّك منذها عبر البثّ فلم يعد صحيحاً
+        const movedSince = loadPos && capPos && metersBetween(loadPos, capPos) > 80;
+        if (mo && mo.state === 'stopped' && !movedSince) out.push(`<span class="tm-fact warn"><i class="fas fa-hand" aria-hidden="true"></i> واقف منذ ${dur(mo.stoppedMin)}</span>`);
         const dp = data.points.deliveredAt;
         if (dp && dp.distanceM != null) {
             out.push(`<span class="tm-fact ${dp.verified === false ? 'bad' : ''}"><i class="fas fa-circle-dot" aria-hidden="true"></i> أعلن التسليم على بُعد ${dist(dp.distanceM)} من العميل</span>`);
@@ -330,13 +359,22 @@
     // ─── التحميل ──────────────────────────────────────────────────────────
     async function load() {
         if (!orderId) { showError('لم يُحدَّد الطلب.'); return; }
+        const seq = ++loadSeq;
         try {
             const res = await fetch(`${API}/api/admin/tracking/${encodeURIComponent(orderId)}/map`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const body = await res.json().catch(() => ({}));
-            if (!res.ok) { showError(body.message || 'تعذّر تحميل الرحلة'); setLive('تعذّر التحميل', true); return; }
+            if (seq !== loadSeq) return;   // سبقه تحميلٌ أحدث
+            if (!res.ok) {
+                // عطلٌ عابر في الخادم لا يمحو رحلةً معروضة — يُعاد في الدورة التالية.
+                // أمّا «غير موجود» و«خارج نطاقك» فحكمٌ نهائيّ يُعرض.
+                if (!data || res.status < 500) { showError(body.message || 'تعذّر تحميل الرحلة'); lastSheet = ''; }
+                setLive('تعذّر التحديث', true);
+                return;
+            }
             const first = !data;
+            if (body.now) skew = new Date(body.now).getTime() - Date.now();
             const prevCap = data && data.trip.captain && data.trip.captain.id;
             data = body;
             const cap = data.trip.captain && data.trip.captain.id;
@@ -345,11 +383,13 @@
             // الموقع من الخادم يُعتمد فقط إن كان أحدث مما وصل عبر المقبس
             const srv = data.captainLocation;
             if (data.running && srv && (!capAt || new Date(srv.at || 0) > new Date(capAt))) { capPos = { lat: srv.lat, lng: srv.lng }; capAt = srv.at; }
+            loadPos = capPos;
             if (first && !data.running) setFollow(false);
             renderSheet();
             draw();
             setLive(live ? 'مباشر' : 'يتحدّث كل 20 ث', false);
         } catch (e) {
+            if (seq !== loadSeq) return;
             setLive('لا اتصال', true);
             if (!data) showError('تعذّر الاتصال بالخادم');
         }
@@ -368,10 +408,13 @@
                 if (String(d.captainId || d.userId) !== String(cap.id)) return;
                 const lat = Number(d.lat), lng = Number(d.lng);
                 if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+                // وقت القياس من الخادم؛ والأقدم ممّا نعرضه (وصل متأخّراً) لا يُرجعه للوراء
+                const at = d.fixedAt ? new Date(d.fixedAt).toISOString() : new Date(serverNow()).toISOString();
+                if (capAt && new Date(at) < new Date(capAt)) return;
                 const next = { lat, lng };
                 if (capPos && metersBetween(capPos, next) > 5) heading = bearing(capPos, next);
                 capPos = next;
-                capAt = new Date().toISOString();
+                capAt = at;
                 drawCaptain(true);
             });
             sock.on('admin_order_update', (d) => {
@@ -395,7 +438,9 @@
 
     load();
     connectLive();
-    setInterval(load, REFRESH_MS);
+    // الصفحة في الخلفية لا تسأل الخادم كل 20 ث — وتتحدّث فور العودة إليها
+    setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
     setInterval(renderFacts, 15000);   // «قبل دقيقة» يتقدّم بلا حدث
     if (window.google && google.maps) initMap();
 })();

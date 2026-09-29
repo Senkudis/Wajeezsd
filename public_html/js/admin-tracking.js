@@ -15,6 +15,11 @@
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s));
+    // الهاتف محفوظٌ 249XXXXXXXXX — «tel:» بلا «+» يُطلب رقماً محلياً خاطئاً
+    function telHref(phone) {
+        const p = String(phone || '').replace(/[^\d+]/g, '');
+        return 'tel:' + (/^249\d{9}$/.test(p) ? '+' + p : p);
+    }
     const headers = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` });
 
     let data = null;            // آخر ردٍّ من الخادم
@@ -254,7 +259,7 @@
                         <div class="cap-name">${esc(c.name)}</div>
                         <div class="cap-sub">
                             <span><i class="fas ${v[0]}" aria-hidden="true"></i> ${v[1]}</span>
-                            ${c.phone ? `<a href="tel:${esc(c.phone)}" aria-label="اتصال بالكابتن ${esc(c.name)}"><i class="fas fa-phone" aria-hidden="true"></i> ${esc(c.phone)}</a>` : ''}
+                            ${c.phone ? `<a href="${esc(telHref(c.phone))}" aria-label="اتصال بالكابتن ${esc(c.name)}"><i class="fas fa-phone" aria-hidden="true"></i> ${esc(c.phone)}</a>` : ''}
                         </div>
                     </div>
                 </div>
@@ -268,7 +273,7 @@
                 <div class="from"><b>من:</b> <span>${esc(t.pickup.address || '—')}</span></div>
                 <i class="fas fa-location-dot to" aria-hidden="true"></i>
                 <div class="to"><b>إلى:</b> <span>${esc(t.dropoff.address || '—')}${t.client ? ` — ${esc(t.client.name)}` : ''}</span>
-                    ${t.client && t.client.phone ? `<a class="call-client" href="tel:${esc(t.client.phone)}" aria-label="اتصال بالعميل ${esc(t.client.name)}"><i class="fas fa-phone" aria-hidden="true"></i> ${esc(t.client.phone)}</a>` : ''}</div>
+                    ${t.client && t.client.phone ? `<a class="call-client" href="${esc(telHref(t.client.phone))}" aria-label="اتصال بالعميل ${esc(t.client.name)}"><i class="fas fa-phone" aria-hidden="true"></i> ${esc(t.client.phone)}</a>` : ''}</div>
             </div>
 
             <div class="facts">
@@ -724,7 +729,7 @@
                 </tr></thead>
                 <tbody>${report.captains.map(c => `<tr>
                     <th scope="row"><span class="rep-name">${esc(c.name)}</span>
-                        ${c.phone ? `<a href="tel:${esc(c.phone)}" class="rep-phone">${esc(c.phone)}</a>` : ''}</th>
+                        ${c.phone ? `<a href="${esc(telHref(c.phone))}" class="rep-phone">${esc(c.phone)}</a>` : ''}</th>
                     <td class="num">${c.trips}</td>
                     ${cell(c.late, c.trips, 'bad')}
                     ${cell(c.far, c.trips, 'bad')}

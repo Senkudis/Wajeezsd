@@ -63,7 +63,7 @@ describe('عمر القراءة يسافر إلى الخادم', () => {
     it('والخادم يحفظ لحظة القياس لا لحظة الوصول وحدها', () => {
         expect(model).toContain('fixedAt: { type: Date }');
         // الحساب انتقل إلى utils/locationMotion — كاتبٌ واحد للمسارين
-        expect(route).toContain('nextLocation(prev && prev.currentLocation, { lat, lng, fixAge })');
+        expect(route).toContain('nextLocation(prevLoc, { lat, lng, fixAge, now })');
         const { nextLocation } = require('../utils/locationMotion');
         const now = new Date('2026-01-01T00:00:00Z');
         expect(nextLocation(null, { lat: 15.6, lng: 32.5, now, fixAge: 60000 }).fixedAt)

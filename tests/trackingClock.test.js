@@ -155,9 +155,12 @@ describe('في الشيفرة', () => {
     });
     it('🔑 كاتبا الموقع كلاهما عبر nextLocation — لا يُمحى fixedAt', () => {
         const idx = read('index.js');
-        expect(idx).toContain('currentLocation: nextLocation(prevLoc && prevLoc.currentLocation');
+        expect(idx).toContain('const loc = nextLocation(prevLoc && prevLoc.currentLocation');
+        expect(idx).toContain('{ currentLocation: loc }');
         expect(idx).not.toContain('currentLocation: { lat, lng, updatedAt: new Date() }');
-        expect(read('routes/captain.js')).toContain('currentLocation: nextLocation(prev && prev.currentLocation');
+        const cap = read('routes/captain.js');
+        expect(cap).toContain('const loc = nextLocation(prevLoc, { lat, lng, fixAge, now })');
+        expect(cap).toContain('{ currentLocation: loc }');
     });
     it('والتطبيق يرسل عمر القراءة في كل طريق', () => {
         const cs = read('public_html/js/captain-service.js');
