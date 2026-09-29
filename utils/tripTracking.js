@@ -305,6 +305,12 @@ function buildTrip(order, nudges, now = new Date()) {
             gps
         } : null,
         motion: running && cap ? motionOf(cap, order, stage.key, gps, now) : null,
+        // 🙋 طلب تنازلٍ معلّق — ينتظر قرار الإدارة من اللوحة
+        releaseRequest: order.releaseRequest && order.releaseRequest.status === 'pending' ? {
+            reason: order.releaseRequest.reason || '',
+            agoMin: minutesBetween(order.releaseRequest.requestedAt, now),
+            priorRequests: (order.releaseHistory || []).length
+        } : null,
         client: cli ? { id: String(cli._id), name: cli.name || 'عميل', phone: cli.phone || '' } : null,
         lastNudge: lastNudge ? {
             at: lastNudge.at, to: lastNudge.to, byName: lastNudge.byName || '',
@@ -320,6 +326,8 @@ function buildTrip(order, nudges, now = new Date()) {
 
 /** الأخطر أولاً: متأخّر ← قارب ← في الوقت، ثم الأطول انتظاراً، والمُسلَّمة آخراً */
 function compareTrips(a, b) {
+    // طلب التنازل ينتظر قراراً بشرياً — أوّلاً
+    if (!!a.releaseRequest !== !!b.releaseRequest) return a.releaseRequest ? -1 : 1;
     const rank = t => t.stage === 'delivered' ? 3 : ({ late: 0, warn: 1, ok: 2 })[t.late.level];
     const r = rank(a) - rank(b);
     if (r) return r;

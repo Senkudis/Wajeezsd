@@ -153,6 +153,32 @@ const OrderSchema = new mongoose.Schema(
         //    الجديد تأخّر من قبله. acceptedAt يبقى الأصليّ لإحصاءات زمن القبول.
         //    انظر utils/tripTracking.clockStart.
         captainAssignedAt: { type: Date, default: null },
+
+        // 🙋 طلب تنازل الكابتن — بقرار الإدارة لا بضغطة.
+        //    كان «تنازل» يعيد الطلب للسوق فوراً: كابتنٌ يقبل طلبات ثم يتنازل عنها
+        //    يحجزها عن غيره بلا ثمن، والعميل ينتظر مرّتين. الآن يكتب سببه، والطلب
+        //    يبقى معه حتى تقبل الإدارة (فيعود متاحاً ويُبلَّغ الكباتن) أو ترفض.
+        //    history: كل الطلبات السابقة على هذا الطلب — يرى المراجِع النمط.
+        releaseRequest: {
+            status:        { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+            captain:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+            reason:        { type: String, default: '', maxlength: 300 },
+            requestedAt:   { type: Date, default: null },
+            decidedAt:     { type: Date, default: null },
+            decidedBy:     { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+            decidedByName: { type: String, default: '' },
+            adminNote:     { type: String, default: '', maxlength: 300 }
+        },
+        releaseHistory: {
+            type: [{
+                captain:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+                reason:    { type: String, default: '' },
+                status:    { type: String, enum: ['approved', 'rejected'] },
+                at:        { type: Date, default: Date.now },
+                adminNote: { type: String, default: '' }
+            }],
+            default: []
+        },
         location: {
             lat: { type: Number },
             lng: { type: Number }

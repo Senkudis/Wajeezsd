@@ -505,11 +505,7 @@
 
                                     <!-- 🔄 التنازل: الكابتن الذي تعطّلت مركبته أو بَعُد الموقع كان
                                          عالقاً بالطلب — الدالة موجودة منذ البداية بلا زرّ يستدعيها. -->
-                                    ${order.status === 'accepted' ? `
-                                    <button class="btn btn-link w-100 py-2 text-danger text-decoration-none small mt-1"
-                                            onclick="releaseOrder('${esc(order._id)}')">
-                                        <i class="bi bi-arrow-counterclockwise me-1"></i> تنازل عن الطلب
-                                    </button>` : ''}
+                                    ${releaseControlHtml(order)}
                                 </div>
                             </div>
                         </div>
@@ -870,23 +866,43 @@
         }
 
         // 🔄 تنازل الكابتن عن طلب قَبِله — يعود الطلب لبقية الكباتن
+        /**
+         * 🙋 طلب التنازل — بسببٍ مكتوب، وبقرار الإدارة.
+         * كان «تنازل» يعيد الطلب للسوق فوراً. الآن يُرسَل طلبٌ للإدارة والطلب
+         * يبقى مع الكابتن حتى تقبل (فيعود متاحاً) أو ترفض (فيُكمله).
+         */
+        function releaseControlHtml(order) {
+            if (order.status !== 'accepted') return '';
+            const rr = order.releaseRequest || {};
+            if (rr.status === 'pending') {
+                return `<div class="alert alert-secondary py-2 px-3 mt-2 mb-0 rounded-3 small fw-bold" role="status">
+                    <i class="bi bi-hourglass-split me-1"></i> طلب التنازل قيد مراجعة الإدارة — الطلب معك حتى يُقبل</div>`;
+            }
+            // رفضٌ مسجّل لكابتنٍ سابق (نُقل الطلب بعده) ليس رفضَ طلبه
+            const me = order.captain && (order.captain._id || order.captain);
+            const rejected = rr.status === 'rejected' && String(rr.captain) === String(me);
+            return `${rejected ? `<div class="alert alert-warning py-2 px-3 mt-2 mb-0 rounded-3 small" role="status">
+                    <b>رُفض طلب تنازلك</b> — أكمل الطلب من فضلك.${rr.adminNote ? ` ملاحظة الإدارة: ${esc(rr.adminNote)}` : ''}</div>` : ''}
+                <button class="btn btn-link w-100 py-2 text-danger text-decoration-none small mt-1"
+                        onclick="releaseOrder('${esc(order._id)}')">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> طلب تنازل عن الطلب
+                </button>`;
+        }
+
         async function releaseOrder(id) {
             const { value: reason, isConfirmed } = await Swal.fire({
-                title: 'تنازل عن الطلب؟',
-                html: '<p style="color:#64748b;font-size:13.5px;">سيعود الطلب للكباتن الآخرين. وضّح السبب (اختياري):</p>',
-                input: 'select',
-                inputOptions: {
-                    'مشغول حالياً': 'مشغول حالياً',
-                    'بعيد جداً': 'الموقع بعيد جداً',
-                    'مشكلة في المركبة': 'مشكلة في المركبة',
-                    'سبب آخر': 'سبب آخر'
-                },
-                inputPlaceholder: 'اختر السبب',
+                title: 'طلب تنازل عن الطلب',
+                html: '<p style="color:#64748b;font-size:13.5px;line-height:1.7;margin:0">يُرسَل طلبك للإدارة، ويبقى الطلب معك حتى تقبله. '
+                    + 'إن قُبل عاد للكباتن الآخرين. <b>اكتب سببك بوضوح</b>:</p>',
+                input: 'textarea',
+                inputPlaceholder: 'مثلاً: تعطّلت المركبة في الطريق، أو المحل مغلق…',
+                inputAttributes: { maxlength: 300, 'aria-label': 'سبب التنازل' },
                 showCancelButton: true,
-                confirmButtonText: 'نعم، تنازل',
+                confirmButtonText: 'أرسل الطلب للإدارة',
                 cancelButtonText: 'تراجع',
                 confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#7f8c8d'
+                cancelButtonColor: '#7f8c8d',
+                inputValidator: (v) => (!v || v.trim().length < 5) ? 'اكتب السبب (5 أحرف على الأقل) — الإدارة تراجعه قبل القبول' : undefined
             });
             if (!isConfirmed) return;
 
@@ -894,14 +910,14 @@
                 const res = await fetchWithRetry(`${API_URL}/api/orders/${id}/release`, {
                     method: 'PUT',
                     headers: { ...window.Auth.getAuthHeader(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: reason || '' })
+                    body: JSON.stringify({ reason: reason.trim() })
                 });
+                const out = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    Swal.fire({ icon: 'success', title: 'تم', text: 'تم التنازل عن الطلب', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'info', title: 'أُرسل طلبك للإدارة', text: out.message || 'الطلب معك حتى يُقبل، وتصلك النتيجة بإشعار.', confirmButtonText: 'حسناً' });
                     fetchMissions();
                 } else {
-                    const err = await res.json().catch(() => ({}));
-                    Swal.fire('خطأ', err.message || 'تعذّر التنازل عن الطلب', 'error');
+                    Swal.fire('تعذّر إرسال الطلب', out.message || 'حاول مرة أخرى', 'error');
                 }
             } catch (e) {
                 showNetworkError(e);

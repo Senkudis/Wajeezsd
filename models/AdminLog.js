@@ -50,6 +50,7 @@ const adminLogSchema = new mongoose.Schema({
             'captain_registration_toggle',
             // 🛰️ تنبيهٌ أُرسل من لوحة التتبّع لكابتنٍ أو عميل على طلبٍ جارٍ
             'nudge_user',
+            'approve_release', 'reject_release',   // 🙋 قرار الإدارة في طلب تنازل كابتن
             // الأدمن المساعد
             'create_sub_admin', 'update_sub_admin', 'delete_sub_admin',
             // 💬 المحادثات — قراءة محتوى خاص وحذفه: كلاهما يجب أن يكون قابلاً

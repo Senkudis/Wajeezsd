@@ -61,6 +61,7 @@
 
     const CHIPS = [
         { key: 'active',    label: 'رحلات جارية',        icon: 'fa-route',                 color: ['#dbeafe', '#1d4ed8'], n: s => s.active },
+        { key: 'release',   label: 'طلبات تنازل',        icon: 'fa-hand',                  color: ['#ede9fe', '#6d28d9'], n: s => s.releaseRequests },
         { key: 'late',      label: 'متأخّرة',            icon: 'fa-triangle-exclamation',  color: ['#fee2e2', '#b91c1c'], n: s => s.late },
         { key: 'warn',      label: 'قاربت التأخّر',      icon: 'fa-hourglass-half',        color: ['#fef3c7', '#b45309'], n: s => s.warn },
         { key: 'to_pickup', label: 'في الطريق للاستلام', icon: 'fa-store',                 color: ['#e0e7ff', '#4338ca'], n: s => s.toPickup },
@@ -101,6 +102,7 @@
             to_dropoff: t.stage === 'to_dropoff',
             gps: running && t.captain && t.captain.gps.state === 'stale',
             stopped: running && t.motion && t.motion.state === 'stopped',
+            release: !!t.releaseRequest,
             suspicious: t.proof && t.proof.suspicious,
             delivered: t.stage === 'delivered'
         }[filter];
@@ -170,6 +172,25 @@
         return m.distanceM != null
             ? `<span class="fact motion-moving"><i class="fas fa-person-biking" aria-hidden="true"></i> يتحرّك — ${dist(m.distanceM)} عن ${where}</span>`
             : '';
+    }
+
+    /**
+     * 🙋 طلب تنازل: السبب، ومتى، وكم مرّةً سبقه على هذا الطلب — وقرار الإدارة.
+     * كان التنازل فورياً بضغطة؛ الآن ينتظر هنا.
+     */
+    function releaseHtml(t) {
+        const r = t.releaseRequest;
+        if (!r) return '';
+        return `<div class="release-box" role="group" aria-label="طلب تنازل من ${esc(t.captain.name)}">
+            <div class="release-head"><i class="fas fa-hand" aria-hidden="true"></i> طلب تنازل — قبل ${dur(r.agoMin)}${r.priorRequests ? ` · سبقه ${r.priorRequests} على هذا الطلب` : ''}</div>
+            <div class="release-reason">«${esc(r.reason)}»</div>
+            <div class="release-actions">
+                <button type="button" class="btn btn-approve" data-release="${t.id}" data-decision="approve">
+                    <i class="fas fa-check" aria-hidden="true"></i> قبول — يعود الطلب متاحاً</button>
+                <button type="button" class="btn btn-reject" data-release="${t.id}" data-decision="reject">
+                    <i class="fas fa-xmark" aria-hidden="true"></i> رفض — يكمله</button>
+            </div>
+        </div>`;
     }
 
     function nudgeLine(t) {
@@ -261,6 +282,7 @@
 
             ${proofHtml(t)}
 
+            ${releaseHtml(t)}
             ${nudgeLine(t)}
 
             <footer class="trip-actions">
@@ -284,6 +306,7 @@
         to_pickup:  ['fa-store', 'لا كابتن في الطريق للاستلام', ''],
         to_dropoff: ['fa-motorcycle', 'لا طلب في الطريق للعميل', ''],
         gps:        ['fa-location-dot', 'كل الكباتن يُرسلون مواقعهم', ''],
+        release:    ['fa-hand', 'لا طلبات تنازل معلّقة', 'يطلب الكابتن التنازل بسببٍ مكتوب، ويظهر هنا لتقبل أو ترفض.'],
         stopped:    ['fa-person-running', 'كل الكباتن يتحرّكون', `يظهر هنا من وقف ${STOPPED_TXT} بعيداً عن المحلّ أو العميل.`],
         suspicious: ['fa-shield-halved', 'لا إثبات مشكوك فيه', 'كل الاستلامات مصوّرة، وكل التسليمات أُعلنت عند العميل.'],
         delivered:  ['fa-house-circle-check', 'لا تسليم في آخر ساعات', '']
@@ -458,6 +481,41 @@
     $('trkSearch').addEventListener('input', (e) => {
         clearTimeout(qTimer);
         qTimer = setTimeout(() => { query = e.target.value.trim().toLowerCase(); renderList(); }, 150);
+    });
+
+    // ─── قرار طلب التنازل ────────────────────────────────────────────────
+    $('trkList').addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-release]');
+        if (!b) return;
+        const approve = b.dataset.decision === 'approve';
+        const ask = await Swal.fire({
+            title: approve ? 'قبول التنازل؟' : 'رفض التنازل؟',
+            html: approve
+                ? 'يعود الطلب متاحاً ويُبلَّغ كباتن المدينة، ويُبلَّغ العميل أننا نبحث عن كابتنٍ آخر.'
+                : 'يبقى الطلب مع الكابتن ويصله إشعارٌ بأن يُكمله.',
+            input: 'text',
+            inputLabel: 'ملاحظة للكابتن (اختياري)',
+            inputAttributes: { maxlength: 300 },
+            showCancelButton: true,
+            confirmButtonText: approve ? 'قبول' : 'رفض',
+            cancelButtonText: 'تراجع',
+            confirmButtonColor: approve ? '#15803d' : '#b91c1c'
+        });
+        if (!ask.isConfirmed) return;
+        b.disabled = true;
+        try {
+            const res = await fetch(`${API}/api/admin/orders/${encodeURIComponent(b.dataset.release)}/release/${approve ? 'approve' : 'reject'}`, {
+                method: 'PUT', headers: headers(), body: JSON.stringify({ note: ask.value || '' })
+            });
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(out.message || '');
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', timer: 2600, showConfirmButton: false,
+                title: out.message || 'حُفظ القرار' });
+            load();
+        } catch (err) {
+            b.disabled = false;
+            Swal.fire({ icon: 'error', text: window.friendlyError ? friendlyError(err, 'تعذّر حفظ القرار') : 'تعذّر حفظ القرار' });
+        }
     });
 
     // ─── نافذة التنبيه ───────────────────────────────────────────────────

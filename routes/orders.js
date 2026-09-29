@@ -1687,121 +1687,66 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
 // @desc    Captain releases an order they accepted — returns it to the pending pool
 //          (only allowed BEFORE pickup). Protects the client from a stuck order.
 router.put('/:id/release', protect, captainOnly, async (req, res) => {
+    // 🙋 طلب تنازل — لا تنازلٌ فوريّ.
+    //    كان الطلب يعود للسوق بضغطة: كابتنٌ يقبل طلبات ثم يتنازل عنها يحجزها عن
+    //    غيره بلا ثمن، والعميل ينتظر مرّتين. الآن يكتب سببه، والطلب يبقى معه
+    //    حتى تقرّر الإدارة (routes/admin/orders.js). انظر utils/releaseRequest.js.
     try {
-        const { reason } = req.body || {};
+        const { cleanReason, REASON_MIN, MAX_REQUESTS_PER_ORDER } = require('../utils/releaseRequest');
+        const reason = cleanReason(req.body && req.body.reason);
+        if (reason.length < REASON_MIN) {
+            return res.status(400).json({ message: 'اكتب سبب التنازل بوضوح — الإدارة تراجعه قبل أن يعود الطلب للكباتن', field: 'reason' });
+        }
 
-        // 🛡️ Atomic: only the assigned captain can release, and only while 'accepted'
-        const released = await Order.findOneAndUpdate(
-            { _id: req.params.id, captain: req.user.id, status: 'accepted' },
-            { $set: {
-                status: 'pending', captain: null,
-                // 🧹 الكابتن التالي يبدأ نظيفاً:
-                //    • captainNudges: مفاتيح تنبيهات المُجدوِل الآلية لمن تنازل —
-                //      بقاؤها يعني أن من يقبل بعده لا يصله تنبيهٌ آليّ واحد.
-                //    • captainAssignedAt: ساعة إسنادٍ يدويّ سابق ليست ساعته.
-                //    • errand: سعر البضاعة الذي أدخله المتنازل. بقاؤه يُري الكابتن
-                //      الجديد «بانتظار تأكيد العميل للسعر» لسعرٍ لم يُعطِه، ومن محلٍّ
-                //      قد لا يشتري منه. (قبل الاستلام لم يُشترَ شيء بعد.)
-                captainNudges: [],
-                captainAssignedAt: null,
-                'errand.goodsQuote': null,
-                'errand.quoteStatus': 'none',
-                'errand.quotedAt': null,
-                'errand.reminderSentAt': null,
-                'errand.respondedAt': null,
-                'errand.finalGoodsCost': null
-            } },
+        const current = await Order.findOne({ _id: req.params.id, captain: req.user.id })
+            .select('status releaseRequest releaseHistory city').lean();
+        if (!current) return res.status(404).json({ message: 'الطلب غير موجود أو ليس مسنداً إليك' });
+        if (current.status !== 'accepted') {
+            return res.status(400).json({
+                message: current.status === 'picked_up'
+                    ? 'استلمت الطلب فعلاً — لا تنازل بعد الاستلام. تواصل مع الإدارة إن واجهتك مشكلة.'
+                    : 'لا يمكن طلب التنازل عن هذا الطلب'
+            });
+        }
+        if (current.releaseRequest && current.releaseRequest.status === 'pending') {
+            return res.status(409).json({ message: 'طلب تنازلك قيد مراجعة الإدارة بالفعل' });
+        }
+        const mine = (current.releaseHistory || []).filter(h => String(h.captain) === String(req.user.id)).length;
+        if (mine >= MAX_REQUESTS_PER_ORDER) {
+            return res.status(429).json({ message: 'طلبت التنازل عن هذا الطلب مرّات كثيرة — تواصل مع الإدارة' });
+        }
+
+        // ذرّياً: الطلب ما زال معه وقبل الاستلام وبلا طلبٍ معلّق
+        const updated = await Order.findOneAndUpdate(
+            { _id: req.params.id, captain: req.user.id, status: 'accepted', 'releaseRequest.status': { $ne: 'pending' } },
+            { $set: { releaseRequest: {
+                status: 'pending', captain: req.user._id, reason,
+                requestedAt: new Date(), decidedAt: null, decidedBy: null, decidedByName: '', adminNote: ''
+            } } },
             { new: true }
         );
+        if (!updated) return res.status(409).json({ message: 'تغيّرت حالة الطلب للتوّ — حدّث الصفحة' });
 
-        if (!released) {
-            return res.status(400).json({ message: 'لا يمكن التنازل عن هذا الطلب (غير مقبول منك أو تم استلامه بالفعل).' });
-        }
-
-        // 🔗 أعد طلب المتجر إلى حالة "جاهز للاستلام" حتى يلتقطه كابتن آخر
-        if (released.shopOrderId) {
-            try {
-                const ShopOrder = require('../models/ShopOrder');
-                await ShopOrder.findByIdAndUpdate(released.shopOrderId, {
-                    status: 'ready_for_pickup',
-                    captain: null
-                });
-            } catch (err) { logger.error('Error syncing ShopOrder release', err); }
-        }
-
+        // الإدارة تعرف فوراً: إشعار، وبطاقة الرحلة في لوحة التتبّع تتحدّث
+        try {
+            await notifyAdmins(req.app, {
+                title: `طلب تنازل من ${req.user.name || 'كابتن'}`,
+                message: `الطلب #${String(updated._id).slice(-6).toUpperCase()} — السبب: ${reason}`,
+                type: 'admin_alert',
+                relatedId: updated._id,
+                city: updated.city
+            });
+        } catch (e) { logger.warn({ err: e.message }, 'release request admin notify failed'); }
         const io = req.app.get('io');
+        if (io) io.to('admin_room').emit('admin_order_update', { orderId: updated._id, status: updated.status, city: updated.city, releaseRequest: 'pending' });
 
-        // إشعار العميل: نبحث عن كابتن آخر
-        await sendNotification(req.app, {
-            userId: released.client,
-            title: 'جارٍ البحث عن كابتن آخر',
-            message: `اعتذر الكابتن عن إكمال طلبك${reason && reason.trim() ? ` (${reason.trim()})` : ''}. نبحث لك عن كابتن جديد الآن.`,
-            type: 'order_update',
-            relatedId: released._id
+        res.json({
+            message: 'أُرسل طلب التنازل للإدارة — الطلب ما زال معك حتى يُقبل، وستصلك النتيجة بإشعار.',
+            requested: true,
+            releaseRequest: { status: 'pending', reason }
         });
-
-        if (io) {
-            io.to(released.client.toString()).emit('order_status_updated', { orderId: released._id, status: 'pending' });
-            io.to('admin_room').emit('admin_order_update', { orderId: released._id, status: 'pending', city: released.city });
-        }
-
-        // 📣 إعادة إشعار الكباتن في نفس المدينة بأن الطلب متاح من جديد
-        setImmediate(async () => {
-            try {
-                const { sendPushToMany } = require('../utils/firebasePush');
-                const User = require('../models/User');
-
-                const activeCaptains = await User.find({
-                    role: 'captain',
-                    city: released.city,
-                    fcmToken: { $exists: true, $ne: null },
-                    isActive: true,
-                    _id: { $ne: req.user.id } // لا نرسل للكابتن الذي تنازل للتو
-                }).select('fcmToken');
-
-                const tokens = activeCaptains.map(c => c.fcmToken);
-                if (tokens.length > 0) {
-                    let title = '📦 طلب توصيل متاح من جديد! 🚨';
-                    let bodyMsg = `تم إعادة طلب للسوق بسعر ${released.price} ج.س. سارع بقبوله!`;
-                    let pushType = 'new_order';
-                    
-                    if (released.orderType === 'shop') {
-                        title = '🛒 طلب محل متاح من جديد! 🚨';
-                        bodyMsg = `طلب محل بسعر ${released.price} ج.س في انتظارك!`;
-                        pushType = 'shop_order';
-                    } else if (released.orderType === 'errand') {
-                        title = '🛍️ طلب شراء متاح من جديد! 🚨';
-                        bodyMsg = `طلب شراء بسعر ${released.price} ج.س في انتظارك!`;
-                        pushType = 'errand';
-                    }
-
-                    await sendPushToMany(tokens, title, bodyMsg, {
-                        type: pushType,
-                        orderId: released._id.toString(),
-                        url: `/captain-orders.html?highlight=${released._id.toString()}`
-                    });
-                }
-                
-                // إعادة بث عبر Socket
-                if (io && released.city) {
-                    const cityRoom = `room_${released.city}`;
-                    const eventName = released.orderType === 'shop' ? 'shop_order_available' : 'new_order_available';
-                    io.to(cityRoom).emit(eventName, {
-                        orderId: released._id,
-                        shopName: released.shopName || '',
-                        pickup: released.pickup ? released.pickup.address : '',
-                        price: released.price,
-                        city: released.city
-                    });
-                }
-            } catch (err) {
-                logger.error({ err }, 'Error broadcasting released order to captains');
-            }
-        });
-
-        res.json({ message: 'تم التنازل عن الطلب وإعادته للكباتن', order: released });
     } catch (error) {
-        logger.error({ err: error }, 'Order release error');
+        logger.error({ err: error }, 'Order release request error');
         res.status(500).json({ message: 'Server error' });
     }
 });

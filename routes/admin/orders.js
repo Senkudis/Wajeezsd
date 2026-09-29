@@ -678,6 +678,99 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
 });
 
 // =========================================================
+// 🙋 قرار الإدارة في طلب تنازل كابتن
+// PUT /api/admin/orders/:id/release/approve  { note? }
+// PUT /api/admin/orders/:id/release/reject   { note? }
+// =========================================================
+// انظر utils/releaseRequest.js و PUT /api/orders/:id/release (طلب الكابتن).
+async function decideRelease(req, res, approve) {
+    try {
+        const { CLEAN_SLATE, rebroadcast, cleanReason } = require('../../utils/releaseRequest');
+        const { sendNotification } = require('../../utils/notificationHelper');
+        const note = cleanReason(req.body && req.body.note);
+
+        const current = await Order.findById(req.params.id).select('city releaseRequest captain status').lean();
+        if (!current) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (!adminCoversCity(req.user, current.city || 'Khartoum')) {
+            return res.status(403).json({ message: 'هذا الطلب خارج نطاق مدينتك' });
+        }
+        const rr = current.releaseRequest || {};
+        if (rr.status !== 'pending') return res.status(409).json({ message: 'لا طلب تنازلٍ معلّق على هذا الطلب' });
+
+        const decided = {
+            'releaseRequest.status': approve ? 'approved' : 'rejected',
+            'releaseRequest.decidedAt': new Date(),
+            'releaseRequest.decidedBy': req.user._id,
+            'releaseRequest.decidedByName': req.user.name || '',
+            'releaseRequest.adminNote': note
+        };
+        const history = { captain: rr.captain, reason: rr.reason, status: approve ? 'approved' : 'rejected', at: new Date(), adminNote: note };
+
+        // ذرّياً: الطلب ما زال مع الكابتن الطالب، قبل الاستلام، والطلب معلّق —
+        // وإلا فقد تغيّر شيءٌ (استلم، أو نُقل) والقرار لم يعد في محلّه
+        const filter = { _id: current._id, 'releaseRequest.status': 'pending', captain: rr.captain };
+        if (approve) filter.status = 'accepted';
+        const order = await Order.findOneAndUpdate(filter, {
+            $set: approve ? { ...decided, ...CLEAN_SLATE } : decided,
+            $push: { releaseHistory: history }
+        }, { new: true });
+        if (!order) return res.status(409).json({ message: 'تغيّرت حالة الطلب للتوّ (استُلم أو نُقل) — حدّث الصفحة' });
+
+        const io = req.app.get('io');
+        const ref = String(order._id).slice(-6).toUpperCase();
+
+        if (approve) {
+            // 🔗 طلب المتجر يعود «جاهزاً للاستلام» — فقط إن كان مُسنداً لهذا الكابتن
+            if (order.shopOrderId) {
+                try {
+                    const ShopOrder = require('../../models/ShopOrder');
+                    await ShopOrder.updateOne(
+                        { _id: order.shopOrderId, status: 'captain_assigned' },
+                        { $set: { status: 'ready_for_pickup', captain: null } }
+                    );
+                } catch (e) { logger.warn({ err: e.message }, 'release approve: ShopOrder sync failed'); }
+            }
+            await sendNotification(req.app, {
+                userId: rr.captain, relatedId: order._id, type: 'order_update',
+                title: 'قُبل طلب تنازلك',
+                message: `أُعفيت من الطلب #${ref} وعاد للكباتن.${note ? ' ملاحظة الإدارة: ' + note : ''}`
+            }).catch(() => {});
+            await sendNotification(req.app, {
+                userId: order.client, relatedId: order._id, type: 'order_update',
+                title: 'جارٍ البحث عن كابتن آخر',
+                message: 'اعتذر الكابتن عن إكمال طلبك، ونبحث لك عن كابتن جديد الآن.'
+            }).catch(() => {});
+            if (io) {
+                io.to(String(order.client)).emit('order_status_updated', { orderId: order._id, status: 'pending' });
+                io.to(String(rr.captain)).emit('order_status_updated', { orderId: order._id, status: 'released' });
+            }
+            const notified = await rebroadcast(req.app, order, rr.captain);
+            await logAdminAction(req, 'approve_release', `قبل تنازل الكابتن عن الطلب #${ref}: ${rr.reason}`,
+                String(order._id), '', { captain: String(rr.captain), reason: rr.reason, note, notified });
+            if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'pending', city: order.city });
+            return res.json({ message: `قُبل التنازل وعاد الطلب متاحاً — أُبلغ ${notified} كابتن`, notified });
+        }
+
+        await sendNotification(req.app, {
+            userId: rr.captain, relatedId: order._id, type: 'order_update',
+            title: 'رُفض طلب تنازلك',
+            message: `الطلب #${ref} ما زال معك — أكمله من فضلك.${note ? ' ملاحظة الإدارة: ' + note : ''}`
+        }).catch(() => {});
+        if (io) io.to(String(rr.captain)).emit('order_status_updated', { orderId: order._id, status: order.status });
+        await logAdminAction(req, 'reject_release', `رفض تنازل الكابتن عن الطلب #${ref}: ${rr.reason}`,
+            String(order._id), '', { captain: String(rr.captain), reason: rr.reason, note });
+        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
+        res.json({ message: 'رُفض طلب التنازل وأُبلغ الكابتن' });
+    } catch (error) {
+        logger.error({ err: error.message }, 'decide release error');
+        res.status(500).json({ message: 'تعذّر حفظ القرار' });
+    }
+}
+
+router.put('/orders/:id/release/approve', protect, requirePermission('manage_orders'), (req, res) => decideRelease(req, res, true));
+router.put('/orders/:id/release/reject', protect, requirePermission('manage_orders'), (req, res) => decideRelease(req, res, false));
+
+// =========================================================
 // 📣 تذكير كباتن المدينة بطلبٍ معلّق — Admin
 // @route   POST /api/admin/orders/:id/remind-captains
 // =========================================================

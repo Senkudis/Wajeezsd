@@ -120,14 +120,19 @@ describe('انتقالاتٌ ذرّية', () => {
 });
 
 describe('تنازل الكابتن', () => {
+    // التنازل صار «طلب تنازل» تقبله الإدارة (utils/releaseRequest.js)، والتصفير
+    // عند القبول في CLEAN_SLATE — مصدرٌ واحد بدل نسخةٍ في كل مسار
     it('🔑 من يقبل بعده يبدأ نظيفاً', () => {
-        const o = read('routes/orders.js');
-        const r = o.slice(o.indexOf("router.put('/:id/release'"), o.indexOf("router.put('/:id/pickup'"));
-        expect(r).toContain('captainNudges: []');
-        expect(r).toContain('captainAssignedAt: null');
-        expect(r).toContain("'errand.quoteStatus': 'none'");
-        expect(r).toContain("'errand.goodsQuote': null");
+        const { CLEAN_SLATE } = require('../utils/releaseRequest');
+        expect(CLEAN_SLATE).toMatchObject({
+            status: 'pending', captain: null,
+            captainNudges: [], captainAssignedAt: null,
+            'errand.quoteStatus': 'none', 'errand.goodsQuote': null
+        });
+        const a = read('routes/admin/orders.js');
+        const d = a.slice(a.indexOf('async function decideRelease'), a.indexOf("router.put('/orders/:id/release/approve'"));
+        expect(d).toContain('...CLEAN_SLATE');
         // الشرط الذرّيّ باقٍ: قبل الاستلام وحده (لم يُشترَ شيءٌ بعد)
-        expect(r).toContain("{ _id: req.params.id, captain: req.user.id, status: 'accepted' }");
+        expect(d).toContain("if (approve) filter.status = 'accepted'");
     });
 });

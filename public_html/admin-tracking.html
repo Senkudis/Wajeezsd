@@ -143,6 +143,17 @@
 
         .last-nudge { font-size: .78rem; color: var(--info); background: var(--info-bg); border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; gap: 7px; font-weight: 700; flex-wrap: wrap; }
         .last-nudge .ack { margin-inline-start: auto; border-radius: 6px; padding: 2px 8px; }
+
+        /* طلب تنازل ينتظر القرار */
+        .release-box { border: 1.5px solid #c4b5fd; background: #f5f3ff; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .release-head { font-size: .8rem; font-weight: 800; color: #6d28d9; display: flex; align-items: center; gap: 7px; }
+        .release-reason { font-size: .9rem; font-weight: 700; color: var(--ink); line-height: 1.6; }
+        .release-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-approve { background: var(--ok-bg); color: var(--ok); }
+        .btn-reject { background: var(--late-bg); color: var(--late); }
+        .trip:has(.release-box) { border-inline-start-color: #7c3aed; }
+        body.dark-mode .release-box { background: #1e1536; border-color: #4c1d95; }
+        body.dark-mode .release-head { color: #c4b5fd; }
         .last-nudge .ack.ok { background: var(--ok-bg); color: var(--ok); }
         .last-nudge .ack.none { color: var(--ink-2); font-weight: 700; }
 

@@ -34,7 +34,7 @@ const RECENT_MAX_MIN = 720;
 
 const ORDER_FIELDS = '_id status city orderType price createdAt acceptedAt pickedUpAt deliveredAt ' +
     'pickup.address pickup.contactName dropoff.address dropoff.receiverName isMultiStop stops.done stops.doneAt ' +
-    'captain client adminNudges captainAssignedAt proofOfPickupImage errand.receiptImage deliveryProof';
+    'captain client adminNudges captainAssignedAt proofOfPickupImage errand.receiptImage deliveryProof releaseRequest releaseHistory';
 const CAPTAIN_FIELDS = 'name phone vehicleType currentLocation documents.profilePhoto';
 const CLIENT_FIELDS = 'name phone';
 
@@ -98,6 +98,7 @@ router.get('/tracking', protect, CAN_VIEW, async (req, res) => {
                 gpsStale: count(t => running(t) && t.captain.gps.state === 'stale'),
                 // واقفٌ بعيداً عن وجهته — الوقت وحده لا يكشفه
                 stopped: count(t => t.motion && t.motion.state === 'stopped'),
+                releaseRequests: count(t => !!t.releaseRequest),
                 // إثباتٌ يستحقّ نظرة: مُستلَمٌ بلا صورة، أو تسليمٌ أُعلن بعيداً أو بلا موقع
                 suspicious: count(t => t.proof.suspicious)
             },
