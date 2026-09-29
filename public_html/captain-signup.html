@@ -719,6 +719,8 @@
     </div>
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <!-- فحص الهاتف كما يحكم الخادم + تسجيل تعثّر المتقدّمين للإدارة -->
+    <script src="js/field-errors.js?v=47c453dc"></script>
     <script>
         let selectedVehicle = '';
         let currentStep = 1;
@@ -757,8 +759,10 @@
          * @param {string} msg     الرسالة بالعربية
          * @param {string} [errorId] معرّف عنصر الرسالة (افتراضياً `${fieldId}-error`)
          */
-        function showFieldError(fieldId, msg, errorId) {
+        function showFieldError(fieldId, msg, errorId, source) {
             clearFieldErrors();
+            // 🧭 للإدارة: أيّ الخانات يتعثّر فيها المتقدّمون (صفحة «تعثّر العملاء»)
+            if (window.ClientErrors) ClientErrors.report('captain_signup', [{ target: fieldId, message: msg }], source || 'client');
             var field = document.getElementById(fieldId);
             var box = document.getElementById(errorId || (fieldId + '-error'));
 
@@ -1009,6 +1013,13 @@
                     showFieldError('email', 'صيغة البريد الإلكتروني غير صحيحة'); return;
                 }
                 if (!phone) { showFieldError('phone', 'رقم الهاتف مطلوب'); return; }
+                // كان يُرفض في الخادم بعد الخطوات الأربع كلّها — والرسالة أعلى الخطوة الأخيرة
+                if (!upgradeMode && window.SudanPhone && !SudanPhone.isValid(phone)) {
+                    showFieldError('phone', SudanPhone.problem(phone) === 'short'
+                        ? 'رقم الهاتف ناقص — الرقم السوداني 10 أرقام، مثال: 0912345678'
+                        : 'رقم الهاتف غير صحيح — اكتبه هكذا: 0912345678');
+                    return;
+                }
                 // في الترقية لا كلمة مرور جديدة — يدخل بكلمته القائمة
                 if (!upgradeMode) {
                     if (!password) { showFieldError('password', 'كلمة المرور مطلوبة'); return; }
@@ -1046,6 +1057,15 @@
                 for (const [id, msg] of required) {
                     if (!document.getElementById(id).value.trim()) {
                         showFieldError(id, msg);
+                        return;
+                    }
+                }
+                // رقمٌ يُتّصل به — لا يُشترط سودانياً (واتساب قد يكون برقمٍ خارجيّ)
+                const digitsOf = (id) => (window.SudanPhone ? SudanPhone.fold(document.getElementById(id).value) : document.getElementById(id).value).replace(/[^0-9]/g, '');
+                for (const [id, label] of [['whatsapp', 'رقم الواتساب'], ['emergencyPhone', 'رقم الطوارئ']]) {
+                    const d = digitsOf(id);
+                    if (d.length < 9 || d.length > 15) {
+                        showFieldError(id, `${label} غير صحيح — اكتبه كاملاً، مثال: 0912345678`);
                         return;
                     }
                 }
@@ -1146,6 +1166,36 @@
             } catch (_) { /* البطاقة إضافةٌ لا شرط — لا تُفشل التسجيل */ }
         }
 
+        /**
+         * 🎯 خانة الخادم ← خانة الصفحة وخطوتها.
+         * الإرسال في الخطوة الرابعة، والخطأ قد يكون في الأولى (الهاتف) أو
+         * الثالثة (الرقم الوطني). كان يظهر شريطاً أعلى الرابعة فلا يُرى أين.
+         */
+        const SERVER_FIELD_STEP = {
+            name: ['name', 1], email: ['email', 1], phone: ['phone', 1], password: ['password', 1], city: ['city', 1],
+            nationalId: ['nationalId', 3], address: ['address', 3], whatsapp: ['whatsapp', 3],
+            emergencyPhone: ['emergencyPhone', 3], emergencyContactName: ['emergencyContactName', 3],
+            emergencyRelation: ['emergencyRelation', 3], pledgeText: ['pledgeName', 3, 'pledge-error']
+        };
+        function showServerFieldError(data) {
+            const list = (data && Array.isArray(data.errors) && data.errors.length) ? data.errors
+                : (data && data.field ? [{ field: data.field, message: data.message }] : []);
+            const hit = list.map(e => [e, SERVER_FIELD_STEP[e.field]]).find(([, m]) => m && document.getElementById(m[0]));
+            if (!hit) return false;
+            const [e, [id, step, box]] = hit;
+            // الرجوع لا يمرّ بفحوص التقدّم في goToStep — يُنتقَل مباشرة
+            document.querySelectorAll('.step-section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            document.querySelectorAll('.step-dot').forEach(d => {
+                const n = parseInt(d.dataset.step);
+                d.classList.remove('active', 'completed');
+                if (n === step) d.classList.add('active'); else if (n < step) d.classList.add('completed');
+            });
+            currentStep = step;
+            showFieldError(id, e.message || data.message, box, 'server');
+            return true;
+        }
+
         async function submitRegistration() {
             const missing = missingRequiredDoc();
             if (missing) {
@@ -1214,8 +1264,13 @@
                         //    والأرجح أنه نسيها. نعطيه الاستعادة لا طريقاً مسدوداً.
                         showAlert(`${data.message} <div class="mt-2">`
                             + `<a href="client-login.html?forgot=1" class="btn btn-sm btn-primary fw-bold">استعادة كلمة المرور</a></div>`, 'error');
+                    } else if (showServerFieldError(data)) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        return;
                     } else {
                         showAlert(data.message || 'حدث خطأ', 'error');
+                        if (window.ClientErrors) ClientErrors.report('captain_signup', [{ target: 'server', message: data.message || String(res.status) }], 'server');
                     }
                     document.getElementById('alert-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
                     btn.disabled = false;

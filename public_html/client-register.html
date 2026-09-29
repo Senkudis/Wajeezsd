@@ -47,7 +47,7 @@
                 </div>
 
                 <div class="mb-3 text-end">
-                    <label for="phone" class="form-label fw-bold small text-muted">الهاتف (09 أو 01)</label>
+                    <label for="phone" class="form-label fw-bold small text-muted">رقم الهاتف</label>
                     <input type="text" id="phone" class="form-control" placeholder="09xxxxxxxx" dir="ltr" autocomplete="tel" inputmode="tel">
                 </div>
 
@@ -75,10 +75,10 @@
                     <select id="registerCity" class="form-select" required
                         style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 12px; background-color: #f8f9fa; transition: border-color 0.3s;">
                         <option value="" disabled selected>— اختر مدينتك —</option>
-                        <option value="Khartoum">🏙️ الخرطوم - أم درمان</option>
-                        <option value="PortSudan">🌊 البحر الأحمر - بورتسودان</option>
+                        <option value="Khartoum">الخرطوم - أم درمان</option>
+                        <option value="PortSudan">البحر الأحمر - بورتسودان</option>
                     </select>
-                    <small class="text-muted" style="font-size: 11px;">⚠️ لا يمكن تغيير المدينة لاحقاً إلا بواسطة الإدارة</small>
+                    <small class="text-muted" style="font-size: 11px;">لا يمكن تغيير المدينة لاحقاً إلا بواسطة الإدارة</small>
                 </div>
 
                 <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="registerStep()">
@@ -199,11 +199,15 @@
     </div>
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <!-- أخطاء الإدخال تحت خاناتها + فحص الهاتف كما يحكم الخادم -->
+    <script src="js/field-errors.js?v=47c453dc"></script>
     <script>
         let countdownInterval;
 
-        // دالة تنظيف وتنسيق رقم الهاتف
+        // دالة تنظيف وتنسيق رقم الهاتف — SudanPhone (js/field-errors.js) مرآة الخادم،
+        // وتُسقط الأرقام العربية لا. ما تحتها احتياطٌ إن لم يُحمَّل الملف.
         function normalizePhone(phone) {
+            if (window.SudanPhone) return SudanPhone.normalize(phone);
             // إزالة كل شيء ماعدا الأرقام
             let cleaned = phone.replace(/[^0-9]/g, '');
 
@@ -274,42 +278,49 @@
         }
 
         // 1️⃣ دالة التسجيل (لأول مرة)
+        /**
+         * 🎯 كل ما ينقص التسجيل، وكلٌّ تحت خانته.
+         * كانت «الرجاء ملء جميع الحقول» تُقال لمن نسي خانةً واحدة، ولا تقول أيّها.
+         * والهاتف يُفحص بـ /^(09|01)\d{8}$/ فيُرفض ٠٩١٢… بالأرقام العربية و912…
+         * بلا صفر — وكلاهما يقبله الخادم.
+         */
+        function registerErrors() {
+            const v = (id) => (document.getElementById(id).value || '').trim();
+            const errs = [];
+            if (v('name').length < 2) errs.push({ target: 'name', message: 'اكتب اسمك (حرفان على الأقل)' });
+            const p = window.SudanPhone ? SudanPhone.problem(v('phone')) : (v('phone') ? null : 'empty');
+            if (p === 'empty') errs.push({ target: 'phone', message: 'اكتب رقم هاتفك' });
+            else if (p === 'short') errs.push({ target: 'phone', message: 'رقم الهاتف ناقص — الرقم السوداني 10 أرقام، مثال: 0912345678' });
+            else if (p) errs.push({ target: 'phone', message: 'رقم الهاتف غير صحيح — اكتبه هكذا: 0912345678' });
+            if (!v('email')) errs.push({ target: 'email', message: 'اكتب بريدك الإلكتروني' });
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email'))) errs.push({ target: 'email', message: 'البريد الإلكتروني غير صحيح — مثال: name@example.com' });
+            if (document.getElementById('password').value.length < 6) errs.push({ target: 'password', message: 'كلمة المرور 6 أحرف على الأقل' });
+            if (!v('registerCity')) errs.push({ target: 'registerCity', message: 'اختر مدينتك' });
+            return errs;
+        }
+        const REGISTER_SERVER_FIELDS = { name: 'name', phone: 'phone', email: 'email', password: 'password', city: 'registerCity' };
+
         async function registerStep() {
-            const name = document.getElementById('name').value;
+            const name = document.getElementById('name').value.trim();
             const phone = document.getElementById('phone').value.trim();
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('error');
+            const showGeneral = (msg) => { errorDiv.innerText = msg; errorDiv.classList.remove('d-none'); };
 
-            // تحقق بسيط
-            if (!name || !phone || !email || !password) {
-                errorDiv.innerText = "الرجاء ملء جميع الحقول";
-                errorDiv.classList.remove('d-none');
+            errorDiv.classList.add('d-none');
+            const errs = registerErrors();
+            if (errs.length) {
+                if (window.FieldErrors) FieldErrors.report(errs, { form: 'register', fallback: showGeneral });
+                else showGeneral(errs[0].message);
                 return;
             }
+            if (window.FieldErrors) FieldErrors.clearAll();
 
-            // 🌍 City validation
             const selectedCity = document.getElementById('registerCity').value;
-            if (!selectedCity) {
-                errorDiv.innerText = "الرجاء اختيار المدينة";
-                errorDiv.classList.remove('d-none');
-                return;
-            }
-
-            // Phone Validation: Must be 10 digits and start with 09 or 01
-            const phoneRegex = /^(09|01)\d{8}$/;
-            if (!phoneRegex.test(phone)) {
-                errorDiv.innerText = "رقم الهاتف يجب أن يكون 10 أرقام ويبدأ بـ 09 أو 01";
-                errorDiv.classList.remove('d-none');
-                return;
-            }
 
             // تنظيف وتنسيق رقم الهاتف
             const normalizedPhone = normalizePhone(phone);
-            console.log('Original phone:', phone);
-            console.log('Normalized phone:', normalizedPhone);
-
-            errorDiv.classList.add('d-none');
 
             // زر تحميل
             const regBtn = document.querySelector('#register-step button');
@@ -347,8 +358,10 @@
                     });
                     startTimer();
                 } else {
-                    errorDiv.innerText = data.message;
-                    errorDiv.classList.remove('d-none');
+                    // 🎯 الخادم سمّى الخانة (مسجّلٌ مسبقاً، أو رفضه المُتحقِّق): تحتها
+                    const inline = window.FieldErrors ? FieldErrors.fromServer(data, REGISTER_SERVER_FIELDS) : [];
+                    if (inline.length) FieldErrors.report(inline, { form: 'register', source: 'server' });
+                    else showGeneral(data.message);
                 }
             } catch (err) {
                 errorDiv.innerText = "خطأ في الاتصال بالسيرفر";

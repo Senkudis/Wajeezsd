@@ -194,7 +194,10 @@
         report(form, errors, source) {
             try {
                 const token = localStorage.getItem('token');
-                if (!token || !errors || !errors.length) return;
+                if (!errors || !errors.length) return;
+                // نموذجا التسجيل يملؤهما من لم يدخل بعد — مسارٌ مجهولٌ محدود لهما وحدهما
+                const anon = !token && (form === 'register' || form === 'captain_signup');
+                if (!token && !anon) return;
                 const fields = errors.map(e => ({
                     field: typeof e.target === 'string' ? e.target : ((e.target && e.target.id) || 'unknown'),
                     message: String(e.message || '').slice(0, 200)
@@ -204,17 +207,64 @@
                 if (sig === lastSig && Date.now() - lastAt < 20000) return;
                 lastSig = sig; lastAt = Date.now();
                 const base = (typeof API_URL !== 'undefined' && API_URL) || '';
-                fetch(`${base}/api/client-errors`, {
+                fetch(`${base}/api/client-errors${anon ? '/anonymous' : ''}`, {
                     method: 'POST',
                     keepalive: true,
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: Object.assign({ 'Content-Type': 'application/json' },
+                        anon ? {} : { 'Authorization': `Bearer ${token}` }),
                     body: JSON.stringify({ form, source, fields, appVersion: window.APP_VERSION || '' })
                 }).catch(() => {});
             } catch (_) { /* الإبلاغ لا يُعطّل الطلب أبداً */ }
         }
     };
 
-    window.FieldErrors = { show, showAll, clear, clearAll };
+    /** «في خانتين تحتاجان تصحيح» — تنبيهٌ قصير فوق، والتفصيل تحت كل خانة */
+    function toastCount(n) {
+        if (!window.Swal || !n) return;
+        Swal.fire({
+            toast: true, position: 'top', icon: 'warning', timer: 3500, showConfirmButton: false,
+            title: n === 1 ? 'في خانة تحتاج تصحيح — موضّحة بالأحمر'
+                 : n === 2 ? 'في خانتين تحتاجان تصحيح — موضّحتان بالأحمر'
+                 : `في ${n} خانات تحتاج تصحيح — موضّحة بالأحمر`
+        });
+    }
+
+    /**
+     * المسار الكامل لنموذج: الأخطاء في خاناتها + تنبيهٌ بعددها + تسجيلها للإدارة.
+     * fallback(message): إن لم تُوجد خانةٌ لأيّ خطأ (خطأٌ عامّ) — تعرضه الصفحة بطريقتها.
+     * @returns {number} ما عُرض في خانات
+     */
+    function report(errors, opts) {
+        const o = opts || {};
+        if (!errors || !errors.length) return 0;
+        const n = showAll(errors);
+        if (n) toastCount(n);
+        else if (o.fallback) o.fallback(errors[0].message);
+        if (o.form) ClientErrors.report(o.form, errors, o.source || 'client');
+        return n;
+    }
+
+    /**
+     * أخطاء الخادم ← خانات الصفحة. الخادم يعيد field أو errors[{field, message}]
+     * (middleware/validate.js، middleware/validateMiddleware.js)، والصفحة تعطي
+     * خريطة أسمائه إلى معرّفات خاناتها.
+     */
+    function fromServer(body, map) {
+        const b = body || {};
+        const list = Array.isArray(b.errors) && b.errors.length ? b.errors
+            : (b.field ? [{ field: b.field, message: b.message }] : []);
+        const seen = new Set();
+        const out = [];
+        for (const e of list) {
+            const target = map && map[e.field];
+            if (!target || seen.has(target) || !document.getElementById(target)) continue;
+            seen.add(target);
+            out.push({ target, message: e.message || b.message || '' });
+        }
+        return out;
+    }
+
+    window.FieldErrors = { show, showAll, clear, clearAll, report, fromServer, toastCount };
     window.SudanPhone = SudanPhone;
     window.ClientErrors = ClientErrors;
 })();

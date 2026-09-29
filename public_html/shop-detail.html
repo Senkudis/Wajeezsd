@@ -552,6 +552,8 @@
 
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
+<!-- أخطاء الإدخال تحت خاناتها + فحص الهاتف + تسجيل تعثّر العملاء -->
+<script src="js/field-errors.js?v=47c453dc"></script>
 <script>
     const token = window.Auth?.getToken() || localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -1413,10 +1415,34 @@
         const deliveryFeeInputRaw = document.getElementById('deliveryFee').value;
         const deliveryFeeVal = parseFloat(deliveryFeeInputRaw);
 
-        if (!address || !receiverName || !receiverPhone || deliveryFeeInputRaw === '' || isNaN(deliveryFeeVal) || deliveryFeeVal <= 0) {
-            Swal.fire('تنبيه', 'يرجى تحديد موقعك على الخريطة لحساب سعر التوصيل، وإدخال عنوان التوصيل واسم ورقم المستلم', 'warning');
+        // 🎯 كل ما ينقص، وكلٌّ تحت خانته. كانت نافذةٌ واحدة تعدّد أربعة أشياء
+        //    («حدّد موقعك… وأدخل العنوان واسم ورقم المستلم») لمن نقصه واحد.
+        const errs = [];
+        if (!address || !document.getElementById('deliveryLat').value) {
+            errs.push({ target: 'deliveryAddress', message: 'حدّد موقع التوصيل من الخريطة', focus: document.querySelector('#orderModal .map-pick-btn') });
+        }
+        if (!receiverName) errs.push({ target: 'receiverName', message: 'اكتب اسم المستلم' });
+        const phoneProblem = window.SudanPhone ? SudanPhone.problem(receiverPhone) : (receiverPhone ? null : 'empty');
+        if (phoneProblem === 'empty') errs.push({ target: 'receiverPhone', message: 'اكتب رقم هاتف المستلم' });
+        else if (phoneProblem === 'short') errs.push({ target: 'receiverPhone', message: 'رقم الهاتف ناقص — الرقم السوداني 10 أرقام، مثال: 0912345678' });
+        else if (phoneProblem) errs.push({ target: 'receiverPhone', message: 'رقم الهاتف غير صحيح — اكتبه هكذا: 0912345678' });
+        if (deliveryFeeInputRaw === '' || isNaN(deliveryFeeVal) || deliveryFeeVal <= 0) {
+            errs.push({ target: 'deliveryFee', message: 'حدّد سعر التوصيل' });
+        } else if (document.getElementById('deliveryLat').value) {
+            // حدود السعر نفسها التي يعرضها التلميح تحت الخانة
+            const lim = getShopDeliveryLimits();
+            if (lim.estimated > 0 && deliveryFeeVal < lim.minAllowed) {
+                errs.push({ target: 'deliveryFee', message: `أقل سعر توصيل لهذا المشوار ${lim.minAllowed.toLocaleString()} ج.س` });
+            } else if (lim.estimated > 0 && deliveryFeeVal > lim.maxAllowed) {
+                errs.push({ target: 'deliveryFee', message: `أعلى سعر توصيل لهذا المشوار ${lim.maxAllowed.toLocaleString()} ج.س` });
+            }
+        }
+        if (errs.length) {
+            if (window.FieldErrors) FieldErrors.report(errs, { form: 'shop_order', fallback: (m) => Swal.fire('تنبيه', m, 'warning') });
+            else Swal.fire('تنبيه', errs[0].message, 'warning');
             return;
         }
+        if (window.FieldErrors) FieldErrors.clearAll();
 
         const items = Object.values(cart).map(({ product, qty }) => ({
             productId: product._id,
@@ -1449,7 +1475,9 @@
             const body = {
                 items,
                 dropoff: {
-                    address, receiverName, receiverPhone,
+                    address, receiverName,
+                    // 📞 بالصيغة المحلية النظيفة — الكابتن يتّصل بضغطة
+                    receiverPhone: window.SudanPhone ? SudanPhone.toLocal(receiverPhone) : receiverPhone,
                     ...(_hasPin ? { lat: _lat, lng: _lng } : {})
                 },
                 deliveryFee: deliveryFeeVal,
@@ -1474,7 +1502,7 @@
                 appliedPromo = null;
                 updateCart();
                 const discountMsg = data.order?.discountAmount > 0
-                    ? `<br><span style="color:#16a34a;">🎉 وفّرت ${data.order.discountAmount} ج.س بالكوبون!</span>`
+                    ? `<br><span style="color:#16a34a;">وفّرت ${data.order.discountAmount} ج.س بالكوبون</span>`
                     : '';
                 
                 if (!window.Capacitor) {
@@ -1495,7 +1523,7 @@
                 } else {
                     await Swal.fire({
                         icon: 'success',
-                        title: '✅ تم إرسال طلبك!',
+                        title: 'تم إرسال طلبك',
                         html: `طلبك وصل للمتجر وينتظر موافقتهم.${discountMsg}<br><small class="text-muted">رقم الطلب: #${data.order._id.slice(-4)}</small>`,
                         confirmButtonText: 'متابعة طلباتي',
                         confirmButtonColor: 'var(--primary)'
@@ -1503,7 +1531,15 @@
                     window.location.href = 'client-my-orders.html';
                 }
             } else {
-                Swal.fire('خطأ', data.message, 'error');
+                const inline = window.FieldErrors ? FieldErrors.fromServer(data, {
+                    'dropoff.address': 'deliveryAddress', 'dropoff.receiverName': 'receiverName',
+                    'dropoff.receiverPhone': 'receiverPhone', deliveryFee: 'deliveryFee'
+                }) : [];
+                if (inline.length) FieldErrors.report(inline, { form: 'shop_order', source: 'server' });
+                else {
+                    Swal.fire('خطأ', data.message, 'error');
+                    if (window.ClientErrors) ClientErrors.report('shop_order', [{ target: 'server', message: data.message || String(res.status) }], 'server');
+                }
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>إرسال الطلب للمتجر';
             }
@@ -2077,6 +2113,8 @@
         const limits = getShopDeliveryLimits(lat, lng);
         const feeInput = document.getElementById('deliveryFee');
         feeInput.value = limits.estimated;
+        // حُدّد الموقع وحُسب السعر: خطآهما — إن ظهرا — زال سببهما (يُملآن برمجياً)
+        if (window.FieldErrors) { FieldErrors.clear('deliveryAddress'); FieldErrors.clear('deliveryFee'); }
         feeInput.classList.add('border-warning', 'border-2');
         document.getElementById('deliveryFeeHint').innerHTML = `المسافة التقديرية: <b>${limits.distKm.toFixed(1)} كم</b> | أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>`;
         // تغيّر سعر التوصيل المقترح يُبطل أي كوبون ويحدّث الملخص

@@ -78,11 +78,11 @@
     <script src="js/admin-mobile.js?v=5b949b76"></script>
     <script src="js/theme-manager.js?v=ef048761"></script>
     <script src="js/admin-alerts.js?v=197ebabe"></script>
-    <script src="js/admin-palette.js?v=0220454b"></script>
+    <script src="js/admin-palette.js?v=0cd12760"></script>
 </head>
 <body>
 <div class="page-header">
-    <h1><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> تعثّر العملاء عند الطلب</h1>
+    <h1><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> تعثّر العملاء في النماذج</h1>
     <div class="hdr-tools">
         <button aria-label="بحث سريع (Ctrl + K)" class="admin-icon-btn admin-search-btn" data-admin-search title="بحث سريع (Ctrl + K)">
             <i class="fas fa-search" aria-hidden="true"></i>
@@ -96,7 +96,7 @@
 
 <main class="main">
     <p class="intro">
-        كل مرّةٍ يضغط فيها عميلٌ «اطلب» وتُرفض خانة، تُسجَّل الخانة والرسالة التي رآها — لا ما كتبه.
+        كل مرّةٍ يُرسل فيها عميلٌ نموذجاً (طلب، تسجيل، انضمام متجر) وتُرفض خانة، تُسجَّل الخانة والرسالة التي رآها — لا ما كتبه.
         الخانة التي يتعثّر فيها كثيرون مشكلةٌ في النموذج أو في صياغة الرسالة، لا في العملاء.
     </p>
 
@@ -106,6 +106,15 @@
             <option value="1">آخر 24 ساعة</option>
             <option value="7" selected>آخر 7 أيام</option>
             <option value="30">آخر 30 يوماً</option>
+        </select>
+        <label class="wj-sr-only" for="form">النموذج</label>
+        <select id="form">
+            <option value="">كل النماذج</option>
+            <option value="order">طلب توصيل</option>
+            <option value="shop_order">طلب من متجر</option>
+            <option value="register">تسجيل عميل</option>
+            <option value="captain_signup">تسجيل كابتن</option>
+            <option value="shop_register">انضمام متجر</option>
         </select>
         <label class="wj-sr-only" for="city">المدينة</label>
         <select id="city">
@@ -158,7 +167,7 @@
             const max = data.fields[0].count || 1;
             byField.innerHTML = data.fields.map(f => `
                 <div class="field-row">
-                    <span class="field-name">${esc(f.label)}</span>
+                    <span class="field-name">${esc(f.label)} <span class="msg">${esc(f.formLabel || '')}</span></span>
                     <span class="field-count">${f.count}</span>
                     <div class="meter" aria-hidden="true"><span style="width:${Math.max(4, Math.round(f.count / max * 100))}%"></span></div>
                     <div class="field-meta">
@@ -177,7 +186,7 @@
                 <time datetime="${esc(r.at)}">${esc(when(r.at))}</time>
                 <span class="who">${r.user ? esc(r.user.name || 'عميل') : 'عميل'}${r.user && r.user.phone ? `<a href="tel:${esc(r.user.phone)}" aria-label="اتصال بـ ${esc(r.user.name || 'العميل')}">${esc(r.user.phone)}</a>` : ''}</span>
                 <span></span>
-                <span class="what"><b>${esc(r.label)}</b> — ${esc(r.message)}
+                <span class="what"><span class="msg">${esc(r.formLabel || '')}</span> <b>${esc(r.label)}</b> — ${esc(r.message)}
                     <span class="tag ${r.source === 'server' ? 'server' : 'client'}">${r.source === 'server' ? 'الخادم' : 'قبل الإرسال'}</span>
                     ${r.appVersion ? `<span class="msg">نسخة ${esc(r.appVersion)}</span>` : ''}</span>
             </div>`).join('')
@@ -186,6 +195,7 @@
 
     async function load() {
         const qs = new URLSearchParams({ days: $('days').value });
+        if ($('form').value) qs.set('form', $('form').value);
         if ($('city').value) qs.set('city', $('city').value);
         if (window.UIState) { UIState.skeleton($('byField'), { count: 3 }); }
         try {
@@ -201,6 +211,7 @@
     }
 
     $('days').addEventListener('change', load);
+    $('form').addEventListener('change', load);
     $('city').addEventListener('change', () => {
         try { localStorage.setItem('ce_city', $('city').value); } catch (_) {}
         load();

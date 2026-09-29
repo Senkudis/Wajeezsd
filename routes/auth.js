@@ -159,7 +159,7 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
             _id: { $ne: user._id }
         }).select('approvalStatus').lean();
         if (dupId) {
-            return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.' });
+            return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.', field: 'nationalId' });
         }
 
         // 🔑 الدور **لا يتغيّر هنا**. يبقى عميلاً حتى يقبله الأدمن.
@@ -257,13 +257,13 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
         // BUG-H6 FIX: لا تبحث عن مستخدم بـ email=undefined — يُعيد أول مستخدم بلا بريد زوراً
         if (email) {
             let emailUser = await User.findOne({ email });
-            if (emailUser) return res.status(400).json({ message: 'البريد الإلكتروني مسجل مسبقاً' });
+            if (emailUser) return res.status(400).json({ message: 'البريد الإلكتروني مسجل مسبقاً — سجّل الدخول به أو استعمل بريداً آخر', field: 'email' });
         }
 
         // Check by phone as well
         // ⚠️ `let` إجباري: بدونه يصبح `user` متغيّراً عامّاً مشتركاً بين كل الطلبات المتزامنة
         let user = await User.findOne({ phone });
-        if (user) return res.status(400).json({ message: 'رقم الهاتف مسجل مسبقاً' });
+        if (user) return res.status(400).json({ message: 'رقم الهاتف مسجل مسبقاً — سجّل الدخول به أو استعمل رقماً آخر', field: 'phone' });
 
         // إنشاء كود تحقق عشوائي وصلاحية 10 دقائق
         const verificationCode = generateOtpCode();
@@ -375,7 +375,7 @@ async function reapplyRejectedCaptain(req, res, userId, { name, password, vehicl
     const dupId = await User.findOne({ 'captainApplication.nationalId': nationalId, _id: { $ne: user._id } })
         .select('_id').lean();
     if (dupId) {
-        return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.' });
+        return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.', field: 'nationalId' });
     }
 
     const VALID_CITIES_CAP = ['Khartoum', 'PortSudan'];
@@ -491,7 +491,7 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
         if (dupId) {
             const st = dupId.approvalStatus === 'approved' ? 'مقبول'
                      : dupId.approvalStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة';
-            return res.status(409).json({ message: `هذا الرقم الوطني مسجل مسبقاً. حالة طلبك: ${st}.` });
+            return res.status(409).json({ message: `هذا الرقم الوطني مسجل مسبقاً. حالة طلبك: ${st}.`, field: 'nationalId' });
         }
 
         // 🌍 Validate city

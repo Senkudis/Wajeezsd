@@ -14,7 +14,9 @@ const mongoose = require('mongoose');
 const ClientErrorSchema = new mongoose.Schema({
     user:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     city:    { type: String, enum: ['Khartoum', 'PortSudan'], index: true },
-    form:    { type: String, enum: ['order'], required: true },
+    // order: نموذج الطلب · register: تسجيل العميل · captain_signup: تسجيل كابتن
+    // shop_register: طلب انضمام متجر · shop_order: الطلب من صفحة متجر
+    form:    { type: String, enum: ['order', 'register', 'captain_signup', 'shop_register', 'shop_order'], required: true },
     // client: فحص الواجهة قبل الإرسال · server: رفضه الخادم بعد الإرسال
     source:  { type: String, enum: ['client', 'server'], required: true },
     field:   { type: String, required: true, maxlength: 60 },

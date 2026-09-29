@@ -24,7 +24,11 @@ const validate = (schema, source = 'body') => (req, res, next) => {
     } catch (err) {
         if (err instanceof ZodError) {
             const message = err.issues.map((i) => i.message).join('، ');
-            return res.status(400).json({ message });
+            // 🎯 الخانة مع رسالتها: الواجهة تعرض كل خطأٍ تحت خانته
+            //    (public_html/js/field-errors.js). message باقٍ كما كان —
+            //    نسخ التطبيق المثبّتة تقرؤه وحده.
+            const errors = err.issues.map((i) => ({ field: i.path.join('.'), message: i.message }));
+            return res.status(400).json({ message, field: errors[0] && errors[0].field, errors });
         }
         next(err);
     }
