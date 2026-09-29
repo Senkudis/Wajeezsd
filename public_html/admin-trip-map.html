@@ -70,7 +70,8 @@
         }
         .tm-handle {
             display: block; width: 100%; border: 0; background: transparent; cursor: pointer;
-            padding: 10px 0 6px; position: sticky; top: 0; background: var(--surface); z-index: 1;
+            /* 36 بكسل ارتفاع لمس — كان 21، يُخطئه الإصبع فيسحب الخريطة بدل طيّ اللوحة */
+            padding: 14px 0 12px; min-height: 36px; position: sticky; top: 0; background: var(--surface); z-index: 1;
         }
         .tm-handle span { display: block; width: 44px; height: 5px; border-radius: 3px; background: #cbd5e1; margin: 0 auto; }
         /* المطويّة تُظهر المرحلة والكابتن كاملين — --peek يقيسه الكود بعد الرسم */

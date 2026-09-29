@@ -181,7 +181,9 @@ describe('لوحة الإدارة', () => {
 
     it('المفتاح دوره switch واسمه صريح', () => {
         expect(html).toContain('role="switch" id="captainRegistrationOpen"');
-        expect(html).toContain('for="captainRegistrationOpen">فتح تسجيل الكباتن في هذه المدينة</label>');
+        // التسمية نفسها تمتدّ حول المفتاح مساحةَ لمس (tests/adminMobileTouch)،
+        // والاسم فيها نصٌّ مخفيٌّ بصرياً يقرؤه قارئ الشاشة
+        expect(html).toMatch(/<label for="captainRegistrationOpen"[^>]*>\s*<span class="visually-hidden">فتح تسجيل الكباتن في هذه المدينة<\/span>\s*<\/label>/);
     });
 
     it('يُحفظ فور تبديله بطلبٍ يحمل الحقل وحده — لا يُعيد حفظ التسعير', () => {

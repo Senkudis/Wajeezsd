@@ -893,4 +893,34 @@ body.dark-mode table.dataTable thead th {
     background-color: #111827 !important;
     color: #9ca3af !important;
     border-color: #374151 !important;
-}
+}
+/* ── زرّ التصدير ────────────────────────────────────────────────
+   معرَّفٌ في admin-panel.css الذي لا تحمّله صفحات هذا القالب (طلبات
+   المتاجر، التسويات، الإحصاءات، ملفّات الكباتن) — فكان يظهر زرَّ متصفّحٍ
+   خاماً بإطارٍ أسود. نفس التصميم هنا. */
+.admin-export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: #f8fafc;
+    color: #1e293b;
+    border: 1.5px solid #e2e8f0;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.admin-export-btn:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+body.dark-mode .admin-export-btn {
+    background: #1f2937;
+    color: #f9fafb;
+    border-color: #374151;
+}

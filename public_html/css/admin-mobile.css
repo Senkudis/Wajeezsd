@@ -513,6 +513,12 @@
         top: 0 !important;
         right: 0 !important;
         height: 100vh !important;
+        /* ارتفاع الشاشة الظاهرة فعلاً — 100vh يشمل ما تحت شريط العنوان في
+           متصفح الهاتف فيُقصّ «خروج» وآخر البنود، والقائمة لم تكن تتمرّر */
+        height: 100dvh !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        padding-bottom: var(--sab, 0px) !important;
         width: 260px !important;
         transform: translateX(100%) !important;
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -661,4 +667,90 @@
     position: absolute !important; width: 1px !important; height: 1px !important;
     padding: 0 !important; margin: -1px !important; overflow: hidden !important;
     clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important;
+}
+
+/* ── ١٥) مساحة اللمس ─────────────────────────────────────────────
+   قيست صفحات الإدارة على شاشة 375: زرّ التصدير 28×30، وزرّ القائمة
+   29×34، وتبويبات المالية ومرشّحاتها 29–30 بكسل ارتفاعاً. الإصبع يحتاج
+   44 بكسل (إرشادات Apple وGoogle) — وإلا أصاب جارَه أو لم يُصب شيئاً،
+   فتبدو الصفحة «لا تستجيب». المرشّحات القابلة للضغط وحدها — لا الشارات. */
+@media (max-width: 768px) {
+    .admin-export-btn,
+    .menu-toggle,
+    .gv-topbar-btn,
+    .admin-icon-btn,
+    .tab-btn,
+    button.pill,
+    [onclick].pill,
+    [id^="pill-"][onclick],
+    .gv-btn,
+    #btn-start-draw {
+        min-height: 44px !important;
+    }
+    .admin-export-btn,
+    .menu-toggle,
+    .gv-topbar-btn,
+    .admin-icon-btn,
+    .gv-btn-ghost {
+        min-width: 44px !important;
+    }
+    /* حقل البحث في الخريطة الحيّة: 30 بكسل داخل صندوقٍ أعلى — اللمس على
+       حافّة الصندوق لا يصل الحقل */
+    #captainSearchInput { min-height: 40px !important; }
+}
+
+/* ── ١٦) ترويسة الصفحات ذات .page-header ──────────────────────────
+   ثمان صفحات (البانرات، المحادثات، الشكاوى، الكوبونات، صوت العميل…) كانت
+   تلفّ أدواتها الثلاث إلى سطرٍ ثانٍ تحت العنوان: «الرئيسية» بنصّها + بحث +
+   وضع ليلي ≈ 210 بكسل مع عنوانٍ ≈ 190 على شاشةٍ عرضها المتاح 343. الآن:
+   العنوان يمتصّ الضغط ويُقطع بثلاث نقاط، والأدوات سطرٌ واحد لا يلتفّ،
+   وتحت 400 بكسل يصير «الرئيسية» سهماً (البند السابق). */
+/* :has — «.page-header» اسمٌ لشيئين في اللوحة: ترويسة الصفحة (عنوان + أدوات)
+   وعنوان قسمٍ بوصفه (سجل المديونية: عنوان + فقرة؛ المالية: كتلة + أزرار
+   كبيرة). القاعدة للأولى وحدها: h1 مباشر وحاوية أدواتٍ أخيرة. */
+@media (max-width: 991px) {
+    .page-header:has(> h1):has(> div:last-child) { flex-wrap: nowrap !important; }
+    .page-header:has(> div:last-child) > h1 {
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+    /* display:flex صراحةً: الحاوية تعتمد «d-flex» من Bootstrap وأغلب هذه
+       الصفحات لا تحمّله — فكانت كتلةً عادية يسقط فيها زرّ الرجوع (flex
+       بعرض السطر) إلى سطرٍ وحده تحت زرّي البحث والوضع الليلي. */
+    .page-header:has(> h1) > div:last-child {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex: 0 0 auto !important;
+        flex-wrap: nowrap !important;
+    }
+}
+@media (max-width: 400px) {
+    .admin-back-btn { min-width: 44px !important; min-height: 44px !important; justify-content: center !important; }
+}
+
+/* ── ١٧) بطاقات الإحصاء مقروءة ─────────────────────────────────────
+   «الضغط الفائق» أعلاه (البندان ٣ و١٠) صغّر العنوان إلى 10 بكسل والرقم
+   إلى 14.5 — يُقرأ بتقريب الشاشة لا بالنظر. الرقم هو سبب وجود البطاقة:
+   18 بكسل، والعنوان 12. (تأتي هنا لتتقدّم على ما قبلها بنفس الخصوصية.) */
+@media (max-width: 991px) {
+    .gv-stat-info h4, .stat-card h6, .stat-title, .kpi-label, .kpi-card .kpi-label {
+        font-size: 12px !important;
+        line-height: 1.35 !important;
+    }
+    .gv-stat-info h2, .stat-card h3, .stat-value, .kpi-value, .kpi-card .kpi-value {
+        font-size: 18px !important;
+        line-height: 1.2 !important;
+    }
+    .kpi-card .kpi-sub { font-size: 11.5px !important; }
+
+    /* البطاقات الملوّنة (المحلات: أزرق/أخضر/أصفر/بنفسجي) تحتفظ بخلفيتها
+       — لكن البند ٣ فرض عليها نصّاً رمادياً وأسود، فصار العنوان رمادياً
+       على الأزرق لا يُقرأ. نصّها أبيض كما صُمّمت؛ والأصفر نصّه داكن. */
+    .stat-card.text-white h6, .stat-card.text-white h3 { color: #ffffff !important; }
+    .stat-card.text-white h6 { opacity: 0.92; }
+    .stat-card.text-dark h6, .stat-card.text-dark h3 { color: #1f2937 !important; }
 }

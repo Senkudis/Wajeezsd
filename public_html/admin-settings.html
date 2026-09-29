@@ -4,7 +4,7 @@
 <head>
     <script src="js/admin-guard.js?v=691df92a" data-perm="__super__"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>إعدادات الأسعار | وجيز</title>
 
     <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
@@ -220,7 +220,7 @@
     </style>
     <link rel="stylesheet" href="css/admin-panel.css?v=dde88f2c">
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=e580d006">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=0524e8dc">
     <script src="js/admin-mobile.js?v=5b949b76"></script>
     <script src="js/theme-manager.js?v=ef048761"></script>
 </head>
@@ -270,10 +270,15 @@
                                     مغلق — لا تُقبل طلبات انتساب جديدة في هذه المدينة
                                 </div>
                             </div>
-                            <div class="form-check form-switch m-0">
+                            <div class="form-check form-switch m-0" style="position:relative;">
                                 <input class="form-check-input" type="checkbox" role="switch" id="captainRegistrationOpen"
                                     aria-describedby="regGateSub" style="transform: scale(1.4);">
-                                <label class="form-check-label visually-hidden" for="captainRegistrationOpen">فتح تسجيل الكباتن في هذه المدينة</label>
+                                <!-- مساحة لمس: المفتاح 45×22 بكسل فقط والتسمية مخفيّة — فيُخطئه
+                                     الإصبع على الهاتف. التسمية تمتدّ 12 بكسل حوله (لا على البطاقة كلّها
+                                     كي لا يُفتح التسجيل أو يُغلق بلمسةٍ عابرة). -->
+                                <label for="captainRegistrationOpen" style="position:absolute;inset:-12px;cursor:pointer;margin:0;">
+                                    <span class="visually-hidden">فتح تسجيل الكباتن في هذه المدينة</span>
+                                </label>
                             </div>
                         </div>
                         <small class="text-muted d-block mt-2">

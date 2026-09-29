@@ -455,9 +455,33 @@ async function refreshCurrentPage() {
     }
 }
 
-function toggleMobileSidebar() {
-    document.getElementById('gvSidebar').classList.toggle('mobile-open');
+/**
+ * القائمة الجانبية على الهاتف. force = true يفتح، false يغلق، وبلا قيمة يبدّل.
+ *
+ * ⚠️ كانت تتجاهل القيمة وتبدّل دائماً، ولا تُظهر الخلفية المعتمة:
+ *   • فتح قسمٍ يستدعي toggleMobileSidebar(false) «ليغلقها» — فإن كانت مغلقة
+ *     **فتحها**: يضغط الأدمن تبويباً فتنبثق القائمة فوق ما طلبه.
+ *   • بلا خلفية، اللمس خارج القائمة يصل للمحتوى تحتها ولا يغلقها — فتبدو
+ *     الصفحة لا تستجيب والقائمة عالقة فوق نصف الشاشة.
+ */
+function toggleMobileSidebar(force) {
+    const sb = document.getElementById('gvSidebar');
+    if (!sb) return;
+    const open = typeof force === 'boolean' ? force : !sb.classList.contains('mobile-open');
+    sb.classList.toggle('mobile-open', open);
+    const ov = document.getElementById('gvSidebarOverlay');
+    if (ov) ov.classList.toggle('show', open);
+    const btn = document.getElementById('menuToggle');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
+
+// Esc يغلقها كما تُغلق أيّ نافذة
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const sb = document.getElementById('gvSidebar');
+        if (sb && sb.classList.contains('mobile-open')) toggleMobileSidebar(false);
+    }
+});
 
 // ── Dashboard / Overview ──
 async function loadDashboard() {

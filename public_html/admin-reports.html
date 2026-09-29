@@ -19,7 +19,16 @@
 
         .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
         .page-head h1 { font-size: 1.2rem; font-weight: 900; color: #1e293b; margin: 0; }
-        .back-link { color: #64748b; text-decoration: none; font-weight: 700; font-size: 14px; }
+        /* زرّ الوضع الليلي في الترويسة — بدونه كان يُنشأ زرٌّ عائم يغطّي آخر
+           بلاغٍ في القائمة. والرابط بمساحة لمسٍ لا تقلّ عن 44 بكسل. */
+        .head-tools { display: flex; align-items: center; gap: 8px; }
+        .head-btn {
+            width: 44px; height: 44px; border-radius: 12px; border: 1px solid #e2e8f0;
+            background: #fff; color: #334155; display: inline-flex; align-items: center;
+            justify-content: center; cursor: pointer;
+        }
+        .back-link { color: #64748b; text-decoration: none; font-weight: 700; font-size: 14px;
+                     min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; }
 
         .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .tab {
@@ -64,13 +73,17 @@
         body.dark-mode .page-head h1 { color: #f9fafb; }
         body.dark-mode .rc-snapshot { background: #111827; color: #e5e7eb; }
         body.dark-mode .tab { background: #1f2937; border-color: #374151; color: #e5e7eb; }
+        body.dark-mode .head-btn { background: #1f2937; border-color: #374151; color: #e5e7eb; }
     </style>
 </head>
 <body>
 
 <div class="page-head">
     <h1><i class="bi bi-flag-fill" style="color:#dc2626;" aria-hidden="true"></i> بلاغات المحتوى</h1>
-    <a href="admin.html" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i> لوحة الإدارة</a>
+    <div class="head-tools">
+        <button type="button" class="head-btn" data-theme-toggle aria-label="تبديل الوضع الليلي" title="تبديل الوضع الليلي"><i class="bi bi-moon" aria-hidden="true"></i></button>
+        <a href="admin.html" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i> لوحة الإدارة</a>
+    </div>
 </div>
 
 <div class="tabs">

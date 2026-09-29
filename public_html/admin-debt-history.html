@@ -3,7 +3,7 @@
 <head>
     <script src="js/admin-guard.js?v=691df92a" data-perm="view_finance"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>سجل تعديلات المديونية | وجيز</title>
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
@@ -84,6 +84,10 @@
             transition: transform .2s, box-shadow .2s;
         }
         .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        /* البطاقة هنا عمودية (أيقونة ← عنوان ← رقم ← تفصيل)، و admin-panel.css
+           يجعل كل .kpi-card صفّاً أفقياً — فعلى الهاتف انضغطت الأجزاء الأربعة
+           جنباً إلى جنب والتفّ العنوان على ثلاثة أسطر. */
+        .kpi-grid .kpi-card { display: block; }
         .kpi-card.green  { border-top-color: var(--brand); }
         .kpi-card.red    { border-top-color: var(--danger); }
         .kpi-card.orange { border-top-color: var(--warning); }
@@ -228,7 +232,7 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <link rel="stylesheet" href="css/admin-panel.css?v=dde88f2c">
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
-    <link rel="stylesheet" href="css/admin-mobile.css?v=e580d006">
+    <link rel="stylesheet" href="css/admin-mobile.css?v=0524e8dc">
     <script src="js/admin-mobile.js?v=5b949b76"></script>
     <script src="js/theme-manager.js?v=ef048761"></script>
     <script src="js/admin-alerts.js?v=197ebabe"></script>
