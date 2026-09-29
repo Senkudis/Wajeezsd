@@ -19,6 +19,7 @@
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/merchant-badges.js?v=9b14c4fd"></script>
+    <script src="js/payment-methods.js?v=7a411051"></script>
     <style>
         :root {
             --amber: #f59e0b; --amber-dark: #d97706;
@@ -625,6 +626,13 @@
                 <span class="fw-bold" style="color:var(--green);">${item.subtotal || (item.price * item.quantity)} ج.س</span>
             </div>`).join('');
 
+        // 💳 «دُفع عبر بنكك» — التاجر الذي يقبل أكثر من طريقة يعرف أيّ حسابٍ يراجع
+        function paidViaHtml(via) {
+            if (!via || !window.PaymentMethods) return '';
+            const m = PaymentMethods.meta(via);
+            return `<span class="d-flex align-items-center gap-2 mt-1" style="font-weight:700;color:var(--text,#0f172a);">
+                ${PaymentMethods.iconHtml(via, 24)} دُفع عبر ${window.escapeHtml(m ? m.label : 'الحساب البنكي')}</span>`;
+        }
         const receiptHtml = o.paymentReceiptImage ? `
             <div class="receipt-box ${o.paymentStatus === 'confirmed' ? 'ok' : ''}">
                 <img src="${getFullImageUrl(o.paymentReceiptImage)}" class="receipt-img"
@@ -632,6 +640,7 @@
                 <div style="font-size:12px;font-weight:800;color:${o.paymentStatus === 'confirmed' ? '#047857' : '#92400e'};">
                     <i class="bi ${o.paymentStatus === 'confirmed' ? 'bi-patch-check-fill' : 'bi-receipt'}"></i>
                     ${o.paymentStatus === 'confirmed' ? 'الدفع مؤكد' : 'إشعار دفع بانتظار مراجعتك'}
+                    ${paidViaHtml(o.paidVia)}
                     <span class="d-block mt-1" style="font-weight:600;color:var(--muted);">اضغط الصورة للتكبير</span>
                 </div>
             </div>` : '';

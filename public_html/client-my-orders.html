@@ -530,7 +530,7 @@
 
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
-    <script src="js/payment-methods.js?v=052aad9d"></script>
+    <script src="js/payment-methods.js?v=7a411051"></script>
     <script>
         /**
          * 💳 طرق دفع المتجر لطلبٍ بانتظار الدفع. الخادم الجديد يرسل
@@ -547,12 +547,17 @@
             }
             return [];
         };
+        // اختيار العميل لكل طلب — يبقى عبر إعادة رسم القائمة (كل إشعارٍ يعيدها)
+        window._pmPicked = window._pmPicked || {};
         window.hydratePaymentSlots = function (root) {
             if (!window.PaymentMethods || !root) return;
             root.querySelectorAll('.pm-pay-slot:not([data-ready])').forEach(function (el) {
                 let list = [];
                 try { list = JSON.parse(decodeURIComponent(el.getAttribute('data-pm') || '%5B%5D')); } catch (_) {}
-                PaymentMethods.renderPay(el, list);
+                PaymentMethods.renderPay(el, list, {
+                    selected: window._pmPicked[el.id],
+                    onSelect: function (m) { window._pmPicked[el.id] = m; }
+                });
                 el.setAttribute('data-ready', '1');
             });
         };
@@ -1146,7 +1151,7 @@
                                         <i class="bi bi-cloud-arrow-up-fill"></i>
                                         <span>ارفع صورة إشعار الدفع</span>
                                     </label>
-                                    <small id="upload-status-${order.shopOrderId || order._id}" class="text-muted d-block text-center"></small>
+                                    <small id="upload-status-${order.shopOrderId || order._id}" class="text-muted d-block text-center" role="status" aria-live="polite"></small>
                                 </div>
                                 `;
                             } else if (order.paymentStatus === 'receipt_sent') {
@@ -1948,7 +1953,19 @@
                 const statusText = document.getElementById(`upload-status-${orderId}`);
                 
                 if (!fileInput.files || fileInput.files.length === 0) return;
-                
+
+                // 💳 بأيّ طريقة حوّل؟ للمتجر ذي الطرق المتعدّدة يجب أن يختار أولاً —
+                //    وإلا راجع التاجر حساباتِه كلّها بحثاً عن تحويلٍ واحد
+                const paySlot = document.getElementById(`pm-pay-${orderId}`);
+                const paidVia = window.PaymentMethods ? PaymentMethods.selectedMethod(paySlot) : null;
+                if (window.PaymentMethods && PaymentMethods.count(paySlot) > 1 && !paidVia) {
+                    fileInput.value = '';
+                    statusText.innerHTML = '<span class="text-danger fw-bold">اختر طريقة الدفع التي حوّلت بها أولاً، ثم ارفع الإشعار</span>';
+                    const firstChoice = paySlot.querySelector('.pm-choice');
+                    if (firstChoice) { firstChoice.focus(); paySlot.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    return;
+                }
+
                 const file = fileInput.files[0];
                 statusText.innerHTML = '<span class="text-warning"><i class="spinner-border spinner-border-sm me-1"></i>جاري الرفع...</span>';
                 
@@ -1958,7 +1975,7 @@
                     const res = await fetchWithRetry(`${SERVER_URL}/api/orders/shop/${orderId}/upload-receipt`, {
                         method: 'PUT',
                         headers: authHeaders,
-                        body: JSON.stringify({ receiptImage: compressedImage })
+                        body: JSON.stringify({ receiptImage: compressedImage, paidVia: paidVia || undefined })
                     });
                     
                     if (res.ok) {

@@ -1630,23 +1630,31 @@ router.put('/client/orders/:id/payment-receipt', protect, async (req, res) => {
     try {
         const { receiptImage } = req.body;
         if (!receiptImage) return res.status(400).json({ message: 'صورة الإيصال مطلوبة' });
+        // نفس قواعد المسار التوأم (routes/orders.js upload-receipt): لا إشعار بعد
+        // تأكيد الدفع ولا لطلبٍ منتهٍ، والطريقة من طرق المتجر وحدها
+        const PM = require('../utils/paymentMethods');
+        const current = await ShopOrder.findOne({ _id: req.params.id, client: req.user._id }).select('status paymentStatus place').lean();
+        if (!current) return res.status(404).json({ message: 'الطلب غير موجود' });
+        const blocked = PM.receiptBlockReason(current);
+        if (blocked) return res.status(409).json({ message: blocked });
+        const place = await Place.findById(current.place);
+        const via = PM.resolvePaidVia(place, req.body.paidVia);
         // 🧾 حوّل من Base64 إلى ملف بدل تخزينه داخل المستند (اتساق مع المسار التوأم)
         const { saveBase64ToUploads } = require('../utils/imageUpload');
         const savedReceipt = saveBase64ToUploads(receiptImage, 'proofs');
         if (!savedReceipt) return res.status(400).json({ message: 'صورة الإيصال غير صالحة' });
         const order = await ShopOrder.findOneAndUpdate(
-            { _id: req.params.id, client: req.user._id },
-            { paymentReceiptImage: savedReceipt, paymentStatus: 'receipt_sent' },
+            { _id: req.params.id, client: req.user._id, ...PM.RECEIPT_OPEN_FILTER },
+            { $set: { paymentReceiptImage: savedReceipt, paymentStatus: 'receipt_sent', paidVia: via.method } },
             { new: true }
         );
-        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (!order) return res.status(409).json({ message: 'تغيّرت حالة الطلب للتوّ — حدّث الصفحة' });
         // Notify merchant via push + socket
-        const place = await Place.findById(order.place);
         if (place?.ownerId) {
             await sendNotification(req.app, {
                 userId: place.ownerId,
                 title: 'إشعار دفع جديد',
-                message: `قام العميل بإرفاق إشعار الدفع للطلب رقم ${order._id.toString().slice(-6)}. يرجى مراجعته وتأكيده للبدء في التجهيز.`,
+                message: `قام العميل بإرفاق إشعار الدفع للطلب رقم ${order._id.toString().slice(-6)}${via.label ? ` — عبر ${via.label}` : ''}. يرجى مراجعته وتأكيده للبدء في التجهيز.`,
                 type: 'payment_receipt',
                 relatedId: order._id
             });

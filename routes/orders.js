@@ -902,24 +902,35 @@ router.put('/shop/:id/upload-receipt', protect, async (req, res) => {
         const { receiptImage } = req.body;
         if (!receiptImage) return res.status(400).json({ message: 'الرجاء إرفاق صورة الإشعار' });
 
-        const order = await ShopOrder.findOne({ _id: req.params.id, client: req.user.id });
-        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        const PM = require('../utils/paymentMethods');
+        const current = await ShopOrder.findOne({ _id: req.params.id, client: req.user.id }).select('status paymentStatus place').lean();
+        if (!current) return res.status(404).json({ message: 'الطلب غير موجود' });
+        const blocked = PM.receiptBlockReason(current);
+        if (blocked) return res.status(409).json({ message: blocked });
+
+        // 💳 أيّ طرق المتجر استُعملت — من طرقه وحدها
+        const place = await Place.findById(current.place).select('ownerId name paymentMethods bankName bankAccountNumber bankAccountName');
+        const via = PM.resolvePaidVia(place, req.body.paidVia);
 
         // 🧾 حوّل إشعار الدفع من Base64 إلى ملف (بدل تخزينه داخل مستند ShopOrder)
         const { saveBase64ToUploads } = require('../utils/imageUpload');
         const savedReceipt = saveBase64ToUploads(receiptImage, 'proofs');
         if (!savedReceipt) return res.status(400).json({ message: 'صورة الإشعار غير صالحة' });
-        order.paymentReceiptImage = savedReceipt;
-        order.paymentStatus = 'receipt_sent';
-        await order.save();
+
+        // ذرّياً: ما زال مفتوحاً للدفع (لم يؤكّده التاجر بين القراءة والكتابة)
+        const order = await ShopOrder.findOneAndUpdate(
+            { _id: req.params.id, client: req.user.id, ...PM.RECEIPT_OPEN_FILTER },
+            { $set: { paymentReceiptImage: savedReceipt, paymentStatus: 'receipt_sent', paidVia: via.method } },
+            { new: true }
+        );
+        if (!order) return res.status(409).json({ message: 'تغيّرت حالة الطلب للتوّ — حدّث الصفحة' });
 
         // Notify merchant
-        const place = await Place.findById(order.place);
         if (place && place.ownerId) {
             await sendNotification(req.app, {
                 userId: place.ownerId,
                 title: 'إشعار دفع جديد',
-                message: `قام العميل بإرفاق إشعار الدفع للطلب رقم ${order._id.toString().slice(-6)}. يرجى مراجعته وتأكيده للبدء في التجهيز.`,
+                message: `قام العميل بإرفاق إشعار الدفع للطلب رقم ${order._id.toString().slice(-6)}${via.label ? ` — عبر ${via.label}` : ''}. يرجى مراجعته وتأكيده للبدء في التجهيز.`,
                 type: 'shop_order_update',
                 relatedId: order._id
             });

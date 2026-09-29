@@ -165,6 +165,87 @@ describe('المسارات', () => {
     });
 });
 
+describe('مراجعة المنطق — إشعار الدفع', () => {
+    const place = { paymentMethods: [
+        { method: 'bankak', accountNumber: '111111', accountName: 'أحمد' },
+        { method: 'fawry', accountNumber: '222222', accountName: 'أحمد' }
+    ] };
+
+    it('🔑 الطريقة المعلنة من طرق المتجر وحدها', () => {
+        expect(PM.resolvePaidVia(place, 'fawry')).toEqual({ method: 'fawry', label: 'فوري' });
+        expect(PM.resolvePaidVia(place, 'ocash')).toEqual({ method: '', label: '' });   // لا يقبلها المتجر
+        expect(PM.resolvePaidVia(place, undefined)).toEqual({ method: '', label: '' }); // طرقٌ متعدّدة بلا اختيار
+    });
+
+    it('ولمتجرٍ بطريقةٍ واحدة تُفترض هي (نسخ التطبيق القديمة لا ترسلها)', () => {
+        expect(PM.resolvePaidVia({ paymentMethods: [place.paymentMethods[1]] }, undefined).method).toBe('fawry');
+        expect(PM.resolvePaidVia({ bankName: 'بنك النيل', bankAccountNumber: '9' }, undefined).method).toBe('bank');
+    });
+
+    it('🔑 لا إشعار بعد تأكيد الدفع ولا لطلبٍ منتهٍ — كان يُرجع «مؤكَّد» إلى «بانتظار المراجعة»', () => {
+        expect(PM.receiptBlockReason({ paymentStatus: 'confirmed', status: 'shop_preparing' })).toMatch(/أكّد المتجر/);
+        expect(PM.receiptBlockReason({ paymentStatus: 'pending', status: 'cancelled' })).toMatch(/ملغى/);
+        expect(PM.receiptBlockReason({ paymentStatus: 'pending', status: 'delivered' })).toMatch(/مُسلَّم/);
+        expect(PM.receiptBlockReason({ paymentStatus: 'receipt_sent', status: 'shop_pending' })).toBe(null);
+        expect(PM.RECEIPT_OPEN_FILTER).toEqual({
+            paymentStatus: { $in: ['pending', 'receipt_sent', 'failed'] },
+            status: { $nin: ['cancelled', 'delivered'] }
+        });
+    });
+
+    it('🔑 المساران التوأمان بالقواعد نفسها، والتحديث ذرّيّ', () => {
+        const o = read('routes/orders.js');
+        const upO = o.slice(o.indexOf("router.put('/shop/:id/upload-receipt'"), o.indexOf("router.get('/my-orders'"));
+        const m = read('routes/merchant.js');
+        const upM = m.slice(m.indexOf("router.put('/client/orders/:id/payment-receipt'"), m.indexOf("router.put('/orders/:id/confirm-payment'"));
+        for (const [name, r] of [['orders', upO], ['merchant', upM]]) {
+            expect(r, name).toContain('PM.receiptBlockReason(current)');
+            expect(r, name).toContain('...PM.RECEIPT_OPEN_FILTER');
+            expect(r, name).toContain('PM.resolvePaidVia(place, req.body.paidVia)');
+            expect(r, name).toContain("paidVia: via.method");
+            expect(r, name).toContain('عبر ${via.label}');
+        }
+        expect(read('models/ShopOrder.js')).toContain("paidVia: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash', 'bank', ''], default: '' }");
+    });
+
+    it('العميل يختار الطريقة قبل رفع الإشعار حين تتعدّد — ويرسلها', () => {
+        const s = read('public_html/client-my-orders.html');
+        expect(s).toContain('PaymentMethods.count(paySlot) > 1 && !paidVia');
+        expect(s).toContain('paidVia: paidVia || undefined');
+        // واختياره يبقى عبر إعادة رسم القائمة
+        expect(s).toContain('selected: window._pmPicked[el.id]');
+    });
+
+    it('والتاجر يرى «دُفع عبر»', () => {
+        const s = read('public_html/merchant-orders.html');
+        expect(s).toContain('${paidViaHtml(o.paidVia)}');
+        expect(s).toContain('src="js/payment-methods.js');
+    });
+});
+
+describe('مراجعة العرض وإمكانية الوصول', () => {
+    const js = read('public_html/js/payment-methods.js');
+
+    it('لا aria-expanded على checkbox (غير مسموح)', () => {
+        expect(js).not.toMatch(/type="checkbox"[^']*aria-expanded/);
+        expect(js).not.toContain("chk.setAttribute('aria-expanded'");
+    });
+
+    it('زرّ النسخ: الاسم المنطوق هو النصّ الظاهر', () => {
+        expect(js).toContain('\'<button type="button" class="pm-copy" data-copy="\' + esc(pm.accountNumber) + \'">نسخ الرقم</button></div>\'');
+    });
+
+    it('الخانة المخفية داخل بطاقتها، والتركيز على أوّل خيار عند خطأ المجموعة', () => {
+        expect(js).toContain(".pm-opt{position:relative;");
+        expect(js).toContain("focus: 'pm-' + LIST[0].id");
+    });
+
+    it('الاختيار يُستعاد بعد إعادة الرسم بلا إطلاق onSelect', () => {
+        expect(js).toContain('select(box, s, true)');
+        expect(js).toContain("if (!silent && pm && typeof box._pmOnSelect === 'function')");
+    });
+});
+
 describe('الواجهات', () => {
     it('🔑 التسجيل: بطاقات الطرق بدل قائمة البنوك، والفحص قبل الإرسال', () => {
         const s = read('public_html/client-register-shop.html');
@@ -178,7 +259,7 @@ describe('الواجهات', () => {
         const js = read('public_html/js/payment-methods.js');
         expect(js).toContain('اختر طريقة الدفع');
         expect(js).toContain('role="radiogroup"');
-        expect(js).toContain("slot.innerHTML = detailHtml(box._pmMethods[i])");
+        expect(js).toContain("if (slot && pm) slot.innerHTML = detailHtml(pm);");
         // طريقةٌ واحدة: البيانات مباشرة بلا اختيار
         expect(js).toContain("if (methods.length === 1)");
     });

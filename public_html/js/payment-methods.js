@@ -48,8 +48,10 @@
     }
 
     /** أيقونة الطريقة — وللحساب البنكيّ القديم بلا طريقةٍ معروفة: رسم بنكٍ عامّ */
-    function iconHtml(id, size, label) {
+    function iconHtml(id, size) {
         size = size || 40;
+        // الأيقونة تُستعمل وحدها أيضاً (بطاقة طلب التاجر) — أنماطها معها
+        if (typeof document !== 'undefined' && document.getElementById) injectStyle();
         var m = meta(id);
         if (m) {
             return '<img class="pm-icon" src="' + ICON_DIR + id + '.png" width="' + size + '" height="' + size +
@@ -66,7 +68,9 @@
         '.pm-icon{border-radius:12px;object-fit:cover;flex-shrink:0;display:block;box-shadow:0 1px 3px rgba(15,23,42,.12)}',
         '.pm-icon-bank{display:inline-flex;align-items:center;justify-content:center;background:#e2e8f0;color:#334155}',
         '.pm-picker{display:grid;gap:10px}',
-        '.pm-opt{border:1.5px solid #e2e8f0;border-radius:14px;background:#fff;transition:border-color .15s,box-shadow .15s}',
+        /* relative: خانة الاختيار المخفية (absolute) تبقى داخل بطاقتها — بدونه
+           تُرسَم نسبةً لأقرب أبٍ موضوع، فيقفز التمرير عند تركيزها بلوحة المفاتيح */
+        '.pm-opt{position:relative;border:1.5px solid #e2e8f0;border-radius:14px;background:#fff;transition:border-color .15s,box-shadow .15s}',
         '.pm-opt.is-on{border-color:#048c5b;box-shadow:0 0 0 3px rgba(4,140,91,.12)}',
         '.pm-head{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer;margin:0;min-height:60px}',
         '.pm-head input{position:absolute;opacity:0;width:1px;height:1px}',
@@ -136,8 +140,9 @@
                 '<label class="pm-head" for="pm-' + m.id + '">' +
                     iconHtml(m.id, 44) +
                     '<span class="pm-name">' + esc(m.label) + '</span>' +
-                    '<input type="checkbox" id="pm-' + m.id + '" class="pm-check"' + (on ? ' checked' : '') +
-                        ' aria-controls="pm-' + m.id + '-fields" aria-expanded="' + on + '">' +
+                    // aria-expanded غير مسموح على checkbox — الخانتان تظهران تحتها مباشرةً
+                    // بترتيب القراءة، فلا حاجة لإعلانٍ إضافي
+                    '<input type="checkbox" id="pm-' + m.id + '" class="pm-check"' + (on ? ' checked' : '') + '>' +
                     '<span class="pm-tick" aria-hidden="true"></span>' +
                 '</label>' +
                 '<div class="pm-fields" id="pm-' + m.id + '-fields"' + (on ? '' : ' hidden') + '>' +
@@ -160,7 +165,6 @@
             var fields = opt.querySelector('.pm-fields');
             opt.classList.toggle('is-on', chk.checked);
             fields.hidden = !chk.checked;
-            chk.setAttribute('aria-expanded', chk.checked ? 'true' : 'false');
             if (chk.checked) {
                 var num = fields.querySelector('input');
                 if (num && !num.value) setTimeout(function () { num.focus(); }, 60);
@@ -185,7 +189,8 @@
             methods.push({ method: m.id, accountNumber: num, accountName: name });
         });
         if (!methods.length) {
-            errors.unshift({ target: box.id || 'pm-bankak', message: 'اختر طريقة دفعٍ واحدة على الأقل ليدفع لك العملاء' });
+            // الخطأ على المجموعة، والتركيز على أوّل خيار — المجموعة نفسها لا تُركَّز
+            errors.unshift({ target: box.id || 'pm-bankak', message: 'اختر طريقة دفعٍ واحدة على الأقل ليدفع لك العملاء', focus: 'pm-' + LIST[0].id });
         }
         return { methods: methods, errors: errors };
     }
@@ -229,7 +234,9 @@
             '<div class="pm-detail-head">' + iconHtml(pm.method, 36) + '<span>' + esc(label) + '</span></div>' +
             '<div class="pm-row"><div><div class="pm-k">' + esc(m ? m.numberLabel : 'رقم الحساب') + '</div>' +
                 '<div class="pm-v pm-num" dir="ltr">' + esc(pm.accountNumber) + '</div></div>' +
-                '<button type="button" class="pm-copy" data-copy="' + esc(pm.accountNumber) + '" aria-label="نسخ ' + esc(m ? m.numberLabel : 'رقم الحساب') + '">نسخ الرقم</button></div>' +
+                // بلا aria-label: الاسم المنطوق هو النصّ الظاهر «نسخ الرقم» — من يتحكّم
+                // بصوته يقول ما يراه (WCAG 2.5.3)
+                '<button type="button" class="pm-copy" data-copy="' + esc(pm.accountNumber) + '">نسخ الرقم</button></div>' +
             (pm.accountName ? '<div><div class="pm-k">اسم صاحب الحساب</div><div class="pm-v">' + esc(pm.accountName) + '</div></div>' : '') +
         '</div>';
     }
@@ -237,13 +244,20 @@
     /**
      * @param {HTMLElement} box
      * @param {Array<{method,label?,accountNumber,accountName}>} methods  من الخادم
+     * @param {{ selected?: string, onSelect?: function(string) }} opts
+     *        selected: الطريقة المختارة قبل إعادة الرسم — القائمة تُعاد عند كل
+     *        إشعار (تحديث حالة، رسالة…)، فبدونه يضيع اختيار العميل وهو ينسخ الرقم.
      */
-    function renderPay(box, methods) {
+    function renderPay(box, methods, opts) {
         if (!box) return;
         injectStyle();
+        opts = opts || {};
+        box._pmOnSelect = opts.onSelect || null;
         methods = (methods || []).filter(function (x) { return x && x.accountNumber; });
         box.classList.add('pm-pay');
         if (!methods.length) {
+            box._pmMethods = [];
+            box._pmSelected = null;
             box.innerHTML = '<p class="pm-empty">لم يُضف المتجر طريقة دفعٍ بعد — تواصل معه من المحادثة.</p>';
             return;
         }
@@ -260,6 +274,12 @@
                 '</div><div class="pm-slot"></div>';
         }
         box._pmMethods = methods;
+        box._pmSelected = null;
+        if (methods.length > 1 && opts.selected) {
+            for (var s = 0; s < methods.length; s++) {
+                if (methods[s].method === opts.selected) { select(box, s, true); break; }
+            }
+        }
 
         if (box._pmPayBound) return;
         box._pmPayBound = true;
@@ -283,14 +303,27 @@
         });
     }
 
-    function select(box, i) {
+    function select(box, i, silent) {
         var all = box.querySelectorAll('.pm-choice');
         for (var k = 0; k < all.length; k++) {
             all[k].setAttribute('aria-checked', k === i ? 'true' : 'false');
             all[k].tabIndex = k === i ? 0 : -1;
         }
         var slot = box.querySelector('.pm-slot');
-        if (slot && box._pmMethods && box._pmMethods[i]) slot.innerHTML = detailHtml(box._pmMethods[i]);
+        var pm = box._pmMethods && box._pmMethods[i];
+        if (slot && pm) slot.innerHTML = detailHtml(pm);
+        box._pmSelected = pm ? pm.method : null;
+        if (!silent && pm && typeof box._pmOnSelect === 'function') box._pmOnSelect(pm.method);
+    }
+
+    /**
+     * الطريقة التي اختارها العميل: الوحيدة إن لم يكن غيرها، وإلا المختارة
+     * (null إن لم يختر بعد) — تُرسل مع إشعار الدفع ليعرف التاجر أيّ حسابٍ يراجع.
+     */
+    function selectedMethod(box) {
+        if (!box || !box._pmMethods) return null;
+        if (box._pmMethods.length === 1) return box._pmMethods[0].method;
+        return box._pmSelected || null;
     }
 
     /** سطرٌ مختصر بأيقونات الطرق — لبطاقات الإدارة */
@@ -342,6 +375,8 @@
         readPicker: readPicker,
         inputFor: inputFor,
         renderPay: renderPay,
+        selectedMethod: selectedMethod,
+        count: function (box) { return box && box._pmMethods ? box._pmMethods.length : 0; },
         summaryHtml: function (methods) { injectStyle(); return summaryHtml(methods); },
         cleanNumber: cleanNumber
     };

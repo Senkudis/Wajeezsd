@@ -123,7 +123,39 @@ function methodsForPlace(place) {
     return [];
 }
 
+/**
+ * الطريقة التي أعلن العميل أنه دفع بها — مقبولةٌ فقط إن كانت من طرق المتجر
+ * نفسه (لا يُسجَّل «فوري» لمتجرٍ لا يقبل فوري). وللمتجر ذي الطريقة الواحدة
+ * تُفترض هي حين لا يُرسل العميل شيئاً (نسخ التطبيق القديمة).
+ * @returns {{ method: string, label: string }}  method '' إن تعذّر الحكم
+ */
+function resolvePaidVia(place, raw) {
+    const list = methodsForPlace(place);
+    const hit = list.find(m => m.method === raw);
+    const pick = hit || (list.length === 1 ? list[0] : null);
+    return pick ? { method: pick.method, label: pick.label } : { method: '', label: '' };
+}
+
+/**
+ * متى يُقبل إشعار دفع؟ ما دام الدفع لم يُؤكَّد والطلب لم ينتهِ. كان المساران
+ * يقبلانه في أيّ حال: إعادة الرفع بعد تأكيد التاجر كانت تُرجع «مؤكَّد» إلى
+ * «بانتظار المراجعة»، وكذلك طلبٌ ملغى أو مُسلَّم.
+ * الشرط نفسه يُستعمل مرشّحاً ذرّياً في التحديث.
+ */
+const RECEIPT_OPEN_FILTER = {
+    paymentStatus: { $in: ['pending', 'receipt_sent', 'failed'] },
+    status: { $nin: ['cancelled', 'delivered'] }
+};
+function receiptBlockReason(order) {
+    if (!order) return 'الطلب غير موجود';
+    if (order.paymentStatus === 'confirmed') return 'أكّد المتجر استلام دفعك بالفعل — لا حاجة لإشعارٍ جديد';
+    if (order.status === 'cancelled') return 'الطلب ملغى — لا يمكن إرفاق إشعار دفع';
+    if (order.status === 'delivered') return 'الطلب مُسلَّم — لا يمكن إرفاق إشعار دفع';
+    return null;
+}
+
 module.exports = {
     METHODS, METHOD_IDS, NUMBER_MIN, NUMBER_MAX, NAME_MIN, NAME_MAX,
-    cleanPaymentMethods, legacyMirror, guessMethod, methodsForPlace
+    cleanPaymentMethods, legacyMirror, guessMethod, methodsForPlace,
+    resolvePaidVia, RECEIPT_OPEN_FILTER, receiptBlockReason
 };
