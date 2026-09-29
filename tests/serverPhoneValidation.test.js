@@ -144,7 +144,8 @@ describe('طلب انضمام المتجر', () => {
 
     it('والنموذج يعرض خطأ الخادم تحت خانة الهاتف', () => {
         const page = read('public_html/client-register-shop.html');
-        expect(page).toContain("errField === 'phone' && window.FieldErrors");
-        expect(page).toContain("FieldErrors.show('fPhone', errMsg)");
+        // الخانة من الخادم ← خانة النموذج: الهاتف، أو خانة طريقة دفع (js/payment-methods.js)
+        expect(page).toContain("const fieldInput = errField === 'phone' ? 'fPhone'");
+        expect(page).toContain('FieldErrors.show(fieldInput, errMsg)');
     });
 });

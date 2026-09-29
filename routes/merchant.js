@@ -1021,9 +1021,20 @@ router.put('/profile', protect, merchantOnly, async (req, res) => {
         if (typeof whatsapp === 'string') place.whatsapp = whatsapp.trim().slice(0, 20);
         if (typeof address === 'string') place.address = address.trim().slice(0, 200);
         if (typeof image_url === 'string') place.image_url = image_url.trim();
-        if (typeof bankAccountName === 'string') place.bankAccountName = bankAccountName.trim().slice(0, 100);
-        if (typeof bankAccountNumber === 'string') place.bankAccountNumber = bankAccountNumber.trim().slice(0, 50);
-        if (typeof bankName === 'string') place.bankName = bankName.trim().slice(0, 100);
+        // 💳 طرق الدفع (utils/paymentMethods.js). حين تصل القائمة تكون هي
+        //    المصدر، والحقول البنكية القديمة مرآةٌ لأوّلها. وبدونها (نسخة
+        //    تطبيقٍ قديمة) تُحدَّث الحقول القديمة كما كانت.
+        if (req.body.paymentMethods !== undefined) {
+            const PM = require('../utils/paymentMethods');
+            const pm = PM.cleanPaymentMethods(req.body.paymentMethods, { required: true });
+            if (!pm.ok) return res.status(400).json({ message: pm.message, field: pm.field });
+            place.paymentMethods = pm.methods;
+            Object.assign(place, PM.legacyMirror(pm.methods));
+        } else {
+            if (typeof bankAccountName === 'string') place.bankAccountName = bankAccountName.trim().slice(0, 100);
+            if (typeof bankAccountNumber === 'string') place.bankAccountNumber = bankAccountNumber.trim().slice(0, 50);
+            if (typeof bankName === 'string') place.bankName = bankName.trim().slice(0, 100);
+        }
 
         // ساعات العمل — تحقق من صيغة HH:MM وقائمة الأيام (0..6)
         if (workingHours && typeof workingHours === 'object') {

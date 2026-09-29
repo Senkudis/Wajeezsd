@@ -43,6 +43,8 @@ const FIELD_LABELS = {
     'fBusinessName': 'الاسم التجاري', 'fCategory': 'تصنيف المتجر', 'fCategoryOther': 'التصنيف (أخرى)',
     'locationBtn': 'موقع المتجر', 'fOwnerName': 'اسم المالك', 'fPhone': 'هاتف المتجر', 'fBankName': 'البنك',
     'fBankNameOther': 'اسم البنك (أخرى)', 'fBankAccountNum': 'رقم الحساب', 'fBankAccountOwner': 'مالك الحساب',
+    // طرق الدفع (js/payment-methods.js) — pm-bankak-num ← pm-num
+    'fPaymentMethods': 'طرق الدفع', 'pm-num': 'رقم حساب الدفع', 'pm-name': 'اسم صاحب حساب الدفع',
     'box-logo': 'شعار المتجر', 'box-id': 'إثبات الهوية', 'termsRow': 'الموافقة على الشروط',
     // الطلب من صفحة متجر
     'deliveryAddress': 'موقع التوصيل', 'receiverName': 'اسم المستلم', 'receiverPhone': 'هاتف المستلم',
@@ -57,7 +59,7 @@ const FIELD_LABELS = {
 
 /** يوحّد النقاط الإضافية (stop-7-addr ← stop-addr) كي تُجمَع معاً */
 function canonicalField(f) {
-    return String(f).replace(/^stop-\d+-/, 'stop-');
+    return String(f).replace(/^stop-\d+-/, 'stop-').replace(/^pm-\w+-(num|name)$/, 'pm-$1');
 }
 
 const reportLimiter = rateLimit({

@@ -20,6 +20,17 @@ const PlaceSchema = new mongoose.Schema({
     bankAccountName: { type: String, default: '' }, // 🏦 اسم صاحب الحساب البنكي
     bankAccountNumber: { type: String, default: '' }, // 🔢 رقم الحساب (بنكك)
     bankName: { type: String, default: '' }, // 🏢 اسم البنك
+    // 💳 طرق الدفع التي يستلم بها التاجر ثمن الطلب (utils/paymentMethods.js).
+    //    الحقول الثلاثة أعلاه مرآةٌ لأوّلها — لشاشاتٍ ونسخٍ قديمة.
+    paymentMethods: {
+        type: [{
+            _id: false,
+            method: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash'], required: true },
+            accountNumber: { type: String, default: '' },
+            accountName: { type: String, default: '' }
+        }],
+        default: []
+    },
     shopWalletBalance: { type: Number, default: 0 }, // 💰 رصيد محفظة المتجر
     // 💼 ERP: باقة المتجر — basic (ناشئ: منتجات وطلبات ومستحقات فقط)
     // أو pro (كبير: + نقطة بيع وتقارير ومخزون متقدم ومصروفات). الأدمن يتحكم بها.
@@ -103,6 +114,7 @@ const PLACE_PRIVATE_FIELDS = [
     'bankAccountName',
     'bankAccountNumber',
     'bankName',
+    'paymentMethods',
     'shopWalletBalance'
 ];
 

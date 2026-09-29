@@ -985,7 +985,7 @@ router.get('/my-orders', protect, async (req, res) => {
                 .lean(),
             ShopOrder.find({ client: req.user.id, status: { $ne: 'chat_initiated' }, ...dateFilter })
                 .select('-paymentReceiptImage')
-                .populate('place', 'name address bankAccountName bankAccountNumber bankName')
+                .populate('place', 'name address bankAccountName bankAccountNumber bankName paymentMethods')
                 .populate('captain', 'name phone vehicleType currentLocation documents.profilePhoto averageRating ratingCount completedTrips')
                 .sort({ createdAt: -1 })
                 .limit(fetchCount)
@@ -1062,6 +1062,9 @@ router.get('/my-orders', protect, async (req, res) => {
                     account: so.place.bankAccountNumber,
                     bank: so.place.bankName
                 } : null,
+                // 💳 كل طرق الدفع التي يقبلها المتجر — يختار العميل منها
+                //    (bankInfo أعلاه للنسخ القديمة من التطبيق)
+                paymentMethods: require('../utils/paymentMethods').methodsForPlace(so.place),
                 details: (so.items && so.items.length > 0)
                     ? so.items.map(i => `${i.quantity}x ${i.name}`).join('، ')
                     : '💬 محادثة مباشرة'

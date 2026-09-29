@@ -530,6 +530,33 @@
 
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
+    <script src="js/payment-methods.js?v=052aad9d"></script>
+    <script>
+        /**
+         * 💳 طرق دفع المتجر لطلبٍ بانتظار الدفع. الخادم الجديد يرسل
+         * paymentMethods؛ والقديم (قبل النشر) يرسل bankInfo وحده — يُعرض
+         * كحسابٍ واحد فلا تنكسر الشاشة بين نشر الواجهة والخادم.
+         */
+        window.payMethodsOf = function (order) {
+            if (order && Array.isArray(order.paymentMethods) && order.paymentMethods.length) return order.paymentMethods;
+            const b = order && order.bankInfo;
+            if (b && b.account) {
+                const g = window.PaymentMethods ? PaymentMethods.guessMethod(b.bank) : null;
+                return [{ method: g || 'bank', label: g ? PaymentMethods.meta(g).label : (b.bank || 'تحويل بنكي'),
+                          accountNumber: String(b.account), accountName: b.name || '' }];
+            }
+            return [];
+        };
+        window.hydratePaymentSlots = function (root) {
+            if (!window.PaymentMethods || !root) return;
+            root.querySelectorAll('.pm-pay-slot:not([data-ready])').forEach(function (el) {
+                let list = [];
+                try { list = JSON.parse(decodeURIComponent(el.getAttribute('data-pm') || '%5B%5D')); } catch (_) {}
+                PaymentMethods.renderPay(el, list);
+                el.setAttribute('data-ready', '1');
+            });
+        };
+    </script>
 
     <script>
         // ✅ تعريف رابط السيرفر يدوياً كاحتياط في حال فشل تحميل config.js
@@ -1106,17 +1133,11 @@
                                         <span class="text-primary mt-1 d-block"><i class="bi bi-info-circle-fill me-1"></i> رسوم التوصيل تُدفع للكابتن عند الاستلام.</span>
                                     </p>
                                     
-                                    ${order.bankInfo && order.bankInfo.account ? `
-                                    <div class="p-2 mb-3 rounded-2 text-start" style="background:rgba(255,255,255,0.7); border:1px dashed #eab308; direction: rtl;">
-                                        <div class="small text-muted mb-1 text-end">🏦 بيانات الدفع للمتجر:</div>
-                                        <div class="fw-bold text-dark text-end"><i class="bi bi-bank me-1"></i> البنك: ${order.bankInfo.bank || 'غير محدد'}</div>
-                                        <div class="fw-bold text-dark text-end"><i class="bi bi-person-badge me-1"></i> الاسم: ${order.bankInfo.name || 'غير محدد'}</div>
-                                        <div class="fw-bold text-primary mt-1 fs-5 d-flex flex-row-reverse justify-content-between align-items-center" style="font-family: monospace;">
-                                            <span>${order.bankInfo.account}</span>
-                                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="navigator.clipboard.writeText('${order.bankInfo.account}'); Swal.fire({title:'تم النسخ', icon:'success', toast:true, position:'top-end', showConfirmButton:false, timer:1500});"><i class="bi bi-clipboard"></i> نسخ</button>
-                                        </div>
-                                    </div>
-                                    ` : ''}
+                                    <!-- 💳 طرق دفع المتجر: يختار العميل إحداها فتظهر بياناتها
+                                         (js/payment-methods.js). ⚠️ كان رقم الحساب واسمه — نصٌّ
+                                         يكتبه التاجر — يُدرجان في الصفحة وفي onclick بلا تهريب. -->
+                                    <div class="pm-pay-slot mb-3" id="pm-pay-${order.shopOrderId || order._id}"
+                                         data-pm="${encodeURIComponent(JSON.stringify(payMethodsOf(order)))}"></div>
                                     <!-- ⚠️ كان input[type=file] خاماً: يعرضه المتصفّح بزرّ إنجليزي
                                          "Choose File / No file chosen" وسط واجهة عربية — أوّل ما
                                          تقع عليه العين في أهمّ خطوة (رفع إشعار الدفع). -->
@@ -1265,6 +1286,7 @@
                         list.insertAdjacentHTML('beforeend', html);
                         _ordersSeen.push({ id: order._id, fstatus: _fstatus });
                     });
+                    hydratePaymentSlots(list);
 
                     if (!append) {
                         // BUG FIX: Removed the automatic trigger for confirmDelivery here to prevent spamming popups.

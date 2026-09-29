@@ -47,7 +47,29 @@ router.post('/', protect, async (req, res) => {
             return res.status(400).json({ message: 'لديك طلب قيد المراجعة بالفعل' });
         }
 
-        const { businessName, ownerName, location, address, category, description, bankAccount, bankAccountNumber, bankAccountOwner, logoImage, idImage, referralSource, referralDetail, referralCode } = req.body;
+        const { businessName, ownerName, location, address, category, description, logoImage, idImage, referralSource, referralDetail, referralCode } = req.body;
+
+        // 💳 طرق الدفع (بنكك، ماي كاشي، فوري، أوكاش) — utils/paymentMethods.js.
+        //    النموذج الجديد يرسل paymentMethods؛ والقديم (موقع الإحالة ونسخ
+        //    التطبيق السابقة) يرسل حساباً واحداً نصّياً فيُقبل كما هو.
+        const PM = require('../utils/paymentMethods');
+        let paymentMethods = [];
+        let bankAccount = req.body.bankAccount;
+        let bankAccountNumber = req.body.bankAccountNumber;
+        let bankAccountOwner = req.body.bankAccountOwner;
+        if (req.body.paymentMethods !== undefined) {
+            const pm = PM.cleanPaymentMethods(req.body.paymentMethods, { required: true });
+            if (!pm.ok) return res.status(400).json({ message: pm.message, field: pm.field });
+            paymentMethods = pm.methods;
+            const mirror = PM.legacyMirror(paymentMethods);
+            bankAccount = mirror.bankName;
+            bankAccountNumber = mirror.bankAccountNumber;
+            bankAccountOwner = mirror.bankAccountName;
+        } else if (!bankAccount && req.body.bankName) {
+            // ⚠️ نموذج التطبيق كان يرسل اسم البنك في «bankName» والخادم يقرأ
+            //    «bankAccount» — فيضيع اسم البنك ويُنشأ المتجر بلا اسم بنك.
+            bankAccount = req.body.bankName;
+        }
 
         // 📞 رقم المتجر يصير واتساب المتجر ورقم استلام الكابتن — ما لا يُتّصل
         //    به يُرفض هنا في خانته، لا بعد القبول. والمقبول بالصيغة المحلية.
@@ -72,7 +94,7 @@ router.post('/', protect, async (req, res) => {
         const newRequest = new MerchantRequest({
             city: reqCity,
             businessName, ownerName, phone, location, address, category, description,
-            bankAccount, bankAccountNumber, bankAccountOwner, logoImage, idImage,
+            bankAccount, bankAccountNumber, bankAccountOwner, paymentMethods, logoImage, idImage,
             referralSource: ['social', 'person', 'captain', 'whatsapp', 'google', 'ad', 'market', 'other'].includes(referralSource) ? referralSource : '',
             referralDetail: (referralDetail || '').toString().slice(0, 120),
             userId: req.user._id,
@@ -343,6 +365,11 @@ router.put('/admin/:id/status', protect, adminOnly,
                     existingPlace.category = categoryDoc._id;
                     if (request.logoImage) existingPlace.image_url = request.logoImage;
                     if (request.description) existingPlace.description = request.description;
+                    // طرق الدفع من الطلب — إن لم يكن التاجر قد عدّلها من ملفّه بعد
+                    if (request.paymentMethods && request.paymentMethods.length && !(existingPlace.paymentMethods || []).length) {
+                        existingPlace.paymentMethods = request.paymentMethods;
+                        Object.assign(existingPlace, require('../utils/paymentMethods').legacyMirror(request.paymentMethods));
+                    }
                     // 🌍 صحّح المدينة من الإحداثيات إن أمكن (الموقع أصدق من إعداد الحساب)
                     const { cityFromCoords } = require('../utils/geofence');
                     const coordCity = cityFromCoords(reqLat, reqLng);
@@ -372,7 +399,8 @@ router.put('/admin/:id/status', protect, adminOnly,
                 description: request.description || '',
                 bankAccountName: request.bankAccountOwner || '',
                 bankAccountNumber: request.bankAccountNumber || '',
-                bankName: request.bankAccount || '',
+                bankName: request.bankAccount || request.bankName || '',
+                paymentMethods: request.paymentMethods || [],
                 city: merchantCity,  // 🌍 Inherit from merchant's user city
                 isActive: true,
                 isOpenOverride: true, // as requested "is_open: true" via isOpenOverride which feeds virtual

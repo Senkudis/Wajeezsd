@@ -676,9 +676,12 @@ router.get('/admin/settlements', protect, adminOnly, requireAnyPermission(['view
         const filter = {};
         if (req.query.status && ['pending', 'approved', 'rejected'].includes(req.query.status)) filter.status = req.query.status;
         const settlements = await SettlementRequest.find(filter)
-            .populate('placeId', 'name city shopWalletBalance bankAccountName bankAccountNumber bankName')
+            .populate('placeId', 'name city shopWalletBalance bankAccountName bankAccountNumber bankName paymentMethods')
             .populate('merchantId', 'name phone')
             .sort({ createdAt: -1 }).limit(100).lean();
+        // 💳 طرق دفع التاجر كما تُعرض — الأدمن يحوّل له مستحقّاته بإحداها
+        const { methodsForPlace } = require('../utils/paymentMethods');
+        settlements.forEach(s => { if (s.placeId) s.placeId.paymentMethodsView = methodsForPlace(s.placeId); });
         res.json({ settlements });
     } catch (err) {
         logger.error('admin/settlements GET error:', err.message);

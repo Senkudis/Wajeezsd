@@ -51,6 +51,17 @@ const merchantRequestSchema = new mongoose.Schema({
     bankAccount: {
         type: String  // حقل موحّد: "اسم البنك / رقم الحساب"
     },
+    // 💳 طرق الدفع المختارة عند التسجيل (utils/paymentMethods.js) — تُنسخ
+    //    إلى المتجر عند القبول. الحقول البنكية أعلاه مرآةٌ لأوّلها.
+    paymentMethods: {
+        type: [{
+            _id: false,
+            method: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash'], required: true },
+            accountNumber: { type: String, default: '' },
+            accountName: { type: String, default: '' }
+        }],
+        default: []
+    },
     category: {
         type: String
     },

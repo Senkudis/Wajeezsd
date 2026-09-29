@@ -77,6 +77,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
     <script src="js/admin-alerts.js?v=197ebabe"></script>
     <script src="js/admin-export.js?v=64f3a22c"></script>
     <script src="js/admin-palette.js?v=0cd12760"></script>
+    <script src="js/payment-methods.js?v=052aad9d"></script>
 </head>
 
 <body>
@@ -233,27 +234,9 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                             </div>
                         </div>
 
-                        <h6 class="fw-bold text-success border-bottom pb-2 mt-4 mb-3"><i class="fas fa-university me-1" aria-hidden="true"></i> البيانات البنكية (للاطلاع)</h6>
-                        <div class="row g-2">
-                            <div class="col-12">
-                                <div class="p-2 bg-light rounded border">
-                                    <small class="text-muted d-block">اسم البنك:</small>
-                                    <span id="dBankName" class="fw-bold"></span>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-2 bg-light rounded border">
-                                    <small class="text-muted d-block">رقم الحساب:</small>
-                                    <span id="dBankNum" class="fw-bold"></span>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-2 bg-light rounded border">
-                                    <small class="text-muted d-block">صاحب الحساب:</small>
-                                    <span id="dBankOwner" class="fw-bold"></span>
-                                </div>
-                            </div>
-                        </div>
+                        <h6 class="fw-bold text-success border-bottom pb-2 mt-4 mb-3"><i class="fas fa-wallet me-1" aria-hidden="true"></i> طرق الدفع (للاطلاع)</h6>
+                        <!-- js/payment-methods.js — بأيقونة كل طريقة ورقمها واسم صاحبها -->
+                        <div id="dPayMethods" class="p-2 bg-light rounded border"></div>
                     </div>
 
                     <!-- Column 2: Docs -->
@@ -609,9 +592,19 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
             document.getElementById('dLat').value = req.location?.lat || '';
             document.getElementById('dLng').value = req.location?.lng || '';
             
-            document.getElementById('dBankName').textContent = req.bankName;
-            document.getElementById('dBankNum').textContent = req.bankAccountNumber;
-            document.getElementById('dBankOwner').textContent = req.bankAccountOwner;
+            // 💳 الطلب الجديد يحمل paymentMethods؛ والقديم حساباً واحداً نصّياً
+            {
+                const pmBox = document.getElementById('dPayMethods');
+                const list = (req.paymentMethods && req.paymentMethods.length) ? req.paymentMethods
+                    : (req.bankAccountNumber ? [{
+                        method: (window.PaymentMethods && PaymentMethods.guessMethod(req.bankAccount || req.bankName)) || 'bank',
+                        label: req.bankAccount || req.bankName || 'حساب بنكي (الاسم لم يُحفظ)',
+                        accountNumber: req.bankAccountNumber, accountName: req.bankAccountOwner || ''
+                      }] : []);
+                pmBox.innerHTML = list.length && window.PaymentMethods
+                    ? PaymentMethods.summaryHtml(list)
+                    : '<span class="text-muted small">لم يُضف طريقة دفع</span>';
+            }
 
             const logoUrl = getFullImageUrl(req.logoImage);
             const idUrl = getFullImageUrl(req.idImage);
