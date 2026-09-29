@@ -6,7 +6,10 @@ const validateObjectId = require('../middleware/validateObjectId');
 router.param('id', validateObjectId);
 const Marketer = require('../models/Marketer');
 const Referral = require('../models/Referral');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+// 🔐 إدارة المسوّقين ومكافآتهم مالٌ يُصرف: لا صلاحية مخصّصة لها ولا شاشة
+//    إدارةٍ تستدعيها، فهي للمسؤول الرئيسيّ وحده (كانت adminOnly — أيّ أدمنٍ
+//    مساعد يُنشئ مسوّقاً ويغيّر مكافأته).
+const { protect, superAdminOnly: adminOnly } = require('../middleware/authMiddleware');
 const { generateReferralCode } = require('../utils/otp');
 const logger = require('../utils/logger');
 

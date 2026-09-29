@@ -3,7 +3,8 @@ const router = express.Router();
 const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
-const { protect, merchantOnly, adminOnly } = require('../middleware/authMiddleware');
+const { protect, merchantOnly, requirePermission, adminCoversCity } = require('../middleware/authMiddleware');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Place = require('../models/Place');
 // 🔒 مرشّح حقول المتجر لواجهة العميل (بيانات بنكية + أرقام اتصال) — انظر models/Place.js
@@ -1608,11 +1609,23 @@ router.put('/orders/:id/confirm-payment', protect, merchantOnly, async (req, res
 // ──────────────────────────────────────────────
 // 🔧 ADMIN — assign merchant to a place
 // ──────────────────────────────────────────────
-router.put('/admin/assign-merchant', protect, adminOnly, async (req, res) => {
+// 🔐 نقل ملكية متجرٍ لتاجر: صلاحية manage_stores، والمتجر في مدن الأدمن.
+//    كان adminOnly وحده — أيّ أدمنٍ مساعد يسلّم أيّ متجرٍ (وطلباته وأرصدته)
+//    لأيّ رقم تاجر. ولا تستدعيه شاشةٌ اليوم، فالحارس هنا وحده.
+router.put('/admin/assign-merchant', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
-        const { placeId, merchantPhone } = req.body;
-        const merchant = await User.findOne({ phone: merchantPhone, role: 'merchant' });
+        const { placeId, merchantPhone } = req.body || {};
+        if (!mongoose.isValidObjectId(placeId) || typeof merchantPhone !== 'string') {
+            return res.status(400).json({ message: 'بيانات غير صالحة' });
+        }
+        const { normalizePhone } = require('../utils/phoneNormalizer');
+        const merchant = await User.findOne({ phone: normalizePhone(merchantPhone), role: 'merchant' });
         if (!merchant) return res.status(404).json({ message: 'لا يوجد تاجر بهذا الرقم' });
+        const existing = await Place.findById(placeId).select('city').lean();
+        if (!existing) return res.status(404).json({ message: 'المتجر غير موجود' });
+        if (!adminCoversCity(req.user, existing.city)) {
+            return res.status(403).json({ message: 'هذا المتجر خارج نطاق مدينتك' });
+        }
         const place = await Place.findByIdAndUpdate(placeId, { ownerId: merchant._id }, { new: true });
         if (!place) return res.status(404).json({ message: 'المتجر غير موجود' });
         res.json({ message: 'تم ربط التاجر بالمتجر', place, merchant: { name: merchant.name, phone: merchant.phone } });

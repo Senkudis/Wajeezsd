@@ -9,7 +9,32 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const jimpModule = require('jimp');
 const Jimp = jimpModule.Jimp || jimpModule;
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { protect, requirePermission, adminCanActOnUser } = require('../middleware/authMiddleware');
+
+/**
+ * 🔐 صورة كابتنٍ يغيّرها الأدمن: صلاحية manage_captains، والكابتن في مدنه.
+ * كان adminOnly وحده — أدمنٌ مساعد بلا صلاحية الكباتن، أو من مدينةٍ أخرى،
+ * يغيّر الصورة التي يراها العملاء لأيّ كابتن (والصفحة محروسة في المتصفّح
+ * فقط). يُفحص **قبل** multer كي لا يُحفظ ملفٌّ يتيم لطلبٍ مرفوض.
+ */
+const canEditCaptainPhoto = [
+    requirePermission('manage_captains'),
+    async (req, res, next) => {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'معرف المستخدم غير صحيح' });
+        }
+        try {
+            const target = await User.findById(req.params.id).select('role city').lean();
+            if (!target) return res.status(404).json({ message: 'المستخدم غير موجود' });
+            if (!adminCanActOnUser(req, target)) {
+                return res.status(403).json({ message: 'غير مصرح — هذا المستخدم خارج نطاقك' });
+            }
+            next();
+        } catch (e) {
+            res.status(500).json({ message: 'تعذّر التحقّق من المستخدم' });
+        }
+    }
+];
 const { MIME_EXT, detectImageExtOfFile, safeUnlink, safeUploadName } = require('../utils/imageUpload');
 const User = require('../models/User');
 const logger = require('../utils/logger');
@@ -450,7 +475,7 @@ const captainPhotoStorage = multer.diskStorage({
 });
 const captainPhotoUpload = multer({ storage: captainPhotoStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
-router.post('/admin/captain-photo/:id', protect, adminOnly, (req, res) => {
+router.post('/admin/captain-photo/:id', protect, canEditCaptainPhoto, (req, res) => {
     // تحقق من صحة المعرّف قبل حفظ أي ملف لتجنّب ملفات يتيمة
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ message: 'معرف المستخدم غير صحيح' });
@@ -498,7 +523,7 @@ const teamPhotoStorage = multer.diskStorage({
 });
 const teamPhotoUpload = multer({ storage: teamPhotoStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
-router.post('/admin/team-photo/:id', protect, adminOnly, (req, res) => {
+router.post('/admin/team-photo/:id', protect, canEditCaptainPhoto, (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ message: 'معرف المستخدم غير صحيح' });
     }

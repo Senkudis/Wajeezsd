@@ -4,7 +4,7 @@ const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const Notification = require('../models/Notification');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { protect, requirePermission } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
 
 // @route   GET /api/notifications
@@ -58,7 +58,9 @@ router.get('/unread-count', protect, async (req, res) => {
 
 // @route   POST /api/notifications
 // @desc    إنشاء إشعار جديد وإرساله فوراً (للأدمن فقط)
-router.post('/', protect, adminOnly, async (req, res) => {
+// 🔐 إرسال نصٍّ حرّ باسم المنصّة لأيّ مستخدم: صلاحية send_notifications (كان
+//    adminOnly وحده — أيّ أدمنٍ مساعد يرسل ما يشاء لمن يشاء)
+router.post('/', protect, requirePermission('send_notifications'), async (req, res) => {
     try {
         const { userId, title, message, type } = req.body;
 
