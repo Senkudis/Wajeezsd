@@ -182,7 +182,7 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
                 } else if (field === 'maxTipAmount') {
                     if (val < 0 || val > 1000000) return res.status(400).json({ message: `سقف الإكرامية يجب أن يكون بين 0 و 1,000,000` });
                 } else if (field === 'maxPriceSurgePercent') {
-                    if (val < 0 || val > 500) return res.status(400).json({ message: `سقف السعر (نسبة الزيادة المسموحة) يجب أن يكون بين 0% و 500%` });
+                    if (val < 0 || val > 5000) return res.status(400).json({ message: `سقف السعر (نسبة الزيادة المسموحة) يجب أن يكون بين 0% و 5000%` });
                 } else {
                     if (val < 0) return res.status(400).json({ message: `القيمة المدخلة في ${field} غير صالحة (يجب أن تكون موجبة)` });
                     if (field !== 'commissionRate' && val > 1000000) return res.status(400).json({ message: `القيمة المدخلة في ${field} مبالغ فيها` });
