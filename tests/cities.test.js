@@ -195,6 +195,23 @@ describe('الواجهة: كل المدن في كل مكان', () => {
         expect(s).toContain('WajeezCities.center(currentCity)');
     });
 
+    it('رابط خرائط جوجل يُبحث عنه في المدينة المعروضة لا مدينة الحساب', () => {
+        const m = read('routes/maps.js');
+        expect(m).toMatch(/VALID_CITIES\.includes\(req\.body && req\.body\.city\) \? req\.body\.city/);
+        const inp = src('js/maps-link-input.js');
+        expect(inp).toContain("(window.CityService && CityService.getCity())");
+        // صفحة المتجر: التسليم في مدينة المتجر
+        expect(src('shop-detail.html')).toMatch(/MapsLinkInput\.mount\('#shopLinkHost'[\s\S]{0,200}city: function \(\) \{ return shopData && shopData\.city; \}/);
+    });
+
+    it('لا مفتاح مدينةٍ إنجليزيّ يُعرض للمستخدم (Atbara بدل عطبرة)', () => {
+        expect(src('admin-captains.html')).toContain('WajeezCities.label(c.city), (STATES');
+        expect(src('admin-settlements.html')).toContain('WajeezCities.label(place.city)');
+        expect(src('admin-shop-orders.html')).toContain("WajeezCities.label(o.city) || '—'");
+        // طلب تاجرٍ بلا موقع: الخريطة على مدينته لا الخرطوم
+        expect(src('admin-merchant-requests.html')).toContain('WajeezCities.center(req.city)');
+    });
+
     it('أزرار مدن الخريطة في لوحة الإدارة: صنف active لكل مدينة', () => {
         const p = src('js/admin-panel.js');
         expect(p).toContain("b.classList.toggle('active', k === city)");

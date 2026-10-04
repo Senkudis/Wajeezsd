@@ -30,7 +30,7 @@ const CityService = {
     /**
      * Get the currently selected city.
      * Falls back to 'Khartoum' if nothing is stored (backward compat).
-     * @returns {string} 'Khartoum' | 'PortSudan'
+     * @returns {string|null} مفتاح مدينة من WajeezCities.KEYS
      */
     getCity() {
         const saved = localStorage.getItem(this.STORAGE_KEY);
@@ -162,7 +162,7 @@ const CityService = {
 
     /**
      * Persist the selected city — مدينتك الدائمة: تُحفظ هنا وفي الحساب.
-     * @param {string} city - 'Khartoum' | 'PortSudan'
+     * @param {string} city - مفتاح مدينة من WajeezCities.KEYS
      */
     setCity(city) {
         if (!this.VALID_CITIES.includes(city)) {

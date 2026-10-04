@@ -660,8 +660,12 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                 // ⚠️ الموقع الافتراضي هو نقطة بداية للعرض فقط — حقول dLat/dLng لا تُملأ منه،
                 // والموافقة بلا موقع حقيقي مرفوضة الآن من السيرفر برسالة واضحة.
                 const hasLoc = Number.isFinite(Number(req.location?.lat)) && Number.isFinite(Number(req.location?.lng));
-                const lat = hasLoc ? Number(req.location.lat) : 15.5007;
-                const lng = hasLoc ? Number(req.location.lng) : 32.5599;
+                // بلا موقع: مركز مدينة الطلب — كان وسط الخرطوم دائماً، فطلب
+                // عطبرة أو بورتسودان يفتح على مدينةٍ أخرى. الخرطوم كما كانت.
+                const fallback = (WajeezCities.isValid(req.city) && req.city !== 'Khartoum')
+                    ? WajeezCities.center(req.city) : { lat: 15.5007, lng: 32.5599 };
+                const lat = hasLoc ? Number(req.location.lat) : fallback.lat;
+                const lng = hasLoc ? Number(req.location.lng) : fallback.lng;
 
                 const mapElement = document.getElementById('reqMap');
 

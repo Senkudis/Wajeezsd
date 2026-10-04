@@ -65,6 +65,6 @@ router.put('/complaints/:id/resolve', protect, requirePermission('view_complaint
 // =========================================================
 // @route   POST /api/admin/create-captain
 // @desc    إضافة كابتن جديد (بواسطة الأدمن فقط)
-// 🌍 `city` field required: 'Khartoum' | 'PortSudan'
+// 🌍 `city` field required: a config/cities key
 
 module.exports = router;

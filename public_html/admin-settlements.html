@@ -220,7 +220,7 @@ body.dark-mode .bank-box { background: #111827 !important; border-color: #374151
                         : (s.adminNote ? `<span class="text-muted small">${s.adminNote}</span>` : '-'));
                 return `
                 <tr>
-                    <td class="fw-bold">${place.name || '-'}<div class="text-muted small">${place.city || ''}</div></td>
+                    <td class="fw-bold">${place.name || '-'}<div class="text-muted small">${window.escapeHtml(WajeezCities.label(place.city))}</div></td>
                     <td>${merchant.name || '-'}<div class="text-muted small" dir="ltr">${merchant.phone || ''}</div></td>
                     <td class="fw-bold text-success">${fmt(s.amount)} ج.س${s.note ? `<div class="text-muted small">${s.note}</div>` : ''}</td>
                     <td>${fmt(place.shopWalletBalance)} ج.س</td>

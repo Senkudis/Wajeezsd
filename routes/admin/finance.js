@@ -303,7 +303,7 @@ router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_fin
 
 // @route   GET /api/admin/settings
 // @desc    جلب إعدادات مدينة محددة (للأدمن فقط)
-// 🌍 ?city=Khartoum | PortSudan (required)
+// 🌍 ?city=<config/cities key> (required)
 // Defaults to Khartoum for backward compat with legacy admin clients.
 
 router.get('/payment-requests', protect, requireAnyPermission(['view_finance', 'manage_finance']), async (req, res) => {

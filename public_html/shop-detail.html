@@ -15,11 +15,11 @@
     <!-- شاشة تحديد الموقع — نفس مصدر index.html -->
     <link rel="stylesheet" href="css/map-ui.css?v=082e13c5">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/maps-link-input.js?v=bc848321"></script>
+    <script src="js/maps-link-input.js?v=fa876f04"></script>
     <script src="js/maps-link.js?v=b5e20727"></script>
     <script src="js/config.js?v=7cd5021c"></script>
     <!-- المدينة: فحص «توصيل بين مدينتين» قبل الإرسال، والرجوع لمدينتك بعده -->
-    <script src="js/city-service.js?v=71f6038a"></script>
+    <script src="js/city-service.js?v=f696d207"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
@@ -2530,6 +2530,8 @@
         mounted = true;
         MapsLinkInput.mount('#shopLinkHost', {
             label: 'رابط موقع التسليم',
+            // التسليم في مدينة المتجر — لا مدينة الحساب ولا المعروضة
+            city: function () { return shopData && shopData.city; },
             onPick: function (lat, lng, meta) {
                 var la = document.getElementById('deliveryLat');
                 var ln = document.getElementById('deliveryLng');

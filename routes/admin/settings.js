@@ -103,7 +103,7 @@ router.get('/pricing', protect, async (req, res) => {
 
 // @route   PUT /api/admin/settings
 // @desc    تحديث إعدادات مدينة محددة — city-aware atomic upsert
-// 🌍 Body must include `city` ('Khartoum' | 'PortSudan'). Defaults to Khartoum.
+// 🌍 Body must include `city` (a config/cities key). Defaults to Khartoum.
 
 router.put('/settings', protect, superAdminOnly, async (req, res) => {
 

@@ -615,7 +615,7 @@ function exportCaptains() {
                   'المنطقة', 'جهة الطوارئ', 'هاتف الطوارئ', 'توصيلات', 'التقييم', 'وثائق ناقصة', 'الانضمام'];
     const cell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const lines = [head.join(',')].concat(rows.map(c => [
-        c.name, c.phone, c.email, c.city, (STATES[c.state] || {}).label, vehicle(c.vehicleType),
+        c.name, c.phone, c.email, WajeezCities.label(c.city), (STATES[c.state] || {}).label, vehicle(c.vehicleType),
         c.application.nationalId, c.application.address,
         c.application.emergencyContactName, c.application.emergencyPhone,
         c.deliveredCount, c.averageRating, c.missingDocsCount, fmtDate(c.joinedAt)

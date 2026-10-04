@@ -80,7 +80,11 @@ router.post('/resolve', protect, resolveLimiter, async (req, res) => {
         // ما حول الرابط دليلٌ على المحل إن لم يحمل الرابط اسمه.
         const link = MapsLink.extractUrl(raw) || raw;
         const hint = String(req.body && req.body.hint || '').trim().slice(0, 200) || MapsLink.shareHint(raw);
-        const city = VALID_CITIES.includes(req.user && req.user.city) ? req.user.city : 'Khartoum';
+        // مدينة البحث: ما يرسله التطبيق (المدينة المعروضة — قد تكون مؤقتة لطلبٍ
+        // لقريبٍ في مدينةٍ أخرى)، وإلا مدينة الحساب. كانت مدينة الحساب وحدها،
+        // فرابط محلٍّ في عطبرة من حسابٍ في الخرطوم يُبحث عنه في الخرطوم.
+        const city = VALID_CITIES.includes(req.body && req.body.city) ? req.body.city
+            : VALID_CITIES.includes(req.user && req.user.city) ? req.user.city : 'Khartoum';
 
         // رابطٌ طويل يسمّي محلاً — لا حاجة لفتحه أصلاً
         let ref = MapsLink.placeRef(link);

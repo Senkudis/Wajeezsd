@@ -444,7 +444,7 @@ router.get('/orders/:id', protect, requirePermission('view_orders'), async (req,
 
 // @route   GET /api/admin/orders
 // @desc    جلب جميع الطلبات (مع فلتر اختياري بالمدينة)
-// 🌍 ?city=Khartoum | PortSudan (optional)
+// 🌍 ?city=<config/cities key> (optional)
 
 router.get('/orders', protect, requirePermission('view_orders'), async (req, res) => {
     try {

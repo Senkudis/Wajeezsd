@@ -9,7 +9,9 @@
  * التركيب:
  *   MapsLinkInput.mount('#host', {
  *       onPick(lat, lng, meta) { ... },   // تُستدعى عند التأكيد
- *       label: 'موقع التسليم'             // اختياري
+ *       label: 'موقع التسليم',            // اختياري
+ *       city: () => 'Atbara'              // اختياري — مدينة البحث عن المحل؛
+ *                                         // الافتراضي المدينة المعروضة في التطبيق
  *   });
  *
  * ⚠️ لا يحسب هذا الملف شيئاً بنفسه: التحليل من js/maps-link.js (نفس الملف
@@ -197,7 +199,11 @@
                         url: MapsLink.extractUrl(full) || full,
                         // اسم المحل وعنوانه من البطاقة — يجده الخادم بهما إن
                         // لم يحمل الرابط اسمه
-                        hint: MapsLink.shareHint(full)
+                        hint: MapsLink.shareHint(full),
+                        // المدينة التي يُبحث فيها عن المحل: المعروضة لا مدينة
+                        // الحساب — من يطلب مؤقتاً في عطبرة يلصق رابط محلٍّ فيها
+                        city: (typeof opts.city === 'function' ? opts.city() : opts.city) ||
+                              (window.CityService && CityService.getCity()) || undefined
                     })
                 });
                 var data = await res.json().catch(function () { return {}; });

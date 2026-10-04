@@ -703,7 +703,8 @@ async function openEditPlaceModal(id) {
             const hasSavedLoc = Number.isFinite(Number(p.location?.lat)) && Number.isFinite(Number(p.location?.lng));
             // الخرطوم بمركزها المعتاد هنا، وغيرها بمركز مدينته (WajeezCities)
             const fallback = (!WajeezCities.isValid(p.city) || p.city === 'Khartoum')
-                ? { lat: 15.5007, lng: 32.5599 } : WajeezCities.center(p.city);
+                ? { lat: 15.5007, lng: 32.5599 }
+                : { lat: WajeezCities.CITIES[p.city].search.lat, lng: WajeezCities.CITIES[p.city].search.lng };
             const lat = hasSavedLoc ? Number(p.location.lat) : fallback.lat;
             const lng = hasSavedLoc ? Number(p.location.lng) : fallback.lng;
 

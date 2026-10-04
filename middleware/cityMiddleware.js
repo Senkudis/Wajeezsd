@@ -45,7 +45,7 @@ const requireCity = (req, res, next) => {
 // adminCityFilter — place AFTER `protect` + `adminOnly` on admin routes
 // ---------------------------------------------------------------------------
 const adminCityFilter = (req, res, next) => {
-    // Admin can pass ?city=Khartoum or ?city=PortSudan to filter views.
+    // Admin can pass ?city=<any config/cities key> to filter views.
     // Passing no city means "show all cities" (req.filterCity = null).
     const requestedCity = req.query.city || req.body.city || null;
 

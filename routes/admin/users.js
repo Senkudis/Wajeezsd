@@ -75,7 +75,7 @@ router.get('/user/:id', protect, requireAnyPermission(['view_users', 'view_capta
 
 // @route   GET /api/admin/users
 // @desc    جلب جميع المستخدمين (مع فلتر اختياري بالمدينة)
-// 🌍 ?city=Khartoum | PortSudan (optional, no city = all cities)
+// 🌍 ?city=<config/cities key> (optional, no city = all cities)
 
 router.get('/users', protect, requirePermission('view_users'), async (req, res) => {
     try {
@@ -89,7 +89,7 @@ router.get('/users', protect, requirePermission('view_users'), async (req, res) 
 
 // @route   GET /api/admin/captains
 // @desc    جلب الكباتن فقط (مع فلتر اختياري بالمدينة)
-// 🌍 ?city=Khartoum | PortSudan (optional)
+// 🌍 ?city=<config/cities key> (optional)
 
 /**
  * ⚡ حقول القائمة — اختيارٌ صريح لا `-password`.
@@ -351,7 +351,7 @@ router.get('/merchants-list', protect, requireAnyPermission(['view_stores', 'man
 // @route   PUT /api/admin/user/:id/city
 // @desc    Reassign a user (client or captain) to a different city.
 //          Use this when a user registered with the wrong city or moved.
-// 🌍 Body: { city: 'Khartoum' | 'PortSudan' }
+// 🌍 Body: { city: <config/cities key> }
 
 router.put('/user/:id/city', protect, superAdminOnly, async (req, res) => {
     try {
@@ -463,7 +463,7 @@ router.put('/user/:id/verify', protect, requireAnyPermission(['manage_captains',
 
 // @route   GET /api/admin/orders/live
 // @desc    جلب الطلبات النشطة فقط (مع فلتر اختياري بالمدينة)
-// 🌍 ?city=Khartoum | PortSudan (optional)
+// 🌍 ?city=<config/cities key> (optional)
 
 router.post('/create-captain', protect, requirePermission('manage_captains'), async (req, res) => {
     try {
@@ -822,7 +822,7 @@ router.put('/reject-captain/:id', protect, requirePermission('manage_captains'),
 
 // @route   GET /api/admin/ledger
 // @desc    آخر 100 حركة مالية (عمولات الطلبات + تعديلات الديون)
-// 🌍 ?city=Khartoum | PortSudan | all (اختياري)
+// 🌍 ?city=<config/cities key> | all (اختياري)
 // 📅 ?from=YYYY-MM-DD&to=YYYY-MM-DD (اختياري)
 
 router.delete('/users/:id', protect, requireAnyPermission(['manage_captains', 'manage_users']), async (req, res) => {
