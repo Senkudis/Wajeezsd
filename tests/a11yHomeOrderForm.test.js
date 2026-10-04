@@ -98,7 +98,7 @@ describe('الخريطة تقول ما تفعل', () => {
             ['id="locate-me-btn"', 'aria-label="تحديد موقعي"'],
             ['id="map-layer-btn"', 'aria-label="تبديل طبقة الخريطة'],
             ['id="map-theme-btn"', 'aria-label="تبديل ثيم الخريطة"'],
-            ['id="map-city-btn"', 'aria-label="تغيير المدينة"'],
+            ['id="map-city-btn"', 'aria-label="المدينة — تغيير"'],   // الاسم يحمل المدينة الحالية وقت التشغيل
         ]) expect(near(id, 260)).toContain(label);
     });
 

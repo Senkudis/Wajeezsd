@@ -12,8 +12,8 @@ const logger = require('./logger');
 /**
  * يبني طلب توصيل من طلب متجر جاهز.
  *
- * 🌍 المدينة تُقرأ من **العميل** لا من المتجر: الطلب يُبثّ لكباتن المدينة
- * التي سيُسلَّم فيها، وعمولتها تُحسب بإعدادات تلك المدينة.
+ * 🌍 المدينة من **مكان** المتجر والتسليم لا من حساب العميل: الطلب يُبثّ
+ * لكباتن المدينة التي سيُسلَّم فيها، وعمولتها تُحسب بإعدادات تلك المدينة.
  *
  * @param {object} shopOrder وثيقة ShopOrder (lean أو مستند)
  * @param {object} place وثيقة Place (المتجر)
@@ -24,8 +24,13 @@ async function createDeliveryOrder(shopOrder, place) {
     const Settings = require('../models/Settings');
     const User = require('../models/User');
 
+    // مكان المتجر والتسليم أولاً (utils/geofence.resolveOrderCity)، ومدينة
+    // الحساب احتياطاً فقط: حسابٌ تُرك على بورتسودان لا يرسل طلب متجرٍ في
+    // أم درمان لكباتن بورتسودان
     const clientDoc = await User.findById(shopOrder.client).select('city').lean();
-    const orderCity = clientDoc && clientDoc.city ? clientDoc.city : 'Khartoum';
+    const { resolveOrderCity } = require('./geofence');
+    const placed = resolveOrderCity([place.location, shopOrder.dropoff], (clientDoc && clientDoc.city) || place.city);
+    const orderCity = placed.ok ? placed.city : (place.city || (clientDoc && clientDoc.city) || 'Khartoum');
 
     const settings = await Settings.getSettings(orderCity);
     const commissionRate = settings.commissionRate ?? 0.15;

@@ -41,6 +41,8 @@ function requestUserLocationOnLoad() {
         (pos) => {
             window.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             console.log('📍 Location obtained on load:', window.userLocation);
+            // «إنت في أم درمان والتطبيق على بورتسودان» — نسي الرجوع من جلسةٍ سابقة
+            if (window.CityService) CityService.noticeLocation(pos.coords.latitude, pos.coords.longitude);
 
             // Pre-fill map center for when user eventually opens the map picker
             window._initialMapLat = pos.coords.latitude;
@@ -144,8 +146,14 @@ window.openMapModal = function(mode) {
     document.getElementById('static-map-container').style.display = 'block';
     document.getElementById('main-app-wrapper').style.display     = 'none';
 
+    // موقعه في مدينةٍ غير المعروضة (يطلب لقريبٍ في بورتسودان): لا نسحب
+    // الخريطة لأم درمان — تبقى على المدينة المختارة. واللافتة تقترح التبديل
+    // إن لم يكن اختارها بنفسه.
+    const _locHere = window.userLocation && (!window.CityService || CityService.inCurrentCity(window.userLocation));
+    if (window.userLocation && window.CityService) CityService.noticeLocation(window.userLocation.lat, window.userLocation.lng);
+
     if (mapInitialized && map) {
-        if (window.userLocation) {
+        if (_locHere) {
             map.panTo(window.userLocation);
         }
 
@@ -214,8 +222,9 @@ function initMap() {
         const defaultLat = currentCity === 'PortSudan' ? 19.6151 : 15.6445;
         const defaultLng = currentCity === 'PortSudan' ? 37.2164 : 32.4777;
 
-        const lat = window.userLocation?.lat ?? defaultLat;
-        const lng = window.userLocation?.lng ?? defaultLng;
+        const _useLoc = window.userLocation && (typeof CityService === 'undefined' || CityService.inCurrentCity(window.userLocation));
+        const lat = _useLoc ? window.userLocation.lat : defaultLat;
+        const lng = _useLoc ? window.userLocation.lng : defaultLng;
         const center = { lat, lng };
 
         // Create the standard Web SDK map
@@ -770,7 +779,9 @@ window.confirmLocationSelection = function() {
 // ══════════════════════════════════════════════════════
 window.chooseMapCity = async function() {
     if (typeof CityService === 'undefined') return;
-    await CityService.showCityPicker();
+    // لوحةٌ من الأسفل تُظهر الحالية و«مدينتك» — لا نافذة الفتح الأول الكاملة.
+    // غير مدينتك = تبديلٌ مؤقت يعود بعد إرسال الطلب (city-service.js)
+    await CityService.showCitySheet();
     // ⚡ AJAX Soft Refresh — city-changed event handles map pan & banner reload dynamically
 };
 
@@ -838,6 +849,8 @@ window.locateMe = function() {
     navigator.geolocation.getCurrentPosition(
         pos => {
             window.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            // ضغط «موقعي» صراحةً: نذهب إليه، ونقترح مدينته إن كانت غير المعروضة
+            if (window.CityService) CityService.noticeLocation(pos.coords.latitude, pos.coords.longitude);
             if (map && mapInitialized) {
                 map.panTo(window.userLocation);
                 // 📍 أظهر نقطة موقع العميل الحالي (ليتأكّد من مكانه)
@@ -1549,6 +1562,17 @@ window.createOrder = async function() {
             }));
         }
 
+        // 🌍 استلامٌ في مدينة وتسليمٌ في الأخرى: التوصيل بين المدن غير متاح حتى
+        //    تُضاف خدمة الإرساليات — نقولها هنا لا بعد رحلةٍ للخادم
+        if (window.CityService) {
+            const cross = CityService.crossCityProblem(data.isMultiStop ? data.stops : [data.pickup, data.dropoff]);
+            if (cross) {
+                Swal.fire({ icon: 'info', title: 'توصيل بين مدينتين', text: cross, confirmButtonText: 'حسناً', confirmButtonColor: '#04553A' });
+                btn.disabled = false; btn.innerHTML = originalHTML;
+                return;
+            }
+        }
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
 
@@ -1563,8 +1587,14 @@ window.createOrder = async function() {
 
         if (res.ok) {
             const result = await res.json();
-            Swal.fire({ icon: 'success', title: 'تم إرسال طلبك', text: result.message, timer: 3500, showConfirmButton: false });
-            setTimeout(() => window.location.href = 'client-my-orders.html', 3500);
+            // طلبٌ من مدينةٍ مؤقتة: التطبيق يعود لمدينتك فلا يُنسى عليها
+            const backTo = window.CityService ? CityService.returnHomeAfterOrder() : null;
+            Swal.fire({
+                icon: 'success', title: 'تم إرسال طلبك',
+                html: `${window.escapeHtml(result.message || '')}${backTo ? CityService.returnedNoteHtml(backTo) : ''}`,
+                timer: backTo ? 4500 : 3500, showConfirmButton: false
+            });
+            setTimeout(() => window.location.href = 'client-my-orders.html', backTo ? 4500 : 3500);
         } else {
             const err = await res.json().catch(() => ({}));
             const input = err && err.field && SERVER_FIELD_TO_INPUT[err.field];
@@ -1882,4 +1912,7 @@ window.addEventListener('city-changed', (e) => {
     if (window.HomeBanners && typeof window.HomeBanners.loadBanners === 'function') {
         window.HomeBanners.loadBanners();
     }
+    // 💰 تسعيرة المدينة الجديدة — كانت تبقى تسعيرة الأولى، فيُقترح سعرٌ
+    //    يرفضه الخادم (يسعّر بمدينة مكان الطلب)
+    if (getToken()) fetchPricingConfig();
 });

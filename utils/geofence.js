@@ -151,4 +151,36 @@ function isInsidePolygon(lat, lng, polygon) {
     return inside;
 }
 
-module.exports = { isInsideSudan, validateOrderLocations, validateStopsLocations, cityFromCoords, haversineKm, isInsidePolygon, CITY_BOUNDS };
+const CROSS_CITY_MESSAGE =
+    'التوصيل بين المدن غير متاح حالياً — الاستلام والتسليم لازم يكونوا في نفس المدينة';
+
+/**
+ * 🌍 مدينة الطلب من **مكانه** لا من حساب العميل.
+ *
+ * كانت تُختم من مدينة الحساب، والحساب يتبع آخر مدينةٍ اختارها العميل في
+ * التطبيق. فعميلٌ حوّل لبورتسودان ليطلب لقريبه ونسي الرجوع، يطلب بعدها من
+ * أم درمان فيُختم الطلب «بورتسودان» ويُبثّ لكباتنها — ولا يراه أحدٌ يستطيع
+ * توصيله. المكان لا يُنسى: استلامٌ في أم درمان طلبٌ للخرطوم دائماً.
+ *
+ * والتوصيل بين المدينتين غير متاح حتى تُضاف خدمة الإرساليات: نقطتان في
+ * مدينتين مختلفتين تُرفضان.
+ *
+ * @param {Array<{lat:number,lng:number}>} points كل نقاط الطلب (الاستلام أولاً)
+ * @param {string} fallback مدينة الحساب — حين لا تقع أيّ نقطة داخل مدينةٍ معروفة
+ * @returns {{ ok: true, city: string } | { ok: false, message: string, cities: string[] }}
+ */
+function resolveOrderCity(points, fallback) {
+    const cities = [];
+    for (const p of points || []) {
+        if (!p) continue;
+        const c = cityFromCoords(Number(p.lat), Number(p.lng));
+        if (c && !cities.includes(c)) cities.push(c);
+    }
+    if (cities.length > 1) return { ok: false, message: CROSS_CITY_MESSAGE, cities };
+    return { ok: true, city: cities[0] || fallback || 'Khartoum' };
+}
+
+module.exports = {
+    isInsideSudan, validateOrderLocations, validateStopsLocations, cityFromCoords, haversineKm, isInsidePolygon,
+    resolveOrderCity, CROSS_CITY_MESSAGE, CITY_BOUNDS
+};

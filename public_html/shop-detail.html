@@ -13,11 +13,13 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <!-- شاشة تحديد الموقع — نفس مصدر index.html -->
-    <link rel="stylesheet" href="css/map-ui.css?v=22cf50c4">
+    <link rel="stylesheet" href="css/map-ui.css?v=082e13c5">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
     <script src="js/maps-link-input.js?v=bc848321"></script>
     <script src="js/maps-link.js?v=b5e20727"></script>
     <script src="js/config.js?v=21463b97"></script>
+    <!-- المدينة: فحص «توصيل بين مدينتين» قبل الإرسال، والرجوع لمدينتك بعده -->
+    <script src="js/city-service.js?v=3eb50dca"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
@@ -1489,6 +1491,18 @@
                 body.discountAmount = appliedPromo.discountAmount;
             }
 
+            // 🌍 المتجر في مدينة وعنوانك في الأخرى: لا توصيل بين المدن حتى
+            //    تُضاف خدمة الإرساليات — قبل أن ينتظر العميل موافقة التاجر
+            if (typeof CityService !== 'undefined' && _hasPin && shopData && shopData.location) {
+                const cross = CityService.crossCityProblem([shopData.location, { lat: _lat, lng: _lng }]);
+                if (cross) {
+                    Swal.fire({ icon: 'info', title: 'توصيل بين مدينتين', text: cross, confirmButtonText: 'حسناً', confirmButtonColor: '#04553A' });
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>إرسال الطلب للمتجر';
+                    return;
+                }
+            }
+
             const res = await fetch(`${API_URL}/api/merchant/shop/${placeId}/order`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1501,9 +1515,11 @@
                 cart = {};
                 appliedPromo = null;
                 updateCart();
-                const discountMsg = data.order?.discountAmount > 0
+                // طلبٌ من مدينةٍ مؤقتة: التطبيق يعود لمدينتك فلا يُنسى عليها
+                const backTo = typeof CityService !== 'undefined' ? CityService.returnHomeAfterOrder() : null;
+                const discountMsg = (data.order?.discountAmount > 0
                     ? `<br><span style="color:#16a34a;">وفّرت ${data.order.discountAmount} ج.س بالكوبون</span>`
-                    : '';
+                    : '') + (backTo ? CityService.returnedNoteHtml(backTo) : '');
                 
                 if (!window.Capacitor) {
                     await Swal.fire({

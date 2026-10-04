@@ -1289,6 +1289,14 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
         const place = await Place.findById(req.params.placeId);
         if (!place || !place.isActive) return res.status(404).json({ message: 'المتجر غير متاح' });
 
+        // 🌍 متجرٌ في مدينة وعنوان توصيلٍ في الأخرى: لا توصيل بين المدن حتى
+        //    تُضاف خدمة الإرساليات — يُرفض هنا قبل أن ينتظر العميل قبول التاجر
+        {
+            const { resolveOrderCity } = require('../utils/geofence');
+            const placed = resolveOrderCity([place.location, dropoff], place.city);
+            if (!placed.ok) return res.status(400).json({ message: placed.message, code: 'CROSS_CITY' });
+        }
+
         // 🚫 منع التاجر من الطلب من متجره الخاص
         if (place.ownerId && place.ownerId.toString() === req.user._id.toString()) {
             return res.status(403).json({ message: 'لا يمكنك الطلب من متجرك الخاص' });

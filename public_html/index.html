@@ -472,7 +472,7 @@
     <link rel="stylesheet" href="css/enhanced-styles.css?v=ce667195">
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <!-- شاشة تحديد الموقع — مصدر واحد تتقاسمه مع shop-detail.html -->
-    <link rel="stylesheet" href="css/map-ui.css?v=22cf50c4">
+    <link rel="stylesheet" href="css/map-ui.css?v=082e13c5">
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/smart-search.css?v=8dc97789">
@@ -783,6 +783,9 @@
                     </div>
                 </div> -->
 
+                    <!-- المدينة التي سيُرسل فيها الطلب — ظاهرةٌ قبل الإرسال، و«تغيير» منها -->
+                    <div id="order-city-line" class="wj-order-city" role="status" aria-live="polite"></div>
+
                     <button id="submit-btn" class="btn-submit" onclick="createOrder()">
                         <i class="bi bi-rocket-takeoff-fill me-2"></i> اطلب الكابتن الآن
                     </button>
@@ -871,10 +874,12 @@
                     حدد موقع الاستلام
                 </div>
                 <!-- City Switch — أقصى اليمين في الشريط العلوي -->
-                <button type="button" id="map-city-btn" onclick="window.chooseMapCity()" title="تغيير المدينة" aria-label="تغيير المدينة"
+                <button type="button" id="map-city-btn" onclick="window.chooseMapCity()" title="تغيير المدينة" aria-label="المدينة — تغيير"
                     class="wj-chip wj-chip-city"
                     style="pointer-events:auto;touch-action:manipulation;margin-right:auto;">
-                    <span id="map-city-label">تبديل المدينة</span>
+                    <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                    <span id="map-city-label">المدينة</span>
+                    <i class="bi bi-chevron-down wj-city-caret" aria-hidden="true"></i>
                 </button>
             </div>
 
@@ -1216,7 +1221,7 @@
     <script src="notification-toast.js"></script>
 
     <script src="js/config.js?v=21463b97"></script>
-    <script src="js/city-service.js?v=61f2b7a7"></script>
+    <script src="js/city-service.js?v=3eb50dca"></script>
     <script src="js/home-banners.js?v=72f9dc36"></script>
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
     <script src="js/input-validator.js?v=053253e2"></script>
@@ -1254,8 +1259,8 @@
 
     <!-- أخطاء الإدخال في خاناتها + فحص الهاتف السوداني — قبل home.js الذي يستعملهما -->
     <script src="js/field-errors.js?v=47c453dc"></script>
-    <script src="js/home.js?v=bb6358e8"></script>
-    <script src="js/order-feature.js?v=b13a0491"></script>
+    <script src="js/home.js?v=88851b68"></script>
+    <script src="js/order-feature.js?v=5448f416"></script>
     <script src="js/errand-context.js?v=f33a33bc"></script>
     <script src="js/smart-search.js?v=927a66dc"></script>
 
@@ -1761,24 +1766,32 @@
                 }
             }
 
-            // ✅ تحديث label المدينة في زر الخريطة
+            // ✅ المدينة الحالية ظاهرة: في شريحة الخريطة، وفي سطرٍ فوق «اطلب الكابتن».
+            //    وحين تكون غير مدينتك (تبديلٌ مؤقت) تتلوّن الشريحة ويقول السطر ذلك.
             function updateMapCityLabel() {
+                if (!window.CityService) return;
+                const city = CityService.getCity();
+                const away = CityService.isAway();
                 const lbl = document.getElementById('map-city-label');
-                if (lbl && window.CityService) {
-                    const city = CityService.getCity();
-                    lbl.textContent = city ? CityService.getCityLabel(city) : 'تبديل المدينة';
+                const btn = document.getElementById('map-city-btn');
+                if (lbl) lbl.textContent = city ? CityService.shortLabel(city) : 'المدينة';
+                if (btn) {
+                    btn.classList.toggle('is-away', away);
+                    btn.setAttribute('aria-label', city
+                        ? `المدينة: ${CityService.shortLabel(city)}${away ? ' (مؤقتاً)' : ''} — تغيير` : 'اختيار المدينة');
+                }
+                const line = document.getElementById('order-city-line');
+                if (line && city) {
+                    line.classList.toggle('is-away', away);
+                    line.innerHTML = `<i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                        <span>الطلب في <b>${CityService.shortLabel(city)}</b>${away ? ` — مؤقتاً، مدينتك ${CityService.shortLabel(CityService.getHomeCity())}` : ''}</span>
+                        <button type="button" class="wj-order-city-btn" onclick="window.chooseMapCity()">تغيير</button>`;
                 }
             }
             updateMapCityLabel();
             window.addEventListener('city-changed', updateMapCityLabel);
         });
-
-        // ✅ دالة تبديل المدينة — تفتح نافذة الاختيار وسيرفر التزامن يعمل عبر AJAX بدون reload
-        window.chooseMapCity = async function() {
-            if (window.CityService) {
-                await CityService.showCityPicker();
-            }
-        };
+        // chooseMapCity في js/home.js — لوحة التبديل (CityService.showCitySheet)
 
     </script>
 

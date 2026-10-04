@@ -159,8 +159,20 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
         }
         const isMultiStop = !!sanitizedStops;
 
-        // ✅ Get commission rate and pricing limits from the user's CITY Settings (fully isolated per city)
-        const settings = await getCachedSettings(req.userCity);
+        // 🌍 مدينة الطلب من مكانه لا من حساب العميل — انظر utils/geofence.resolveOrderCity.
+        //    والتوصيل بين مدينتين يُرفض حتى تُضاف خدمة الإرساليات.
+        const { resolveOrderCity } = require('../utils/geofence');
+        const placed = resolveOrderCity(
+            isMultiStop ? sanitizedStops : [pickup, dropoff],
+            req.userCity
+        );
+        if (!placed.ok) {
+            return res.status(400).json({ message: placed.message, code: 'CROSS_CITY' });
+        }
+        const orderCity = placed.city;
+
+        // ✅ Get commission rate and pricing limits from the ORDER's city Settings (fully isolated per city)
+        const settings = await getCachedSettings(orderCity);
         const commissionRate = settings.commissionRate ?? 0.15; // null-safe fallback only
 
         // 📏 التسعيرة وحدودها — من المصدر المشترك utils/tripPricing.
@@ -237,7 +249,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             const fullOrderValue = Number(price) || 0;
             const check = promoDoc
                 ? validatePromo(promoDoc, {
-                    userId: req.user._id, userCity: req.userCity, fullOrderValue,
+                    userId: req.user._id, userCity: orderCity, fullOrderValue,
                     // 🏪 حصر المتاجر — shopId من الجسم لكنه يُتحقَّق منه أدناه
                     //    قبل استعماله في الطلب. الكوبون المحصور يُرفض هنا على
                     //    طلب التوصيل العادي (بلا shopId) وهو المقصود.
@@ -263,7 +275,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
 
         const orderData = {
             client: req.user.id,
-            city: req.userCity,   // 🌍 CRITICAL: stamp city from the authenticated user
+            city: orderCity,      // 🌍 CRITICAL: مدينة مكان الطلب — لا مدينة الحساب
             pickup, dropoff, details, distanceType, price,
             ...(isMultiStop ? { isMultiStop: true, stops: sanitizedStops } : {}),
             appFee, netRevenue,
@@ -361,7 +373,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                         lng: pickup && Number(pickup.lng),
                         category: req.body.shopCategory || '',
                         categoryKey: req.body.shopCategoryKey || '',
-                        city: req.userCity
+                        city: orderCity
                     });
                 } catch (e) {
                     logger.warn({ err: e.message }, 'external place learn failed');
@@ -374,7 +386,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
         //    المجدول لا نافذة له — بحثه يبدأ وقت نشره لا وقت إنشائه.
         if (!orderData.scheduledAt) {
             try {
-                const nudges = await Settings.getNudgeSettings(req.userCity);
+                const nudges = await Settings.getNudgeSettings(orderCity);
                 orderData.searchDeadlineAt = new Date(Date.now() + nudges.clientDecisionMin * 60000);
             } catch (e) {
                 logger.warn({ err: e.message }, 'searchDeadline: تعذّرت قراءة الإعدادات');
@@ -2836,10 +2848,14 @@ router.get('/rating-tags', (req, res) => {
 // 'price-config' as an :id param and passes it to findById(), causing a crash.
 router.get('/price-config', protect, requireCity, async (req, res) => {
     try {
-        // 🌍 Returns pricing for the user's own city — fully isolated
-        const settings = await getCachedSettings(req.userCity);
+        // 🌍 تسعيرة المدينة المعروضة في التطبيق (?city=)، وإلا مدينة الحساب.
+        //    العميل قد يطلب مؤقتاً في مدينةٍ غير مدينته (لقريبٍ في بورتسودان)،
+        //    والطلب يُسعَّر بمدينة مكانه — فالمعاينة يجب أن تطابقه.
+        const { VALID_CITIES } = require('../middleware/cityMiddleware');
+        const city = VALID_CITIES.includes(req.query.city) ? req.query.city : req.userCity;
+        const settings = await getCachedSettings(city);
         res.json({
-            city: req.userCity,
+            city,
             baseFare: settings.baseFare ?? 1000,
             costPerKm: settings.costPerKm ?? 200,
             costPerMinute: settings.costPerMinute ?? 25,

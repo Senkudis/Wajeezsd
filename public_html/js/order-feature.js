@@ -1153,7 +1153,10 @@ window.openShopOrderConfirmModal = async function() {
         let baseFare = 1000;
         let perKm = 200;
         try {
-            const settingsRes = await fetch(`${API_URL}/api/orders/price-config`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+            // تسعيرة مدينة المتجر — الخادم يسعّر الطلب بمدينة مكانه لا بمدينة الحساب
+            const _shopCity = (window.CityService && place.location && CityService.cityAt(place.location.lat, place.location.lng))
+                || (window.CityService && CityService.getCity()) || 'Khartoum';
+            const settingsRes = await fetch(`${API_URL}/api/orders/price-config?city=${encodeURIComponent(_shopCity)}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
             if (settingsRes.ok) {
                 const s = await settingsRes.json();
                 if (s.baseFare) baseFare = s.baseFare;
@@ -1475,8 +1478,9 @@ window.openShopOrderConfirmModal = async function() {
         // Fetch Pricing
         async function fetchPricing() {
             try {
-                const res = await fetch(`${API_URL}/api/orders/price-config`, { 
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } 
+                const _city = (window.CityService && CityService.getCity()) || 'Khartoum';
+                const res = await fetch(`${API_URL}/api/orders/price-config?city=${encodeURIComponent(_city)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
                 if (res.ok) {
                     const s = await res.json();
@@ -1607,6 +1611,17 @@ window.submitFinalShopOrder = async function() {
     // Update payload with new price
     window.pendingShopOrder.price = newPrice;
 
+    // 🌍 متجرٌ في مدينة والتسليم في الأخرى: لا توصيل بين المدن حتى الإرساليات
+    if (window.CityService) {
+        const cross = CityService.crossCityProblem([window.pendingShopOrder.pickup, window.pendingShopOrder.dropoff]);
+        if (cross) {
+            Swal.fire({ icon: 'info', title: 'توصيل بين مدينتين', text: cross, confirmButtonText: 'حسناً', confirmButtonColor: '#04553A' });
+            btn.disabled = false;
+            btn.innerHTML = ogHtml;
+            return;
+        }
+    }
+
     try {
         const res = await fetch(`${API_URL}/api/orders`, {
             method: 'POST',
@@ -1619,8 +1634,10 @@ window.submitFinalShopOrder = async function() {
 
         if (res.ok) {
             window.closeShopMapUI();
-            Swal.fire({ icon: 'success', title: 'تم الطلب! 🎉', text: 'تم إرسال طلبك للكباتن!', timer: 3000, showConfirmButton: false });
-            setTimeout(() => window.location.href = 'client-my-orders.html', 3000);
+            const backTo = window.CityService ? CityService.returnHomeAfterOrder() : null;
+            Swal.fire({ icon: 'success', title: 'تم الطلب', html: `تم إرسال طلبك للكباتن${backTo ? CityService.returnedNoteHtml(backTo) : ''}`,
+                timer: backTo ? 4500 : 3000, showConfirmButton: false });
+            setTimeout(() => window.location.href = 'client-my-orders.html', backTo ? 4500 : 3000);
         } else {
             const err = await res.json();
             Swal.fire({ icon: 'error', text: friendlyError(err, 'فشل إرسال الطلب') });
