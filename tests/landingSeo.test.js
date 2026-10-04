@@ -13,7 +13,7 @@ const page = read('public_html/lande.html');
 
 describe('الاسم المعتمد', () => {
     it('🔑 في العنوان والوصف واسم الموقع', () => {
-        expect(page).toMatch(/<title>وجيز - wajeezsd \| تطبيق توصيل في أم درمان وبورتسودان<\/title>/);
+        expect(page).toMatch(/<title>وجيز - wajeezsd \| تطبيق توصيل في أم درمان وبورتسودان وعطبرة<\/title>/);
         expect(page).toMatch(/<meta name="description"\s+content="وجيز - wajeezsd:/);
         expect(page).toContain('<meta property="og:site_name" content="وجيز - wajeezsd">');
     });
@@ -80,7 +80,7 @@ describe('المحتوى مقروءٌ بلا سكربت', () => {
 
     it('قسم الخدمات بالكلمات التي يُبحث بها، ولكل مدينةٍ فقرة', () => {
         expect(page).toContain('id="services"');
-        for (const t of ['توصيل الطلبات والمشاوير', 'اشترِ لي', 'توصيل لأكثر من عنوان', 'توصيل في أم درمان', 'توصيل في بورتسودان']) {
+        for (const t of ['توصيل الطلبات والمشاوير', 'اشترِ لي', 'توصيل لأكثر من عنوان', 'توصيل في أم درمان', 'توصيل في بورتسودان', 'توصيل في عطبرة']) {
             expect(page).toContain(t);
         }
     });
@@ -110,5 +110,47 @@ describe('robots.txt و sitemap.xml', () => {
     it('الخريطة بالصفحات العامة وحدها', () => {
         expect(sitemap).toContain('<loc>https://wajeezsd.com/</loc>');
         expect(sitemap).not.toMatch(/\.com\/(admin|merchant-|captain-(?!signup)|client-(?!register-shop))/);
+    });
+});
+
+describe('عطبرة على الصفحة العامة', () => {
+    it('في العنوان والوصف والمشاركة والبيانات المنظّمة', () => {
+        expect(page).toMatch(/<meta name="description"\s+content="[^"]*أم درمان وبورتسودان وعطبرة/);
+        expect(page).toContain('<meta property="og:title" content="وجيز - wajeezsd | تطبيق توصيل في أم درمان وبورتسودان وعطبرة">');
+        const blocks = [...page.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+        const org = blocks[0]['@graph'].find(n => n['@type'] === 'Organization');
+        expect(org.areaServed.map(c => c.name)).toEqual(['أم درمان', 'بورتسودان', 'عطبرة']);
+        const faq = blocks[1].mainEntity.find(q => q.name.includes('كل السودان'));
+        expect(faq.acceptedAnswer.text).toContain('عطبرة');
+    });
+
+    it('ولا جملةٌ بقيت على مدينتين', () => {
+        const body = page.replace(/<!--[\s\S]*?-->/g, '');
+        expect(body).not.toMatch(/أم درمان وبورتسودان(?!\s*و?عطبرة)[^و]/);
+        expect(body).not.toContain("in Omdurman and Port Sudan");
+        expect(body).toContain('أم درمان · بورتسودان · عطبرة');
+    });
+
+    it('بطاقة المدينة الجديدة، وخبرها في البطل يقود إليها', () => {
+        expect(page).toContain('class="city city--new reveal"');
+        expect(page).toContain('href="#cities"');
+        expect(page).toContain('id="cities"');
+    });
+
+    it('المدن المتبدّلة زينة — الجملة كاملةً للقارئ الآلي', () => {
+        expect(page).toContain('<span class="sr-only" data-i18n="ticker_sr">نوصّل الآن في أم درمان وبورتسودان وعطبرة</span>');
+        expect(page).toMatch(/<span class="ticker" aria-hidden="true">/);
+    });
+
+    it('والحركة الجديدة تتوقّف لمن طلب تقليلها — حتى مسار SMIL', () => {
+        const reduced = page.slice(page.indexOf('@media (prefers-reduced-motion: reduce)'));
+        expect(reduced.slice(0, 900)).toContain('.ticker-track { animation: none; }');
+        expect(page).toContain('art.pauseAnimations()');
+        // والميلان للحاسوب بفأرة وحده
+        expect(page).toContain("matchMedia('(hover: hover) and (pointer: fine)').matches");
+    });
+
+    it('صورة المشاركة بالمدن الثلاث', () => {
+        expect(read('scripts/gen-og-image.js')).toContain("'تطبيق التوصيل في أم درمان وبورتسودان وعطبرة'");
     });
 });

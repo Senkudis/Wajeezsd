@@ -85,7 +85,8 @@ async function text(str, { size, color = '#ffffff', bold = true, width = 640, al
     const TEXT_RIGHT = W - 70;              // الحافّة اليمنى لعمود النصّ
     const TEXT_W = 660;
     const title = await text('وجيز - wajeezsd', { size: 64, width: TEXT_W });
-    const line1 = await text('تطبيق التوصيل في أم درمان وبورتسودان', { size: 38, width: TEXT_W });
+    // ثلاث مدنٍ في سطرٍ واحد: عرضٌ أوسع من عمود النصّ (الهاتف ينتهي عند ٣٩٠) وحجمٌ أصغر قليلاً
+    const line1 = await text('تطبيق التوصيل في أم درمان وبورتسودان وعطبرة', { size: 33, width: 720 });
     const line2 = await text('متاجر مدينتك  ·  تتبّع حيّ  ·  كاش عند الاستلام',
         { size: 25, width: TEXT_W, bold: false, color: '#d8efe5' });
     const pill = await text('متاح على Google Play و App Store', { size: 24, color: '#023926', width: 520 });
