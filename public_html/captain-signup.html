@@ -970,19 +970,8 @@
             const cities = Object.keys(open);
             const openCities = cities.filter(c => open[c] === true);
 
-            // الترقية لا تغيّر المدينة: يُفحص باب مدينة الحساب وحده
-            if (upgradeMode) {
-                let myCity = 'Khartoum';
-                try {
-                    const u = JSON.parse(localStorage.getItem('user') || 'null');
-                    if (u && WajeezCities.isValid(u.city)) myCity = u.city;
-                } catch (_) {}
-                if (open[myCity] !== true) {
-                    showRegClosed(`التسجيل ككابتن في ${REG_CITY_LABEL[myCity]} مغلقٌ حالياً. تابعنا — سنعلن عند فتحه.`);
-                }
-                return;
-            }
-
+            // الترقية كالتسجيل الجديد: يختار مدينة عمله، والمغلقة تُعطَّل في
+            // القائمة. (كانت تُفحص بمدينة حسابه وحدها ثم لا تُرسَل اختياره.)
             if (!openCities.length) { showRegClosed(); return; }
             if (openCities.length < cities.length) applyCityGate(open);
         }
@@ -1215,7 +1204,10 @@
             try {
                 // حقول الحساب تُرسَل في التسجيل الجديد فقط. في الترقية تأتي
                 // من الحساب نفسه على الخادم — وكلمة المرور لا تُرسَل إطلاقاً.
-                const account = upgradeMode ? {} : {
+                // المدينة تُرسَل في الحالين: هي مدينة العمل التي اختارها هنا.
+                // كانت الترقية لا ترسلها فيُحفظ بمدينة حسابه كعميل (الخرطوم
+                // غالباً) — فلا تصله طلبات مدينته، ويصله رابط مجموعة غيرها.
+                const account = upgradeMode ? { city: document.getElementById('city').value } : {
                     name: document.getElementById('name').value.trim(),
                     email: document.getElementById('email').value.trim(),
                     phone: document.getElementById('phone').value.trim(),

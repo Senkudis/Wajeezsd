@@ -172,6 +172,20 @@
 
         body.dark-mode .form-control,
         body.dark-mode .form-select,
+        .group-links-card { border: 1.5px solid #bbf7d0; background: #f0fdf4; border-radius: 14px; padding: 14px; }
+        .gl-row { display: grid; grid-template-columns: 130px 1fr 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid #dcfce7; }
+        .gl-row:first-child { border-top: none; }
+        .gl-city { font-weight: 800; padding-top: 30px; }
+        .gl-row label { font-size: .8rem; font-weight: 700; color: #475569; margin-bottom: 4px; display: block; }
+        .gl-row input { direction: ltr; text-align: left; }
+        .gl-row input.is-invalid { border-color: #dc2626; }
+        @media (max-width: 640px) {
+            .gl-row { grid-template-columns: 1fr; gap: 6px; }
+            .gl-city { padding-top: 0; }
+        }
+        body.dark-mode .group-links-card { background: #052e1a; border-color: #14532d; }
+        body.dark-mode .gl-row { border-top-color: #14532d; }
+        body.dark-mode .gl-row label { color: #cbd5e1; }
         body.dark-mode #citySelector {
             background: #111827 !important;
             color: #f9fafb !important;
@@ -428,26 +442,24 @@
                         <small class="text-muted">يُرسل لمستخدمي آيفون</small>
                     </div>
 
-                    <!-- 👥 مجموعات واتساب — لكل مدينةٍ مجموعتها، والوثيقة
-                         مُخزَّنة لكل مدينة أصلاً فتُحفظ مع إعداداتها. توضع
-                         هنا لأن المجموعات تتغيّر ويُعاد إنشاؤها، ورابطٌ ميت
-                         في رسالة قبولٍ أسوأ من لا رابط. -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-whatsapp" aria-hidden="true"></i> رابط مجموعة الكباتن
-                        </label>
-                        <input type="url" id="captainGroupLink" class="form-control"
-                            placeholder="https://chat.whatsapp.com/...">
-                        <small class="text-muted">يُرسل في رسالة قبول الكابتن — لمدينة الإعدادات الحالية</small>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">
-                            <i class="bi bi-whatsapp" aria-hidden="true"></i> رابط مجموعة التجار
-                        </label>
-                        <input type="url" id="merchantGroupLink" class="form-control"
-                            placeholder="https://chat.whatsapp.com/...">
-                        <small class="text-muted">يُرسل في رسالة قبول التاجر — لمدينة الإعدادات الحالية</small>
+                    <!-- 👥 مجموعات واتساب — كل المدن معاً، كلٌّ باسمها.
+                         كانت خانةً واحدة تتبدّل مع «المدينة» أعلى الصفحة بلا
+                         اسم مدينةٍ عليها، فيُلصق رابط أم درمان وبورتسودان هي
+                         المختارة. تُحفظ بزرّها وحدها (PUT /api/admin/group-links)
+                         ولا تتأثّر بالمدينة المختارة أعلاه. -->
+                    <div class="col-12 mb-3">
+                        <div class="group-links-card" id="groupLinksCard">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                <div>
+                                    <div class="fw-bold"><i class="bi bi-whatsapp" aria-hidden="true"></i> روابط مجموعات واتساب — لكل مدينة</div>
+                                    <small class="text-muted">يُرسل رابط مدينة الكابتن (أو المتجر) في رسالة قبوله. خانةٌ فارغة = بلا رابط في الرسالة.</small>
+                                </div>
+                                <button type="button" class="btn btn-success btn-sm" id="saveGroupLinksBtn">
+                                    <i class="bi bi-check2-circle" aria-hidden="true"></i> حفظ روابط المجموعات
+                                </button>
+                            </div>
+                            <div id="groupLinksRows" aria-busy="true"><small class="text-muted">جارٍ التحميل…</small></div>
+                        </div>
                     </div>
 
                     <div class="col-12 mb-3">
@@ -612,7 +624,7 @@
         </div>
     </div>
 
-    <script src="js/admin-settings.js?v=c85ead41"></script>
+    <script src="js/admin-settings.js?v=d8c018b4"></script>
     <script src="js/geo.js?v=9999b0e3"></script>
     <script src="js/input-hardener.js?v=95c0e89c"></script>
 <script type="module" src="js/app-core.js?v=f32d6356"></script>

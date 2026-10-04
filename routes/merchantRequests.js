@@ -232,7 +232,8 @@ router.get('/admin/:id/approval-message', protect, adminOnly,
         res.json({
             message: await buildMerchantMessage(request, city),
             whatsapp: request.phone || '',
-            groupLinkSet: !!(settings && settings.merchantGroupLink)
+            groupLinkSet: !!(settings && settings.merchantGroupLink),
+            city, cityLabel: require('../config/cities').cityLabel(city)
         });
     } catch (error) {
         logger.error('merchant approval-message error:', error.message);

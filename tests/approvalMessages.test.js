@@ -116,12 +116,18 @@ describe('⚙️ الروابط تُضبط من الإعدادات', () => {
         expect(s).toContain('رابط المجموعة يجب أن يبدأ');
     });
 
-    it('والواجهة تعرض الحقلين وتحفظهما', () => {
-        expect(read('public_html', 'admin-settings.html')).toContain('id="captainGroupLink"');
-        expect(read('public_html', 'admin-settings.html')).toContain('id="merchantGroupLink"');
+    it('والواجهة تعرض روابط كل المدن معاً — كلٌّ باسمها — وتحفظها بزرّها', () => {
+        // كانت خانةً واحدة تتبدّل مع المدينة المختارة بلا اسم مدينة عليها،
+        // فيُلصق رابط أم درمان وبورتسودان هي المختارة
+        const html = read('public_html', 'admin-settings.html');
+        expect(html).not.toContain('id="captainGroupLink"');
+        expect(html).toContain('id="groupLinksRows"');
+        expect(html).toContain('id="saveGroupLinksBtn"');
         const js = read('public_html', 'js', 'admin-settings.js');
-        expect(js).toContain('data.captainGroupLink');
-        expect(js).toContain('data.merchantGroupLink');
+        expect(js).toContain('WajeezCities.KEYS.map(city =>');
+        expect(js).toContain("fetch(`${API_URL}/api/admin/group-links`");
+        // حفظ إعدادات مدينةٍ لا يمسّ روابطها
+        expect(js).not.toContain('data.captainGroupLink');
     });
 });
 

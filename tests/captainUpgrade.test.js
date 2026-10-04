@@ -126,7 +126,8 @@ describe('الواجهة: نفس النموذج يرقّي حين يكون دا�
     it('ترسل للمسار المصادَق بالتوكن، وبلا حقول حساب', () => {
         expect(page).toContain("upgradeMode ? 'captain-application' : 'register-captain'");
         expect(page).toContain("'Authorization': `Bearer ${sessionToken}`");
-        expect(page).toContain('const account = upgradeMode ? {} :');
+        // بلا حقول حساب — لكن بمدينة العمل المختارة (كانت تُسقَط فيُحفظ بمدينة حسابه)
+        expect(page).toContain("const account = upgradeMode ? { city: document.getElementById('city').value } :");
     });
 
     it('🔑 لا تكتب دور captain في التخزين — الدور يبقى client حتى القبول', () => {

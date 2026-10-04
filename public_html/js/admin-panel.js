@@ -1456,10 +1456,16 @@ async function approveCaptain(id) {
 
         // زرّ واحد في التنبيه: يفتح واتساب والرسالة مكتوبة
         if (data.approvalMessage) {
+            // مدينة الكابتن ورابط مجموعتها أمام الأدمن قبل الإرسال: مدينةٌ خاطئة
+            // في الحساب تعني رابط مدينةٍ أخرى في الرسالة — هنا تُرى وتُصحَّح
+            const cityTxt = window.escapeHtml(data.cityLabel || WajeezCities.label(data.city) || '');
+            const linkLine = data.groupLinkSet
+                ? `الرسالة فيها رابط مجموعة كباتن <b>${cityTxt}</b>.`
+                : `<span style="color:#b45309">لا رابط لمجموعة كباتن <b>${cityTxt}</b> — اضبطه من الإعدادات، وإلا وصلت الرسالة بلا رابط.</span>`;
             Swal.fire({
                 icon: 'success',
                 title: 'تم القبول',
-                text: 'أرسل له رسالة القبول وبيانات الدخول.',
+                html: `أرسل له رسالة القبول وبيانات الدخول.<br><small>مدينة الكابتن: <b>${cityTxt}</b> — ${linkLine}</small>`,
                 confirmButtonText: 'إرسال عبر واتساب',
                 confirmButtonColor: '#25d366',
                 showCancelButton: true,

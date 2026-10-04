@@ -340,7 +340,7 @@ body.dark-mode .img-preview { background: #111827 !important; border-color: #374
                     const go = await Swal.fire({
                         icon: 'warning',
                         title: 'رابط مجموعة التجار غير مضبوط',
-                        html: 'الرسالة ستُرسَل بلا رابط المجموعة. اضبطه من الإعدادات لمدينة المتجر.',
+                        html: `لا رابط لمجموعة تجار <b>${window.escapeHtml(data.cityLabel || '')}</b> (مدينة هذا المتجر). الرسالة ستُرسَل بلا رابط المجموعة — اضبطه من الإعدادات ← روابط مجموعات واتساب.`,
                         showCancelButton: true,
                         confirmButtonText: 'أرسل بدونه',
                         cancelButtonText: 'إلغاء'

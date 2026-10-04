@@ -122,7 +122,8 @@ describe('البابان كلاهما مقفلان على الخادم', () => {
 
     it('captain-application يفحص الباب — الباب الثاني إلى الدور نفسه', () => {
         const h = handler('/captain-application');
-        expect(h).toContain('isCaptainRegistrationOpen(user.city)');
+        // باب مدينة العمل التي اختارها، لا مدينة حسابه كعميل
+        expect(h).toContain('isCaptainRegistrationOpen(workCity)');
         expect(h).toContain('registrationClosed: true');
     });
 
@@ -225,9 +226,11 @@ describe('صفحة التسجيل', () => {
         expect(blk).toContain('} catch (_) { return; }');
     });
 
-    it('والترقية تفحص مدينة الحساب وحدها', () => {
+    it('والترقية تختار مدينة عملها كالتسجيل الجديد — المغلقة تُعطَّل', () => {
         const i = html.indexOf('async function checkRegistrationGate');
-        expect(html.slice(i, i + 2000)).toContain('if (upgradeMode)');
+        const body = html.slice(i, i + 1500);
+        expect(body).not.toContain('if (upgradeMode)');
+        expect(body).toContain('applyCityGate(open)');
     });
 
     it('والإغلاق أثناء الملء (403) يعرض اللوحة لا رسالة خطأٍ عامّة', () => {

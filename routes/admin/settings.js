@@ -321,6 +321,90 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
     }
 });
 
+// =========================================================
+// 👥 روابط مجموعات واتساب — كل المدن في شاشةٍ واحدة
+// =========================================================
+// GET  /api/admin/group-links  → { cities: [{ city, label, captainGroupLink, merchantGroupLink }] }
+// PUT  /api/admin/group-links  { links: { <city>: { captainGroupLink?, merchantGroupLink? } } }
+//
+// كان لكل مدينة خانةٌ واحدة تتبدّل مع «المدينة» أعلى صفحة الإعدادات: الأدمن
+// يرى خانةً بلا اسم مدينة، فيلصق رابط أم درمان وهو على بورتسودان (أو يحفظ
+// ولم يغيّر المدينة) — فيصل كابتن بورتسودان رابطُ أم درمان. الآن كل مدينة
+// باسمها وخانتيها جنباً إلى جنب، وما يُحفظ لكل مدينة هو ما في سطرها.
+const GROUP_LINK_FIELDS = ['captainGroupLink', 'merchantGroupLink'];
+const GROUP_LINK_RX = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]/;
+
+router.get('/group-links', protect, adminOnly, async (req, res) => {
+    try {
+        const cities = [];
+        for (const city of CITY_KEYS) {
+            const s = await Settings.getSettings(city);
+            cities.push({
+                city, label: cityLabel(city),
+                captainGroupLink: (s && s.captainGroupLink) || '',
+                merchantGroupLink: (s && s.merchantGroupLink) || ''
+            });
+        }
+        res.json({ cities });
+    } catch (error) {
+        logger.error({ err: error.message }, 'group-links GET error');
+        res.status(500).json({ message: 'تعذّر تحميل روابط المجموعات' });
+    }
+});
+
+router.put('/group-links', protect, superAdminOnly, async (req, res) => {
+    try {
+        const links = (req.body && req.body.links) || {};
+        if (typeof links !== 'object' || Array.isArray(links)) {
+            return res.status(400).json({ message: 'صيغة الروابط غير صحيحة' });
+        }
+
+        // التحقّق كلّه قبل أيّ حفظ: رابطٌ خاطئ في مدينة لا يحفظ نصف الشاشة
+        const plan = [];
+        for (const [city, vals] of Object.entries(links)) {
+            if (!CITY_KEYS.includes(city)) {
+                return res.status(400).json({ message: `مدينة غير معروفة: ${city}` });
+            }
+            const set = {};
+            for (const f of GROUP_LINK_FIELDS) {
+                if (!vals || vals[f] === undefined) continue;
+                const v = String(vals[f] || '').trim();
+                if (v && !GROUP_LINK_RX.test(v)) {
+                    const who = f === 'captainGroupLink' ? 'الكباتن' : 'التجار';
+                    return res.status(400).json({
+                        message: `رابط مجموعة ${who} في ${cityLabel(city)} يجب أن يبدأ بـ https://chat.whatsapp.com/ — انسخه من «دعوة عبر رابط» في إعدادات المجموعة`,
+                        city, field: f
+                    });
+                }
+                set[f] = v;
+            }
+            if (Object.keys(set).length) plan.push([city, set]);
+        }
+
+        const changed = [];
+        for (const [city, set] of plan) {
+            const before = await Settings.getSettings(city);
+            const diff = GROUP_LINK_FIELDS.filter(f => set[f] !== undefined && set[f] !== ((before && before[f]) || ''));
+            if (!diff.length) continue;
+            await Settings.findOneAndUpdate(
+                { city },
+                { $set: { ...set, city, updatedBy: req.user._id } },
+                { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+            );
+            changed.push(`${cityLabel(city)} (${diff.map(f => f === 'captainGroupLink' ? 'الكباتن' : 'التجار').join(' و')})`);
+        }
+
+        if (changed.length) {
+            await logAdminAction(req, 'update_settings',
+                `تحديث روابط مجموعات واتساب: ${changed.join('، ')}`, '', '', { groupLinks: changed });
+        }
+        res.json({ message: changed.length ? 'تم حفظ روابط المجموعات' : 'لا تغيير', changed });
+    } catch (error) {
+        logger.error({ err: error.message }, 'group-links PUT error');
+        res.status(500).json({ message: 'تعذّر حفظ روابط المجموعات' });
+    }
+});
+
 
 // =========================================================
 // 🗺️ منطقة التوصيل (Delivery Zone / Geofencing)

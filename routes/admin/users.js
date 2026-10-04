@@ -262,7 +262,11 @@ router.get('/captains/:id/approval-message', protect,
             whatsapp: (captain.captainApplication && captain.captainApplication.whatsapp)
                 || captain.phone || '',
             // يُنبَّه الأدمن إن لم يُضبط رابط المجموعة بعد — وإلا أرسل رسالةً ناقصة
-            groupLinkSet: !!(settings && settings.captainGroupLink)
+            groupLinkSet: !!(settings && settings.captainGroupLink),
+            // مدينة الكابتن ظاهرةٌ للأدمن قبل الإرسال: رابط المجموعة لمدينته،
+            // فمدينةٌ خاطئة في حسابه = رابط مدينةٍ أخرى في الرسالة
+            city: captain.city || 'Khartoum',
+            cityLabel: cityLabel(captain.city || 'Khartoum')
         });
     } catch (error) {
         logger.error({ err: error.message }, 'captain approval-message error');
@@ -673,6 +677,7 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
         //    كلياً حين لا يُضبط WHATSAPP_BOT_URL (انظر services/whatsappService)،
         //    فالنسخ اليدوي من اللوحة هو الطريق المضمون لا احتياطياً نادراً.
         let approvalMessage = '';
+        let groupLinkSet = false;
         try {
             const { buildCaptainApprovalMessage } = require('../../utils/captainApprovalMessage');
             const Settings = require('../../models/Settings');
@@ -690,6 +695,7 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
                 creditLimit: settings && settings.defaultCreditLimit,
                 groupLink: settings && settings.captainGroupLink
             });
+            groupLinkSet = !!(settings && settings.captainGroupLink);
 
             // رقم الواتساب من نموذج الانتساب إن وُجد، وإلا هاتف الحساب
             const waNumber = (captain.captainApplication && captain.captainApplication.whatsapp)
@@ -708,6 +714,9 @@ router.put('/approve-captain/:id', protect, requirePermission('manage_captains')
             message: 'تمت الموافقة على الكابتن بنجاح',
             captain,
             approvalMessage,
+            groupLinkSet,
+            city: captain.city || 'Khartoum',
+            cityLabel: cityLabel(captain.city || 'Khartoum'),
             // الرقم من الخادم لا من قائمة الواجهة: الصفّ يختفي بعد التحديث
             whatsapp: (captain.captainApplication && captain.captainApplication.whatsapp) || captain.phone || ''
         });

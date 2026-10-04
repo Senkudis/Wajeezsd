@@ -142,13 +142,20 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
             });
         }
 
+        // 🌍 مدينة العمل: ما اختاره في النموذج، وإلا مدينة حسابه.
+        //    كانت الترقية تتجاهل اختياره وتُبقي مدينة الحساب — وحساب العميل
+        //    كثيراً ما يكون «الخرطوم» (الافتراضي). فمن في بورتسودان يختارها
+        //    في النموذج، ويُحفظ كابتناً للخرطوم: لا تصله طلبات مدينته، ورسالة
+        //    قبوله تحمل رابط مجموعة أم درمان.
+        const workCity = CITY_KEYS.includes(req.body.city) ? req.body.city : (user.city || 'Khartoum');
+
         // 🔒 الباب الثاني إلى دور الكابتن — يُفحص كالأول وإلا صار المغلق
         //    مفتوحاً من هنا. بعد فحص «قيد المراجعة» عمداً: صاحب الطلب
         //    المعلّق يرى حالة طلبه، لا «التسجيل مغلق» كأنه لم يتقدّم.
-        //    والترقية لا تغيّر المدينة، فيُفحص باب مدينة حسابه.
-        if (!(await isCaptainRegistrationOpen(user.city))) {
+        //    ويُفحص باب المدينة التي سيعمل فيها.
+        if (!(await isCaptainRegistrationOpen(workCity))) {
             return res.status(403).json({
-                message: closedMessage(user.city),
+                message: closedMessage(workCity),
                 registrationClosed: true
             });
         }
@@ -175,6 +182,7 @@ router.post('/captain-application', protect, validate(captainApplicationSchema),
         //    الآن: ملفّ الانتساب يُحفظ، وحالته 'pending'، والحساب يعمل كعميل
         //    طوال المراجعة. الترقية تقع في approve-captain وحده.
         user.vehicleType = req.body.vehicleType;
+        user.city = workCity;
         if (user.captainApplication && user.captainApplication.status === 'rejected') {
             // محاولةٌ ثانية: يبقى سبب الرفض السابق وعدد المرّات أمام المراجِع
             reopenApplication(user, captainAppFields(req.body, nationalId));

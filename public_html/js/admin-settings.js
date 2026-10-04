@@ -44,11 +44,7 @@ async function loadSettings() {
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
             const _asl = document.getElementById('appStoreLink');
             if (_asl) _asl.value = settings.appStoreLink || '';
-            // 👥 روابط المجموعات — لمدينة الإعدادات المعروضة
-            const _cgl = document.getElementById('captainGroupLink');
-            if (_cgl) _cgl.value = settings.captainGroupLink || '';
-            const _mgl = document.getElementById('merchantGroupLink');
-            if (_mgl) _mgl.value = settings.merchantGroupLink || '';
+            // 👥 روابط المجموعات: بطاقةٌ مستقلّة لكل المدن (loadGroupLinks)
             document.getElementById('forceUpdate').checked = settings.forceUpdate || false;
         }
 
@@ -113,10 +109,8 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         data.playStoreLink = document.getElementById('playStoreLink').value.trim();
         const _aslEl = document.getElementById('appStoreLink');
         if (_aslEl) data.appStoreLink = _aslEl.value.trim();
-        const _cglEl = document.getElementById('captainGroupLink');
-        if (_cglEl) data.captainGroupLink = _cglEl.value.trim();
-        const _mglEl = document.getElementById('merchantGroupLink');
-        if (_mglEl) data.merchantGroupLink = _mglEl.value.trim();
+        // روابط المجموعات لا تُرسَل هنا: لها زرّها وبطاقتها لكل المدن، فحفظ
+        // إعدادات مدينةٍ لا يمسّ رابط مجموعتها
         data.forceUpdate = document.getElementById('forceUpdate').checked;
     }
 
@@ -243,6 +237,82 @@ loadSettings();
 if (document.getElementById('citySelector')) {
     document.getElementById('citySelector').addEventListener('change', loadSettings);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 👥 روابط مجموعات واتساب — كل المدن معاً، كلٌّ باسمها
+// ═══════════════════════════════════════════════════════════════
+// كانت خانةً واحدة تتبدّل مع المدينة المختارة أعلى الصفحة ولا تقول أيّ
+// مدينةٍ هي — فيُلصق رابط أم درمان وبورتسودان هي المختارة، ويصل كابتن
+// بورتسودان رابطُ أم درمان. الآن سطرٌ لكل مدينة (WajeezCities)، بخانتين.
+const GL_FIELDS = [['captainGroupLink', 'مجموعة الكباتن'], ['merchantGroupLink', 'مجموعة التجار']];
+const GL_RX = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]/;
+
+function glInputId(city, field) { return `gl_${city}_${field}`; }
+
+async function loadGroupLinks() {
+    const box = document.getElementById('groupLinksRows');
+    if (!box) return;
+    try {
+        const res = await fetch(`${API_URL}/api/admin/group-links`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || '');
+        const byCity = Object.fromEntries((data.cities || []).map(c => [c.city, c]));
+        box.innerHTML = WajeezCities.KEYS.map(city => {
+            const c = byCity[city] || {};
+            return `<div class="gl-row">
+                <div class="gl-city">${window.escapeHtml(WajeezCities.label(city))}</div>
+                ${GL_FIELDS.map(([f, lbl]) => `<div>
+                    <label for="${glInputId(city, f)}">${lbl} — ${window.escapeHtml(WajeezCities.label(city))}</label>
+                    <input type="url" class="form-control" id="${glInputId(city, f)}" data-city="${city}" data-field="${f}"
+                        placeholder="https://chat.whatsapp.com/..." value="${window.escapeHtml(c[f] || '')}">
+                </div>`).join('')}
+            </div>`;
+        }).join('');
+        box.setAttribute('aria-busy', 'false');
+    } catch (e) {
+        box.innerHTML = `<small class="text-danger">${window.escapeHtml(window.friendlyError ? friendlyError(e, 'تعذّر تحميل روابط المجموعات') : 'تعذّر تحميل روابط المجموعات')}</small>`;
+    }
+}
+
+document.getElementById('saveGroupLinksBtn')?.addEventListener('click', async () => {
+    const inputs = [...document.querySelectorAll('#groupLinksRows input[data-city]')];
+    const links = {};
+    let bad = null;
+    for (const el of inputs) {
+        const v = el.value.trim();
+        el.classList.toggle('is-invalid', !!v && !GL_RX.test(v));
+        if (v && !GL_RX.test(v) && !bad) bad = el;
+        (links[el.dataset.city] = links[el.dataset.city] || {})[el.dataset.field] = v;
+    }
+    if (bad) {
+        bad.focus();
+        Swal.fire({ icon: 'warning', title: 'رابط غير صحيح',
+            text: 'رابط المجموعة يبدأ بـ https://chat.whatsapp.com/ — انسخه من «دعوة عبر رابط» في إعدادات المجموعة',
+            confirmButtonColor: '#667eea' });
+        return;
+    }
+    const btn = document.getElementById('saveGroupLinksBtn');
+    btn.disabled = true;
+    try {
+        const res = await fetch(`${API_URL}/api/admin/group-links`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ links })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || '');
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', timer: 2600, showConfirmButton: false,
+            title: data.changed && data.changed.length ? `حُفظت: ${data.changed.join('، ')}` : 'لا تغيير' });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'لم تُحفظ الروابط',
+            text: window.friendlyError ? friendlyError(e, 'تعذّر حفظ روابط المجموعات') : 'تعذّر حفظ روابط المجموعات',
+            confirmButtonColor: '#667eea' });
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+loadGroupLinks();
 
 // ─── 🔒 باب تسجيل الكباتن ───────────────────────────────────
 // يُحفظ فور تبديله بطلبٍ مستقلّ يحمل هذا الحقل وحده (المسار يضبط ما يُرسَل

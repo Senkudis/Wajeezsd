@@ -579,7 +579,7 @@ async function sendApprovalMessage(id) {
             const go = await Swal.fire({
                 icon: 'warning',
                 title: 'رابط مجموعة الكباتن غير مضبوط',
-                html: 'الرسالة ستُرسَل بلا رابط المجموعة. اضبطه من الإعدادات لمدينة الكابتن.',
+                html: `لا رابط لمجموعة كباتن <b>${esc(data.cityLabel || '')}</b> (مدينة هذا الكابتن). الرسالة ستُرسَل بلا رابط المجموعة — اضبطه من الإعدادات ← روابط مجموعات واتساب.`,
                 showCancelButton: true,
                 confirmButtonText: 'أرسل بدونه',
                 cancelButtonText: 'إلغاء'
@@ -596,6 +596,10 @@ async function sendApprovalMessage(id) {
             return;
         }
         window.open('https://wa.me/' + intl + '?text=' + encodeURIComponent(data.message), '_blank', 'noopener');
+        if (data.groupLinkSet && data.cityLabel && window.Swal) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', timer: 3500, showConfirmButton: false,
+                title: 'الرسالة برابط مجموعة كباتن ' + data.cityLabel });
+        }
     } catch (e) {
         Swal.fire('خطأ', 'تعذّر الاتصال بالخادم', 'error');
     }
