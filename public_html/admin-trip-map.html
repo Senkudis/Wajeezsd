@@ -26,12 +26,17 @@
         html, body { height: 100%; }
         body { font-family: 'Cairo', sans-serif; color: var(--ink); background: #e5e7eb; overflow: hidden; }
 
-        /* الخريطة تملأ الشاشة؛ ولا غطاء فوقها يحجب اللمس */
-        #tmMap { position: fixed; inset: 0; }
+        /* الخريطة تملأ الشاشة؛ ولا غطاء فوقها يحجب اللمس.
+           تنبيه: التموضع على غلافٍ لا على حاوية الخريطة نفسها: Google يكتب على
+           الحاوية position:relative كنمطٍ مضمَّن يغلب أيّ قاعدة هنا، فكانت
+           position:fixed + inset:0 تسقط وتنهار الحاوية إلى ارتفاع 0 —
+           الخريطة «ما بتظهر» إطلاقاً. الغلاف لا يلمسه Google. */
+        .tm-map-wrap { position: fixed; inset: 0; }
+        #tmMap { width: 100%; height: 100%; }
         /* الهاتف: الخريطة تنتهي عند حافّة اللوحة المطويّة — فيبقى شعار الخريطة
            وحقوقها ظاهرين (شرطٌ من Google)، والمفتوحة تغطّيها كطبقةٍ فوقها */
         @media (max-width: 899px) {
-            #tmMap { bottom: calc(var(--peek, 150px) + var(--sab, 0px) - 20px); }
+            .tm-map-wrap { bottom: calc(var(--peek, 150px) + var(--sab, 0px) - 20px); }
         }
 
         /* ── الشريط العلوي ── */
@@ -155,7 +160,7 @@
     <script src="js/theme-manager.js?v=ef048761"></script>
 </head>
 <body>
-    <div id="tmMap" role="application" aria-label="خريطة الرحلة"></div>
+    <div class="tm-map-wrap"><div id="tmMap" data-map-container role="application" aria-label="خريطة الرحلة"></div></div>
 
     <header class="tm-top">
         <a class="tm-round" href="admin-tracking.html" aria-label="العودة إلى لوحة التتبّع"><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
@@ -180,7 +185,7 @@
     <script src="js/map-markers.js?v=34f3acc0"></script>
     <script src="js/marker-motion.js?v=c86d7e75"></script>
     <script src="js/vehicle-types.js?v=3a11758f"></script>
-    <script src="js/admin-trip-map.js?v=16e78974"></script>
+    <script src="js/admin-trip-map.js?v=2e1ecf98"></script>
     <script>loadGoogleMaps({ callback: 'initTripMap' }).catch(function () {
         var l = document.getElementById('tmLive'); if (l) { l.textContent = 'تعذّر تحميل الخريطة'; l.classList.add('bad'); }
     });</script>

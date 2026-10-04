@@ -80,7 +80,7 @@ describe('الصفحة', () => {
 
 describe('الخريطة الحيّة العامة على الهاتف', () => {
     it('اللوحات لا تتراكب على شاشةٍ ضيّقة', () => {
-        expect(live).toContain('@media (max-width: 640px)');
+        expect(live).toContain('@media (max-width: 900px)');
         expect(live).not.toContain('user-scalable=no');
     });
 

@@ -152,8 +152,14 @@ router.get('/active-captains', protect, requireAnyPermission(['view_captains', '
         // 🌍 sub_admin يرى كباتن مدينته فقط؛ super_admin يفلتر اختيارياً عبر ?city
         const query = { role: 'captain', ...getAdminCityFilter(req) };
 
-        const captains = await User.find(query)
-            .select('name phone isActive currentLocation wallet_balance is_blocked credit_limit role vehicleType city documents.profilePhoto');
+        const [captains, busyIds] = await Promise.all([
+            User.find(query)
+                .select('name phone isActive isAvailableForWork currentLocation wallet_balance is_blocked credit_limit role vehicleType city documents.profilePhoto'),
+            // 🛵 «مشغول» = يحمل طلباً الآن. دليل ألوان الخريطة الحيّة يعرض
+            // «مشغول» منذ البداية، ولا شيء كان يجعل أيّ كابتنٍ مشغولاً
+            Order.distinct('captain', { status: { $in: ['accepted', 'picked_up'] }, captain: { $ne: null }, ...getAdminCityFilter(req) })
+        ]);
+        const busy = new Set(busyIds.map(String));
 
         const result = captains.map(captain => ({
             _id: captain._id,
@@ -163,6 +169,13 @@ router.get('/active-captains', protect, requireAnyPermission(['view_captains', '
             vehicleType: captain.vehicleType,
             profilePhoto: captain.documents?.profilePhoto || null,
             isActive: captain.isActive,
+            // isActive حالة الحساب (غير موقوف)، لا «متّصل الآن» — الخريطة
+            // الحيّة كانت تقرؤه كذلك فيظهر كل كابتنٍ «متاحاً» ولو أغلق التطبيق
+            isAvailableForWork: !!captain.isAvailableForWork,
+            busy: busy.has(String(captain._id)),
+            city: captain.city || 'Khartoum',
+            // وقت قياس الموقع لا وقت وصوله — حداثته تُحكم به
+            locationAt: captain.currentLocation?.fixedAt || captain.currentLocation?.updatedAt || null,
             is_blocked: captain.is_blocked,
             wallet_balance: captain.wallet_balance,
             credit_limit: captain.credit_limit,

@@ -13,7 +13,7 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, adminCities } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -87,7 +87,9 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
             email: user.email,
             phone: user.phone,
             permissions: user.permissions || [],
-            city: user.city
+            city: user.city,
+            // مدن الأدمن المساعد كلّها — الخريطة الحيّة تعرض محدِّد المدينة منها
+            cities: adminCities(user)
         };
 
         // ── super_admin: دخول مباشر دائماً ─────────────────
@@ -226,7 +228,8 @@ router.post('/session-requests/:id/claim', sessionClaimLimiter, async (req, res)
                 email: user.email,
                 phone: user.phone,
                 permissions: user.permissions || [],
-                city: user.city
+                city: user.city,
+                cities: adminCities(user)
             }
         });
     } catch (err) {

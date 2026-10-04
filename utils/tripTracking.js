@@ -400,7 +400,17 @@ function cooldownLeft(adminNudges, to, now = new Date()) {
     return ago < NUDGE_COOLDOWN_MIN ? Math.ceil((NUDGE_COOLDOWN_MIN - ago) * 60) : 0;   // بالثواني
 }
 
+/**
+ * 📡 تتبّعٌ مفقود على رحلة: موقعٌ قديم، أو لا موقع أصلاً، أو بلا وقت قياس.
+ * «لا موقع» أسوأ من «قديم» — كان خارج العدّ فيختفي من رقاقة «التتبّع متوقّف».
+ */
+function gpsLost(trip) {
+    const g = trip && trip.captain && trip.captain.gps;
+    return !!g && g.state !== 'fresh';
+}
+
 module.exports = {
+    gpsLost,
     minutesBetween, latest, clockStart, stageOf, stepsOf, latenessOf, gpsOf, proofOf, buildTrip, compareTrips,
     targetOf, motionOf, currentNudges, AT_TARGET_M, STOPPED_MIN,
     NUDGE_TEMPLATES, buildNudge, cooldownLeft, NUDGE_COOLDOWN_MIN, CUSTOM_MAX, STAGES

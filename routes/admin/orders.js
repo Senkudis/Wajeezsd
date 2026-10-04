@@ -640,6 +640,14 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
             });
         }
 
+        // 🛰️ لوحة التتبّع وخريطة الرحلة المفتوحتان تتبعان الكابتن الجديد فوراً —
+        // بلا هذا تبقيان على القديم (وموقعه) حتى التحديث الدوريّ بعد 20 ث
+        if (io) {
+            io.to('admin_room').emit('admin_order_update', {
+                orderId: order._id, status: order.status, city: order.city, captainName: newCaptain.name
+            });
+        }
+
         // Notify NEW captain
         if (io) {
             io.to(newCaptainId.toString()).emit('order_reassigned', {

@@ -95,6 +95,11 @@
     }
 
     // ─── الخريطة ──────────────────────────────────────────────────────────
+    const CITY_CENTER = {
+        Khartoum:  { lat: 15.6445, lng: 32.4777 },
+        PortSudan: { lat: 19.6151, lng: 37.2164 }
+    };
+
     function initMap() {
         if (map || !(window.google && google.maps)) return;
         map = new google.maps.Map($('tmMap'), {
@@ -201,6 +206,8 @@
         if (!map || !data) return;
         const showCap = !!capPos;
         if (!showCap) {
+            // حركةٌ جارية على دبّوسٍ أُزيل (نُقل الطلب أو انتهت الرحلة) تُوقَف
+            if (mover && mover.stop) mover.stop();
             place('captain', null);
             mover = null; capTarget = null;
         } else if (mk.captain && mover) {
@@ -254,7 +261,9 @@
         if (!map || !data) return;
         const P = data.points;
         const pts = [P.pickup, P.dropoff, P.deliveredAt, capPos].concat(P.stops || []).filter(p => p && Number.isFinite(p.lat));
-        if (!pts.length) return;
+        // طلبٌ بعناوين نصّية وكابتنٌ بلا موقع: مدينة الطلب لا الخرطوم دائماً —
+        // طلب بورتسودان كان يفتح على خريطة الخرطوم
+        if (!pts.length) { map.setCenter(CITY_CENTER[data.trip.city] || CITY_CENTER.Khartoum); map.setZoom(12); return; }
         if (pts.length === 1) { map.setCenter(pts[0]); map.setZoom(15); return; }
         const b = new google.maps.LatLngBounds();
         pts.forEach(p => b.extend({ lat: p.lat, lng: p.lng }));

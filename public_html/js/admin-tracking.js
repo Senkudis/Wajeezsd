@@ -105,7 +105,8 @@
             warn: running && t.late.level === 'warn',
             to_pickup: t.stage === 'to_pickup',
             to_dropoff: t.stage === 'to_dropoff',
-            gps: running && t.captain && t.captain.gps.state === 'stale',
+            // متوقّف أو لم يُرسل موقعاً قطّ — نفس عدّ الخادم (tripTracking.gpsLost)
+            gps: running && !!t.captain && !!t.captain.gps && t.captain.gps.state !== 'fresh',
             stopped: running && t.motion && t.motion.state === 'stopped',
             release: !!t.releaseRequest,
             suspicious: t.proof && t.proof.suspicious,
@@ -150,6 +151,7 @@
         if (!g || t.stage === 'delivered') return '';
         if (g.state === 'none') return `<span class="fact gps-none"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> لا موقع للكابتن</span>`;
         if (g.state === 'stale') return `<span class="fact gps-stale"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> التتبّع متوقّف منذ ${dur(g.ageMin)}</span>`;
+        if (g.state !== 'fresh') return `<span class="fact gps-stale"><i class="fas fa-location-crosshairs" aria-hidden="true"></i> وقت آخر موقع غير معروف</span>`;
         return `<span class="fact gps-fresh"><i class="fas fa-location-dot" aria-hidden="true"></i> آخر موقع قبل ${dur(g.ageMin)}</span>`;
     }
 
@@ -547,7 +549,7 @@
         // واقفٌ بعيداً عن وجهته: «تحرّك» ولو لم يتأخّر بعد
         if (trip.motion && trip.motion.state === 'stopped') return 'move_now';
         if (trip.late.level === 'warn') return trip.stage === 'to_pickup' ? 'pickup_late' : 'deliver_late';
-        if (trip.captain && trip.captain.gps.state === 'stale') return 'gps_off';
+        if (trip.captain && trip.captain.gps && trip.captain.gps.state !== 'fresh') return 'gps_off';
         return 'call_client';
     }
 

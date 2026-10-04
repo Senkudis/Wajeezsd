@@ -95,7 +95,9 @@ router.get('/tracking', protect, CAN_VIEW, async (req, res) => {
                 delivered: count(t => t.stage === 'delivered'),
                 late: count(t => running(t) && t.late.level === 'late'),
                 warn: count(t => running(t) && t.late.level === 'warn'),
-                gpsStale: count(t => running(t) && t.captain.gps.state === 'stale'),
+                // متوقّف أو لم يُرسل موقعاً قطّ — كلاهما رحلةٌ لا نراها على الخريطة.
+                // كان «لا موقع» خارج العدّ والتصفية فيختفي أسوأ الحالين
+                gpsStale: count(t => running(t) && T.gpsLost(t)),
                 // واقفٌ بعيداً عن وجهته — الوقت وحده لا يكشفه
                 stopped: count(t => t.motion && t.motion.state === 'stopped'),
                 releaseRequests: count(t => !!t.releaseRequest),

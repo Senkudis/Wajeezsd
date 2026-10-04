@@ -244,7 +244,9 @@
            بعرض الشاشة، والإحصاءات صفٌّ واحد، ودليل الألوان مخفيّ. ── */
         #map { height: 100vh; height: 100dvh; }
         #mapLoader { pointer-events: none; }
-        @media (max-width: 640px) {
+        /* حتى 900 لا 640: بين الحدّين كانت اللوحتان (230 + 170) وشريط البحث
+           (380) تتراكب في عرضٍ لا يتّسع لها، فيغطّي البحث المحدِّد والحالة */
+        @media (max-width: 900px) {
             .map-header {
                 top: calc(var(--sat, 0px) + 8px); right: 8px; left: 8px; min-width: 0;
                 padding: 8px 12px; border-radius: 14px;
@@ -314,7 +316,7 @@ body.dark-mode .search-result-item:hover, body.dark-mode .search-result-item.hig
                 <i class="fas fa-moon" aria-hidden="true"></i>
             </button>
         </div>
-        <div id="connectionStatus">متصل</div>
+        <div id="connectionStatus" role="status" aria-live="polite">جارٍ الاتصال…</div>
         <select id="liveCitySelector" onchange="changeLiveCity()" style="margin-top: 10px; width: 100%; padding: 6px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
             <option value="Khartoum">الخرطوم - أم درمان</option>
             <option value="PortSudan">البحر الأحمر - بورتسودان</option>
@@ -380,6 +382,8 @@ body.dark-mode .search-result-item:hover, body.dark-mode .search-result-item.hig
 
     <!-- Socket.io -->
     <script src="vendor/socket.io/socket.io.min.js"></script>
+    <!-- التوستات (فشل التحميل، كابتنٌ بلا موقع) تُبنى على Swal — بدونها تختفي بصمت -->
+    <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
     <!-- Google Maps callback setup -->
     <script>
@@ -400,7 +404,7 @@ body.dark-mode .search-result-item:hover, body.dark-mode .search-result-item.hig
 
     <!-- Admin Map Logic -->
     <script src="js/admin-search.js?v=7649b4af"></script>
-    <script src="js/admin-live-map.js?v=3ee4e25d"></script>
+    <script src="js/admin-live-map.js?v=bd120bc4"></script>
 
 </body>
 </html>

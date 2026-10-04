@@ -1926,6 +1926,8 @@ router.put('/:id/stops/:stopRef/done', protect, captainOnly, async (req, res) =>
         const io = req.app.get('io');
         if (io) {
             io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'picked_up' });
+            // خريطة الرحلة تنقل وجهة الكابتن للمحطّة التالية فوراً
+            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
         }
 
         res.json({ message: 'تم تأكيد النقطة', order });
@@ -2051,6 +2053,10 @@ router.put('/:id/stops/reorder', protect, captainOnly, async (req, res) => {
 
         await order.save();
         logger.info({ orderId: order._id, captain: req.user.id }, 'Captain reordered trip stops');
+
+        // خريطة الرحلة المفتوحة تعيد رسم المسار ووجهة الكابتن بالترتيب الجديد
+        const io = req.app.get('io');
+        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
 
         res.json({ message: 'تم تحديث ترتيب المسار', order });
     } catch (error) {
