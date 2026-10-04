@@ -1,6 +1,7 @@
 // routes/admin/dashboard.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -68,7 +69,7 @@ router.get('/dashboard', protect, requirePermission('view_revenue'), async (req,
                 .limit(5)
                 .lean(),
             // 🌍 Per-city breakdown for admin panel city selector
-            Promise.all(['Khartoum', 'PortSudan'].map(async (c) => ({
+            Promise.all(CITY_KEYS.map(async (c) => ({
                 city: c,
                 captains: await User.countDocuments({ role: 'captain', city: c }),
                 clients:  await User.countDocuments({ role: { $in: ['client', 'customer'] }, city: c }),
@@ -288,7 +289,7 @@ router.get('/scoped-stats', protect, requirePermission('view_stats'), async (req
             days,
             cities: cityFilter.city
                 ? (typeof cityFilter.city === 'string' ? [cityFilter.city] : cityFilter.city.$in)
-                : ['Khartoum', 'PortSudan'],
+                : CITY_KEYS,
             totals: {
                 orders: total,
                 delivered,

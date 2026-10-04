@@ -1,6 +1,7 @@
 // routes/admin/subadmins.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -31,7 +32,7 @@ const SessionRequest = require('../../models/SessionRequest');
 //    ومعروضةٌ في الواجهة، لكن المسار كان يُسقطها بصمت — فمن يمنحها لا
 //    يراها تُحفظ ولا يُقال له لماذا. المصدر الآن واحد، فلا تتباعد ثانية.
 const VALID_PERMS = User.schema.path('permissions').caster.enumValues;
-const VALID_CITIES = ['Khartoum', 'PortSudan'];
+const VALID_CITIES = CITY_KEYS;
 
 /** يُنقّي مدن الأدمن المساعد: صالحةً وبلا تكرار. فارغةً ⇒ مدينته وحدها. */
 function sanitizeCities(list) {

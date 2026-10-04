@@ -25,10 +25,7 @@ const DEPARTMENTS = Object.freeze({
     merchant: 'الشركاء'
 });
 
-const CITY_LABELS = Object.freeze({
-    Khartoum: 'الخرطوم',
-    PortSudan: 'بورتسودان'
-});
+const { CITY_LABELS } = require('../config/cities');   // 🌍 مصدرٌ واحد
 
 /**
  * معرّف عام غُفل للبطاقة المطبوعة.

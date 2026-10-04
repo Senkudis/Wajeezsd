@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/admin-cache-buster.js?v=355a130e"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
 
@@ -516,6 +516,9 @@
             <button id="cityBtn-PortSudan" class="city-btn" onclick="switchFinanceCity('PortSudan')">
                 <i class="fas fa-anchor" aria-hidden="true"></i> بورتسودان
             </button>
+            <button id="cityBtn-Atbara" class="city-btn" onclick="switchFinanceCity('Atbara')">
+                <i class="fas fa-train" aria-hidden="true"></i> عطبرة
+            </button>
         </div>
     </div>
 
@@ -784,6 +787,7 @@
                         <option value="">كل المدن</option>
                         <option value="Khartoum">الخرطوم</option>
                         <option value="PortSudan">بورتسودان</option>
+                        <option value="Atbara">عطبرة</option>
                     </select>
                     <input type="date" id="ledgerFrom" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
                     <input type="date" id="ledgerTo" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadLedger()">
@@ -1006,13 +1010,13 @@ function switchTab(tabId, btn) {
 // ──────────────────────────────────────────
 function switchFinanceCity(city) {
     financeCity = city;
-    ['Khartoum', 'PortSudan'].forEach(c => {
+    WajeezCities.KEYS.forEach(c => {
         const btn = document.getElementById(`cityBtn-${c}`);
         if (!btn) return;
         if (c === city) btn.classList.add('active-city');
         else btn.classList.remove('active-city');
     });
-    const label = city === 'Khartoum' ? 'الخرطوم - أم درمان' : 'البحر الأحمر - بورتسودان';
+    const label = WajeezCities.label(city, 'adminLabel');
     const lbl = document.getElementById('finCityLabel');
     if (lbl) lbl.textContent = `مراجعة وإدارة مديونيات الكباتن وطلبات السداد وإعدادات العمولة والتسعيرة — ${label}`;
 
@@ -1126,7 +1130,7 @@ async function saveFinancialSettings() {
         });
         const data = await res.json();
         if (res.ok) {
-            toast(`تم حفظ إعدادات ${financeCity === 'Khartoum' ? 'الخرطوم' : 'بورتسودان'} بنجاح`);
+            toast(`تم حفظ إعدادات ${WajeezCities.label(financeCity)} بنجاح`);
             await loadSettings();
         } else { toast(data.message || 'فشل الحفظ', 'error'); }
     } catch (e) { toast('خطأ في الاتصال بالخادم', 'error'); }
@@ -1165,7 +1169,7 @@ async function savePricingSettings() {
             })
         });
         const data = await res.json();
-        if (res.ok) { toast(`تم حفظ التسعيرة لـ ${financeCity === 'Khartoum' ? 'الخرطوم' : 'بورتسودان'} بنجاح`);
+        if (res.ok) { toast(`تم حفظ التسعيرة لـ ${WajeezCities.label(financeCity)} بنجاح`);
         } else { toast(data.message || 'فشل الحفظ', 'error'); }
     } catch (e) { toast('خطأ في الاتصال بالخادم', 'error'); }
 
@@ -1872,8 +1876,14 @@ async function loadLedger() {
         tbody.innerHTML = data.entries.map(e => {
             const cfg  = typeConfig[e.type] || typeConfig.commission;
             const date = new Date(e.date).toLocaleString('ar-SA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-            const cityLbl = e.city === 'Khartoum' ? '<span style="background:rgba(59,130,246,0.1);color:#1d4ed8;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-city" aria-hidden="true"></i> الخرطوم</span>'
-                          : '<span style="background:rgba(14,165,233,0.1);color:#0369a1;border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas fa-anchor" aria-hidden="true"></i> بورتسودان</span>';
+            // شارة لكل مدينة — كانت «الخرطوم وإلا بورتسودان»، فتُكتب كل مدينةٍ ثالثة «بورتسودان»
+            const CITY_BADGE = {
+                Khartoum:  ['rgba(59,130,246,0.1)', '#1d4ed8', 'fa-city'],
+                PortSudan: ['rgba(14,165,233,0.1)', '#0369a1', 'fa-anchor'],
+                Atbara:    ['rgba(217,119,6,0.12)', '#b45309', 'fa-train']
+            };
+            const cb = CITY_BADGE[e.city] || ['rgba(100,116,139,0.1)', '#475569', 'fa-location-dot'];
+            const cityLbl = `<span style="background:${cb[0]};color:${cb[1]};border-radius:30px;padding:2px 10px;font-size:11px;"><i class="fas ${cb[2]}" aria-hidden="true"></i> ${window.escapeHtml(WajeezCities.label(e.city) || '—')}</span>`;
             return `<tr>
                 <td><span class="status-badge ${cfg.cls}" style="font-size:11px;"><i class="fas fa-${cfg.icon}" aria-hidden="true"></i> ${cfg.label}</span></td>
                 <td style="font-size:12px;color:var(--muted);">${date}</td>

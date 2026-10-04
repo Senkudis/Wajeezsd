@@ -166,3 +166,82 @@ window.__coachQ = window.__coachQ || [];
 window.coachFire = function (key, selector) {
     window.__coachQ.push([key, selector]);
 };
+
+/**
+ * 🌍 المدن — نسخة الواجهة من config/cities.js (الخادم).
+ *
+ * كل صفحةٍ تحمّل config.js، فهنا مكانٌ واحد لكل ما تعرضه الواجهة عن المدن:
+ * التسميات والمراكز والحدود وقوائم الاختيار. مدينةٌ جديدة = سطرٌ هنا وسطرٌ
+ * في config/cities.js — واختبار tests/cities.test.js يفشل إن اختلفا.
+ */
+if (!window.WajeezCities) {
+    (function () {
+        var CITIES = {
+            Khartoum: {
+                key: 'Khartoum', label: 'الخرطوم', appLabel: 'الخرطوم (أم درمان)', shortLabel: 'أم درمان',
+                adminLabel: 'الخرطوم - أم درمان', desc: 'الخرطوم · أم درمان · بحري',
+                bounds: { minLat: 15.0, maxLat: 16.4, minLng: 32.0, maxLng: 33.2 },
+                center: { lat: 15.6445, lng: 32.4777 },
+                search: { lat: 15.5007, lng: 32.5599, radius: 40000 },
+                icon: 'fa-city', color: '#2563eb'      // واجهة فقط: أيقونة Font Awesome ولون التمييز
+            },
+            PortSudan: {
+                key: 'PortSudan', label: 'بورتسودان', appLabel: 'بورتسودان', shortLabel: 'بورتسودان',
+                adminLabel: 'البحر الأحمر - بورتسودان', desc: 'ولاية البحر الأحمر',
+                bounds: { minLat: 19.2, maxLat: 20.1, minLng: 36.8, maxLng: 37.7 },
+                center: { lat: 19.6151, lng: 37.2164 },
+                search: { lat: 19.6158, lng: 37.2164, radius: 30000 },
+                icon: 'fa-anchor', color: '#0ea5e9'
+            },
+            Atbara: {
+                key: 'Atbara', label: 'عطبرة', appLabel: 'عطبرة', shortLabel: 'عطبرة',
+                adminLabel: 'نهر النيل - عطبرة', desc: 'ولاية نهر النيل · عطبرة · الدامر',
+                bounds: { minLat: 17.45, maxLat: 17.9, minLng: 33.75, maxLng: 34.2 },
+                center: { lat: 17.7022, lng: 33.9864 },
+                search: { lat: 17.66, lng: 33.98, radius: 20000 },
+                icon: 'fa-train', color: '#d97706'     // عطبرة مدينة السكّة الحديد
+            }
+        };
+        var KEYS = Object.keys(CITIES);
+        function isValid(c) { return typeof c === 'string' && Object.prototype.hasOwnProperty.call(CITIES, c); }
+        var esc = function (s) { return window.escapeHtml ? window.escapeHtml(s) : String(s); };
+
+        window.WajeezCities = {
+            CITIES: CITIES,
+            KEYS: KEYS,
+            DEFAULT: 'Khartoum',
+            isValid: isValid,
+            /** label | appLabel | shortLabel | adminLabel | desc — والمفتاح المجهول كما هو */
+            label: function (c, kind) { return isValid(c) ? CITIES[c][kind || 'label'] : (c || ''); },
+            /** أيقونة المدينة ولونها — للبطاقات والشارات */
+            icon: function (c) { return isValid(c) ? CITIES[c].icon : 'fa-location-dot'; },
+            color: function (c) { return isValid(c) ? CITIES[c].color : '#64748b'; },
+            center: function (c) { var x = CITIES[isValid(c) ? c : 'Khartoum'].center; return { lat: x.lat, lng: x.lng }; },
+            /** المدينة التي تقع فيها نقطة — null خارج كل المدن */
+            cityAt: function (lat, lng) {
+                lat = Number(lat); lng = Number(lng);
+                if (!isFinite(lat) || !isFinite(lng)) return null;
+                for (var i = 0; i < KEYS.length; i++) {
+                    var b = CITIES[KEYS[i]].bounds;
+                    if (lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng) return KEYS[i];
+                }
+                return null;
+            },
+            /**
+             * خيارات <select> لكل المدن.
+             * opts: { selected, kind ('label'|'adminLabel'…), all: 'نصّ خيار «الكل»', allValue: '' }
+             */
+            optionsHtml: function (opts) {
+                opts = opts || {};
+                var out = '';
+                if (opts.all) out += '<option value="' + esc(opts.allValue == null ? '' : opts.allValue) + '"' +
+                    (opts.selected === (opts.allValue == null ? '' : opts.allValue) ? ' selected' : '') + '>' + esc(opts.all) + '</option>';
+                KEYS.forEach(function (k) {
+                    out += '<option value="' + k + '"' + (opts.selected === k ? ' selected' : '') + '>' +
+                        esc(CITIES[k][opts.kind || 'label']) + '</option>';
+                });
+                return out;
+            }
+        };
+    })();
+}

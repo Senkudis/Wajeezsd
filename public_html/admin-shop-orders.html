@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/admin-cache-buster.js?v=355a130e"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <style>
@@ -129,6 +129,7 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
                 <option value="all">كل المدن</option>
                 <option value="Khartoum">الخرطوم</option>
                 <option value="PortSudan">بورتسودان</option>
+                <option value="Atbara">عطبرة</option>
             </select>
             <button class="admin-export-btn" onclick="exportOrdersCSV()">
                 <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير
@@ -208,7 +209,7 @@ body.dark-mode .so-card { background: #1f2937 !important; border-color: #374151 
 
     function cardHtml(o, flash) {
         const shop = o.place ? esc(o.place.name) : 'متجر محذوف';
-        const city = o.place?.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم';
+        const city = WajeezCities.label(o.place?.city || 'Khartoum');
         const client = esc(o.client?.name || 'عميل');
         const clientPhone = o.client?.phone || '';
         const cap = o.captain?.name ? ` · الكابتن: ${esc(o.captain.name)}` : '';

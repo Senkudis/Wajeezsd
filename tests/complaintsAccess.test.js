@@ -49,7 +49,7 @@ describe('نطاق المدينة', () => {
     it('التذكرة تُختم بمدينة الطلب أو العميل', () => {
         expect(route("router.post('/', protect")).toContain('city,');
         const Complaint = require('../models/Complaint');
-        expect(Complaint.schema.path('city').enumValues).toEqual(['Khartoum', 'PortSudan']);
+        expect(Complaint.schema.path('city').enumValues).toEqual(require('../config/cities').CITY_KEYS);
         // بلا افتراضيّ: القديم يبقى بلا مدينة حتى يُملأ بدليل
         expect(Complaint.schema.path('city').defaultValue).toBeUndefined();
     });

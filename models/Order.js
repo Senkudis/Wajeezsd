@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { CITY_KEYS } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const logger = require('../utils/logger'); // BUG-L2 FIX: استخدام logger الموحّد بدل console.error
 
 const OrderSchema = new mongoose.Schema(
@@ -286,7 +287,7 @@ const OrderSchema = new mongoose.Schema(
         // order is visible to. Set at creation from req.userCity. Never mutable by client.
         city: {
             type: String,
-            enum: ['Khartoum', 'PortSudan'],
+            enum: CITY_KEYS,
             default: 'Khartoum',
             required: true
         }

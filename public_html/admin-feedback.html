@@ -10,7 +10,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <style>
         :root {
             --primary: #048c5b;
@@ -262,7 +262,7 @@ body.dark-mode .msg { color: #d1d5db !important; }
                 + ' · ' + dt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         };
 
-        const cityLabel = (c) => c === 'Khartoum' ? 'الخرطوم' : c === 'PortSudan' ? 'بورتسودان' : (c || '—');
+        const cityLabel = (c) => WajeezCities.label(c) || '—';
 
         function renderReasons(byReason) {
             const box = document.getElementById('reasonsBox');

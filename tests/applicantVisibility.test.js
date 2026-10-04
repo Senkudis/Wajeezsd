@@ -66,7 +66,7 @@ describe('🔴 طلبات المتاجر مقيَّدةٌ بالمدينة', () 
         // وهواتفهم وأرقام حساباتهم البنكية وصور هوياتهم.
         const f = MerchantRequest.schema.path('city');
         expect(f).toBeTruthy();
-        expect(f.enumValues).toEqual(['Khartoum', 'PortSudan']);
+        expect(f.enumValues).toEqual(require('../config/cities').CITY_KEYS);
     });
 
     it('🔴 والقائمة تُرشَّح بمدن الأدمن', () => {

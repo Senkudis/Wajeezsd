@@ -1293,8 +1293,10 @@ window.openShopOrderConfirmModal = async function() {
         }
 
         const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
-        const defaultLat = currentCity === 'PortSudan' ? 19.6151 : 15.6067;
-        const defaultLng = currentCity === 'PortSudan' ? 37.2164 : 32.5317;
+        // الخرطوم بمركزها المعتاد هنا، وغيرها بمركز مدينته (WajeezCities)
+        const _c = (!currentCity || currentCity === 'Khartoum') ? { lat: 15.6067, lng: 32.5317 } : WajeezCities.center(currentCity);
+        const defaultLat = _c.lat;
+        const defaultLng = _c.lng;
 
         const lat = window.userLocation?.lat ?? defaultLat;
         const lng = window.userLocation?.lng ?? defaultLng;

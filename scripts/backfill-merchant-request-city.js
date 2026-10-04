@@ -20,6 +20,7 @@
  */
 require('dotenv').config({ quiet: true });
 const mongoose = require('mongoose');
+const { isValidCity } = require('../config/cities');   // 🌍 مصدرٌ واحد
 
 const APPLY = process.argv.includes('--apply');
 
@@ -48,7 +49,7 @@ const APPLY = process.argv.includes('--apply');
 
     for (const r of rows) {
         // حقلٌ مضبوطٌ فعلاً (صالح) لا يُلمس
-        if (r.city === 'Khartoum' || r.city === 'PortSudan') {
+        if (isValidCity(r.city)) {
             // ⚠️ الافتراضي 'Khartoum' يُطبَّق على القراءة في مونجوس لا في
             //    القاعدة، فالمستند القديم لا يحمل الحقل أصلاً — نفحص الخام.
             if (Object.prototype.hasOwnProperty.call(r, 'city')) {
@@ -70,7 +71,7 @@ const APPLY = process.argv.includes('--apply');
 
         if (!city && r.userId) {
             const place = await places.findOne({ owner: r.userId }, { projection: { city: 1 } });
-            if (place && (place.city === 'Khartoum' || place.city === 'PortSudan')) {
+            if (place && isValidCity(place.city)) {
                 city = place.city;
                 source = 'place';
             }
@@ -78,7 +79,7 @@ const APPLY = process.argv.includes('--apply');
 
         if (!city && r.userId) {
             const owner = await users.findOne({ _id: r.userId }, { projection: { city: 1 } });
-            if (owner && (owner.city === 'Khartoum' || owner.city === 'PortSudan')) {
+            if (owner && isValidCity(owner.city)) {
                 city = owner.city;
                 source = 'owner';
             }

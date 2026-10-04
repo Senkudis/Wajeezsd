@@ -1,4 +1,5 @@
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -258,7 +259,7 @@ router.get('/errand-categories', (req, res) => {
 // @access  عام — بيانات من قاعدتنا فقط
 router.get('/errand-featured', async (req, res) => {
     try {
-        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
 
         const [curated, popular] = await Promise.all([
             // ⚠️ errandEnabled فقد دوره القديم (كان السبيل الوحيد لإضافة محل) حين صار
@@ -299,7 +300,7 @@ router.get('/errand-stats', protect, requirePermission('view_stats'), async (req
         const PlaceSearchQuery = require('../models/PlaceSearchQuery');
         const ExternalPlace = require('../models/ExternalPlace');
 
-        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
         const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 90);
         const since = new Date(Date.now() + 3 * 60 * 60 * 1000 - days * 86400000)
             .toISOString().slice(0, 10);
@@ -367,7 +368,7 @@ router.patch('/errand-stats/lead', protect, requirePermission('manage_stores'), 
     try {
         const PlaceSearchQuery = require('../models/PlaceSearchQuery');
 
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const city = VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum';
         const query = String(req.body.query || '').trim().slice(0, 120);
         const status = req.body.status;
@@ -443,7 +444,7 @@ router.get('/errand-search', protect, async (req, res) => {
         const { runErrandSearch } = require('../utils/errandSearch');
         const q = String(req.query.q || '').trim();
         const categoryKey = String(req.query.category || '').trim();
-        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
 
         if (!q && !categoryKey) return res.json({ ours: [], external: [] });
 
@@ -491,7 +492,7 @@ router.get('/errand-suggest', async (req, res) => {
         const { runErrandSearch } = require('../utils/errandSearch');
         const { normalizeQuery } = require('../utils/placesSearch');
         const q = String(req.query.q || '').trim();
-        const city = req.query.city === 'PortSudan' ? 'PortSudan' : 'Khartoum';
+        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
 
         // أقلّ من حرفين يطابق نصف القاعدة — ضوضاء لا اقتراح
         if (q.length < 2) return res.json({ external: [] });

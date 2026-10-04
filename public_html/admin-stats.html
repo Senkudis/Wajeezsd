@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
 
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/admin-cache-buster.js?v=355a130e"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
 
@@ -247,7 +247,7 @@
         let currentRange = 'week';
         let lastData = null;
 
-        const CITY_AR = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+        const CITY_AR = Object.fromEntries(WajeezCities.KEYS.map(k => [k, WajeezCities.label(k)]));
         const STATUS_AR = {
             pending: 'بانتظار كابتن', scheduled: 'مجدولة', accepted: 'مقبولة',
             picked_up: 'قيد التوصيل', delivered: 'مكتملة', cancelled: 'ملغاة',

@@ -18,7 +18,7 @@ require('dotenv').config({ quiet: true });
 const mongoose = require('mongoose');
 
 const APPLY = process.argv.includes('--apply');
-const CITIES = ['Khartoum', 'PortSudan'];
+const CITIES = require('../config/cities').CITY_KEYS;   // 🌍 مصدرٌ واحد
 
 (async () => {
     const uri = process.env.MONGO_URI;

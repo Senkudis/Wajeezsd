@@ -1,6 +1,7 @@
 // routes/admin/users.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -354,7 +355,7 @@ router.get('/merchants-list', protect, requireAnyPermission(['view_stores', 'man
 
 router.put('/user/:id/city', protect, superAdminOnly, async (req, res) => {
     try {
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const { city } = req.body;
 
         if (!VALID_CITIES.includes(city)) {

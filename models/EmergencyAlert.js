@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { CITY_KEYS } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 
 const emergencyAlertSchema = new mongoose.Schema({
     captain: {
@@ -13,7 +14,7 @@ const emergencyAlertSchema = new mongoose.Schema({
     // 🌍 مدينة الكابتن — تُستخدم لتوجيه التنبيه للأدمن المساعد المسؤول عنها
     city: {
         type: String,
-        enum: ['Khartoum', 'PortSudan'],
+        enum: CITY_KEYS,
         default: 'Khartoum'
     },
     status: {

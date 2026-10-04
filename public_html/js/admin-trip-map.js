@@ -95,10 +95,8 @@
     }
 
     // ─── الخريطة ──────────────────────────────────────────────────────────
-    const CITY_CENTER = {
-        Khartoum:  { lat: 15.6445, lng: 32.4777 },
-        PortSudan: { lat: 19.6151, lng: 37.2164 }
-    };
+    // مراكز المدن من WajeezCities (config.js) — مصدرٌ واحد
+    const CITY_CENTER = Object.fromEntries(WajeezCities.KEYS.map(k => [k, WajeezCities.center(k)]));
 
     function initMap() {
         if (map || !(window.google && google.maps)) return;

@@ -1,6 +1,7 @@
 // routes/admin/settings.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -25,7 +26,7 @@ const SessionRequest = require('../../models/SessionRequest');
 
 router.get('/settings', protect, adminOnly, async (req, res) => {
     try {
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const city = VALID_CITIES.includes(req.query.city) ? req.query.city : 'Khartoum';
         // 🌍 Uses getSettings(city) — auto-creates doc with defaults if missing
         const settings = await Settings.getSettings(city);
@@ -73,7 +74,7 @@ router.get('/debug-settings', protect, adminOnly, async (req, res) => {
 
 router.get('/pricing', protect, async (req, res) => {
     try {
-        const city = ['Khartoum', 'PortSudan'].includes(req.query.city) ? req.query.city : 'Khartoum';
+        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
         const settings = await Settings.getSettings(city);
         // نُعيد فقط حقول التسعير — لا بيانات حساسة
         res.json({
@@ -107,7 +108,7 @@ router.get('/pricing', protect, async (req, res) => {
 router.put('/settings', protect, superAdminOnly, async (req, res) => {
 
     try {
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const city = VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum';
 
         const allowedFields = [
@@ -307,9 +308,8 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
         // 🔒 فتح باب التسجيل وإغلاقه قرارٌ يُسأل عنه لاحقاً («من فتحه؟ متى؟»)
         //    والسطر العامّ أعلاه يذكر اسم الحقل لا اتجاهه. فله سطرٌ صريح.
         if (updates.captainRegistrationOpen !== undefined) {
-            const cityLabel = city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم';
             await logAdminAction(req, 'captain_registration_toggle',
-                `${updates.captainRegistrationOpen ? 'فُتح' : 'أُغلق'} باب تسجيل الكباتن في ${cityLabel}`,
+                `${updates.captainRegistrationOpen ? 'فُتح' : 'أُغلق'} باب تسجيل الكباتن في ${cityLabel(city)}`,
                 '', city, { city, open: updates.captainRegistrationOpen }
             );
         }
@@ -328,11 +328,11 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
 
 // @route   GET /api/admin/delivery-zone
 // @desc    جلب إحداثيات منطقة التوصيل (متاح للجميع لكي يتمكن التطبيق من فحص النطاق)
-// 🌍 ?city=Khartoum | PortSudan  (defaults to Khartoum)
+// 🌍 ?city=<config/cities key>  (defaults to Khartoum)
 
 router.get('/delivery-zone', async (req, res) => {
     try {
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const city = VALID_CITIES.includes(req.query.city) ? req.query.city : 'Khartoum';
         const settings = await Settings.getSettings(city);
         res.json({ city, deliveryZone: settings.deliveryZone || [] });
@@ -363,7 +363,7 @@ router.put('/delivery-zone', protect, superAdminOnly, async (req, res) => {
 
         // ✅ FIX #13: Use getSettings(city) for the specific city's zone doc
         let settings = await Settings.getSettings(req.body.city || 'Khartoum');
-        const zoneCity = ['Khartoum', 'PortSudan'].includes(req.body.city) ? req.body.city : 'Khartoum';
+        const zoneCity = CITY_KEYS.includes(req.body.city) ? req.body.city : 'Khartoum';
         if (!settings._id) {
             // 🌍 لازم نمرّر المدينة عند الإنشاء وإلا تُحفظ المنطقة للخرطوم خطأً
             settings = await Settings.create({ city: zoneCity, deliveryZone });

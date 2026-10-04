@@ -6,17 +6,16 @@
 
 let adminMap;
 let currentPolygon  = null;   // The finalized/editable polygon for the selected city
-let otherCityPolygon = null;  // The preview polygon for the unselected city
+let otherCityPolygons = [];   // معاينة مناطق المدن الأخرى (للقراءة فقط)
 let previewPolyline = null;   // Dashed preview line while drawing
 let tempMarkers     = [];     // Vertex dot markers while drawing
 let drawnPoints     = [];     // Array of LatLng objects collected during drawing
 let isDrawingMode   = false;
 
 // We will cache the zones here to avoid re-fetching when switching dropdown
-let cachedZones = {
-    Khartoum: null,
-    PortSudan: null
-};
+// مدينةٌ لكل مفتاح في WajeezCities (config.js) — كانت مدينتين مكتوبتين هنا
+let cachedZones = Object.fromEntries(WajeezCities.KEYS.map(k => [k, null]));
+const zoneCityLabel = (c) => WajeezCities.label(c);
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -153,7 +152,8 @@ function addDotMarker(latLng, index) {
 
 function clearZoneFully() {
     if (currentPolygon) { currentPolygon.setMap(null); currentPolygon = null; }
-    if (otherCityPolygon) { otherCityPolygon.setMap(null); otherCityPolygon = null; }
+    otherCityPolygons.forEach(p => p.setMap(null));
+    otherCityPolygons = [];
     if (previewPolyline) { previewPolyline.setMap(null); previewPolyline = null; }
     tempMarkers.forEach(m => m.setMap(null));
     tempMarkers = [];
@@ -204,7 +204,7 @@ window.saveDeliveryZone = async function() {
             cachedZones[city] = coords; // Update the cache
             Swal.fire({
                 icon: 'success', title: '✅ تم الحفظ بنجاح!',
-                text: `تم حفظ منطقة التوصيل لمدينة ${city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'} (${coords.length} نقطة) وستُطبَّق فوراً.`,
+                text: `تم حفظ منطقة التوصيل لمدينة ${zoneCityLabel(city)} (${coords.length} نقطة) وستُطبَّق فوراً.`,
                 confirmButtonColor: '#04553A'
             });
         } else { throw new Error(data.message || 'فشل الحفظ'); }
@@ -233,8 +233,7 @@ async function loadAndDrawAllZones() {
     clearZoneFully();
     
     // Fetch both if not cached (or force fetch)
-    cachedZones.Khartoum = await fetchZoneForCity('Khartoum');
-    cachedZones.PortSudan = await fetchZoneForCity('PortSudan');
+    for (const c of WajeezCities.KEYS) cachedZones[c] = await fetchZoneForCity(c);
     
     drawZonesFromCache();
 }
@@ -242,11 +241,11 @@ async function loadAndDrawAllZones() {
 function drawZonesFromCache() {
     clearZoneFully(); // Clean before drawing
     const selectedCity = document.getElementById('zoneCitySelector').value;
-    const otherCity = selectedCity === 'Khartoum' ? 'PortSudan' : 'Khartoum';
+    // كل المدن الأخرى — كانت «الأخرى» واحدةً فقط
     
     // 1. Draw the OTHER city first as read-only (blue/gray)
-    if (cachedZones[otherCity]) {
-        otherCityPolygon = new google.maps.Polygon({
+    WajeezCities.KEYS.filter(c => c !== selectedCity && cachedZones[c]).forEach(otherCity => {
+        otherCityPolygons.push(new google.maps.Polygon({
             paths: cachedZones[otherCity],
             strokeColor: '#2563eb', // Blue for preview
             strokeOpacity: 0.5,
@@ -258,8 +257,8 @@ function drawZonesFromCache() {
             clickable: false, // so it doesn't interfere with drawing
             map: adminMap,
             zIndex: 0
-        });
-    }
+        }));
+    });
 
     // 2. Draw the SELECTED city as editable (green)
     const selectedZone = cachedZones[selectedCity];
@@ -286,10 +285,10 @@ function drawZonesFromCache() {
         const textarea = document.getElementById('zone-coordinates-output');
         if (textarea) textarea.value = JSON.stringify(selectedZone, null, 2);
 
-        setStatus(`✅ تم تحميل منطقة محفوظة لمدينة ${selectedCity === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}. يمكنك تعديلها مباشرة.`, '#04553A');
+        setStatus(`✅ تم تحميل منطقة محفوظة لمدينة ${zoneCityLabel(selectedCity)}. يمكنك تعديلها مباشرة.`, '#04553A');
         return true;
     } else {
-        setStatus(`ℹ️ لا توجد منطقة توصيل محفوظة لمدينة ${selectedCity === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}. ابدأ الرسم الآن!`, '#d97706');
+        setStatus(`ℹ️ لا توجد منطقة توصيل محفوظة لمدينة ${zoneCityLabel(selectedCity)}. ابدأ الرسم الآن!`, '#d97706');
         return false;
     }
 }
@@ -299,9 +298,8 @@ window.changeZoneCity = async function() {
     const city = document.getElementById('zoneCitySelector').value;
     
     // Default centers if we want to jump to the city
-    const center = city === 'PortSudan' ? { lat: 19.6151, lng: 37.2164 } : { lat: 15.6445, lng: 32.4777 };
-    adminMap.setCenter(center);
-    adminMap.setZoom(city === 'PortSudan' ? 13 : 12);
+    adminMap.setCenter(WajeezCities.center(city));
+    adminMap.setZoom(city === 'Khartoum' ? 12 : 13);   // الخرطوم أوسع رقعةً
     
     drawZonesFromCache();
 }

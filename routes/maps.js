@@ -1,4 +1,5 @@
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
@@ -49,7 +50,7 @@ const resolveLimiter = rateLimit({
 
 const MAX_HOPS = 5;
 const TIMEOUT_MS = 6000;
-const VALID_CITIES = ['Khartoum', 'PortSudan'];
+const VALID_CITIES = CITY_KEYS;
 
 const PLACE_NOT_FOUND = 'لم نجد موقع هذا المحل تلقائياً. افتحه في خرائط جوجل واضغط مطوّلاً على مكانه لإسقاط دبوس ثم شارك الدبوس — أو حدّد الموقع على الخريطة';
 

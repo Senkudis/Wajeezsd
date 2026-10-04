@@ -39,10 +39,8 @@ if (typeof window.showToast !== 'function') {
 const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
 
-const CITY_CENTER = {
-    Khartoum:  { lat: 15.6445, lng: 32.4777 },
-    PortSudan: { lat: 19.6151, lng: 37.2164 }
-};
+// مراكز المدن من WajeezCities (config.js) — مصدرٌ واحد
+const CITY_CENTER = Object.fromEntries(WajeezCities.KEYS.map(k => [k, WajeezCities.center(k)]));
 
 // ── الحالة: مشغول / متاح / غير متصل ─────────────────────────────
 // كانت تُقرأ من isActive (حالة الحساب: غير موقوف) فيظهر كل كابتنٍ «متاحاً»

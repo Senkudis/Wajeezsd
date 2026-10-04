@@ -11,9 +11,7 @@
  */
 const Settings = require('../models/Settings');
 
-const VALID_CITIES = ['Khartoum', 'PortSudan'];
-
-const CITY_LABEL = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+const { CITY_KEYS: VALID_CITIES, CITY_LABELS: CITY_LABEL } = require('../config/cities');   // 🌍 مصدرٌ واحد
 
 const CLOSED_MESSAGE = 'التسجيل ككابتن مغلقٌ حالياً. تابعنا — سنعلن عند فتحه.';
 

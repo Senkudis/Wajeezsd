@@ -278,7 +278,7 @@ function handleEmergencyAlert(data) {
     playEmergencySiren();
     const name = window.escapeHtml(data.captainName || 'كابتن');
     const phone = window.escapeHtml(data.captainPhone || '');
-    const cityLabel = data.city === 'PortSudan' ? 'بورتسودان' : (data.city === 'Khartoum' ? 'الخرطوم' : '');
+    const cityLabel = WajeezCities.isValid(data.city) ? WajeezCities.label(data.city) : '';
     addNotification(' نجدة: ' + name, 'طلب طوارئ — اضغط لعرض الموقع', null);
 
     if (window.Swal) {
@@ -530,18 +530,14 @@ async function loadDashboard() {
             if (container) {
                 const breakdown = data.cityBreakdown && data.cityBreakdown.length > 0
                     ? data.cityBreakdown
-                    : [
-                        { city: 'Khartoum',  captains: 0, clients: 0, orders: 0, revenue: 0 },
-                        { city: 'PortSudan', captains: 0, clients: 0, orders: 0, revenue: 0 }
-                      ];
+                    : WajeezCities.KEYS.map(city => ({ city, captains: 0, clients: 0, orders: 0, revenue: 0 }));
             container.innerHTML = breakdown.map(cityData => {
+                // التسمية والأيقونة واللون من WajeezCities — كانت «الخرطوم وإلا
+                // بورتسودان»، فتُعرض كل مدينةٍ ثالثة باسم بورتسودان
                 const cityKey    = cityData.city || cityData._id;
-                const isKhartoum = cityKey === 'Khartoum';
-                const label      = isKhartoum ? 'الخرطوم - أم درمان' : 'البحر الأحمر - بورتسودان';
-                const icon       = isKhartoum
-                    ? '<i class="fas fa-city" style="margin-left:6px;color:#2563eb;"></i>'
-                    : '<i class="fas fa-anchor" style="margin-left:6px;color:#0ea5e9;"></i>';
-                const accent   = isKhartoum ? '#2563eb' : '#0ea5e9';
+                const label      = window.escapeHtml(WajeezCities.label(cityKey, 'adminLabel'));
+                const accent     = WajeezCities.color(cityKey);
+                const icon       = `<i class="fas ${WajeezCities.icon(cityKey)}" style="margin-left:6px;color:${accent};"></i>`;
                 const clients  = cityData.clients  ?? cityData.users ?? 0;
                 const captains = cityData.captains ?? 0;
                 const orders   = cityData.orders   ?? 0;
@@ -649,8 +645,10 @@ async function loadLiveOrders() {
         }
 
         const cityLabel = (city) => {
-            if (city === 'PortSudan') return '<span style="font-size:10px;font-weight:700;color:#0ea5e9;"><i class="fas fa-anchor" style="margin-left:3px;"></i> بورتسودان</span>';
-            return '<span style="font-size:10px;font-weight:700;color:#7c3aed;"><i class="fas fa-city" style="margin-left:3px;"></i> الخرطوم</span>';
+            const c = WajeezCities.isValid(city) ? city : 'Khartoum';
+            // الخرطوم بلونها البنفسجيّ المعتاد هنا، وغيرها بلون مدينته
+            const color = c === 'Khartoum' ? '#7c3aed' : WajeezCities.color(c);
+            return `<span style="font-size:10px;font-weight:700;color:${color};"><i class="fas ${WajeezCities.icon(c)}" style="margin-left:3px;"></i> ${window.escapeHtml(WajeezCities.label(c))}</span>`;
         };
 
         feed.innerHTML = live.slice(0, 30).map(o => {
@@ -880,7 +878,7 @@ async function assignCaptainManually(orderId) {
             title: 'تعيين كابتن على الطلب',
             html: `<select id="capSel" class="swal2-select" style="width:100%;">
                      <option value="">— اختر كابتن —</option>
-                     ${captains.map(c => `<option value="${c._id}">${window.escapeHtml(c.name)} — ${c.phone || ''} (${c.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'})</option>`).join('')}
+                     ${captains.map(c => `<option value="${c._id}">${window.escapeHtml(c.name)} — ${c.phone || ''} (${window.escapeHtml(WajeezCities.label(c.city || 'Khartoum'))})</option>`).join('')}
                    </select>
                    <div style="font-size:12px;color:#64748b;margin-top:8px;">
                      الكابتن يجب أن يكون في مدينة الطلب نفسها.
@@ -1120,8 +1118,7 @@ async function editUser(userId) {
             <input id="swal-phone" class="swal2-input" placeholder="الهاتف" dir="ltr" value="${user.phone || ''}">
             <label style="display:block;text-align:right;font-weight:700;margin-top:8px;font-size:13px;">المدينة / المنطقة</label>
             <select id="swal-edit-city" class="swal2-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;">
-                <option value="Khartoum" ${(!user.city || user.city === 'Khartoum') ? 'selected' : ''}>الخرطوم - أم درمان</option>
-                <option value="PortSudan" ${user.city === 'PortSudan' ? 'selected' : ''}>البحر الأحمر - بورتسودان</option>
+                ${WajeezCities.optionsHtml({ selected: WajeezCities.isValid(user.city) ? user.city : 'Khartoum', kind: 'adminLabel' })}
             </select>
             <label style="display:block;text-align:right;font-weight:700;margin-top:8px;font-size:13px;">الدور</label>
             <select id="swal-role" class="swal2-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;">
@@ -1542,8 +1539,7 @@ function openAddCaptainModal() {
             <input id="swal-phone" class="swal2-input" placeholder="رقم الهاتف" dir="ltr">
             <label style="display:block;text-align:right;font-weight:700;margin-top:8px;font-size:13px;">المدينة / المنطقة</label>
             <select id="swal-city" class="swal2-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;">
-                <option value="Khartoum">الخرطوم - أم درمان</option>
-                <option value="PortSudan">البحر الأحمر - بورتسودان</option>
+                ${WajeezCities.optionsHtml({ selected: 'Khartoum', kind: 'adminLabel' })}
             </select>
             <label style="display:block;text-align:right;font-weight:700;margin-top:8px;font-size:13px;">نوع المركبة</label>
             <select id="swal-vehicle" class="swal2-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:inherit;">
@@ -1599,7 +1595,7 @@ async function submitCreateCaptain(payload) {
             const since = e.createdAt
                 ? new Date(e.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long' })
                 : '—';
-            const cityAr = e.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم';
+            const cityAr = WajeezCities.label(e.city || 'Khartoum');
             const c = await Swal.fire({
                 icon: 'question',
                 title: 'هذا الرقم لعميلٍ مسجَّل',
@@ -1860,23 +1856,19 @@ let _mapCityFilter = { fullMap: 'Khartoum', miniMap: 'Khartoum' };
 window.switchMapCity = function(mapId, city) {
     _mapCityFilter[mapId] = city;
 
-    // Update button styles
+    // الزرّ المختار — بالصنف active لكل المدن (WajeezCities). كان يعدّل نمطاً
+    // مضمَّناً لا تحمله الأزرار فلا يتغيّر شيء، ولمدينتين فقط
     const prefix = mapId === 'fullMap' ? 'fullMap' : 'miniMap';
-    const khBtn = document.getElementById(`${prefix}CityKhartoum`);
-    const psBtn = document.getElementById(`${prefix}CityPortSudan`);
-    if (khBtn && psBtn) {
-        if (city === 'Khartoum') {
-            khBtn.style.cssText = khBtn.style.cssText.replace(/background:[^;]+/, 'background:#2563eb').replace(/color:[^;]+/, 'color:#fff').replace(/border-color:[^;]+/, 'border-color:#2563eb');
-            psBtn.style.cssText = psBtn.style.cssText.replace(/background:[^;]+/, 'background:#f8fafc').replace(/color:[^;]+/, 'color:#64748b').replace(/border:[^;]+/, 'border:2px solid #64748b');
-        } else {
-            psBtn.style.cssText = psBtn.style.cssText.replace(/background:[^;]+/, 'background:#0ea5e9').replace(/color:[^;]+/, 'color:#fff').replace(/border:[^;]+/, 'border:2px solid #0ea5e9');
-            khBtn.style.cssText = khBtn.style.cssText.replace(/background:[^;]+/, 'background:#f8fafc').replace(/color:[^;]+/, 'color:#64748b').replace(/border-color:[^;]+/, 'border-color:#64748b');
-        }
-    }
+    WajeezCities.KEYS.forEach(k => {
+        const b = document.getElementById(`${prefix}City${k}`);
+        if (!b) return;
+        b.classList.toggle('active', k === city);
+        b.setAttribute('aria-pressed', String(k === city));
+    });
 
     // Move map center
     const mapInstance = mapId === 'fullMap' ? gvMap : miniMapInstance;
-    const center = city === 'PortSudan' ? { lat: 19.6151, lng: 37.2164 } : { lat: 15.6445, lng: 32.4777 };
+    const center = WajeezCities.center(city);
     if (mapInstance) mapInstance.setCenter(center);
 
     // Clear existing markers

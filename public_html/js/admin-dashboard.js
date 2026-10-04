@@ -112,20 +112,15 @@ async function loadDashboard() {
             const container = document.getElementById('cityBreakdownContainer');
             const breakdown = data.cityBreakdown && data.cityBreakdown.length > 0
                 ? data.cityBreakdown
-                : [
-                    { city: 'Khartoum',  captains: 0, clients: 0, orders: 0, revenue: 0 },
-                    { city: 'PortSudan', captains: 0, clients: 0, orders: 0, revenue: 0 }
-                  ];
+                : WajeezCities.KEYS.map(city => ({ city, captains: 0, clients: 0, orders: 0, revenue: 0 }));
 
             container.innerHTML = '';
             breakdown.forEach(cityData => {
                 const cityKey   = cityData.city || cityData._id;
-                const isKhartoum = cityKey === 'Khartoum';
-                const label     = isKhartoum ? 'الخرطوم - أم درمان' : 'البحر الأحمر - بورتسودان';
-                const faIcon    = isKhartoum
-                    ? '<i class="fas fa-city" style="margin-left:6px;color:#2563eb;"></i>'
-                    : '<i class="fas fa-anchor" style="margin-left:6px;color:#0ea5e9;"></i>';
-                const accentTop = isKhartoum ? '#2563eb' : '#0ea5e9';
+                // من WajeezCities — كانت «الخرطوم وإلا بورتسودان»
+                const label     = window.escapeHtml(WajeezCities.label(cityKey, 'adminLabel'));
+                const accentTop = WajeezCities.color(cityKey);
+                const faIcon    = `<i class="fas ${WajeezCities.icon(cityKey)}" style="margin-left:6px;color:${accentTop};"></i>`;
                 const clients  = cityData.clients  ?? cityData.users ?? 0;
                 const captains = cityData.captains ?? 0;
                 const orders   = cityData.orders   ?? 0;

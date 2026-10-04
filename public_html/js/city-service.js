@@ -7,22 +7,25 @@
  * - Expose getters/setters used by all pages (order, registration, pricing, etc.)
  * 
  * Usage:
- *   CityService.getCity()         → 'Khartoum' | 'PortSudan'
+ *   CityService.getCity()         → مفتاح مدينة (WajeezCities.KEYS في config.js) أو null
  *   CityService.hasCity()         → boolean
  *   CityService.setCity('PortSudan')
  *   CityService.showCityPicker()  → Promise (resolves after user picks)
  *   CityService.ensureCity()      → Promise (shows picker only if no city is set)
  */
 
+// 🌍 المدن من مصدرٍ واحد: window.WajeezCities في js/config.js (نسخة
+//    config/cities.js في الخادم). كانت القائمة والتسميات والحدود والمراكز
+//    مكتوبةً هنا يدوياً لمدينتين — فمدينةٌ ثالثة كانت تُنسى في نصفها.
+const _WC = window.WajeezCities;
+const _cityMap = (field) => Object.fromEntries(_WC.KEYS.map(k => [k, _WC.CITIES[k][field]]));
+
 const CityService = {
     STORAGE_KEY: 'selected_city',
-    VALID_CITIES: ['Khartoum', 'PortSudan'],
+    VALID_CITIES: _WC.KEYS.slice(),
 
     /** Arabic labels for UI display */
-    CITY_LABELS: {
-        Khartoum:  'الخرطوم (أم درمان)',
-        PortSudan: 'بورتسودان'
-    },
+    CITY_LABELS: _cityMap('appLabel'),
 
     /**
      * Get the currently selected city.
@@ -56,17 +59,11 @@ const CityService = {
     // اختار مدينةً مؤقتة في هذه الجلسة — لا ننبّهه على ما اختاره بنفسه للتوّ
     TEMP_SESSION_KEY: 'city_temp_chosen',
 
-    /** حدود المدينتين — نسخة utils/geofence.CITY_BOUNDS (الخادم هو الحَكَم) */
-    CITY_BOUNDS: {
-        Khartoum:  { minLat: 15.0, maxLat: 16.4, minLng: 32.0, maxLng: 33.2 },
-        PortSudan: { minLat: 19.2, maxLat: 20.1, minLng: 36.8, maxLng: 37.7 }
-    },
-    CITY_CENTERS: {
-        Khartoum:  { lat: 15.6445, lng: 32.4777 },
-        PortSudan: { lat: 19.6151, lng: 37.2164 }
-    },
+    /** حدود المدن — نسخة utils/geofence.CITY_BOUNDS (الخادم هو الحَكَم) */
+    CITY_BOUNDS: _cityMap('bounds'),
+    CITY_CENTERS: _cityMap('center'),
     /** أسماء قصيرة لشريحة الخريطة والرسائل */
-    SHORT_LABELS: { Khartoum: 'أم درمان', PortSudan: 'بورتسودان' },
+    SHORT_LABELS: _cityMap('shortLabel'),
     CROSS_CITY_MESSAGE: 'التوصيل بين المدن غير متاح حالياً — الاستلام والتسليم لازم يكونوا في نفس المدينة',
 
     /** مدينتك الدائمة. حسابٌ قديم بلا home_city: المعروضة هي مدينته */
@@ -226,32 +223,30 @@ const CityService = {
             const overlay = document.createElement('div');
             overlay.id = 'city-picker-overlay';
             const CHECK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>`;
+            // أيقونة لكل مدينة — المدن من WajeezCities، والمجهولة بدبّوسٍ عامّ
+            const _SVG = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+            const CITY_ICONS = {
+                Khartoum: _SVG('<rect x="3" y="8" width="7" height="13" rx="1"/><rect x="13" y="4" width="8" height="17" rx="1"/><path d="M6 12h1M6 15.5h1M16 8h2M16 12h2M16 16h2"/>'),
+                PortSudan: _SVG('<path d="M2 7c2 0 2 1.4 4 1.4S8 7 10 7s2 1.4 4 1.4S16 7 18 7s2 1.4 4 1.4"/><path d="M2 12c2 0 2 1.4 4 1.4S8 12 10 12s2 1.4 4 1.4S16 12 18 12s2 1.4 4 1.4"/><path d="M2 17c2 0 2 1.4 4 1.4S8 17 10 17s2 1.4 4 1.4S16 17 18 17s2 1.4 4 1.4"/>'),
+                // عطبرة مدينة السكّة الحديد — قاطرة
+                Atbara: _SVG('<rect x="5" y="3" width="14" height="13" rx="3"/><path d="M5 10h14M9 6.5h6"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M8 16l-2.5 5M16 16l2.5 5M7 19.5h10"/>'),
+                _default: _SVG('<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>')
+            };
             overlay.innerHTML = `
                 <div class="city-picker-container">
                     <img src="/logo-white.png" alt="وجيز" class="city-picker-logo">
                     <h2>اختر مدينتك</h2>
                     <p>لنعرض لك المتاجر والخدمات المتاحة في منطقتك</p>
                     <div class="city-picker-cards">
-                        <button class="city-card" data-city="Khartoum">
-                            <span class="city-card-ico">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="7" height="13" rx="1"/><rect x="13" y="4" width="8" height="17" rx="1"/><path d="M6 12h1M6 15.5h1M16 8h2M16 12h2M16 16h2"/></svg>
-                            </span>
+                        ${_WC.KEYS.map(k => `
+                        <button class="city-card" data-city="${k}">
+                            <span class="city-card-ico">${CITY_ICONS[k] || CITY_ICONS._default}</span>
                             <span class="city-card-text">
-                                <span class="city-card-name">الخرطوم</span>
-                                <span class="city-card-sub">الخرطوم · أم درمان · بحري</span>
+                                <span class="city-card-name">${_WC.label(k)}</span>
+                                <span class="city-card-sub">${_WC.label(k, 'desc')}</span>
                             </span>
                             <span class="city-card-check">${CHECK_SVG}</span>
-                        </button>
-                        <button class="city-card" data-city="PortSudan">
-                            <span class="city-card-ico">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7c2 0 2 1.4 4 1.4S8 7 10 7s2 1.4 4 1.4S16 7 18 7s2 1.4 4 1.4"/><path d="M2 12c2 0 2 1.4 4 1.4S8 12 10 12s2 1.4 4 1.4S16 12 18 12s2 1.4 4 1.4"/><path d="M2 17c2 0 2 1.4 4 1.4S8 17 10 17s2 1.4 4 1.4S16 17 18 17s2 1.4 4 1.4"/></svg>
-                            </span>
-                            <span class="city-card-text">
-                                <span class="city-card-name">بورتسودان</span>
-                                <span class="city-card-sub">ولاية البحر الأحمر</span>
-                            </span>
-                            <span class="city-card-check">${CHECK_SVG}</span>
-                        </button>
+                        </button>`).join('')}
                     </div>
                 </div>
             `;
@@ -265,9 +260,18 @@ const CityService = {
                     display: flex; align-items: center; justify-content: center;
                     font-family: 'Cairo', 'Segoe UI', sans-serif; direction: rtl;
                     animation: cityPickerFadeIn 0.4s ease-out; padding: 24px;
+                    /* ثلاث مدن تطول على هاتفٍ قصير — تتمرّر ولا تُقصّ */
+                    overflow-y: auto; overscroll-behavior: contain;
                 }
                 @keyframes cityPickerFadeIn { from { opacity: 0; } to { opacity: 1; } }
-                .city-picker-container { text-align: center; max-width: 400px; width: 100%; }
+                .city-picker-container { text-align: center; max-width: 400px; width: 100%; margin: auto; }
+                @media (max-height: 680px) {
+                    .city-picker-logo { width: 104px !important; margin-bottom: 14px !important; }
+                    .city-picker-container > p { margin-bottom: 16px !important; }
+                    .city-picker-cards { gap: 10px !important; }
+                    .city-card { padding: 11px 14px !important; }
+                    .city-card-ico { width: 46px !important; height: 46px !important; }
+                }
                 .city-picker-logo {
                     width: 150px; height: auto; margin-bottom: 26px;
                     animation: cityLogoFloat 3s ease-in-out infinite;
@@ -443,7 +447,7 @@ const CityService = {
         const cur = this.getCity() || 'Khartoum';
         const home = this.getHomeCity() || cur;
         const lastFocus = document.activeElement;
-        const DESC = { Khartoum: 'الخرطوم · أم درمان · بحري', PortSudan: 'ولاية البحر الأحمر' };
+        const DESC = _cityMap('desc');
 
         return new Promise((resolve) => {
             const bd = document.createElement('div');

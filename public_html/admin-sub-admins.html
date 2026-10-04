@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/admin-cache-buster.js?v=355a130e"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
@@ -248,8 +248,13 @@ body.dark-mode .req-name { color: #f9fafb !important; }
                                             value="PortSudan" id="city_PortSudan">
                                         <label class="form-check-label" for="city_PortSudan">بورتسودان</label>
                                     </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input city-cb" type="checkbox"
+                                            value="Atbara" id="city_Atbara">
+                                        <label class="form-check-label" for="city_Atbara">عطبرة</label>
+                                    </div>
                                 </div>
-                                <div class="form-text">اختر واحدة أو الاثنتين.</div>
+                                <div class="form-text">اختر مدينةً واحدة أو أكثر.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">حالة الحساب</label>
@@ -389,7 +394,7 @@ body.dark-mode .req-name { color: #f9fafb !important; }
                         <td><strong>${a.name}</strong></td>
                         <td dir="ltr" style="text-align:right;">${a.phone}</td>
                         <td>${((a.cities && a.cities.length) ? a.cities : [a.city || 'Khartoum'])
-                            .map(c => c === 'PortSudan' ? 'بورتسودان' : 'الخرطوم').join(' + ')}</td>
+                            .map(c => window.escapeHtml(WajeezCities.label(c))).join(' + ')}</td>
                         <td>${roleBadge}</td>
                         <td style="max-width:250px;">
                             <div class="perms-list">${permsHtml}</div>

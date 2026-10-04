@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { CITY_KEYS } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 
 // 💬 رد واحد داخل تذكرة الدعم الفني
 const replySchema = new mongoose.Schema({
@@ -48,7 +49,7 @@ const ComplaintSchema = new mongoose.Schema(
         //    وحده) حتى تُملأ بـ scripts/backfill-complaint-city.js — لا نُخمّن.
         city: {
             type: String,
-            enum: ['Khartoum', 'PortSudan'],
+            enum: CITY_KEYS,
             index: true
         },
 

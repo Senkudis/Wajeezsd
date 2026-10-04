@@ -116,8 +116,7 @@ async function initAdminPlaceMap(lat, lng) {
     // (كان استدعاؤها بلا وسائط يكسر الخريطة بصمت).
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         const city = document.getElementById('placeCity')?.value || 'Khartoum';
-        lat = city === 'PortSudan' ? 19.6151 : 15.6445;
-        lng = city === 'PortSudan' ? 37.2164 : 32.4777;
+        ({ lat, lng } = WajeezCities.center(city));   // مركز المدينة — config.js
     }
 
     // Singleton: Destroy any existing map
@@ -342,7 +341,7 @@ const _placeFilters = { q: '', city: '', kind: '', status: '', sort: 'name' };
 let _placesShowAll = false;
 const PLACES_PAGE_SIZE = 50;
 
-const PLACE_CITY_AR = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+const PLACE_CITY_AR = Object.fromEntries(WajeezCities.KEYS.map(k => [k, WajeezCities.label(k)]));
 
 function escAttr(v) {
     return String(v ?? '').replace(/[&<>"']/g, c =>
@@ -702,11 +701,9 @@ async function openEditPlaceModal(id) {
             // 🌍 لو المتجر بلا موقع محفوظ: مركز الخريطة يتبع مدينته المختارة
             // (كان الافتراضي دائماً وسط الخرطوم → دبوس "عشوائي" لمتاجر بورتسودان)
             const hasSavedLoc = Number.isFinite(Number(p.location?.lat)) && Number.isFinite(Number(p.location?.lng));
-            const cityCenters = {
-                Khartoum:  { lat: 15.5007, lng: 32.5599 },
-                PortSudan: { lat: 19.6158, lng: 37.2164 }
-            };
-            const fallback = cityCenters[p.city] || cityCenters.Khartoum;
+            // الخرطوم بمركزها المعتاد هنا، وغيرها بمركز مدينته (WajeezCities)
+            const fallback = (!WajeezCities.isValid(p.city) || p.city === 'Khartoum')
+                ? { lat: 15.5007, lng: 32.5599 } : WajeezCities.center(p.city);
             const lat = hasSavedLoc ? Number(p.location.lat) : fallback.lat;
             const lng = hasSavedLoc ? Number(p.location.lng) : fallback.lng;
 

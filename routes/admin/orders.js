@@ -1,6 +1,7 @@
 // routes/admin/orders.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -597,7 +598,7 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
         const capCity = await User.findById(newCaptainId).select('city').lean();
         if (capCity && capCity.city && order.city && capCity.city !== order.city) {
             return res.status(400).json({
-                message: `الكابتن من ${capCity.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'} والطلب في ${order.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}`
+                message: `الكابتن من ${cityLabel(capCity.city)} والطلب في ${cityLabel(order.city)}`
             });
         }
 

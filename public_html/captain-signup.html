@@ -22,8 +22,8 @@
     <link rel="stylesheet" href="css/enhanced-styles.css?v=ce667195">
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
-    <script src="js/city-service.js?v=3eb50dca"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
+    <script src="js/city-service.js?v=71f6038a"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/password-toggle.js?v=633d67a5"></script>
     <script src="js/image-compress.js?v=b4a6b0be"></script>
@@ -405,6 +405,7 @@
                         <option value="" disabled selected>— اختر المدينة —</option>
                         <option value="Khartoum">الخرطوم - أم درمان</option>
                         <option value="PortSudan">البحر الأحمر - بورتسودان</option>
+                        <option value="Atbara">نهر النيل - عطبرة</option>
                     </select>
                     <div class="field-error" id="city-error"></div>
                     <div class="reg-city-note d-none" id="regCityNote" role="status"></div>
@@ -913,7 +914,8 @@
         // والقفل الحقيقيّ على الخادم لا هنا: لو فشل هذا السؤال (شبكة) نُبقي
         // النموذج ظاهراً — الخادم يردّ الطلب المغلق بـ 403 عند الإرسال
         // فيظهر الإغلاق حينها. حجبُ النموذج على عطلٍ عابر أسوأ.
-        const REG_CITY_LABEL = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+        // التسميات من WajeezCities (config.js) — مصدرٌ واحد لكل المدن
+        const REG_CITY_LABEL = Object.fromEntries(WajeezCities.KEYS.map(k => [k, WajeezCities.label(k)]));
 
         function showRegClosed(message, altCity) {
             const box = document.querySelector('.signup-box');
@@ -973,7 +975,7 @@
                 let myCity = 'Khartoum';
                 try {
                     const u = JSON.parse(localStorage.getItem('user') || 'null');
-                    if (u && (u.city === 'Khartoum' || u.city === 'PortSudan')) myCity = u.city;
+                    if (u && WajeezCities.isValid(u.city)) myCity = u.city;
                 } catch (_) {}
                 if (open[myCity] !== true) {
                     showRegClosed(`التسجيل ككابتن في ${REG_CITY_LABEL[myCity]} مغلقٌ حالياً. تابعنا — سنعلن عند فتحه.`);

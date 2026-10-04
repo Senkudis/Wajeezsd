@@ -1,4 +1,5 @@
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -272,7 +273,7 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
         // ⚠️ هام: نرسل الباسورد كما هو (password) ونعتمد على User.js لتشفيره
 
         // 🌍 Validate city
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const userCity = VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum';
 
         user = new User({
@@ -378,7 +379,7 @@ async function reapplyRejectedCaptain(req, res, userId, { name, password, vehicl
         return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.', field: 'nationalId' });
     }
 
-    const VALID_CITIES_CAP = ['Khartoum', 'PortSudan'];
+    const VALID_CITIES_CAP = CITY_KEYS;
     user.name = name;
     user.vehicleType = vehicleType;
     user.city = VALID_CITIES_CAP.includes(req.body.city) ? req.body.city : (user.city || 'Khartoum');
@@ -495,7 +496,7 @@ router.post('/register-captain', otpLimiter, validate(captainRegisterSchema), as
         }
 
         // 🌍 Validate city
-        const VALID_CITIES_CAP = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES_CAP = CITY_KEYS;
         const captainCity = VALID_CITIES_CAP.includes(req.body.city) ? req.body.city : 'Khartoum';
 
         user = new User({
@@ -733,7 +734,7 @@ router.get('/me', protect, async (req, res) => {
 // ==========================================
 router.put('/city', protect, async (req, res) => {
     try {
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const { city } = req.body;
 
         if (!city || !VALID_CITIES.includes(city)) {
@@ -1414,7 +1415,7 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
             user = await User.findOne({ email });
             if (!user) {
                 // 🌍 Validate city
-                const VALID_CITIES = ['Khartoum', 'PortSudan'];
+                const VALID_CITIES = CITY_KEYS;
                 const userCity = VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum';
 
                 const randomPassword = require('crypto').randomBytes(32).toString('hex');

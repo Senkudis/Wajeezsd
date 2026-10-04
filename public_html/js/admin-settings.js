@@ -248,7 +248,7 @@ if (document.getElementById('citySelector')) {
 // يُحفظ فور تبديله بطلبٍ مستقلّ يحمل هذا الحقل وحده (المسار يضبط ما يُرسَل
 // فقط)، فلا ينتظر زرّ الحفظ أسفل الصفحة ولا يُعيد حفظ التسعير معه.
 
-const REG_CITY_LABEL = { Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+const REG_CITY_LABEL = Object.fromEntries(WajeezCities.KEYS.map(k => [k, WajeezCities.label(k)]));
 
 function renderRegGate(open) {
     const card = document.getElementById('regGateCard');

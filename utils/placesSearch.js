@@ -13,11 +13,9 @@
 const logger = require('./logger');
 const { CITY_BOUNDS, isInsidePolygon } = require('./geofence');
 
-// مراكز المدن المدعومة — يتمركز حولها البحث
-const CITY_CENTERS = {
-    Khartoum:  { lat: 15.5007, lng: 32.5599, radius: 40000 },
-    PortSudan: { lat: 19.6158, lng: 37.2164, radius: 30000 }
-};
+// مراكز المدن المدعومة — يتمركز حولها البحث (config/cities: search)
+const { CITIES } = require('../config/cities');
+const CITY_CENTERS = Object.fromEntries(Object.values(CITIES).map(c => [c.key, { ...c.search }]));
 
 // ⚠️ locationBias ترجيحٌ لا حصر: بحث "الحرمين" كان يُرجع المسجد النبوي والحرام من
 // السعودية لأن جوجل يتوسّع خارج النطاق حين تقلّ النتائج القريبة. الحصر الحقيقي

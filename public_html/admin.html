@@ -13,7 +13,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="css/admin-panel.css?v=dde88f2c">
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/admin-cache-buster.js?v=355a130e"></script>
     <script src="js/vehicle-types.js?v=3a11758f"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
@@ -253,6 +253,9 @@
                             <button onclick="switchMapCity('miniMap','PortSudan')" id="miniMapCityPortSudan" class="gv-map-city-btn">
                                 <i class="fas fa-anchor" style="margin-left:4px;" aria-hidden="true"></i> بورتسودان
                             </button>
+                            <button onclick="switchMapCity('miniMap','Atbara')" id="miniMapCityAtbara" class="gv-map-city-btn">
+                                <i class="fas fa-train" style="margin-left:4px;" aria-hidden="true"></i> عطبرة
+                            </button>
                         </div>
                     </div>
                     <div class="gv-panel-body" style="padding:0;">
@@ -322,6 +325,9 @@
                         <button id="fullMapCityPortSudan" onclick="switchMapCity('fullMap','PortSudan')" class="gv-map-city-btn" style="flex:1;">
                             <i class="fas fa-anchor" style="margin-left:6px;" aria-hidden="true"></i> بورتسودان
                         </button>
+                        <button id="fullMapCityAtbara" onclick="switchMapCity('fullMap','Atbara')" class="gv-map-city-btn" style="flex:1;">
+                            <i class="fas fa-train" style="margin-left:6px;" aria-hidden="true"></i> عطبرة
+                        </button>
                     </div>
                     <div style="width:100%; display:flex; gap:8px;">
                         <input type="text" id="mapCaptainSearch" placeholder="ابحث عن كابتن بالاسم أو رقم الهاتف..." oninput="highlightMapCaptain()"
@@ -352,6 +358,7 @@
                             <option value="all">كل المدن</option>
                             <option value="Khartoum">الخرطوم - أم درمان</option>
                             <option value="PortSudan">بورتسودان</option>
+                            <option value="Atbara">عطبرة</option>
                         </select>
                         <input type="text" id="captainSearch" placeholder="بحث بالاسم أو الهاتف..." oninput="filterCaptains()"
                             class="gv-toolbar-search">
@@ -385,6 +392,7 @@
                             <option value="all">الكل (المدن)</option>
                             <option value="Khartoum">الخرطوم - أم درمان</option>
                             <option value="PortSudan">بورتسودان</option>
+                            <option value="Atbara">عطبرة</option>
                         </select>
                         <select id="userVerifyFilter" onchange="filterUsers()" class="gv-toolbar-select">
                             <option value="all">الكل (التفعيل)</option>
@@ -486,9 +494,9 @@
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 <script src="vendor/chartjs/chart.umd.min.js"></script>
 <script src="js/admin-search.js?v=7649b4af"></script>
-<script src="js/admin-dashboard.js?v=c43e9d7d"></script>
+<script src="js/admin-dashboard.js?v=e819c0d2"></script>
 <script src="js/img-lightbox.js?v=b97017cb"></script>
-<script src="js/admin-panel.js?v=cadb0a67"></script>
+<script src="js/admin-panel.js?v=636543bd"></script>
 <script src="js/admin-web-push.js?v=c6ed56d1"></script>
 <script src="js/geo.js?v=9999b0e3"></script>
 <script src="js/input-hardener.js?v=95c0e89c"></script>

@@ -10,10 +10,10 @@
  *                       see all cities), but validates and normalises the
  *                       optional ?city= query param into req.filterCity.
  *                       req.filterCity === null  → no filter (return all cities)
- *                       req.filterCity === 'Khartoum' | 'PortSudan' → filtered
+ *                       req.filterCity === one of config/cities CITY_KEYS → filtered
  */
 
-const VALID_CITIES = ['Khartoum', 'PortSudan'];
+const VALID_CITIES = require('../config/cities').CITY_KEYS;   // 🌍 مصدرٌ واحد
 
 // ---------------------------------------------------------------------------
 // requireCity — place AFTER `protect` on client / captain routes

@@ -67,7 +67,8 @@ describe('isCaptainRegistrationOpen — مغلقٌ ما لم يُفتح صراح
     it('كل مدينةٍ بابها', async () => {
         stored.Khartoum = { captainRegistrationOpen: false };
         stored.PortSudan = { captainRegistrationOpen: true };
-        expect(await gate.captainRegistrationStatus()).toEqual({ Khartoum: false, PortSudan: true });
+        // عطبرة بلا وثيقة إعدادات بعد ← مغلقة حتى تفتحها الإدارة
+        expect(await gate.captainRegistrationStatus()).toEqual({ Khartoum: false, PortSudan: true, Atbara: false });
     });
 
     it('مدينةٌ مجهولة تُحلَّل إلى الخرطوم — كما يُنشأ الحساب تماماً', async () => {

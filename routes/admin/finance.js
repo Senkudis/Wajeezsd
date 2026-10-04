@@ -1,6 +1,7 @@
 // routes/admin/finance.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -222,7 +223,7 @@ router.get('/debt-adjustments', protect, requireAnyPermission(['view_finance', '
 router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_finance']), async (req, res) => {
     try {
         const DebtAdjustment = require('../../models/DebtAdjustment');
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = CITY_KEYS;
         const cityFilter = VALID_CITIES.includes(req.query.city) ? req.query.city : null;
 
         const fromDate = req.query.from ? new Date(req.query.from) : null;

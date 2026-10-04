@@ -10,7 +10,7 @@
 
 const logger = require('./logger');
 
-const VALID_CITIES = ['Khartoum', 'PortSudan'];
+const VALID_CITIES = require('../config/cities').CITY_KEYS;   // 🌍 مصدرٌ واحد
 
 /** يطبّع اسم المدينة — أي قيمة غريبة تعود للخرطوم بدل أن تُفلت من الحصر */
 function normalizeCity(city) {

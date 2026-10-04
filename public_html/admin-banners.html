@@ -8,7 +8,7 @@
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <style>
         :root {
             --primary: #048c5b;
@@ -265,6 +265,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
                     <option value="all">جميع المدن</option>
                     <option value="Khartoum">الخرطوم</option>
                     <option value="PortSudan">بورتسودان</option>
+                    <option value="Atbara">عطبرة</option>
                 </select>
             </div>
         </div>
@@ -328,7 +329,7 @@ body.dark-mode .toggle-row { background: #111827 !important; border-color: #3741
             return;
         }
 
-        const cityLabel = { all: 'جميع المدن', Khartoum: 'الخرطوم', PortSudan: 'بورتسودان' };
+        const cityLabel = { all: 'جميع المدن', ...Object.fromEntries(WajeezCities.KEYS.map(k => [k, WajeezCities.label(k)])) };
         const typeLabel = { none: 'بدون رابط', place: 'متجر', product: 'منتج', category: 'قسم', url: 'رابط' };
 
         grid.innerHTML = banners.map(b => {

@@ -219,8 +219,8 @@ function initMap() {
         if (!mapEl) throw new Error('Map div not found');
 
         const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
-        const defaultLat = currentCity === 'PortSudan' ? 19.6151 : 15.6445;
-        const defaultLng = currentCity === 'PortSudan' ? 37.2164 : 32.4777;
+        // مركز المدينة من WajeezCities (config.js) — كان «بورتسودان وإلا الخرطوم»
+        const { lat: defaultLat, lng: defaultLng } = WajeezCities.center(currentCity);
 
         const _useLoc = window.userLocation && (typeof CityService === 'undefined' || CityService.inCurrentCity(window.userLocation));
         const lat = _useLoc ? window.userLocation.lat : defaultLat;
@@ -723,7 +723,7 @@ window.confirmLocationSelection = function() {
     }
 
     const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
-    let center = currentCity === 'PortSudan' ? { lat: 19.6151, lng: 37.2164 } : { lat: 15.6445, lng: 32.4777 };
+    let center = WajeezCities.center(currentCity);
 
     if (map && mapInitialized) {
         const c = map.getCenter();
@@ -1891,9 +1891,7 @@ window._errandCtx = null;
 window.addEventListener('city-changed', (e) => {
     const newCity = e.detail ? e.detail.city : CityService.getCity();
     if (map) {
-        const newLat = newCity === 'PortSudan' ? 19.6151 : 15.6445;
-        const newLng = newCity === 'PortSudan' ? 37.2164 : 32.4777;
-        map.panTo({ lat: newLat, lng: newLng });
+        map.panTo(WajeezCities.center(newCity));
         map.setZoom(14);
     }
     // 🔑 أصل العطل: كانت الخريطة تنتقل إلى المدينة الجديدة بينما مضلّع النطاق

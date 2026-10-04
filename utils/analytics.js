@@ -19,7 +19,7 @@ const EVENTS = Object.freeze([
     'captainSignup', 'merchantRequest'
 ]);
 
-const CITIES = Object.freeze(['Khartoum', 'PortSudan']);
+const CITIES = require('../config/cities').CITY_KEYS;   // 🌍 مصدرٌ واحد (مجمّد)
 
 /** مدينةٌ مجهولة تُجمع تحت اسمٍ واحد بدل أن تنفجر الوثائق بقيمٍ عشوائية. */
 function normalizeCity(city) {

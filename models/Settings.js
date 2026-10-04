@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { CITY_KEYS } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const logger = require('../utils/logger');
 
 const settingsSchema = new mongoose.Schema({
@@ -6,7 +7,7 @@ const settingsSchema = new mongoose.Schema({
     // This is the partition key for all pricing, banking, and zone config.
     city: {
         type: String,
-        enum: ['Khartoum', 'PortSudan'],
+        enum: CITY_KEYS,
         default: 'Khartoum',
         required: true
     },
@@ -281,8 +282,7 @@ settingsSchema.index({ city: 1 }, { unique: true });
 // If none exists, auto-creates one with all defaults for that city.
 // Replaces the old singleton pattern — each city is now its own isolated doc.
 settingsSchema.statics.getSettings = async function (city = 'Khartoum') {
-    const VALID_CITIES = ['Khartoum', 'PortSudan'];
-    const targetCity = VALID_CITIES.includes(city) ? city : 'Khartoum';
+    const targetCity = CITY_KEYS.includes(city) ? city : 'Khartoum';
 
     let doc = await this.findOne({ city: targetCity }).lean();
     if (!doc) {

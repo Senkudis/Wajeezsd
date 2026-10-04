@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { CITY_KEYS } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const bcrypt = require('bcryptjs');
 const { VEHICLE_VALUES } = require('../utils/vehicleTypes');
 
@@ -230,7 +231,7 @@ const UserSchema = new mongoose.Schema(
         // orders, captains, and pricing this user belongs to.
         city: {
             type: String,
-            enum: ['Khartoum', 'PortSudan'],
+            enum: CITY_KEYS,
             default: 'Khartoum',
             required: true
         },
@@ -246,7 +247,7 @@ const UserSchema = new mongoose.Schema(
         // authMiddleware ترجع [city] حين تخلو.
         cities: {
             type: [String],
-            enum: ['Khartoum', 'PortSudan'],
+            enum: CITY_KEYS,
             default: []
         },
 

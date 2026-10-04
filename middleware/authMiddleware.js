@@ -146,7 +146,7 @@ const requireAnyPermission = (permissions) => (req, res, next) => {
 // ==========================================
 // 🌍 City Scoping for Admins
 // ==========================================
-const VALID_CITIES = ['Khartoum', 'PortSudan'];
+const VALID_CITIES = require('../config/cities').CITY_KEYS;   // 🌍 مصدرٌ واحد
 
 // يُرجع جزء فلتر Mongo الخاص بالمدينة حسب نوع الأدمن:
 // - sub_admin: مقيّد بمدينته فقط (يتجاهل أي ?city يرسله العميل)

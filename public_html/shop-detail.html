@@ -17,9 +17,9 @@
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
     <script src="js/maps-link-input.js?v=bc848321"></script>
     <script src="js/maps-link.js?v=b5e20727"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <!-- المدينة: فحص «توصيل بين مدينتين» قبل الإرسال، والرجوع لمدينتك بعده -->
-    <script src="js/city-service.js?v=3eb50dca"></script>
+    <script src="js/city-service.js?v=71f6038a"></script>
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
@@ -1752,7 +1752,7 @@
             || (typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum');
         const _shopCenter = (shopData && shopData.location && shopData.location.lat && shopData.location.lng)
             ? { lat: shopData.location.lat, lng: shopData.location.lng }
-            : (_shopCity === 'PortSudan' ? { lat: 19.6151, lng: 37.2164 } : { lat: 15.6445, lng: 32.4777 });
+            : WajeezCities.center(_shopCity);
 
         shopMap = new google.maps.Map(mapEl, {
             center: _shopCenter,

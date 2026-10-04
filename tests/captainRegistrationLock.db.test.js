@@ -95,7 +95,7 @@ maybe()('الباب مغلقٌ على قاعدةٍ لم يُفتح فيها', ()
     it('الحالة: المدينتان مغلقتان', async () => {
         const res = await status();
         expect(res.status).toBe(200);
-        expect(res.body.open).toEqual({ Khartoum: false, PortSudan: false });
+        expect(res.body.open).toEqual({ Khartoum: false, PortSudan: false, Atbara: false });
         expect(res.headers['cache-control']).toContain('no-store');
     });
 
@@ -118,7 +118,7 @@ maybe()('الإدارة تفتح الباب لمدينة', () => {
         expect(put.status).toBe(200);
         expect(put.body.settings.captainRegistrationOpen).toBe(true);
 
-        expect((await status()).body.open).toEqual({ Khartoum: true, PortSudan: false });
+        expect((await status()).body.open).toEqual({ Khartoum: true, PortSudan: false, Atbara: false });
 
         // الأثر في سجلّ النشاط — لو لم يكن الفعل معرَّفاً في AdminLog لرُفض
         // وابتلع adminLogger الخطأ، فلا يوجد سطرٌ هنا.

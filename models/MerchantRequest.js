@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { CITY_KEYS } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 
 const merchantRequestSchema = new mongoose.Schema({
     // 🌍 مدينة المتجر — يُشتقّ من إحداثياته، وإلا من مدينة صاحبه.
@@ -10,7 +11,7 @@ const merchantRequestSchema = new mongoose.Schema({
     //    البداية؛ هذه وحدها كانت مفتوحة.
     city: {
         type: String,
-        enum: ['Khartoum', 'PortSudan'],
+        enum: CITY_KEYS,
         default: 'Khartoum',
         index: true
     },

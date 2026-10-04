@@ -1,4 +1,5 @@
 const express = require('express');
+const { CITY_KEYS, cityLabel } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -857,7 +858,7 @@ router.post('/orders/:id/remind-captains', protect, merchantOnly, async (req, re
 
         res.json({
             message: result.targeted
-                ? `تم تنبيه ${result.targeted} كابتن في ${result.city === 'PortSudan' ? 'بورتسودان' : 'الخرطوم'}`
+                ? `تم تنبيه ${result.targeted} كابتن في ${cityLabel(result.city)}`
                 : 'لا يوجد كباتن متاحون في المدينة حالياً',
             targeted: result.targeted,
             cooldownSec: NUDGE_COOLDOWN_MIN * 60

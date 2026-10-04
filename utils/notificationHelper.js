@@ -104,7 +104,7 @@ const sendNotification = async (app, { userId, title, message, type, relatedId }
  */
 const notifyAdmins = async (app, { title, message, type, relatedId, city }) => {
     try {
-        const VALID_CITIES = ['Khartoum', 'PortSudan'];
+        const VALID_CITIES = require('../config/cities').CITY_KEYS;
         let admins = await User.find({ role: 'admin' }).select('_id fcmToken adminRole city cities');
 
         if (VALID_CITIES.includes(city)) {

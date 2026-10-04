@@ -46,18 +46,16 @@ function validateOrderLocations(pickup, dropoff) {
 }
 
 // 🌍 صناديق حدود المدن المدعومة — تُستخدم لاستنتاج المدينة من الإحداثيات.
-// المدينتان متباعدتان جداً (~500كم) فالصناديق الفضفاضة آمنة تماماً.
-const CITY_BOUNDS = {
-    Khartoum:  { minLat: 15.0, maxLat: 16.4, minLng: 32.0, maxLng: 33.2 },
-    PortSudan: { minLat: 19.2, maxLat: 20.1, minLng: 36.8, maxLng: 37.7 }
-};
+// من config/cities.js (مصدرٌ واحد). المدن متباعدة (أقربها الخرطوم وعطبرة
+// ~٢٨٠ كم) فالصناديق الفضفاضة آمنة — واختبار tests/cities.test.js يمنع تداخلها.
+const { CITY_BOUNDS } = require('../config/cities');
 
 /**
  * استنتاج المدينة من الإحداثيات.
  * يضمن أن متجر التاجر يظهر في مدينته الصحيحة حتى لو كانت مدينة حسابه خاطئة.
  * @param {number} lat
  * @param {number} lng
- * @returns {'Khartoum'|'PortSudan'|null} null إذا كانت الإحداثيات خارج المدينتين
+ * @returns {string|null} مفتاح المدينة (config/cities)، أو null خارج كل المدن
  */
 function cityFromCoords(lat, lng) {
     if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) return null;

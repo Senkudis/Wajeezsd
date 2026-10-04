@@ -108,6 +108,7 @@ function loadCityService() {
     };
     const window = {
         dispatchEvent: (e) => events.push(e),
+        location: { hostname: 'wajeezsd.com', protocol: 'https:', origin: 'https://wajeezsd.com' }
     };
     const ctx = {
         window, document, localStorage: mkStore(store), sessionStorage: mkStore(session),
@@ -116,6 +117,9 @@ function loadCityService() {
         setTimeout: () => 0, Promise
     };
     vm.createContext(ctx);
+    // كما في الصفحات: config.js (WajeezCities — المدن) قبل city-service.js
+    ctx.URL = URL;
+    vm.runInContext(read('public_html/js/config.js'), ctx);
     vm.runInContext(read('public_html/js/city-service.js'), ctx);
     return { CS: ctx.window.CityService, store, session, events, nodes };
 }

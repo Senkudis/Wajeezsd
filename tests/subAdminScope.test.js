@@ -53,9 +53,16 @@ describe('🌍 مدن الأدمن المساعد', () => {
     });
 
     it('🔴 وقيمةٌ غريبة في الحقل تُضيّق لا تفتح', () => {
-        const u = sub({ cities: ['Atbara', 'Nyala'] });
+        // مدنٌ لا نخدمها (ليست في config/cities) — عطبرة صارت مدينةً صالحة
+        const u = sub({ cities: ['Kassala', 'Nyala'] });
         expect(adminCities(u)).toEqual(['Khartoum']);
         expect(getAdminCityFilter(req(u))).toEqual({ city: 'Khartoum' });
+    });
+
+    it('أدمن عطبرة يرى عطبرة وحدها', () => {
+        const u = sub({ city: 'Atbara', cities: ['Atbara'] });
+        expect(adminCities(u)).toEqual(['Atbara']);
+        expect(getAdminCityFilter(req(u))).toEqual({ city: 'Atbara' });
     });
 
     it('والمسؤول الرئيسي يرى كل المدن', () => {

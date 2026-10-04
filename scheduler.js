@@ -258,7 +258,7 @@ const startScheduler = (app) => {
         ]
     });
 
-    const NUDGE_CITIES = ['Khartoum', 'PortSudan'];
+    const NUDGE_CITIES = require('./config/cities').CITY_KEYS;   // 🌍 كل المدن — مصدرٌ واحد
 
     /** يحمّل عتبات كل المدن مرة واحدة لكل دورة مجدول */
     async function loadNudgeSettings() {

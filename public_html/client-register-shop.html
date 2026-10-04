@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
-    <script src="js/config.js?v=21463b97"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/maps-loader.js?v=9c3cdf9b"></script>
@@ -372,11 +372,16 @@
 
     // Default coordinates (Fallback)
     const KHARTOUM_COORDS = { lat: 15.5007, lng: 32.5599 };
-    const PORTSUDAN_COORDS = { lat: 19.6151, lng: 37.2164 };
 
-    // Get city from CityService (localStorage)
-    const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
-    let mapCenter = currentCity === 'PortSudan' ? PORTSUDAN_COORDS : KHARTOUM_COORDS;
+    // المدينة المختارة في التطبيق — هذه الصفحة لا تحمّل city-service.js، فكان
+    // الشرط أعلاه يعطي «الخرطوم» دائماً وتفتح خريطة تاجر بورتسودان على الخرطوم.
+    // نقرأ المفتاح المحفوظ نفسه (selected_city) ونتحقّق منه بـ WajeezCities.
+    let currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : null;
+    if (!currentCity) {
+        try { const saved = localStorage.getItem('selected_city'); if (WajeezCities.isValid(saved)) currentCity = saved; } catch (_) {}
+    }
+    // الخرطوم بمركزها المعتاد هنا، وغيرها بمركز مدينته (WajeezCities في config.js)
+    let mapCenter = (!currentCity || currentCity === 'Khartoum') ? KHARTOUM_COORDS : WajeezCities.center(currentCity);
     
     let map;
     let selectedLocation = null;
