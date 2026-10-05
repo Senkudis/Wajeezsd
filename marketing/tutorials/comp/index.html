@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>وجيز — فيديوهات الشرح</title>
+<link rel="stylesheet" href="../../../public_html/vendor/fonts/fonts.css">
+<link rel="stylesheet" href="../../../public_html/vendor/bootstrap-icons/bootstrap-icons.min.css">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   مُكوِّن فيديوهات الشرح — 1920×1080، يُرسم من جدولٍ زمني (timeline).
+   renderAt(t) حتميّة: نفس t ⇒ نفس الإطار، فالتصيير إطاراً إطاراً ثابت.
+
+   التخطيط (عربي، من اليمين): لوحة الشرح يميناً (الفصل، العنوان،
+   النقاط، الترجمة)، والجهاز يساراً بالشاشة الحقيقية من التطبيق، وشريط
+   الفصول أعلى الإطار.
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --g950: #01170f; --g900: #022b1e; --g800: #033d2b; --g700: #04553A; --g500: #0a7a52; --g300: #34c08a;
+  --gold: #D8B765; --gold2: #F5A623; --cream: #F6F2E9; --ink: #0b1f17;
+  --accent: #34c08a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+body { font-family: 'Cairo', sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  background: radial-gradient(110% 90% at 30% 45%, #07694a 0%, var(--g700) 32%, var(--g900) 72%, var(--g950) 100%); }
+.grain { position: absolute; inset: 0; pointer-events: none; opacity: .055; mix-blend-mode: overlay; z-index: 1;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.glow { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0; }
+#glowA { width: 760px; height: 760px; left: -120px; top: 120px; background: rgba(52,192,138,.22); }
+#glowB { width: 620px; height: 620px; right: 80px; top: -220px; background: rgba(216,183,101,.14); }
+.gridlines { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .5;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 30% 50%, #000, transparent 75%); mask-image: radial-gradient(ellipse 70% 70% at 30% 50%, #000, transparent 75%); }
+
+/* ── الترويسة: الشعار، واسم الفيديو، وشريط الفصول ── */
+#top { position: absolute; top: 34px; left: 60px; right: 60px; height: 64px; z-index: 20; display: flex; align-items: center; gap: 24px; }
+#logo { height: 46px; }
+#vtitle { font-size: 22px; font-weight: 800; color: rgba(255,255,255,.75); white-space: nowrap; }
+#chapters { flex: 1; display: flex; gap: 6px; height: 6px; direction: rtl; }
+.ch-seg { position: relative; flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.14); overflow: hidden; }
+.ch-seg i { position: absolute; inset: 0; right: 0; left: auto; width: 0; background: linear-gradient(90deg, var(--gold), var(--g300)); border-radius: 3px; }
+#chLabel { position: absolute; top: 78px; left: 0; right: 0; font-size: 19px; font-weight: 700; color: rgba(255,255,255,.62); text-align: right; }
+
+/* ── الجهاز ── */
+#phoneBox { position: absolute; left: 230px; top: 92px; width: 460px; height: 950px; z-index: 5; will-change: transform; transform-origin: 50% 50%; }
+.phone { position: absolute; inset: 0; border-radius: 64px; background: #0d0f0e;
+  box-shadow: 0 60px 110px -30px rgba(0,0,0,.6), 0 26px 50px -20px rgba(0,0,0,.4), inset 0 0 0 2px #2b2f2d, inset 0 0 0 7px #050605; }
+#screen { position: absolute; left: 14px; top: 14px; width: 432px; height: 922px; border-radius: 52px; overflow: hidden; background: #f3f4f6; }
+#screen .shot { position: absolute; left: 0; top: 0; width: 100%; display: block; will-change: transform, opacity; opacity: 0; }
+.island { display: none; position: absolute; top: 28px; left: 50%; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; z-index: 9; }
+.shine { position: absolute; inset: 14px; border-radius: 52px; pointer-events: none; z-index: 8;
+  background: linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,255,255,.05) 100%); }
+#phoneShadow { position: absolute; left: 250px; top: 1000px; width: 420px; height: 60px; border-radius: 50%; background: rgba(0,0,0,.45); filter: blur(30px); z-index: 4; }
+
+/* إبراز عنصر: إطارٌ ذهبيّ والباقي معتم — داخل الشاشة فيُقصّ بحدودها */
+#spot { position: absolute; z-index: 6; border-radius: 16px; opacity: 0; pointer-events: none;
+  box-shadow: 0 0 0 3px var(--gold), 0 0 0 9px rgba(216,183,101,.28), 0 0 0 2400px rgba(1,23,15,.55); }
+/* النقرة: إصبعٌ (دائرة) وحلقةٌ تتّسع */
+.tap { position: absolute; z-index: 7; width: 0; height: 0; pointer-events: none; }
+.tap .dot { position: absolute; width: 46px; height: 46px; left: -23px; top: -23px; border-radius: 50%;
+  background: rgba(255,255,255,.55); border: 3px solid #fff; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.tap .ring { position: absolute; width: 46px; height: 46px; left: -23px; top: -23px; border-radius: 50%; border: 4px solid var(--gold); }
+/* كتابة: مؤشّرٌ يكتب نصّاً في حقل */
+#typer { position: absolute; z-index: 7; padding: 6px 12px; border-radius: 10px; background: #fff; color: #111; font-size: 17px; font-weight: 700;
+  box-shadow: 0 0 0 3px var(--g300), 0 10px 24px rgba(0,0,0,.25); opacity: 0; white-space: nowrap; direction: rtl; }
+
+/* إشعارٌ ينزل من أعلى الجهاز */
+#notif { position: absolute; z-index: 10; left: 26px; right: 26px; top: 64px; padding: 14px 16px; border-radius: 22px;
+  background: rgba(250,250,250,.96); color: #111; box-shadow: 0 16px 40px rgba(0,0,0,.35); display: flex; gap: 12px; align-items: flex-start; opacity: 0; }
+#notif img { width: 40px; height: 40px; border-radius: 10px; flex: none; }
+#notif b { display: block; font-size: 15px; font-weight: 800; }
+#notif span { display: block; font-size: 14px; color: #444; line-height: 1.5; }
+#notif small { font-size: 12px; color: #777; margin-inline-start: auto; }
+
+/* ── لوحة الشرح ── */
+#panel { position: absolute; right: 110px; top: 190px; width: 900px; z-index: 6; }
+#pChapter { display: inline-flex; align-items: center; gap: 10px; padding: 8px 20px; border-radius: 999px;
+  background: rgba(216,183,101,.16); border: 1.5px solid rgba(216,183,101,.45); color: var(--gold); font-size: 22px; font-weight: 800; }
+#pTitle { margin-top: 26px; font-size: 64px; font-weight: 900; line-height: 1.2; letter-spacing: -.5px; text-shadow: 0 6px 30px rgba(0,0,0,.25); }
+#pPoints { margin-top: 30px; display: flex; flex-direction: column; gap: 18px; }
+.pt { display: flex; align-items: flex-start; gap: 16px; font-size: 31px; font-weight: 700; line-height: 1.5; color: rgba(255,255,255,.92); opacity: 0; }
+.pt i { flex: none; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 23px; margin-top: 3px;
+  background: rgba(52,192,138,.16); color: var(--g300); border: 1px solid rgba(52,192,138,.35); }
+.pt.warn i { background: rgba(245,166,35,.16); color: var(--gold2); border-color: rgba(245,166,35,.4); }
+
+/* الترجمة: ما يُقال الآن */
+#caption { position: absolute; right: 110px; width: 900px; bottom: 86px; z-index: 12; min-height: 60px;
+  display: flex; justify-content: flex-start; }
+#caption span { display: inline-block; padding: 12px 24px; border-radius: 16px; background: rgba(1,23,15,.72); border: 1px solid rgba(255,255,255,.10);
+  font-size: 32px; font-weight: 700; line-height: 1.55; color: #fff; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+
+/* ── بطاقات كاملة: الغلاف، الفصل، الخاتمة، الفهرس ── */
+.card { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; visibility: hidden;
+  background: radial-gradient(90% 90% at 50% 40%, #07694a 0%, var(--g700) 35%, var(--g900) 80%, var(--g950) 100%); }
+.card .grain { z-index: 0; }
+.card > * { position: relative; z-index: 1; }
+#cover img { height: 150px; }
+#cover h1 { margin-top: 46px; font-size: 92px; font-weight: 900; line-height: 1.15; }
+#cover p { margin-top: 22px; font-size: 38px; font-weight: 700; color: rgba(255,255,255,.8); }
+#cover .tag { margin-top: 40px; display: inline-flex; gap: 12px; align-items: center; padding: 12px 28px; border-radius: 999px; background: rgba(216,183,101,.16); border: 1.5px solid rgba(216,183,101,.5); color: var(--gold); font-size: 26px; font-weight: 800; }
+#chapterCard .num { font-size: 30px; font-weight: 800; color: var(--gold); letter-spacing: 2px; }
+#chapterCard .ico { width: 150px; height: 150px; border-radius: 42px; display: grid; place-items: center; font-size: 76px; margin-bottom: 34px;
+  background: linear-gradient(140deg, rgba(52,192,138,.28), rgba(216,183,101,.22)); border: 1.5px solid rgba(255,255,255,.18); color: #fff; }
+#chapterCard h2 { margin-top: 14px; font-size: 84px; font-weight: 900; }
+#chapterCard p { margin-top: 18px; font-size: 34px; font-weight: 700; color: rgba(255,255,255,.75); max-width: 1300px; }
+#agenda h2 { font-size: 66px; font-weight: 900; margin-bottom: 44px; }
+#agendaList { display: grid; grid-template-columns: repeat(2, 640px); gap: 18px 40px; direction: rtl; }
+.ag { display: flex; align-items: center; gap: 18px; padding: 13px 24px; border-radius: 20px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  font-size: 32px; font-weight: 800; text-align: right; opacity: 0; }
+.ag b { width: 52px; height: 52px; border-radius: 15px; flex: none; display: grid; place-items: center; background: var(--gold); color: var(--g900); font-size: 26px; font-weight: 900; }
+#outro img { height: 120px; }
+#outro h2 { margin-top: 40px; font-size: 76px; font-weight: 900; }
+#outro p { margin-top: 18px; font-size: 34px; font-weight: 700; color: rgba(255,255,255,.8); }
+#outro .stores { margin-top: 44px; display: flex; gap: 26px; direction: ltr; }
+#outro .store { display: flex; align-items: center; gap: 16px; padding: 16px 30px; border-radius: 20px; background: #fff; color: var(--g900); font-size: 30px; font-weight: 900; }
+#outro .store i { font-size: 40px; }
+#outro .site { margin-top: 36px; font-size: 34px; font-weight: 800; color: var(--gold); direction: ltr; }
+#outro .help { margin-top: 18px; font-size: 28px; font-weight: 700; color: rgba(255,255,255,.75); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="glow" id="glowA"></div><div class="glow" id="glowB"></div>
+  <div class="gridlines"></div>
+
+  <div id="top">
+    <img id="logo" src="../../../public_html/logo-white.png" alt="">
+    <div id="vtitle"></div>
+    <div id="chapters"></div>
+    <div id="chLabel"></div>
+  </div>
+
+  <div id="phoneShadow"></div>
+  <div id="phoneBox">
+    <div class="phone"></div>
+    <div id="screen">
+      <div id="shots"></div>
+      <div id="spot"></div>
+      <div class="tap" id="tap"><div class="ring"></div><div class="dot"></div></div>
+      <div id="typer"></div>
+    </div>
+    <div id="notif"><img src="../../../public_html/icons/icon-192x192.png" alt=""><div style="flex:1"><b></b><span></span></div><small>الآن</small></div>
+    <div class="island"></div>
+    <div class="shine"></div>
+  </div>
+
+  <div id="panel">
+    <div id="pChapter"><i class="bi bi-bookmark-star-fill"></i><span></span></div>
+    <div id="pTitle"></div>
+    <div id="pPoints"></div>
+  </div>
+  <div id="caption"><span></span></div>
+
+  <div class="card" id="cover"><div class="grain"></div>
+    <img src="../../../public_html/logo-white.png" alt="">
+    <h1></h1><p></p><div class="tag"><i class="bi bi-play-circle-fill"></i><span>شرح خطوة بخطوة</span></div>
+  </div>
+  <div class="card" id="agenda"><div class="grain"></div><h2>حنتعلّم في الفيديو دا</h2><div id="agendaList"></div></div>
+  <div class="card" id="chapterCard"><div class="grain"></div><div class="ico"><i></i></div><div class="num"></div><h2></h2><p></p></div>
+  <div class="card" id="outro"><div class="grain"></div>
+    <img src="../../../public_html/logo-white.png" alt="">
+    <h2></h2><p></p>
+    <div class="stores"><div class="store"><i class="bi bi-google-play"></i>Google Play</div><div class="store"><i class="bi bi-apple"></i>App Store</div></div>
+    <div class="site">wajeezsd.com</div>
+    <div class="help">أي استفسار: واتساب 0112046348</div>
+  </div>
+  <div class="grain"></div>
+</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (k) => 1 - Math.pow(1 - k, 3);
+const eInOut = (k) => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const AR = (n) => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+
+const SCREEN_W = 432, SCREEN_H = 922, CSS_W = 390;   // الشاشة بالبكسل الحقيقي، والتقاط التطبيق بعرض 390
+const K = SCREEN_W / CSS_W;                          // بكسل منطقي ← بكسل الإطار
+let TL = null, imgs = {};
+
+/* ═══ التحميل ═══ */
+window.loadTimeline = async function (tl) {
+  TL = tl;
+  $('vtitle').textContent = tl.video.title;
+  document.documentElement.style.setProperty('--accent', tl.video.accent || '#34c08a');
+  $('chapters').innerHTML = tl.chapters.map(() => '<div class="ch-seg"><i></i></div>').join('');
+  $('agendaList').innerHTML = tl.chapters.map((c, i) => `<div class="ag"><b>${AR(i + 1)}</b><span>${c.title}</span></div>`).join('');
+  const box = $('shots');
+  const uniq = [...new Set(tl.scenes.filter(s => s.screen).map(s => s.screen))];
+  await Promise.all(uniq.map(src => new Promise((res) => {
+    const im = new Image(); im.className = 'shot'; im.src = '../screens/' + src;
+    im.onload = () => { im.decode().catch(() => {}).then(res); }; im.onerror = () => { console.error('missing ' + src); res(); };
+    box.appendChild(im); imgs[src] = im;
+  })));
+  window.__ready = true;
+};
+
+/* ═══ أدوات المشهد ═══ */
+function sceneAt(t) {
+  const S = TL.scenes; let lo = 0, hi = S.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (S[m].start <= t) lo = m; else hi = m - 1; }
+  return lo;
+}
+/* تمرير الشاشة: مفاتيح [كسر من المشهد، بكسل منطقي] */
+function scrollOf(s, u) {
+  // لا تمرير بعد نهاية الصورة: أقصاه طولها ناقص ارتفاع الشاشة الظاهر
+  const max = Math.max(0, (s.cssH || 844) - 922 / K);
+  return Math.min(max, Math.max(0, scrollRaw(s, u)));
+}
+function scrollRaw(s, u) {
+  const keys = s.scroll; if (!keys || !keys.length) return s.scrollStart || 0;
+  if (u <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    if (u <= keys[i][0]) return lerp(keys[i - 1][1], keys[i][1], eInOut(prog(u, keys[i - 1][0], keys[i][0])));
+  }
+  return keys[keys.length - 1][1];
+}
+function rectOf(s, ref) {
+  if (!ref) return null;
+  if (typeof ref === 'string') return (s.marks && s.marks[ref]) || null;
+  return ref;   // {x,y,w,h} بالبكسل المنطقي
+}
+
+/* ═══ التصيير ═══ */
+window.renderAt = function (t) {
+  const S = TL.scenes;
+  const i = sceneAt(t); const s = S[i]; const u = (t - s.start) / s.dur; const lt = t - s.start;
+
+  /* البطاقات الكاملة */
+  const cardIds = { cover: 'cover', agenda: 'agenda', chapter: 'chapterCard', outro: 'outro' };
+  Object.values(cardIds).forEach(id => { $(id).style.visibility = 'hidden'; });
+  if (cardIds[s.type]) {
+    const el = $(cardIds[s.type]);
+    el.style.visibility = 'visible';
+    const inK = s.type === 'cover' ? 1 : eOut(prog(lt, 0, .55));
+    const outK = (i < S.length - 1) ? eInOut(prog(lt, s.dur - .5, s.dur)) : 0;
+    el.style.clipPath = `circle(${lerp(0, 150, inK)}% at 50% 50%)`;
+    el.style.opacity = 1 - outK;
+    el.style.transform = `scale(${lerp(1, 1.06, outK)})`;
+    const kids = [...el.children].filter(c => !c.classList.contains('grain'));
+    kids.forEach((c, j) => { const k = eOut(prog(lt, .25 + j * .14, .85 + j * .14)); c.style.opacity = k; c.style.transform = `translateY(${(1 - k) * 34}px)`; });
+    if (s.type === 'cover') { el.querySelector('h1').textContent = TL.video.title; el.querySelector('p').textContent = TL.video.subtitle; }
+    if (s.type === 'chapter') {
+      const c = TL.chapters[s.chapter];
+      el.querySelector('.ico i').className = 'bi ' + (c.icon || 'bi-star-fill');
+      el.querySelector('.num').textContent = 'الفصل ' + AR(s.chapter + 1) + ' من ' + AR(TL.chapters.length);
+      el.querySelector('h2').textContent = c.title; el.querySelector('p').textContent = c.desc || '';
+    }
+    if (s.type === 'agenda') {
+      document.querySelectorAll('.ag').forEach((a, j) => { const k = eOut(prog(lt, .5 + j * .22, 1.0 + j * .22)); a.style.opacity = k; a.style.transform = `translateX(${(1 - k) * -40}px)`; });
+    }
+    if (s.type === 'outro') { el.querySelector('h2').textContent = s.title || 'حمّل وجيز هسّي'; el.querySelector('p').textContent = s.sub || ''; }
+  }
+
+  /* الترويسة: الفصول */
+  const segs = document.querySelectorAll('.ch-seg i');
+  TL.chapters.forEach((c, j) => { segs[j].style.width = (prog(t, c.start, c.end) * 100) + '%'; });
+  const ch = TL.chapters.find(c => t >= c.start && t < c.end);
+  $('chLabel').textContent = ch ? ('الفصل ' + AR(TL.chapters.indexOf(ch) + 1) + ' · ' + ch.title) : '';
+
+  /* الجهاز والشاشة */
+  const isPhone = !!s.screen;
+  const prev = i > 0 ? S[i - 1] : null;
+  // دخول الجهاز بعد بطاقة، وخروجه قبلها
+  const nxt = S[i + 1];
+  let pIn = 1, pOut = 0;
+  if (isPhone && prev && !prev.screen) pIn = eOut(prog(lt, 0, .7));
+  if (isPhone && nxt && !nxt.screen) pOut = eInOut(prog(lt, s.dur - .45, s.dur));
+  const phoneVis = isPhone ? (pIn * (1 - pOut)) : 0;
+
+  // التكبير نحو عنصر
+  let zs = 1, zx = 0, zy = 0;
+  const sc = isPhone ? scrollOf(s, u) : 0;
+  if (isPhone && s.zoom) {
+    const r = rectOf(s, s.zoom.at);
+    if (r) {
+      const a = s.zoom.from ?? .15, b = s.zoom.to ?? .9;
+      const k = eInOut(prog(u, a, a + .14)) * (1 - eInOut(prog(u, b, Math.min(1, b + .1))));
+      zs = lerp(1, s.zoom.s || 1.7, k);
+      // مركز العنصر داخل صندوق الجهاز
+      const cx = 14 + (r.x + r.w / 2) * K, cy = 14 + (r.y + r.h / 2 - sc) * K;
+      // نحرّكه نحو مركز الجهاز بقدر التكبير
+      zx = lerp(0, (230 - cx), k) ; zy = lerp(0, (475 - cy), k);
+    }
+  }
+  const pb = $('phoneBox');
+  pb.style.visibility = phoneVis > 0.001 ? 'visible' : 'hidden';
+  $('phoneShadow').style.opacity = phoneVis * (1 - (zs - 1));
+  pb.style.opacity = phoneVis;
+  pb.style.transform = `translate(${(1 - phoneVis) * -120 + zx * zs}px, ${(1 - phoneVis) * 40 + zy * zs}px) scale(${zs * lerp(.94, 1, phoneVis)})`;
+  pb.style.transformOrigin = `${230}px ${475}px`;
+
+  // الصور: الحالية تظهر، والسابقة تذوب
+  Object.values(imgs).forEach(im => { im.style.opacity = 0; });
+  if (isPhone) {
+    const cur = imgs[s.screen];
+    const cross = prev && prev.screen && prev.screen !== s.screen ? eOut(prog(lt, 0, .45)) : 1;
+    if (cur) { cur.style.opacity = cross; cur.style.transform = `translateY(${-sc * K}px) scale(${lerp(1.03, 1, cross)})`; cur.style.transformOrigin = '50% 0'; }
+    if (cross < 1 && imgs[prev.screen]) {
+      const pi = imgs[prev.screen]; const psc = scrollOf(prev, 1);
+      pi.style.opacity = 1 - cross; pi.style.transform = `translateY(${-psc * K}px)`;
+    }
+  }
+
+  // الإبراز
+  const spot = $('spot');
+  spot.style.opacity = 0;
+  if (isPhone && s.hl && s.hl.length) {
+    for (const h of s.hl) {
+      const r = rectOf(s, h.at); if (!r) continue;
+      const a = h.t ?? .1, b = h.until ?? .95;
+      if (u < a || u > b) continue;
+      const k = eOut(prog(u, a, a + .08)) * (1 - eInOut(prog(u, b - .06, b)));
+      const pad = h.pad ?? 6;
+      spot.style.left = (r.x * K - pad) + 'px'; spot.style.top = ((r.y - sc) * K - pad) + 'px';
+      spot.style.width = (r.w * K + pad * 2) + 'px'; spot.style.height = (r.h * K + pad * 2) + 'px';
+      spot.style.borderRadius = (h.round ?? 16) + 'px';
+      spot.style.opacity = k;
+    }
+  }
+
+  // النقرة
+  const tap = $('tap'); tap.style.opacity = 0;
+  if (isPhone && s.taps) {
+    for (const tp of s.taps) {
+      const r = rectOf(s, tp.at); if (!r) continue;
+      const st = tp.t * s.dur, dt = lt - st;
+      if (dt < -0.45 || dt > 0.75) continue;
+      const x = (r.x + r.w * (tp.fx ?? .5)) * K, y = (r.y + r.h * (tp.fy ?? .5) - sc) * K;
+      tap.style.left = x + 'px'; tap.style.top = y + 'px';
+      const appear = eOut(prog(dt, -0.45, -0.1)); const press = dt > 0 ? 1 - eOut(prog(dt, 0, .5)) : 1;
+      tap.style.opacity = appear * (dt > .45 ? 1 - prog(dt, .45, .75) : 1);
+      tap.querySelector('.dot').style.transform = `scale(${dt > 0 && dt < .15 ? .82 : 1})`;
+      const rk = prog(dt, 0, .6);
+      tap.querySelector('.ring').style.transform = `scale(${1 + rk * 1.6})`;
+      tap.querySelector('.ring').style.opacity = dt > 0 ? (1 - rk) : 0;
+    }
+  }
+
+  // الكتابة في حقل
+  const ty = $('typer'); ty.style.opacity = 0;
+  if (isPhone && s.type_ && s.type_.at) {
+    const r = rectOf(s, s.type_.at);
+    if (r) {
+      const a = s.type_.t ?? .2, b = s.type_.until ?? .9;
+      if (u >= a && u <= b) {
+        const n = Math.round(s.type_.text.length * eOut(prog(u, a, a + .3)));
+        ty.textContent = s.type_.text.slice(0, n) + (Math.floor(lt * 2) % 2 ? '|' : ' ');
+        ty.style.right = (SCREEN_W - (r.x + r.w) * K + 4) + 'px'; ty.style.top = ((r.y - sc) * K + r.h * K / 2 - 18) + 'px';
+        ty.style.opacity = 1 - prog(u, b - .05, b);
+      }
+    }
+  }
+
+  // الإشعار
+  const nf = $('notif'); nf.style.opacity = 0;
+  if (isPhone && s.notif) {
+    const a = s.notif.t ?? .2, b = s.notif.until ?? .85;
+    if (u >= a && u <= b) {
+      const k = eOut(prog(u, a, a + .08)) * (1 - eInOut(prog(u, b - .06, b)));
+      nf.querySelector('b').textContent = s.notif.title; nf.querySelector('span').textContent = s.notif.body;
+      nf.style.opacity = k; nf.style.transform = `translateY(${(1 - k) * -70}px)`;
+    }
+  }
+
+  /* لوحة الشرح */
+  const panelOn = isPhone ? phoneVis : 0;
+  $('panel').style.opacity = panelOn;
+  if (isPhone) {
+    const c = TL.chapters[s.chapter];
+    $('pChapter').querySelector('span').textContent = c ? c.title : '';
+    $('pChapter').querySelector('i').className = 'bi ' + ((c && c.icon) || 'bi-bookmark-star-fill');
+    // العنوان والنقاط: تُعاد كتابتها حين تتغيّر فقط، ودخولها من بداية المشهد الذي غيّرها
+    const fresh = !prev || prev.title !== s.title || !prev.screen;
+    const tEl = $('pTitle');
+    if (tEl.dataset.k !== String(i)) {
+      tEl.dataset.k = String(i); tEl.textContent = s.title || '';
+      $('pPoints').innerHTML = (s.points || []).map(p => {
+        const warn = /^!/.test(p); const txt = p.replace(/^!/, '');
+        return `<div class="pt${warn ? ' warn' : ''}"><i class="bi ${warn ? 'bi-exclamation-triangle-fill' : 'bi-check2'}"></i><span>${txt}</span></div>`;
+      }).join('');
+    }
+    const tk = fresh ? eOut(prog(lt, .05, .55)) : 1;
+    tEl.style.opacity = tk; tEl.style.transform = `translateY(${(1 - tk) * 30}px)`;
+    const pts = document.querySelectorAll('#pPoints .pt');
+    pts.forEach((p, j) => {
+      const at = (s.pointsAt && s.pointsAt[j] != null) ? s.pointsAt[j] * s.dur : (.35 + j * Math.min(1.1, (s.dur - 1) / Math.max(1, pts.length)));
+      const k = eOut(prog(lt, at, at + .45));
+      p.style.opacity = k; p.style.transform = `translateX(${(1 - k) * 30}px)`;
+    });
+  }
+
+  /* الترجمة */
+  const cap = $('caption').querySelector('span');
+  let ctext = '';
+  if (s.captions) for (const c of s.captions) if (lt >= c.t0 && lt < c.t1) { ctext = c.text; var cc = c; }
+  if (ctext) {
+    if (cap.textContent !== ctext) cap.textContent = ctext;
+    const k = eOut(prog(lt, cc.t0, cc.t0 + .2)) * (1 - prog(lt, cc.t1 - .15, cc.t1));
+    cap.style.opacity = k; cap.parentElement.style.visibility = 'visible';
+  } else { cap.parentElement.style.visibility = 'hidden'; }
+  // الترجمة فوق البطاقات الكاملة أيضاً — في وسط الأسفل
+  const capBox = $('caption');
+  if (!isPhone) { capBox.style.right = '0'; capBox.style.width = '1920px'; capBox.style.justifyContent = 'center'; }
+  else { capBox.style.right = '110px'; capBox.style.width = '900px'; capBox.style.justifyContent = 'flex-start'; }
+
+  /* الخلفية تتنفّس */
+  $('glowA').style.transform = `translate(${Math.sin(t * .23) * 40}px, ${Math.cos(t * .19) * 30}px)`;
+  $('glowB').style.transform = `translate(${Math.cos(t * .17) * 30}px, ${Math.sin(t * .21) * 25}px)`;
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# كل هذا يُولَّد من جديد بالأدوات (انظر README) — ثقيلٌ على المستودع
+screens/**/*.png
+screens/**/*.json
+scout/
+audio/
+output/
+# التسجيلات الصوتية: احتفظ بنسخةٍ منها خارج المستودع (انظر README)
+vo/
+tools/_dbg.js
