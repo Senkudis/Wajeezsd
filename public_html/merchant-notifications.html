@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=26115eba">
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <!-- شاشة الإشعارات الموحّدة — بعد dark-mode.css عمداً (انظر رأس الملف) -->
     <link rel="stylesheet" href="css/notifications-ui.css?v=ef58ac3d">
@@ -101,13 +101,11 @@
     <a href="merchant-conversations.html" style="position:relative;">
         <i class="bi bi-chat-dots-fill"></i>
         <span>رسائل</span>
-        <span id="navConvBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
         <span class="m-badge" data-badge="messages" hidden></span>
     </a>
     <a href="merchant-notifications.html" class="active" style="position:relative;">
         <i class="bi bi-bell-fill"></i>
         <span>إشعارات</span>
-        <span id="navNotifBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
         <span class="m-badge" data-badge="notifications" hidden></span>
     </a>
     <a href="client-login.html" onclick="event.preventDefault(); window.Auth ? window.Auth.logout('client-login.html') : (localStorage.clear(), window.location.href='client-login.html');">
@@ -131,13 +129,10 @@
         subtitleIdle: 'كل التحديثات والتنبيهات الخاصة بمتجرك'
     });
 
-    // شارة التنقّل السفلي — الوحدة المشتركة تستدعي renderUnreadBadge،
-    // وهذه الصفحة تملك شارتها الخاصة داخل شريط التاجر
-    window.renderUnreadBadge = function (count) {
-        const b = document.getElementById('navNotifBadge');
-        if (!b) return;
-        b.textContent = count > 99 ? '99+' : count;
-        b.style.display = count > 0 ? 'inline-block' : 'none';
+    // شارة التنقّل السفلي واحدة: m-badge من js/merchant-badges.js. حين يتغيّر
+    // عدد غير المقروء هنا (قراءة إشعار) نطلب منها التحديث بدل رسم شارةٍ ثانية.
+    window.renderUnreadBadge = function () {
+        if (window.refreshMerchantBadges) window.refreshMerchantBadges();
     };
 </script>
 <script src="js/theme-manager.js?v=ef048761"></script>

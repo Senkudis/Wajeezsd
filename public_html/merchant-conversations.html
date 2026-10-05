@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/merchant-ui.css?v=32c1f16c">
+    <link rel="stylesheet" href="css/merchant-ui.css?v=26115eba">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
     <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
@@ -194,19 +194,6 @@
         /* ===== BOTTOM NAV ===== */
         /* Nav handled by merchant-ui.css?v=v3_1785875711038 */
 
-        /* Nav badge */
-        .nav-badge {
-            background: #ef4444;
-            color: white;
-            font-size: 0.55rem;
-            font-weight: 700;
-            padding: 1px 5px;
-            border-radius: 10px;
-            position: absolute;
-            top: -4px; left: 50%;
-            transform: translateX(-50%) translateX(10px);
-            display: none;
-        }
     </style>
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <script src="js/safe-area.js?v=8b338400"></script>
@@ -285,13 +272,11 @@
         <a href="merchant-conversations.html" class="active" style="position:relative;">
             <i class="bi bi-chat-dots-fill"></i>
             <span>رسائل</span>
-            <span class="nav-badge" id="navUnreadBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
         <span class="m-badge" data-badge="messages" hidden></span>
     </a>
         <a href="merchant-notifications.html" style="position:relative;">
             <i class="bi bi-bell-fill"></i>
             <span>إشعارات</span>
-            <span id="navNotifBadge" style="display:none;position:absolute;top:2px;right:50%;transform:translateX(60%);background:#ef4444;color:white;font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:10px;"></span>
         <span class="m-badge" data-badge="notifications" hidden></span>
     </a>
         <a href="client-login.html" onclick="event.preventDefault(); doLogout();">
@@ -369,15 +354,11 @@
             // Count total unread
             const totalUnread = list.reduce((s, c) => s + (c.unreadCount || 0), 0);
             const badge = document.getElementById('unreadTotalBadge');
-            const navBadge = document.getElementById('navUnreadBadge');
             if (totalUnread > 0) {
                 badge.textContent = totalUnread + ' جديد';
                 badge.style.display = 'inline-block';
-                navBadge.textContent = totalUnread;
-                navBadge.style.display = 'inline-block';
             } else {
                 badge.style.display = 'none';
-                navBadge.style.display = 'none';
             }
 
             container.innerHTML = list.map(conv => {

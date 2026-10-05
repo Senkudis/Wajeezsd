@@ -243,6 +243,10 @@ body {
     transform: scale(1);
 }
 
+/* notification-toast.js يحقن شارته (.unread-notif-badge) في كل رابط إشعارات.
+   في شريط التاجر الشارة هي m-badge وحدها — فلا تتراكب شارتان على الأيقونة. */
+.merchant-nav .unread-notif-badge { display: none !important; }
+
 /* نبضة واحدة عند ازدياد الرقم فقط — لفت النظر لا إزعاج */
 .m-badge.is-bump {
     animation: mBadgeBump .45s cubic-bezier(.34, 1.56, .64, 1);
