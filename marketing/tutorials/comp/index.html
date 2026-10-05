@@ -44,11 +44,11 @@ body { font-family: 'Cairo', sans-serif; -webkit-font-smoothing: antialiased; co
 #chLabel { position: absolute; top: 78px; left: 0; right: 0; font-size: 19px; font-weight: 700; color: rgba(255,255,255,.62); text-align: right; }
 
 /* ── الجهاز ── */
-#phoneBox { position: absolute; left: 230px; top: 92px; width: 460px; height: 950px; z-index: 5; will-change: transform; transform-origin: 50% 50%; }
+#phoneBox { position: absolute; left: 230px; top: 92px; width: 460px; height: 950px; z-index: 5; transform-origin: 50% 50%; }
 .phone { position: absolute; inset: 0; border-radius: 64px; background: #0d0f0e;
   box-shadow: 0 60px 110px -30px rgba(0,0,0,.6), 0 26px 50px -20px rgba(0,0,0,.4), inset 0 0 0 2px #2b2f2d, inset 0 0 0 7px #050605; }
 #screen { position: absolute; left: 14px; top: 14px; width: 432px; height: 922px; border-radius: 52px; overflow: hidden; background: #f3f4f6; }
-#screen .shot { position: absolute; left: 0; top: 0; width: 100%; display: block; will-change: transform, opacity; opacity: 0; }
+#screen .shot { position: absolute; left: 0; top: 0; width: 100%; display: block; opacity: 0; image-rendering: auto; }
 .island { display: none; position: absolute; top: 28px; left: 50%; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: #000; z-index: 9; }
 .shine { position: absolute; inset: 14px; border-radius: 52px; pointer-events: none; z-index: 8;
   background: linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,255,255,.05) 100%); }
@@ -57,6 +57,13 @@ body { font-family: 'Cairo', sans-serif; -webkit-font-smoothing: antialiased; co
 /* إبراز عنصر: إطارٌ ذهبيّ والباقي معتم — داخل الشاشة فيُقصّ بحدودها */
 #spot { position: absolute; z-index: 6; border-radius: 16px; opacity: 0; pointer-events: none;
   box-shadow: 0 0 0 3px var(--gold), 0 0 0 9px rgba(216,183,101,.28), 0 0 0 2400px rgba(1,23,15,.55); }
+/* العدسة: العنصر المُبرَز مكبَّراً بجانب الجهاز، بخطٍّ ذهبيٍّ يصله بمكانه */
+#lens { position: absolute; z-index: 14; border-radius: 22px; overflow: hidden; opacity: 0; background: #fff;
+  box-shadow: 0 0 0 3px var(--gold), 0 0 0 10px rgba(216,183,101,.18), 0 30px 60px -12px rgba(0,0,0,.55); }
+#lens img { position: absolute; left: 0; top: 0; display: block; }
+#link { position: absolute; inset: 0; z-index: 13; pointer-events: none; overflow: visible; }
+#link line { stroke: var(--gold); stroke-width: 3; stroke-dasharray: 2 9; stroke-linecap: round; }
+#link circle { fill: var(--gold); }
 /* النقرة: إصبعٌ (دائرة) وحلقةٌ تتّسع */
 .tap { position: absolute; z-index: 7; width: 0; height: 0; pointer-events: none; }
 .tap .dot { position: absolute; width: 46px; height: 46px; left: -23px; top: -23px; border-radius: 50%;
@@ -146,6 +153,8 @@ body { font-family: 'Cairo', sans-serif; -webkit-font-smoothing: antialiased; co
     <div class="shine"></div>
   </div>
 
+  <svg id="link" width="1920" height="1080"><line x1="0" y1="0" x2="0" y2="0"/><circle r="6"/><circle r="6"/></svg>
+  <div id="lens"></div>
   <div id="panel">
     <div id="pChapter"><i class="bi bi-bookmark-star-fill"></i><span></span></div>
     <div id="pTitle"></div>
@@ -181,7 +190,7 @@ const AR = (n) => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 
 const SCREEN_W = 432, SCREEN_H = 922, CSS_W = 390;   // الشاشة بالبكسل الحقيقي، والتقاط التطبيق بعرض 390
 const K = SCREEN_W / CSS_W;                          // بكسل منطقي ← بكسل الإطار
-let TL = null, imgs = {};
+let TL = null, imgs = {}, lensImgs = {};
 
 /* ═══ التحميل ═══ */
 window.loadTimeline = async function (tl) {
@@ -196,6 +205,12 @@ window.loadTimeline = async function (tl) {
     const im = new Image(); im.className = 'shot'; im.src = '../screens/' + src;
     im.onload = () => { im.decode().catch(() => {}).then(res); }; im.onerror = () => { console.error('missing ' + src); res(); };
     box.appendChild(im); imgs[src] = im;
+  })));
+  // نسخةٌ ثانية من كل شاشة للعدسة — مفكوكة مسبقاً فلا يظهر إطارٌ فارغ
+  await Promise.all(uniq.map(src => new Promise((res) => {
+    const im = new Image(); im.src = '../screens/' + src; im.style.display = 'none';
+    im.onload = () => { im.decode().catch(() => {}).then(res); }; im.onerror = () => res();
+    $('lens').appendChild(im); lensImgs[src] = im;
   })));
   window.__ready = true;
 };
@@ -214,16 +229,51 @@ function scrollOf(s, u) {
 }
 function scrollRaw(s, u) {
   const keys = s.scroll; if (!keys || !keys.length) return s.scrollStart || 0;
-  if (u <= keys[0][0]) return keys[0][1];
-  for (let i = 1; i < keys.length; i++) {
-    if (u <= keys[i][0]) return lerp(keys[i - 1][1], keys[i][1], eInOut(prog(u, keys[i - 1][0], keys[i][0])));
+  if (keys.length === 1 || u <= keys[0][0]) return keys[0][1];
+  const n = keys.length; if (u >= keys[n - 1][0]) return keys[n - 1][1];
+  // منحنى واحد عبر كل المفاتيح (Fritsch–Carlson): الميل صفرٌ عند الطرفين وعند
+  // التوقّف وتغيّر الاتجاه، وإلا متوسّطٌ موزون — فالحركة لا تتوقّف عند كل مفتاح
+  const x = keys.map(k => k[0]), y = keys.map(k => k[1]);
+  const d = []; for (let i = 0; i < n - 1; i++) d.push((y[i + 1] - y[i]) / Math.max(1e-6, x[i + 1] - x[i]));
+  const m = new Array(n).fill(0);
+  for (let i = 1; i < n - 1; i++) {
+    if (d[i - 1] * d[i] > 0) {
+      const w1 = 2 * (x[i + 1] - x[i]) + (x[i] - x[i - 1]), w2 = (x[i + 1] - x[i]) + 2 * (x[i] - x[i - 1]);
+      m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i]);
+    }
   }
-  return keys[keys.length - 1][1];
+  let i = 0; while (u > x[i + 1]) i++;
+  const h = x[i + 1] - x[i], q = (u - x[i]) / h, q2 = q * q, q3 = q2 * q;
+  return (2 * q3 - 3 * q2 + 1) * y[i] + (q3 - 2 * q2 + q) * h * m[i] + (-2 * q3 + 3 * q2) * y[i + 1] + (q3 - q2) * h * m[i + 1];
 }
 function rectOf(s, ref) {
   if (!ref) return null;
   if (typeof ref === 'string') return (s.marks && s.marks[ref]) || null;
   return ref;   // {x,y,w,h} بالبكسل المنطقي
+}
+
+/* العدسة: العنصر الصغير مكبَّراً (١٫٥–٣×) بجانب الجهاز، عند ارتفاعه، وخطٌّ
+   منقّط يصلها به. العناصر الكبيرة (بطاقات كاملة) واضحةٌ أصلاً فتُترك. */
+function drawLens(s, R, k, popK) {
+  const lens = $('lens'), link = $('link'), PAD = 14;
+  if (s.lens === false || k < 0.01) return;
+  let L = Math.min(3, 360 / (R.w + PAD * 2), 300 / (R.h + PAD * 2));
+  if (L < 1.5) return;
+  const W = (R.w + PAD * 2) * L, Hh = (R.h + PAD * 2) * L;
+  const sp = $('spot').getBoundingClientRect();
+  const cy = sp.top + sp.height / 2;
+  const left = 770, top = clamp(cy - Hh / 2, 150, 1080 - 230 - Hh);
+  Object.values(lensImgs).forEach(im => { im.style.display = 'none'; });
+  const im = lensImgs[s.screen]; if (!im) return;
+  im.style.display = 'block'; im.style.width = (CSS_W * L) + 'px';
+  im.style.left = (-(R.x - PAD) * L) + 'px'; im.style.top = (-(R.y - PAD) * L) + 'px';
+  lens.style.left = left + 'px'; lens.style.top = top + 'px'; lens.style.width = W + 'px'; lens.style.height = Hh + 'px';
+  lens.style.opacity = k; lens.style.transform = `scale(${lerp(.86, 1, eOut(popK))})`; lens.style.transformOrigin = '0% 50%';
+  const x1 = sp.right + 4, y1 = cy, x2 = left - 6, y2 = top + Hh / 2;
+  const ln = link.querySelector('line'), cs = link.querySelectorAll('circle');
+  ln.setAttribute('x1', x1); ln.setAttribute('y1', y1); ln.setAttribute('x2', x2); ln.setAttribute('y2', y2);
+  cs[0].setAttribute('cx', x1); cs[0].setAttribute('cy', y1); cs[1].setAttribute('cx', x2); cs[1].setAttribute('cy', y2);
+  link.style.opacity = k;
 }
 
 /* ═══ التصيير ═══ */
@@ -288,6 +338,13 @@ window.renderAt = function (t) {
       zx = lerp(0, (230 - cx), k) ; zy = lerp(0, (475 - cy), k);
     }
   }
+  // اقترابٌ بطيء (٣٪) طوال الشاشة الواحدة — متّصلٌ عبر مشاهدها فلا يقفز
+  if (isPhone) {
+    let a = i; while (a > 0 && S[a - 1].screen === s.screen) a--;
+    let b = i; while (b < S.length - 1 && S[b + 1].screen === s.screen) b++;
+    const span = S[b].start + S[b].dur - S[a].start;
+    zs *= 1 + 0.03 * eInOut(clamp((t - S[a].start) / span));
+  }
   const pb = $('phoneBox');
   pb.style.visibility = phoneVis > 0.001 ? 'visible' : 'hidden';
   $('phoneShadow').style.opacity = phoneVis * (1 - (zs - 1));
@@ -300,28 +357,35 @@ window.renderAt = function (t) {
   if (isPhone) {
     const cur = imgs[s.screen];
     const cross = prev && prev.screen && prev.screen !== s.screen ? eOut(prog(lt, 0, .45)) : 1;
-    if (cur) { cur.style.opacity = cross; cur.style.transform = `translateY(${-sc * K}px) scale(${lerp(1.03, 1, cross)})`; cur.style.transformOrigin = '50% 0'; }
+    // الجديدة تنزلق من اليسار والسابقة تذوب — بالموضع لا بالتحويل، فتُرسم الصورة بتصفيةٍ عالية
+    if (cur) { cur.style.opacity = cross; cur.style.top = (-sc * K) + 'px'; cur.style.left = ((1 - cross) * -60) + 'px'; }
     if (cross < 1 && imgs[prev.screen]) {
       const pi = imgs[prev.screen]; const psc = scrollOf(prev, 1);
-      pi.style.opacity = 1 - cross; pi.style.transform = `translateY(${-psc * K}px)`;
+      pi.style.opacity = 1 - cross; pi.style.top = (-psc * K) + 'px'; pi.style.left = (cross * 40) + 'px';
     }
   }
 
   // الإبراز
   const spot = $('spot');
-  spot.style.opacity = 0;
-  if (isPhone && s.hl && s.hl.length) {
-    for (const h of s.hl) {
-      const r = rectOf(s, h.at); if (!r) continue;
-      const a = h.t ?? .1, b = h.until ?? .95;
-      if (u < a || u > b) continue;
-      const k = eOut(prog(u, a, a + .08)) * (1 - eInOut(prog(u, b - .06, b)));
-      const pad = h.pad ?? 6;
-      spot.style.left = (r.x * K - pad) + 'px'; spot.style.top = ((r.y - sc) * K - pad) + 'px';
-      spot.style.width = (r.w * K + pad * 2) + 'px'; spot.style.height = (r.h * K + pad * 2) + 'px';
-      spot.style.borderRadius = (h.round ?? 16) + 'px';
-      spot.style.opacity = k;
-    }
+  spot.style.opacity = 0; $('lens').style.opacity = 0; $('link').style.opacity = 0;
+  const HL = (isPhone && s.hl) ? s.hl.map(h => ({ h, r: rectOf(s, h.at), a: h.t ?? .1, b: h.until ?? .95 })).filter(x => x.r) : [];
+  let hj = -1; HL.forEach((x, k) => { if (u >= x.a && u <= x.b) hj = k; });
+  if (hj >= 0) {
+    const cur = HL[hj], before = hj > 0 ? HL[hj - 1] : null, after = HL[hj + 1];
+    // متّصلٌ بسابقه (فجوةٌ أقل من ثلث ثانية): لا يختفي ثم يظهر، بل ينزلق إليه
+    const chained = before && (cur.a - before.b) * s.dur < 0.35;
+    const nextChained = after && (after.a - cur.b) * s.dur < 0.35;
+    const gk = chained ? eInOut(prog(lt, cur.a * s.dur, cur.a * s.dur + .35)) : 1;
+    const R = chained ? { x: lerp(before.r.x, cur.r.x, gk), y: lerp(before.r.y, cur.r.y, gk), w: lerp(before.r.w, cur.r.w, gk), h: lerp(before.r.h, cur.r.h, gk) } : cur.r;
+    const inK = chained ? 1 : eOut(prog(lt, cur.a * s.dur, cur.a * s.dur + .3));
+    const outK = nextChained ? 0 : eInOut(prog(lt, cur.b * s.dur - .25, cur.b * s.dur));
+    const k = inK * (1 - outK);
+    const pad = cur.h.pad ?? 6;
+    spot.style.left = (R.x * K - pad) + 'px'; spot.style.top = ((R.y - sc) * K - pad) + 'px';
+    spot.style.width = (R.w * K + pad * 2) + 'px'; spot.style.height = (R.h * K + pad * 2) + 'px';
+    spot.style.borderRadius = (cur.h.round ?? 16) + 'px';
+    spot.style.opacity = k;
+    drawLens(s, R, k * phoneVis, chained ? 1 : inK);
   }
 
   // النقرة
@@ -389,7 +453,9 @@ window.renderAt = function (t) {
     tEl.style.opacity = tk; tEl.style.transform = `translateY(${(1 - tk) * 30}px)`;
     const pts = document.querySelectorAll('#pPoints .pt');
     pts.forEach((p, j) => {
-      const at = (s.pointsAt && s.pointsAt[j] != null) ? s.pointsAt[j] * s.dur : (.35 + j * Math.min(1.1, (s.dur - 1) / Math.max(1, pts.length)));
+      // موزّعةً على زمن الجملة نفسها لا بفاصلٍ ثابت
+      const span = s.voDur ? s.voDur * .8 : s.dur - 1;
+      const at = (s.pointsAt && s.pointsAt[j] != null) ? s.pointsAt[j] * s.dur : (.35 + j * span / Math.max(1, pts.length));
       const k = eOut(prog(lt, at, at + .45));
       p.style.opacity = k; p.style.transform = `translateX(${(1 - k) * 30}px)`;
     });
@@ -399,10 +465,20 @@ window.renderAt = function (t) {
   const cap = $('caption').querySelector('span');
   let ctext = '';
   if (s.captions) for (const c of s.captions) if (lt >= c.t0 && lt < c.t1) { ctext = c.text; var cc = c; }
+  if (!ctext && s.captions && s.captions.length) {
+    // بين مقطعين يبقى آخر ما قيل حتى يبدأ التالي — لا وميض للصندوق
+    const past = s.captions.filter(c => c.t1 <= lt);
+    if (past.length && lt < s.captions[s.captions.length - 1].t1 + .4) { cc = past[past.length - 1]; ctext = cc.text; }
+  }
   if (ctext) {
     if (cap.textContent !== ctext) cap.textContent = ctext;
-    const k = eOut(prog(lt, cc.t0, cc.t0 + .2)) * (1 - prog(lt, cc.t1 - .15, cc.t1));
-    cap.style.opacity = k; cap.parentElement.style.visibility = 'visible';
+    const first = cc === s.captions[0], last = cc === s.captions[s.captions.length - 1];
+    const boxIn = first ? eOut(prog(lt, cc.t0, cc.t0 + .25)) : 1;
+    const boxOut = last ? prog(lt, cc.t1 + .1, cc.t1 + .4) : 0;
+    cap.style.opacity = boxIn * (1 - boxOut);
+    // الصندوق ثابت، والنص الجديد وحده يظهر بذوبانٍ قصير
+    cap.style.color = `rgba(255,255,255,${first ? 1 : lerp(.25, 1, eOut(prog(lt, cc.t0, cc.t0 + .18)))})`;
+    cap.parentElement.style.visibility = 'visible';
   } else { cap.parentElement.style.visibility = 'hidden'; }
   // الترجمة فوق البطاقات الكاملة أيضاً — في وسط الأسفل
   const capBox = $('caption');

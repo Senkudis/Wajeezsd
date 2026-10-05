@@ -205,6 +205,16 @@ async function render(video, tl, draft) {
     const FF = ffmpegPath();
     const out = path.join(ROOT, 'output');
     const silent = path.join(out, video + '.video.mp4');
+    // --range=180-200: مقطعٌ صامت للمراجعة السريعة (الحركة والانتقالات) بدل الفيديو كله
+    const rangeArg = process.argv.find(a => a.startsWith('--range='));
+    if (rangeArg) {
+        const [a, b] = rangeArg.split('=')[1].split('-').map(Number);
+        const testFile = path.join(out, `${video}-test-${a}-${b}.mp4`);
+        let c = 0; const errs = await renderSegment(tl, draft, Math.round(a * FPS), Math.round(b * FPS), testFile, () => c++);
+        if (errs.length) console.log('أخطاء الصفحة:', errs.slice(0, 5));
+        console.log(`✅ ${testFile}  (${c} إطاراً)`);
+        return;
+    }
     const n = Math.round(tl.duration * FPS);
     // متصفّحاتٌ متوازية على مقاطع متتالية، ثم لصقٌ بلا إعادة ترميز
     const jobsArg = process.argv.find(a => a.startsWith('--jobs='));
@@ -226,19 +236,34 @@ async function render(video, tl, draft) {
     // ── الصوت: موسيقى خفيفة + التعليق في مواضعه ──
     const music = path.join(ROOT, 'audio', `bed-${video}.wav`);
     execFileSync('python', [path.join(__dirname, 'music.py'), String(Math.ceil(tl.duration) + 2), music], { stdio: 'inherit' });
+    // ── المؤثّرات: نقرةٌ مع كل لمسة، وهواءٌ مع كل شاشةٍ جديدة، ونغمةٌ لكل فصل ──
+    const sfx = path.join(ROOT, 'audio', `sfx-${video}.wav`);
+    const ev = [];
+    tl.scenes.forEach((s, i) => {
+        const p = tl.scenes[i - 1];
+        if (s.type === 'chapter') ev.push([s.start + .15, 'chime', .55]);
+        else if (s.screen && p && p.screen && p.screen !== s.screen) ev.push([Math.max(0, s.start - .12), 'whoosh', .4]);
+        else if (s.screen && p && !p.screen) ev.push([Math.max(0, s.start - .05), 'whoosh', .32]);
+        (s.taps || []).forEach(tp => { if (tp.t != null) ev.push([s.start + tp.t * s.dur, 'tap', .6]); });
+    });
+    const evFile = path.join(ROOT, 'audio', `sfx-${video}.json`);
+    fs.writeFileSync(evFile, JSON.stringify(ev));
+    if (!fs.existsSync(path.join(ROOT, 'audio', 'sfx', 'tap.wav'))) execFileSync('python', [path.join(__dirname, 'sfx.py'), path.join(ROOT, 'audio', 'sfx')], { stdio: 'inherit' });
+    execFileSync('python', [path.join(__dirname, 'sfx.py'), 'track', evFile, String(Math.ceil(tl.duration) + 2), sfx], { stdio: 'inherit' });
+
     const vos = tl.scenes.filter(s => s.voFile);
-    const inputs = ['-i', silent, '-i', music];
+    const inputs = ['-i', silent, '-i', music, '-i', sfx];
     vos.forEach(s => inputs.push('-i', s.voFile));
     // الموسيقى أخفض حين يوجد تعليق، وتنخفض أكثر تحت الكلام (sidechain)
     const musicGain = vos.length ? 0.32 : 0.6;
-    let fc = `[1:a]volume=${musicGain}[m0];`;
+    let fc = `[1:a]volume=${musicGain}[m0];[2:a]volume=${vos.length ? 0.5 : 0.6}[sx];`;
     if (vos.length) {
-        const parts = vos.map((s, j) => { const ms = Math.round((s.start + s.voAt) * 1000); return `[${j + 2}:a]aresample=48000,aformat=channel_layouts=stereo,adelay=${ms}|${ms}[v${j}]`; });
+        const parts = vos.map((s, j) => { const ms = Math.round((s.start + s.voAt) * 1000); return `[${j + 3}:a]aresample=48000,aformat=channel_layouts=stereo,adelay=${ms}|${ms}[v${j}]`; });
         fc += parts.join(';') + ';';
         fc += vos.map((_, j) => `[v${j}]`).join('') + `amix=inputs=${vos.length}:duration=longest:normalize=0[vo];`;
-        fc += `[vo]asplit=2[vo1][vo2];[m0][vo1]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[md];[md][vo2]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[a]`;
+        fc += `[vo]asplit=2[vo1][vo2];[m0][vo1]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[md];[md][vo2][sx]amix=inputs=3:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[a]`;
     } else {
-        fc += `[m0]loudnorm=I=-18:TP=-1.5[a]`;
+        fc += `[m0][sx]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-18:TP=-1.5[a]`;
     }
     const final = path.join(out, `wajeez-${video}-tutorial${draft ? '-draft' : ''}.mp4`);
     execFileSync(FF, ['-y', ...inputs, '-filter_complex', fc, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', final], { stdio: ['ignore', 'ignore', 'inherit'] });
