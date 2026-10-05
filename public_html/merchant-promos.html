@@ -466,7 +466,10 @@
             ]);
             if (!pRes.ok) throw new Error('HTTP ' + pRes.status);
             promos = await pRes.json();
-            myProducts = prodRes.ok ? await prodRes.json() : [];
+            // المسار يُعيد { place, products } — والمصفوفة المجرّدة مقبولةٌ أيضاً
+            const prodData = prodRes.ok ? await prodRes.json() : [];
+            myProducts = Array.isArray(prodData) ? prodData
+                : (Array.isArray(prodData && prodData.products) ? prodData.products : []);
             render();
         } catch (e) {
             console.error('Load promos error:', e);
