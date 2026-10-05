@@ -522,7 +522,7 @@ const SHOTS = {
   profile: {
     url: 'captain-profile.html', role: 'captain', user: CAP_USER, local: LOCAL, wait: 2500,
     mocks: [...BASE, [/profile-details/, { name: 'محمد عبدالله', email: 'mohamed.abdalla@example.com', phone: '0912345678', totalOrders: 1240, totalEarnings: 412000,
-      approvalStatus: 'approved', vehicleType: 'motorcycle', joinDate: '2025-11-02T10:00:00Z',
+      approvalStatus: 'approved', vehicleType: 'motorcycle', plateNumber: 'خ ط 4521', joinDate: '2025-11-02T10:00:00Z',
       documentsStatus: { idImage: true, selfieImage: true, driverLicense: false, vehiclePhoto: true, profilePhoto: true } }]],
     before: B(() => document.getElementById('docsStatusBadge').textContent),
     marks: { avatar: '#profileAvatar', photoBtn: '#photoBtn', name: '#name', orders: '#orders', revenue: '#revenue', phone: '#phone', email: '#email', vehicle: '#vehicle-text',
@@ -532,7 +532,7 @@ const SHOTS = {
   profileFull: {
     url: 'captain-profile.html', role: 'captain', user: CAP_USER, local: LOCAL, wait: 2500, fullPage: true,
     mocks: [...BASE, [/profile-details/, { name: 'محمد عبدالله', email: 'mohamed.abdalla@example.com', phone: '0912345678', totalOrders: 1240, totalEarnings: 412000,
-      approvalStatus: 'approved', vehicleType: 'motorcycle', joinDate: '2025-11-02T10:00:00Z',
+      approvalStatus: 'approved', vehicleType: 'motorcycle', plateNumber: 'خ ط 4521', joinDate: '2025-11-02T10:00:00Z',
       documentsStatus: { idImage: true, selfieImage: true, driverLicense: false, vehiclePhoto: true, profilePhoto: true } }]],
     before: B(() => document.getElementById('docsStatusBadge').textContent),
     marks: { avatar: '#profileAvatar', photoBtn: '#photoBtn', name: '#name', orders: '#orders', revenue: '#revenue', phone: '#phone', email: '#email', vehicle: '#vehicle-text',

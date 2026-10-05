@@ -179,28 +179,48 @@ async function preview(video, tl, times) {
     await b.close();
 }
 
+/** مقطعٌ من الإطارات [f0, f1) في متصفّحٍ مستقلّ إلى ملفٍ مستقل */
+async function renderSegment(tl, draft, f0, f1, file, onProgress) {
+    const FF = ffmpegPath();
+    const { b, p, errs } = await openComp(tl, draft ? 0.5 : 1);
+    // الإطارات تُصبّ في ffmpeg مباشرةً — لا آلاف الملفات على القرص
+    const ff = spawn(FF, ['-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+        '-vf', 'scale=in_range=pc:out_range=tv,format=yuv420p', '-c:v', 'libx264', '-preset', draft ? 'veryfast' : 'slow',
+        '-crf', draft ? '23' : '17', '-tune', 'animation', '-g', String(FPS * 2), file], { stdio: ['pipe', 'ignore', 'pipe'] });
+    let ffErr = ''; ff.stderr.on('data', d => { ffErr = (ffErr + d).slice(-2000); });
+    const done = new Promise((res, rej) => ff.on('close', c => c === 0 ? res() : rej(new Error('ffmpeg: ' + ffErr))));
+    for (let f = f0; f < f1; f++) {
+        await p.evaluate(t => window.renderAt(t), f / FPS);
+        const buf = await p.screenshot({ type: 'jpeg', quality: draft ? 85 : 95 });
+        if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
+        onProgress();
+    }
+    ff.stdin.end();
+    await done;
+    await b.close();
+    return errs;
+}
+
 async function render(video, tl, draft) {
     const FF = ffmpegPath();
     const out = path.join(ROOT, 'output');
     const silent = path.join(out, video + '.video.mp4');
-    const scale = draft ? 0.5 : 1;
-    const { b, p, errs } = await openComp(tl, scale);
     const n = Math.round(tl.duration * FPS);
-    // الإطارات تُصبّ في ffmpeg مباشرةً — لا آلاف الملفات على القرص
-    const ff = spawn(FF, ['-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
-        '-vf', 'scale=in_range=pc:out_range=tv,format=yuv420p', '-c:v', 'libx264', '-preset', draft ? 'veryfast' : 'slow',
-        '-crf', draft ? '23' : '17', '-tune', 'animation', '-movflags', '+faststart', silent], { stdio: ['pipe', 'ignore', 'pipe'] });
-    let ffErr = ''; ff.stderr.on('data', d => { ffErr = (ffErr + d).slice(-2000); });
-    const t0 = Date.now();
-    for (let f = 0; f < n; f++) {
-        await p.evaluate(t => window.renderAt(t), f / FPS);
-        const buf = await p.screenshot({ type: 'jpeg', quality: draft ? 85 : 95 });
-        if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
-        if (f % 300 === 0) console.log(`🎞️  ${f}/${n}  ${((Date.now() - t0) / 1000).toFixed(0)}ث`);
-    }
-    ff.stdin.end();
-    await new Promise((res, rej) => ff.on('close', c => c === 0 ? res() : rej(new Error('ffmpeg: ' + ffErr))));
-    await b.close();
+    // متصفّحاتٌ متوازية على مقاطع متتالية، ثم لصقٌ بلا إعادة ترميز
+    const jobsArg = process.argv.find(a => a.startsWith('--jobs='));
+    const jobs = Math.max(1, Math.min(8, jobsArg ? Number(jobsArg.split('=')[1]) : Math.floor(require('os').cpus().length / 2) || 1));
+    const segs = Array.from({ length: jobs }, (_, k) => ({
+        f0: Math.floor(n * k / jobs), f1: Math.floor(n * (k + 1) / jobs),
+        file: path.join(out, `${video}.seg${k}.mp4`)
+    }));
+    let doneFrames = 0, lastLog = 0; const t0 = Date.now();
+    const tick = () => { doneFrames++; if (doneFrames - lastLog >= 300) { lastLog = doneFrames; console.log(`🎞️  ${doneFrames}/${n}  ${((Date.now() - t0) / 1000).toFixed(0)}ث  (${jobs} متوازية)`); } };
+    const errs = (await Promise.all(segs.map(sg => renderSegment(tl, draft, sg.f0, sg.f1, sg.file, tick)))).flat();
+    const list = path.join(out, `${video}.segs.txt`);
+    fs.writeFileSync(list, segs.map(sg => `file '${sg.file.split(path.sep).join('/')}'`).join('\n'));
+    execFileSync(FF, ['-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', silent], { stdio: ['ignore', 'ignore', 'inherit'] });
+    segs.forEach(sg => fs.unlinkSync(sg.file)); fs.unlinkSync(list);
+    console.log(`🎞️  ${n}/${n}  ${((Date.now() - t0) / 1000).toFixed(0)}ث`);
     if (errs.length) console.log('أخطاء الصفحة:', errs.slice(0, 5));
 
     // ── الصوت: موسيقى خفيفة + التعليق في مواضعه ──
