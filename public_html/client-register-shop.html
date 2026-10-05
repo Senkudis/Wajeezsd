@@ -173,6 +173,7 @@
         }
         .status-icon.pending { background: #fef3c7; color: #d97706; }
         .status-icon.rejected { background: #fee2e2; color: #dc2626; }
+        .status-icon.approved { background: #dcfce7; color: #16a34a; }
     </style>
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <script src="js/safe-area.js?v=8b338400"></script>
@@ -404,7 +405,7 @@
                 if (r.status === 'pending') {
                     showStatus('pending', 'طلبك قيد المراجعة', 'نقوم حالياً بمراجعة طلب انضمام متجرك. سيتم إشعارك قريباً فور الانتهاء.');
                 } else if (r.status === 'approved') {
-                    showStatus('approved', 'تم قبول طلبك!', 'مبروك! حسابك الآن تاجر. يمكنك تسجيل الدخول إلى لوحة تحكم التاجر.', `<a href="client-login.html" class="btn btn-warning rounded-pill px-4 mt-3 fw-bold">الذهاب للوحة التاجر</a>`);
+                    showStatus('approved', 'تم قبول طلبك!', 'مبروك! حسابك الآن تاجر. يمكنك تسجيل الدخول إلى لوحة تحكم التاجر.', `<button type="button" id="goMerchantBtn" class="btn btn-warning rounded-pill px-4 mt-3 fw-bold" onclick="goToMerchantDashboard()">الذهاب للوحة التاجر</button>`);
                 } else if (r.status === 'rejected') {
                     showStatus('rejected', 'عفواً، تم رفض الطلب', `سبب الرفض: ${r.rejectReason || 'غير محدد'}<br>يمكنك تعديل بياناتك وإرسال طلب جديد.`, `<button class="btn btn-outline-danger rounded-pill px-4 mt-3 fw-bold" onclick="resetForm()">إرسال طلب جديد</button>`);
                 }
@@ -434,12 +435,36 @@
     function showStatus(type, title, desc, extraHtml = '') {
         document.getElementById('mainContainer').innerHTML = `
             <div class="status-card">
-                <div class="status-icon ${type}"><i class="bi ${type==='pending'?'bi-hourglass-split':'bi-x-circle-fill'}"></i></div>
+                <div class="status-icon ${type}"><i class="bi ${type==='pending'?'bi-hourglass-split':(type==='approved'?'bi-check-circle-fill':'bi-x-circle-fill')}"></i></div>
                 <h4 class="fw-bold mb-2">${title}</h4>
                 <p class="text-muted mb-0">${desc}</p>
                 ${extraHtml}
             </div>
         `;
+    }
+
+    // الحساب صار تاجراً في الخادم، لكن الجلسة المحلية ما زالت تحمل دور العميل —
+    // ولوحة التاجر ترفض من ليس دوره المحلي merchant. نُحدّث الجلسة ثم ننتقل،
+    // وإن تعذّر ذلك نعيده لتسجيل الدخول فيوجّهه الدخول إلى لوحته.
+    async function goToMerchantDashboard() {
+        const btn = document.getElementById('goMerchantBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'جاري التحويل...'; }
+        try {
+            const meRes = await fetch(`${API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const me = meRes.ok ? await meRes.json() : null;
+            if (me && me.role === 'merchant' && window.Auth) {
+                let fresh = getToken();
+                try {
+                    const rt = await fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', headers: { 'Authorization': `Bearer ${fresh}` } });
+                    if (rt.ok) { const d = await rt.json(); if (d.token) fresh = d.token; }
+                } catch (_) {}
+                Auth.setAuth(fresh, { ...(Auth.getUser() || {}), ...me });
+                window.location.replace('merchant-dashboard.html');
+                return;
+            }
+        } catch (_) {}
+        if (window.Auth) await Auth.logout('client-login.html');
+        else window.location.href = 'client-login.html';
     }
 
     function resetForm() {
