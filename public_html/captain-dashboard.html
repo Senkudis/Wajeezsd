@@ -274,7 +274,7 @@
                         </div>
                         <div style="text-align:left;">
                             <div class="cap-wallet-lbl">الحد الائتماني</div>
-                            <div id="walletLimit" class="cap-wallet-limit">-5000 ج.س</div>
+                            <div id="walletLimit" class="cap-wallet-limit">-5,000 ج.س</div>
                         </div>
                     </div>
 
@@ -868,7 +868,7 @@
                 const barEl = document.getElementById('walletProgressBar');
 
                 if (balEl) {
-                    balEl.textContent = `${balance.toFixed(0)} ج.س`;
+                    balEl.textContent = fmtMoney(Math.round(balance));
                     balEl.style.color = balance < 0 ? '#fca5a5' : '#6ee7b7';
                 }
 
@@ -878,7 +878,7 @@
                     mWallet.textContent = Number(balance.toFixed(0)).toLocaleString('en');
                     mWallet.parentElement.classList.toggle('tone-red', balance < 0);
                 }
-                if (limEl) limEl.textContent = `${limit.toFixed(0)} ج.س`;
+                if (limEl) limEl.textContent = fmtMoney(Math.round(limit));
                 // 📊 Debt Percentage: balance 0 = 0% debt, balance = creditLimit = 100% debt
                 // e.g. balance=-2500, limit=-5000 → pct = (2500/5000)*100 = 50%
                 const debtPercentage = (balance === 0)
@@ -920,7 +920,7 @@
                     if (data.is_blocked) {
                         overlay.style.display = 'flex';
                         const bv = document.getElementById('blockedBalanceVal');
-                        if (bv) bv.textContent = `${balance.toFixed(0)} ج.س`;
+                        if (bv) bv.textContent = fmtMoney(Math.round(balance));
                         // Disable availability toggle so captain cannot go online
                         const toggleBtn = document.getElementById('availabilityToggle');
                         if (toggleBtn) {
