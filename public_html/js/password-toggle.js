@@ -33,6 +33,12 @@
         var wrapper = document.createElement('div');
         wrapper.className = 'pw-toggle-wrap';
         wrapper.style.cssText = 'position:relative;width:100%;';
+        // اتجاه الغلاف = اتجاه الحقل: الحقل غالباً LTR (يضعه input-hardener
+        // بعدنا) فحشوته يمين، والزر بـ inset-inline-end — لو بقي الغلاف RTL
+        // لوقع الزر يساراً فوق النقاط. نتبع dir الحقل كلما تغيّر.
+        var syncDir = function () { wrapper.style.direction = getComputedStyle(input).direction; };
+        syncDir();
+        if (window.MutationObserver) new MutationObserver(syncDir).observe(input, { attributes: true, attributeFilter: ['dir'] });
 
         input.parentNode.insertBefore(wrapper, input);
         wrapper.appendChild(input);
