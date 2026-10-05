@@ -192,16 +192,24 @@ async function renderSegment(tl, draft, f0, f1, file, onProgress) {
         '-crf', draft ? '23' : '17', '-tune', 'animation', '-g', String(FPS * 2), file], { stdio: ['pipe', 'ignore', 'pipe'] });
     let ffErr = ''; ff.stderr.on('data', d => { ffErr = (ffErr + d).slice(-2000); });
     const done = new Promise((res, rej) => ff.on('close', c => c === 0 ? res() : rej(new Error('ffmpeg: ' + ffErr))));
-    for (let f = f0; f < f1; f++) {
-        await p.evaluate(t => window.renderAt(t), f / FPS);
-        // التقاطٌ مباشر عبر DevTools: بلا خطوات puppeteer الإضافية، وبترميزٍ سريع
-        const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: draft ? 85 : 95, optimizeForSpeed: true, captureBeyondViewport: false, fromSurface: true });
-        const buf = Buffer.from(data, 'base64');
-        if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
-        onProgress();
+    done.catch(() => {});
+    ff.stdin.on('error', () => {});   // EPIPE حين يموت ffmpeg: يُرمى عبر done لا كاستثناءٍ يُسقط العملية
+    try {
+        for (let f = f0; f < f1; f++) {
+            await p.evaluate(t => window.renderAt(t), f / FPS);
+            // التقاطٌ مباشر عبر DevTools: بلا خطوات puppeteer الإضافية، وبترميزٍ سريع
+            const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: draft ? 85 : 95, optimizeForSpeed: true, captureBeyondViewport: false, fromSurface: true });
+            const buf = Buffer.from(data, 'base64');
+            if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
+            onProgress();
+        }
+        ff.stdin.end();
+        await done;
+    } catch (e) {
+        ff.kill();
+        await b.close().catch(() => {});
+        throw e;
     }
-    ff.stdin.end();
-    await done;
     await b.close();
     return errs;
 }
@@ -230,7 +238,16 @@ async function render(video, tl, draft) {
     }));
     let doneFrames = 0, lastLog = 0; const t0 = Date.now();
     const tick = () => { doneFrames++; if (doneFrames - lastLog >= 300) { lastLog = doneFrames; console.log(`🎞️  ${doneFrames}/${n}  ${((Date.now() - t0) / 1000).toFixed(0)}ث  (${jobs} متوازية)`); } };
-    const errs = (await Promise.all(segs.map(sg => renderSegment(tl, draft, sg.f0, sg.f1, sg.file, tick)))).flat();
+    // مقطعٌ انهار متصفّحه (ذاكرةٌ نفدت مثلاً) يُعاد وحده — لا يضيع الفيديو كله
+    const attempt = async (sg, left = 2) => {
+        try { return await renderSegment(tl, draft, sg.f0, sg.f1, sg.file, tick); }
+        catch (e) {
+            if (!left) throw e;
+            console.log(`↻ إعادة المقطع ${sg.f0}–${sg.f1}: ${String(e.message).slice(0, 80)}`);
+            return attempt(sg, left - 1);
+        }
+    };
+    const errs = (await Promise.all(segs.map(sg => attempt(sg)))).flat();
     const list = path.join(out, `${video}.segs.txt`);
     fs.writeFileSync(list, segs.map(sg => `file '${sg.file.split(path.sep).join('/')}'`).join('\n'));
     execFileSync(FF, ['-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', silent], { stdio: ['ignore', 'ignore', 'inherit'] });
