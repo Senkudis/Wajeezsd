@@ -185,6 +185,7 @@ async function preview(video, tl, times) {
 async function renderSegment(tl, draft, f0, f1, file, onProgress) {
     const FF = ffmpegPath();
     const { b, p, errs } = await openComp(tl, draft ? 0.5 : 1);
+    const cdp = await p.createCDPSession();
     // الإطارات تُصبّ في ffmpeg مباشرةً — لا آلاف الملفات على القرص
     const ff = spawn(FF, ['-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
         '-vf', 'scale=in_range=pc:out_range=tv,format=yuv420p', '-c:v', 'libx264', '-preset', draft ? 'veryfast' : 'slow',
@@ -193,7 +194,9 @@ async function renderSegment(tl, draft, f0, f1, file, onProgress) {
     const done = new Promise((res, rej) => ff.on('close', c => c === 0 ? res() : rej(new Error('ffmpeg: ' + ffErr))));
     for (let f = f0; f < f1; f++) {
         await p.evaluate(t => window.renderAt(t), f / FPS);
-        const buf = await p.screenshot({ type: 'jpeg', quality: draft ? 85 : 95 });
+        // التقاطٌ مباشر عبر DevTools: بلا خطوات puppeteer الإضافية، وبترميزٍ سريع
+        const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: draft ? 85 : 95, optimizeForSpeed: true, captureBeyondViewport: false, fromSurface: true });
+        const buf = Buffer.from(data, 'base64');
         if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
         onProgress();
     }
