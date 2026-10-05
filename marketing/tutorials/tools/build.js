@@ -152,6 +152,8 @@ function writeSidecars(video, tl) {
     fs.writeFileSync(path.join(out, video + '.chapters.txt'), lines.join('\n') + '\n');
     const rec = tl.scenes.filter(s => s.vo).length, done = tl.scenes.filter(s => s.voFile).length;
     console.log(`⏱️  ${video}: ${fmt(tl.duration)} — ${tl.scenes.length} مشهداً، ${tl.chapters.length} فصول، التسجيل ${done}/${rec}`);
+    // الحدّ المتّفق عليه للفيديوهات الجديدة: ٥ دقائق — اختصر الجمل أو ادمج المشاهد
+    if (tl.duration > 300) console.log(`⚠️  أطول من ٥ دقائق بـ ${fmt(tl.duration - 300)}`);
 }
 
 async function openComp(tl, scale) {
