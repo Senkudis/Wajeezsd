@@ -203,6 +203,8 @@
     const H = { 'Authorization': `Bearer ${token}` };
     const HJ = { ...H, 'Content-Type': 'application/json' };
     const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+    // أسماء المنتجات والعملاء نصٌّ يكتبه مستخدمون — يُهرَّب قبل innerHTML
+    const esc = window.escapeHtml;
 
     let products = [];
     let cart = {}; // productId -> qty
@@ -278,7 +280,7 @@
                 <div class="pos-product position-relative ${qty > 0 ? 'in-cart' : ''} ${out ? 'opacity-50' : ''}"
                      onclick="${out ? '' : `addToCart('${p._id}')`}">
                     ${qty > 0 ? `<div class="qty-badge">${qty}</div>` : ''}
-                    <div class="p-name">${p.name}</div>
+                    <div class="p-name">${esc(p.name)}</div>
                     <div class="p-price">${fmt(unitPrice(p))}${onSale(p)
                         ? ` <s class="p-was">${fmt(p.price)}</s>` : ''}</div>
                     <div class="p-stock">${out ? 'نفدت' : (tracked ? `متبقي ${p.stock}` : 'غير محدود')}</div>
@@ -353,7 +355,7 @@
             return `
             <div class="cart-item-row">
                 <div class="flex-grow-1">
-                    <div class="fw-bold" style="font-size:13px;">${p.name}</div>
+                    <div class="fw-bold" style="font-size:13px;">${esc(p.name)}</div>
                     <div class="text-muted" style="font-size:11px;">${fmt(unitPrice(p))} ج.س للقطعة${onSale(p)
                         ? ` <s>${fmt(p.price)}</s>` : ''}</div>
                 </div>
@@ -442,7 +444,7 @@
             const rows = d.sales.map(s => {
                 _salesCache[s._id] = s;
                 const when = new Date(s.createdAt).toLocaleString('ar-SD', { dateStyle: 'short', timeStyle: 'short' });
-                const itemsTxt = s.items.map(i => `${i.quantity}× ${i.name}`).join('، ');
+                const itemsTxt = s.items.map(i => `${i.quantity}× ${esc(i.name)}`).join('، ');
                 return `
                 <div class="border rounded-3 p-2 mb-2 ${s.isVoided ? 'opacity-50' : ''}">
                     <div class="d-flex justify-content-between align-items-center">
@@ -531,7 +533,7 @@
     function receiptHtml(sale) {
         const when = new Date(sale.createdAt).toLocaleString('ar-SD', { dateStyle: 'medium', timeStyle: 'short' });
         const itemRows = sale.items.map(i =>
-            `<tr><td>${i.quantity}× ${i.name}</td><td style="text-align:left;white-space:nowrap;">${fmt(i.subtotal || (i.price * i.quantity))}</td></tr>`
+            `<tr><td>${i.quantity}× ${esc(i.name)}</td><td style="text-align:left;white-space:nowrap;">${fmt(i.subtotal || (i.price * i.quantity))}</td></tr>`
         ).join('');
         const discountRows = sale.discount > 0
             ? `<tr><td>المجموع</td><td style="text-align:left;">${fmt(sale.itemsTotal)}</td></tr>
@@ -544,7 +546,7 @@
             table{width:100%;border-collapse:collapse;font-size:13px;} td{padding:3px 0;vertical-align:top;}
             .total{font-size:16px;font-weight:800;} .foot{text-align:center;font-size:12px;margin-top:10px;}
             </style></head><body onload="window.print()">
-            <h2>${shopName}</h2>
+            <h2>${esc(shopName)}</h2>
             <div class="sub">فاتورة نقطة بيع<br>${when}</div>
             <hr><table>${itemRows}</table><hr>
             <table>${discountRows}

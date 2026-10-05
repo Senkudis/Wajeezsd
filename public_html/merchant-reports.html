@@ -184,6 +184,8 @@
 
     const H = { 'Authorization': `Bearer ${token}` };
     const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+    // أسماء المنتجات والعملاء نصٌّ يكتبه مستخدمون — يُهرَّب قبل innerHTML
+    const esc = window.escapeHtml;
     let currentPeriod = 'week';
     let salesChart = null;
 
@@ -291,7 +293,7 @@
             const catLabels = { rent: 'إيجار', salaries: 'رواتب', supplies: 'مشتريات', utilities: 'خدمات', transport: 'مواصلات', other: 'أخرى' };
             const expRows = (d.expensesByCategory || []).map(e =>
                 `<div class="d-flex justify-content-between py-1 text-muted">
-                    <span>- ${catLabels[e._id] || e._id}</span><span>${fmt(e.total)} ج.س</span>
+                    <span>- ${esc(catLabels[e._id] || e._id)}</span><span>${fmt(e.total)} ج.س</span>
                 </div>`).join('');
             const net = d.netProfit;
             document.getElementById('plBox').innerHTML = `
@@ -319,7 +321,7 @@
                 <div class="top-row">
                     <div class="rank-badge r${i + 1}">${i + 1}</div>
                     <div class="flex-grow-1">
-                        <div class="fw-bold" style="font-size:13.5px;">${p.name}</div>
+                        <div class="fw-bold" style="font-size:13.5px;">${esc(p.name)}</div>
                         <div class="text-muted" style="font-size:11px;">${fmt(p.qty)} قطعة — ربح ${fmt(p.profit)} ج.س</div>
                     </div>
                     <div class="fw-bold text-success" style="font-size:13px;">${fmt(p.revenue)} ج.س</div>
@@ -340,7 +342,7 @@
                 <div class="top-row">
                     <div class="rank-badge r${i + 1}">${i + 1}</div>
                     <div class="flex-grow-1">
-                        <div class="fw-bold" style="font-size:13.5px;">${c.name}</div>
+                        <div class="fw-bold" style="font-size:13.5px;">${esc(c.name)}</div>
                         <div class="text-muted" style="font-size:11px;">${fmt(c.orders)} طلب</div>
                     </div>
                     <div class="fw-bold text-success" style="font-size:13px;">${fmt(c.total)} ج.س</div>

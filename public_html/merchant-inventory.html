@@ -151,6 +151,8 @@
     const H = { 'Authorization': `Bearer ${token}` };
     const HJ = { ...H, 'Content-Type': 'application/json' };
     const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+    // أسماء المنتجات والعملاء نصٌّ يكتبه مستخدمون — يُهرَّب قبل innerHTML
+    const esc = window.escapeHtml;
     let currentTab = 'low';
     let lowStockCache = [];
     let allProductsCache = [];
@@ -212,7 +214,7 @@
                 return `
                 <div class="item-card d-flex align-items-center gap-2">
                     <div class="flex-grow-1">
-                        <div class="fw-bold" style="font-size:14px;">${p.name}</div>
+                        <div class="fw-bold" style="font-size:14px;">${esc(p.name)}</div>
                         <div class="d-flex gap-2 align-items-center mt-1">
                             <span class="stock-pill" style="background:${isOut ? '#fee2e2' : '#ffedd5'};color:${isOut ? '#991b1b' : '#c2410c'};">
                                 ${isOut ? 'نفدت الكمية' : `متبقي ${p.stock}`}
@@ -262,8 +264,8 @@
                 <div class="item-card d-flex align-items-center gap-2">
                     <div class="mv-icon" style="background:${meta.bg};color:${meta.color};"><i class="bi ${meta.icon}"></i></div>
                     <div class="flex-grow-1">
-                        <div class="fw-bold" style="font-size:13.5px;">${m.productName || 'منتج'}</div>
-                        <div class="text-muted" style="font-size:11px;">${meta.label}${m.reason ? ' — ' + m.reason : ''}</div>
+                        <div class="fw-bold" style="font-size:13.5px;">${esc(m.productName || 'منتج')}</div>
+                        <div class="text-muted" style="font-size:11px;">${meta.label}${m.reason ? ' — ' + esc(m.reason) : ''}</div>
                         <div class="text-muted" style="font-size:10.5px;">${when}</div>
                     </div>
                     <div class="text-start">
