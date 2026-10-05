@@ -119,8 +119,8 @@
                         </div>
                         <div class="flex-grow-1">
                             <small class="text-muted d-block">البريد الإلكتروني</small>
-                            <span class="fw-bold text-dark skeleton w-75 d-block text-break" id="email"
-                                style="font-size: 0.9rem;">...</span>
+                            <span class="fw-bold text-dark skeleton w-75 d-block" id="email" dir="ltr"
+                                style="font-size: 0.9rem; overflow-wrap: anywhere; text-align: right;">...</span>
                         </div>
                     </div>
                 </div>
@@ -137,7 +137,7 @@
                                 <span class="fw-bold text-dark skeleton w-50 d-block" id="vehicle-text">...</span>
                             </div>
                         </div>
-                        <span class="badge bg-secondary rounded-pill skeleton" id="vehicle-tag">...</span>
+                        <span class="badge bg-secondary rounded-pill skeleton" id="vehicle-tag" dir="auto">...</span>
                     </div>
                 </div>
             </div>
@@ -340,8 +340,9 @@
 
                     // Remove skeleton class
                     document.querySelectorAll('.skeleton').forEach(el => {
-                        el.classList.remove('skeleton');
-                        el.style.width = 'auto'; // Reset width override
+                        // w-50/w-75 أبعاد الهيكل أثناء التحميل — وهي !important فلا يلغيها
+                        // width:auto المضمّن؛ تبقى فتُقصّ الأرباح («412,00 / 0 ج.س»)
+                        el.classList.remove('skeleton', 'w-50', 'w-75');
                     });
                     document.getElementById('dateWrapper').classList.remove('d-none');
                     document.getElementById('dateWrapper').classList.add('d-inline-flex');
@@ -368,9 +369,12 @@
                     }
 
                     // Vehicle Logic — من المصدر المركزي vehicle-types.js
-                    const vehicleText = data.vehicleType ? window.VehicleTypes.iconLabel(data.vehicleType) : 'غير محدد';
+                    const vehicleText = data.vehicleType ? window.VehicleTypes.label(data.vehicleType) : 'غير محدد';
                     document.getElementById('vehicle-text').innerText = vehicleText;
-                    document.getElementById('vehicle-tag').innerText = data.vehicleType ? data.vehicleType.toUpperCase() : 'N/A';
+                    // الشارة: رقم اللوحة (كان نوع المركبة بالإنجليزية «MOTORCYCLE»)
+                    const tag = document.getElementById('vehicle-tag');
+                    tag.innerText = data.plateNumber || '';
+                    tag.hidden = !data.plateNumber;
 
                     // Date Logic — تاريخ غير صالح كان يُطبع «انضممت في undefined NaN»
                     const date = new Date(data.joinDate);

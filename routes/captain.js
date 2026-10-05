@@ -126,6 +126,7 @@ router.get('/profile-details', protect, captainOnly, async (req, res) => {
             email: req.user.email,
             phone: req.user.phone,
             vehicleType: req.user.vehicleType || 'غير محدد',
+            plateNumber: (req.user.captainApplication && req.user.captainApplication.plateNumber) || '',
             totalOrders: result.totalOrders,
             totalEarnings: result.totalEarnings,
             profilePhoto: (req.user.documents && req.user.documents.profilePhoto) || null,
