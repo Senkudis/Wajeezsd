@@ -477,10 +477,11 @@
             const badge = document.getElementById('availabilityToggle');
             if (!badge) return;
             // النقطة النابضة هي الإشارة التي تُقرأ من مسافة — النص تأكيد لا أكثر.
-            // و«غير متصل» حالةٌ لا دعوة: نُضيف ما يُفعل بها، فالشارة زرٌّ أصلاً.
+            // والدعوة للبدء في لافتة «ورديتك متوقّفة» تحتها، فالشارة تبقى قصيرة
+            // ولا تُقصّ التحية بجانبها («مرحباً، م...»).
             badge.className = 'cap-status ' + (active ? 'is-online' : 'is-offline');
             badge.innerHTML = '<span class="cap-dot"></span><span>'
-                + (active ? 'متصل وجاهز' : 'غير متصل — اضغط للبدء') + '</span>';
+                + (active ? 'متصل وجاهز' : 'غير متصل') + '</span>';
             badge.setAttribute('aria-pressed', active ? 'true' : 'false');
             badge.title = active
                 ? 'أنت متصل وتستقبل الطلبات — اضغط لإيقاف الوردية'
