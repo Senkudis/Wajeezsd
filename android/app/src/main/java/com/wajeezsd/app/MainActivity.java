@@ -302,6 +302,82 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         }
+
+        // ── 🩺 تشخيص التتبّع: نافذة «موقعك لا يتحدّث» في captain-service.js
+        //    تسأل عن السبب وتفتح مكان حلّه بالضبط. كل دالة هنا اختيارية لصفحات
+        //    الويب: تُفحص بوجودها، والنسخ الأقدم من التطبيق تسقط لبديل.
+
+        /** هل خدمة الموقع (GPS) مفعّلة في الجهاز؟ */
+        @JavascriptInterface
+        public boolean isLocationEnabled() {
+            android.location.LocationManager lm =
+                (android.location.LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            if (lm == null) return true;   // لا نعرف — لا نزعج الكابتن بإنذارٍ كاذب
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) return lm.isLocationEnabled();
+            return lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
+                || lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER);
+        }
+
+        /** شاشة تشغيل الموقع نفسها */
+        @JavascriptInterface
+        public void openLocationSettings() {
+            startSafely(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+        }
+
+        /** هل التطبيق مستثنى من موفّر البطارية؟ */
+        @JavascriptInterface
+        public boolean isIgnoringBatteryOptimizations() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            return pm == null || pm.isIgnoringBatteryOptimizations(getPackageName());
+        }
+
+        /** صفحة التطبيق في الإعدادات: الأذونات والبطارية من هنا */
+        @JavascriptInterface
+        public void openAppSettings() {
+            Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            i.setData(Uri.parse("package:" + getPackageName()));
+            startSafely(i);
+        }
+
+        /**
+         * «التشغيل التلقائي» عند الشركات التي تقتل التطبيقات في الخلفية رغم
+         * الإذن (شاومي، تكنو/إنفينكس، أوبو، فيفو، هواوي، سامسونج) — وهي الأكثر
+         * انتشاراً عند الكباتن. يجرّب شاشة كل شركة، ويُرجع false إن لم يجد.
+         */
+        @JavascriptInterface
+        public boolean openAutoStartSettings() {
+            String[][] targets = {
+                {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"},
+                {"com.transsion.phonemaster", "com.cyin.himgr.autostart.AutoStartActivity"},
+                {"com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"},
+                {"com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"},
+                {"com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"},
+                {"com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"},
+                {"com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"},
+                {"com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"},
+                {"com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"},
+                {"com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"}
+            };
+            for (String[] t : targets) {
+                Intent i = new Intent();
+                i.setComponent(new android.content.ComponentName(t[0], t[1]));
+                // لا resolveActivity: مع targetSdk ≥ 30 لا يرى الحزم الأخرى بلا <queries>
+                // فيُرجع null دائماً — نجرّب مباشرةً والاستثناء يُلتقط في startSafely
+                if (startSafely(i)) return true;
+            }
+            return false;
+        }
+
+        private boolean startSafely(Intent i) {
+            try {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
     }
 
     /**
