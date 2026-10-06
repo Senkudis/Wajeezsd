@@ -179,10 +179,30 @@ maybe()('ترقية العميل إلى كابتن تمرّ بالباب نفس�
         expect(fresh.role).toBe('client');
     });
 
-    it('يُفحص باب مدينة الحساب — لا ما يُرسَل في الطلب', async () => {
+    // 🌍 يُفحص باب مدينة العمل المختارة في النموذج لا مدينة الحساب: حساب
+    //    العميل كثيراً ما يبقى على «الخرطوم» الافتراضية، فكان من في بورتسودان
+    //    يُسجَّل كابتناً للخرطوم (انظر 5c7b3d2). مدينة الحساب احتياطٌ فقط.
+    it('يُفحص باب مدينة العمل المختارة — المغلقة تُرَدّ ولو كانت مدينة الحساب مفتوحة', async () => {
+        await openCity('Khartoum', true);
+        const { token } = await makeUser({ role: 'client', city: 'Khartoum' });
+        const res = await applyAs(token, { ...applicationFields(), city: 'PortSudan' });
+        expect(res.status).toBe(403);
+        expect(res.body.message).toContain('بورتسودان');
+    });
+
+    it('مدينة العمل المفتوحة تُقبل وتصير مدينة الحساب', async () => {
+        await openCity('Khartoum', true);
+        const { user, token } = await makeUser({ role: 'client', city: 'PortSudan' });
+        const res = await applyAs(token, { ...applicationFields(), city: 'Khartoum' });
+        expect(res.status).toBe(201);
+        const fresh = await User.findById(user._id).lean();
+        expect(fresh.city).toBe('Khartoum');
+    });
+
+    it('بلا مدينةٍ في الطلب يُفحص باب مدينة الحساب', async () => {
         await openCity('Khartoum', true);
         const { token } = await makeUser({ role: 'client', city: 'PortSudan' });
-        const res = await applyAs(token, { ...applicationFields(), city: 'Khartoum' });
+        const res = await applyAs(token, applicationFields());
         expect(res.status).toBe(403);
         expect(res.body.message).toContain('بورتسودان');
     });
