@@ -109,7 +109,8 @@ describe('البطارية والإيقاف', () => {
 
     it('والشاشة تُطلَق عند الإيقاف مهما كان الوضع', () => {
         const i = service.indexOf('stopTracking: async');
-        const blk = service.slice(i, i + 1400);
+        // الدالّة كاملةً حتى التي تليها — لا عددٌ ثابت من الحروف ينكسر مع كل تعليق
+        const blk = service.slice(i, service.indexOf('// 💓 Heartbeat Logic', i));
         expect(blk).toContain('KeepAwake.allowSleep()');
         expect(blk).toContain('_watchMode = null;');
     });

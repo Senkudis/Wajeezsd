@@ -164,7 +164,8 @@ describe('في الشيفرة', () => {
     });
     it('والتطبيق يرسل عمر القراءة في كل طريق', () => {
         const cs = read('public_html/js/captain-service.js');
-        expect(cs).toContain("emit('update_location', { userId, lat, lng, fixAge: CaptainService._fixAge() })");
+        // حقولٌ إضافية بعده مقبولة (accuracy) — المهمّ أن العمر يسافر
+        expect(cs).toMatch(/emit\('update_location', \{ userId, lat, lng, fixAge: CaptainService\._fixAge\(\)/);
         expect(cs).toContain('fixAge: Math.max(0, Date.now() - last.timestamp)');
         expect(read('public_html/captain-dashboard.html')).toContain('fixAge: window.CaptainService._fixAge()');
     });

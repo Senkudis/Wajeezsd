@@ -35,7 +35,7 @@ describe('النبض لا يعيد إرسال قراءةٍ ميتة', () => {
     it('حدٌّ أقصى لعمر القراءة المُعاد إرسالها', () => {
         expect(service).toContain('MAX_FIX_AGE_MS');
         const i = service.indexOf('startHeartbeat:');
-        const blk = service.slice(i, i + 1200);
+        const blk = service.slice(i, service.indexOf('_onTrackingDegraded: (', i));
         expect(blk).toContain('if (age > MAX_FIX_AGE_MS)');
         expect(blk).toContain('_onTrackingDegraded(age)');
     });
