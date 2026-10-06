@@ -14,7 +14,8 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission, requireAnyPermission } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, requireAnyPermission,
+    denyOutsideCity, scopedUserIds, isSubAdmin, adminCities, adminCoversCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -37,6 +38,8 @@ router.put('/captains/:id/adjust-debt', protect, requirePermission('manage_finan
         if (!captain || captain.role !== 'captain') {
             return res.status(404).json({ message: 'الكابتن غير موجود' });
         }
+        // 🌍 لا تسوية لدين كابتنٍ خارج مدن الأدمن المساعد
+        if (denyOutsideCity(req, res, captain.city)) return;
 
         const previousBalance = captain.wallet_balance ?? 0;
 
@@ -177,6 +180,9 @@ router.get('/debt-adjustments', protect, requireAnyPermission(['view_finance', '
         }
         if (captainId) filter.captain = captainId;
         if (mode && ['add', 'zero', 'partial'].includes(mode)) filter.mode = mode;
+        // 🌍 الأدمن المساعد يرى تسويات كباتن مدنه وحدهم
+        const inScope = await scopedUserIds(req, { role: 'captain' });
+        if (inScope) filter.captain = captainId ? { $in: inScope.filter(id => String(id) === String(captainId)) } : { $in: inScope };
 
         const max = Math.min(parseInt(limit, 10) || 100, 500);
 
@@ -312,6 +318,9 @@ router.get('/payment-requests', protect, requireAnyPermission(['view_finance', '
         const { status } = req.query; // optional filter: pending|approved|rejected
 
         const query = status ? { status } : {};
+        // 🌍 طلبات كباتن مدن الأدمن المساعد وحدها
+        const inScope = await scopedUserIds(req, { role: 'captain' });
+        if (inScope) query.captainId = { $in: inScope };
         const requests = await PaymentRequest.find(query)
             .populate('captainId', 'name phone wallet_balance credit_limit is_blocked')
             .populate('reviewedBy', 'name')
@@ -338,6 +347,7 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
 
         let captain = await User.findById(payReq.captainId);
         if (!captain) return res.status(404).json({ message: 'الكابتن غير موجود' });
+        if (denyOutsideCity(req, res, captain.city)) return;
 
         const prevBalance = captain.wallet_balance ?? 0;
         const debt = Math.abs(prevBalance < 0 ? prevBalance : 0); // المديونية = القيمة المطلقة للرصيد السالب
@@ -472,8 +482,9 @@ router.put('/payment-requests/:id/reject', protect, requirePermission('manage_fi
         const { adminNote } = req.body;
 
         const payReq = await PaymentRequest.findById(req.params.id)
-            .populate('captainId', 'name _id');
+            .populate('captainId', 'name _id city');
         if (!payReq) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (denyOutsideCity(req, res, payReq.captainId && payReq.captainId.city)) return;
         if (payReq.status !== 'pending') {
             return res.status(400).json({ message: 'هذا الطلب تمت مراجعته بالفعل' });
         }
@@ -518,9 +529,18 @@ function sanitizeObjectIds(input) {
     )];
 }
 
+/** مدينة الكوبون: للمدير العام كما طُلبت (أو 'all')، وللأدمن المساعد إحدى مدنه */
+function promoCityFor(req, requested) {
+    if (!isSubAdmin(req)) return requested || 'all';
+    const mine = adminCities(req.user);
+    return mine.includes(requested) ? requested : (mine[0] || 'Khartoum');
+}
+
 router.get('/promo-codes', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
-        const codes = await PromoCode.find()
+        // 🌍 الأدمن المساعد يرى كوبونات مدنه + الكوبونات العامة (للاطّلاع فقط)
+        const q = isSubAdmin(req) ? { city: { $in: [...adminCities(req.user), 'all'] } } : {};
+        const codes = await PromoCode.find(q)
             .populate('createdBy', 'name')
             .populate('places', 'name')   // 🏪 أسماء المتاجر المحصور بها
             .sort({ createdAt: -1 });
@@ -551,7 +571,8 @@ router.post('/promo-codes', protect, requirePermission('manage_promos'), async (
             userUsageLimit: userUsageLimit || 1,
             validFrom:  validFrom  || new Date(),
             validUntil,
-            city:        city        || 'all',
+            // 🌍 الأدمن المساعد يُنشئ لمدنه وحدها — لا كوبوناً عامّاً لكل المدن
+            city:        promoCityFor(req, city),
             description: description || '',
             // 🏪 حصر المتاجر — تُنقّى المعرّفات، والفارغة تعني «كل المتاجر»
             places:      sanitizeObjectIds(places),
@@ -585,6 +606,11 @@ router.post('/promo-codes', protect, requirePermission('manage_promos'), async (
 router.put('/promo-codes/:id', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
         const promo = await PromoCode.findById(req.params.id);
+        // 🌍 كوبونٌ عام أو لمدينةٍ أخرى لا يعدّله الأدمن المساعد
+        if (promo && isSubAdmin(req) && (promo.city === 'all' || !adminCoversCity(req.user, promo.city))) {
+            return res.status(403).json({ message: 'هذا الكوبون خارج نطاق مدينتك' });
+        }
+        if (promo && isSubAdmin(req) && req.body.city !== undefined) req.body.city = promoCityFor(req, req.body.city);
         if (!promo) return res.status(404).json({ message: 'الكوبون غير موجود' });
 
         const fields = ['type','value','appliesTo','maxDiscount','minOrderValue','usageLimit','userUsageLimit','validFrom','validUntil','city','description','isActive','minQuantity'];
@@ -611,6 +637,12 @@ router.put('/promo-codes/:id', protect, requirePermission('manage_promos'), asyn
 
 router.delete('/promo-codes/:id', protect, requirePermission('manage_promos'), async (req, res) => {
     try {
+        if (isSubAdmin(req)) {
+            const target = await PromoCode.findById(req.params.id).select('city').lean();
+            if (target && (target.city === 'all' || !adminCoversCity(req.user, target.city))) {
+                return res.status(403).json({ message: 'هذا الكوبون خارج نطاق مدينتك' });
+            }
+        }
         const promo = await PromoCode.findByIdAndDelete(req.params.id);
         if (!promo) return res.status(404).json({ message: 'الكوبون غير موجود' });
         await logAdminAction(req.user, 'other', `حذف كوبون خصم: ${promo.code}`, promo._id, promo.code);
@@ -627,6 +659,10 @@ router.get('/promo-codes/:id/usage', protect, requirePermission('manage_promos')
         const promo = await PromoCode.findById(req.params.id)
             .populate('usedBy.user', 'name phone');
         if (!promo) return res.status(404).json({ message: 'الكوبون غير موجود' });
+        // مستخدمو كوبونٍ عام من كل المدن — بياناتٌ خارج نطاق الأدمن المساعد
+        if (isSubAdmin(req) && (promo.city === 'all' || !adminCoversCity(req.user, promo.city))) {
+            return res.status(403).json({ message: 'هذا الكوبون خارج نطاق مدينتك' });
+        }
         res.json({ code: promo.code, usedCount: promo.usedCount, usedBy: promo.usedBy });
     } catch (e) {
         res.status(500).json({ message: 'Server Error' });

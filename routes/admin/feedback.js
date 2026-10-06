@@ -7,7 +7,7 @@ router.param('id', validateObjectId);
 
 const Feedback = require('../../models/Feedback');
 const { CANCEL_REASONS } = require('../../models/Feedback');
-const { protect, requirePermission, requireAnyPermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
+const { protect, requirePermission, requireAnyPermission, getAdminCityFilter, denyOutsideCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const logger = require('../../utils/logger');
 
@@ -106,6 +106,10 @@ router.put('/feedback/:id/review', protect, requireAnyPermission(['view_feedback
         const note = String(req.body?.adminNote || '').trim().replace(/<[^>]*>/g, '').slice(0, 1000);
         const reviewed = req.body?.isReviewed !== false;
 
+        {
+            const cur = await Feedback.findById(req.params.id).select('city').lean();
+            if (cur && denyOutsideCity(req, res, cur.city)) return;
+        }
         const doc = await Feedback.findByIdAndUpdate(
             req.params.id,
             {

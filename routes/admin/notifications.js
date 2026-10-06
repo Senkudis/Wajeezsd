@@ -10,7 +10,16 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, adminCanActOnUser } = require('../../middleware/authMiddleware');
+
+/** 🌍 مستلمٌ واحد خارج مدن الأدمن المساعد يُرفض — true إن رُفض */
+async function recipientOutsideCity(req, res, userId) {
+    if (!req.user || req.user.adminRole !== 'sub_admin') return false;
+    const u = await User.findById(userId).select('city role').lean();
+    if (u && adminCanActOnUser(req, u)) return false;
+    res.status(403).json({ message: 'هذا المستخدم خارج نطاق مدينتك' });
+    return true;
+}
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -34,6 +43,7 @@ router.post('/send-notification', protect, requirePermission('send_notifications
         const Notification = require('../../models/Notification');
 
         if (target === 'user' && userId) {
+            if (await recipientOutsideCity(req, res, userId)) return;
             // Send to single user
             await sendNotification(req.app, {
                 userId,
@@ -50,6 +60,8 @@ router.post('/send-notification', protect, requirePermission('send_notifications
         if (target === 'clients') query = { role: 'client' };
         else if (target === 'captains') query = { role: 'captain' };
         // else 'all' — no filter
+        // 🌍 بثّ الأدمن المساعد يصل مستخدمي مدنه وحدهم — لا البلد كله
+        Object.assign(query, getAdminCityFilter(req));
 
         const users = await User.find(query).select('_id fcmToken role');
 
@@ -141,21 +153,17 @@ router.post('/broadcast', protect, requirePermission('send_notifications'), asyn
 
         if (target === 'user') {
             if (!userId) return res.status(400).json({ message: 'userId مطلوب لإرسال إشعار محدد' });
-            const user = await User.findById(userId).select('name phone role fcmToken');
+            const user = await User.findById(userId).select('name phone role fcmToken city');
             if (!user) return res.status(404).json({ message: 'المستخدم غير موجود' });
+            if (await recipientOutsideCity(req, res, userId)) return;
             users = [user];
 
-        } else if (target === 'clients') {
-            users = await User.find({ role: 'client', fcmToken: { $exists: true, $ne: '' } }).select('_id fcmToken role');
-        } else if (target === 'captains') {
-            users = await User.find({ role: 'captain', fcmToken: { $exists: true, $ne: '' } }).select('_id fcmToken role');
-        } else if (target === 'merchants') {
-            users = await User.find({ role: 'merchant', fcmToken: { $exists: true, $ne: '' } }).select('_id fcmToken role');
-        } else { // 'all'
-            users = await User.find({
-                role: { $in: ['client', 'captain', 'merchant'] },
-                fcmToken: { $exists: true, $ne: '' }
-            }).select('_id fcmToken role');
+        } else {
+            // 🌍 بثّ الأدمن المساعد يصل مستخدمي مدنه وحدهم — لا البلد كله
+            const scope = getAdminCityFilter(req);
+            const role = { clients: 'client', captains: 'captain', merchants: 'merchant' }[target]
+                || { $in: ['client', 'captain', 'merchant'] };   // 'all'
+            users = await User.find({ role, fcmToken: { $exists: true, $ne: '' }, ...scope }).select('_id fcmToken role');
         }
 
         if (users.length === 0) {

@@ -11,7 +11,22 @@ const PlaceCategory = require('../models/PlaceCategory');
 const Product = require('../models/Product');
 const Rating = require('../models/Rating');
 const User = require('../models/User');
-const { protect, superAdminOnly, requirePermission } = require('../middleware/authMiddleware');
+const { protect, superAdminOnly, requirePermission, resolveCreationCity, denyOutsideCity,
+    isSubAdmin, adminCities, adminCoversCity } = require('../middleware/authMiddleware');
+
+/** 🌍 متجرٌ خارج مدن الأدمن المساعد: يُرفض قبل أي قراءةٍ أو تعديل — true إن رُفض */
+async function placeOutsideCity(req, res, placeId) {
+    if (!isSubAdmin(req)) return false;
+    const pl = await Place.findById(placeId).select('city').lean();
+    if (!pl) return false;   // المسار يقول «غير موجود» بنفسه
+    return denyOutsideCity(req, res, pl.city);
+}
+
+/** مدينة الإحصاء: للأدمن المساعد إحدى مدنه وإن طلب غيرها */
+function statsCityFor(req, city) {
+    if (!isSubAdmin(req) || adminCoversCity(req.user, city)) return city;
+    return adminCities(req.user)[0] || city;
+}
 
 // 🔑 ملاحظة على الحراسة في هذا الملف:
 //    كانت كل المسارات الإدارية أدناه محروسة بـ `protect` وحده، ويُفحص الدور
@@ -300,7 +315,7 @@ router.get('/errand-stats', protect, requirePermission('view_stats'), async (req
         const PlaceSearchQuery = require('../models/PlaceSearchQuery');
         const ExternalPlace = require('../models/ExternalPlace');
 
-        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
+        const city = statsCityFor(req, CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum');
         const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 90);
         const since = new Date(Date.now() + 3 * 60 * 60 * 1000 - days * 86400000)
             .toISOString().slice(0, 10);
@@ -369,7 +384,7 @@ router.patch('/errand-stats/lead', protect, requirePermission('manage_stores'), 
         const PlaceSearchQuery = require('../models/PlaceSearchQuery');
 
         const VALID_CITIES = CITY_KEYS;
-        const city = VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum';
+        const city = statsCityFor(req, VALID_CITIES.includes(req.body.city) ? req.body.city : 'Khartoum');
         const query = String(req.body.query || '').trim().slice(0, 120);
         const status = req.body.status;
 
@@ -779,7 +794,8 @@ router.post('/', protect, requirePermission('manage_stores'), async (req, res) =
                 email: merchantEmail,
                 password: ownerPassword,
                 role: 'merchant',
-                city: req.body.city || 'Khartoum', // ✅ حقل المدينة مطلوب في Schema
+                // ✅ حقل المدينة مطلوب في Schema — والأدمن المساعد يُنشئ في مدنه وحدها
+                city: resolveCreationCity(req, req.body.city || 'Khartoum'),
                 approvalStatus: 'approved',
                 isVerified: true
             });
@@ -856,6 +872,7 @@ router.post('/', protect, requirePermission('manage_stores'), async (req, res) =
 router.put('/:id', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+        if (await placeOutsideCity(req, res, req.params.id)) return;
 
         const update = { ...req.body };
 
@@ -874,6 +891,8 @@ router.put('/:id', protect, requirePermission('manage_stores'), async (req, res)
             }
         }
 
+        // ولا يُنقل المتجر إلى مدينةٍ خارج نطاقه (يدوياً أو من الإحداثيات)
+        if (update.city !== undefined && isSubAdmin(req) && denyOutsideCity(req, res, update.city)) return;
         const place = await Place.findByIdAndUpdate(req.params.id, update, { new: true });
         if (!place) return res.status(404).json({ message: 'غير موجود' });
         await logAdminAction(req, 'update_store', `تعديل متجر: ${place.name}`, place._id, place.name);
@@ -890,6 +909,7 @@ router.put('/:id', protect, requirePermission('manage_stores'), async (req, res)
 router.delete('/:id', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+        if (await placeOutsideCity(req, res, req.params.id)) return;
         
         const place = await Place.findById(req.params.id);
         if (!place) return res.status(404).json({ message: 'المتجر غير موجود' });
@@ -1198,6 +1218,7 @@ router.post('/:placeId/products/:productId/rate', protect, async (req, res) => {
 router.get('/:placeId/products/admin', protect, requirePermission('view_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+        if (await placeOutsideCity(req, res, req.params.placeId)) return;
         const products = await Product.find({ placeId: req.params.placeId })
             .sort({ category: 1, sortOrder: 1, createdAt: -1 });
         res.json(products);
@@ -1211,6 +1232,7 @@ router.get('/:placeId/products/admin', protect, requirePermission('view_stores')
 router.post('/:placeId/products', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+        if (await placeOutsideCity(req, res, req.params.placeId)) return;
         const place = await Place.findById(req.params.placeId);
         if (!place) return res.status(404).json({ message: 'المتجر غير موجود' });
 
@@ -1242,6 +1264,7 @@ router.post('/:placeId/products', protect, requirePermission('manage_stores'), a
 router.put('/:placeId/products/:productId', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+        if (await placeOutsideCity(req, res, req.params.placeId)) return;
         const updateData = { ...req.body };
         delete updateData.placeId;
         delete updateData._id;
@@ -1266,6 +1289,7 @@ router.put('/:placeId/products/:productId', protect, requirePermission('manage_s
 router.delete('/:placeId/products/:productId', protect, requirePermission('manage_stores'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+        if (await placeOutsideCity(req, res, req.params.placeId)) return;
         const product = await Product.findOneAndDelete({ _id: req.params.productId, placeId: req.params.placeId });
         if (!product) return res.status(404).json({ message: 'المنتج غير موجود' });
         res.json({ message: 'تم حذف المنتج بنجاح' });

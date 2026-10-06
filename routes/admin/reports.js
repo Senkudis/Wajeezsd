@@ -10,7 +10,7 @@ router.param('id', validateObjectId);
 
 const Report = require('../../models/Report');
 const Rating = require('../../models/Rating');
-const { protect, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, requirePermission, scopedUserIds, adminCanActOnUser } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const logger = require('../../utils/logger');
 
@@ -23,6 +23,10 @@ router.get('/reports', protect, requirePermission('view_complaints'), async (req
         if (['pending', 'actioned', 'dismissed'].includes(req.query.status)) {
             filter.status = req.query.status;
         }
+        // 🌍 الأدمن المساعد يرى البلاغات عن أصحاب محتوى في مدنه وحدها
+        const inScope = await scopedUserIds(req);
+        const scope = inScope ? { targetOwner: { $in: inScope } } : {};
+        Object.assign(filter, scope);
 
         const [reports, total, pendingCount] = await Promise.all([
             Report.find(filter)
@@ -33,7 +37,7 @@ router.get('/reports', protect, requirePermission('view_complaints'), async (req
                 .limit(limit)
                 .lean(),
             Report.countDocuments(filter),
-            Report.countDocuments({ status: 'pending' })
+            Report.countDocuments({ status: 'pending', ...scope })
         ]);
 
         res.json({ reports, total, pendingCount, page, pages: Math.ceil(total / limit) });
@@ -54,6 +58,10 @@ router.put('/reports/:id', protect, requirePermission('view_complaints'), async 
 
         const report = await Report.findById(req.params.id);
         if (!report) return res.status(404).json({ message: 'البلاغ غير موجود' });
+        if (req.user.adminRole === 'sub_admin') {
+            const owner = report.targetOwner ? await require('../../models/User').findById(report.targetOwner).select('city role').lean() : null;
+            if (!owner || !adminCanActOnUser(req, owner)) return res.status(403).json({ message: 'هذا البلاغ خارج نطاق مدينتك' });
+        }
 
         // 🙈 الإخفاء يطال التقييمات وحدها: الرسائل خاصّة بطرفَي الطلب أصلاً
         //    (لا يراها جمهور) وعلاجها الحظر أو إيقاف الحساب، والمستخدم لا

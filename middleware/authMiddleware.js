@@ -214,6 +214,48 @@ function adminCoversCity(user, city) {
     return adminCities(user).includes(city);
 }
 
+const isSubAdmin = (req) => !!(req.user && req.user.adminRole === 'sub_admin');
+
+/**
+ * فلتر المدينة على حقلٍ باسمٍ آخر (place.city، dropoff…): نفس getAdminCityFilter
+ * لكن بالمفتاح المطلوب. {} حين لا تقييد.
+ */
+function cityScopeQuery(req, field = 'city') {
+    const f = getAdminCityFilter(req);
+    return f.city !== undefined ? { [field]: f.city } : {};
+}
+
+/**
+ * يرفض بـ 403 إن كانت المدينة خارج نطاق الأدمن المساعد.
+ * يُرجع true إن رُفض (فيعود المسار فوراً). السجلّات القديمة بلا مدينة
+ * تُعدّ «الخرطوم» — افتراض النظام كله.
+ */
+function denyOutsideCity(req, res, city) {
+    if (adminCoversCity(req.user, city || 'Khartoum')) return false;
+    res.status(403).json({ message: 'هذا خارج نطاق مدينتك' });
+    return true;
+}
+
+/**
+ * معرّفات المستخدمين داخل نطاق الأدمن المساعد — لمجموعاتٍ بلا حقل مدينة
+ * (طلبات السداد، تسويات الديون، التقييمات…) تُصفّى بصاحبها.
+ * null للمدير العام = بلا تقييد.
+ */
+async function scopedUserIds(req, extra = {}) {
+    if (!isSubAdmin(req)) return null;
+    const User = require('../models/User');
+    const rows = await User.find({ ...extra, ...getAdminCityFilter(req) }).select('_id').lean();
+    return rows.map(r => r._id);
+}
+
+/** نفسه للمتاجر: معرّفات Place داخل النطاق، أو null */
+async function scopedPlaceIds(req) {
+    if (!isSubAdmin(req)) return null;
+    const Place = require('../models/Place');
+    const rows = await Place.find(getAdminCityFilter(req)).select('_id').lean();
+    return rows.map(r => r._id);
+}
+
 const captainOnly = (req, res, next) => {
     if (req.user && req.user.role === 'captain') {
         next();
@@ -243,5 +285,6 @@ module.exports = {
     requirePermission, requireAnyPermission,
     getAdminCityFilter, resolveCreationCity, adminCanActOnUser,
     adminCities, adminCoversCity, VALID_CITIES,
+    isSubAdmin, cityScopeQuery, denyOutsideCity, scopedUserIds, scopedPlaceIds,
     captainOnly, clientOnly, merchantOnly
 };

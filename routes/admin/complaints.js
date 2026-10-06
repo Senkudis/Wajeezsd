@@ -13,7 +13,7 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, denyOutsideCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -27,7 +27,9 @@ router.get('/complaints', protect, requirePermission('view_complaints'), async (
     try {
         // البحث عن أي طلب يحتوي على حالة شكوى لا تساوي 'none'
         const orders = await Order.find({
-            'complaint.status': { $exists: true, $ne: 'none' }
+            'complaint.status': { $exists: true, $ne: 'none' },
+            // 🌍 الأدمن المساعد يرى شكاوى طلبات مدنه وحدها
+            ...getAdminCityFilter(req)
         })
             .populate('client', 'name phone')
             .populate('captain', 'name phone')
@@ -46,6 +48,7 @@ router.put('/complaints/:id/resolve', protect, requirePermission('view_complaint
     try {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (denyOutsideCity(req, res, order.city)) return;
 
         if (!order.complaint) {
             order.complaint = {}; // إنشاء كائن الشكوى إذا لم يكن موجوداً

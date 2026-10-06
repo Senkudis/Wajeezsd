@@ -4,7 +4,16 @@ const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const mongoose = require('mongoose');
-const { protect, merchantOnly, adminOnly, requireAnyPermission, requirePermission } = require('../middleware/authMiddleware');
+const { protect, merchantOnly, adminOnly, requireAnyPermission, requirePermission,
+    denyOutsideCity, scopedPlaceIds } = require('../middleware/authMiddleware');
+
+/** 🌍 تسويةٌ لمتجرٍ خارج مدن الأدمن المساعد تُرفض قبل أي تعديل — يُرجع true إن رُفض */
+async function settlementOutsideCity(req, res) {
+    const s = await SettlementRequest.findById(req.params.id).select('placeId').lean();
+    if (!s) return false;   // المسار يقول «غير موجود» بنفسه
+    const pl = await Place.findById(s.placeId).select('city').lean();
+    return denyOutsideCity(req, res, pl && pl.city);
+}
 const Place = require('../models/Place');
 const Product = require('../models/Product');
 const ShopOrder = require('../models/ShopOrder');
@@ -675,6 +684,9 @@ router.get('/admin/settlements', protect, adminOnly, requireAnyPermission(['view
     try {
         const filter = {};
         if (req.query.status && ['pending', 'approved', 'rejected'].includes(req.query.status)) filter.status = req.query.status;
+        // 🌍 الأدمن المساعد يرى تسويات متاجر مدنه وحدها
+        const inScope = await scopedPlaceIds(req);
+        if (inScope) filter.placeId = { $in: inScope };
         const settlements = await SettlementRequest.find(filter)
             .populate('placeId', 'name city shopWalletBalance bankAccountName bankAccountNumber bankName paymentMethods')
             .populate('merchantId', 'name phone')
@@ -693,6 +705,7 @@ router.get('/admin/settlements', protect, adminOnly, requireAnyPermission(['view
 // body: { transactionId?, receiptImage? }
 router.put('/admin/settlements/:id/approve', protect, adminOnly, requireAnyPermission(['manage_settlements', 'manage_finance']), async (req, res) => {
     try {
+        if (await settlementOutsideCity(req, res)) return;
         // 🧾 تحويل إيصال التسوية من Base64 إلى ملف قبل التخزين (بدل حشوه في المستند)
         const { saveBase64ToUploads } = require('../utils/imageUpload');
         const savedReceipt = saveBase64ToUploads(req.body.receiptImage, 'proofs');
@@ -749,6 +762,7 @@ router.put('/admin/settlements/:id/approve', protect, adminOnly, requireAnyPermi
 // PUT /api/merchant-erp/admin/settlements/:id/reject
 router.put('/admin/settlements/:id/reject', protect, adminOnly, requireAnyPermission(['manage_settlements', 'manage_finance']), async (req, res) => {
     try {
+        if (await settlementOutsideCity(req, res)) return;
         const settlement = await SettlementRequest.findOneAndUpdate(
             { _id: req.params.id, status: 'pending' },
             {
@@ -786,6 +800,10 @@ router.put('/admin/places/:id/tier', protect, adminOnly, requirePermission('mana
         const { tier } = req.body;
         if (!['basic', 'pro'].includes(tier)) {
             return res.status(400).json({ message: 'الباقة يجب أن تكون basic أو pro' });
+        }
+        {
+            const cur = await Place.findById(req.params.id).select('city').lean();
+            if (cur && denyOutsideCity(req, res, cur.city)) return;
         }
         const place = await Place.findByIdAndUpdate(
             req.params.id,

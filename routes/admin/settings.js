@@ -14,7 +14,7 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, isSubAdmin, adminCities, adminCoversCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -27,7 +27,9 @@ const SessionRequest = require('../../models/SessionRequest');
 router.get('/settings', protect, adminOnly, async (req, res) => {
     try {
         const VALID_CITIES = CITY_KEYS;
-        const city = VALID_CITIES.includes(req.query.city) ? req.query.city : 'Khartoum';
+        let city = VALID_CITIES.includes(req.query.city) ? req.query.city : 'Khartoum';
+        // 🌍 الأدمن المساعد يقرأ إعدادات مدنه وحدها
+        if (isSubAdmin(req) && !adminCoversCity(req.user, city)) city = adminCities(req.user)[0] || city;
         // 🌍 Uses getSettings(city) — auto-creates doc with defaults if missing
         const settings = await Settings.getSettings(city);
         // 🔒 الوثائق السابقة للميزة لا تحمل الحقل (lean بلا افتراضيات)، فيصل
@@ -337,7 +339,8 @@ const GROUP_LINK_RX = /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]/;
 router.get('/group-links', protect, adminOnly, async (req, res) => {
     try {
         const cities = [];
-        for (const city of CITY_KEYS) {
+        // 🌍 الأدمن المساعد يرى روابط مجموعات مدنه وحدها
+        for (const city of (isSubAdmin(req) ? adminCities(req.user) : CITY_KEYS)) {
             const s = await Settings.getSettings(city);
             cities.push({
                 city, label: cityLabel(city),

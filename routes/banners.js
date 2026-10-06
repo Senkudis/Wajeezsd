@@ -4,7 +4,21 @@ const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const Banner = require('../models/Banner');
-const { protect, superAdminOnly, requirePermission } = require('../middleware/authMiddleware');
+const { protect, superAdminOnly, requirePermission, isSubAdmin, adminCities, adminCoversCity } = require('../middleware/authMiddleware');
+
+// 🌍 البانرات: city = 'all' (كل المدن) أو مدينة. الأدمن المساعد يرى بانرات مدنه
+//    والعامّة، ويُنشئ ويعدّل ويحذف لمدنه وحدها — البانر العام يخصّ كل المدن.
+const bannerCityFor = (req, requested) => {
+    if (!isSubAdmin(req)) return requested || 'all';
+    const mine = adminCities(req.user);
+    return mine.includes(requested) ? requested : (mine[0] || 'Khartoum');
+};
+const bannerOutsideCity = (req, res, banner) => {
+    if (!isSubAdmin(req) || !banner) return false;
+    if (banner.city !== 'all' && adminCoversCity(req.user, banner.city)) return false;
+    res.status(403).json({ message: 'هذا البانر خارج نطاق مدينتك' });
+    return true;
+};
 const logger = require('../utils/logger');
 
 // ═══════════════════════════════════════════════
@@ -70,7 +84,8 @@ router.post('/:id/click', async (req, res) => {
 // @access Super Admin
 router.get('/admin/all', protect, requirePermission('manage_banners'), async (req, res) => {
     try {
-        const banners = await Banner.find()
+        const q = isSubAdmin(req) ? { city: { $in: [...adminCities(req.user), 'all'] } } : {};
+        const banners = await Banner.find(q)
             .populate('createdBy', 'name')
             .sort({ sortOrder: 1, createdAt: -1 });
         res.json(banners);
@@ -97,7 +112,7 @@ router.post('/admin', protect, requirePermission('manage_banners'), async (req, 
             link:       link       || '',
             targetType: targetType || 'none',
             targetId:   targetId   || '',
-            city:       city       || 'all',
+            city:       bannerCityFor(req, city),
             placement:  ['all', 'home', 'shop'].includes(placement) ? placement : 'all',
             sortOrder:  sortOrder  || 0,
             isActive:   isActive   !== undefined ? isActive : true,
@@ -119,6 +134,8 @@ router.put('/admin/:id', protect, requirePermission('manage_banners'), async (re
     try {
         const banner = await Banner.findById(req.params.id);
         if (!banner) return res.status(404).json({ message: 'البانر غير موجود' });
+        if (bannerOutsideCity(req, res, banner)) return;
+        if (isSubAdmin(req) && req.body.city !== undefined) req.body.city = bannerCityFor(req, req.body.city);
 
         const fields = ['title', 'image_url', 'link', 'targetType', 'targetId', 'city', 'placement', 'sortOrder', 'isActive', 'expiresAt'];
         fields.forEach(f => {
@@ -138,6 +155,7 @@ router.put('/admin/:id', protect, requirePermission('manage_banners'), async (re
 // @access Super Admin
 router.delete('/admin/:id', protect, requirePermission('manage_banners'), async (req, res) => {
     try {
+        if (bannerOutsideCity(req, res, await Banner.findById(req.params.id).select('city').lean())) return;
         const banner = await Banner.findByIdAndDelete(req.params.id);
         if (!banner) return res.status(404).json({ message: 'البانر غير موجود' });
         res.json({ message: 'تم حذف البانر بنجاح' });

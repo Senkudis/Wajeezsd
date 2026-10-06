@@ -14,7 +14,7 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, isSubAdmin, adminCities } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -51,6 +51,8 @@ router.get('/activity-log', protect, requirePermission('view_activity_log'), asy
         const filter = {};
         if (req.query.action)  filter.action  = req.query.action;
         if (req.query.adminId) filter.admin   = req.query.adminId;
+        // 🌍 الأدمن المساعد يرى ما جرى في مدنه وحدها (السجلّ يحفظ مدينة كل فعل)
+        if (isSubAdmin(req)) filter.city = { $in: adminCities(req.user) };
         if (req.query.from || req.query.to) {
             filter.createdAt = {};
             if (req.query.from) filter.createdAt.$gte = new Date(req.query.from);

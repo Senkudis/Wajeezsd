@@ -4,7 +4,7 @@ const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
 router.param('id', validateObjectId);
 const Notification = require('../models/Notification');
-const { protect, requirePermission } = require('../middleware/authMiddleware');
+const { protect, requirePermission, adminCanActOnUser } = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
 
 // @route   GET /api/notifications
@@ -63,6 +63,14 @@ router.get('/unread-count', protect, async (req, res) => {
 router.post('/', protect, requirePermission('send_notifications'), async (req, res) => {
     try {
         const { userId, title, message, type } = req.body;
+
+        // 🌍 الأدمن المساعد لا يرسل لمستخدمٍ خارج مدنه
+        if (req.user.adminRole === 'sub_admin') {
+            const target = await require('../models/User').findById(userId).select('city role').lean();
+            if (!target || !adminCanActOnUser(req, target)) {
+                return res.status(403).json({ message: 'هذا المستخدم خارج نطاق مدينتك' });
+            }
+        }
 
         // 1. حفظ الإشعار في قاعدة البيانات
         const notification = await Notification.create({

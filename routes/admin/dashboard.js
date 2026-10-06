@@ -14,7 +14,8 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission, requireAnyPermission, getAdminCityFilter } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, requireAnyPermission, getAdminCityFilter,
+    isSubAdmin, adminCities, scopedUserIds } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -33,9 +34,15 @@ const DASHBOARD_CACHE_TTL = 30000; // 30 seconds
 router.get('/dashboard', protect, requirePermission('view_revenue'), async (req, res) => {
     try {
         const now = Date.now();
-        if (_dashboardCache && (now - _dashboardCacheTime) < DASHBOARD_CACHE_TTL) {
+        // 🌍 الأدمن المساعد يرى أرقام مدنه وحدها — بلا الذاكرة المؤقتة المشتركة
+        //    (هي أرقام كل المدن، ولا تُخدم له)
+        const sub = isSubAdmin(req);
+        if (!sub && _dashboardCache && (now - _dashboardCacheTime) < DASHBOARD_CACHE_TTL) {
             return res.json(_dashboardCache);
         }
+        const cityQ = sub ? getAdminCityFilter(req) : {};
+        const cityList = sub ? adminCities(req.user) : CITY_KEYS;
+        const scopedCaps = sub ? await scopedUserIds(req, { role: 'captain' }) : null;
 
         // تشغيل جميع الاستعلامات في وقت واحد لتسريع التحميل
         const [
@@ -48,20 +55,22 @@ router.get('/dashboard', protect, requirePermission('view_revenue'), async (req,
             recentOrders,
             cityStats
         ] = await Promise.all([
-            User.countDocuments({ role: 'captain' }),
-            User.countDocuments({ role: { $in: ['client', 'customer'] } }),
-            Order.countDocuments({}),
+            User.countDocuments({ role: 'captain', ...cityQ }),
+            User.countDocuments({ role: { $in: ['client', 'customer'] }, ...cityQ }),
+            Order.countDocuments({ ...cityQ }),
             Order.aggregate([
-                { $match: { status: 'delivered' } },
+                { $match: { status: 'delivered', ...cityQ } },
                 { $group: { _id: null, total: { $sum: "$appFee" } } }
             ]),
             require('../../models/DebtAdjustment').aggregate([
+                ...(scopedCaps ? [{ $match: { captain: { $in: scopedCaps } } }] : []),
                 { $group: { _id: '$mode', total: { $sum: '$amount' } } }
             ]),
             Order.aggregate([
+                ...(sub ? [{ $match: cityQ }] : []),
                 { $group: { _id: "$status", count: { $sum: 1 } } }
             ]),
-            Order.find()
+            Order.find({ ...cityQ })
                 .select('status price pickup dropoff createdAt client captain city')
                 .populate('client', 'name phone')
                 .populate('captain', 'name phone')
@@ -69,7 +78,7 @@ router.get('/dashboard', protect, requirePermission('view_revenue'), async (req,
                 .limit(5)
                 .lean(),
             // 🌍 Per-city breakdown for admin panel city selector
-            Promise.all(CITY_KEYS.map(async (c) => ({
+            Promise.all(cityList.map(async (c) => ({
                 city: c,
                 captains: await User.countDocuments({ role: 'captain', city: c }),
                 clients:  await User.countDocuments({ role: { $in: ['client', 'customer'] }, city: c }),
@@ -116,8 +125,10 @@ router.get('/dashboard', protect, requirePermission('view_revenue'), async (req,
             cityBreakdown: cityStats
         };
 
-        _dashboardCache = responseData;
-        _dashboardCacheTime = now;
+        if (!sub) {
+            _dashboardCache = responseData;
+            _dashboardCacheTime = now;
+        }
 
         res.json(responseData);
 

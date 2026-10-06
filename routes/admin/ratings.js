@@ -13,7 +13,7 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, scopedUserIds, scopedPlaceIds } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
 const bcrypt = require('bcryptjs');
@@ -30,6 +30,9 @@ router.get('/ratings', protect, requirePermission('view_feedback'), async (req, 
         const filter = {};
         if (req.query.targetType) filter.targetType = req.query.targetType;
         if (req.query.isHidden)   filter.isHidden   = req.query.isHidden === 'true';
+        // 🌍 الأدمن المساعد: تقييمات كباتن ومتاجر مدنه وحدها
+        const [caps, places] = await Promise.all([scopedUserIds(req, { role: 'captain' }), scopedPlaceIds(req)]);
+        if (caps) filter.$or = [{ captain: { $in: caps } }, { place: { $in: places } }];
 
         const [ratings, total] = await Promise.all([
             Rating.find(filter)

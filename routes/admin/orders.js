@@ -14,7 +14,7 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, adminCoversCity } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, adminCoversCity, denyOutsideCity } = require('../../middleware/authMiddleware');
 const { logAdminAction } = require('../../utils/adminLogger');
 const { releasePromoUsage } = require('../../utils/promoRelease');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
@@ -174,6 +174,8 @@ router.post('/shop-orders/:id/republish', protect, requirePermission('manage_ord
 
         const place = await Place.findById(shopOrder.place);
         if (!place) return res.status(404).json({ message: 'متجر الطلب غير موجود' });
+        // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
+        if (denyOutsideCity(req, res, place.city)) return;
 
         const result = await republishShopOrder(shopOrder, place);
         if (!result.created) return res.status(400).json({ message: result.reason });
@@ -303,6 +305,12 @@ router.put('/shop-orders/:id/cancel-force', protect, requirePermission('manage_o
         const ShopOrder = require('../../models/ShopOrder');
         const shopOrder = await ShopOrder.findById(req.params.id);
         if (!shopOrder) return res.status(404).json({ message: 'الطلب غير موجود' });
+        {
+            const Place = require('../../models/Place');
+            const pl = await Place.findById(shopOrder.place).select('city').lean();
+            // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
+            if (denyOutsideCity(req, res, pl && pl.city)) return;
+        }
 
         if (shopOrder.status === 'cancelled') {
             return res.status(400).json({ message: 'الطلب ملغي مسبقاً' });
@@ -482,6 +490,8 @@ router.put('/orders/:id/cancel-force', protect, requirePermission('manage_orders
     try {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
+        if (denyOutsideCity(req, res, order.city)) return;
 
         if (order.status === 'delivered') {
             return res.status(400).json({ message: 'لا يمكن إلغاء طلب تم توصيله بالفعل' });
@@ -797,8 +807,9 @@ router.post('/orders/:id/remind-captains', protect, requirePermission('manage_or
         }
 
         // 🌍 sub_admin لا يُنبّه كباتن مدينة أخرى
-        const cityFilter = getAdminCityFilter(req);
-        if (cityFilter && cityFilter.city && cityFilter.city !== order.city) {
+        // كانت مساواةً نصّية مع getAdminCityFilter — ومن يشرف على مدينتين فلتره
+        // { $in: [...] } فيُرفض حتى في مدنه. adminCoversCity يفهم الحالتين.
+        if (!adminCoversCity(req.user, order.city || 'Khartoum')) {
             return res.status(403).json({ message: 'هذا الطلب خارج مدينتك' });
         }
 
@@ -875,6 +886,8 @@ router.put('/orders/:id/route', protect, requirePermission('manage_orders'), asy
     try {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
+        if (denyOutsideCity(req, res, order.city)) return;
 
         // 🚫 رحلةٌ انتهت لا مسار لها يُعدَّل — والتعديل بعدها يُفسد المحاسبة
         if (['delivered', 'cancelled'].includes(order.status)) {
@@ -1015,6 +1028,8 @@ router.post('/orders/:id/route-quote', protect, requirePermission('manage_orders
     try {
         const order = await Order.findById(req.params.id).select('city').lean();
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
+        if (denyOutsideCity(req, res, order.city)) return;
 
         const stops = Array.isArray(req.body.stops) ? req.body.stops : [];
         if (stops.length < 2) return res.json({ pricing: null });
@@ -1032,6 +1047,8 @@ router.put('/orders/:id', protect, requirePermission('manage_orders'), async (re
     try {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
+        if (denyOutsideCity(req, res, order.city)) return;
 
         const oldStatus = order.status; // ✅ Track old status to detect changes
 
