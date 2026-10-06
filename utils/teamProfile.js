@@ -58,6 +58,10 @@ function deriveJobTitles(user) {
             const city = CITY_LABELS[user.city];
             return [city ? `مشرف ${city}` : 'مشرف'];
         }
+        if (user.adminRole === 'staff') {
+            const city = CITY_LABELS[user.city];
+            return [city ? `موظف ${city}` : 'موظف'];
+        }
         return ['مدير النظام'];
     }
 

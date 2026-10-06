@@ -480,7 +480,7 @@ function setupCities() {
     const sel = document.getElementById('liveCitySelector');
     if (!sel) return;
     const valid = Array.from(sel.options).map(o => o.value);
-    if (userObj && userObj.adminRole === 'sub_admin') {
+    if (userObj && (userObj.adminRole === 'sub_admin' || userObj.adminRole === 'staff')) {
         const mine = (Array.isArray(userObj.cities) && userObj.cities.length ? userObj.cities : [userObj.city])
             .filter(c => valid.includes(c));
         if (mine.length) {

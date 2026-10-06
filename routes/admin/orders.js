@@ -14,7 +14,15 @@ const AdminLog = require('../../models/AdminLog');
 const PromoCode = require('../../models/PromoCode');
 const Rating = require('../../models/Rating');
 const Banner = require('../../models/Banner');
-const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, adminCoversCity, denyOutsideCity } = require('../../middleware/authMiddleware');
+const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilter, adminCoversCity, denyOutsideCity,
+    staffPlaceList, placeInStaffScope } = require('../../middleware/authMiddleware');
+
+/** 🏪 طلب متجرٍ ليس من متاجر الموظف المحصور — true إن رُفض */
+function shopOutsideStaff(req, res, placeId) {
+    if (placeInStaffScope(req.user, placeId)) return false;
+    res.status(403).json({ message: 'هذا المتجر ليس ضمن المتاجر المسندة إليك' });
+    return true;
+}
 const { logAdminAction } = require('../../utils/adminLogger');
 const { releasePromoUsage } = require('../../utils/promoRelease');
 const { normalizePhone } = require('../../utils/phoneNormalizer');
@@ -176,6 +184,7 @@ router.post('/shop-orders/:id/republish', protect, requirePermission('manage_ord
         if (!place) return res.status(404).json({ message: 'متجر الطلب غير موجود' });
         // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
         if (denyOutsideCity(req, res, place.city)) return;
+        if (shopOutsideStaff(req, res, place._id)) return;
 
         const result = await republishShopOrder(shopOrder, place);
         if (!result.created) return res.status(400).json({ message: result.reason });
@@ -245,6 +254,10 @@ router.get('/shop-orders', protect, requirePermission('view_orders'), async (req
             placeScope = cityPlaces.map(p => p._id);
         }
 
+        // 🏪 الموظف المحصور في متاجر يرى طلباتها وحدها
+        const pinned = staffPlaceList(req.user);
+        if (pinned) placeScope = placeScope ? placeScope.filter(id => pinned.includes(String(id))) : pinned;
+
         const filter = { status: { $ne: 'chat_initiated' } }; // محادثات بلا طلب لا تُعرض
         if (placeScope) filter.place = { $in: placeScope };
         if (req.query.status && req.query.status !== 'all') filter.status = req.query.status;
@@ -310,6 +323,7 @@ router.put('/shop-orders/:id/cancel-force', protect, requirePermission('manage_o
             const pl = await Place.findById(shopOrder.place).select('city').lean();
             // 🌍 الأدمن المساعد لا يعدّل طلباً خارج مدنه ولو عرف معرّفه
             if (denyOutsideCity(req, res, pl && pl.city)) return;
+            if (shopOutsideStaff(req, res, shopOrder.place)) return;
         }
 
         if (shopOrder.status === 'cancelled') {

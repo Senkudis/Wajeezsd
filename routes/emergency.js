@@ -53,9 +53,10 @@ router.post('/alert', protect, sosLimiter, async (req, res) => {
             const targetAdmins = await User.find({
                 role: 'admin',
                 isActive: true,
+                // فحصٌ إيجابيّ: كان «ليس sub_admin» فيصل الموظفَ نجدةُ كل المدن
                 $or: [
-                    { adminRole: { $ne: 'sub_admin' } },                 // super_admin + الأدمن القديم (null)
-                    { adminRole: 'sub_admin', city: captain.city }        // المساعد المسؤول عن مدينة الكابتن
+                    { adminRole: { $in: [null, 'super_admin'] } },       // الأكبر + الأدمن القديم
+                    { adminRole: 'sub_admin', $or: [{ cities: captain.city }, { city: captain.city }] }
                 ]
             }).select('_id');
 

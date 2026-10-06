@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <script src="js/admin-guard.js?v=691df92a" data-perm="__super__"></script>
+    <script src="js/admin-guard.js?v=c78a813b" data-perm="__manager__"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>إدارة الأدمن المساعد | وجيز</title>
@@ -69,6 +69,11 @@
         
         .badge-role { background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
         .badge-super { background: #fef08a; color: #854d0e; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .badge-staff { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .role-help { font-size: 12.5px; color: #64748b; margin-top: 6px; line-height: 1.7; }
+        #staffPlacesList { max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; }
+        #staffPlacesList .form-check { padding-block: 3px; }
+        .place-city { color: #94a3b8; font-size: 12px; }
         .perms-list { display: flex; gap: 6px; flex-wrap: wrap; }
         .perm-tag { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
 
@@ -143,7 +148,7 @@ body.dark-mode .req-name { color: #f9fafb !important; }
         <div class="topbar-brand">
             <span class="dot"></span>
             <i class="fas fa-users-cog" style="color:var(--brand, var(--primary));margin-left:4px;" aria-hidden="true"></i>
-            الأدمن المساعد والمشرفين
+            الفريق والصلاحيات
         </div>
         <div class="d-flex align-items-center gap-2" style="display:flex;align-items:center;gap:8px;">
             <button aria-label="تبديل الوضع الليلي" class="admin-icon-btn header-theme-toggle" data-theme-toggle title="تبديل الوضع الليلي">
@@ -176,9 +181,9 @@ body.dark-mode .req-name { color: #f9fafb !important; }
         </div>
 
         <div class="header-actions">
-            <h2>إدارة مديري النظام</h2>
+            <h2 id="pageTitle">الفريق والصلاحيات</h2>
             <button class="btn-brand" onclick="openCreateModal()">
-                <i class="fas fa-plus" aria-hidden="true"></i> إضافة أدمن
+                <i class="fas fa-plus" aria-hidden="true"></i> <span id="addBtnLabel">إضافة عضو</span>
             </button>
         </div>
 
@@ -264,18 +269,32 @@ body.dark-mode .req-name { color: #f9fafb !important; }
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">نوع الأدمن</label>
-                                <select class="form-select" id="aRole">
-                                    <option value="sub_admin">أدمن مساعد (صلاحيات محدودة)</option>
-                                    <option value="super_admin">أدمن رئيسي (صلاحيات كاملة)</option>
+                                <label class="form-label">الدرجة</label>
+                                <select class="form-select" id="aRole" onchange="onRoleChange()">
+                                    <option value="staff">موظف مسؤول (قسم عمل أو متاجر بعينها)</option>
+                                    <option value="sub_admin">إداري (مدنه وصلاحياته، ويعيّن موظفين)</option>
+                                    <option value="super_admin">إداري أكبر — شريك (كل المدن وكل الصلاحيات)</option>
                                 </select>
+                                <div class="role-help" id="roleHelp"></div>
                             </div>
                         </div>
 
                         <hr>
-                        <h6 style="font-weight: 800; margin-bottom: 15px;">الصلاحيات المخصصة (للأدمن المساعد فقط)</h6>
-                        <div class="perm-grid" id="permissionsGrid">
-                            <!-- Populated via JS -->
+                        <div id="permsBlock">
+                            <h6 style="font-weight: 800; margin-bottom: 6px;">الصلاحيات (قسم العمل)</h6>
+                            <div class="role-help" id="permsHelp" style="margin-bottom:12px;"></div>
+                            <div class="perm-grid" id="permissionsGrid">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+
+                        <!-- 🏪 الموظف المحصور في متاجر بعينها -->
+                        <div id="staffPlacesBlock" style="display:none;margin-top:18px;">
+                            <hr>
+                            <h6 style="font-weight: 800; margin-bottom: 6px;">المتاجر المسندة إليه (اختياري)</h6>
+                            <div class="role-help" style="margin-bottom:10px;">بلا اختيار يتابع كل متاجر مدنه. باختيار متاجر يرى طلباتها ومنتجاتها وتسوياتها وحدها.</div>
+                            <input type="search" class="form-control mb-2" id="placeSearch" placeholder="ابحث عن متجر..." oninput="renderPlacesPicker()">
+                            <div id="staffPlacesList"><div class="text-muted small">جاري تحميل المتاجر...</div></div>
                         </div>
                     </form>
                 </div>
@@ -333,6 +352,20 @@ body.dark-mode .req-name { color: #f9fafb !important; }
 
         let admins = [];
         let modalInstance;
+        let allPlaces = [];
+        let pickedPlaces = new Set();
+
+        // من يفتح الصفحة: الأكبر يدير الجميع، والإداري يعيّن موظفيه في مدنه
+        // وبصلاحياته هو (الخادم يفرض ذلك أيضاً — الواجهة لا تُؤتمن)
+        const ME = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null') || {}; } catch (_) { return {}; } })();
+        const ME_SUPER = !ME.adminRole || ME.adminRole === 'super_admin';
+        const MY_CITIES = (ME.cities && ME.cities.length) ? ME.cities : [ME.city || 'Khartoum'];
+        const MY_PERMS = ME.permissions || [];
+        const ROLE_HELP = {
+            super_admin: 'شريك: يرى كل المدن وكل الإحصاءات وسجلّ كل الإداريين، ويعدّل الإعدادات والحساب البنكي، ويدير الفريق كله.',
+            sub_admin: 'إداري: يعمل في المدن المختارة بالصلاحيات المختارة، ويعيّن موظفين ضمن صلاحياته ومدنه.',
+            staff: 'موظف مسؤول: قسم عمل محدّد (الصلاحيات المختارة) في المدن المختارة — ويمكن حصره في متاجر بعينها.'
+        };
 
         function init() {
             modalInstance = new bootstrap.Modal(document.getElementById('adminModal'));
@@ -346,8 +379,65 @@ body.dark-mode .req-name { color: #f9fafb !important; }
                 </div>
             `).join('');
 
+            // الإداري: يعيّن موظفين فقط، في مدنه، وبصلاحياته
+            if (!ME_SUPER) {
+                document.getElementById('pendingSection').style.display = 'none';
+                document.querySelectorAll('#aRole option').forEach(o => { if (o.value !== 'staff') o.remove(); });
+                document.querySelectorAll('.perm-cb').forEach(cb => {
+                    if (!MY_PERMS.includes(cb.value)) cb.closest('.form-check').remove();
+                });
+                document.querySelectorAll('.city-cb').forEach(cb => {
+                    if (!MY_CITIES.includes(cb.value)) cb.closest('.form-check').remove();
+                });
+                document.getElementById('pageTitle').textContent = 'موظفوك';
+                document.getElementById('addBtnLabel').textContent = 'تعيين موظف';
+            }
+            loadPlaces();
             loadAdmins();
         }
+
+        async function loadPlaces() {
+            try {
+                const r = await fetch(`${BASE}/api/places?city=all`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = r.ok ? await r.json() : [];
+                const list = Array.isArray(data) ? data : (data.places || []);
+                allPlaces = list.map(p => ({ id: p._id, name: p.name, city: p.city || 'Khartoum' }));
+            } catch (_) { allPlaces = []; }
+            renderPlacesPicker();
+        }
+
+        // المتاجر المعروضة: داخل المدن المختارة للموظف وحدها
+        function renderPlacesPicker() {
+            const box = document.getElementById('staffPlacesList');
+            if (!box) return;
+            const cities = Array.from(document.querySelectorAll('.city-cb:checked')).map(cb => cb.value);
+            const q = (document.getElementById('placeSearch').value || '').trim();
+            const rows = allPlaces.filter(p => cities.includes(p.city) && (!q || p.name.includes(q)));
+            // متجرٌ خرج من المدن المختارة لا يبقى مختاراً
+            const inCities = new Set(allPlaces.filter(p => cities.includes(p.city)).map(p => p.id));
+            pickedPlaces = new Set([...pickedPlaces].filter(id => inCities.has(id)));
+            if (!rows.length) { box.innerHTML = '<div class="text-muted small">لا متاجر في المدن المختارة</div>'; return; }
+            box.innerHTML = rows.map(p => `
+                <div class="form-check">
+                    <input class="form-check-input place-cb" type="checkbox" value="${window.escapeHtml(p.id)}" id="pl_${window.escapeHtml(p.id)}"
+                        ${pickedPlaces.has(p.id) ? 'checked' : ''} onchange="togglePlace(this)">
+                    <label class="form-check-label" for="pl_${window.escapeHtml(p.id)}">${window.escapeHtml(p.name)}
+                        <span class="place-city">· ${window.escapeHtml(WajeezCities.label(p.city))}</span></label>
+                </div>`).join('');
+        }
+        function togglePlace(cb) { if (cb.checked) pickedPlaces.add(cb.value); else pickedPlaces.delete(cb.value); }
+
+        function onRoleChange() {
+            const role = document.getElementById('aRole').value;
+            document.getElementById('roleHelp').textContent = ROLE_HELP[role] || '';
+            document.getElementById('permsBlock').style.display = role === 'super_admin' ? 'none' : '';
+            document.getElementById('staffPlacesBlock').style.display = role === 'staff' ? '' : 'none';
+            document.getElementById('permsHelp').textContent = ME_SUPER
+                ? 'اختر ما يُسمح له به — كل ما لا تختاره ممنوعٌ عليه.'
+                : 'تقدر تمنحه من صلاحياتك أنت فقط.';
+            renderPlacesPicker();
+        }
+        document.addEventListener('change', (e) => { if (e.target && e.target.classList.contains('city-cb')) renderPlacesPicker(); });
 
         // عودة الاتصال تُعيد الجلب بلا ضغطة
         if (window.UIState) UIState.onReconnect(function () { loadAdmins(); });
@@ -375,9 +465,14 @@ body.dark-mode .req-name { color: #f9fafb !important; }
 
             tbody.innerHTML = admins.map(a => {
                 const isSuper = !a.adminRole || a.adminRole === 'super_admin';
-                const roleBadge = isSuper 
-                    ? `<span class="badge-super"><i class="fas fa-star" aria-hidden="true"></i> رئيسي</span>` 
-                    : `<span class="badge-role">مساعد</span>`;
+                const roleBadge = isSuper
+                    ? `<span class="badge-super"><i class="fas fa-star" aria-hidden="true"></i> إداري أكبر</span>`
+                    : a.adminRole === 'staff'
+                        ? `<span class="badge-staff">موظف مسؤول</span>`
+                        : `<span class="badge-role">إداري</span>`;
+                const placesHtml = (a.adminRole === 'staff' && a.staffPlaces && a.staffPlaces.length)
+                    ? `<div style="margin-top:6px;">${a.staffPlaces.map(pl => `<span class="perm-tag" style="background:#ecfdf5;color:#065f46;"><i class="fas fa-store" aria-hidden="true"></i> ${window.escapeHtml(pl.name || '')}</span>`).join('')}</div>`
+                    : '';
                 
                 const statusStr = a.isActive 
                     ? `<span style="color:#16a34a; font-weight:700;"><i class="fas fa-check-circle" aria-hidden="true"></i> نشط</span>`
@@ -391,13 +486,13 @@ body.dark-mode .req-name { color: #f9fafb !important; }
 
                 return `
                     <tr>
-                        <td><strong>${a.name}</strong></td>
-                        <td dir="ltr" style="text-align:right;">${a.phone}</td>
+                        <td><strong>${window.escapeHtml(a.name || '')}</strong></td>
+                        <td dir="ltr" style="text-align:right;">${window.escapeHtml(a.phone || '')}</td>
                         <td>${((a.cities && a.cities.length) ? a.cities : [a.city || 'Khartoum'])
                             .map(c => window.escapeHtml(WajeezCities.label(c))).join(' + ')}</td>
                         <td>${roleBadge}</td>
                         <td style="max-width:250px;">
-                            <div class="perms-list">${permsHtml}</div>
+                            <div class="perms-list">${permsHtml}</div>${placesHtml}
                         </td>
                         <td>${statusStr}</td>
                         <td>
@@ -414,13 +509,18 @@ body.dark-mode .req-name { color: #f9fafb !important; }
         function openCreateModal() {
             document.getElementById('adminForm').reset();
             document.getElementById('adminId').value = '';
-            document.getElementById('modalTitle').innerText = 'إضافة أدمن جديد';
+            document.getElementById('modalTitle').innerText = 'إضافة عضو للفريق';
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('aPassword').required = true;
             document.getElementById('aName').disabled = false;
             document.getElementById('aPhone').disabled = false;
             // نطاق افتراضي للحساب الجديد: الخرطوم (reset أعاد الصناديق لحالها)
-            document.querySelectorAll('.city-cb').forEach(cb => { cb.checked = cb.value === 'Khartoum'; });
+            const firstCity = MY_CITIES[0] || 'Khartoum';
+            document.querySelectorAll('.city-cb').forEach(cb => { cb.checked = ME_SUPER ? cb.value === 'Khartoum' : cb.value === firstCity; });
+            document.getElementById('aRole').value = ME_SUPER ? 'sub_admin' : 'staff';
+            pickedPlaces = new Set();
+            document.getElementById('placeSearch').value = '';
+            onRoleChange();
             modalInstance.show();
         }
 
@@ -430,7 +530,7 @@ body.dark-mode .req-name { color: #f9fafb !important; }
 
             document.getElementById('adminForm').reset();
             document.getElementById('adminId').value = a._id;
-            document.getElementById('modalTitle').innerText = `تعديل الأدمن: ${a.name}`;
+            document.getElementById('modalTitle').innerText = `تعديل: ${a.name}`;
             
             document.getElementById('aName').value = a.name;
             document.getElementById('aName').disabled = true; // No edit for name/phone for now
@@ -447,10 +547,13 @@ body.dark-mode .req-name { color: #f9fafb !important; }
 
             document.getElementById('aStatus').value = a.isActive ? 'true' : 'false';
             document.getElementById('aRole').value = a.adminRole || 'super_admin';
+            pickedPlaces = new Set((a.staffPlaces || []).map(pl => String(pl._id || pl)));
+            document.getElementById('placeSearch').value = '';
 
             document.querySelectorAll('.perm-cb').forEach(cb => {
                 cb.checked = (a.permissions || []).includes(cb.value);
             });
+            onRoleChange();
 
             modalInstance.show();
         }
@@ -472,9 +575,11 @@ body.dark-mode .req-name { color: #f9fafb !important; }
                 return;
             }
 
+            const role = document.getElementById('aRole').value;
             const payload = {
-                permissions: selectedPerms,
-                adminRole: document.getElementById('aRole').value,
+                permissions: role === 'super_admin' ? [] : selectedPerms,
+                adminRole: role,
+                staffPlaces: role === 'staff' ? [...pickedPlaces] : [],
                 isActive: document.getElementById('aStatus').value === 'true',
                 // تُرسَل في الإنشاء والتعديل معاً: تغيير نطاق أدمنٍ قائم هو
                 // أكثر ما يُحتاج — لا إنشاؤه من جديد.
@@ -639,7 +744,7 @@ body.dark-mode .req-name { color: #f9fafb !important; }
         }
 
         // فحص تلقائي كل 15 ثانية
-        loadPendingRequests();
+        if (ME_SUPER) loadPendingRequests();
         setInterval(loadPendingRequests, 15000);
 
     </script>

@@ -190,7 +190,7 @@ socket.on('new_notification', (data) => {
 socket.on('emergency_alert', (data) => {
     if (!data) return;
     // الأدمن المساعد يتلقّى نجدات مدينته فقط
-    if (userObj && userObj.adminRole === 'sub_admin' && data.city && data.city !== userObj.city) return;
+    if (userObj && (userObj.adminRole === 'sub_admin' || userObj.adminRole === 'staff') && data.city && data.city !== userObj.city) return;
     handleEmergencyAlert(data);
 });
 
@@ -363,7 +363,8 @@ function applyAdminPermissionsUI() {
     if (isSuperAdmin()) return; // المسؤول الرئيسي يرى كل شيء
     document.querySelectorAll('.gv-nav-item[data-perm]').forEach(btn => {
         const need = btn.getAttribute('data-perm');
-        const allowed = need !== '__super__' && hasPerm(need);
+        const allowed = need === '__manager__' ? (userObj && userObj.adminRole === 'sub_admin')
+            : (need !== '__super__' && hasPerm(need));
         if (!allowed) btn.style.display = 'none';
     });
 }
@@ -486,7 +487,8 @@ document.addEventListener('keydown', (e) => {
 // ── Dashboard / Overview ──
 async function loadDashboard() {
     try {
-        const isSubAdmin = userObj && userObj.adminRole === 'sub_admin';
+        // الإداري والموظف مقيّدان — كلاهما لا يرى الأرباح ولا كل المدن
+        const isSubAdmin = userObj && (userObj.adminRole === 'sub_admin' || userObj.adminRole === 'staff');
 
         // إخفاء بطاقات الأرباح والعملاء عن الأدمن المساعد (التنقل يُدار في applyAdminPermissionsUI)
         if (isSubAdmin) {
@@ -1227,7 +1229,7 @@ async function loadCaptains() {
         //  فلتر المدينة (super_admin فقط؛ الأدمن المساعد مقيّد بمدينته في الباك-إند)
         const cityEl = document.getElementById('captainCityFilter');
         // إخفاء الفلتر عن الأدمن المساعد — هو مقيّد بمدينة واحدة
-        if (cityEl && userObj && userObj.adminRole === 'sub_admin') cityEl.style.display = 'none';
+        if (cityEl && userObj && (userObj.adminRole === 'sub_admin' || userObj.adminRole === 'staff')) cityEl.style.display = 'none';
         const city = cityEl ? cityEl.value : 'all';
         const cityQS = (city && city !== 'all') ? `?city=${city}` : '';
 

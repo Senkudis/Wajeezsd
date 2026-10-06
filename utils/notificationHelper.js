@@ -109,7 +109,8 @@ const notifyAdmins = async (app, { title, message, type, relatedId, city }) => {
 
         if (VALID_CITIES.includes(city)) {
             admins = admins.filter(a => {
-                if (a.adminRole !== 'sub_admin') return true;   // الرئيسي يرى الكل
+                // الأكبر (super_admin أو قديم بلا درجة) يرى الكل؛ الإداري والموظف مدنهما
+                if (!a.adminRole || a.adminRole === 'super_admin') return true;
                 const mine = (Array.isArray(a.cities) ? a.cities : []).filter(c => VALID_CITIES.includes(c));
                 return (mine.length ? mine : [a.city]).includes(city);
             });

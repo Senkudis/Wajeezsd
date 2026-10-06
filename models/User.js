@@ -254,12 +254,22 @@ const UserSchema = new mongoose.Schema(
         // 🔐 Admin Role & Permissions System
         // adminRole: تُحدد نوع الأدمن (super_admin له كل الصلاحيات، sub_admin له صلاحيات محددة)
         // null = ليس أدمن (لا يُطبق على المستخدمين العاديين)
+        // ثلاث درجات:
+        //   super_admin  الإداري الأكبر (الشركاء) — كل المدن وكل الصلاحيات،
+        //                ووحده يعدّل الإعدادات والحساب البنكي ويدير الإداريين
+        //   sub_admin    الإداري — مدنه وصلاحياته، ويعيّن موظفين ضمنها
+        //   staff        الموظف المسؤول — قسم عمل (صلاحيات) في مدنٍ، وقد يُحصر
+        //                في متاجر بعينها (staffPlaces). يعيّنه الأكبر أو الإداري
         adminRole: {
             type: String,
-            enum: ['super_admin', 'sub_admin'],
+            enum: ['super_admin', 'sub_admin', 'staff'],
             default: null,
             sparse: true
         },
+        // 🏪 الموظف المحصور في متاجر بعينها (فارغة = كل متاجر مدنه)
+        staffPlaces: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }],
+        // من عيّنه — الإداري يدير موظفيه وحدهم
+        adminCreatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
         // permissions: قائمة الصلاحيات المسموحة للـ sub_admin
         // مثال: ['view_orders', 'manage_captains', 'view_stats', 'view_map']
         permissions: {

@@ -14,7 +14,7 @@ const { protect, adminOnly, superAdminOnly, requirePermission, getAdminCityFilte
 
 /** 🌍 مستلمٌ واحد خارج مدن الأدمن المساعد يُرفض — true إن رُفض */
 async function recipientOutsideCity(req, res, userId) {
-    if (!req.user || req.user.adminRole !== 'sub_admin') return false;
+    if (!req.user || !require('../../middleware/authMiddleware').isScopedUser(req.user)) return false;
     const u = await User.findById(userId).select('city role').lean();
     if (u && adminCanActOnUser(req, u)) return false;
     res.status(403).json({ message: 'هذا المستخدم خارج نطاق مدينتك' });

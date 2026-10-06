@@ -83,10 +83,84 @@ router.get('/activity-log', protect, requirePermission('view_activity_log'), asy
 // @route   GET /api/admin/sub-admins
 // @desc    قائمة كل الأدمن
 
-router.get('/sub-admins', protect, superAdminOnly, async (req, res) => {
+// =========================================================
+// 👥 إدارة الإداريين — ثلاث درجات (أكتوبر 2026)
+//
+//   super_admin (الأكبر/الشركاء) يدير الجميع: يُنشئ أكبر وإداري وموظف،
+//     ويرقّي وينزّل ويحذف (أي شريكٍ يدير الشركاء — قرار المالك). الحارس
+//     الوحيد: لا يُنزَّل ولا يُحذف **آخر** أكبر، ولا يعدّل أحدٌ نفسه.
+//   sub_admin (الإداري) يدير **موظفيه** وحدهم: يعيّن موظفاً في مدنه هو،
+//     بصلاحياتٍ من صلاحياته هو — لا يمنح ما لا يملك (لا تصعيد).
+//   staff (الموظف المسؤول) لا يدير أحداً.
+// =========================================================
+const { isSuperUser, isScopedUser, adminCities: citiesOf } = require('../../middleware/authMiddleware');
+const ROLES = ['super_admin', 'sub_admin', 'staff'];
+
+/** يمرّ الأكبر والإداري — الموظف لا يدير أحداً */
+function adminManagerOnly(req, res, next) {
+    if (!req.user || req.user.role !== 'admin') return res.status(403).json({ message: 'غير مصرح' });
+    if (isSuperUser(req.user) || req.user.adminRole === 'sub_admin') return next();
+    return res.status(403).json({ message: 'غير مصرح — الموظف لا يدير الإداريين' });
+}
+
+/** هل يدير هذا الإداري ذاك الموظف؟ موظفٌ عيّنه، أو كل مدنه ضمن مدن الإداري */
+function managesStaff(manager, target) {
+    if (isSuperUser(manager)) return true;
+    if (manager.adminRole !== 'sub_admin' || !target || target.adminRole !== 'staff') return false;
+    if (target.adminCreatedBy && String(target.adminCreatedBy) === String(manager._id)) return true;
+    const mine = citiesOf(manager);
+    const theirs = citiesOf(target);
+    return theirs.length > 0 && theirs.every(c => mine.includes(c));
+}
+
+/**
+ * ما يُسمح للمُعيِّن بمنحه: الأكبر كل الصلاحيات والمدن؛ الإداري ما يملكه هو.
+ * يُرجع { permissions, cities } منقّاةً، أو { error }.
+ */
+function grantable(manager, permissions, cities) {
+    const perms = (Array.isArray(permissions) ? permissions : []).filter(p => VALID_PERMS.includes(p));
+    const cits = sanitizeCities(cities);
+    if (isSuperUser(manager)) return { permissions: perms, cities: cits };
+    const own = manager.permissions || [];
+    const extra = perms.filter(p => !own.includes(p));
+    if (extra.length) return { error: 'لا يمكنك منح صلاحياتٍ لا تملكها: ' + extra.join('، ') };
+    const mine = citiesOf(manager);
+    if (cits && cits.some(c => !mine.includes(c))) return { error: 'لا يمكنك تعيين موظفٍ في مدينةٍ خارج مدنك' };
+    return { permissions: perms, cities: cits && cits.length ? cits : mine };
+}
+
+/**
+ * متاجر الموظف المحصور: معرّفاتٌ صالحة لمتاجر موجودة **داخل مدنه** فقط —
+ * وإلا حُصر في متجرٍ لا يملك مدينته فلا يرى شيئاً، أو تسلّل لمدينةٍ أخرى.
+ */
+async function cleanStaffPlaces(list, cities) {
+    if (!Array.isArray(list)) return undefined;
+    const ids = list.filter(id => mongoose.Types.ObjectId.isValid(id));
+    if (!ids.length) return [];
+    const Place = require('../../models/Place');
+    const rows = await Place.find({ _id: { $in: ids }, city: { $in: cities } }).select('_id').lean();
+    return rows.map(r => r._id);
+}
+
+/** عدد الإداريين الكبار الفعّالين — لا يُنزَّل آخرهم ولا يُحذف */
+async function superCount() {
+    return User.countDocuments({ role: 'admin', $or: [{ adminRole: 'super_admin' }, { adminRole: null }] });
+}
+
+router.get('/sub-admins', protect, adminManagerOnly, async (req, res) => {
     try {
-        const admins = await User.find({ role: 'admin' })
+        let q = { role: 'admin' };
+        if (!isSuperUser(req.user)) {
+            // الإداري يرى موظفيه وحدهم
+            const mine = citiesOf(req.user);
+            q = { role: 'admin', adminRole: 'staff', $or: [
+                { adminCreatedBy: req.user._id },
+                { cities: { $not: { $elemMatch: { $nin: mine } } }, 'cities.0': { $exists: true } }
+            ] };
+        }
+        const admins = await User.find(q)
             .select('-password')
+            .populate('staffPlaces', 'name city')
             .sort({ createdAt: -1 });
         res.json(admins);
     } catch (error) {
@@ -95,46 +169,60 @@ router.get('/sub-admins', protect, superAdminOnly, async (req, res) => {
 });
 
 // @route   POST /api/admin/sub-admins
-// @desc    إنشاء أدمن مساعد جديد
+// @desc    إنشاء إداري أكبر / إداري / موظف مسؤول
 
-router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
+router.post('/sub-admins', protect, adminManagerOnly, async (req, res) => {
     try {
-        const { name, phone, password, permissions, city, cities } = req.body;
+        const { name, phone, password, permissions, city, cities, adminRole, staffPlaces } = req.body;
 
         if (!name || !phone || !password) {
             return res.status(400).json({ message: 'الاسم والهاتف وكلمة المرور مطلوبة' });
+        }
+
+        // الدرجة: الأكبر يختار، والإداري يُنشئ موظفين وحدهم
+        const role = isSuperUser(req.user)
+            ? (ROLES.includes(adminRole) ? adminRole : 'sub_admin')
+            : 'staff';
+        if (!isSuperUser(req.user) && adminRole && adminRole !== 'staff') {
+            return res.status(403).json({ message: 'الإداري يعيّن موظفين فقط' });
         }
 
         const normalizedPhone = normalizePhone(phone);
         const exists = await User.findOne({ phone: normalizedPhone });
         if (exists) return res.status(400).json({ message: 'رقم الهاتف مسجل بالفعل' });
 
-        const validPerms = (permissions || []).filter(p => VALID_PERMS.includes(p));
-
-        const requested = sanitizeCities(cities);
-        const assignedCities = (requested && requested.length)
-            ? requested
+        const g = grantable(req.user, permissions, cities && cities.length ? cities : (city ? [city] : null));
+        if (g.error) return res.status(403).json({ message: g.error });
+        const assignedCities = (g.cities && g.cities.length)
+            ? g.cities
             : [VALID_CITIES.includes(city) ? city : 'Khartoum'];
+        // الأكبر لا يحتاج صلاحياتٍ ولا مدناً — كل شيءٍ له
+        const validPerms = role === 'super_admin' ? [] : g.permissions;
+
+        const places = role === 'staff' ? (await cleanStaffPlaces(staffPlaces, assignedCities)) || [] : [];
 
         const subAdmin = await User.create({
             name,
             phone: normalizedPhone,
             password,
             role: 'admin',
-            adminRole: 'sub_admin',
+            adminRole: role,
             permissions: validPerms,
             // 🌍 مدنه: ما أُرسل، وإلا مدينته الواحدة. و`city` تبقى الأولى
             //    منها — بها تُختم السجلات التي ينشئها إن لم يحدّد.
             cities: assignedCities,
             city: assignedCities[0],
+            staffPlaces: places,
+            adminCreatedBy: req.user._id,
             isActive: true,
             isVerified: true,
             approvalStatus: 'approved'
         });
 
+        const label = { super_admin: 'إداري أكبر', sub_admin: 'إداري', staff: 'موظف مسؤول' }[role];
         await logAdminAction(req, 'create_sub_admin',
-            `تم إنشاء أدمن مساعد: ${name}`,
-            subAdmin._id, name, { permissions: validPerms, cities: assignedCities }
+            `تم إنشاء ${label}: ${name}`,
+            subAdmin._id, name, { adminRole: role, permissions: validPerms, cities: assignedCities, staffPlaces: places }
         );
 
         res.status(201).json({
@@ -144,7 +232,8 @@ router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
             adminRole: subAdmin.adminRole,
             permissions: subAdmin.permissions,
             cities: subAdmin.cities,
-            message: 'تم إنشاء الأدمن المساعد بنجاح'
+            staffPlaces: subAdmin.staffPlaces,
+            message: `تم إنشاء ${label} بنجاح`
         });
     } catch (error) {
         logger.error('Create Sub-Admin Error:', error);
@@ -153,11 +242,11 @@ router.post('/sub-admins', protect, superAdminOnly, async (req, res) => {
 });
 
 // @route   PUT /api/admin/sub-admins/:id
-// @desc    تعديل صلاحيات أدمن مساعد
+// @desc    تعديل درجة/صلاحيات/مدن/متاجر إداري
 
-router.put('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
+router.put('/sub-admins/:id', protect, adminManagerOnly, async (req, res) => {
     try {
-        const { permissions, isActive, adminRole, cities } = req.body;
+        const { permissions, isActive, adminRole, cities, staffPlaces } = req.body;
 
         const target = await User.findById(req.params.id);
         if (!target || target.role !== 'admin') {
@@ -168,22 +257,50 @@ router.put('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
         if (target._id.toString() === req.user._id.toString()) {
             return res.status(400).json({ message: 'لا يمكنك تعديل حسابك الشخصي من هنا' });
         }
+        // الإداري يعدّل موظفيه وحدهم
+        if (!managesStaff(req.user, target)) {
+            return res.status(403).json({ message: 'لا تملك إدارة هذا الحساب' });
+        }
 
         const updates = {};
-        if (permissions !== undefined) updates.permissions = permissions.filter(p => VALID_PERMS.includes(p));
-        if (cities !== undefined) {
-            const clean = sanitizeCities(cities);
-            // 🚫 لا نطاقَ فارغ: أدمنٌ بلا مدينةٍ واحدة لا يرى شيئاً ولا يفهم
-            //    لماذا — والخطأ يقع صامتاً وقت التعيين لا وقت الاستعمال.
-            if (!clean || !clean.length) {
-                return res.status(400).json({ message: 'اختر مدينةً واحدة على الأقل' });
+        const isSuper = isSuperUser(req.user);
+        if (adminRole !== undefined && adminRole !== target.adminRole) {
+            if (!isSuper) return res.status(403).json({ message: 'الإداري لا يغيّر الدرجات' });
+            if (!ROLES.includes(adminRole)) return res.status(400).json({ message: 'درجة غير صالحة' });
+            // 🛡️ لا يُنزَّل آخر إداري أكبر — وإلا لا يبقى من يدير النظام
+            if (isSuperUser(target) && (await superCount()) <= 1) {
+                return res.status(400).json({ message: 'لا يمكن تنزيل آخر إداري أكبر' });
             }
-            updates.cities = clean;
-            updates.city   = clean[0];
-        }
-        if (isActive !== undefined)    updates.isActive    = Boolean(isActive);
-        if (adminRole && ['super_admin', 'sub_admin'].includes(adminRole)) {
             updates.adminRole = adminRole;
+        }
+        const finalRole = updates.adminRole || target.adminRole || 'super_admin';
+
+        if (permissions !== undefined || cities !== undefined) {
+            const g = grantable(req.user,
+                permissions !== undefined ? permissions : target.permissions,
+                cities !== undefined ? cities : target.cities);
+            if (g.error) return res.status(403).json({ message: g.error });
+            if (permissions !== undefined) updates.permissions = finalRole === 'super_admin' ? [] : g.permissions;
+            if (cities !== undefined) {
+                // 🚫 لا نطاقَ فارغ: أدمنٌ بلا مدينةٍ واحدة لا يرى شيئاً ولا يفهم
+                //    لماذا — والخطأ يقع صامتاً وقت التعيين لا وقت الاستعمال.
+                if (!g.cities || !g.cities.length) {
+                    return res.status(400).json({ message: 'اختر مدينةً واحدة على الأقل' });
+                }
+                updates.cities = g.cities;
+                updates.city   = g.cities[0];
+            }
+        }
+        if (finalRole === 'staff' && staffPlaces !== undefined) {
+            updates.staffPlaces = (await cleanStaffPlaces(staffPlaces, updates.cities || citiesOf(target))) || [];
+        } else if (finalRole !== 'staff' && target.staffPlaces && target.staffPlaces.length) {
+            updates.staffPlaces = [];   // من رُقّي من موظف لا يبقى محصوراً
+        }
+        if (isActive !== undefined) {
+            if (!Boolean(isActive) && isSuperUser(target) && (await superCount()) <= 1) {
+                return res.status(400).json({ message: 'لا يمكن إيقاف آخر إداري أكبر' });
+            }
+            updates.isActive = Boolean(isActive);
         }
 
         await User.findByIdAndUpdate(req.params.id, updates);
@@ -201,9 +318,9 @@ router.put('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
 });
 
 // @route   DELETE /api/admin/sub-admins/:id
-// @desc    حذف أدمن مساعد
+// @desc    حذف إداري / موظف
 
-router.delete('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
+router.delete('/sub-admins/:id', protect, adminManagerOnly, async (req, res) => {
     try {
         const target = await User.findById(req.params.id);
         if (!target || target.role !== 'admin') {
@@ -211,6 +328,12 @@ router.delete('/sub-admins/:id', protect, superAdminOnly, async (req, res) => {
         }
         if (target._id.toString() === req.user._id.toString()) {
             return res.status(400).json({ message: 'لا يمكنك حذف حسابك الشخصي' });
+        }
+        if (!managesStaff(req.user, target)) {
+            return res.status(403).json({ message: 'لا تملك إدارة هذا الحساب' });
+        }
+        if (isSuperUser(target) && (await superCount()) <= 1) {
+            return res.status(400).json({ message: 'لا يمكن حذف آخر إداري أكبر' });
         }
 
         await User.findByIdAndDelete(req.params.id);

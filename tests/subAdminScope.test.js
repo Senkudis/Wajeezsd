@@ -207,7 +207,8 @@ describe('🔔 الإشعارات تتبع النطاق', () => {
 
     it('notifyAdmins تقبل مدينةً وتُرشّح بها', () => {
         expect(helper).toContain('relatedId, city }');
-        expect(helper).toContain("a.adminRole !== 'sub_admin'");
+        // فحصٌ إيجابيّ للأكبر — «ليس sub_admin» كان يُعطي الموظفَ تنبيهات كل المدن
+        expect(helper).toContain("if (!a.adminRole || a.adminRole === 'super_admin') return true;");
     });
 
     it('وبلا مدينةٍ يُنبَّه الجميع كما كان', () => {

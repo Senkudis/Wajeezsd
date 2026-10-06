@@ -25,6 +25,8 @@
 
     var LOGIN_PAGE = 'admin-login.html';
     var SUPER_ONLY = '__super__';
+    // الأكبر والإداري (لا الموظف) — صفحة إدارة الفريق: الإداري يعيّن موظفيه
+    var MANAGER_ONLY = '__manager__';
 
     // الصلاحية من وسم السكربت. document.currentScript متاح دائماً أثناء
     // التنفيذ المتزامن — وهذا السكربت متزامن عمداً.
@@ -76,7 +78,8 @@
     var anyOf = required.split(',').map(function (p) { return p.trim(); }).filter(Boolean);
     var allowed = !required ||
                   isSuper ||
-                  (required !== SUPER_ONLY && anyOf.some(function (p) { return perms.indexOf(p) !== -1; }));
+                  (required === MANAGER_ONLY && !!user && user.adminRole === 'sub_admin') ||
+                  (required !== SUPER_ONLY && required !== MANAGER_ONLY && anyOf.some(function (p) { return perms.indexOf(p) !== -1; }));
 
     if (allowed) {
         onReady(reveal);

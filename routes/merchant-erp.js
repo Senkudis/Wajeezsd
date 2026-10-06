@@ -5,14 +5,19 @@ const validateObjectId = require('../middleware/validateObjectId');
 router.param('id', validateObjectId);
 const mongoose = require('mongoose');
 const { protect, merchantOnly, adminOnly, requireAnyPermission, requirePermission,
-    denyOutsideCity, scopedPlaceIds } = require('../middleware/authMiddleware');
+    denyOutsideCity, scopedPlaceIds, placeInStaffScope } = require('../middleware/authMiddleware');
 
 /** 🌍 تسويةٌ لمتجرٍ خارج مدن الأدمن المساعد تُرفض قبل أي تعديل — يُرجع true إن رُفض */
 async function settlementOutsideCity(req, res) {
     const s = await SettlementRequest.findById(req.params.id).select('placeId').lean();
     if (!s) return false;   // المسار يقول «غير موجود» بنفسه
     const pl = await Place.findById(s.placeId).select('city').lean();
-    return denyOutsideCity(req, res, pl && pl.city);
+    if (denyOutsideCity(req, res, pl && pl.city)) return true;
+    if (!placeInStaffScope(req.user, s.placeId)) {
+        res.status(403).json({ message: 'هذا المتجر ليس ضمن المتاجر المسندة إليك' });
+        return true;
+    }
+    return false;
 }
 const Place = require('../models/Place');
 const Product = require('../models/Product');
@@ -804,6 +809,9 @@ router.put('/admin/places/:id/tier', protect, adminOnly, requirePermission('mana
         {
             const cur = await Place.findById(req.params.id).select('city').lean();
             if (cur && denyOutsideCity(req, res, cur.city)) return;
+            if (cur && !placeInStaffScope(req.user, req.params.id)) {
+                return res.status(403).json({ message: 'هذا المتجر ليس ضمن المتاجر المسندة إليك' });
+            }
         }
         const place = await Place.findByIdAndUpdate(
             req.params.id,

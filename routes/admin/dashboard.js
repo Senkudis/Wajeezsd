@@ -234,7 +234,7 @@ router.get('/scoped-stats', protect, requirePermission('view_stats'), async (req
 
         const base = { ...cityFilter, createdAt: { $gte: since } };
         const prev = { ...cityFilter, createdAt: { $gte: prevSince, $lt: since } };
-        const canSeeMoney = req.user.adminRole !== 'sub_admin'
+        const canSeeMoney = !isSubAdmin(req)
             || (req.user.permissions || []).includes('view_finance');
 
         const [

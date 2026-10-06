@@ -12,14 +12,20 @@ const Product = require('../models/Product');
 const Rating = require('../models/Rating');
 const User = require('../models/User');
 const { protect, superAdminOnly, requirePermission, resolveCreationCity, denyOutsideCity,
-    isSubAdmin, adminCities, adminCoversCity } = require('../middleware/authMiddleware');
+    isSubAdmin, adminCities, adminCoversCity, placeInStaffScope, staffPlaceList } = require('../middleware/authMiddleware');
 
 /** 🌍 متجرٌ خارج مدن الأدمن المساعد: يُرفض قبل أي قراءةٍ أو تعديل — true إن رُفض */
 async function placeOutsideCity(req, res, placeId) {
     if (!isSubAdmin(req)) return false;
     const pl = await Place.findById(placeId).select('city').lean();
     if (!pl) return false;   // المسار يقول «غير موجود» بنفسه
-    return denyOutsideCity(req, res, pl.city);
+    if (denyOutsideCity(req, res, pl.city)) return true;
+    // 🏪 الموظف المحصور في متاجر بعينها لا يتصرّف في غيرها ولو في مدينته
+    if (!placeInStaffScope(req.user, placeId)) {
+        res.status(403).json({ message: 'هذا المتجر ليس ضمن المتاجر المسندة إليك' });
+        return true;
+    }
+    return false;
 }
 
 /** مدينة الإحصاء: للأدمن المساعد إحدى مدنه وإن طلب غيرها */

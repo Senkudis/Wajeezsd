@@ -26,7 +26,7 @@
         { title: 'كوبونات وعروض الخصم', icon: 'fas fa-ticket-alt', url: 'admin-promo-codes.html', tags: 'promo coupon أكواد خصم' },
         { title: 'إعدادات الأسعار والتسعيرة', icon: 'fas fa-cog', url: 'admin-settings.html', tags: 'settings pricing تسعير كيلومتر رحلات' },
         { title: 'سجل النشاط والعمليات', icon: 'fas fa-history', url: 'admin-activity.html', tags: 'activity audit log سجل عمليات أحداث' },
-        { title: 'الأدمن المساعد والمشرفين', icon: 'fas fa-users-cog', url: 'admin-sub-admins.html', tags: 'sub admins permissions صلاحيات مشرفين' }
+        { title: 'الفريق والصلاحيات', icon: 'fas fa-users-cog', url: 'admin-sub-admins.html', tags: 'sub admins permissions صلاحيات مشرفين' }
     ];
 
     let modalEl = null;

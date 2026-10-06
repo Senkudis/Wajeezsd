@@ -873,7 +873,8 @@ router.put('/users/:id', protect, requireAnyPermission(['manage_captains', 'mana
             return res.status(403).json({ message: 'غير مصرح — هذا المستخدم خارج مدينتك' });
         }
         // الأدمن المساعد ممنوع من تغيير المدينة/الدور/الحقول المالية (صلاحيات المسؤول الرئيسي)
-        const isSubAdmin = req.user.adminRole === 'sub_admin';
+        // إداريٌّ أو موظف — كلاهما مقيّد (فحصٌ إيجابيّ للأكبر)
+        const isSubAdmin = require('../../middleware/authMiddleware').isScopedUser(req.user);
 
         // ⚠️ Safety: allow 'admin' role only — no other invalid roles
         const validRoles = ['client', 'captain', 'merchant', 'admin'];

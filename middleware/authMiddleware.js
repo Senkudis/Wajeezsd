@@ -106,6 +106,21 @@ const adminOnly = (req, res, next) => {
     }
 };
 
+// ═══ درجات الإدارة ═══════════════════════════════════════════════════
+// الفحص **إيجابيٌّ** عن قصد: «الأكبر» من سُمّي super_admin (أو أدمنٌ قديم بلا
+// درجة). كل ما سواه — sub_admin، staff، وأي قيمةٍ غريبة — مقيَّد.
+// كان الفحص سلبياً («ليس sub_admin ⇒ رئيسي») فصار أي دورٍ جديد رئيسياً خفيةً.
+const SCOPED_ROLES = ['sub_admin', 'staff'];
+function isSuperUser(user) {
+    return !!user && user.role === 'admin' && (!user.adminRole || user.adminRole === 'super_admin');
+}
+// مقيَّد = له درجةٌ ليست «الأكبر». لا يُشترط role هنا عن قصد: حسابٌ ناقص
+// الحقول يُقيَّد ولا يُطلق (الخطأ في الاتجاه الآمن).
+function isScopedUser(user) {
+    return !!user && !!user.adminRole && user.adminRole !== 'super_admin';
+}
+const isStaff = (user) => !!user && user.adminRole === 'staff';
+
 // 🔐 Super Admin Only — يسمح فقط للأدمن الرئيسي (super_admin أو من لم يُعيَّن له adminRole بعد)
 // الأدمن القديمين في DB (adminRole=null) يُعاملون كـ super_admin تلقائياً للتوافق مع النسخ السابقة
 const superAdminOnly = (req, res, next) => {
@@ -113,7 +128,7 @@ const superAdminOnly = (req, res, next) => {
         return res.status(403).json({ message: 'غير مصرح — هذه الصفحة للمسؤول الرئيسي فقط' });
     }
     // null يعني أدمن قديم → يُعامل كـ super_admin
-    if (req.user.adminRole === 'sub_admin') {
+    if (!isSuperUser(req.user)) {
         return res.status(403).json({ message: 'غير مصرح — هذه الصلاحية للمسؤول الرئيسي فقط' });
     }
     next();
@@ -126,7 +141,7 @@ const requirePermission = (permission) => (req, res, next) => {
         return res.status(403).json({ message: 'غير مصرح' });
     }
     // super_admin يمر دائماً
-    if (!req.user.adminRole || req.user.adminRole === 'super_admin') return next();
+    if (isSuperUser(req.user)) return next();
     // sub_admin يحتاج الصلاحية
     if (req.user.permissions && req.user.permissions.includes(permission)) return next();
     return res.status(403).json({ message: `غير مصرح — تحتاج صلاحية: ${permission}` });
@@ -138,7 +153,7 @@ const requireAnyPermission = (permissions) => (req, res, next) => {
     if (!req.user || req.user.role !== 'admin') {
         return res.status(403).json({ message: 'غير مصرح' });
     }
-    if (!req.user.adminRole || req.user.adminRole === 'super_admin') return next();
+    if (isSuperUser(req.user)) return next();
     if (req.user.permissions && permissions.some(p => req.user.permissions.includes(p))) return next();
     return res.status(403).json({ message: 'غير مصرح — صلاحيات غير كافية' });
 };
@@ -166,7 +181,7 @@ function adminCities(user) {
 }
 
 function getAdminCityFilter(req) {
-    if (req.user && req.user.adminRole === 'sub_admin') {
+    if (req.user && isScopedUser(req.user)) {
         const mine = adminCities(req.user);
         // ولو طلب مدينةً بعينها من مدنه، ضيّق عليها — تبديل المدينة في
         // اللوحة يجب أن يعمل لمن يشرف على أكثر من واحدة.
@@ -185,7 +200,7 @@ function getAdminCityFilter(req) {
 // المدينة التي تُختم بها السجلات الجديدة (إنشاء كابتن…)
 // sub_admin: مدينته إجبارياً. super_admin: المدينة المُرسلة أو الافتراضية
 function resolveCreationCity(req, requestedCity) {
-    if (req.user && req.user.adminRole === 'sub_admin') {
+    if (req.user && isScopedUser(req.user)) {
         const mine = adminCities(req.user);
         // من يشرف على مدينتين يجب أن يختار في أيّهما يُنشئ — وإلا ذهب كل
         // ما ينشئه إلى واحدةٍ بعينها ولو كان يعمل في الأخرى.
@@ -200,7 +215,7 @@ function resolveCreationCity(req, requestedCity) {
 // يتحقق أن الأدمن المساعد لا يتصرّف في مستخدم خارج صلاحيته.
 // يُرجع true إذا مسموح، false إذا محظور.
 function adminCanActOnUser(req, targetUser) {
-    if (!req.user || req.user.adminRole !== 'sub_admin') return true; // super_admin/قديم
+    if (!req.user || !isScopedUser(req.user)) return true; // super_admin/قديم
     if (!targetUser) return false;
     // 🔒 الأدمن المساعد ممنوع من التصرّف في أي حساب أدمن (منع تصعيد الصلاحيات)
     if (targetUser.role === 'admin') return false;
@@ -210,11 +225,12 @@ function adminCanActOnUser(req, targetUser) {
 
 /** هل تقع هذه المدينة داخل نطاق الأدمن؟ (super_admin: كل المدن) */
 function adminCoversCity(user, city) {
-    if (!user || user.adminRole !== 'sub_admin') return true;
+    if (!user || !isScopedUser(user)) return true;
     return adminCities(user).includes(city);
 }
 
-const isSubAdmin = (req) => !!(req.user && req.user.adminRole === 'sub_admin');
+// «مقيّد» = إداريٌّ أو موظف (الاسم تاريخيّ — كل مسارات التقييد تستعمله)
+const isSubAdmin = (req) => !!(req.user && isScopedUser(req.user));
 
 /**
  * فلتر المدينة على حقلٍ باسمٍ آخر (place.city، dropoff…): نفس getAdminCityFilter
@@ -252,8 +268,24 @@ async function scopedUserIds(req, extra = {}) {
 async function scopedPlaceIds(req) {
     if (!isSubAdmin(req)) return null;
     const Place = require('../models/Place');
-    const rows = await Place.find(getAdminCityFilter(req)).select('_id').lean();
+    const q = { ...getAdminCityFilter(req) };
+    const pinned = staffPlaceList(req.user);
+    if (pinned) q._id = { $in: pinned };
+    const rows = await Place.find(q).select('_id').lean();
     return rows.map(r => r._id);
+}
+
+/** متاجر الموظف المحصور — null حين لا حصر (الأكبر والإداري والموظف بلا متاجر) */
+function staffPlaceList(user) {
+    if (!isStaff(user)) return null;
+    const list = Array.isArray(user.staffPlaces) ? user.staffPlaces.filter(Boolean) : [];
+    return list.length ? list.map(String) : null;
+}
+
+/** هل هذا المتجر ضمن متاجر الموظف المحصور؟ (true لغير المحصور) */
+function placeInStaffScope(user, placeId) {
+    const pinned = staffPlaceList(user);
+    return !pinned || pinned.includes(String(placeId));
 }
 
 const captainOnly = (req, res, next) => {
@@ -286,5 +318,6 @@ module.exports = {
     getAdminCityFilter, resolveCreationCity, adminCanActOnUser,
     adminCities, adminCoversCity, VALID_CITIES,
     isSubAdmin, cityScopeQuery, denyOutsideCity, scopedUserIds, scopedPlaceIds,
+    isSuperUser, isScopedUser, isStaff, SCOPED_ROLES, staffPlaceList, placeInStaffScope,
     captainOnly, clientOnly, merchantOnly
 };

@@ -65,7 +65,7 @@ router.post('/', protect, requirePermission('send_notifications'), async (req, r
         const { userId, title, message, type } = req.body;
 
         // 🌍 الأدمن المساعد لا يرسل لمستخدمٍ خارج مدنه
-        if (req.user.adminRole === 'sub_admin') {
+        if (require('../middleware/authMiddleware').isScopedUser(req.user)) {
             const target = await require('../models/User').findById(userId).select('city role').lean();
             if (!target || !adminCanActOnUser(req, target)) {
                 return res.status(403).json({ message: 'هذا المستخدم خارج نطاق مدينتك' });

@@ -58,7 +58,7 @@ router.put('/reports/:id', protect, requirePermission('view_complaints'), async 
 
         const report = await Report.findById(req.params.id);
         if (!report) return res.status(404).json({ message: 'البلاغ غير موجود' });
-        if (req.user.adminRole === 'sub_admin') {
+        if (require('../../middleware/authMiddleware').isScopedUser(req.user)) {
             const owner = report.targetOwner ? await require('../../models/User').findById(report.targetOwner).select('city role').lean() : null;
             if (!owner || !adminCanActOnUser(req, owner)) return res.status(403).json({ message: 'هذا البلاغ خارج نطاق مدينتك' });
         }

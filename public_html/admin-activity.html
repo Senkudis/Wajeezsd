@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <script src="js/admin-guard.js?v=691df92a" data-perm="view_activity_log"></script>
+    <script src="js/admin-guard.js?v=c78a813b" data-perm="view_activity_log"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>سجل النشاط | وجيز</title>
@@ -98,7 +98,7 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
     <script src="js/theme-manager.js?v=ef048761"></script>
     <script src="js/admin-alerts.js?v=197ebabe"></script>
     <script src="js/admin-export.js?v=64f3a22c"></script>
-    <script src="js/admin-palette.js?v=0cd12760"></script>
+    <script src="js/admin-palette.js?v=03121c22"></script>
 </head>
 <body>
 
@@ -227,7 +227,7 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
                     else if (log.action.includes('create') || log.action.includes('approve') || log.action.includes('zero')) { iconCls = 'fa-check'; }
                     else if (log.action.includes('add')) { iconCls = 'fa-exclamation'; colorCls = 'warning'; }
 
-                    const adminRole = log.admin?.adminRole === 'super_admin' ? 'رئيسي' : 'مساعد';
+                    const adminRole = ({ super_admin: 'أكبر', sub_admin: 'إداري', staff: 'موظف' })[log.admin?.adminRole] || 'أكبر';
                     const adminName = log.admin?.name || log.adminName || 'مجهول';
 
                     return `
@@ -263,7 +263,7 @@ body.dark-mode .page-btn { background: #1f2937 !important; color: #9ca3af !impor
                 log.action,
                 log.description,
                 log.admin?.name || log.adminName || 'مجهول',
-                log.admin?.adminRole === 'super_admin' ? 'رئيسي' : 'مساعد',
+                ({ super_admin: 'أكبر', sub_admin: 'إداري', staff: 'موظف' })[log.admin?.adminRole] || 'أكبر',
                 log.targetName || '—',
                 new Date(log.createdAt).toLocaleString('ar-SD')
             ]);
