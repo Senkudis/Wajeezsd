@@ -89,7 +89,7 @@ describe('الخادم', () => {
         expect(r).toContain('currentNudges(order)');
         expect(r).toContain("'adminNudges.$.ackAt': at");
         // اللوحة المفتوحة تتحدّث فوراً، و«عندي مشكلة» يصل الإدارة إشعاراً
-        expect(r).toContain("io.to('admin_room').emit('admin_order_update'");
+        expect(r).toContain("toAdmins(io, order.city).emit('admin_order_update'");
         expect(r).toContain('notifyAdmins(req.app');
     });
     it('وحقلا الردّ معرّفان على التنبيه', () => {

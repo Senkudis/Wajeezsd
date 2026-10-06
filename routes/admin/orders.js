@@ -1,6 +1,7 @@
 // routes/admin/orders.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { toAdmins } = require('../../utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
@@ -220,7 +221,7 @@ router.post('/shop-orders/:id/republish', protect, requirePermission('manage_ord
             `إعادة رفع طلب متجر ${String(shopOrder._id).slice(-6)} للكباتن`, shopOrder._id);
 
         const io = req.app.get('io');
-        if (io) io.to('admin_room').emit('admin_order_update', {
+        if (io) toAdmins(io, result.order.city).emit('admin_order_update', {
             orderId: result.order._id, status: 'pending', city: result.order.city
         });
 
@@ -570,7 +571,7 @@ router.put('/orders/:id/cancel-force', protect, requirePermission('manage_orders
         }
         
         // Broadcast to admin panel only (not to all clients)
-        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
+        if (io) toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
 
         await logAdminAction(req, 'delete_order', `إلغاء طلب إدارياً`, order._id, `طلب #${order._id.toString().slice(-6)}`);
 
@@ -668,7 +669,7 @@ router.put('/orders/:id/reassign-captain', protect, requirePermission('manage_or
         // 🛰️ لوحة التتبّع وخريطة الرحلة المفتوحتان تتبعان الكابتن الجديد فوراً —
         // بلا هذا تبقيان على القديم (وموقعه) حتى التحديث الدوريّ بعد 20 ث
         if (io) {
-            io.to('admin_room').emit('admin_order_update', {
+            toAdmins(io, order.city).emit('admin_order_update', {
                 orderId: order._id, status: order.status, city: order.city, captainName: newCaptain.name
             });
         }
@@ -780,7 +781,7 @@ async function decideRelease(req, res, approve) {
             const notified = await rebroadcast(req.app, order, rr.captain);
             await logAdminAction(req, 'approve_release', `قبل تنازل الكابتن عن الطلب #${ref}: ${rr.reason}`,
                 String(order._id), '', { captain: String(rr.captain), reason: rr.reason, note, notified });
-            if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'pending', city: order.city });
+            if (io) toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: 'pending', city: order.city });
             return res.json({ message: `قُبل التنازل وعاد الطلب متاحاً — أُبلغ ${notified} كابتن`, notified });
         }
 
@@ -792,7 +793,7 @@ async function decideRelease(req, res, approve) {
         if (io) io.to(String(rr.captain)).emit('order_status_updated', { orderId: order._id, status: order.status });
         await logAdminAction(req, 'reject_release', `رفض تنازل الكابتن عن الطلب #${ref}: ${rr.reason}`,
             String(order._id), '', { captain: String(rr.captain), reason: rr.reason, note });
-        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
+        if (io) toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
         res.json({ message: 'رُفض طلب التنازل وأُبلغ الكابتن' });
     } catch (error) {
         logger.error({ err: error.message }, 'decide release error');
@@ -876,7 +877,7 @@ router.delete('/orders/:id', protect, requirePermission('manage_orders'), async 
             io.to(`room_${order.city || 'Khartoum'}`).emit('new_order_available');
             if (order.client) io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'deleted' });
             if (order.captain) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: 'deleted' });
-            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'deleted', city: order.city });
+            toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: 'deleted', city: order.city });
         }
 
         res.json({ message: 'تم حذف الطلب بنجاح' });
@@ -1156,7 +1157,7 @@ router.put('/orders/:id', protect, requirePermission('manage_orders'), async (re
             const { sendNotification } = require('../../utils/notificationHelper');
             
             if (io) {
-                io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
+                toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
                 if (order.status === 'pending' || order.status === 'scheduled') {
                     // Reopen: notify captains in THIS city only
                     io.to(`room_${order.city || 'Khartoum'}`).emit('new_order_available');

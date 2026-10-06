@@ -1,4 +1,5 @@
 const express = require('express');
+const { toAdmins } = require('../utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 const router = express.Router();
 const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
@@ -93,7 +94,7 @@ router.post('/', protect, feedbackLimiter, async (req, res) => {
         // 🔔 نبّه الإدارة فوراً — الرأي المبكّر يفقد قيمته إن قُرئ بعد أسبوع
         const io = req.app.get('io');
         if (io) {
-            io.to('admin_room').emit('new_feedback', {
+            toAdmins(io, doc.city).emit('new_feedback', {
                 id: doc._id,
                 kind: 'first_order',
                 rating: doc.rating,

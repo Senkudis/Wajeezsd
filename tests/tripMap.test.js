@@ -115,11 +115,11 @@ describe('مراجعة المنطق — البثّ', () => {
 
     it('بثّ الإدارة يحمل وقت القياس والمدينة في المسارين', () => {
         const cap = read('routes/captain.js');
-        const e = cap.slice(cap.indexOf("io.to('admin_room').emit('captain_location_update'"));
+        const e = cap.slice(cap.indexOf(".emit('captain_location_update'"));
         expect(e.slice(0, 600)).toContain('fixedAt: loc.fixedAt');
         expect(e.slice(0, 600)).toContain("city: req.user.city || 'Khartoum'");
         const idx = read('index.js');
-        const e2 = idx.slice(idx.indexOf("io.to('admin_room').emit('captain_location_update'"));
+        const e2 = idx.slice(idx.indexOf(".emit('captain_location_update'"));
         expect(e2.slice(0, 400)).toContain('fixedAt: loc.fixedAt');
         expect(e2.slice(0, 400)).toContain('city:');
     });

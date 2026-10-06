@@ -140,7 +140,10 @@ const notifyAdmins = async (app, { title, message, type, relatedId, city }) => {
         try {
             const io = app.get('io');
             if (io) {
-                io.to('admin_room').emit('new_notification', { title, message, type: safeType, relatedId });
+                // 📡 من يشرف على المدينة وحده — وبلا مدينةٍ: كل الإدارة (كالسجلّ أعلاه)
+                const { toAdmins, toAllAdmins } = require('./adminRooms');
+                (VALID_CITIES.includes(city) ? toAdmins(io, city) : toAllAdmins(io))
+                    .emit('new_notification', { title, message, type: safeType, relatedId });
             }
         } catch (ioErr) {
             logger.error({ err: ioErr }, 'notifyAdmins socket failed (non-critical)');

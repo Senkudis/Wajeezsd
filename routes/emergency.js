@@ -1,4 +1,5 @@
 const express = require('express');
+const { toAdmins } = require('../utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { protect } = require('../middleware/authMiddleware');
@@ -71,7 +72,7 @@ router.post('/alert', protect, sosLimiter, async (req, res) => {
             // 🔊 بث لحظي للوحة الإدارة لتشغيل صفّارة النجدة وعرض التنبيه فوراً
             const io = req.app.get('io');
             if (io) {
-                io.to('admin_room').emit('emergency_alert', {
+                toAdmins(io, captain.city || 'Khartoum').emit('emergency_alert', {
                     alertId: alert._id,
                     captainId: captain._id,
                     captainName: captain.name,

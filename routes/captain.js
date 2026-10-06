@@ -1,4 +1,5 @@
 const express = require('express');
+const { toAdmins } = require('../utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 const router = express.Router();
 const validateObjectId = require('../middleware/validateObjectId');
 // 🆔 أي :id ليس ObjectId ⇒ 404 لا 500 (انظر الملف للسبب)
@@ -342,7 +343,7 @@ router.put('/update-location', protect, captainOnly, async (req, res) => {
                 }
             }
 
-            io.to('admin_room').emit('captain_location_update', {
+            toAdmins(io, req.user.city || 'Khartoum').emit('captain_location_update', {
                 userId: req.user._id,
                 captainId: req.user._id,
                 lat, lng,
@@ -408,7 +409,7 @@ router.put('/toggle-availability', protect, captainOnly, async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
-            io.to('admin_room').emit('captain_status_changed', {
+            toAdmins(io, req.user.city).emit('captain_status_changed', {
                 userId: req.user._id,
                 isAvailableForWork: captain.isAvailableForWork
             });
@@ -433,7 +434,7 @@ router.post('/logout', protect, captainOnly, async (req, res) => {
         const uId = String(req.user._id);
         const io = req.app.get('io');
         if (io) {
-            io.to('admin_room').emit('captain_status_changed', {
+            toAdmins(io, req.user.city).emit('captain_status_changed', {
                 userId: uId,
                 isAvailableForWork: false
             });
@@ -871,7 +872,7 @@ router.post('/nudges/:orderId/ack', protect, captainOnly, async (req, res) => {
         // اللوحة المفتوحة تتحدّث فوراً (تستمع لهذا الحدث)
         const io = req.app.get('io');
         if (io) {
-            io.to('admin_room').emit('admin_order_update', {
+            toAdmins(io, order.city).emit('admin_order_update', {
                 orderId: order._id, status: order.status, city: order.city, nudgeAck: reply
             });
         }

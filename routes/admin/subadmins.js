@@ -142,7 +142,19 @@ async function cleanStaffPlaces(list, cities) {
     return rows.map(r => r._id);
 }
 
-/** عدد الإداريين الكبار الفعّالين — لا يُنزَّل آخرهم ولا يُحذف */
+/**
+ * 📡 يقطع اتصالات السوكت الحيّة للحساب، فيعود ويُصادَق من جديد بدرجته
+ * ومدنه الجديدة (غرف الإدارة تُحدَّد عند الاتصال). بدونه يبقى من نُزّل أو
+ * حُذف يسمع بثّ المدن القديمة حتى يغلق اللوحة.
+ */
+function dropLiveSessions(req, userId) {
+    try {
+        const io = req.app.get('io');
+        if (io) io.in(String(userId)).disconnectSockets(true);
+    } catch (e) { logger.warn({ err: e.message }, 'dropLiveSessions failed'); }
+}
+
+/** عدد الإداريين الكبار — لا يُنزَّل آخرهم ولا يُحذف */
 async function superCount() {
     return User.countDocuments({ role: 'admin', $or: [{ adminRole: 'super_admin' }, { adminRole: null }] });
 }
@@ -305,6 +317,23 @@ router.put('/sub-admins/:id', protect, adminManagerOnly, async (req, res) => {
 
         await User.findByIdAndUpdate(req.params.id, updates);
 
+        // ✂️ ما نُزع من الإداري يُنزع من موظفيه — وإلا بقي موظفٌ يملك ما
+        //    لم يعد مديره يملكه (صلاحيةٌ أو مدينة)، فصار فوقه.
+        const newPerms  = updates.adminRole === 'super_admin' ? null : (updates.permissions || target.permissions || []);
+        const newCities = updates.cities || citiesOf(target);
+        if (finalRole === 'sub_admin' && newPerms) {
+            const lostPerms  = (target.permissions || []).filter(p => !newPerms.includes(p));
+            const lostCities = citiesOf(target).filter(c => !newCities.includes(c));
+            if (lostPerms.length || lostCities.length) {
+                const mine = { adminCreatedBy: target._id, adminRole: 'staff' };
+                await User.updateMany(mine, { $pull: { permissions: { $in: lostPerms }, cities: { $in: lostCities } } });
+                // موظفٌ لم تبق له مدينة يُوقف — لا يُترك بلا نطاقٍ يرى منه ما لا يُفهم
+                await User.updateMany({ ...mine, cities: { $size: 0 } }, { isActive: false });
+            }
+        }
+
+        dropLiveSessions(req, target._id);
+
         await logAdminAction(req, 'update_sub_admin',
             `تم تعديل صلاحيات الأدمن: ${target.name}`,
             target._id, target.name, updates
@@ -337,6 +366,7 @@ router.delete('/sub-admins/:id', protect, adminManagerOnly, async (req, res) => 
         }
 
         await User.findByIdAndDelete(req.params.id);
+        dropLiveSessions(req, target._id);
 
         await logAdminAction(req, 'delete_sub_admin',
             `تم حذف الأدمن: ${target.name}`,

@@ -884,15 +884,16 @@ router.put('/users/:id', protect, requireAnyPermission(['manage_captains', 'mana
 
         user.name   = name   || user.name;
         user.email  = email  || user.email;
-        user.phone  = phone  || user.phone;
+        // 📞 موحَّداً — رقمٌ محفوظ كما كُتب (0905…) لا يجده الدخول (يبحث بـ 249905…)
+        if (phone) user.phone = normalizePhone(phone);
         if (!isSubAdmin) {
             user.role = role || user.role;
             if (req.body.city !== undefined) user.city = req.body.city;
         }
-        user.wallet = wallet !== undefined ? wallet : user.wallet;
 
         // 💳 Financial fields — للمسؤول الرئيسي فقط
         if (!isSubAdmin) {
+            if (wallet !== undefined) user.wallet = wallet;
             if (req.body.wallet_balance !== undefined) {
                 const parsedBalance = Number(req.body.wallet_balance);
                 if (!isNaN(parsedBalance)) user.wallet_balance = parsedBalance;

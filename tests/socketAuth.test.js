@@ -71,7 +71,7 @@ describe('resolveSocketIdentity', () => {
     it('يُرجع هوية موثوقة لتوكن صالح لحساب نشط', async () => {
         const token = sign({ userId: VICTIM_ID, role: 'client' });
         const identity = await resolveSocketIdentity(token, findUserById, OPTS);
-        expect(identity).toEqual({ userId: VICTIM_ID, role: 'client', city: 'Khartoum' });
+        expect(identity).toEqual({ userId: VICTIM_ID, role: 'client', city: 'Khartoum', adminRole: null, cities: [] });
     });
 
     it('🔒 الهوية تأتي من التوكن — لا من أي إدخال للعميل', async () => {

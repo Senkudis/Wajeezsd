@@ -61,7 +61,12 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
         if (phone) {
             const { normalizePhone } = require('../../utils/phoneNormalizer');
             const normalizedPhone = normalizePhone(phone);
-            user = await User.findOne({ phone: normalizedPhone, role: 'admin' });
+            // 📞 حساباتٌ أدمن قديمة حُفظ هاتفها كما كُتب (0905…) لا موحَّداً
+            //    (249905…) — من مسار تعديل المستخدم الذي لا يوحّد. البحث
+            //    بالموحَّد وحده كان يقول لصاحبها «لست مسؤولاً». نبحث بكل صيغه.
+            const local = /^249\d{9}$/.test(normalizedPhone) ? '0' + normalizedPhone.slice(3) : null;
+            const forms = [...new Set([normalizedPhone, String(phone).trim(), '+' + normalizedPhone, local].filter(Boolean))];
+            user = await User.findOne({ phone: { $in: forms }, role: 'admin' });
         } else if (email) {
             user = await User.findOne({ email: email.toLowerCase().trim(), role: 'admin' });
         } else {

@@ -509,6 +509,7 @@ app.set('chatRooms', chatRooms);
 // قبل هذا، كان user_join يثق بالـ userId القادم من العميل، فأمكن لأي شخص
 // انتحال أي مستخدم (بما فيهم الأدمن) وقراءة رسائله وإشعاراته.
 const { resolveSocketIdentity } = require('./utils/socketAuth');
+const { adminRoomsFor, toAdmins } = require('./utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 
 // ⚠️ مرحلة انتقالية: الاتصال بلا توكن مسموح لكنه لا يُمنح أي صلاحية —
 // لا غرفة شخصية، لا إرسال رسائل، لا admin_join. السبب أن نسخ أندرويد المثبّتة
@@ -525,7 +526,7 @@ io.use(async (socket, next) => {
     try {
         const identity = await resolveSocketIdentity(
             token,
-            (id) => User.findById(id).select('role city isActive').lean()
+            (id) => User.findById(id).select('role city cities adminRole isActive').lean()
         );
 
         if (!identity) {
@@ -537,6 +538,7 @@ io.use(async (socket, next) => {
         socket.authUserId = identity.userId;
         socket.userRole = identity.role;
         socket.authUserCity = identity.city;
+        socket.adminIdentity = identity;   // 📡 غرف الإدارة حسب الدرجة والمدن
     } catch (err) {
         logger.error({ err, socketId: socket.id }, '[SocketAuth] Lookup failed — no privileges granted');
     }
@@ -605,13 +607,13 @@ io.on('connection', (socket) => {
 
         // ✅ FIX #1: If admin reconnects, auto-rejoin admin_room
         if (socket.userRole === 'admin') {
-            socket.join('admin_room');
-            logger.info({ userId: cleanId }, 'Admin auto-joined admin_room on user_join');
+            socket.join(adminRoomsFor(socket.adminIdentity));
+            logger.info({ userId: cleanId }, 'Admin auto-joined admin rooms on user_join');
         }
 
         // ✅ FIX #3: Only notify admin_room + the user themselves — stop broadcasting to everyone
         socket.emit('user_status', { userId: cleanId, status: 'online' });
-        io.to('admin_room').emit('user_status', { userId: cleanId, status: 'online' });
+        toAdmins(io, socket.authUserCity).emit('user_status', { userId: cleanId, status: 'online' });
         logger.debug({ userId: cleanId }, 'User is now online and joined room');
     });
 
@@ -622,8 +624,9 @@ io.on('connection', (socket) => {
             logger.warn({ socketId: socket.id, userId: socket.userId, role: socket.userRole }, 'Unauthorized admin_join attempt — blocked');
             return; // Silently ignore unauthorized attempts
         }
-        socket.join('admin_room');
-        logger.info({ socketId: socket.id, userId: socket.userId }, 'Admin joined admin_room');
+        // 📡 الأكبر: admin_room؛ الإداري والموظف: غرف مدنهم وحدها
+        socket.join(adminRoomsFor(socket.adminIdentity));
+        logger.info({ socketId: socket.id, userId: socket.userId }, 'Admin joined admin rooms');
     });
 
     // ✅ Chat room presence tracking — frontend emits this when chat.html opens
@@ -920,7 +923,7 @@ io.on('connection', (socket) => {
 
             // ✅ Broadcast to admin live map — use isAvailableForWork for status display
             const captainDoc = await User.findById(userId).select('name isAvailableForWork city');
-            io.to('admin_room').emit('captain_location_update', {
+            toAdmins(io, captainDoc?.city || 'Khartoum').emit('captain_location_update', {
                 userId,
                 captainId: userId,
                 lat, lng,

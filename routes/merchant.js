@@ -1,4 +1,5 @@
 const express = require('express');
+const { toAdmins } = require('../utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 const { CITY_KEYS, cityLabel } = require('../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../middleware/validateObjectId');
@@ -22,7 +23,7 @@ function emitShopOrderAdminUpdate(app, order, place, clientName) {
     try {
         const io = app.get('io');
         if (!io || !order) return;
-        io.to('admin_room').emit('shop_order_admin_update', {
+        toAdmins(io, place ? place.city : '').emit('shop_order_admin_update', {
             orderId: String(order._id),
             status: order.status,
             paymentStatus: order.paymentStatus,
@@ -735,7 +736,7 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
             
             // 🔔 إشعار الأدمن بنفس حدث shop_order_available — يطلق toast + صوت في admin-panel.js
             // kind يميّز هذه الحالة (طلب جُهّز) عن الطلب الجديد، فلا يُعرض نص خاطئ
-            io.to('admin_room').emit('shop_order_available', {
+            toAdmins(io, orderCity).emit('shop_order_available', {
                 orderId: newDeliveryOrder._id,
                 kind: 'ready_for_pickup',
                 shopName: place.name,
@@ -1593,7 +1594,7 @@ router.post('/shop/:placeId/order', protect, async (req, res) => {
         // (new_notification وحده يُحفظ بصمت في القائمة، لا يُشغّل الصوت أو البوب-أب)
         const ioForAdmin = req.app.get('io');
         if (ioForAdmin) {
-            ioForAdmin.to('admin_room').emit('shop_order_available', {
+            toAdmins(ioForAdmin, place.city || '').emit('shop_order_available', {
                 orderId: order._id,
                 shopName: place.name || '',
                 price: itemsTotal,

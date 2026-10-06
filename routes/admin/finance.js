@@ -25,7 +25,9 @@ const logger = require('../../utils/logger');
 
 const SessionRequest = require('../../models/SessionRequest');
 
-router.put('/captains/:id/adjust-debt', protect, requirePermission('manage_finance'), async (req, res) => {
+// 💰 تعديل محفظة الكابتن يدوياً للإداري الأكبر وحده — قرار المالك: «المحفظة
+//    المالية أعدّلها أنا». الإداري يوافق على طلبات السداد ويرفضها، لا أكثر.
+router.put('/captains/:id/adjust-debt', protect, superAdminOnly, async (req, res) => {
     try {
         const { sendNotification } = require('../../utils/notificationHelper');
         const { mode, amount, note } = req.body;

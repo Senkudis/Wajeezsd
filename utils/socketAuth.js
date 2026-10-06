@@ -52,7 +52,10 @@ async function resolveSocketIdentity(token, findUserById, opts = {}) {
     return {
         userId: String(user._id),
         role: user.role || null,
-        city: user.city || null
+        city: user.city || null,
+        // درجة الأدمن ومدنه — بها يُحدَّد أيّ غرف الإدارة يدخل (utils/adminRooms)
+        adminRole: user.adminRole || null,
+        cities: Array.isArray(user.cities) ? user.cities : []
     };
 }
 

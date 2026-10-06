@@ -64,15 +64,15 @@ describe('الأحداث المباشرة لكل ما يغيّر الرحلة', 
     it('نقل الطلب لكابتنٍ آخر', () => {
         const src = read('routes/admin/orders.js');
         const body = src.slice(src.indexOf("'/orders/:id/reassign-captain'"), src.indexOf('// PUT /api/admin/orders/:id/release/approve'));
-        expect(body).toContain("io.to('admin_room').emit('admin_order_update'");
+        expect(body).toContain("toAdmins(io, order.city).emit('admin_order_update'");
     });
 
     it('إكمال محطّة، وإعادة ترتيب المحطّات', () => {
         const src = read('routes/orders.js');
         const done = src.slice(src.indexOf("'/:id/stops/:stopRef/done'"), src.indexOf("'/:id/stops/suggest-route'"));
-        expect(done).toContain("io.to('admin_room').emit('admin_order_update'");
+        expect(done).toContain("toAdmins(io, order.city).emit('admin_order_update'");
         const reorder = src.slice(src.indexOf("router.put('/:id/stops/reorder'"), src.indexOf("router.put('/:id/deliver'"));
-        expect(reorder).toContain("io.to('admin_room').emit('admin_order_update'");
+        expect(reorder).toContain("toAdmins(io, order.city).emit('admin_order_update'");
     });
 });
 

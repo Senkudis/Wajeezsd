@@ -1,4 +1,5 @@
 const express = require('express');
+const { toAdmins } = require('../utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 const router = express.Router();
 const mongoose = require('mongoose');
 const validateObjectId = require('../middleware/validateObjectId');
@@ -128,7 +129,7 @@ router.post('/', protect, async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
-            io.to('admin_room').emit('new_complaint', {
+            toAdmins(io, city).emit('new_complaint', {
                 id:      complaint._id,
                 subject: complaint.subject,
                 client:  req.user.name,

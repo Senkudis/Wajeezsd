@@ -644,8 +644,8 @@
     <!-- ========================================================= -->
     <div id="tab-debts" class="tab-content">
         
-        <!-- DEBT ADJUSTMENT TOOL -->
-        <div class="section-card">
+        <!-- DEBT ADJUSTMENT TOOL — للإداري الأكبر وحده (الخادم يرفض غيره) -->
+        <div class="section-card" id="debtAdjustCard">
             <div class="section-card-header">
                 <h2><i class="fas fa-sliders-h" aria-hidden="true"></i> إدارة وتعديل مديونية كابتن يدوياً</h2>
                 <span style="font-size:12px;color:var(--muted);">تصفير / تخفيض / إضافة مديونية من قِبل الإدارة</span>
@@ -945,6 +945,10 @@ const adminToken = localStorage.getItem('adminToken');
 let userObj = null;
 try { userObj = JSON.parse(localStorage.getItem('user')); } catch(e) {}
 if (!adminToken || !userObj || userObj.role !== 'admin') window.location.href = 'admin-login.html';
+// 💰 تعديل المحفظة يدوياً للإداري الأكبر وحده — لا يُعرض لغيره زرٌّ يُرفض
+if (userObj && userObj.adminRole && userObj.adminRole !== 'super_admin') {
+    document.addEventListener('DOMContentLoaded', () => { const c = document.getElementById('debtAdjustCard'); if (c) c.style.display = 'none'; });
+}
 
 const API = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
 const H   = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` });

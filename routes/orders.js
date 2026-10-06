@@ -1,4 +1,5 @@
 const express = require('express');
+const { toAdmins } = require('../utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 const mongoose = require('mongoose');
 const router = express.Router();
 const validateObjectId = require('../middleware/validateObjectId');
@@ -850,7 +851,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
         
         // Notify admin and client about cancellation
         if (io) {
-            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
+            toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
             io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
         }
 
@@ -883,7 +884,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
                     city: order.city || req.user.city || 'Khartoum'
                 });
                 if (io) {
-                    io.to('admin_room').emit('new_feedback', {
+                    toAdmins(io, fb.city).emit('new_feedback', {
                         id: fb._id, kind: 'cancellation',
                         reasonCode: safeReasonCode, city: fb.city
                     });
@@ -1286,7 +1287,7 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
 
             // 📢 الإدارة كانت عمياء تماماً عن المفاوضات: ترى الطلب "قيد الانتظار"
             // بلا أي أثر لعروض الكباتن عليه، فلا تعرف إن كان مهملاً أم تحت تفاوض نشط.
-            io.to('admin_room').emit('negotiation_update', {
+            toAdmins(io, order.city).emit('negotiation_update', {
                 orderId: order._id,
                 city: order.city,
                 captainName: req.user.name,
@@ -1455,7 +1456,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                 });
                 // قبول عرض يُسند الطلب لكابتن دون أن يمرّ بمسار /accept، فلولا هذا
                 // البثّ تبقى لوحة الإدارة تعرض الطلب "قيد الانتظار" حتى تحديث الصفحة
-                io.to('admin_room').emit('admin_order_update', {
+                toAdmins(io, order.city).emit('admin_order_update', {
                     orderId: order._id,
                     status: 'accepted',
                     captainName: offer.captainName || null,
@@ -1506,7 +1507,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
                     orderId: order._id,
                     result: 'rejected'
                 });
-                io.to('admin_room').emit('negotiation_update', {
+                toAdmins(io, order.city).emit('negotiation_update', {
                     orderId: order._id,
                     city: order.city,
                     rejected: true
@@ -1566,7 +1567,7 @@ router.put('/:id/negotiate-withdraw', protect, captainOnly, async (req, res) => 
                 captainId: req.user._id
             });
             // عدّاد العروض في لوحة الإدارة يجب أن ينقص فوراً كما يزيد
-            io.to('admin_room').emit('negotiation_update', {
+            toAdmins(io, order.city).emit('negotiation_update', {
                 orderId: order._id,
                 city: order.city,
                 withdrawn: true
@@ -1697,7 +1698,7 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
                 captainId: req.user.id
             });
             // 📢 Notify admin panel (admin_room sees all cities)
-            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'accepted', captainName: req.user.name, city: order.city });
+            toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: 'accepted', captainName: req.user.name, city: order.city });
             // 🚗 أعلِم بقية كباتن المدينة أن الطلب لم يعد متاحاً ليختفي فوراً من قوائمهم
             io.to(`room_${order.city}`).emit('order_taken', { orderId: order._id });
         }
@@ -1764,7 +1765,7 @@ router.put('/:id/release', protect, captainOnly, async (req, res) => {
             });
         } catch (e) { logger.warn({ err: e.message }, 'release request admin notify failed'); }
         const io = req.app.get('io');
-        if (io) io.to('admin_room').emit('admin_order_update', { orderId: updated._id, status: updated.status, city: updated.city, releaseRequest: 'pending' });
+        if (io) toAdmins(io, updated.city).emit('admin_order_update', { orderId: updated._id, status: updated.status, city: updated.city, releaseRequest: 'pending' });
 
         res.json({
             message: 'أُرسل طلب التنازل للإدارة — الطلب ما زال معك حتى يُقبل، وستصلك النتيجة بإشعار.',
@@ -1875,7 +1876,7 @@ router.put('/:id/pickup', protect, captainOnly, async (req, res) => {
                 status: 'picked_up',
                 proofOfPickupImage: proofImageUrl  // BUG-L1 FIX: URL المحوَّل لا Base64 الأصلي
             });
-            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'picked_up', city: order.city });
+            toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: 'picked_up', city: order.city });
         }
 
         res.json({ message: 'Order picked up', order });
@@ -1939,7 +1940,7 @@ router.put('/:id/stops/:stopRef/done', protect, captainOnly, async (req, res) =>
         if (io) {
             io.to(order.client.toString()).emit('order_status_updated', { orderId: order._id, status: 'picked_up' });
             // خريطة الرحلة تنقل وجهة الكابتن للمحطّة التالية فوراً
-            io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
+            toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
         }
 
         res.json({ message: 'تم تأكيد النقطة', order });
@@ -2068,7 +2069,7 @@ router.put('/:id/stops/reorder', protect, captainOnly, async (req, res) => {
 
         // خريطة الرحلة المفتوحة تعيد رسم المسار ووجهة الكابتن بالترتيب الجديد
         const io = req.app.get('io');
-        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
+        if (io) toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: order.status, city: order.city });
 
         res.json({ message: 'تم تحديث ترتيب المسار', order });
     } catch (error) {
@@ -2407,7 +2408,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
 
         const ioAdmin = req.app.get('io');
         if (ioAdmin) {
-            ioAdmin.to('admin_room').emit('admin_order_update', {
+            toAdmins(ioAdmin, order.city).emit('admin_order_update', {
                 orderId: order._id,
                 status: 'delivered',
                 captainName: req.user.name,
@@ -2599,7 +2600,7 @@ router.put('/:id/errand/respond', protect, async (req, res) => {
             });
             if (io) io.to(order.captain.toString()).emit('order_status_updated', { orderId: order._id, status: 'cancelled' });
         }
-        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
+        if (io) toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, status: 'cancelled', city: order.city });
 
         res.json({ message: 'تم رفض السعر وإلغاء الطلب', order });
     } catch (error) {
@@ -2691,7 +2692,7 @@ router.put('/:id/tip', protect, tipLimiter, async (req, res) => {
             });
         }
 
-        if (io) io.to('admin_room').emit('admin_order_update', { orderId: order._id, tip: amount, city: order.city });
+        if (io) toAdmins(io, order.city).emit('admin_order_update', { orderId: order._id, tip: amount, city: order.city });
 
         res.json({
             message: amount > 0 ? 'تمت إضافة الإكرامية' : 'تم إلغاء الإكرامية',
