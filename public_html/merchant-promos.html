@@ -408,8 +408,9 @@
             usageLimit: document.getElementById('fUsageLimit').value.trim() === ''
                 ? null : parseInt(document.getElementById('fUsageLimit').value, 10),
             userUsageLimit: parseInt(document.getElementById('fUserLimit').value, 10) || 1,
-            validFrom: document.getElementById('fFrom').value || null,
-            validUntil: document.getElementById('fUntil').value || null,
+            // datetime-local بلا منطقة: يُحوَّل بتوقيت الجهاز وإلا قرأه الخادم UTC (فرق ساعتين)
+            validFrom: (v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toISOString() : null; })(document.getElementById('fFrom').value),
+            validUntil: (v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toISOString() : null; })(document.getElementById('fUntil').value),
             description: document.getElementById('fDesc').value.trim(),
             isActive: document.getElementById('fActive').checked
         };

@@ -1509,7 +1509,7 @@ window.createOrder = async function() {
             distanceType: 'custom', // السعر دائماً يُحسب من المسافة الحقيقية
             price: parseFloat(SudanPhone.fold(document.getElementById('price').value)),
             parcelImage: parcelImageToSend,
-            scheduledAt: document.getElementById('scheduled-at')?.value || null // ⏰ Scheduling
+            scheduledAt: (v => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d.toISOString() : null; })(document.getElementById('scheduled-at')?.value) // ⏰ بتوقيت الجهاز لا UTC الخادم
         };
 
         // 🛍️ وضع "اشترِ لي": أضف نوع الطلب والأصناف والميزانية والمحل
