@@ -39,7 +39,7 @@
         if (window.Swal) {
             // خطوة احتفاظ بالعميل (Retention Step)
             const retentionRes = await Swal.fire({
-                title: 'هل تواجه مشكلة؟ 😔',
+                title: 'هل تواجه مشكلة؟',
                 html: 'نحن هنا لمساعدتك! إذا كنت تواجه أي مشكلة في التطبيق أو لديك شكوى، يرجى التواصل مع الإدارة وسنقوم بحلها فوراً بدلاً من خسارتك.',
                 icon: 'question',
                 showCancelButton: true,

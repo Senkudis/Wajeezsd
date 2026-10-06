@@ -183,7 +183,7 @@ async function fetchCategories() {
             if (grid) grid.innerHTML = '';
             const feat = document.getElementById('featured-section');
             if (feat) feat.innerHTML = `<div class="empty-state">
-                <div class="empty-icon">🏪</div>
+                <div class="empty-icon"><i class="bi bi-shop"></i></div>
                 <h6>لا توجد تصنيفات حالياً</h6>
                 <p>سيتم إضافة المحلات قريباً</p>
             </div>`;
@@ -433,7 +433,7 @@ async function loadPlaces(categoryId, categoryName, categoryNotes = '') {
 
         if (places.length === 0) {
             listContainer.innerHTML = notesHtml + `<div class="empty-state">
-                <div class="empty-icon">🏪</div>
+                <div class="empty-icon"><i class="bi bi-shop"></i></div>
                 <h6>لا توجد محلات في هذا التصنيف</h6>
                 <p>سيتم إضافة محلات قريباً</p>
             </div>`;
@@ -969,11 +969,15 @@ window.openPlaceDetails = function(placeId) {
     if (modalSrc) modalImg.src = modalSrc;
 
     const statusEl = document.getElementById('placeModalStatus');
+    // اللون وحده يتبدّل — كان className يُستبدَل كاملاً فيُمحى position-absolute
+    // (وأصناف موضعها في index) فتسقط الشارة من فوق الصورة ولا تظهر
+    statusEl.classList.add('badge', 'shadow-sm', 'rounded-pill');
+    statusEl.classList.remove('bg-success', 'bg-danger');
     if (place.is_open) {
-        statusEl.className = 'badge bg-success shadow-sm fs-6 px-3 py-2 rounded-pill';
+        statusEl.classList.add('bg-success');
         statusEl.innerHTML = '<i class="bi bi-door-open-fill me-1"></i> مفتوح الآن';
     } else {
-        statusEl.className = 'badge bg-danger shadow-sm fs-6 px-3 py-2 rounded-pill';
+        statusEl.classList.add('bg-danger');
         statusEl.innerHTML = '<i class="bi bi-door-closed-fill me-1"></i> مغلق الآن';
     }
 
@@ -1198,7 +1202,7 @@ window.openShopOrderConfirmModal = async function() {
                 lat: window.userLocation.lat,
                 lng: window.userLocation.lng
             },
-            details: `🏢 طلب من محل: ${place.name}\n🧢 الأغراض مدفوعة مسبقاً ✔️\n\n${orderDetails}`,
+            details: `طلب من محل: ${place.name}\nالأغراض مدفوعة مسبقاً\n\n${orderDetails}`,
             distanceType: 'custom',
             price: calculatedPrice
         };

@@ -97,7 +97,7 @@ function errandCard(p) {
     <div class="errand-place" onclick="startErrand(${args})">
         <div class="errand-place-ic" style="${imgSrc ? 'background:transparent;padding:0;overflow:hidden;' : ''}">${iconHtml}</div>
         <div style="flex:1;min-width:0;">
-            <div class="errand-place-name">${esc_(p.name)}${isOurs ? badges[0] : ''}</div>
+            <div class="errand-place-name">${esc_(p.name)}${isOurs ? ' ' + badges[0] : ''}</div>
             ${p.address ? `<div class="errand-place-meta">${esc_(p.address)}</div>` : ''}
             <div class="errand-chips">${badges.slice(isOurs ? 1 : 0).join('')}</div>
         </div>

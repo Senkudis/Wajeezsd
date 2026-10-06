@@ -402,7 +402,7 @@
 
             <!-- Captain Info -->
             <div id="captain-info" class="captain-card" style="display:none;">
-                <div class="captain-avatar" id="captain-avatar">🏍</div>
+                <div class="captain-avatar" id="captain-avatar"><i class="bi bi-person-fill"></i></div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:700;font-size:13px;color:#1e293b;" id="captain-name">الكابتن</div>
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -668,12 +668,12 @@
         // ⚠️ 'scheduled' خارج STATUS_ORDER عمداً: لم تبدأ الرحلة بعد، فلا خطوة
         // مكتملة. لكن غياب نصّها كان يترك العنوان فارغاً — طلبٌ حيّ بلا أي بيان.
         const STATUS_LABELS = {
-            'pending':   '⏳ في انتظار الكابتن',
-            'scheduled': '🗓️ مجدول — يُنشر للكباتن في موعده',
-            'accepted':  '🚀 الكابتن في الطريق إليك',
-            'picked_up': '📦 الكابتن استلم الطرد',
-            'delivered': '✅ تم التوصيل بنجاح!',
-            'cancelled': '❌ تم إلغاء الطلب'
+            'pending':   'في انتظار الكابتن',
+            'scheduled': 'مجدول — يُنشر للكباتن في موعده',
+            'accepted':  'الكابتن في الطريق إليك',
+            'picked_up': 'الكابتن استلم الطرد',
+            'delivered': 'تم التوصيل بنجاح!',
+            'cancelled': 'تم إلغاء الطلب'
         };
 
         function updateStatusSteps(status) {
@@ -853,17 +853,17 @@
             const overBudget = budget && amount > budget;
             const budgetHtml = overBudget
                 ? `<div style="font-size:12.5px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:7px 10px;margin-top:8px;font-weight:700;">
-                     ⚠️ أعلى من ميزانيتك (${budget} ج.س) بمقدار ${amount - budget} ج.س</div>`
-                : (budget ? `<div style="font-size:12px;color:#16a34a;margin-top:6px;">✓ ضمن ميزانيتك (${budget} ج.س)</div>` : '');
+                     <i class="bi bi-exclamation-triangle-fill"></i> أعلى من ميزانيتك (${budget} ج.س) بمقدار ${amount - budget} ج.س</div>`
+                : (budget ? `<div style="font-size:12px;color:#16a34a;margin-top:6px;"><i class="bi bi-check-circle-fill"></i> ضمن ميزانيتك (${budget} ج.س)</div>` : '');
             const result = await Swal.fire({
-                title: '🛍️ سعر طلبك جاهز',
+                title: 'سعر طلبك جاهز',
                 html: `<div style="font-size:14px;color:#475569;">سعر البضاعة من <b>${(order.shopName || 'المحل')}</b>:</div>
                        <div style="font-size:30px;font-weight:900;color:${overBudget ? '#b91c1c' : '#4f46e5'};margin:8px 0;">${amount} ج.س</div>
                        <div style="font-size:12.5px;color:#94a3b8;">أجرة التوصيل (${order.price} ج.س) تُضاف عند الاستلام.</div>
                        ${budgetHtml}`,
                 showCancelButton: true,
-                confirmButtonText: '✅ وافق وابدأ الشراء',
-                cancelButtonText: '❌ رفض',
+                confirmButtonText: 'وافق وابدأ الشراء',
+                cancelButtonText: 'رفض',
                 confirmButtonColor: '#16a34a',
                 cancelButtonColor: '#dc3545',
                 allowOutsideClick: false
@@ -889,7 +889,7 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    Swal.fire({ icon: accept ? 'success' : 'info', title: accept ? 'تم التأكيد ✅' : 'تم الإلغاء', text: data.message || '', timer: 2200, showConfirmButton: false });
+                    Swal.fire({ icon: accept ? 'success' : 'info', title: accept ? 'تم التأكيد' : 'تم الإلغاء', text: data.message || '', timer: 2200, showConfirmButton: false });
                     fetchOrder();
                 } else {
                     _errandPromptedFor = null;
@@ -1089,7 +1089,7 @@
                 captainEl.style.display = 'flex';
                 document.getElementById('captain-name').textContent = order.captain.name || 'الكابتن';
                 document.getElementById('captain-vehicle').textContent = order.captain.vehicleType
-                    ? window.VehicleTypes.iconLabel(order.captain.vehicleType) : '—';
+                    ? window.VehicleTypes.label(order.captain.vehicleType) : '—';
 
                 // ⭐ تقييم الكابتن الظاهر — يُطمئن العميل قبل/أثناء التوصيل
                 const ratingEl = document.getElementById('captain-rating');
@@ -1097,7 +1097,7 @@
                     const rc = order.captain.ratingCount || 0;
                     if (rc > 0 && order.captain.averageRating) {
                         ratingEl.style.display = '';
-                        ratingEl.textContent = `⭐ ${Number(order.captain.averageRating).toFixed(1)} (${rc})`;
+                        ratingEl.innerHTML = `<i class="bi bi-star-fill" style="color:#f59e0b"></i> ${Number(order.captain.averageRating).toFixed(1)} (${Number(rc)})`;
                     } else {
                         ratingEl.style.display = 'none';
                     }
@@ -1111,8 +1111,8 @@
                     if (trips > 0) {
                         tripsEl.style.display = '';
                         tripsEl.textContent = trips >= 1000
-                            ? `🏁 ${(trips / 1000).toFixed(1).replace(/\.0$/, '')} ألف رحلة`
-                            : `🏁 ${trips} رحلة`;
+                            ? `${(trips / 1000).toFixed(1).replace(/\.0$/, '')} ألف رحلة`
+                            : `${trips} رحلة`;
                     } else {
                         tripsEl.style.display = 'none';
                     }

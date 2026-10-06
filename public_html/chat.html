@@ -658,7 +658,7 @@
             <i class="bi bi-chevron-right" aria-hidden="true"></i>
         </button>
         <div class="avatar" id="chatAvatar" aria-hidden="true">
-            <span id="chatAvatarEmoji">👤</span>
+            <span id="chatAvatarEmoji"><i class="bi bi-person-fill"></i></span>
             <span class="status-dot" id="statusDot"></span>
         </div>
         <div class="info">
@@ -681,7 +681,7 @@
     </div>
 
     <!-- Connection Status Banner -->
-    <div class="connection-banner" id="connectionBanner" role="status" aria-live="polite">⚠️ جاري الاتصال...</div>
+    <div class="connection-banner" id="connectionBanner" role="status" aria-live="polite"><i class="bi bi-wifi-off"></i> جاري الاتصال...</div>
 
     <!-- Chat Area -->
     <div class="chat-container" id="chatContainer" role="log" aria-live="polite" aria-label="الرسائل">
@@ -1657,7 +1657,7 @@
 
             if (!receiverId) {
                 const banner = document.getElementById('connectionBanner');
-                banner.textContent = '⚠️ جاري تحديد بيانات المحادثة...';
+                banner.textContent = 'جاري تحديد بيانات المحادثة...';
                 banner.classList.add('disconnected');
                 setTimeout(() => banner.classList.remove('disconnected'), 3000);
                 console.warn('[Chat] Cannot send message: receiverId is not yet resolved');

@@ -1063,7 +1063,7 @@ router.get('/my-orders', protect, async (req, res) => {
                 orderType: 'shop',
                 shopOrderId: so._id,
                 placeId: so.place ? so.place._id : null,
-                pickup: { address: so.place ? `🏖️ ${so.place.name}` : 'متجر' },
+                pickup: { address: so.place ? so.place.name : 'متجر' },
                 dropoff: so.dropoff || { address: 'غير محدد' },
                 price: so.totalAmount || 0,
                 itemsTotal: so.itemsTotal || 0,

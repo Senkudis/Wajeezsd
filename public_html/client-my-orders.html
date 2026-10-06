@@ -1022,9 +1022,9 @@
                             const overBudget = budget && amount > budget;
                             activeBtns = `
                             <div style="background:${overBudget ? '#fef2f2' : '#f0fdf4'};border:2px solid ${overBudget ? '#fca5a5' : '#86efac'};border-radius:14px;padding:12px 14px;margin-bottom:8px;">
-                                <div style="font-size:13px;color:#475569;font-weight:600;margin-bottom:4px;">🛍️ سعر البضاعة من <b>${escapeHtml(order.shopName || 'المحل')}</b></div>
+                                <div style="font-size:13px;color:#475569;font-weight:600;margin-bottom:4px;"><i class="bi bi-bag-check"></i> سعر البضاعة من <b>${escapeHtml(order.shopName || 'المحل')}</b></div>
                                 <div style="font-size:26px;font-weight:900;color:${overBudget ? '#b91c1c' : '#16a34a'};">${amount} ج.س</div>
-                                ${overBudget ? `<div style="font-size:11.5px;color:#b91c1c;margin-top:3px;">⚠️ أعلى من ميزانيتك (${budget} ج.س)</div>` : (budget ? `<div style="font-size:11.5px;color:#16a34a;margin-top:3px;">✓ ضمن ميزانيتك (${budget} ج.س)</div>` : '')}
+                                ${overBudget ? `<div style="font-size:11.5px;color:#b91c1c;margin-top:3px;"><i class="bi bi-exclamation-triangle-fill"></i> أعلى من ميزانيتك (${budget} ج.س)</div>` : (budget ? `<div style="font-size:11.5px;color:#16a34a;margin-top:3px;">✓ ضمن ميزانيتك (${budget} ج.س)</div>` : '')}
                                 <div style="font-size:11px;color:#94a3b8;margin-top:3px;">أجرة التوصيل (${order.price} ج.س) تُضاف عند الاستلام</div>
                             </div>
                             <div class="d-flex gap-2">
@@ -1112,8 +1112,11 @@
                                 activeBtns += `<button class="btn btn-warning w-100 rounded-pill fw-bold shadow-sm mt-2 text-dark" data-rate-id="${order._id}" onclick="confirmDelivery('${order._id}', ${pId ? `'${pId}'` : 'null'})"><i class="bi bi-star-fill me-1"></i> قيِّم الطلب</button>`;
                             }
                             // 🔄 إعادة الطلب — للطلبات الملغاة فقط (لا تظهر للطلبات المكتملة/المسلَّمة)
-                            if (order.status === 'cancelled' && order.orderType === 'shop' && (order.shopId || order.shopId === 0)) {
-                                activeBtns += `<a href="shop-detail.html?id=${order.shopId}" class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2"><i class="bi bi-arrow-repeat me-1"></i> اطلب من نفس المتجر</a>`;
+                            //    طلب المتجر يصل بـ placeId (لا shopId)، وصفحة المتجر تقرأ ?placeId=
+                            //    — كان الشرط على shopId فلا يظهر الزر، والرابط بـ ?id= فلا يفتح المتجر
+                            const reorderPlace = order.placeId || order.shopId;
+                            if (order.status === 'cancelled' && order.orderType === 'shop' && reorderPlace) {
+                                activeBtns += `<a href="shop-detail.html?placeId=${encodeURIComponent(reorderPlace)}" class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2"><i class="bi bi-arrow-repeat me-1"></i> اطلب من نفس المتجر</a>`;
                             } else if (order.status === 'cancelled' && order.orderType !== 'shop') {
                                 activeBtns += `<button class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2" onclick='reorderDelivery(${JSON.stringify({
                                     pAddr: order.pickup?.address || '', pName: order.pickup?.contactName || '', pPhone: order.pickup?.contactPhone || '', pLat: order.pickup?.lat, pLng: order.pickup?.lng,
@@ -1387,7 +1390,7 @@
                     if (res.ok) {
                         if (action === 'accept') {
                             Swal.fire({
-                                title: '✅ قبلت السعر!',
+                                title: 'قبلت السعر!',
                                 text: 'تم تأكيد الطلب والكابتن في الطريق.',
                                 icon: 'success',
                                 confirmButtonText: 'تتبع الطلب',
@@ -1509,7 +1512,7 @@
                         _errandPromptedFor = null;
                         Swal.fire({
                             icon: accept ? 'success' : 'info',
-                            title: accept ? '✅ تم التأكيد' : 'تم الرفض',
+                            title: accept ? 'تم التأكيد' : 'تم الرفض',
                             text: data.message || '',
                             timer: 2200, showConfirmButton: false
                         });
@@ -1528,12 +1531,12 @@
                 if (_errandPromptedFor === key) return;
                 _errandPromptedFor = key;
                 const result = await Swal.fire({
-                    title: '🛍️ سعر طلبك جاهز',
+                    title: 'سعر طلبك جاهز',
                     html: `<div style="font-size:14px;color:#475569;">سعر البضاعة من <b>${escapeHtml(data.shopName || 'المحل')}</b>:</div>
                            <div style="font-size:30px;font-weight:900;color:#4f46e5;margin:8px 0;">${data.amount} ج.س</div>`,
                     showCancelButton: true,
-                    confirmButtonText: '✅ وافق وابدأ الشراء',
-                    cancelButtonText: '❌ رفض',
+                    confirmButtonText: 'وافق وابدأ الشراء',
+                    cancelButtonText: 'رفض',
                     confirmButtonColor: '#16a34a',
                     cancelButtonColor: '#dc3545',
                     allowOutsideClick: false
@@ -1622,12 +1625,12 @@
                 promptedOrders.add(orderId);
 
                 Swal.fire({
-                    title: '📦 هل استلمت طلبك؟',
+                    title: 'هل استلمت طلبك؟',
                     text: 'أخبرنا الكابتن أنه وصل إليك، هل تؤكد الاستلام؟',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'نعم، استلمت ✅',
-                    cancelButtonText: 'لا، لم استلم ❌',
+                    confirmButtonText: 'نعم، استلمت',
+                    cancelButtonText: 'لا، لم أستلم',
                     confirmButtonColor: 'var(--primary)',
                     cancelButtonColor: '#d33',
                     allowOutsideClick: false
@@ -1644,7 +1647,7 @@
 
             function showComplaintDialog(orderId) {
                 Swal.fire({
-                    title: '⚠️ نأسف لذلك',
+                    title: 'نأسف لذلك',
                     text: 'يرجى توضيح المشكلة:',
                     input: 'textarea',
                     inputPlaceholder: 'اكتب تفاصيل المشكلة هنا...',
@@ -1718,7 +1721,7 @@
                     <input type="hidden" id="selectedStar" value="0">`;
 
                 Swal.fire({
-                    title: 'تقييم الكابتن ⭐',
+                    title: 'تقييم الكابتن',
                     html: starHtml,
                     confirmButtonText: 'إرسال',
                     confirmButtonColor: 'var(--primary)',
@@ -1863,7 +1866,7 @@
                     <input type="hidden" id="placeSelectedStar" value="0">`;
 
                 Swal.fire({
-                    title: 'قيّم المتجر 🛒',
+                    title: 'قيّم المتجر',
                     html: starHtml,
                     confirmButtonText: 'إرسال',
                     confirmButtonColor: 'var(--primary)',

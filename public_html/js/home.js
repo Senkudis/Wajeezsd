@@ -1291,7 +1291,7 @@ async function uploadParcelImage(file) {
         const data = await res.json();
         if (res.ok && data.url) {
             _parcelImageUrl = data.url;
-            if (label) label.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i> تم رفع الصورة ✅';
+            if (label) label.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i> تم رفع الصورة';
         } else {
             if (label) label.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> فشل الرفع — أعد المحاولة';
             _parcelImageUrl = null;
@@ -1308,7 +1308,7 @@ window.clearImage = function() {
     document.getElementById('img-preview').classList.add('d-none');
     _parcelImageUrl = null;
     const label = document.querySelector('label[for="parcel-image"]');
-    if (label) label.innerHTML = '<i class="bi bi-camera-fill"></i><span>📷 صورة للطرد (اختياري)</span>';
+    if (label) label.innerHTML = '<i class="bi bi-camera-fill"></i><span>صورة للطرد (اختياري)</span>';
 };
 
 // 🚀 Validation & Submission
@@ -1625,7 +1625,7 @@ window.addEventListener('online', () => {
     Swal.fire({
         position: 'top-end',
         icon: 'success',
-        title: 'رجع الإنترنت! 🌐',
+        title: 'رجع الإنترنت!',
         showConfirmButton: false,
         timer: 1500,
         toast: true
@@ -1636,7 +1636,7 @@ window.addEventListener('offline', () => {
     Swal.fire({
         position: 'top-end',
         icon: 'warning',
-        title: 'انقطع الاتصال بالإنترنت ⚠️',
+        title: 'انقطع الاتصال بالإنترنت',
         showConfirmButton: false,
         timer: 3000,
         toast: true
@@ -1790,7 +1790,7 @@ if (localStorage.getItem('token')) loadSavedAddresses();
         setTimeout(() => {
             const form = document.querySelector('.route-inputs');
             if (form) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            Swal.fire({ position: 'top-end', icon: 'info', title: 'تم تعبئة بيانات الطلب السابق ✏️', toast: true, timer: 2200, showConfirmButton: false });
+            Swal.fire({ position: 'top-end', icon: 'info', title: 'تم تعبئة بيانات الطلب السابق', toast: true, timer: 2200, showConfirmButton: false });
         }, 600);
     } catch (e) { /* تجاهل */ }
 })();

@@ -145,14 +145,14 @@
                     <label class="form-label"><i class="bi bi-tags-fill text-warning me-1"></i>نوع المشكلة *</label>
                     <select id="fCategory" class="form-select">
                         <option value="" disabled selected>اختر نوع المشكلة...</option>
-                        <option value="late_delivery">🕐 تأخر التوصيل</option>
-                        <option value="wrong_item">📦 منتج خاطئ أو ناقص</option>
-                        <option value="captain_behavior">🚗 سلوك الكابتن</option>
-                        <option value="payment">💳 مشكلة في الدفع</option>
-                        <option value="app_bug">📱 خطأ في التطبيق</option>
-                        <option value="store_issue">🏪 مشكلة مع المتجر</option>
-                        <option value="missing_item">❌ منتج مفقود</option>
-                        <option value="other">💬 أخرى</option>
+                        <option value="late_delivery">تأخر التوصيل</option>
+                        <option value="wrong_item">منتج خاطئ أو ناقص</option>
+                        <option value="captain_behavior">سلوك الكابتن</option>
+                        <option value="payment">مشكلة في الدفع</option>
+                        <option value="app_bug">خطأ في التطبيق</option>
+                        <option value="store_issue">مشكلة مع المتجر</option>
+                        <option value="missing_item">منتج مفقود</option>
+                        <option value="other">أخرى</option>
                     </select>
                 </div>
                 <div class="mb-3">
@@ -327,12 +327,13 @@
             };
 
             list.innerHTML = tickets.map(t => `
-                <div class="ticket-card" onclick="openThread('${t._id}', '${(t.subject||'').replace(/'/g,"&#39;")}')">
-                    <div class="ticket-subject">${t.subject || '—'}</div>
-                    <div class="ticket-desc">${t.description}</div>
+                <div class="ticket-card" data-id="${escapeHtml(t._id)}" data-subject="${escapeHtml(t.subject || '')}"
+                     onclick="openThread(this.dataset.id, this.dataset.subject)">
+                    <div class="ticket-subject">${escapeHtml(t.subject || '—')}</div>
+                    <div class="ticket-desc">${escapeHtml(t.description || '')}</div>
                     <div class="ticket-meta">
-                        <span class="badge-status ${statusCls[t.status] || 's-open'}">${statusLabel[t.status] || t.status}</span>
-                        <span class="badge-status" style="background:#f8fafc;color:#374151;">${catLabel[t.category] || t.category || ''}</span>
+                        <span class="badge-status ${statusCls[t.status] || 's-open'}">${escapeHtml(statusLabel[t.status] || t.status)}</span>
+                        <span class="badge-status" style="background:#f8fafc;color:#374151;">${escapeHtml(catLabel[t.category] || t.category || '')}</span>
                         ${t.replies?.length > 0 ? `<span class="replies-badge"><i class="bi bi-chat-dots me-1"></i>${t.replies.length} رد</span>` : ''}
                         <span class="text-muted ms-auto" style="font-size:11px;">${new Date(t.createdAt).toLocaleDateString('ar-EG')}</span>
                     </div>
@@ -343,7 +344,7 @@
         // ─── Open Thread ────────────────────────────────────────
         async function openThread(id, subject) {
             activeTicketId = id;
-            document.getElementById('threadTitle').innerHTML = `<i class="bi bi-headset me-2"></i>${subject || 'تفاصيل التذكرة'}`;
+            document.getElementById('threadTitle').innerHTML = `<i class="bi bi-headset me-2"></i>${escapeHtml(subject || 'تفاصيل التذكرة')}`;
             document.getElementById('threadBody').innerHTML = '<div class="d-flex justify-content-center py-4"><div class="spinner-border text-success"></div></div>';
             new bootstrap.Modal(document.getElementById('threadModal')).show();
 
@@ -372,7 +373,7 @@
             // Original message from client
             msgs.push(`
                 <div class="msg-bubble msg-client">
-                    ${c.description}
+                    ${escapeHtml(c.description || '')}
                     <div class="msg-time">${new Date(c.createdAt).toLocaleString('ar-EG')} · أنت</div>
                 </div>`);
 
@@ -380,8 +381,8 @@
                 const isAdmin = r.senderRole === 'admin';
                 msgs.push(`
                     <div class="msg-bubble ${isAdmin ? 'msg-admin' : 'msg-client'}">
-                        ${r.message}
-                        <div class="msg-time">${new Date(r.createdAt).toLocaleString('ar-EG')} · ${isAdmin ? '🔐 فريق الدعم' : 'أنت'}</div>
+                        ${escapeHtml(r.message || '')}
+                        <div class="msg-time">${new Date(r.createdAt).toLocaleString('ar-EG')} · ${isAdmin ? '<i class="bi bi-shield-check"></i> فريق الدعم' : 'أنت'}</div>
                     </div>`);
             });
 

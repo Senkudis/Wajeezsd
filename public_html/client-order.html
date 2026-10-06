@@ -284,9 +284,12 @@
             font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: .3px;
             margin: 10px 2px 6px; display: flex; align-items: center; gap: 6px;
         }
+        /* inline-block: يقطع وصل الحروف — كان آخر حرفٍ في الاسم («النيل») يتّصل
+           بأول حرفٍ في الشارة فيبدو مقصوصاً */
         .errand-place-badge {
+            display: inline-block;
             font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 99px;
-            background: #dcfce7; color: #15803d; margin-right: 6px; vertical-align: middle;
+            background: #dcfce7; color: #15803d; margin-inline-start: 4px; vertical-align: middle;
         }
 
         /* 🏷️ شارات البطاقة: التصنيف والمسافة — بها يميّز العميل محلاً عن آخر بنفس الاسم */
@@ -975,7 +978,7 @@
                 <div class="modal-body p-0">
                     <!-- Distance Row -->
                     <div style="padding:14px 18px 0;display:flex;align-items:center;gap:6px;">
-                        <i class="bi bi-geo-alt-fill text-success"></i>
+                        <!-- الأيقونة يضعها openPlaceDetails مع النص — هنا كانت تتكرّر وتبقى حين تُخفى المسافة -->
                         <span id="placeModalDistance" style="font-size:13px;color:#6b7280;font-weight:600;">يبعد -- كم</span>
                         <span id="placeModalAddress" class="d-none" style="font-size:12px;color:#9ca3af;margin-right:auto;">
                             <span class="address-text"></span>
@@ -1151,10 +1154,10 @@
 <script type="module" src="js/app-core.js?v=f32d6356"></script>
     <script type="module" src="js/native-notifications.js?v=6426d1e7"></script>
     <script src="js/map-markers.js?v=34f3acc0"></script>
-    <script src="js/order-feature.js?v=07b109bc"></script>
+    <script src="js/order-feature.js?v=730d8dc8"></script>
     <!-- 🛍️ منتقي "اشترِ لي" — بعد order-feature.js لاعتماده على getUserLocation/getFullImageUrl -->
     <script src="js/errand-context.js?v=f33a33bc"></script>
-    <script src="js/errand-picker.js?v=d46da3a2"></script>
+    <script src="js/errand-picker.js?v=6d49d99e"></script>
     <script src="js/home-banners.js?v=72f9dc36"></script>
 
     <script>
@@ -1317,7 +1320,7 @@
                 }
                 _renderUnifiedResults();
             } catch (e) {
-                listEl.innerHTML = `<div class="search-results-wrap"><div class="empty-state"><div class="empty-icon">⚠️</div>
+                listEl.innerHTML = `<div class="search-results-wrap"><div class="empty-state"><div class="empty-icon"><i class="bi bi-exclamation-triangle"></i></div>
                     <h6>تعذّر البحث</h6><p>تحقّق من اتصالك وحاول مجدداً</p></div></div>`;
             }
         }
@@ -1344,7 +1347,7 @@
             if (total === 0) {
                 // 🛍️ مخرج بدل طريق مسدود: المحل غير مسجّل عندنا لا يعني أنه غير متاح —
                 // خدمة "اشترِ لي" تشتري منه. ننقل نصّ البحث معها فلا يُعيد العميل الكتابة.
-                listEl.innerHTML = `<div class="search-results-wrap"><div class="empty-state"><div class="empty-icon">🔍</div>
+                listEl.innerHTML = `<div class="search-results-wrap"><div class="empty-state"><div class="empty-icon"><i class="bi bi-search"></i></div>
                     <h6>لا توجد نتائج لـ "${escapeHtml(q)}"</h6>
                     <p>المحل مش مسجّل عندنا؟ الكابتن يقدر يشتري ليك منه</p>
                     <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold mt-2"
