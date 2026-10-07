@@ -341,13 +341,13 @@ jobs:
             /usr/libexec/PlistBuddy -c "Add :CFBundleDevelopmentRegion string ar" "$PLIST"
 
           patch_key "NSLocationWhenInUseUsageDescription" "string" \
-            "نستخدم موقعك لتحديد نقطة الاستلام والتسليم بدقة وحساب سعر التوصيل."
+            "يُستخدم موقعك لعرض المتاجر القريبة منك وتحديد نقطة التسليم على الخريطة."
 
           patch_key "NSLocationAlwaysAndWhenInUseUsageDescription" "string" \
-            "يستخدم تطبيق الكابتن موقعك أثناء المهمة النشطة فقط لعرض موقعه للعميل ومتابعة الطلب حتى التسليم."
+            "يُستخدم موقعك أثناء وردية العمل — من لحظة تفعيلك «متصل» وحتى إيقافه — ليصلك أقرب الطلبات وليتابع العميل تقدّم طلبه على الخريطة حتى والتطبيق في الخلفية. لا يُجمع موقعك وأنت غير متصل."
 
           patch_key "NSLocationAlwaysUsageDescription" "string" \
-            "يستخدم تطبيق الكابتن موقعك أثناء المهمة النشطة فقط لعرض موقعه للعميل ومتابعة الطلب حتى التسليم."
+            "يُستخدم موقعك أثناء وردية العمل — من لحظة تفعيلك «متصل» وحتى إيقافه — ليصلك أقرب الطلبات وليتابع العميل تقدّم طلبه على الخريطة حتى والتطبيق في الخلفية. لا يُجمع موقعك وأنت غير متصل."
 
           patch_key "NSCameraUsageDescription" "string" \
             "لتصوير الطرد أو إشعار الدفع أو وثائق الكابتن ورفعها مع الطلب."
@@ -359,6 +359,17 @@ jobs:
             "لحفظ صورة إيصال الطلب في معرض صورك عند طلبك ذلك."
 
           patch_key "ITSAppUsesNonExemptEncryption" "bool" "false"
+
+          # 📱 عمودي فقط: الواجهات كلها مصمَّمة لهاتفٍ بيدٍ واحدة، وقالب Capacitor
+          #    يُعلن الوضعين الأفقيين فتنكسر الشاشات حين يُدار الجهاز.
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" "$PLIST"
+
+          # 🧩 armv7 بقيةٌ من قالبٍ قديم — البناء arm64 وحده (iOS 15+)
+          /usr/libexec/PlistBuddy -c "Delete :UIRequiredDeviceCapabilities" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UIRequiredDeviceCapabilities:0 string arm64" "$PLIST"
 
           # UIBackgroundModes — كل وضعٍ يُفحص وحده.
           #

@@ -202,10 +202,24 @@ const CaptainService = {
                     // طلب إذن تخطي توفير طاقة البطارية للحفاظ على اتصال Socket في الخلفية
                     // (يفتح نافذة النظام فقط إن لم يكن مستثنى — مرّةً في اليوم تكفي)
                     const today = new Date().toDateString();
-                    if (bridge('requestBatteryBypass') && _ls.get('battery_bypass_asked') !== today) {
+                    // ⚠️ الجسر يفتح شاشة الإعدادات لا نافذة «سماح» واحدة (انظر
+                    //    MainActivity.requestBatteryBypass) — فنشرح قبلها ما المطلوب،
+                    //    ولا نسأل المستثنى أصلاً.
+                    const ignoring = bridge('isIgnoringBatteryOptimizations');
+                    const alreadyExempt = ignoring ? ignoring.isIgnoringBatteryOptimizations() : false;
+                    if (bridge('requestBatteryBypass') && !alreadyExempt && _ls.get('battery_bypass_asked') !== today) {
                         _ls.set('battery_bypass_asked', today);
-                        setTimeout(() => {
-                            window.AndroidDownloader.requestBatteryBypass();
+                        setTimeout(async () => {
+                            const msg = 'حتى تصلك الطلبات والشاشة مقفولة: في الشاشة التالية اختر «وجيز» ثم «عدم التحسين» أو «غير مقيَّد».';
+                            let go = true;
+                            if (window.Swal) {
+                                const r = await Swal.fire({
+                                    icon: 'info', title: 'استثناء وجيز من توفير البطارية', text: msg,
+                                    showCancelButton: true, confirmButtonText: 'فتح الإعدادات', cancelButtonText: 'لاحقاً'
+                                });
+                                go = r.isConfirmed;
+                            }
+                            if (go) window.AndroidDownloader.requestBatteryBypass();
                         }, 1000); // تأخير قليل لتجنب تداخل النوافذ المنبثقة
                     }
                 } else {

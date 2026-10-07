@@ -290,16 +290,20 @@ public class MainActivity extends BridgeActivity {
         /**
          * يُطلب من الكابتن استثناء التطبيق من موفر طاقة البطارية لضمان بقاء الـ WebSocket
          * و Background Geolocation متصلين عند إغلاق الشاشة.
+         *
+         * ⚠️ نفتح شاشة «تحسين البطارية» في الإعدادات لا نافذة الطلب المباشر
+         *    (ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS): تلك تحتاج إذن
+         *    REQUEST_IGNORE_BATTERY_OPTIMIZATIONS المقيّد في Google Play، وتطبيق
+         *    توصيلٍ بخدمة موقعٍ أمامية لا يقع في الاستثناءات المقبولة — سبب رفض.
+         *    هذه الشاشة لا تحتاج أي إذن؛ والاسم القديم باقٍ لأن الصفحات تستدعيه.
          */
         @JavascriptInterface
         public void requestBatteryBypass() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
-                if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
-                    Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                    intent.setData(Uri.parse("package:" + getPackageName()));
-                    startActivity(intent);
-                }
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && pm.isIgnoringBatteryOptimizations(getPackageName())) return;
+            if (!startSafely(new Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))) {
+                openAppSettings();   // بعض الشركات تُخفي الشاشة — صفحة التطبيق فيها البطارية
             }
         }
 
