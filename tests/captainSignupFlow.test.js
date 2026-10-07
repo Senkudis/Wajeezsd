@@ -46,7 +46,9 @@ describe('🔴 وثائق المتقدّم تصل الإدارة', () => {
     });
 
     it('وهو نفس المسار الذي ترسل إليه صفحة التسجيل', () => {
-        const sent = page.match(/\/api\/upload\/[a-z-]+/);
+        // الرفع انتقل إلى js/captain-docs-upload.js (صورةً صورة بإعادة) — والصفحة تحمّله
+        expect(page).toContain('js/captain-docs-upload.js');
+        const sent = read('public_html', 'js/captain-docs-upload.js').match(/\/api\/upload\/[a-z-]+/);
         expect(sent).not.toBeNull();
         expect(mw).toContain(sent[0]);
     });

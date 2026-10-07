@@ -246,9 +246,22 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
             updates['documents.selfieImage'] = priv('selfieImage');
         }
 
+        // 📎 الصور تصل الآن صورةً صورة (js/captain-docs-upload.js) — فالتنبيه
+        //    يقع مرّةً واحدة: حين **تكتمل** الوثائق الإجبارية بهذا الطلب، لا مع
+        //    كل صورة. وطلبٌ ناقص لا يُنبَّه به أصلاً: لا شيء فيه لتراجعه الإدارة.
+        const REQUIRED = ['idImage', 'selfieImage', 'profilePhoto', 'vehiclePhoto'];
+        const before = (req.user.documents && typeof req.user.documents.toObject === 'function')
+            ? req.user.documents.toObject() : (req.user.documents || {});
+        const wasComplete = REQUIRED.every(k => before[k]);
+        let nowComplete = wasComplete;
         if (Object.keys(updates).length > 0) {
-            await User.findByIdAndUpdate(req.user._id, updates);
+            const fresh = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('documents').lean();
+            const d = (fresh && fresh.documents) || {};
+            nowComplete = REQUIRED.every(k => d[k]);
         }
+        // ومن يعيد التقديم بعد رفضٍ وثائقُه القديمة مكتملةٌ أصلاً: يُنبَّه به عند
+        // آخر صورةٍ إجبارية في ترتيب الرفع (المركبة) — مرّةً لا أربعاً.
+        const docsReadyForReview = nowComplete && (!wasComplete || !!updates['documents.vehiclePhoto']);
 
         // 🔔 تنبيه الإدارة: الكابتن يُبلَّغ عند التسجيل بأن «طلبه سيُراجَع»، ولم يكن
         // أحد يُخبر الإدارة بذلك إطلاقاً — فيبقى ينتظر اعتماداً لا يعلم به أحد.
@@ -259,7 +272,7 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
         const _isCaptainApplicant =
             (req.user.role === 'captain' && req.user.approvalStatus === 'pending')
             || req.user.captainApplication?.status === 'pending';
-        if (_isCaptainApplicant) {
+        if (_isCaptainApplicant && docsReadyForReview) {
             try {
                 const { notifyAdmins } = require('../utils/notificationHelper');
                 await notifyAdmins(req.app, {

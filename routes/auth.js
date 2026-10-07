@@ -365,6 +365,13 @@ function captainAppFields(body, nationalId) {
  * يُحدَّث حسابه نفسه (لا حسابٌ ثانٍ برقمٍ وطنيّ مكرّر)، ويعود «قيد المراجعة»
  * بملفٍّ جديد، ويُعطى توكن الرفع المقيّد ليرفع وثائقه المصحّحة.
  */
+/** الوثائق الإجبارية للانتساب — نفس REQUIRED_DOCS في captain-signup.html (الرخصة اختيارية) */
+const REQUIRED_CAPTAIN_DOCS = ['idImage', 'selfieImage', 'profilePhoto', 'vehiclePhoto'];
+function missingCaptainDocs(user) {
+    const d = (user && user.documents) || {};
+    return REQUIRED_CAPTAIN_DOCS.filter(k => !d[k]);
+}
+
 async function reapplyRejectedCaptain(req, res, userId, { name, password, vehicleType }) {
     const user = await User.findById(userId);
     if (!user || !canReapply(user)) {
@@ -610,6 +617,19 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
         //    دخول الكباتن حقلٌ يُدخل فيه الكود. طريقٌ مسدود برسالةٍ خاطئة:
         //    حسابه لا ينقصه كود، بل ينقصه قرار.
         if (user.role === 'captain' && user.approvalStatus === 'pending') {
+            // 📎 طلبٌ بلا وثائقه الإجبارية: رفعها تعثّر وقت التسجيل (شبكةٌ ضعيفة).
+            //    كانت صفحة النجاح تقول له «سجّل الدخول وأعد رفعها»، والدخول
+            //    يردّه هنا — طريقٌ مسدود، ويبقى في قائمة الإدارة بلا صور. كلمة
+            //    مروره صحيحة (فُحصت أعلاه)، فنعطيه توكن رفعٍ مقيّداً لوثائقه وحدها.
+            const missingDocs = missingCaptainDocs(user);
+            if (missingDocs.length) {
+                return res.status(403).json({
+                    message: 'طلبك ينقصه رفع الوثائق — أكملها لتراجعه الإدارة.',
+                    needsDocs: true,
+                    missingDocs,
+                    uploadToken: signUserToken(user, { role: 'captain', expiresIn: '1h', claims: { scope: 'upload_only' } })
+                });
+            }
             return res.status(403).json({ message: 'طلبك قيد المراجعة من الإدارة. سيتم إشعارك عند الموافقة.' });
         }
 

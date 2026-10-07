@@ -220,6 +220,15 @@
                 } else {
                     if (res.status === 429 && data.retryAfter) {
                         startRateLimitCountdown(data.retryAfter, btn, originalBtnText);
+                    } else if (data.needsDocs && data.uploadToken) {
+                        // 📎 طلبٌ معلّق ينقصه رفع وثائقه — نأخذه لإكمالها بدل «قيد المراجعة»
+                        //    وهو لن يُراجَع أصلاً بلا صور.
+                        try {
+                            sessionStorage.setItem('captainDocsToken', data.uploadToken);
+                            sessionStorage.setItem('captainDocsMissing', JSON.stringify(data.missingDocs || []));
+                        } catch (_) {}
+                        showAlert(escHtml(data.message), "error");
+                        setTimeout(() => window.location.href = 'captain-docs.html', 900);
                     } else if (data.rejected && data.canReapply) {
                         // 🔁 المرفوض يُدَلّ على طريقه: السبب، وزرّ إعادة التقديم.
                         //    السبب كتبه الأدمن — يُهرَّب قبل الحقن.

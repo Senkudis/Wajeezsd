@@ -411,6 +411,11 @@ router.put('/user/:id/status', protect, requireAnyPermission(['manage_captains',
         user.isActive = !user.isActive; // عكس الحالة الحالية
         await user.save();
 
+        // 📜 كان التعطيل لا يُسجَّل — فحسابٌ معلّقٌ وُجد «معطّلاً» بلا أثرٍ لمن فعلها
+        await logAdminAction(req, 'toggle_user_active',
+            `تم ${user.isActive ? 'تفعيل' : 'تعطيل'} حساب: ${user.name}`,
+            user._id, user.name, { isActive: user.isActive, role: user.role });
+
         res.json({
             message: `تم ${user.isActive ? 'تفعيل' : 'تعطيل'} الحساب بنجاح`,
             isActive: user.isActive,

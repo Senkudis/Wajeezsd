@@ -55,7 +55,7 @@ const adminLogSchema = new mongoose.Schema({
             'create_sub_admin', 'update_sub_admin', 'delete_sub_admin',
             // 💬 المحادثات — قراءة محتوى خاص وحذفه: كلاهما يجب أن يكون قابلاً
             // للتدقيق دائماً، والحذف لا رجعة فيه فالسجل هو الأثر الوحيد الباقي
-            'view_chat', 'delete_chat',
+            'view_chat', 'delete_chat', 'toggle_user_active',
             // عام
             'other'
         ],

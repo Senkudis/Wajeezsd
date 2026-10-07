@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>إكمال الوثائق | وجيز</title>
+    <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#04553A">
+    <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="style.css?v=3.4">
+    <link href="vendor/fonts/fonts.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
+    <link rel="stylesheet" href="css/enhanced-styles.css?v=ce667195">
+    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <script src="js/console-cleaner.js?v=d257b4ad"></script>
+    <script src="js/config.js?v=7cd5021c"></script>
+    <script src="js/safe-area.js?v=8b338400"></script>
+    <script src="js/ui-states.js?v=fbce8d4e"></script>
+    <script src="js/image-compress.js?v=b4a6b0be"></script>
+    <script src="js/captain-docs-upload.js?v=5805fccd"></script>
+    <style>
+        .doc-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px dashed #cbd5e1;
+                   border-radius: 14px; margin-bottom: 12px; cursor: pointer; background: #fff; }
+        .doc-row.has-file { border-style: solid; border-color: var(--primary, #04553A); background: rgba(4, 85, 58, 0.04); }
+        .doc-row.is-done { border-style: solid; border-color: #16a34a; cursor: default; }
+        .doc-row img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; background: #e2e8f0; flex-shrink: 0; }
+        .doc-row .doc-text { flex: 1; min-width: 0; }
+        .doc-row .doc-name { font-weight: 700; }
+        .doc-row .doc-state { font-size: 0.85rem; color: #64748b; }
+        body.dark-mode .doc-row { background: transparent; border-color: #475569; }
+    </style>
+</head>
+
+<body class="bg-light">
+    <div class="auth-container">
+        <div class="auth-box glass-card p-4 p-md-5">
+            <h2 class="text-center mb-2 fw-bold text-dark">
+                <i class="bi bi-file-earmark-image text-success ms-2" aria-hidden="true"></i>
+                إكمال وثائق الانتساب
+            </h2>
+            <p class="text-center text-muted small mb-4">
+                لم تصل هذه الصور عند التسجيل. لن تراجع الإدارة طلبك قبل اكتمالها.
+            </p>
+
+            <div id="alert-box" class="alert d-none mb-3" role="alert"></div>
+            <div id="docsList"></div>
+
+            <button id="sendBtn" class="btn btn-primary w-100 py-3 mt-2 fw-bold" onclick="sendDocs()">
+                <i class="bi bi-cloud-arrow-up ms-2" aria-hidden="true"></i> رفع الوثائق
+            </button>
+
+            <div class="text-center mt-4 border-top pt-3">
+                <a href="captain-login.html" class="text-secondary small text-decoration-none">
+                    <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i> العودة لتسجيل الدخول
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔑 توكن رفعٍ مقيّد (ساعة) يعطيه /api/auth/login للكابتن المعلّق الذي
+        //    تنقصه وثائقه — بعد التحقّق من كلمة مروره. لا يصلح لغير الرفع.
+        let token = null, missing = [];
+        try {
+            token = sessionStorage.getItem('captainDocsToken');
+            missing = JSON.parse(sessionStorage.getItem('captainDocsMissing') || '[]');
+        } catch (_) {}
+        if (!token) window.location.replace('captain-login.html');
+
+        const picked = {};
+        const done = new Set();
+
+        function showAlert(msg, type) {
+            const box = document.getElementById('alert-box');
+            box.className = `alert alert-${type === 'error' ? 'danger' : 'success'} mb-3`;
+            box.textContent = msg;
+        }
+
+        function render() {
+            const list = document.getElementById('docsList');
+            const keys = missing.length ? missing : window.CaptainDocs.ORDER.slice(0, 4);
+            list.innerHTML = '';
+            keys.forEach((k) => {
+                const label = window.CaptainDocs.LABELS[k] || k;
+                const row = document.createElement('div');
+                row.className = 'doc-row' + (done.has(k) ? ' is-done' : picked[k] ? ' has-file' : '');
+                const img = document.createElement('img');
+                img.alt = '';
+                if (picked[k]) img.src = URL.createObjectURL(picked[k]);
+                const text = document.createElement('div');
+                text.className = 'doc-text';
+                text.innerHTML = '<div class="doc-name"></div><div class="doc-state"></div>';
+                text.querySelector('.doc-name').textContent = label;
+                text.querySelector('.doc-state').textContent = done.has(k) ? 'تم الرفع'
+                    : picked[k] ? 'جاهزة للرفع' : 'اضغط لاختيار الصورة';
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.hidden = true;
+                if (k === 'selfieImage') input.setAttribute('capture', 'user');
+                input.addEventListener('change', async () => {
+                    const f = input.files[0];
+                    if (!f) return;
+                    let file = f;
+                    try { if (window.WajeezImage) file = await window.WajeezImage.compress(f); } catch (_) { file = f; }
+                    picked[k] = file;
+                    render();
+                });
+                row.append(img, text, input);
+                if (!done.has(k)) row.addEventListener('click', () => input.click());
+                list.appendChild(row);
+            });
+        }
+
+        async function sendDocs() {
+            const keys = missing.length ? missing : window.CaptainDocs.ORDER.slice(0, 4);
+            const need = keys.filter(k => !done.has(k));
+            const notPicked = need.filter(k => !picked[k]);
+            if (notPicked.length) {
+                showAlert('اختر: ' + notPicked.map(k => window.CaptainDocs.LABELS[k]).join('، '), 'error');
+                return;
+            }
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            const files = {};
+            need.forEach(k => { files[k] = picked[k]; });
+            const up = await window.CaptainDocs.upload(token, files, (k, i, n) => {
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm ms-2"></span> جاري الرفع (${i} من ${n})...`;
+            });
+            need.forEach(k => { if (!up.failed.includes(k)) done.add(k); });
+            render();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cloud-arrow-up ms-2" aria-hidden="true"></i> أعد محاولة الرفع';
+            if (up.ok) {
+                try { sessionStorage.removeItem('captainDocsToken'); sessionStorage.removeItem('captainDocsMissing'); } catch (_) {}
+                btn.classList.add('d-none');
+                showAlert('اكتملت وثائقك ووصل طلبك للإدارة. ستصلك رسالة عند القبول.', 'success');
+                return;
+            }
+            if (up.tokenExpired) {
+                showAlert('انتهت مهلة الرفع. سجّل الدخول مرة أخرى للمتابعة.', 'error');
+                setTimeout(() => window.location.replace('captain-login.html'), 1500);
+                return;
+            }
+            showAlert('تعذّر رفع: ' + up.failed.map(k => window.CaptainDocs.LABELS[k]).join('، ')
+                + (up.message ? ' — ' + up.message : '') + '. تحقّق من الإنترنت وأعد المحاولة.', 'error');
+        }
+
+        render();
+    </script>
+    <script src="js/theme-manager.js?v=ef048761"></script>
+</body>
+
+</html>

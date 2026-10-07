@@ -1358,6 +1358,8 @@ function _captainDossier(c) {
     ].join('');
 
     const hasAnyDoc = DOCS.some(([k]) => d[k]);
+    // الإجبارية — نفس REQUIRED_CAPTAIN_DOCS في routes/auth.js (الرخصة اختيارية)
+    const missingRequired = ['idImage', 'selfieImage', 'profilePhoto', 'vehiclePhoto'].filter(k => !d[k]);
 
     // كابتن سجّل قبل نقل النموذج — نقولها صراحةً بدل بطاقة فارغة تُربك
     if (!a.nationalId && !hasAnyDoc) {
@@ -1375,6 +1377,10 @@ function _captainDossier(c) {
                 <div class="cap-section-title">الإقرار والتعهّد</div>
                 <div class="cap-pledge">${esc(a.pledgeText)}</div>` : ''}
             <div class="cap-section-title">الوثائق — اضغط أي صورة للتكبير</div>
+            ${missingRequired.length ? `
+                <div style="font-size:12px;background:#fef3c7;color:#92400e;border-radius:8px;padding:6px 10px;margin-bottom:8px;line-height:1.6;">
+                    الوثائق لم تكتمل (تعثّر رفعها عند التسجيل). سيُطلب منه إكمالها حين يسجّل الدخول، ويصلك تنبيهٌ عند اكتمالها.
+                </div>` : ''}
             <div class="cap-docs">${docsHtml}</div>
         </div>
     </details>`;

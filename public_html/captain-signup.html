@@ -27,6 +27,7 @@
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/password-toggle.js?v=46d646ba"></script>
     <script src="js/image-compress.js?v=b4a6b0be"></script>
+    <script src="js/captain-docs-upload.js?v=5805fccd"></script>
     <script src="js/vehicle-types.js?v=3a11758f"></script>
 
     <style>
@@ -1187,6 +1188,51 @@
             return true;
         }
 
+        // 📎 الوثائق المختارة وتوكن رفعها — تبقى في الذاكرة لزرّ «أعد المحاولة»
+        let pendingDocs = null, pendingDocsToken = null;
+
+        async function uploadPendingDocs(btn) {
+            const files = {};
+            for (const k of Object.keys(pendingDocs || {})) if (pendingDocs[k]) files[k] = pendingDocs[k];
+            if (!Object.keys(files).length) return { ok: true, failed: [] };
+            const up = await window.CaptainDocs.upload(pendingDocsToken, files, (k, i, n) => {
+                if (btn) btn.innerHTML = `<span class="spinner-border spinner-border-sm ms-2"></span> جاري رفع الوثائق (${i} من ${n})...`;
+            });
+            // ما نجح لا يُعاد رفعه
+            for (const k of Object.keys(files)) if (!up.failed.includes(k)) delete pendingDocs[k];
+            return up;
+        }
+
+        /** الحساب أُنشئ والوثائق لم تكتمل: نقول ما الناقص، ونعطيه زرّ إعادةٍ هنا */
+        function showDocsRetry(up) {
+            const note = document.querySelector('#step-5 .success-animation p');
+            if (!note) return;
+            const names = up.failed.map(k => window.CaptainDocs.LABELS[k] || k).join('، ');
+            note.classList.remove('text-muted');
+            note.classList.add('text-danger');
+            note.innerHTML = `تم إنشاء حسابك، لكن <strong>تعذّر رفع: ${names}</strong>. لن تراجع الإدارة طلبك قبل اكتمال الوثائق.`
+                + `<div class="mt-3"><button type="button" id="docsRetryBtn" class="btn btn-primary fw-bold" onclick="retryDocs()">أعد محاولة الرفع</button></div>`
+                + `<div class="small text-muted mt-2">أو لاحقاً: سجّل الدخول من صفحة الكابتن وسيطلب منك إكمالها.</div>`;
+        }
+
+        async function retryDocs() {
+            const btn = document.getElementById('docsRetryBtn');
+            if (btn) btn.disabled = true;
+            const up = await uploadPendingDocs(btn);
+            if (up.ok) {
+                const note = document.querySelector('#step-5 .success-animation p');
+                if (note) {
+                    note.classList.remove('text-danger');
+                    note.classList.add('text-muted');
+                    note.textContent = 'اكتملت وثائقك ووصل طلبك للإدارة. ستصلك رسالة بالقرار.';
+                }
+                return;
+            }
+            // التوكن المقيّد ساعةٌ واحدة — بعدها طريقه الدخول (يُعطى توكناً جديداً)
+            if (up.tokenExpired) { window.location.href = 'captain-login.html'; return; }
+            showDocsRetry(up);
+        }
+
         async function submitRegistration() {
             const missing = missingRequiredDoc();
             if (missing) {
@@ -1299,50 +1345,23 @@
                 const idImage = pickedFile('idImage');
                 const selfieImage = pickedFile('selfieImage');
 
-                let docsUploaded = true;
-                if (driverLicense || profilePhoto || vehiclePhoto || idImage || selfieImage) {
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2"></span> جاري رفع الوثائق...';
-                    const formData = new FormData();
-                    if (driverLicense) formData.append('driverLicense', driverLicense);
-                    if (profilePhoto) formData.append('profilePhoto', profilePhoto);
-                    if (vehiclePhoto) formData.append('vehiclePhoto', vehiclePhoto);
-                    if (idImage) formData.append('idImage', idImage);
-                    if (selfieImage) formData.append('selfieImage', selfieImage);
-
-                    // ⚠️ كانت النتيجة مُهمَلة تماماً: فشل الرفع (صورة كبيرة أو شبكة
-                    // ضعيفة) يمرّ صامتاً فيرى الكابتن «تم إرسال طلبك» بينما لا وثائق
-                    // عند الإدارة — فيُرفض حسابه ولا يعرف السبب.
-                    try {
-                        const upRes = await fetch(`${API_URL}/api/upload/captain-docs`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${token}` },
-                            body: formData
-                        });
-                        docsUploaded = upRes.ok;
-                    } catch (_) {
-                        docsUploaded = false;
-                    }
-                }
+                // 📎 صورةٌ صورة، بثلاث محاولاتٍ لكلٍّ منها (js/captain-docs-upload.js).
+                //    كانت الخمس في طلبٍ واحدٍ بلا إعادة: يسقط على شبكةٍ ضعيفة
+                //    فيصل الطلب للإدارة بلا صورةٍ واحدة.
+                pendingDocs = { idImage, selfieImage, profilePhoto, vehiclePhoto, driverLicense };
+                pendingDocsToken = token;
+                const up = await uploadPendingDocs(btn);
 
                 // Success — show step 5
                 goToStep(5);
                 showGetAppCard();
 
-                if (data.reapplied && docsUploaded) {
+                if (data.reapplied && up.ok) {
                     const note = document.querySelector('#step-5 .success-animation p');
                     if (note) note.textContent = 'أُعيد تقديم طلبك بالوثائق الجديدة، وسيراجعه فريقنا من جديد. ستصلك رسالة بالقرار.';
                 }
-                if (!docsUploaded) {
-                    // الحساب أُنشئ فعلاً، فلا نُفشل التسجيل — لكن لا نُخفي أن
-                    // الوثائق لم تصل، مع طريق واضح لإكمالها.
-                    const note = document.querySelector('#step-5 .success-animation p');
-                    if (note) {
-                        note.innerHTML = 'تم إنشاء حسابك، لكن <strong>تعذّر رفع الوثائق</strong>. '
-                            + 'سجّل الدخول ثم أعد رفعها من صفحة حسابك حتى تتمكن الإدارة من مراجعة طلبك.';
-                        note.classList.remove('text-muted');
-                        note.classList.add('text-danger');
-                    }
-                }
+                // الحساب أُنشئ فعلاً، فلا نُفشل التسجيل — نقول ما الناقص ونعيده من هنا
+                if (!up.ok) showDocsRetry(up);
 
             } catch (err) {
                 console.error(err);
