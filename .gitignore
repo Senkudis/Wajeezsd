@@ -99,3 +99,7 @@ marketing/brand-fonts/
 
 # إعلان الأنيميشن: المخرجات
 marketing/reel2/out/
+
+# خطوط الهوية المرخّصة بصيغة الويب — المستودع عام، فلا تُنشر فيه.
+# تُرفع إلى السيرفر يدوياً مع public_html (المصدر: marketing/brand-fonts/)
+public_html/assets/fonts/brand/

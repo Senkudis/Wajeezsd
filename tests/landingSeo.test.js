@@ -132,7 +132,7 @@ describe('عطبرة على الصفحة العامة', () => {
     });
 
     it('بطاقة المدينة الجديدة، وخبرها في البطل يقود إليها', () => {
-        expect(page).toContain('class="city city--new reveal"');
+        expect(page).toContain('class="city city--new"');
         expect(page).toContain('href="#cities"');
         expect(page).toContain('id="cities"');
     });
@@ -142,12 +142,9 @@ describe('عطبرة على الصفحة العامة', () => {
         expect(page).toMatch(/<span class="ticker" aria-hidden="true">/);
     });
 
-    it('والحركة الجديدة تتوقّف لمن طلب تقليلها — حتى مسار SMIL', () => {
+    it('والحركة تتوقّف لمن طلب تقليلها', () => {
         const reduced = page.slice(page.indexOf('@media (prefers-reduced-motion: reduce)'));
         expect(reduced.slice(0, 900)).toContain('.ticker-track { animation: none; }');
-        expect(page).toContain('art.pauseAnimations()');
-        // والميلان للحاسوب بفأرة وحده
-        expect(page).toContain("matchMedia('(hover: hover) and (pointer: fine)').matches");
     });
 
     it('صورة المشاركة بالمدن الثلاث', () => {

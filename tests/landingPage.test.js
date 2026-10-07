@@ -88,28 +88,6 @@ describe('قسم الفريق', () => {
     });
 });
 
-describe('التجاوب ينشأ من التخطيط لا من نقاط توقّف مرقّعة', () => {
-    it('مقاييس سائلة بـ clamp لا أحجام ثابتة للعناوين', () => {
-        expect(page).toContain('--step-4: clamp(');
-        expect(page).toMatch(/h2\.sec-title \{ font-size: var\(--step-3\)/);
-    });
-
-    it('وشبكات auto-fit تُعيد التوزيع عند أي عرض', () => {
-        const autofit = page.match(/repeat\(auto-fit, minmax\(/g) || [];
-        expect(autofit.length).toBeGreaterThanOrEqual(6);
-    });
-
-    it('ونتوء الشارتين بالبكسل لا بالنسبة — النسبة تكبر فتخرج عن الشاشة', () => {
-        expect(page).toContain('.chip-live { inset-block-start: 7%; inset-inline-end: -22px; }');
-        expect(page).toMatch(/\.stage \{[^}]*padding-inline: 26px/);
-    });
-
-    it('ومنطقيّة الاتجاه (inline) لا يمين/يسار — الصفحة تنقلب مع اللغة', () => {
-        expect(page).not.toMatch(/\[dir="ltr"\]/);
-        expect(page).toContain('inset-inline');
-    });
-});
-
 describe('الوصول والأداء', () => {
     it('رابط تخطٍّ ومَعالم دلالية', () => {
         expect(page).toContain('class="skip-link"');
@@ -130,7 +108,8 @@ describe('الوصول والأداء', () => {
 
     it('الحركة تتوقّف لمن طلب تقليلها', () => {
         expect(page).toContain('@media (prefers-reduced-motion: reduce)');
-        expect(page).toContain("matchMedia('(prefers-reduced-motion: reduce)').matches");
+        const i = page.indexOf('@media (prefers-reduced-motion: reduce)');
+        expect(page.slice(i, i + 300)).toContain('.ticker-track { animation: none; }');
     });
 
     it('الصور بأبعادٍ معلنة وتحميلٍ كسول — لا قفزٌ في التخطيط', () => {
@@ -171,86 +150,90 @@ describe('الترجمة', () => {
     });
 });
 
-describe('نظامٌ بصري واحد، لا أقسامٌ متجاورة', () => {
-    it('حقل ضوءٍ ثابت تحت الصفحة كلها — لا في البطل وحده', () => {
-        expect(page).toContain('body::before');
-        expect(page).toMatch(/body::before \{[\s\S]*?position: fixed/);
+describe('الهاتف أولاً — كانت ١٢ شاشة تمرير', () => {
+    it('شريط تحميلٍ ثابت على الجوال، بمتجر الجهاز نفسه، وبالمنطقة الآمنة', () => {
+        expect(page).toContain('id="getbar"');
+        expect(page).toMatch(/\.getbar \{[\s\S]*?var\(--sab, env\(safe-area-inset-bottom/);
+        expect(page).toContain("getbarBtn.href = 'https://apps.apple.com/app/id6807840888'");
+        expect(page).toContain("getbarBtn.href = 'https://play.google.com/store/apps/details?id=com.wajeezsd.app'");
+        // يختفي عند نداء التحميل — لا زرّان للشيء نفسه فوق بعضهما
+        expect(page).toContain('.observe(download)');
     });
 
-    it('وشبكة نقطية تتلاشى نزولاً', () => {
-        expect(page).toContain('body::after');
-        expect(page).toContain('mask-image: radial-gradient(ellipse 130% 70% at 50% 0%');
+    it('الأقسام المتقاربة مدموجة: الشروحات مع الأسئلة، والتواصل مع التحميل', () => {
+        const faq = page.slice(page.indexOf('<section id="faq"'), page.indexOf('</section>', page.indexOf('<section id="faq"')));
+        expect(faq).toContain('id="tutorials"');
+        const dl = page.slice(page.indexOf('<section id="download"'), page.indexOf('</section>', page.indexOf('<section id="download"')));
+        expect(dl).toContain('id="contact"');
+        expect((page.match(/<section/g) || []).length).toBeLessThanOrEqual(7);
     });
 
-    it('والأقسام تتناوب: أربعة فصولٍ مُشرَّطة (الخدمات، كيف يعمل، الشروحات، الأسئلة)', () => {
-        const bands = page.match(/<section id="[^"]+" class="band">/g) || [];
-        expect(bands.length).toBe(4);
-        expect(page).toContain('.band::before, .band::after');
+    it('صورة البطل محدودة الارتفاع على الجوال — لا جهازٌ بطول شاشة', () => {
+        expect(page).toMatch(/\.hero-shot \{[\s\S]*?height: clamp\(300px, 70vw, 560px\)/);
     });
 
-    it('وإطار الجهاز واحدٌ في البطل والمعرض — لا إطارَين مختلفَين', () => {
-        expect(page).toContain('.shot .phone {');
-        expect(page).not.toContain('.shot .frame');
-        const shots = page.match(/<div class="phone"><img src="\/assets\/app\//g) || [];
-        expect(shots.length).toBe(3);
-    });
-});
-
-describe('المعرض لا يبتلع الشاشة', () => {
-    it('ثلاثة أجهزةٍ بعرضٍ محكوم لا ثلاث صورٍ بعرض العمود', () => {
-        const i = page.indexOf('.shots {');
-        const blk = page.slice(i, i + 260);
-        expect(blk).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
-        expect(blk).toContain('max-width: 760px');
+    it('زرّا المتجرين بعرضٍ متساوٍ على الجوال، ولا يلتفّ اسم المتجر', () => {
+        expect(page).toContain('.stores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr))');
+        expect(page).toMatch(/\.btn-lines \.t2 \{[^}]*white-space: nowrap/);
     });
 
-    it('وعلى الجوال شريطٌ أفقي بالتقاط لا ثلاث شاشاتٍ فوق بعضها', () => {
-        const i = page.indexOf('@media (max-width: 660px)');
-        expect(i).toBeGreaterThan(-1);
-        const blk = page.slice(i, i + 600);
-        expect(blk).toContain('scroll-snap-type: x mandatory');
-        expect(blk).toContain('scroll-snap-align: center');
+    it('اللقطات شريطٌ أفقي بالتقاط على الجوال', () => {
+        expect(page).toMatch(/\.shots \{[^}]*scroll-snap-type: x mandatory/);
+        expect(page).toMatch(/\.shot \{[^}]*scroll-snap-align: start/);
     });
 });
 
-describe('بلاطاتٌ متفاوتة لا ستّ نسخٍ متطابقة', () => {
-    it('١ و٤ و٥ تأخذ عمودين فتمتلئ الصفوف الثلاثة بلا فجوة', () => {
-        expect(page).toContain('.feat-grid > .card:nth-child(1),');
-        expect(page).toMatch(/nth-child\(5\) \{ grid-column: span 2; \}/);
-    });
-
-    it('وكل جمهورٍ ستّ مزايا بالضبط — البلاطات محسوبة على هذا العدد', () => {
-        const i = page.indexOf('const PERSONAS');
-        const blk = page.slice(i, page.indexOf('};', i));
-        // حدود كل جمهور: من مفتاحه إلى مفتاح الذي يليه — بلا تعابير نمطية
-        const arBlk = blk.slice(blk.indexOf('ar: {'), blk.indexOf('en: {'));
-        for (const [key, next] of [['client', 'merchant'], ['merchant', 'captain'], ['captain', null]]) {
-            const a = arBlk.indexOf(key + ': [');
-            expect(a, key).toBeGreaterThan(-1);
-            const b = next ? arBlk.indexOf(next + ': [') : arBlk.length;
-            expect(arBlk.slice(a, b).split("['bi-").length - 1, key).toBe(6);
+describe('خطوط الهوية وحدها', () => {
+    it('Alarabiya وArabic Modern وIntro مستضافة هنا — لا Cairo ولا Google Fonts', () => {
+        for (const fam of ['Alarabiya', 'ArabicModern', 'Intro']) expect(page).toContain(`font-family: '${fam}'`);
+        // الملفات نفسها خارج git (مرخّصة، والمستودع عام) — يُفحص المرجع لا الوجود
+        for (const f of ['alarabiya.woff2', 'arabic-modern-bold.woff2', 'intro-regular.woff2', 'intro-bold.woff2']) {
+            expect(page).toContain('/assets/fonts/brand/' + f);
         }
-        expect((blk.match(/(client|merchant|captain): \[/g) || []).length).toBe(6);
+        expect(page).not.toContain('Cairo');
+        expect(page).not.toContain('fonts.googleapis.com');
     });
 
-    it('والخطوات يصلها خيطٌ فتُقرأ مساراً', () => {
-        expect(page).toContain('.steps::before');
-        expect(page).toContain('repeating-linear-gradient(90deg, var(--line)');
+    it('«؟» لا تُؤخذ من Alarabiya — ترسمها «١»', () => {
+        const i = page.indexOf("font-family: 'Alarabiya'");
+        expect(page.slice(i, i + 260)).toContain('unicode-range: U+0000-061E, U+0620-10FFFF');
+    });
+
+    it('بلا عريضٍ مزيّف — الخطوط بوزنٍ واحد', () => {
+        expect(page).toContain('font-synthesis: none');
     });
 });
 
-describe('لا تجاوز أفقي مصدره التوهّج', () => {
-    it('هالة الجهاز لا تتجاوز حشو المسرح الجانبي', () => {
-        // ‎-30% من عرض الحاوية كان يوسّع المستند 36px على جوالٍ ضيّق
-        const i = page.indexOf('.phone-wrap::before');
-        const blk = page.slice(i, i + 220);
-        const m = blk.match(/inset: -\d+% -(\d+)%/);
-        expect(m).not.toBeNull();
-        expect(Number(m[1])).toBeLessThanOrEqual(9);
+describe('لا زخارف القوالب المولّدة', () => {
+    it('لا توهّج ولا شبكة نقطية ولا نصّ متدرّج لامع', () => {
+        expect(code).not.toContain('body::before');
+        expect(code).not.toContain('body::after');
+        expect(code).not.toContain('background-clip: text');
+        expect(code).not.toContain('shimmer');
     });
 
-    it('والجهاز الخلفي يظهر حيث يتّسع العمود وحده', () => {
-        expect(page).toContain('.phone-back { display: none; }');
-        expect(page).toMatch(/@media \(min-width: 980px\) \{[\s\S]{0,240}\.phone-back \{/);
+    it('لا شارات فوق كل عنوان، ولا ظهور تدريجي لكل كتلة، ولا شريط تقدّم', () => {
+        expect(code).not.toContain('eyebrow');
+        expect(code).not.toContain('class="reveal');
+        expect(code).not.toContain('id="progress"');
+    });
+
+    it('ولا شاراتٌ عائمة ولا مسارٌ متحرّك ولا ميلان', () => {
+        expect(code).not.toContain('float-chip');
+        expect(code).not.toContain('animateMotion');
+        expect(code).not.toContain('perspective(');
+    });
+});
+
+describe('حسابات التواصل', () => {
+    it('قناة اليوتيوب في التذييل وفي البيانات المنظّمة', () => {
+        expect(page).toContain('href="https://www.youtube.com/@wajeezsd"');
+        const i = page.indexOf('"sameAs"');
+        expect(page.slice(i, i + 400)).toContain('"https://www.youtube.com/@wajeezsd"');
+    });
+
+    it('وطريقة الدفع كما هي فعلاً: التوصيل كاش، والمتجر تحويل مباشر', () => {
+        expect(page).not.toContain('لا بطاقة ولا محفظة إلكترونية');
+        expect(page).toContain('تحوّل قيمتها للمتجر مباشرةً');
     });
 });

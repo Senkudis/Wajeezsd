@@ -95,6 +95,7 @@
             "https://facebook.com/wajeezsd",
             "https://instagram.com/wajeezsd",
             "https://tiktok.com/@wajeezsd",
+            "https://www.youtube.com/@wajeezsd",
             "https://play.google.com/store/apps/details?id=com.wajeezsd.app",
             "https://apps.apple.com/app/id6807840888"
           ]
@@ -133,7 +134,7 @@
       "mainEntity": [
         {"@type":"Question","name":"هل التطبيق متاح على آيفون؟","acceptedAnswer":{"@type":"Answer","text":"نعم، وجيز متاح الآن على App Store لأجهزة آيفون، وعلى Google Play لأجهزة أندرويد."}},
         {"@type":"Question","name":"كيف تُحدَّد أسعار التوصيل؟","acceptedAnswer":{"@type":"Answer","text":"يقدّم الكباتن عروض أسعار بناءً على المسافة وطبيعة الطلب، وأنت تختار العرض الأنسب قبل أن يبدأ المشوار."}},
-        {"@type":"Question","name":"كيف أدفع؟","acceptedAnswer":{"@type":"Answer","text":"الدفع كاش عند الاستلام. لا يجمع التطبيق أي بيانات بطاقة بنكية من العملاء."}},
+        {"@type":"Question","name":"كيف أدفع؟","acceptedAnswer":{"@type":"Answer","text":"أجرة التوصيل كاش للكابتن عند الاستلام. ومشتريات المتاجر تحوّل قيمتها للمتجر مباشرةً ببنكك أو ماي كاشي أو فوري أو أوكاش أو برافو. لا يطلب التطبيق أي بيانات بطاقة بنكية."}},
         {"@type":"Question","name":"هل الخدمة متاحة في كل السودان؟","acceptedAnswer":{"@type":"Answer","text":"نعمل حالياً في أم درمان وبورتسودان وعطبرة، ونتوسّع تدريجياً لضمان جودة الخدمة."}},
         {"@type":"Question","name":"كيف أضمن أمان طلبي؟","acceptedAnswer":{"@type":"Answer","text":"كل كابتن يُراجَع قبل اعتماده بوثائقه الرسمية، ويمكنك متابعة موقعه على الخريطة ومراسلته داخل التطبيق."}},
         {"@type":"Question","name":"كيف أضيف متجري إلى وجيز؟","acceptedAnswer":{"@type":"Answer","text":"سجّل في التطبيق ثم قدّم طلب انضمام كتاجر. بعد مراجعة الطلب تحصل على متجر ولوحة تحكم لإدارة منتجاتك وطلباتك."}}
@@ -152,758 +153,446 @@
     </script>
 
     <link rel="preload" as="image" href="/assets/app/home.jpg" fetchpriority="high">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- خطوط الهوية الثلاثة — مستضافة هنا لا من شبكة خارجية -->
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/brand/alarabiya.woff2" crossorigin>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
         /* ═══════════════════════════════════════════════════════════════
            وجيز — صفحة الهبوط
            ───────────────────────────────────────────────────────────────
-           مبادئ هذا الملف:
-           • المقاسات سائلة (clamp) والشبكات auto-fit — التجاوب ينشأ من
-             التخطيط نفسه لا من نقاط توقّف مرقّعة، فيعمل على كل عرضٍ بينها.
-           • لا محتوى مُختلَق: لا آراء عملاء منسوبة لأسماء، ولا عدّادات
-             نشاط، ولا حاسبة سعرٍ تعطي رقماً لا يطابق ما يحسبه التطبيق.
-           • كل حركة محكومة بـ prefers-reduced-motion.
+           • الهاتف أولاً: كانت الصفحة ١٢ شاشة تمرير على الجوال. كل قسمٍ هنا
+             مُقاسٌ على شاشة الهاتف، والأقسام المتقاربة مدموجة (الخطوات مع
+             اللقطات، الشروحات مع الأسئلة، التواصل مع نداء التحميل).
+           • مسطّح ومباشر: لا توهّج ولا شبكة نقطية ولا نصّ متدرّج لامع ولا
+             شارات «eyebrow» فوق كل عنوان ولا ظهورٌ تدريجي لكل كتلة — هذه
+             العلامات هي ما يجعل الصفحة تبدو مولَّدة آلياً.
+           • خطوط الهوية وحدها: Alarabiya للعربي، وArabic Modern للتفاصيل
+             والأزرار، وIntro للإنجليزي والأرقام.
+           • لا محتوى مُختلَق: لا آراء منسوبة لأسماء، ولا عدّادات، ولا حاسبة سعر.
            ═══════════════════════════════════════════════════════════════ */
+
+        /* «؟» في Alarabiya تُرسم «١» — تُستثنى فتأتي من Arabic Modern */
+        @font-face {
+            font-family: 'Alarabiya';
+            src: url('/assets/fonts/brand/alarabiya.woff2') format('woff2');
+            font-weight: 400 900; font-display: swap;
+            unicode-range: U+0000-061E, U+0620-10FFFF;
+        }
+        @font-face {
+            font-family: 'ArabicModern';
+            src: url('/assets/fonts/brand/arabic-modern-bold.woff2') format('woff2');
+            font-weight: 400 900; font-display: swap;
+        }
+        @font-face {
+            font-family: 'Intro';
+            src: url('/assets/fonts/brand/intro-regular.woff2') format('woff2');
+            font-weight: 400; font-display: swap;
+        }
+        @font-face {
+            font-family: 'Intro';
+            src: url('/assets/fonts/brand/intro-bold.woff2') format('woff2');
+            font-weight: 700 900; font-display: swap;
+        }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
         :root {
             --green: #04553A;
-            --green-dark: #023926;
-            --green-bright: #0d8a5e;
-            --green-soft: rgba(4, 85, 58, .07);
+            --green-2: #0a6b49;
+            --green-ink: #e9f3ee;
             --gold: #c5972a;
-            --gold-soft: rgba(197, 151, 42, .12);
 
-            --bg: #f7faf9;
-            --surface: #ffffff;
-            --surface-2: #edf3f0;
-            --line: rgba(4, 85, 58, .10);
-            --ink: #101d16;
-            --ink-2: #51625a;
+            --paper: #f6f4ee;
+            --card: #ffffff;
+            --mint: #e7efe9;
+            --line: #e2ded2;
+            --ink: #13201a;
+            --ink-2: #5a675f;
 
-            --sh-1: 0 1px 2px rgba(4, 85, 58, .04), 0 4px 14px rgba(4, 85, 58, .05);
-            --sh-2: 0 10px 30px rgba(4, 85, 58, .10);
-            --sh-3: 0 26px 60px rgba(4, 85, 58, .16);
+            /* Intro أولاً: لا عربية فيه، فيسقط العربي إلى خطّه — والأرقام
+               والإنجليزي يأخذان خطّ الهوية الإنجليزي */
+            --f-text: 'Intro', 'Alarabiya', 'ArabicModern', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            --f-strong: 'Intro', 'ArabicModern', 'Alarabiya', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-            --r-sm: 12px;
-            --r: 18px;
-            --r-lg: 26px;
-            --r-pill: 999px;
+            --step-0: clamp(.95rem, .9rem + .2vw, 1.04rem);
+            --step-1: clamp(1.05rem, 1rem + .3vw, 1.2rem);
+            --step-2: clamp(1.45rem, 1.2rem + 1.1vw, 2rem);
+            --step-3: clamp(1.65rem, 1.3rem + 1.7vw, 2.5rem);
+            --step-4: clamp(2.1rem, 1.5rem + 3.2vw, 3.7rem);
 
-            /* مقياس سائل: يتدرّج مع العرض بلا قفزات عند نقاط التوقّف */
-            --step-0: clamp(.9rem, .86rem + .18vw, 1rem);
-            --step-1: clamp(1.02rem, .96rem + .3vw, 1.18rem);
-            --step-2: clamp(1.3rem, 1.1rem + 1vw, 1.75rem);
-            --step-3: clamp(1.7rem, 1.3rem + 2vw, 2.6rem);
-            --step-4: clamp(2rem, 1.4rem + 3.4vw, 3.6rem);
-
-            --gap: clamp(14px, 1.4vw, 20px);
-            --pad-x: clamp(16px, 3vw, 28px);
-            --sec-y: clamp(52px, 7vw, 96px);
-
-            --ease: cubic-bezier(.16, 1, .3, 1);
+            --pad-x: clamp(16px, 4vw, 32px);
+            --sec-y: clamp(40px, 6vw, 88px);
+            --r: 16px;
         }
 
         [data-theme="dark"] {
-            --bg: #08120e;
-            --surface: #101e18;
-            --surface-2: #172b22;
-            --line: rgba(255, 255, 255, .09);
-            --ink: #eef6f2;
-            --ink-2: #9ab2a6;
-            --green-soft: rgba(13, 138, 94, .16);
-            --gold-soft: rgba(224, 180, 72, .16);
-            --sh-1: 0 2px 10px rgba(0, 0, 0, .3);
-            --sh-2: 0 10px 30px rgba(0, 0, 0, .45);
-            --sh-3: 0 26px 60px rgba(0, 0, 0, .6);
+            --paper: #0c1511;
+            --card: #121e19;
+            --mint: #15251e;
+            --line: #23332c;
+            --ink: #edf3ef;
+            --ink-2: #9db0a6;
         }
 
-        html { scroll-behavior: smooth; scroll-padding-top: 92px; -webkit-text-size-adjust: 100%; }
-
+        html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; }
         body {
-            font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', sans-serif;
-            background: var(--bg);
-            color: var(--ink);
-            font-size: var(--step-0);
-            line-height: 1.65;
+            font-family: var(--f-text); font-synthesis: none;
+            background: var(--paper); color: var(--ink);
+            font-size: var(--step-0); line-height: 1.8;
             overflow-x: hidden;
-            transition: background-color .3s, color .3s;
         }
-
-        /* حقل الضوء: يمتدّ تحت الصفحة كلها فتصير الأقسام فصولاً في مشهدٍ
-           واحد لا بطاقاتٍ متجاورة على ورقةٍ بيضاء. */
-        body::before {
-            content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
-            background:
-                radial-gradient(58ch 42ch at 84% -8%, color-mix(in srgb, var(--green-bright) 17%, transparent), transparent 60%),
-                radial-gradient(50ch 38ch at 4% 24%, color-mix(in srgb, var(--gold) 11%, transparent), transparent 62%),
-                radial-gradient(72ch 50ch at 52% 104%, color-mix(in srgb, var(--green-bright) 13%, transparent), transparent 60%);
-        }
-        /* شبكة نقطية تتلاشى نزولاً — عمقٌ بلا ضجيج */
-        body::after {
-            content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-            color: var(--line);
-            background-image: radial-gradient(currentColor 1px, transparent 1px);
-            background-size: 28px 28px;
-            -webkit-mask-image: radial-gradient(ellipse 130% 70% at 50% 0%, #000, transparent 72%);
-            mask-image: radial-gradient(ellipse 130% 70% at 50% 0%, #000, transparent 72%);
-        }
-
-        /* فصلٌ بين الأقسام: شريطٌ خفيف بحدٍّ متلاشٍ بدل تدفّقٍ لا ينقطع */
-        .band { position: relative; background: color-mix(in srgb, var(--surface) 52%, transparent); }
-        .band::before, .band::after {
-            content: ''; position: absolute; inset-inline: 0; height: 1px;
-            background: linear-gradient(90deg, transparent, var(--line) 18%, var(--line) 82%, transparent);
-        }
-        .band::before { top: 0; }
-        .band::after { bottom: 0; }
-
         a { color: inherit; text-decoration: none; }
         img { max-width: 100%; display: block; }
-
-        :focus-visible {
-            outline: 3px solid var(--green-bright);
-            outline-offset: 3px;
-            border-radius: 6px;
-        }
+        :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
 
         .skip-link {
             position: absolute; inset-inline-start: 50%; top: -60px; transform: translateX(50%);
             background: var(--green); color: #fff; padding: 10px 18px; border-radius: 0 0 12px 12px;
-            font-weight: 800; z-index: 1200; transition: top .2s;
+            font-family: var(--f-strong); z-index: 1200; transition: top .2s;
         }
         .skip-link:focus { top: 0; }
-
-        .wrap { width: min(1180px, 100%); margin-inline: auto; padding-inline: var(--pad-x); }
-        section { padding-block: var(--sec-y); }
-
-        /* ─── الترويسة ─────────────────────────────────────────────── */
-        .topbar {
-            position: fixed; inset-inline: 0; top: 0; z-index: 900;
-            padding: 10px var(--pad-x) 0;
-            transition: padding .3s var(--ease);
-        }
-        .topbar.is-stuck { padding-top: 6px; }
-
-        .nav {
-            width: min(1180px, 100%); margin-inline: auto;
-            display: flex; align-items: center; gap: 12px;
-            background: color-mix(in srgb, var(--surface) 86%, transparent);
-            -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-            border: 1px solid var(--line); border-radius: var(--r-pill);
-            padding: 8px 10px 8px 16px;
-            box-shadow: var(--sh-1);
-            transition: box-shadow .3s var(--ease), background .3s;
-        }
-        .topbar.is-stuck .nav { box-shadow: var(--sh-2); }
-
-        .brand { display: flex; align-items: center; flex-shrink: 0; }
-        .brand img { height: clamp(26px, 3.4vw, 34px); width: auto; }
-        .logo-dark { display: none; }
-        [data-theme="dark"] .logo-light { display: none; }
-        [data-theme="dark"] .logo-dark { display: block; }
-
-        .nav-links { display: flex; align-items: center; gap: clamp(10px, 1.6vw, 22px); list-style: none; margin-inline: auto; }
-        .nav-links a {
-            font-size: .9rem; font-weight: 700; color: var(--ink-2);
-            padding: 6px 2px; position: relative; white-space: nowrap;
-            transition: color .2s;
-        }
-        .nav-links a::after {
-            content: ''; position: absolute; inset-inline: 0; bottom: 0; height: 2px;
-            background: var(--green-bright); border-radius: 2px;
-            transform: scaleX(0); transition: transform .25s var(--ease);
-        }
-        .nav-links a:hover, .nav-links a[aria-current="true"] { color: var(--green-bright); }
-        .nav-links a:hover::after, .nav-links a[aria-current="true"]::after { transform: scaleX(1); }
-
-        .nav-tools { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-
-        .icon-btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-            min-height: 38px; min-width: 38px; padding: 0 10px;
-            background: var(--surface-2); border: 1px solid var(--line); color: var(--ink);
-            border-radius: var(--r-pill); font: inherit; font-size: .78rem; font-weight: 800;
-            cursor: pointer; transition: background .2s, color .2s, border-color .2s;
-        }
-        .icon-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
-
-        .nav-cta {
-            display: inline-flex; align-items: center; gap: 7px;
-            background: var(--green); color: #fff; border-radius: var(--r-pill);
-            padding: 0 16px; min-height: 38px; font-size: .82rem; font-weight: 800;
-            box-shadow: 0 6px 16px rgba(4, 85, 58, .24);
-            transition: transform .2s var(--ease), background .2s;
-        }
-        .nav-cta:hover { background: var(--green-dark); transform: translateY(-1px); }
-
-        .burger { display: none; }
-
-        /* درج الجوال */
-        .scrim {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, .45);
-            -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
-            opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; z-index: 898;
-        }
-        .scrim.open { opacity: 1; visibility: visible; }
-
-        .drawer {
-            position: fixed; top: 72px; inset-inline: 12px; z-index: 899;
-            background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
-            padding: 14px; box-shadow: var(--sh-3);
-            display: flex; flex-direction: column; gap: 6px;
-            transform: translateY(-12px) scale(.98); opacity: 0; visibility: hidden;
-            transition: all .28s var(--ease);
-            max-height: calc(100dvh - 96px); overflow-y: auto;
-        }
-        /* السمة hidden وحدها لا تكفي: display:flex أعلاه يتغلّب عليها */
-        .drawer[hidden], .scrim[hidden] { display: none; }
-        .drawer.open { transform: none; opacity: 1; visibility: visible; }
-        .drawer a {
-            display: flex; align-items: center; gap: 10px;
-            padding: 12px 14px; border-radius: var(--r-sm);
-            font-weight: 700; font-size: .95rem;
-        }
-        .drawer a:active { background: var(--surface-2); }
-        .drawer-tools { display: flex; gap: 8px; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line); }
-        .drawer-tools .icon-btn { flex: 1; }
-
-        @media (max-width: 940px) {
-            .nav-links, .nav-cta { display: none; }
-            .burger { display: inline-flex; }
-            .nav { padding-inline: 10px; justify-content: space-between; }
-        }
-
-        /* ─── لبنات عامة ───────────────────────────────────────────── */
-        .eyebrow {
-            display: inline-flex; align-items: center; gap: 7px;
-            background: var(--green-soft); border: 1px solid var(--line);
-            color: var(--green); padding: 6px 14px; border-radius: var(--r-pill);
-            font-size: .8rem; font-weight: 800; margin-bottom: 14px;
-        }
-        [data-theme="dark"] .eyebrow { color: #34d399; }
-        .eyebrow-gold { background: var(--gold-soft); color: var(--gold); }
-
-        .sec-head { text-align: center; max-width: 660px; margin-inline: auto; margin-bottom: clamp(28px, 4vw, 46px); }
-        h1, h2, h3 { line-height: 1.22; letter-spacing: -.02em; }
-        h2.sec-title { font-size: var(--step-3); font-weight: 900; margin-bottom: 10px; }
-        .sec-sub { color: var(--ink-2); font-size: var(--step-1); }
-
-        .card {
-            position: relative; overflow: hidden;
-            background: var(--surface); border: 1px solid var(--line);
-            border-radius: var(--r); padding: clamp(18px, 2.2vw, 26px);
-            box-shadow: var(--sh-1);
-            transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s;
-        }
-        /* خيط ضوءٍ في حافّتها العليا: تمييزٌ عند اللمس بلا إزاحة لون البطاقة */
-        .card::before {
-            content: ''; position: absolute; inset-inline: 0; top: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--green-bright), transparent);
-            opacity: 0; transition: opacity .3s var(--ease);
-        }
-        .card:hover::before { opacity: 1; }
-        .card:hover { transform: translateY(-4px); box-shadow: var(--sh-2); border-color: color-mix(in srgb, var(--green-bright) 35%, var(--line)); }
-
-        .card-ic {
-            width: 46px; height: 46px; border-radius: 14px;
-            background: linear-gradient(140deg, color-mix(in srgb, var(--green-bright) 24%, transparent), color-mix(in srgb, var(--gold) 15%, transparent));
-            border: 1px solid var(--line); color: var(--green-bright);
-            display: grid; place-items: center; font-size: 1.3rem; margin-bottom: 14px;
-        }
-        .card h3 { font-size: var(--step-1); font-weight: 800; margin-bottom: 6px; }
-        /* البطاقة التي هي رابط تقول ذلك: سهمٌ يتقدّم عند اللمس */
-        .card-go {
-            display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
-            color: var(--green-bright); font-size: .84rem; font-weight: 800;
-        }
-        .card-go i { transition: transform .3s var(--ease); }
-        a.card:hover .card-go i { transform: translateX(-5px); }
-        .card p { color: var(--ink-2); font-size: .9rem; }
-
-        /* شبكة تتنفّس: تُعيد التوزيع عند أي عرض بلا نقاط توقّف */
-        .grid-auto {
-            display: grid; gap: var(--gap);
-            grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
-        }
-        /* بلاطاتٌ متفاوتة العرض: ستّ بطاقاتٍ متطابقة تُقرأ جدولاً لا واجهة.
-           كل جمهورٍ ستّ مزايا، والبلاطات ١ و٤ و٥ تأخذ عمودين — فتمتلئ
-           الصفوف الثلاثة تماماً بلا فجوةٍ في الأخير. */
-        .feat-grid > .card:first-child {
-            background: linear-gradient(140deg, color-mix(in srgb, var(--green) 13%, var(--surface)), var(--surface) 62%);
-        }
-        .feat-grid[hidden] { display: none; }
-        @media (min-width: 900px) {
-            .feat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            .feat-grid > .card:nth-child(1),
-            .feat-grid > .card:nth-child(4),
-            .feat-grid > .card:nth-child(5) { grid-column: span 2; }
-            .feat-grid > .card:nth-child(1) {
-                display: grid; grid-template-columns: auto 1fr; gap: 2px 18px; align-items: start;
-            }
-            .feat-grid > .card:nth-child(1) .card-ic {
-                grid-row: span 2; width: 58px; height: 58px; font-size: 1.6rem; margin-bottom: 0;
-            }
-            .feat-grid > .card:nth-child(1) h3 { font-size: var(--step-2); align-self: end; }
-        }
-
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 11px;
-            min-height: 52px; padding: 10px 20px; border-radius: var(--r);
-            font: inherit; font-weight: 800; cursor: pointer; border: 1px solid transparent;
-            transition: transform .2s var(--ease), box-shadow .2s, background .2s, border-color .2s;
-        }
-        .btn:hover { transform: translateY(-2px); }
-        .btn i { font-size: 1.65rem; line-height: 1; }
-        .btn-lines { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
-        .btn-lines .t1 { font-size: .68rem; font-weight: 700; opacity: .85; }
-        .btn-lines .t2 { font-size: .98rem; font-weight: 900; }
-
-        .btn-play { background: var(--green); color: #fff; box-shadow: 0 10px 26px rgba(4, 85, 58, .26); }
-        .btn-play:hover { background: var(--green-dark); }
-        .btn-apple { background: var(--ink); color: var(--bg); box-shadow: 0 10px 26px rgba(0, 0, 0, .18); }
-        [data-theme="dark"] .btn-apple { background: #f4f7f5; color: #0c1712; }
-        .btn-ghost { background: var(--surface); border-color: var(--line); color: var(--ink); box-shadow: var(--sh-1); }
-        .btn-ghost:hover { border-color: var(--green-bright); }
-
-        /* ─── البطل ────────────────────────────────────────────────── */
-        .hero {
-            padding-top: clamp(104px, 13vw, 150px);
-            background:
-                radial-gradient(70ch 50ch at 85% 8%, var(--green-soft), transparent 62%),
-                radial-gradient(60ch 40ch at 8% 88%, var(--gold-soft), transparent 58%);
-        }
-        .hero-grid { display: grid; gap: clamp(28px, 5vw, 56px); align-items: center; }
-        @media (min-width: 980px) { .hero-grid { grid-template-columns: 1.04fr .96fr; } }
-        .hero h1 { font-size: var(--step-4); font-weight: 900; margin-bottom: 16px; }
-        .hero h1 em {
-            font-style: normal;
-            background: linear-gradient(100deg, var(--green-bright), var(--gold));
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-        }
-        .hero-lead { color: var(--ink-2); font-size: var(--step-1); max-width: 54ch; margin-bottom: 26px; }
-
-        .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
-
-        .trust-row {
-            display: grid; gap: 10px; padding-top: 22px; border-top: 1px solid var(--line);
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        }
-        .trust-item { display: flex; align-items: center; gap: 10px; }
-        .trust-item i { color: var(--green-bright); font-size: 1.25rem; flex-shrink: 0; }
-        .trust-item b { display: block; font-size: .92rem; font-weight: 800; }
-        .trust-item span { display: block; font-size: .78rem; color: var(--ink-2); }
-
-        /* الهاتف بلقطةٍ حقيقية من التطبيق — لا محاكاة مرسومة بالـCSS */
-        /* حشوٌ جانبي يستوعب نتوء الشارتين، فلا تخرجان عن الشاشة مهما اتّسعت */
-        .stage { display: grid; place-items: center; padding-inline: 26px; }
-        .phone-wrap { position: relative; width: min(300px, 74vw); }
-        /* هالة تحت الجهاز: تربطه بحقل الضوء بدل أن يطفو فوقه */
-        .phone-wrap::before {
-            content: ''; position: absolute; inset: -14% -7%; z-index: 0; border-radius: 50%;
-            background: radial-gradient(circle, color-mix(in srgb, var(--green-bright) 24%, transparent), transparent 66%);
-            filter: blur(6px);
-        }
-        .phone {
-            position: relative; z-index: 1; width: 100%;
-            border: 11px solid #16241d; border-radius: 42px; background: #16241d;
-            box-shadow: var(--sh-3), 0 0 0 1px rgba(255, 255, 255, .06) inset;
-            overflow: hidden;
-        }
-        .phone::before {
-            content: ''; position: absolute; top: 9px; left: 50%; transform: translateX(-50%);
-            width: 86px; height: 20px; background: #16241d; border-radius: 12px; z-index: 3;
-        }
-        .phone img { width: 100%; height: auto; border-radius: 31px; }
-        /* الجهاز الخلفي يظهر حيث يتّسع العمود وحده — دونه ينزلق خارج الشاشة */
-        .phone-back { display: none; }
-        @media (min-width: 980px) {
-            .phone-back {
-                display: block; position: absolute; z-index: 0;
-                inset-block-start: 8%; inset-inline-start: -27%; width: 76%;
-                transform: rotate(-7deg); opacity: .9;
-            }
-        }
-
-        .float-chip {
-            position: absolute; z-index: 4;
-            display: inline-flex; align-items: center; gap: 8px;
-            background: color-mix(in srgb, var(--surface) 92%, transparent);
-            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-            border: 1px solid var(--line); border-radius: var(--r-pill);
-            padding: 9px 14px; box-shadow: var(--sh-2);
-            font-size: .78rem; font-weight: 800; white-space: nowrap;
-        }
-        /* ⚠️ الإزاحة بالبكسل لا بالنسبة، ومرساتها **الهاتف** لا المسرح:
-           النسبة تُحسب من عرض الحاوية فتكبر كلّما اتّسعت الشاشة، وعند 768px
-           صار المسرح بعرض الصفحة كاملاً فخرجت الشارتان عن الإطار. */
-        .chip-live { inset-block-start: 7%; inset-inline-end: -22px; }
-        .chip-cash { inset-block-end: 11%; inset-inline-start: -22px; }
-        @media (max-width: 560px) {
-            .chip-live { inset-block-start: 4%; inset-inline-end: -14px; }
-            .chip-cash { inset-block-end: 7%; inset-inline-start: -14px; }
-            .float-chip { font-size: .72rem; padding: 7px 11px; }
-        }
-
-        .dot-live {
-            width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, .28);
-            animation: ping 1.8s ease-in-out infinite;
-        }
-        @keyframes ping {
-            0%, 100% { box-shadow: 0 0 0 2px rgba(34, 197, 94, .3); }
-            60% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-        }
-
-        /* ─── الخدمات والمدن ───────────────────────────────────────── */
-        @media (min-width: 900px) { .svc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-        .cities {
-            display: grid; gap: var(--gap); margin-top: var(--gap);
-            grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-        }
-        .city {
-            display: flex; align-items: flex-start; gap: 14px;
-            background: linear-gradient(135deg, color-mix(in srgb, var(--green) 10%, var(--surface)), var(--surface) 70%);
-            border: 1px solid var(--line); border-radius: var(--r); padding: clamp(18px, 2.2vw, 24px);
-        }
-        .city-ic {
-            flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
-            display: grid; place-items: center; font-size: 1.2rem;
-            background: var(--green); color: #fff; box-shadow: 0 6px 16px rgba(4, 85, 58, .22);
-        }
-        .city h3 { font-size: var(--step-1); font-weight: 800; margin-bottom: 4px; }
-        .city p { color: var(--ink-2); font-size: .9rem; }
-
-        /* ─── تبويبات الجمهور ──────────────────────────────────────── */
-        .segmented {
-            display: flex; gap: 4px; padding: 5px; margin-inline: auto;
-            background: var(--surface-2); border: 1px solid var(--line);
-            border-radius: var(--r-pill); width: fit-content; max-width: 100%;
-            margin-bottom: clamp(22px, 3vw, 34px); overflow-x: auto; scrollbar-width: none;
-        }
-        .segmented::-webkit-scrollbar { display: none; }
-        .seg {
-            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-            min-height: 42px; padding: 0 clamp(12px, 2.4vw, 22px); white-space: nowrap;
-            border: none; background: transparent; color: var(--ink-2);
-            border-radius: var(--r-pill); font: inherit; font-size: .88rem; font-weight: 800;
-            cursor: pointer; transition: background .25s var(--ease), color .25s;
-        }
-        .seg[aria-selected="true"] { background: var(--surface); color: var(--green); box-shadow: var(--sh-1); }
-
-        /* ─── الخطوات ─────────────────────────────────────────────── */
-        .steps { position: relative; display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); counter-reset: s; }
-        /* الخيط يمرّ بمحاور الأرقام الثلاثة: الخطوات مسارٌ متّصل */
-        @media (min-width: 880px) {
-            .steps::before {
-                content: ''; position: absolute; z-index: 0; inset-inline: 16%;
-                top: calc(clamp(22px, 2.6vw, 30px) + 22px); height: 2px;
-                background: repeating-linear-gradient(90deg, var(--line) 0 9px, transparent 9px 18px);
-            }
-        }
-        .step { position: relative; z-index: 1; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: clamp(22px, 2.6vw, 30px); box-shadow: var(--sh-1); }
-        .step::before {
-            counter-increment: s; content: counter(s);
-            display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 14px;
-            background: var(--green); color: #fff; border-radius: 50%;
-            font-size: 1.15rem; font-weight: 900; box-shadow: 0 6px 18px rgba(4, 85, 58, .25);
-        }
-        .step h3 { font-size: var(--step-1); font-weight: 800; margin-bottom: 6px; }
-        .step p { color: var(--ink-2); font-size: .9rem; }
-
-        /* ─── معرض اللقطات ────────────────────────────────────────── */
-        .shots {
-            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: clamp(14px, 2vw, 26px); align-items: end;
-            max-width: 760px; margin-inline: auto;
-        }
-        .shot { text-align: center; }
-        /* الإطار نفسه إطار البطل: الجهاز واحدٌ في الصفحة كلها */
-        .shot .phone { border-width: 8px; border-radius: 32px; }
-        .shot .phone::before { top: 7px; width: 62px; height: 15px; }
-        .shot .phone img { border-radius: 24px; }
-        .shot--mid .phone { transform: translateY(-26px); }
-        .shot--mid figcaption { margin-top: -14px; }
-        .shot figcaption { margin-top: 12px; font-size: .88rem; font-weight: 800; color: var(--ink-2); }
-
-        /* على الجوال: شريطٌ أفقي بالتقاطٍ عند كل جهاز — ثلاث شاشاتٍ فوق
-           بعضها تجعل القسم وحده بطول ألفي بكسل. */
-        @media (max-width: 660px) {
-            .shots {
-                display: flex; gap: 14px; align-items: flex-start;
-                max-width: none; overflow-x: auto; scroll-snap-type: x mandatory;
-                margin-inline: calc(var(--pad-x) * -1); padding-inline: var(--pad-x);
-                scrollbar-width: none; -webkit-overflow-scrolling: touch;
-            }
-            .shots::-webkit-scrollbar { display: none; }
-            .shot { flex: 0 0 min(62%, 230px); scroll-snap-align: center; }
-            .shot--mid .phone { transform: none; }
-            .shot--mid figcaption { margin-top: 12px; }
-        }
-
-        /* ─── الفريق ──────────────────────────────────────────────── */
-        .team-panel {
-            display: grid; gap: clamp(20px, 3vw, 40px); align-items: center;
-            grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-            background: linear-gradient(135deg, var(--green-dark), var(--green));
-            border-radius: var(--r-lg); padding: clamp(26px, 4vw, 48px);
-            color: #fff; box-shadow: var(--sh-2); position: relative; overflow: hidden;
-        }
-        .team-panel::after {
-            content: ''; position: absolute; inset-block-start: -40%; inset-inline-end: -10%;
-            width: 340px; height: 340px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(224, 180, 72, .22), transparent 70%);
-        }
-        .team-panel::before, .cta::after {
-            content: ''; position: absolute; inset: 0; pointer-events: none;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
-            background-size: 46px 46px;
-            -webkit-mask-image: radial-gradient(ellipse 90% 90% at 18% 0%, #000, transparent 72%);
-            mask-image: radial-gradient(ellipse 90% 90% at 18% 0%, #000, transparent 72%);
-        }
-        .team-panel > * { position: relative; z-index: 1; }
-        .team-panel h2 { font-size: var(--step-3); font-weight: 900; margin-bottom: 10px; }
-        .team-panel p { opacity: .92; margin-bottom: 20px; }
-        .team-points { display: grid; gap: 12px; }
-        .team-point { display: flex; align-items: flex-start; gap: 11px; font-size: .92rem; }
-        .team-point i { color: #ffd979; font-size: 1.1rem; margin-top: 2px; }
-        .btn-team {
-            background: #fff; color: var(--green-dark); border-radius: var(--r-pill);
-            min-height: 50px; padding: 0 26px; font-weight: 900;
-            display: inline-flex; align-items: center; gap: 9px;
-            box-shadow: 0 10px 26px rgba(0, 0, 0, .18);
-            transition: transform .2s var(--ease);
-        }
-        .btn-team:hover { transform: translateY(-2px); }
-
-        /* ─── الأسئلة ─────────────────────────────────────────────── */
-        .faq { max-width: 780px; margin-inline: auto; display: grid; gap: 10px; }
-        .qa { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
-        .qa-q {
-            width: 100%; min-height: 56px; padding: 14px 18px;
-            display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            background: none; border: none; color: var(--ink); font: inherit;
-            font-size: .96rem; font-weight: 800; text-align: start; cursor: pointer;
-        }
-        .qa-q i { color: var(--green-bright); font-size: 1.15rem; transition: transform .3s var(--ease); flex-shrink: 0; }
-        .qa[open] .qa-q i { transform: rotate(45deg); }
-        .qa-a { padding: 0 18px 18px; color: var(--ink-2); font-size: .92rem; }
-
-        /* ─── نداء أخير + تواصل ───────────────────────────────────── */
-        .cta {
-            background: linear-gradient(135deg, var(--green-dark), var(--green));
-            border-radius: var(--r-lg); padding: clamp(34px, 5vw, 60px) clamp(20px, 4vw, 40px);
-            text-align: center; color: #fff; box-shadow: var(--sh-2);
-            position: relative; overflow: hidden;
-        }
-        .cta::before {
-            content: ''; position: absolute; inset-block-start: -55%; inset-inline-start: -12%;
-            width: 320px; height: 320px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(224, 180, 72, .2), transparent 70%);
-        }
-        .cta > * { position: relative; z-index: 1; }
-        .cta h2 { font-size: var(--step-3); font-weight: 900; margin-bottom: 8px; }
-        .cta p { opacity: .92; max-width: 56ch; margin: 0 auto 26px; }
-        .cta-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
-        .cta .btn-play { background: #fff; color: var(--green-dark); }
-        .cta .btn-apple { background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .28); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-
-        .contact-grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); max-width: 780px; margin-inline: auto; }
-        .contact-card { text-align: center; }
-        .contact-card i { font-size: 2rem; color: var(--green-bright); margin-bottom: 10px; display: block; }
-        .contact-card h3 { font-size: var(--step-1); font-weight: 800; margin-bottom: 4px; }
-        .contact-card p { color: var(--ink-2); font-size: .92rem; direction: ltr; unicode-bidi: isolate; }
-
-        /* ─── التذييل ─────────────────────────────────────────────── */
-        footer { background: var(--surface); border-top: 1px solid var(--line); padding-block: clamp(34px, 5vw, 52px) 24px; color: var(--ink-2); font-size: .88rem; }
-        .foot-grid { display: grid; gap: clamp(22px, 3vw, 38px); grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); margin-bottom: 30px; }
-        .foot-brand img { height: 34px; margin-bottom: 12px; }
-        .foot-brand p { max-width: 42ch; }
-        .foot-title { font-size: .96rem; font-weight: 800; color: var(--ink); margin-bottom: 12px; }
-        .foot-links { list-style: none; display: grid; gap: 9px; }
-        .foot-links a { transition: color .2s; }
-        .foot-links a:hover { color: var(--green-bright); }
-        .socials { display: flex; gap: 8px; margin-top: 16px; }
-        .socials a {
-            width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
-            background: var(--surface-2); color: var(--ink); font-size: 1rem;
-            transition: background .2s, color .2s, transform .2s;
-        }
-        .socials a:hover { background: var(--green); color: #fff; transform: translateY(-2px); }
-        .foot-bottom { border-top: 1px solid var(--line); padding-top: 20px; text-align: center; font-size: .82rem; }
-
-        .wa-float {
-            /* var(--sab) أولاً لا env() وحدها: WebView أندرويد يعيد صفراً من
-               env()، والمتغيّر يحقنه MainActivity. وعلى المتصفّح العادي —
-               وهو موضع هذه الصفحة — يسقط إلى env() فيعمل كما هو. */
-            position: fixed; inset-block-end: calc(20px + var(--sab, env(safe-area-inset-bottom, 0px))); inset-inline-end: 20px;
-            width: 52px; height: 52px; border-radius: 50%; background: #25d366; color: #fff;
-            display: grid; place-items: center; font-size: 1.55rem; z-index: 850;
-            box-shadow: 0 8px 24px rgba(37, 211, 102, .42);
-            transition: transform .2s var(--ease), opacity .25s;
-        }
-        .wa-float:hover { transform: scale(1.07); }
-        .wa-float.dim { opacity: 0; pointer-events: none; }
-
-        /* ─── شريط تقدّم القراءة ─────────────────────────────────────
-           خيطٌ أخضر أعلى الصفحة يمتدّ مع التمرير — اتجاه نموّه يضبطه
-           السكربت بحسب اللغة (يمين في العربية، يسار في الإنجليزية). */
-        .progress {
-            position: fixed; inset-inline: 0; top: 0; height: 3px; z-index: 1000;
-            background: linear-gradient(90deg, var(--green-bright), var(--gold));
-            transform: scaleX(0); transform-origin: right; pointer-events: none;
-        }
-
-        /* ─── خبر المدينة الجديدة ──────────────────────────────────── */
-        .news-pill {
-            display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
-            background: var(--gold-soft); border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
-            color: var(--ink); padding: 5px 6px 5px 14px; border-radius: var(--r-pill);
-            font-size: .82rem; font-weight: 800;
-            transition: transform .25s var(--ease), box-shadow .25s;
-        }
-        .news-pill:hover { transform: translateY(-2px); box-shadow: var(--sh-1); }
-        .news-pill b {
-            background: var(--gold); color: #fff; border-radius: var(--r-pill);
-            padding: 2px 10px; font-size: .74rem; letter-spacing: .02em;
-        }
-        .news-pill i { color: var(--gold); transition: transform .25s var(--ease); }
-        .news-pill:hover i { transform: translateX(-4px); }
-
-        /* ─── المدن تتبدّل في البطل ────────────────────────────────────
-           الجملة كاملةً في نصٍّ مخفيٍّ للقارئ الآلي ومحرّكات البحث؛ الكلمة
-           المتحرّكة زينةٌ مخفيّة عنهما. الكلمة الرابعة نسخةٌ من الأولى:
-           الحلقة تعود منها إلى البداية بلا قفزةٍ تُرى. */
-        .city-ticker {
-            display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-            font-size: var(--step-1); font-weight: 800; color: var(--ink-2); margin: -8px 0 24px;
-        }
-        .ticker {
-            display: inline-block; height: 1.7em; overflow: hidden; vertical-align: bottom;
-            background: var(--green-soft); border: 1px solid var(--line); border-radius: 12px;
-            padding-inline: 12px; color: var(--green-bright);
-        }
-        .ticker-track { display: flex; flex-direction: column; animation: tick 7.5s var(--ease) infinite; }
-        .ticker-track > span { height: 1.7em; line-height: 1.7em; white-space: nowrap; }
-        @keyframes tick {
-            0%, 26%   { transform: translateY(0); }
-            33%, 59%  { transform: translateY(-1.7em); }
-            66%, 92%  { transform: translateY(-3.4em); }
-            100%      { transform: translateY(-5.1em); }
-        }
         .sr-only {
             position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
             overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
         }
 
-        /* ─── البطل: هالةٌ تنساب، وعنوانٌ يلمع، ومسار رحلةٍ حيّ ──────── */
-        /* القصّ أفقياً: الهالة تنساب خارج حافّة البطل، وبلا قصٍّ يتّسع
-           عرض الصفحة على الهاتف (قيس: ٣٧٥ ← ٥٣٩) فيصغر كل شيء ويُسحب جانبياً.
-           hidden احتياطٌ للمتصفّحات قبل clip. */
-        .hero { position: relative; isolation: isolate; overflow-x: hidden; overflow-x: clip; }
-        .hero::before {
-            content: ''; position: absolute; z-index: -1; pointer-events: none;
-            width: 46ch; height: 46ch; inset-inline-end: -12ch; top: 10%; border-radius: 50%;
-            background: radial-gradient(circle, color-mix(in srgb, var(--green-bright) 16%, transparent), transparent 68%);
-            animation: drift 16s ease-in-out infinite alternate;
-        }
-        @keyframes drift {
-            from { transform: translate(0, 0) scale(1); }
-            to   { transform: translate(-6ch, 4ch) scale(1.12); }
-        }
-        .hero h1 em { background-size: 200% 100%; animation: shimmer 8s ease-in-out infinite alternate; }
-        @keyframes shimmer { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+        .wrap { width: min(1160px, 100%); margin-inline: auto; padding-inline: var(--pad-x); }
+        section { padding-block: var(--sec-y); }
 
-        .stage { position: relative; }
-        /* مسار الكابتن خلف الجهاز: نقطة استلام، ونقطة تسليم، وكابتنٌ يسير
-           بينهما — «تتبّعٌ حيّ» يُرى قبل أن يُقرأ. زينةٌ: aria-hidden. */
-        .route-art {
-            position: absolute; z-index: 0; inset: 2% -2%; width: 104%; height: 96%;
-            pointer-events: none; overflow: visible;
+        h1, h2 { font-family: var(--f-text); font-weight: 400; line-height: 1.3; }
+        h3, b, strong, .btn, .tab, button { font-family: var(--f-strong); font-weight: 700; }
+        h2 { font-size: var(--step-3); }
+        h3 { font-size: var(--step-1); line-height: 1.45; }
+
+        /* رأس القسم: إلى بداية السطر لا في الوسط، وجملة واحدة تحته */
+        .head { max-width: 640px; margin-bottom: clamp(20px, 3vw, 36px); }
+        .head p { color: var(--ink-2); margin-top: 6px; }
+
+        /* ─── الترويسة ─────────────────────────────────────────────── */
+        .bar {
+            position: sticky; top: 0; z-index: 900;
+            background: color-mix(in srgb, var(--paper) 92%, transparent);
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            border-bottom: 1px solid transparent; transition: border-color .2s;
         }
-        .route-art .route-line {
-            fill: none; stroke: var(--green-bright); stroke-width: 3; stroke-linecap: round;
-            stroke-dasharray: 2 12; opacity: .55; animation: dash 1.6s linear infinite;
+        .bar.is-stuck { border-bottom-color: var(--line); }
+        .bar-in { display: flex; align-items: center; gap: 14px; min-height: 62px; }
+        .brand img { height: 30px; width: auto; }
+        .logo-dark { display: none; }
+        [data-theme="dark"] .logo-light { display: none; }
+        [data-theme="dark"] .logo-dark { display: block; }
+
+        .nav-links { display: flex; gap: clamp(14px, 2vw, 26px); list-style: none; margin-inline: auto; }
+        .nav-links a { color: var(--ink-2); font-size: .95rem; padding-block: 6px; border-bottom: 2px solid transparent; }
+        .nav-links a:hover, .nav-links a[aria-current="true"] { color: var(--ink); border-bottom-color: var(--gold); }
+
+        .tools { display: flex; align-items: center; gap: 6px; margin-inline-start: auto; }
+        .nav-links + .tools { margin-inline-start: 0; }
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-width: 40px; min-height: 40px; padding: 0 10px; border-radius: 10px;
+            background: transparent; border: 1px solid var(--line); color: var(--ink);
+            font-size: .82rem; cursor: pointer;
         }
-        @keyframes dash { to { stroke-dashoffset: -28; } }
-        .route-art .pin-a { fill: var(--green-bright); }
-        .route-art .pin-b { fill: var(--gold); }
-        .route-art .pin-ring { fill: none; stroke-width: 2; opacity: .6; transform-box: fill-box; transform-origin: center; animation: ring 2.4s ease-out infinite; }
-        .route-art .pin-ring.a { stroke: var(--green-bright); }
-        .route-art .pin-ring.b { stroke: var(--gold); animation-delay: 1.2s; }
-        @keyframes ring { from { transform: scale(.6); opacity: .7; } to { transform: scale(2.2); opacity: 0; } }
-        .route-art .rider { fill: #fff; stroke: var(--green); stroke-width: 3; }
-
-        /* الشارتان تطفوان بهدوء — لا تتزامنان، فتبدوان حيّتين لا آليّتين */
-        .float-chip { animation: bob 5s ease-in-out infinite; }
-        .chip-cash { animation-delay: -2.5s; }
-        @keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
-
-        /* ميلانٌ خفيف للجهاز مع المؤشّر — على الحاسوب وحده (السكربت) */
-        .phone-wrap { transition: transform .5s var(--ease); transform-style: preserve-3d; will-change: transform; }
-
-        /* لمعةٌ تعبر زرّ التحميل عند المرور */
-        .btn-play { position: relative; overflow: hidden; isolation: isolate; }
-        .btn-play::after {
-            content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-            background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .28) 50%, transparent 70%);
-            transform: translateX(120%); transition: transform .8s var(--ease);
+        .icon-btn:hover { border-color: var(--ink-2); }
+        .bar-cta {
+            display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 16px;
+            border-radius: 10px; background: var(--green); color: #fff; font-family: var(--f-strong); font-size: .9rem;
         }
-        .btn-play:hover::after { transform: translateX(-120%); }
+        .bar-cta:hover { background: var(--green-2); }
+        .burger { display: none; }
 
-        .card-ic { transition: transform .35s var(--ease); }
-        .card:hover .card-ic { transform: rotate(-6deg) scale(1.07); }
-
-        /* خيط الخطوات يُرسَم حين يظهر القسم */
-        @media (min-width: 880px) {
-            .steps::before { transform: scaleX(0); transform-origin: right; transition: transform 1.4s var(--ease) .2s; }
-            .steps.in::before { transform: scaleX(1); }
+        .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 898; opacity: 0; transition: opacity .2s; }
+        .scrim.open { opacity: 1; }
+        .drawer {
+            position: fixed; top: 62px; inset-inline: 0; z-index: 899;
+            background: var(--paper); border-bottom: 1px solid var(--line);
+            padding: 8px var(--pad-x) 18px; display: flex; flex-direction: column;
+            transform: translateY(-8px); opacity: 0; transition: transform .2s, opacity .2s;
+            max-height: calc(100dvh - 62px); overflow-y: auto;
         }
-        .step::before { transition: transform .5s var(--ease); }
-        .step:hover::before { transform: scale(1.08) rotate(-4deg); }
+        .drawer[hidden], .scrim[hidden] { display: none; }
+        .drawer.open { transform: none; opacity: 1; }
+        .drawer > a { padding: 13px 2px; border-bottom: 1px solid var(--line); font-size: 1.05rem; }
+        .drawer-tools { display: flex; gap: 8px; padding-top: 14px; }
+        .drawer-tools .icon-btn { flex: 1; min-height: 46px; }
 
-        /* ─── المدن: لكلٍّ أيقونتها، ونقطةٌ تنبض، و«جديد» على الأحدث ── */
-        .city { position: relative; transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s; }
-        .city:hover { transform: translateY(-4px); box-shadow: var(--sh-2); border-color: color-mix(in srgb, var(--green-bright) 35%, var(--line)); }
-        .city-ic { position: relative; }
-        .city-ic::after {
-            content: ''; position: absolute; inset: 0; border-radius: 50%;
-            border: 2px solid var(--green-bright); opacity: 0; animation: ring 2.8s ease-out infinite;
-        }
-        .city:nth-child(2) .city-ic::after { animation-delay: .9s; }
-        .city:nth-child(3) .city-ic::after { animation-delay: 1.8s; }
-        .city--new { background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 16%, var(--surface)), var(--surface) 72%); border-color: color-mix(in srgb, var(--gold) 45%, var(--line)); }
-        .city--new .city-ic { background: linear-gradient(140deg, var(--gold), #a8781a); box-shadow: 0 6px 16px rgba(197, 151, 42, .3); }
-        .city--new .city-ic::after { border-color: var(--gold); }
-        .city-new {
-            position: absolute; top: 14px; inset-inline-end: 14px;
-            background: var(--gold); color: #fff; border-radius: var(--r-pill);
-            font-size: .72rem; font-weight: 900; padding: 2px 10px;
+        @media (max-width: 900px) {
+            .nav-links, .tools .lang-desk, .tools .theme-desk { display: none; }
+            .burger { display: inline-flex; }
         }
 
-        /* ─── ظهور تدريجي عند التمرير ─────────────────────────────── */
-        .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
-        .reveal.in { opacity: 1; transform: none; }
+        /* ─── أزرار المتجرين ───────────────────────────────────────── */
+        /* الجوال: زرّان بعرضٍ متساوٍ يملآن السطر — كانا يلتفّان بعرضين مختلفين */
+        .stores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 420px; }
+        @media (min-width: 560px) { .stores { display: flex; flex-wrap: wrap; max-width: none; } }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            min-height: 54px; padding: 8px 14px; border-radius: 12px; border: 1px solid transparent;
+            background: #0f1713; color: #fff;
+        }
+        [data-theme="dark"] .btn { background: #f2f5f3; color: #0f1713; }
+        .btn:hover { opacity: .9; }
+        .btn i { font-size: 1.55rem; line-height: 1; }
+        .btn-lines { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+        .btn-lines .t1 { font-size: .7rem; font-weight: 400; opacity: .8; }
+        .btn-lines .t2 { font-family: 'Intro', sans-serif; font-size: 1rem; font-weight: 700; white-space: nowrap; }
+        /* داخل بطاقة التحميل على الجوال يضيق الزرّ إلى ~140px — يصغر المحتوى ولا يلتفّ */
+        @media (max-width: 559px) {
+            .btn { gap: 8px; padding-inline: 10px; }
+            .btn i { font-size: 1.3rem; }
+            .btn-lines .t2 { font-size: .9rem; }
+        }
+
+        /* ─── البطل ────────────────────────────────────────────────── */
+        .hero { padding-top: clamp(18px, 4vw, 56px); padding-bottom: 0; }
+        .hero-grid { display: grid; gap: clamp(24px, 4vw, 56px); align-items: end; }
+        @media (min-width: 960px) { .hero-grid { grid-template-columns: 1.1fr .9fr; align-items: center; } }
+
+        .news {
+            display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px;
+            font-size: .9rem; color: var(--ink-2);
+        }
+        .news b { background: var(--gold); color: #fff; border-radius: 6px; padding: 1px 8px; font-size: .78rem; }
+        .news:hover span { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+
+        .hero h1 { font-size: var(--step-4); margin-bottom: 14px; }
+        .hero h1 em { font-style: normal; color: var(--green); }
+        [data-theme="dark"] .hero h1 em { color: #5fcf9c; }
+        .lead { color: var(--ink-2); font-size: var(--step-1); max-width: 52ch; margin-bottom: 22px; }
+
+        .city-ticker {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+            margin-top: 18px; color: var(--ink-2); font-size: .95rem;
+        }
+        .ticker { display: inline-block; height: 1.8em; overflow: hidden; vertical-align: bottom; color: var(--ink); font-family: var(--f-strong); }
+        .ticker-track { display: flex; flex-direction: column; animation: tick 7.5s cubic-bezier(.6, 0, .2, 1) infinite; }
+        .ticker-track > span { height: 1.8em; line-height: 1.8em; white-space: nowrap; }
+        @keyframes tick {
+            0%, 26% { transform: translateY(0); }
+            33%, 59% { transform: translateY(-1.8em); }
+            66%, 92% { transform: translateY(-3.6em); }
+            100% { transform: translateY(-5.4em); }
+        }
+
+        .facts {
+            list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 16px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line);
+            font-size: .92rem;
+        }
+        @media (min-width: 640px) { .facts { grid-template-columns: repeat(4, auto); justify-content: start; } }
+        .facts li { display: flex; align-items: center; gap: 7px; }
+        .facts i { color: var(--green-2); }
+
+        /* الصورة: لقطةٌ حقيقية على لوحٍ أخضر — على الجوال يظهر نصفها العلوي
+           فقط، فلا يأخذ الجهاز شاشةً كاملة كما كان */
+        .hero-shot {
+            position: relative; background: var(--green); border-radius: 22px 22px 0 0;
+            padding: 26px 0 0; overflow: hidden; display: grid; justify-items: center;
+            height: clamp(300px, 70vw, 560px);
+        }
+        @media (min-width: 960px) { .hero-shot { height: 600px; border-radius: 22px; padding-top: 44px; } }
+        .phone {
+            width: min(290px, 66vw); border: 9px solid #0d1512; border-bottom: 0;
+            border-radius: 36px 36px 0 0; background: #0d1512; overflow: hidden;
+        }
+        .phone img { width: 100%; height: auto; border-radius: 27px 27px 0 0; }
+
+        /* ─── الخدمات ──────────────────────────────────────────────── */
+        .svc { list-style: none; display: grid; border-top: 1px solid var(--line); counter-reset: svc; }
+        @media (min-width: 720px) { .svc { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1040px) { .svc { grid-template-columns: repeat(4, 1fr); } }
+        .svc li {
+            counter-increment: svc; position: relative;
+            padding: 18px 0 18px; border-bottom: 1px solid var(--line);
+            display: grid; grid-template-columns: 44px 1fr; gap: 0 10px;
+        }
+        @media (min-width: 720px) { .svc li { padding-inline-end: 22px; } }
+        .svc li::before {
+            content: '0' counter(svc); grid-row: span 2;
+            font-family: 'Intro', sans-serif; font-weight: 700; color: var(--gold); font-size: 1.05rem; line-height: 1.6;
+        }
+        .svc p { color: var(--ink-2); font-size: .93rem; line-height: 1.7; }
+
+        .cities {
+            margin-top: 22px; background: var(--mint); border-radius: var(--r);
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+        }
+        .city { padding: 16px 18px; position: relative; }
+        .city + .city { border-top: 1px solid var(--line); }
+        @media (min-width: 800px) {
+            .city + .city { border-top: 0; border-inline-start: 1px solid var(--line); }
+        }
+        .city h3 { display: flex; align-items: center; gap: 8px; }
+        .city p { color: var(--ink-2); font-size: .9rem; line-height: 1.7; }
+        .city-new { background: var(--gold); color: #fff; border-radius: 6px; padding: 0 8px; font-size: .72rem; line-height: 1.7; }
+
+        /* ─── كيف يعمل + اللقطات ───────────────────────────────────── */
+        .how-grid { display: grid; gap: clamp(24px, 4vw, 48px); }
+        @media (min-width: 960px) { .how-grid { grid-template-columns: .85fr 1.15fr; align-items: start; } }
+        .steps { list-style: none; counter-reset: s; display: grid; gap: 4px; }
+        .step {
+            counter-increment: s; display: grid; grid-template-columns: 40px 1fr; gap: 0 12px;
+            padding: 14px 0; border-bottom: 1px solid var(--line);
+        }
+        .step:last-child { border-bottom: 0; }
+        .step::before {
+            content: counter(s); grid-row: span 2; width: 34px; height: 34px; border-radius: 50%;
+            display: grid; place-items: center; background: var(--green); color: #fff;
+            font-family: 'Intro', sans-serif; font-weight: 700; font-size: .95rem;
+        }
+        .step p { color: var(--ink-2); font-size: .93rem; line-height: 1.7; }
+
+        /* اللقطات: شريطٌ أفقي بالتقاط على الجوال، ثلاثٌ متجاورة على الحاسوب */
+        .shots {
+            display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+            margin-inline: calc(var(--pad-x) * -1); padding: 4px var(--pad-x) 6px;
+            scrollbar-width: none;
+        }
+        .shots::-webkit-scrollbar { display: none; }
+        .shot { flex: 0 0 min(58%, 220px); scroll-snap-align: start; }
+        @media (min-width: 960px) {
+            .shots { display: grid; grid-template-columns: repeat(3, 1fr); overflow: visible; margin: 0; padding: 0; }
+        }
+        .shot .frame {
+            border: 7px solid #0d1512; border-radius: 26px; overflow: hidden; background: #0d1512;
+            aspect-ratio: 540 / 900;
+        }
+        .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 19px; }
+        .shot figcaption { margin-top: 8px; font-size: .88rem; color: var(--ink-2); }
+
+        /* ─── المزايا حسب الدور ────────────────────────────────────── */
+        .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+            padding: 10px 14px; color: var(--ink-2); font-size: .98rem; cursor: pointer; white-space: nowrap;
+        }
+        .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--green); }
+        .perks {
+            display: grid; gap: 18px 20px;
+            grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+        }
+        @media (min-width: 900px) { .perks { grid-template-columns: repeat(3, 1fr); gap: 26px 32px; } }
+        .perks[hidden] { display: none; }
+        .card h3 { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin-bottom: 2px; }
+        .card h3 i { color: var(--green-2); font-size: 1.05rem; }
+        [data-theme="dark"] .card h3 i, [data-theme="dark"] .facts i { color: #5fcf9c; }
+        .card p { color: var(--ink-2); font-size: .9rem; line-height: 1.7; }
+
+        /* ─── الفريق ──────────────────────────────────────────────── */
+        .team {
+            background: var(--green); color: #fff; border-radius: 22px;
+            padding: clamp(24px, 4vw, 44px);
+            display: grid; gap: 18px 40px; align-items: center;
+        }
+        @media (min-width: 860px) { .team { grid-template-columns: 1.2fr 1fr; } }
+        .team h2 { font-size: var(--step-2); margin-bottom: 8px; }
+        .team p { color: var(--green-ink); margin-bottom: 16px; }
+        .team ul { list-style: none; display: grid; gap: 10px; font-size: .93rem; color: var(--green-ink); }
+        .team li { display: flex; gap: 9px; }
+        .team li i { color: #f0cf7a; margin-top: 3px; }
+        .btn-team {
+            display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px;
+            background: #fff; color: var(--green); border-radius: 12px; font-family: var(--f-strong);
+        }
+
+        /* ─── المساعدة: شروحات + أسئلة ─────────────────────────────── */
+        .help { display: grid; gap: clamp(28px, 4vw, 56px); }
+        @media (min-width: 960px) { .help { grid-template-columns: .8fr 1.2fr; } }
+        .guides { list-style: none; border-top: 1px solid var(--line); }
+        .guides h3 { font-size: 1.02rem; }
+        .guides a {
+            display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center;
+            padding: 14px 0; border-bottom: 1px solid var(--line);
+        }
+        .guides a span { color: var(--ink-2); font-size: .88rem; grid-column: 1; }
+        .guides a i { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--green-2); font-size: 1.4rem; }
+        .guides a:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+        .help h2 { font-size: var(--step-2); margin-bottom: 12px; }
+
+        .faq { border-top: 1px solid var(--line); }
+        .qa { border-bottom: 1px solid var(--line); }
+        .qa-q {
+            list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            min-height: 54px; padding: 12px 0; cursor: pointer; font-family: var(--f-strong); font-weight: 700;
+        }
+        .qa-q::-webkit-details-marker { display: none; }
+        .qa-q i { color: var(--ink-2); transition: transform .2s; flex-shrink: 0; }
+        .qa[open] .qa-q i { transform: rotate(45deg); }
+        .qa-a { padding: 0 0 16px; color: var(--ink-2); font-size: .93rem; }
+
+        /* ─── التحميل + التواصل ────────────────────────────────────── */
+        .cta {
+            background: #0f1713; color: #fff; border-radius: 22px; padding: clamp(26px, 5vw, 56px);
+            display: grid; gap: 20px 40px; align-items: center;
+        }
+        [data-theme="dark"] .cta { background: var(--card); border: 1px solid var(--line); }
+        @media (min-width: 860px) { .cta { grid-template-columns: 1fr auto; } }
+        .cta h2 { font-size: var(--step-3); }
+        .cta p { color: #c3ccc7; }
+        .cta .btn { background: #fff; color: #0f1713; }
+        .contact { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px; font-size: .95rem; }
+        .contact a { display: inline-flex; align-items: center; gap: 8px; color: #fff; }
+        .contact a:hover { text-decoration: underline; text-underline-offset: 4px; }
+        .contact i { color: #f0cf7a; }
+
+        /* ─── التذييل ─────────────────────────────────────────────── */
+        footer { padding-block: 34px calc(28px + var(--sab, env(safe-area-inset-bottom, 0px))); color: var(--ink-2); font-size: .9rem; }
+        .foot { display: grid; gap: 22px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        @media (min-width: 860px) { .foot { grid-template-columns: 1.6fr 1fr 1fr; } }
+        .foot-brand { grid-column: 1 / -1; }
+        @media (min-width: 860px) { .foot-brand { grid-column: auto; } }
+        .foot-brand img { height: 28px; margin-bottom: 10px; }
+        .foot-brand p { max-width: 46ch; }
+        .foot h3 { font-size: .95rem; color: var(--ink); margin-bottom: 8px; }
+        .foot ul { list-style: none; display: grid; gap: 6px; }
+        .foot ul a:hover { color: var(--ink); }
+        .socials { display: flex; gap: 6px; margin-top: 12px; }
+        .socials a { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--ink); }
+        .socials a:hover { border-color: var(--ink-2); }
+        .foot-bottom { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); font-size: .82rem; }
+
+        /* ─── شريط التحميل الثابت على الجوال ──────────────────────────
+           يظهر بعد تجاوز أزرار البطل، ويختفي عند نداء التحميل نفسه.
+           var(--sab) أولاً: WebView أندرويد يعيد صفراً من env(). */
+        .getbar {
+            position: fixed; inset-inline: 0; bottom: 0; z-index: 850;
+            display: none; gap: 8px; align-items: center;
+            padding: 10px var(--pad-x) calc(10px + var(--sab, env(safe-area-inset-bottom, 0px)));
+            background: color-mix(in srgb, var(--paper) 94%, transparent);
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            border-top: 1px solid var(--line);
+            transform: translateY(110%); transition: transform .25s ease;
+        }
+        .getbar.show { transform: none; }
+        .getbar .get {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 48px; border-radius: 12px; background: var(--green); color: #fff; font-family: var(--f-strong);
+        }
+        .getbar .wa {
+            width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center;
+            background: #25d366; color: #fff; font-size: 1.35rem;
+        }
+        .wa-float {
+            position: fixed; inset-block-end: calc(20px + var(--sab, env(safe-area-inset-bottom, 0px))); inset-inline-end: 20px;
+            width: 52px; height: 52px; border-radius: 50%; background: #25d366; color: #fff;
+            display: grid; place-items: center; font-size: 1.5rem; z-index: 850;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+        }
+        @media (max-width: 760px) {
+            .getbar { display: flex; }
+            .wa-float { display: none; }
+        }
 
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
-            *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
-            .reveal { opacity: 1; transform: none; }
             .ticker-track { animation: none; }
-            .steps::before { transform: none !important; }
-            .phone-wrap { transform: none !important; }
-            .progress { display: none; }
+            *, *::before, *::after { transition-duration: .001ms !important; }
         }
-
         @media print {
-            .topbar, .wa-float, .drawer, .scrim { display: none !important; }
+            .bar, .getbar, .wa-float, .drawer, .scrim { display: none !important; }
         }
     </style>
 </head>
@@ -911,32 +600,28 @@
 <body>
     <a class="skip-link" href="#main" data-i18n="skip">تخطَّ إلى المحتوى</a>
     <div class="scrim" id="scrim" hidden></div>
-    <div class="progress" id="progress" aria-hidden="true"></div>
 
-    <header class="topbar" id="topbar">
-        <nav class="nav" aria-label="التنقّل الرئيسي">
+    <header class="bar" id="topbar">
+        <nav class="wrap bar-in" aria-label="التنقّل الرئيسي">
             <a href="#top" class="brand" aria-label="وجيز - wajeezsd — أعلى الصفحة">
                 <img src="/logo-ink.png" alt="وجيز - wajeezsd" class="logo-light" width="83" height="34">
                 <img src="/logo-white.png" alt="وجيز - wajeezsd" class="logo-dark" width="83" height="34">
             </a>
 
             <ul class="nav-links">
-                <li><a href="#features" data-i18n="nav_features">المميزات</a></li>
+                <li><a href="#services" data-i18n="nav_services">الخدمات</a></li>
                 <li><a href="#how" data-i18n="nav_how">كيف يعمل</a></li>
-                <li><a href="#app" data-i18n="nav_app">التطبيق</a></li>
-                <li><a href="#tutorials" data-i18n="nav_tutorials">الشروحات</a></li>
+                <li><a href="#features" data-i18n="nav_features">المميزات</a></li>
                 <li><a href="#team" data-i18n="nav_team">الفريق</a></li>
-                <li><a href="#contact" data-i18n="nav_contact">تواصل</a></li>
+                <li><a href="#faq" data-i18n="nav_faq">الأسئلة الشائعة</a></li>
             </ul>
 
-            <div class="nav-tools">
-                <button class="icon-btn" id="langBtn" type="button" aria-label="Switch language">
-                    <i class="bi bi-translate" aria-hidden="true"></i><span id="langTxt">EN</span>
+            <div class="tools">
+                <button class="icon-btn lang-desk" id="langBtn" type="button" aria-label="Switch language"><span id="langTxt">EN</span></button>
+                <button class="icon-btn theme-desk" id="themeBtn" type="button" aria-label="تبديل الوضع الليلي">
+                    <i class="bi bi-moon-stars" id="themeIco" aria-hidden="true"></i>
                 </button>
-                <button class="icon-btn" id="themeBtn" type="button" aria-label="تبديل الوضع الليلي">
-                    <i class="bi bi-moon-stars-fill" id="themeIco" aria-hidden="true"></i>
-                </button>
-                <a href="#download" class="nav-cta"><i class="bi bi-download" aria-hidden="true"></i> <span data-i18n="nav_get">حمّل التطبيق</span></a>
+                <a href="#download" class="bar-cta"><span data-i18n="nav_get">حمّل التطبيق</span></a>
                 <button class="icon-btn burger" id="burger" type="button" aria-label="القائمة" aria-expanded="false" aria-controls="drawer">
                     <i class="bi bi-list" aria-hidden="true"></i>
                 </button>
@@ -945,20 +630,16 @@
     </header>
 
     <div class="drawer" id="drawer" hidden>
-        <a href="#services"><i class="bi bi-truck" aria-hidden="true"></i> <span data-i18n="nav_services">الخدمات</span></a>
-        <a href="#features"><i class="bi bi-stars" aria-hidden="true"></i> <span data-i18n="nav_features">المميزات</span></a>
-        <a href="#how"><i class="bi bi-diagram-3-fill" aria-hidden="true"></i> <span data-i18n="nav_how">كيف يعمل</span></a>
-        <a href="#app"><i class="bi bi-phone-fill" aria-hidden="true"></i> <span data-i18n="nav_app">التطبيق</span></a>
-        <a href="#tutorials"><i class="bi bi-play-btn-fill" aria-hidden="true"></i> <span data-i18n="nav_tutorials">الشروحات</span></a>
-        <a href="#team"><i class="bi bi-people-fill" aria-hidden="true"></i> <span data-i18n="nav_team">الفريق</span></a>
-        <a href="#contact"><i class="bi bi-chat-dots-fill" aria-hidden="true"></i> <span data-i18n="nav_contact">تواصل</span></a>
+        <a href="#services" data-i18n="nav_services">الخدمات</a>
+        <a href="#how" data-i18n="nav_how">كيف يعمل</a>
+        <a href="#features" data-i18n="nav_features">المميزات</a>
+        <a href="#team" data-i18n="nav_team">الفريق</a>
+        <a href="#faq" data-i18n="nav_faq">الأسئلة الشائعة</a>
+        <a href="#contact" data-i18n="nav_contact">تواصل</a>
         <div class="drawer-tools">
-            <button class="icon-btn" id="langBtnM" type="button"><i class="bi bi-translate" aria-hidden="true"></i><span id="langTxtM">EN</span></button>
-            <button class="icon-btn" id="themeBtnM" type="button"><i class="bi bi-moon-stars-fill" id="themeIcoM" aria-hidden="true"></i><span data-i18n="theme">المظهر</span></button>
+            <button class="icon-btn" id="langBtnM" type="button"><span id="langTxtM">EN</span></button>
+            <button class="icon-btn" id="themeBtnM" type="button"><i class="bi bi-moon-stars" id="themeIcoM" aria-hidden="true"></i> <span data-i18n="theme">المظهر</span></button>
         </div>
-        <a href="#download" class="nav-cta" style="justify-content:center;margin-top:6px;display:inline-flex;">
-            <i class="bi bi-download" aria-hidden="true"></i> <span data-i18n="nav_get">حمّل التطبيق</span>
-        </a>
     </div>
 
     <main id="main">
@@ -967,430 +648,239 @@
             <div class="wrap hero-grid">
                 <div>
                     <!-- خبر المدينة الجديدة — يقود لقسم المدن -->
-                    <a class="news-pill" href="#cities">
+                    <a class="news" href="#cities">
                         <b data-i18n="news_tag">جديد</b>
                         <span data-i18n="news_pill">وجيز وصل عطبرة والدامر</span>
-                        <i class="bi bi-arrow-left" aria-hidden="true"></i>
                     </a>
-                    <br>
-                    <span class="eyebrow"><i class="bi bi-patch-check-fill" aria-hidden="true"></i> <span data-i18n="hero_badge">وجيز - wajeezsd · متاح على أندرويد وآيفون</span></span>
-                    <!-- العنوان الأوّل يقول ما يُقدَّم («تطبيق التوصيل») واسمه — كان
-                         «كل ما تحتاجه يوصلك في وجيز» جميلاً لكن بلا كلمةٍ يبحث بها أحد -->
+                    <!-- العنوان الأوّل يقول ما يُقدَّم («تطبيق التوصيل») واسمه -->
                     <h1 data-i18n="hero_h1">تطبيق التوصيل وجيز<br><em>كل ما تحتاجه يوصلك</em></h1>
-                    <p class="hero-lead" data-i18n="hero_lead">اطلب من متاجر مدينتك، أو وصّل أي شيء من أي مكان، أو خلّ الكابتن يشتري لك. تابع الكابتن على الخريطة لحظة بلحظة، وادفع كاش عند الاستلام — في أم درمان وبورتسودان وعطبرة.</p>
+                    <p class="lead" data-i18n="hero_lead">اطلب من متاجر مدينتك، أو وصّل أي شيء من أي مكان، أو خلّ الكابتن يشتري لك. تابعه على الخريطة لحظة بلحظة، وادفع أجرة التوصيل كاش عند الاستلام.</p>
+
+                    <div class="stores">
+                        <a class="btn" href="https://play.google.com/store/apps/details?id=com.wajeezsd.app" target="_blank" rel="noopener">
+                            <i class="bi bi-google-play" aria-hidden="true"></i>
+                            <span class="btn-lines"><span class="t1" data-i18n="get_on">حمّله من</span><span class="t2">Google Play</span></span>
+                        </a>
+                        <a class="btn" href="https://apps.apple.com/app/id6807840888" target="_blank" rel="noopener">
+                            <i class="bi bi-apple" aria-hidden="true"></i>
+                            <span class="btn-lines"><span class="t1" data-i18n="get_on">حمّله من</span><span class="t2">App Store</span></span>
+                        </a>
+                    </div>
 
                     <p class="city-ticker">
                         <span class="sr-only" data-i18n="ticker_sr">نوصّل الآن في أم درمان وبورتسودان وعطبرة</span>
-                        <i class="bi bi-geo-alt-fill" style="color:var(--green-bright)" aria-hidden="true"></i>
                         <span aria-hidden="true" data-i18n="ticker_pre">نوصّل الآن في</span>
                         <span class="ticker" aria-hidden="true"><span class="ticker-track">
                             <span data-i18n="tk1">أم درمان</span><span data-i18n="tk2">بورتسودان</span><span data-i18n="tk3">عطبرة</span><span data-i18n="tk1">أم درمان</span>
                         </span></span>
                     </p>
 
-                    <div class="hero-actions">
-                        <a class="btn btn-play" href="https://play.google.com/store/apps/details?id=com.wajeezsd.app" target="_blank" rel="noopener">
-                            <i class="bi bi-google-play" aria-hidden="true"></i>
-                            <span class="btn-lines"><span class="t1" data-i18n="get_on">حمّله من</span><span class="t2">Google Play</span></span>
-                        </a>
-                        <a class="btn btn-apple" href="https://apps.apple.com/app/id6807840888" target="_blank" rel="noopener">
-                            <i class="bi bi-apple" aria-hidden="true"></i>
-                            <span class="btn-lines"><span class="t1" data-i18n="get_on">حمّله من</span><span class="t2">App Store</span></span>
-                        </a>
-                        <a class="btn btn-ghost" href="#how">
-                            <i class="bi bi-play-circle-fill" style="color:var(--green-bright)" aria-hidden="true"></i>
-                            <span data-i18n="hero_how">كيف يعمل؟</span>
-                        </a>
-                    </div>
-
-                    <div class="trust-row">
-                        <div class="trust-item"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i><div><b data-i18n="t1">تتبّع حيّ</b><span data-i18n="t1s">الكابتن على الخريطة</span></div></div>
-                        <div class="trust-item"><i class="bi bi-cash-coin" aria-hidden="true"></i><div><b data-i18n="t2">دفع كاش</b><span data-i18n="t2s">عند الاستلام</span></div></div>
-                        <div class="trust-item"><i class="bi bi-shield-check" aria-hidden="true"></i><div><b data-i18n="t3">كباتن مُعتمدون</b><span data-i18n="t3s">تُراجَع وثائقهم</span></div></div>
-                        <div class="trust-item"><i class="bi bi-chat-left-text-fill" aria-hidden="true"></i><div><b data-i18n="t4">تفاوض على السعر</b><span data-i18n="t4s">تختار العرض الأنسب</span></div></div>
-                    </div>
+                    <ul class="facts">
+                        <li><i class="bi bi-geo-alt-fill" aria-hidden="true"></i><span data-i18n="fact1">تتبّع حيّ على الخريطة</span></li>
+                        <li><i class="bi bi-patch-check-fill" aria-hidden="true"></i><span data-i18n="fact2">كباتن موثّقون</span></li>
+                        <li><i class="bi bi-chat-left-text-fill" aria-hidden="true"></i><span data-i18n="fact3">أنت تختار السعر</span></li>
+                        <li><i class="bi bi-credit-card-2-front" aria-hidden="true"></i><span data-i18n="fact4">بلا بطاقة بنكية</span></li>
+                    </ul>
                 </div>
 
-                <div class="stage" id="stage">
-                    <!-- مسار رحلة: استلام ← تسليم، والكابتن يسير بينهما -->
-                    <svg class="route-art" viewBox="0 0 400 520" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                        <path id="routePath" class="route-line" d="M40 470 C 10 330, 150 330, 120 230 S 330 150, 360 40"/>
-                        <circle class="pin-ring a" cx="40" cy="470" r="10"/>
-                        <circle class="pin-a" cx="40" cy="470" r="8"/>
-                        <circle class="pin-ring b" cx="360" cy="40" r="10"/>
-                        <circle class="pin-b" cx="360" cy="40" r="8"/>
-                        <circle class="rider" r="7">
-                            <animateMotion dur="6s" repeatCount="indefinite" rotate="auto" keyPoints="0;1" keyTimes="0;1" calcMode="linear">
-                                <mpath href="#routePath"/>
-                            </animateMotion>
-                        </circle>
-                    </svg>
-                    <div class="phone-wrap" id="phoneWrap">
-                        <div class="phone phone-back" aria-hidden="true">
-                            <img src="/assets/app/shop.jpg" width="540" height="1170" alt="" loading="lazy" decoding="async">
-                        </div>
-                        <span class="float-chip chip-live"><span class="dot-live" aria-hidden="true"></span><span data-i18n="chip_live">الكابتن في الطريق</span></span>
-                        <div class="phone">
-                            <img src="/assets/app/home.jpg" width="540" height="1170" alt="شاشة الطلب في تطبيق وجيز" fetchpriority="high" decoding="async">
-                        </div>
-                        <span class="float-chip chip-cash"><i class="bi bi-cash-coin" style="color:var(--green-bright)" aria-hidden="true"></i><span data-i18n="chip_cash">ادفع عند الاستلام</span></span>
+                <figure class="hero-shot">
+                    <div class="phone">
+                        <img src="/assets/app/home.jpg" width="540" height="1170" alt="شاشة الطلب في تطبيق وجيز" fetchpriority="high" decoding="async">
                     </div>
-                </div>
+                </figure>
             </div>
         </section>
 
         <!-- ─── الخدمات والمدن ───
              ما يُطلب فعلاً من التطبيق، بالكلمات التي يبحث بها الناس: «توصيل»،
              «دليفري»، «مشاوير»، واسم المدينة. كل خدمةٍ هنا موجودة في التطبيق. -->
-        <section id="services" class="band">
+        <section id="services">
             <div class="wrap">
-                <div class="sec-head reveal">
-                    <span class="eyebrow" data-i18n="svc_badge">خدمات وجيز</span>
-                    <h2 class="sec-title" data-i18n="svc_title">توصيل ودليفري لكل حاجة</h2>
-                    <p class="sec-sub" data-i18n="svc_sub">أربع طرق للطلب من تطبيقٍ واحد، والكابتن يوصّل في أم درمان وبورتسودان وعطبرة.</p>
+                <div class="head">
+                    <h2 data-i18n="svc_title">توصيل ودليفري لكل حاجة</h2>
+                    <p data-i18n="svc_sub">أربع طرق للطلب من تطبيقٍ واحد.</p>
                 </div>
 
-                <div class="grid-auto svc-grid">
-                    <article class="card reveal">
-                        <div class="card-ic"><i class="bi bi-box-seam-fill" aria-hidden="true"></i></div>
-                        <h3 data-i18n="svc1h">توصيل الطلبات والمشاوير</h3>
-                        <p data-i18n="svc1p">وصّل أي شيء من مكانٍ لمكان: أغراض، مستندات، طرود. حدّد نقطة الاستلام والتسليم على الخريطة، والكابتن يتكفّل بالباقي.</p>
-                    </article>
-                    <article class="card reveal">
-                        <div class="card-ic"><i class="bi bi-shop" aria-hidden="true"></i></div>
-                        <h3 data-i18n="svc2h">اطلب من المتاجر</h3>
-                        <p data-i18n="svc2p">محلات مدينتك بمنتجاتها وأسعارها داخل التطبيق. أضف للسلة واطلب، والطلب يوصلك من المتجر للباب.</p>
-                    </article>
-                    <article class="card reveal">
-                        <div class="card-ic"><i class="bi bi-bag-check-fill" aria-hidden="true"></i></div>
-                        <h3 data-i18n="svc3h">اشترِ لي</h3>
-                        <p data-i18n="svc3p">المحل ما موجود في التطبيق؟ اكتب الأصناف واسم المحل، والكابتن يرسل لك السعر قبل الشراء، يشتري بعد موافقتك، ويوصّل.</p>
-                    </article>
-                    <article class="card reveal">
-                        <div class="card-ic"><i class="bi bi-signpost-split-fill" aria-hidden="true"></i></div>
-                        <h3 data-i18n="svc4h">توصيل لأكثر من عنوان</h3>
-                        <p data-i18n="svc4p">رحلةٌ واحدة بعدة محطات: استلام من أكثر من مكان، أو تسليم لأكثر من شخص، بسعر مشوارٍ واحد.</p>
-                    </article>
-                </div>
+                <ol class="svc">
+                    <li><h3 data-i18n="svc1h">توصيل الطلبات والمشاوير</h3><p data-i18n="svc1p">أغراض، مستندات، طرود — حدّد الاستلام والتسليم على الخريطة.</p></li>
+                    <li><h3 data-i18n="svc2h">اطلب من المتاجر</h3><p data-i18n="svc2p">محلات مدينتك بمنتجاتها وأسعارها، من المتجر إلى بابك.</p></li>
+                    <li><h3 data-i18n="svc3h">اشترِ لي</h3><p data-i18n="svc3p">المحل ما في التطبيق؟ الكابتن يرسل السعر، يشتري بعد موافقتك، ويوصّل.</p></li>
+                    <li><h3 data-i18n="svc4h">توصيل لأكثر من عنوان</h3><p data-i18n="svc4p">رحلة واحدة بعدة محطات استلام أو تسليم، بسعر مشوار واحد.</p></li>
+                </ol>
 
                 <div class="cities" id="cities">
-                    <article class="city reveal">
-                        <span class="city-ic" aria-hidden="true"><i class="bi bi-buildings-fill"></i></span>
-                        <div>
-                            <h3 data-i18n="city1h">توصيل في أم درمان</h3>
-                            <p data-i18n="city1p">دليفري ومشاوير داخل أم درمان، ومتاجر من المدينة نفسها، وكباتن مُعتمدون تتابعهم على الخريطة حتى الباب.</p>
-                        </div>
+                    <article class="city">
+                        <h3 data-i18n="city1h">توصيل في أم درمان</h3>
+                        <p data-i18n="city1p">دليفري ومشاوير ومتاجر من المدينة نفسها.</p>
                     </article>
-                    <article class="city reveal">
-                        <span class="city-ic" aria-hidden="true"><i class="bi bi-water"></i></span>
-                        <div>
-                            <h3 data-i18n="city2h">توصيل في بورتسودان</h3>
-                            <p data-i18n="city2p">دليفري ومشاوير داخل بورتسودان بالطريقة نفسها: اطلب، اختر عرض الكابتن، تابعه، وادفع كاش عند الاستلام.</p>
-                        </div>
+                    <article class="city">
+                        <h3 data-i18n="city2h">توصيل في بورتسودان</h3>
+                        <p data-i18n="city2p">اطلب، اختر عرض الكابتن، وتابعه حتى الباب.</p>
                     </article>
-                    <article class="city city--new reveal">
-                        <span class="city-new" data-i18n="city_new">جديد</span>
-                        <span class="city-ic" aria-hidden="true"><i class="bi bi-train-front-fill"></i></span>
-                        <div>
-                            <h3 data-i18n="city3h">توصيل في عطبرة</h3>
-                            <p data-i18n="city3p">وجيز وصل عطبرة والدامر: متاجر المدينة، ومشاوير، و«اشترِ لي»، وكباتن من أهلها تتابعهم على الخريطة وتدفع لهم كاش عند الاستلام.</p>
-                        </div>
+                    <article class="city city--new">
+                        <h3><span data-i18n="city3h">توصيل في عطبرة</span> <span class="city-new" data-i18n="city_new">جديد</span></h3>
+                        <p data-i18n="city3p">عطبرة والدامر: متاجر المدينة، ومشاوير، و«اشترِ لي».</p>
                     </article>
                 </div>
             </div>
         </section>
 
-        <!-- ─── المميزات ─── -->
-        <section id="features">
-            <div class="wrap">
-                <div class="sec-head reveal">
-                    <span class="eyebrow" data-i18n="feat_badge">لماذا وجيز</span>
-                    <h2 class="sec-title" data-i18n="feat_title">منصّة واحدة — ثلاثة أطراف</h2>
-                    <p class="sec-sub" data-i18n="feat_sub">اختر دورك لترى ما يخصّك: عميل يطلب، تاجر يبيع، أو كابتن يكسب.</p>
+        <!-- ─── كيف يعمل + لقطات حقيقية ─── -->
+        <section id="how">
+            <div class="wrap how-grid">
+                <div>
+                    <div class="head">
+                        <h2 data-i18n="how_title">كيف يعمل التطبيق؟</h2>
+                        <p data-i18n="how_sub">من فتح التطبيق إلى استلام طلبك — بلا بطاقة بنكية.</p>
+                    </div>
+                    <ol class="steps">
+                        <li class="step"><h3 data-i18n="s1h">حدّد طلبك</h3><p data-i18n="s1p">اختر متجراً، أو اكتب ما تريد توصيله وحدّد المكان على الخريطة.</p></li>
+                        <li class="step"><h3 data-i18n="s2h">اختر عرض الكابتن</h3><p data-i18n="s2p">يصلك السعر قبل أن يبدأ المشوار، والقرار قرارك.</p></li>
+                        <li class="step"><h3 data-i18n="s3h">تابع واستلم</h3><p data-i18n="s3p">شاهد الكابتن على الخريطة، راسله، وادفع عند الباب.</p></li>
+                    </ol>
                 </div>
-
-                <div class="segmented" role="tablist" aria-label="اختر دورك">
-                    <button class="seg" role="tab" id="tab-client" aria-selected="true" aria-controls="feat-client" data-persona="client">
-                        <i class="bi bi-person-fill" aria-hidden="true"></i> <span data-i18n="tab_client">للعملاء</span>
-                    </button>
-                    <button class="seg" role="tab" id="tab-merchant" aria-selected="false" aria-controls="feat-merchant" data-persona="merchant">
-                        <i class="bi bi-shop" aria-hidden="true"></i> <span data-i18n="tab_merchant">للتجّار</span>
-                    </button>
-                    <button class="seg" role="tab" id="tab-captain" aria-selected="false" aria-controls="feat-captain" data-persona="captain">
-                        <i class="bi bi-person-badge-fill" aria-hidden="true"></i> <span data-i18n="tab_captain">للكباتن</span>
-                    </button>
-                </div>
-
-                <!-- البطاقات مكتوبةٌ في الصفحة لا مرسومةٌ بعد التحميل: محرّكات البحث
-                     تقرأ مزايا التجّار والكباتن أيضاً، وتظهر ولو تعطّل السكربت.
-                     التبويب يُظهر لوحته ويُخفي الأخريين. -->
-                <div class="grid-auto feat-grid" id="feat-client" role="tabpanel" aria-labelledby="tab-client" tabindex="0">
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-shop-window" aria-hidden="true"></i></div>
-                        <h3>متاجر مدينتك</h3>
-                        <p>تصفّح المتاجر القريبة، اطلب منها، وتابع الطلب حتى الباب.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-box-seam-fill" aria-hidden="true"></i></div>
-                        <h3>اطلب أي شيء</h3>
-                        <p>ما لقيت المحل؟ اكتب طلبك وحدّد المكان، والكابتن يشتريه ويوصّله.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></div>
-                        <h3>تتبّع على الخريطة</h3>
-                        <p>شاهد الكابتن يتحرّك لحظة بلحظة، واعرف كم بقي على وصوله.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-chat-dots-fill" aria-hidden="true"></i></div>
-                        <h3>محادثة مباشرة</h3>
-                        <p>راسل الكابتن أو المتجر داخل التطبيق — بلا مشاركة رقمك.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-cash-coin" aria-hidden="true"></i></div>
-                        <h3>ادفع كاش</h3>
-                        <p>لا بطاقة ولا محفظة إلكترونية. تدفع عند الاستلام وبس.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-bell-fill" aria-hidden="true"></i></div>
-                        <h3>إشعارات لحظية</h3>
-                        <p>تنبيه عند قبول الطلب، وعند الاستلام، وعند وصول الكابتن.</p>
-                    </article>
-                </div>
-                <div class="grid-auto feat-grid" id="feat-merchant" role="tabpanel" aria-labelledby="tab-merchant" tabindex="0" hidden>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-shop" aria-hidden="true"></i></div>
-                        <h3>متجر إلكتروني مجاني</h3>
-                        <p>اعرض منتجاتك بصورها وأسعارها، وشارك رابط متجرك.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-receipt-cutoff" aria-hidden="true"></i></div>
-                        <h3>نقطة بيع</h3>
-                        <p>سجّل مبيعات المحل المباشرة، وتُحتسب في تقاريرك مع طلبات التطبيق.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></div>
-                        <h3>تقارير وأرباح</h3>
-                        <p>مبيعات اليوم والأسبوع، وأرباحك، والأكثر مبيعاً — بأرقام واضحة.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-boxes" aria-hidden="true"></i></div>
-                        <h3>إدارة المخزون</h3>
-                        <p>تنبيه عند قرب النفاد، وإخفاء تلقائي للمنتج حين ينتهي.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-percent" aria-hidden="true"></i></div>
-                        <h3>عروض وأكواد خصم</h3>
-                        <p>أنشئ خصماً على منتج أو كود خصم يظهر لعملائك.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
-                        <h3>كباتن جاهزون</h3>
-                        <p>لا تحتاج مندوبين: كباتن وجيز يوصّلون طلبات متجرك.</p>
-                    </article>
-                </div>
-                <div class="grid-auto feat-grid" id="feat-captain" role="tabpanel" aria-labelledby="tab-captain" tabindex="0" hidden>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-cash-stack" aria-hidden="true"></i></div>
-                        <h3>دخل يومي</h3>
-                        <p>تستلم أجرتك كاش من العميل بعد كل رحلة.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-sliders" aria-hidden="true"></i></div>
-                        <h3>أنت تحدّد السعر</h3>
-                        <p>قدّم عرضك على الطلب — لا تسعيرة مفروضة عليك.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-clock-history" aria-hidden="true"></i></div>
-                        <h3>ساعات مرنة</h3>
-                        <p>ابدأ وردتيك متى شئت وأوقفها متى شئت.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-map-fill" aria-hidden="true"></i></div>
-                        <h3>مسار واضح</h3>
-                        <p>نقطة الاستلام والتسليم على الخريطة، وتوجيه مباشر إليهما.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-wallet2" aria-hidden="true"></i></div>
-                        <h3>محفظة وسجلّ</h3>
-                        <p>تابع رحلاتك وأرباحك وتسوياتك في مكان واحد.</p>
-                    </article>
-                    <article class="card">
-                        <div class="card-ic"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
-                        <h3>حساب موثّق</h3>
-                        <p>وثائقك تُراجَع مرّة، فتعمل باطمئنان وتكسب ثقة العميل.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <!-- ─── كيف يعمل ─── -->
-        <section id="how" class="band">
-            <div class="wrap">
-                <div class="sec-head reveal">
-                    <span class="eyebrow" data-i18n="how_badge">ثلاث خطوات</span>
-                    <h2 class="sec-title" data-i18n="how_title">كيف يعمل التطبيق؟</h2>
-                    <p class="sec-sub" data-i18n="how_sub">من فتح التطبيق إلى استلام طلبك — بلا تعقيد وبلا بطاقة بنكية.</p>
-                </div>
-                <div class="steps" id="steps">
-                    <div class="step reveal"><h3 data-i18n="s1h">حدّد طلبك</h3><p data-i18n="s1p">اختر متجراً من مدينتك، أو اكتب ما تريد توصيله وحدّد نقطة الاستلام والتسليم على الخريطة.</p></div>
-                    <div class="step reveal"><h3 data-i18n="s2h">اختر عرض الكابتن</h3><p data-i18n="s2p">يصلك عرض السعر قبل أن يبدأ المشوار. تقبله أو تنتظر عرضاً آخر — القرار قرارك.</p></div>
-                    <div class="step reveal"><h3 data-i18n="s3h">تابع واستلم</h3><p data-i18n="s3p">شاهد الكابتن يتحرّك على الخريطة، راسله داخل التطبيق، وادفع كاش عند الباب.</p></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ─── لقطات من التطبيق ─── -->
-        <section id="app">
-            <div class="wrap">
-                <div class="sec-head reveal">
-                    <span class="eyebrow eyebrow-gold" data-i18n="app_badge">من داخل التطبيق</span>
-                    <h2 class="sec-title" data-i18n="app_title">شاشات حقيقية، لا رسوم تخيّلية</h2>
-                    <p class="sec-sub" data-i18n="app_sub">هذه لقطات من النسخة المنشورة على المتجرين.</p>
-                </div>
-                <div class="shots">
-                    <figure class="shot reveal">
-                        <div class="phone"><img src="/assets/app/home.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="شاشة إنشاء طلب توصيل"></div>
+                <div class="shots" id="app" aria-label="لقطات من التطبيق">
+                    <figure class="shot">
+                        <div class="frame"><img src="/assets/app/home.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="شاشة إنشاء طلب توصيل"></div>
                         <figcaption data-i18n="shot1">اطلب توصيل أي شيء</figcaption>
                     </figure>
-                    <figure class="shot shot--mid reveal">
-                        <div class="phone"><img src="/assets/app/shop.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="تصفّح متاجر المدينة"></div>
+                    <figure class="shot">
+                        <div class="frame"><img src="/assets/app/shop.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="تصفّح متاجر المدينة"></div>
                         <figcaption data-i18n="shot2">تصفّح متاجر مدينتك</figcaption>
                     </figure>
-                    <figure class="shot reveal">
-                        <div class="phone"><img src="/assets/app/store.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="صفحة متجر ومنتجاته"></div>
+                    <figure class="shot">
+                        <div class="frame"><img src="/assets/app/store.jpg" width="540" height="1170" loading="lazy" decoding="async" alt="صفحة متجر ومنتجاته"></div>
                         <figcaption data-i18n="shot3">منتجات وأسعار واضحة</figcaption>
                     </figure>
                 </div>
             </div>
         </section>
 
-        <!-- ─── الشروحات ─── -->
-        <section id="tutorials" class="band">
+        <!-- ─── المزايا لكل طرف ─── -->
+        <section id="features">
             <div class="wrap">
-                <div class="sec-head reveal">
-                    <span class="eyebrow" data-i18n="tut_badge">شروحات</span>
-                    <h2 class="sec-title" data-i18n="tut_title">تعلّمها في دقيقة</h2>
-                    <p class="sec-sub" data-i18n="tut_sub">عروض تفاعلية تمشي معك خطوة بخطوة.</p>
+                <div class="head">
+                    <h2 data-i18n="feat_title">منصّة واحدة لثلاثة أطراف</h2>
                 </div>
-                <div class="grid-auto">
-                    <a class="card reveal" href="tutorial-app-order.html">
-                        <div class="card-ic"><i class="bi bi-box-seam-fill" aria-hidden="true"></i></div>
-                        <h3 data-i18n="tut1h">اطلب من التطبيق</h3>
-                        <p data-i18n="tut1p">كيف تنشئ مشواراً جديداً وتتابع الكابتن على الخريطة.</p>
-                        <span class="card-go"><span data-i18n="go">افتح الشرح</span><i class="bi bi-arrow-left" aria-hidden="true"></i></span>
-                    </a>
-                    <a class="card reveal" href="tutorial-shop-order.html">
-                        <div class="card-ic"><i class="bi bi-bag-check-fill" aria-hidden="true"></i></div>
-                        <h3 data-i18n="tut2h">اطلب من المتاجر</h3>
-                        <p data-i18n="tut2p">تصفّح متاجر مدينتك وأضف منتجاتك للسلة واطلبها.</p>
-                        <span class="card-go"><span data-i18n="go">افتح الشرح</span><i class="bi bi-arrow-left" aria-hidden="true"></i></span>
-                    </a>
-                    <a class="card reveal" href="tutorial-merchant-register.html">
-                        <div class="card-ic"><i class="bi bi-shop-window" aria-hidden="true"></i></div>
-                        <h3 data-i18n="tut3h">سجّل متجرك</h3>
-                        <p data-i18n="tut3p">خطوات انضمام التاجر وإدارة المنتجات والطلبات.</p>
-                        <span class="card-go"><span data-i18n="go">افتح الشرح</span><i class="bi bi-arrow-left" aria-hidden="true"></i></span>
-                    </a>
+
+                <div class="tabs" role="tablist" aria-label="اختر دورك">
+                    <button class="tab" role="tab" id="tab-client" aria-selected="true" aria-controls="feat-client" data-persona="client"><span data-i18n="tab_client">للعملاء</span></button>
+                    <button class="tab" role="tab" id="tab-merchant" aria-selected="false" aria-controls="feat-merchant" data-persona="merchant"><span data-i18n="tab_merchant">للتجّار</span></button>
+                    <button class="tab" role="tab" id="tab-captain" aria-selected="false" aria-controls="feat-captain" data-persona="captain"><span data-i18n="tab_captain">للكباتن</span></button>
+                </div>
+
+                <!-- مكتوبةٌ في الصفحة لا مرسومةٌ بعد التحميل: محرّكات البحث تقرأ
+                     مزايا التجّار والكباتن أيضاً، وتظهر ولو تعطّل السكربت. -->
+                <div class="perks" id="feat-client" role="tabpanel" aria-labelledby="tab-client" tabindex="0">
+                    <article class="card"><h3><i class="bi bi-shop-window" aria-hidden="true"></i>متاجر مدينتك</h3><p>تصفّح المتاجر القريبة واطلب منها.</p></article>
+                    <article class="card"><h3><i class="bi bi-box-seam-fill" aria-hidden="true"></i>اطلب أي شيء</h3><p>اكتب طلبك، والكابتن يشتريه ويوصّله.</p></article>
+                    <article class="card"><h3><i class="bi bi-geo-alt-fill" aria-hidden="true"></i>تتبّع على الخريطة</h3><p>اعرف أين الكابتن وكم بقي على وصوله.</p></article>
+                    <article class="card"><h3><i class="bi bi-chat-dots-fill" aria-hidden="true"></i>محادثة مباشرة</h3><p>راسل الكابتن أو المتجر بلا مشاركة رقمك.</p></article>
+                    <article class="card"><h3><i class="bi bi-cash-coin" aria-hidden="true"></i>دفع بسيط</h3><p>التوصيل كاش، والمتجر تحويل مباشر له. بلا بطاقة.</p></article>
+                    <article class="card"><h3><i class="bi bi-bell-fill" aria-hidden="true"></i>إشعارات لحظية</h3><p>عند قبول الطلب واستلامه ووصول الكابتن.</p></article>
+                </div>
+                <div class="perks" id="feat-merchant" role="tabpanel" aria-labelledby="tab-merchant" tabindex="0" hidden>
+                    <article class="card"><h3><i class="bi bi-shop" aria-hidden="true"></i>متجر إلكتروني مجاني</h3><p>منتجاتك بصورها وأسعارها، ورابط تشاركه.</p></article>
+                    <article class="card"><h3><i class="bi bi-receipt-cutoff" aria-hidden="true"></i>نقطة بيع</h3><p>مبيعات المحل المباشرة في التقارير نفسها.</p></article>
+                    <article class="card"><h3><i class="bi bi-graph-up-arrow" aria-hidden="true"></i>تقارير وأرباح</h3><p>مبيعات اليوم والأسبوع والأكثر مبيعاً.</p></article>
+                    <article class="card"><h3><i class="bi bi-boxes" aria-hidden="true"></i>إدارة المخزون</h3><p>تنبيه قبل النفاد، وإخفاء تلقائي عند انتهائه.</p></article>
+                    <article class="card"><h3><i class="bi bi-percent" aria-hidden="true"></i>عروض وأكواد خصم</h3><p>خصم على منتج، أو كود يراه عملاؤك.</p></article>
+                    <article class="card"><h3><i class="bi bi-people-fill" aria-hidden="true"></i>كباتن جاهزون</h3><p>بلا مندوبين: كباتن وجيز يوصّلون طلباتك.</p></article>
+                </div>
+                <div class="perks" id="feat-captain" role="tabpanel" aria-labelledby="tab-captain" tabindex="0" hidden>
+                    <article class="card"><h3><i class="bi bi-cash-stack" aria-hidden="true"></i>دخل يومي</h3><p>أجرتك كاش من العميل بعد كل رحلة.</p></article>
+                    <article class="card"><h3><i class="bi bi-sliders" aria-hidden="true"></i>أنت تحدّد السعر</h3><p>قدّم عرضك — لا تسعيرة مفروضة.</p></article>
+                    <article class="card"><h3><i class="bi bi-clock-history" aria-hidden="true"></i>ساعات مرنة</h3><p>ابدأ ورديتك وأوقفها متى شئت.</p></article>
+                    <article class="card"><h3><i class="bi bi-map-fill" aria-hidden="true"></i>مسار واضح</h3><p>الاستلام والتسليم على الخريطة بتوجيه مباشر.</p></article>
+                    <article class="card"><h3><i class="bi bi-wallet2" aria-hidden="true"></i>محفظة وسجلّ</h3><p>رحلاتك وأرباحك وتسوياتك في مكان واحد.</p></article>
+                    <article class="card"><h3><i class="bi bi-shield-check" aria-hidden="true"></i>حساب موثّق</h3><p>وثائقك تُراجَع مرّة، فيثق بك العميل.</p></article>
                 </div>
             </div>
         </section>
 
         <!-- ─── الفريق ─── -->
-        <section id="team">
+        <section id="team" style="padding-top:0">
             <div class="wrap">
-                <div class="team-panel reveal">
+                <div class="team">
                     <div>
-                        <span class="eyebrow eyebrow-gold" style="background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#ffe9a8;">
-                            <i class="bi bi-people-fill" aria-hidden="true"></i> <span data-i18n="team_badge">فريق وجيز</span>
-                        </span>
                         <h2 data-i18n="team_title">تعرّف على من يقف خلف كل توصيلة</h2>
-                        <p data-i18n="team_desc">لكل عضو في الفريق بطاقة تعريف رسمية ببياناته ورمز QR للتحقّق. إن جاءك من يقول إنه من وجيز، تأكّد من بطاقته.</p>
-                        <a class="btn-team" href="/team"><i class="bi bi-arrow-left-circle-fill" aria-hidden="true"></i> <span data-i18n="team_cta">افتح صفحة الفريق</span></a>
+                        <p data-i18n="team_desc">لكل عضو في الفريق بطاقة رسمية برمز QR. إن جاءك من يقول إنه من وجيز، تأكّد من بطاقته.</p>
+                        <a class="btn-team" href="/team"><span data-i18n="team_cta">افتح صفحة الفريق</span> <i class="bi bi-arrow-left" aria-hidden="true"></i></a>
                     </div>
-                    <div class="team-points">
-                        <div class="team-point"><i class="bi bi-patch-check-fill" aria-hidden="true"></i><span data-i18n="team_p1">بطاقة رسمية لكل عضو، بصورته واسمه ودوره.</span></div>
-                        <div class="team-point"><i class="bi bi-qr-code" aria-hidden="true"></i><span data-i18n="team_p2">رمز QR يفتح صفحة العضو مباشرة للتحقّق منه.</span></div>
-                        <div class="team-point"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i><span data-i18n="team_p3">لا يُعرض رقم هاتف ولا بيانات خاصة — تحقّقٌ فقط.</span></div>
+                    <ul>
+                        <li><i class="bi bi-patch-check-fill" aria-hidden="true"></i><span data-i18n="team_p1">بطاقة رسمية لكل عضو، بصورته واسمه ودوره.</span></li>
+                        <li><i class="bi bi-qr-code" aria-hidden="true"></i><span data-i18n="team_p2">رمز QR يفتح صفحة العضو للتحقّق منه.</span></li>
+                        <li><i class="bi bi-shield-lock-fill" aria-hidden="true"></i><span data-i18n="team_p3">لا رقم هاتف ولا بيانات خاصة — تحقّقٌ فقط.</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── المساعدة: الشروحات والأسئلة معاً ─── -->
+        <section id="faq" style="padding-top:0">
+            <div class="wrap help">
+                <div id="tutorials">
+                    <h2 data-i18n="tut_title">شروحات في دقيقة</h2>
+                    <ul class="guides">
+                        <li><a href="tutorial-app-order.html"><h3 data-i18n="tut1h">اطلب من التطبيق</h3><span data-i18n="tut1p">أنشئ مشواراً وتابع الكابتن.</span><i class="bi bi-arrow-left-short" aria-hidden="true"></i></a></li>
+                        <li><a href="tutorial-shop-order.html"><h3 data-i18n="tut2h">اطلب من المتاجر</h3><span data-i18n="tut2p">تصفّح، أضف للسلة، واطلب.</span><i class="bi bi-arrow-left-short" aria-hidden="true"></i></a></li>
+                        <li><a href="tutorial-merchant-register.html"><h3 data-i18n="tut3h">سجّل متجرك</h3><span data-i18n="tut3p">انضمام التاجر وإدارة المنتجات.</span><i class="bi bi-arrow-left-short" aria-hidden="true"></i></a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h2 data-i18n="faq_title">أسئلة متكرّرة</h2>
+                    <div class="faq">
+                        <details class="qa">
+                            <summary class="qa-q"><span data-i18n="q1">هل التطبيق متاح على آيفون؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
+                            <div class="qa-a" data-i18n="a1">نعم. وجيز متاح على App Store لأجهزة آيفون، وعلى Google Play لأجهزة أندرويد.</div>
+                        </details>
+                        <details class="qa">
+                            <summary class="qa-q"><span data-i18n="q2">كيف تُحدَّد أسعار التوصيل؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
+                            <div class="qa-a" data-i18n="a2">يقدّم الكباتن عروض أسعار بحسب المسافة وطبيعة الطلب، وأنت تختار العرض الأنسب قبل أن يبدأ المشوار.</div>
+                        </details>
+                        <details class="qa">
+                            <summary class="qa-q"><span data-i18n="q3">كيف أدفع؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
+                            <div class="qa-a" data-i18n="a3">أجرة التوصيل كاش للكابتن عند الاستلام. ومشتريات المتاجر تحوّل قيمتها للمتجر مباشرةً ببنكك أو ماي كاشي أو فوري أو أوكاش أو برافو. لا يطلب التطبيق أي بيانات بطاقة بنكية.</div>
+                        </details>
+                        <details class="qa">
+                            <summary class="qa-q"><span data-i18n="q4">هل الخدمة متاحة في كل السودان؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
+                            <div class="qa-a" data-i18n="a4">نعمل حالياً في أم درمان وبورتسودان وعطبرة (والدامر معها)، ونتوسّع تدريجياً حتى نضمن جودة الخدمة في كل مدينة نصلها.</div>
+                        </details>
+                        <details class="qa">
+                            <summary class="qa-q"><span data-i18n="q5">كيف أضمن أمان طلبي؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
+                            <div class="qa-a" data-i18n="a5">كل كابتن تُراجَع وثائقه الرسمية قبل اعتماده، ويمكنك متابعة موقعه على الخريطة ومراسلته داخل التطبيق حتى الاستلام.</div>
+                        </details>
+                        <details class="qa">
+                            <summary class="qa-q"><span data-i18n="q6">كيف أضيف متجري؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
+                            <div class="qa-a" data-i18n="a6">سجّل في التطبيق ثم قدّم طلب انضمام كتاجر. بعد المراجعة تحصل على متجر ولوحة تحكم لإدارة منتجاتك وطلباتك ومبيعاتك.</div>
+                        </details>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ─── الأسئلة ─── -->
-        <section id="faq" class="band">
+        <!-- ─── التحميل + التواصل ─── -->
+        <section id="download" style="padding-top:0">
             <div class="wrap">
-                <div class="sec-head reveal">
-                    <span class="eyebrow" data-i18n="faq_badge">أسئلة متكرّرة</span>
-                    <h2 class="sec-title" data-i18n="faq_title">عندك سؤال؟</h2>
-                </div>
-                <div class="faq">
-                    <details class="qa reveal">
-                        <summary class="qa-q"><span data-i18n="q1">هل التطبيق متاح على آيفون؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
-                        <div class="qa-a" data-i18n="a1">نعم. وجيز متاح الآن على App Store لأجهزة آيفون، وعلى Google Play لأجهزة أندرويد.</div>
-                    </details>
-                    <details class="qa reveal">
-                        <summary class="qa-q"><span data-i18n="q2">كيف تُحدَّد أسعار التوصيل؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
-                        <div class="qa-a" data-i18n="a2">يقدّم الكباتن عروض أسعار بحسب المسافة وطبيعة الطلب، وأنت تختار العرض الأنسب قبل أن يبدأ المشوار.</div>
-                    </details>
-                    <details class="qa reveal">
-                        <summary class="qa-q"><span data-i18n="q3">كيف أدفع؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
-                        <div class="qa-a" data-i18n="a3">كاش عند الاستلام. لا يطلب التطبيق أي بيانات بطاقة بنكية من العملاء.</div>
-                    </details>
-                    <details class="qa reveal">
-                        <summary class="qa-q"><span data-i18n="q4">هل الخدمة متاحة في كل السودان؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
-                        <div class="qa-a" data-i18n="a4">نعمل حالياً في أم درمان وبورتسودان وعطبرة (والدامر معها)، ونتوسّع تدريجياً حتى نضمن جودة الخدمة في كل مدينة نصلها.</div>
-                    </details>
-                    <details class="qa reveal">
-                        <summary class="qa-q"><span data-i18n="q5">كيف أضمن أمان طلبي؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
-                        <div class="qa-a" data-i18n="a5">كل كابتن تُراجَع وثائقه الرسمية قبل اعتماده، ويمكنك متابعة موقعه على الخريطة ومراسلته داخل التطبيق حتى الاستلام.</div>
-                    </details>
-                    <details class="qa reveal">
-                        <summary class="qa-q"><span data-i18n="q6">كيف أضيف متجري؟</span><i class="bi bi-plus-lg" aria-hidden="true"></i></summary>
-                        <div class="qa-a" data-i18n="a6">سجّل في التطبيق ثم قدّم طلب انضمام كتاجر. بعد المراجعة تحصل على متجر ولوحة تحكم لإدارة منتجاتك وطلباتك ومبيعاتك.</div>
-                    </details>
-                </div>
-            </div>
-        </section>
-
-        <!-- ─── نداء التحميل ─── -->
-        <section id="download">
-            <div class="wrap">
-                <div class="cta reveal">
-                    <h2 data-i18n="cta_title">جرّبه اليوم</h2>
-                    <p data-i18n="cta_desc">التطبيق مجاني، والتسجيل يأخذ دقيقة. أول طلب ممكن يوصلك خلال ساعة.</p>
-                    <div class="cta-actions">
-                        <a class="btn btn-play" href="https://play.google.com/store/apps/details?id=com.wajeezsd.app" target="_blank" rel="noopener">
+                <div class="cta">
+                    <div>
+                        <h2 data-i18n="cta_title">جرّبه اليوم</h2>
+                        <p data-i18n="cta_desc">التطبيق مجاني، والتسجيل يأخذ دقيقة.</p>
+                        <div class="contact" id="contact">
+                            <a href="https://wa.me/249112046348" target="_blank" rel="noopener"><i class="bi bi-whatsapp" aria-hidden="true"></i> <span dir="ltr">0112 046 348</span></a>
+                            <a href="mailto:wajeezsd@gmail.com"><i class="bi bi-envelope-fill" aria-hidden="true"></i> wajeezsd@gmail.com</a>
+                        </div>
+                    </div>
+                    <div class="stores">
+                        <a class="btn" href="https://play.google.com/store/apps/details?id=com.wajeezsd.app" target="_blank" rel="noopener">
                             <i class="bi bi-google-play" aria-hidden="true"></i>
                             <span class="btn-lines"><span class="t1" data-i18n="get_on">حمّله من</span><span class="t2">Google Play</span></span>
                         </a>
-                        <a class="btn btn-apple" href="https://apps.apple.com/app/id6807840888" target="_blank" rel="noopener">
+                        <a class="btn" href="https://apps.apple.com/app/id6807840888" target="_blank" rel="noopener">
                             <i class="bi bi-apple" aria-hidden="true"></i>
                             <span class="btn-lines"><span class="t1" data-i18n="get_on">حمّله من</span><span class="t2">App Store</span></span>
                         </a>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ─── تواصل ─── -->
-        <section id="contact">
-            <div class="wrap">
-                <div class="sec-head reveal">
-                    <span class="eyebrow" data-i18n="contact_badge">تواصل معنا</span>
-                    <h2 class="sec-title" data-i18n="contact_title">نحن هنا</h2>
-                    <p class="sec-sub" data-i18n="contact_sub">استفسار، شكوى، أو اقتراح — نردّ في أقرب وقت.</p>
-                </div>
-                <div class="contact-grid">
-                    <a class="card contact-card reveal" href="https://wa.me/249112046348" target="_blank" rel="noopener">
-                        <i class="bi bi-whatsapp" aria-hidden="true"></i>
-                        <h3 data-i18n="c_wa">واتساب</h3>
-                        <p>0112 046 348</p>
-                    </a>
-                    <a class="card contact-card reveal" href="mailto:wajeezsd@gmail.com">
-                        <i class="bi bi-envelope-fill" aria-hidden="true"></i>
-                        <h3 data-i18n="c_mail">البريد الإلكتروني</h3>
-                        <p>wajeezsd@gmail.com</p>
-                    </a>
                 </div>
             </div>
         </section>
@@ -1398,47 +888,33 @@
 
     <footer>
         <div class="wrap">
-            <div class="foot-grid">
+            <div class="foot">
                 <div class="foot-brand">
                     <img src="/logo-ink.png" alt="وجيز - wajeezsd" class="logo-light" width="83" height="34">
                     <img src="/logo-white.png" alt="وجيز - wajeezsd" class="logo-dark" width="83" height="34">
-                    <p data-i18n="foot_about">وجيز - wajeezsd منصّة توصيل ودليفري في أم درمان وبورتسودان وعطبرة: تربط العميل بمتاجر مدينته وبكابتن يوصّل طلبه، مع تتبّع حيّ ودفع كاش عند الاستلام.</p>
+                    <p data-i18n="foot_about">وجيز - wajeezsd منصّة توصيل ودليفري تربط العميل بمتاجر مدينته وبكابتن يوصّل طلبه، مع تتبّع حيّ على الخريطة.</p>
                     <div class="socials">
                         <a href="https://facebook.com/wajeezsd" target="_blank" rel="noopener" aria-label="فيسبوك"><i class="bi bi-facebook" aria-hidden="true"></i></a>
                         <a href="https://instagram.com/wajeezsd" target="_blank" rel="noopener" aria-label="إنستغرام"><i class="bi bi-instagram" aria-hidden="true"></i></a>
                         <a href="https://tiktok.com/@wajeezsd" target="_blank" rel="noopener" aria-label="تيك توك"><i class="bi bi-tiktok" aria-hidden="true"></i></a>
+                        <a href="https://www.youtube.com/@wajeezsd" target="_blank" rel="noopener" aria-label="يوتيوب"><i class="bi bi-youtube" aria-hidden="true"></i></a>
                         <a href="https://wa.me/249112046348" target="_blank" rel="noopener" aria-label="واتساب"><i class="bi bi-whatsapp" aria-hidden="true"></i></a>
                     </div>
                 </div>
-
                 <div>
-                    <div class="foot-title" data-i18n="foot_l1">روابط</div>
-                    <ul class="foot-links">
-                        <li><a href="#services" data-i18n="nav_services">الخدمات</a></li>
-                        <li><a href="#features" data-i18n="nav_features">المميزات</a></li>
-                        <li><a href="#how" data-i18n="nav_how">كيف يعمل</a></li>
-                        <li><a href="#tutorials" data-i18n="nav_tutorials">الشروحات</a></li>
-                        <li><a href="#team" data-i18n="nav_team">الفريق</a></li>
-                        <li><a href="#faq" data-i18n="nav_faq">الأسئلة الشائعة</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <div class="foot-title" data-i18n="foot_l2">للانضمام</div>
-                    <ul class="foot-links">
+                    <h3 data-i18n="foot_l2">للانضمام</h3>
+                    <ul>
                         <li><a href="client-register-shop.html" data-i18n="foot_merchant">سجّل متجرك</a></li>
                         <li><a href="captain-signup.html" data-i18n="foot_captain">انضم كابتناً</a></li>
                         <li><a href="pricing.html" data-i18n="foot_pricing">الأسعار</a></li>
-                        <li><a href="privacy-policy.html" data-i18n="foot_privacy">سياسة الخصوصية</a></li>
                     </ul>
                 </div>
-
                 <div>
-                    <div class="foot-title" data-i18n="foot_l3">تواصل</div>
-                    <ul class="foot-links">
-                        <li><a href="https://wa.me/249112046348" target="_blank" rel="noopener"><i class="bi bi-whatsapp" aria-hidden="true"></i> <span dir="ltr">0112 046 348</span></a></li>
-                        <li><a href="mailto:wajeezsd@gmail.com"><i class="bi bi-envelope-fill" aria-hidden="true"></i> wajeezsd@gmail.com</a></li>
-                        <li><span><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> <span data-i18n="foot_cities">أم درمان · بورتسودان · عطبرة</span></span></li>
+                    <h3 data-i18n="foot_l1">وجيز</h3>
+                    <ul>
+                        <li><a href="/team" data-i18n="nav_team">الفريق</a></li>
+                        <li><a href="privacy-policy.html" data-i18n="foot_privacy">سياسة الخصوصية</a></li>
+                        <li><span data-i18n="foot_cities">أم درمان · بورتسودان · عطبرة</span></li>
                     </ul>
                 </div>
             </div>
@@ -1446,7 +922,12 @@
         </div>
     </footer>
 
-    <a class="wa-float" id="waFloat" href="https://wa.me/249112046348" target="_blank" rel="noopener" aria-label="راسلنا على واتساب">
+    <!-- الجوال: شريط تحميلٍ ثابت (زرّ متجر الجهاز + واتساب). الحاسوب: زرّ واتساب -->
+    <div class="getbar" id="getbar">
+        <a class="get" id="getbarBtn" href="#download"><i class="bi bi-download" aria-hidden="true"></i> <span data-i18n="nav_get">حمّل التطبيق</span></a>
+        <a class="wa" href="https://wa.me/249112046348" target="_blank" rel="noopener" aria-label="راسلنا على واتساب"><i class="bi bi-whatsapp" aria-hidden="true"></i></a>
+    </div>
+    <a class="wa-float" href="https://wa.me/249112046348" target="_blank" rel="noopener" aria-label="راسلنا على واتساب">
         <i class="bi bi-whatsapp" aria-hidden="true"></i>
     </a>
 
@@ -1459,64 +940,52 @@
             ar: {},   // العربية هي المكتوبة في الماركب — لا تكرار لها هنا
             en: {
                 skip: 'Skip to content',
-                nav_features: 'Features', nav_how: 'How it works', nav_app: 'The App',
-                nav_tutorials: 'Guides', nav_team: 'Team', nav_contact: 'Contact',
-                nav_get: 'Get the app', nav_faq: 'FAQ', theme: 'Theme',
-                hero_badge: 'Wajeez - wajeezsd · On Android and iPhone',
+                nav_services: 'Services', nav_how: 'How it works', nav_features: 'Features',
+                nav_team: 'Team', nav_faq: 'FAQ', nav_contact: 'Contact',
+                nav_get: 'Get the app', theme: 'Theme',
+                news_tag: 'New', news_pill: 'Wajeez is now in Atbara and Ed Damer',
                 hero_h1: 'The Wajeez delivery app<br><em>everything you need, delivered</em>',
-                hero_lead: 'Order from shops in your city, have anything delivered from anywhere, or let a captain buy it for you. Follow your captain live on the map and pay cash on delivery — in Omdurman, Port Sudan and Atbara.',
-                get_on: 'Download on', hero_how: 'How it works', go: 'Open guide',
-                t1: 'Live tracking', t1s: 'Captain on the map',
-                t2: 'Cash payment', t2s: 'Pay on delivery',
-                t3: 'Verified captains', t3s: 'Documents reviewed',
-                t4: 'You pick the price', t4s: 'Choose the best offer',
-                chip_live: 'Captain on the way', chip_cash: 'Pay on delivery',
-                svc_badge: 'Wajeez services', svc_title: 'Delivery for everything',
-                svc_sub: 'Four ways to order from one app, delivered by captains in Omdurman, Port Sudan and Atbara.',
-                svc1h: 'Parcels and errands', svc1p: 'Send anything from place to place: items, documents, parcels. Set pickup and drop-off on the map and the captain handles the rest.',
-                svc2h: 'Order from shops', svc2p: 'Your city’s shops with their products and prices in the app. Fill the cart and order — from the shop to your door.',
-                svc3h: 'Buy it for me', svc3p: 'Shop not in the app? List the items and the shop; the captain sends you the price before buying, buys once you approve, and delivers.',
-                svc4h: 'Multiple addresses', svc4p: 'One trip, several stops: pick up from more than one place or deliver to more than one person, for a single trip price.',
-                city1h: 'Delivery in Omdurman', city1p: 'Delivery and errands across Omdurman, shops from the city itself, and verified captains you follow on the map to your door.',
-                city2h: 'Delivery in Port Sudan', city2p: 'Delivery and errands across Port Sudan the same way: order, pick the captain’s offer, track them, and pay cash on delivery.',
-                city3h: 'Delivery in Atbara', city3p: 'Wajeez is now in Atbara and Ed Damer: local shops, errands, “Buy it for me”, and captains from the city you follow on the map and pay in cash on delivery.',
-                city_new: 'New', news_tag: 'New', news_pill: 'Wajeez is now in Atbara and Ed Damer',
+                hero_lead: 'Order from shops in your city, have anything delivered from anywhere, or let a captain buy it for you. Follow them live on the map and pay the delivery fee in cash on arrival.',
+                get_on: 'Download on',
                 ticker_sr: 'Now delivering in Omdurman, Port Sudan and Atbara', ticker_pre: 'Now delivering in',
                 tk1: 'Omdurman', tk2: 'Port Sudan', tk3: 'Atbara',
-                nav_services: 'Services',
-                feat_badge: 'Why Wajeez', feat_title: 'One platform — three sides',
-                feat_sub: 'Pick your role: a customer ordering, a merchant selling, or a captain earning.',
-                tab_client: 'Customers', tab_merchant: 'Merchants', tab_captain: 'Captains',
-                how_badge: 'Three steps', how_title: 'How does it work?',
-                how_sub: 'From opening the app to receiving your order — no complexity, no bank card.',
-                s1h: 'Place your request', s1p: 'Pick a shop in your city, or describe what to deliver and set pickup and drop-off on the map.',
-                s2h: 'Choose an offer', s2p: 'You get the price before the trip starts. Accept it or wait for another — the call is yours.',
-                s3h: 'Track and receive', s3p: 'Watch the captain move on the map, chat in the app, and pay cash at your door.',
-                app_badge: 'Inside the app', app_title: 'Real screens, not illustrations',
-                app_sub: 'These are captures from the version published on both stores.',
+                fact1: 'Live map tracking', fact2: 'Verified captains', fact3: 'You pick the price', fact4: 'No bank card',
+                svc_title: 'Delivery for everything', svc_sub: 'Four ways to order from one app.',
+                svc1h: 'Parcels and errands', svc1p: 'Items, documents, parcels — set pickup and drop-off on the map.',
+                svc2h: 'Order from shops', svc2p: 'Your city’s shops with products and prices, from the shop to your door.',
+                svc3h: 'Buy it for me', svc3p: 'Shop not in the app? The captain sends the price, buys once you approve, and delivers.',
+                svc4h: 'Multiple addresses', svc4p: 'One trip with several pickup or drop-off stops, for a single trip price.',
+                city1h: 'Delivery in Omdurman', city1p: 'Delivery, errands, and shops from the city itself.',
+                city2h: 'Delivery in Port Sudan', city2p: 'Order, pick the captain’s offer, and follow them to your door.',
+                city3h: 'Delivery in Atbara', city3p: 'Atbara and Ed Damer: local shops, errands, and “Buy it for me”.',
+                city_new: 'New',
+                how_title: 'How does it work?', how_sub: 'From opening the app to receiving your order — no bank card.',
+                s1h: 'Place your request', s1p: 'Pick a shop, or describe what to deliver and set the place on the map.',
+                s2h: 'Choose an offer', s2p: 'You see the price before the trip starts — the call is yours.',
+                s3h: 'Track and receive', s3p: 'Watch the captain on the map, chat, and pay at your door.',
                 shot1: 'Have anything delivered', shot2: 'Browse your city’s shops', shot3: 'Clear products and prices',
-                tut_badge: 'Guides', tut_title: 'Learn it in a minute', tut_sub: 'Interactive walkthroughs, step by step.',
-                tut1h: 'Order in the app', tut1p: 'Create a delivery request and follow the captain on the map.',
-                tut2h: 'Order from shops', tut2p: 'Browse your city’s shops, fill the cart, and order.',
-                tut3h: 'Register your shop', tut3p: 'Merchant onboarding, products and order management.',
-                team_badge: 'The Wajeez team', team_title: 'Meet the people behind every delivery',
-                team_desc: 'Every team member has an official ID card with a QR code. If someone says they are from Wajeez, verify their card.',
+                feat_title: 'One platform for three sides',
+                tab_client: 'Customers', tab_merchant: 'Merchants', tab_captain: 'Captains',
+                team_title: 'Meet the people behind every delivery',
+                team_desc: 'Every team member has an official card with a QR code. If someone says they are from Wajeez, check their card.',
                 team_cta: 'Open the team page',
                 team_p1: 'An official card per member — photo, name and role.',
                 team_p2: 'A QR code that opens their page for verification.',
                 team_p3: 'No phone numbers, no private data — verification only.',
-                faq_badge: 'FAQ', faq_title: 'Questions?',
+                tut_title: 'One-minute guides',
+                tut1h: 'Order in the app', tut1p: 'Create a request and follow the captain.',
+                tut2h: 'Order from shops', tut2p: 'Browse, fill the cart, and order.',
+                tut3h: 'Register your shop', tut3p: 'Merchant onboarding and products.',
+                faq_title: 'Common questions',
                 q1: 'Is the app available on iPhone?', a1: 'Yes. Wajeez is on the App Store for iPhone and on Google Play for Android.',
                 q2: 'How are delivery prices set?', a2: 'Captains send offers based on distance and the kind of order, and you pick the one that suits you before the trip begins.',
-                q3: 'How do I pay?', a3: 'Cash on delivery. The app never asks customers for bank card details.',
+                q3: 'How do I pay?', a3: 'The delivery fee is paid in cash to the captain. Shop purchases are paid by transfer straight to the shop — Bankak, MyCashi, Fawry, OCash or Bravo. The app never asks for bank card details.',
                 q4: 'Is the service available across Sudan?', a4: 'We currently operate in Omdurman, Port Sudan and Atbara (with Ed Damer), expanding gradually so quality holds in every city we reach.',
                 q5: 'How is my order kept safe?', a5: 'Every captain’s official documents are reviewed before approval, and you can follow their location and message them in the app until delivery.',
                 q6: 'How do I add my shop?', a6: 'Register in the app, then submit a merchant request. Once reviewed you get a storefront and a dashboard for products, orders and sales.',
-                cta_title: 'Try it today', cta_desc: 'The app is free and signing up takes a minute. Your first order can arrive within the hour.',
-                contact_badge: 'Contact', contact_title: 'We are here', contact_sub: 'A question, a complaint, or an idea — we reply as soon as we can.',
-                c_wa: 'WhatsApp', c_mail: 'Email',
-                foot_about: 'Wajeez - wajeezsd is a delivery platform in Omdurman, Port Sudan and Atbara, connecting customers with their city’s shops and with a captain who brings the order — live tracking, cash on delivery.',
-                foot_l1: 'Links', foot_l2: 'Join us', foot_l3: 'Contact',
+                cta_title: 'Try it today', cta_desc: 'The app is free and signing up takes a minute.',
+                foot_about: 'Wajeez - wajeezsd is a delivery platform connecting customers with their city’s shops and with a captain who brings the order, tracked live on the map.',
+                foot_l1: 'Wajeez', foot_l2: 'Join us',
                 foot_merchant: 'Register your shop', foot_captain: 'Become a captain',
                 foot_pricing: 'Pricing', foot_privacy: 'Privacy policy',
                 foot_cities: 'Omdurman · Port Sudan · Atbara',
@@ -1527,68 +996,86 @@
         const PERSONAS = {
             ar: {
                 client: [
-                    ['bi-shop-window', 'متاجر مدينتك', 'تصفّح المتاجر القريبة، اطلب منها، وتابع الطلب حتى الباب.'],
-                    ['bi-box-seam-fill', 'اطلب أي شيء', 'ما لقيت المحل؟ اكتب طلبك وحدّد المكان، والكابتن يشتريه ويوصّله.'],
-                    ['bi-geo-alt-fill', 'تتبّع على الخريطة', 'شاهد الكابتن يتحرّك لحظة بلحظة، واعرف كم بقي على وصوله.'],
-                    ['bi-chat-dots-fill', 'محادثة مباشرة', 'راسل الكابتن أو المتجر داخل التطبيق — بلا مشاركة رقمك.'],
-                    ['bi-cash-coin', 'ادفع كاش', 'لا بطاقة ولا محفظة إلكترونية. تدفع عند الاستلام وبس.'],
-                    ['bi-bell-fill', 'إشعارات لحظية', 'تنبيه عند قبول الطلب، وعند الاستلام، وعند وصول الكابتن.']
+                    ['bi-shop-window', 'متاجر مدينتك', 'تصفّح المتاجر القريبة واطلب منها.'],
+                    ['bi-box-seam-fill', 'اطلب أي شيء', 'اكتب طلبك، والكابتن يشتريه ويوصّله.'],
+                    ['bi-geo-alt-fill', 'تتبّع على الخريطة', 'اعرف أين الكابتن وكم بقي على وصوله.'],
+                    ['bi-chat-dots-fill', 'محادثة مباشرة', 'راسل الكابتن أو المتجر بلا مشاركة رقمك.'],
+                    ['bi-cash-coin', 'دفع بسيط', 'التوصيل كاش، والمتجر تحويل مباشر له. بلا بطاقة.'],
+                    ['bi-bell-fill', 'إشعارات لحظية', 'عند قبول الطلب واستلامه ووصول الكابتن.']
                 ],
                 merchant: [
-                    ['bi-shop', 'متجر إلكتروني مجاني', 'اعرض منتجاتك بصورها وأسعارها، وشارك رابط متجرك.'],
-                    ['bi-receipt-cutoff', 'نقطة بيع', 'سجّل مبيعات المحل المباشرة، وتُحتسب في تقاريرك مع طلبات التطبيق.'],
-                    ['bi-graph-up-arrow', 'تقارير وأرباح', 'مبيعات اليوم والأسبوع، وأرباحك، والأكثر مبيعاً — بأرقام واضحة.'],
-                    ['bi-boxes', 'إدارة المخزون', 'تنبيه عند قرب النفاد، وإخفاء تلقائي للمنتج حين ينتهي.'],
-                    ['bi-percent', 'عروض وأكواد خصم', 'أنشئ خصماً على منتج أو كود خصم يظهر لعملائك.'],
-                    ['bi-people-fill', 'كباتن جاهزون', 'لا تحتاج مندوبين: كباتن وجيز يوصّلون طلبات متجرك.']
+                    ['bi-shop', 'متجر إلكتروني مجاني', 'منتجاتك بصورها وأسعارها، ورابط تشاركه.'],
+                    ['bi-receipt-cutoff', 'نقطة بيع', 'مبيعات المحل المباشرة في التقارير نفسها.'],
+                    ['bi-graph-up-arrow', 'تقارير وأرباح', 'مبيعات اليوم والأسبوع والأكثر مبيعاً.'],
+                    ['bi-boxes', 'إدارة المخزون', 'تنبيه قبل النفاد، وإخفاء تلقائي عند انتهائه.'],
+                    ['bi-percent', 'عروض وأكواد خصم', 'خصم على منتج، أو كود يراه عملاؤك.'],
+                    ['bi-people-fill', 'كباتن جاهزون', 'بلا مندوبين: كباتن وجيز يوصّلون طلباتك.']
                 ],
                 captain: [
-                    ['bi-cash-stack', 'دخل يومي', 'تستلم أجرتك كاش من العميل بعد كل رحلة.'],
-                    ['bi-sliders', 'أنت تحدّد السعر', 'قدّم عرضك على الطلب — لا تسعيرة مفروضة عليك.'],
-                    ['bi-clock-history', 'ساعات مرنة', 'ابدأ وردتيك متى شئت وأوقفها متى شئت.'],
-                    ['bi-map-fill', 'مسار واضح', 'نقطة الاستلام والتسليم على الخريطة، وتوجيه مباشر إليهما.'],
-                    ['bi-wallet2', 'محفظة وسجلّ', 'تابع رحلاتك وأرباحك وتسوياتك في مكان واحد.'],
-                    ['bi-shield-check', 'حساب موثّق', 'وثائقك تُراجَع مرّة، فتعمل باطمئنان وتكسب ثقة العميل.']
+                    ['bi-cash-stack', 'دخل يومي', 'أجرتك كاش من العميل بعد كل رحلة.'],
+                    ['bi-sliders', 'أنت تحدّد السعر', 'قدّم عرضك — لا تسعيرة مفروضة.'],
+                    ['bi-clock-history', 'ساعات مرنة', 'ابدأ ورديتك وأوقفها متى شئت.'],
+                    ['bi-map-fill', 'مسار واضح', 'الاستلام والتسليم على الخريطة بتوجيه مباشر.'],
+                    ['bi-wallet2', 'محفظة وسجلّ', 'رحلاتك وأرباحك وتسوياتك في مكان واحد.'],
+                    ['bi-shield-check', 'حساب موثّق', 'وثائقك تُراجَع مرّة، فيثق بك العميل.']
                 ]
             },
             en: {
                 client: [
-                    ['bi-shop-window', 'Your city’s shops', 'Browse nearby shops, order from them, and follow it to your door.'],
-                    ['bi-box-seam-fill', 'Have anything delivered', 'Shop not listed? Describe what you need and a captain buys and brings it.'],
-                    ['bi-geo-alt-fill', 'Live map tracking', 'Watch the captain move in real time and see how far away they are.'],
-                    ['bi-chat-dots-fill', 'In-app chat', 'Message the captain or the shop without sharing your number.'],
-                    ['bi-cash-coin', 'Pay cash', 'No card, no e-wallet. You pay when the order arrives.'],
-                    ['bi-bell-fill', 'Instant updates', 'Alerts when the order is accepted, picked up, and delivered.']
+                    ['bi-shop-window', 'Your city’s shops', 'Browse nearby shops and order from them.'],
+                    ['bi-box-seam-fill', 'Anything delivered', 'Describe it, and a captain buys and brings it.'],
+                    ['bi-geo-alt-fill', 'Live map tracking', 'See where the captain is and how far away.'],
+                    ['bi-chat-dots-fill', 'In-app chat', 'Message the captain or shop without your number.'],
+                    ['bi-cash-coin', 'Simple payment', 'Delivery in cash, shops by direct transfer. No card.'],
+                    ['bi-bell-fill', 'Instant updates', 'When it is accepted, picked up, and arriving.']
                 ],
                 merchant: [
-                    ['bi-shop', 'A free storefront', 'Show your products with photos and prices, and share your shop link.'],
-                    ['bi-receipt-cutoff', 'Point of sale', 'Record in-store sales; they land in the same reports as app orders.'],
-                    ['bi-graph-up-arrow', 'Reports and profit', 'Daily and weekly sales, profit, and best sellers — in plain numbers.'],
-                    ['bi-boxes', 'Stock control', 'Low-stock alerts and automatic hiding when an item runs out.'],
-                    ['bi-percent', 'Offers and promo codes', 'Discount a product or issue a code your customers can see.'],
-                    ['bi-people-fill', 'Captains on call', 'No courier team needed — Wajeez captains deliver your orders.']
+                    ['bi-shop', 'A free storefront', 'Products with photos and prices, and a link to share.'],
+                    ['bi-receipt-cutoff', 'Point of sale', 'In-store sales in the same reports.'],
+                    ['bi-graph-up-arrow', 'Reports and profit', 'Daily and weekly sales and best sellers.'],
+                    ['bi-boxes', 'Stock control', 'Low-stock alerts and auto-hide when sold out.'],
+                    ['bi-percent', 'Offers and promo codes', 'Discount a product or issue a code.'],
+                    ['bi-people-fill', 'Captains on call', 'No couriers needed — Wajeez captains deliver.']
                 ],
                 captain: [
-                    ['bi-cash-stack', 'Daily income', 'Collect your fare in cash from the customer after every trip.'],
-                    ['bi-sliders', 'You set the price', 'Send your own offer — no fare imposed on you.'],
-                    ['bi-clock-history', 'Flexible hours', 'Start your shift when you like and stop when you like.'],
-                    ['bi-map-fill', 'A clear route', 'Pickup and drop-off on the map with direct navigation.'],
-                    ['bi-wallet2', 'Wallet and history', 'Your trips, earnings and settlements in one place.'],
-                    ['bi-shield-check', 'A verified account', 'Your documents are reviewed once, so you work with confidence.']
+                    ['bi-cash-stack', 'Daily income', 'Your fare in cash after every trip.'],
+                    ['bi-sliders', 'You set the price', 'Send your offer — no fare imposed.'],
+                    ['bi-clock-history', 'Flexible hours', 'Start and stop your shift whenever you like.'],
+                    ['bi-map-fill', 'A clear route', 'Pickup and drop-off on the map with directions.'],
+                    ['bi-wallet2', 'Wallet and history', 'Trips, earnings and settlements in one place.'],
+                    ['bi-shield-check', 'A verified account', 'Documents reviewed once, so customers trust you.']
                 ]
             }
         };
 
         const $ = (s, r) => (r || document).querySelector(s);
         const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+        const store = {
+            get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+            set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }
+        };
 
-        let lang = localStorage.getItem('w_lang') || 'ar';
-        let theme = localStorage.getItem('w_theme') ||
+        let lang = store.get('w_lang') || 'ar';
+        let theme = store.get('w_theme') ||
             (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         let persona = 'client';
 
         // النصّ العربي مصدره الماركب: نلتقطه مرّة عند الإقلاع فلا يُكتب مرّتين
         $$('[data-i18n]').forEach(el => { T.ar[el.dataset.i18n] = el.innerHTML; });
+
+        // العربية مكتوبةٌ في الصفحة: تُحفظ مرّة لتعود حين يرجع المستخدم إليها
+        const personaAr = {};
+        $$('.perks').forEach(g => { personaAr[g.id] = g.innerHTML; });
+
+        function fillPanels() {
+            $$('.perks').forEach(g => {
+                const key = g.id.replace('feat-', '');
+                if (lang === 'ar') { g.innerHTML = personaAr[g.id]; return; }
+                const set = (PERSONAS[lang] || PERSONAS.ar)[key] || [];
+                g.innerHTML = set.map(([ic, h, p]) =>
+                    `<article class="card"><h3><i class="bi ${ic}" aria-hidden="true"></i>${h}</h3><p>${p}</p></article>`).join('');
+            });
+        }
 
         function applyLang(next) {
             lang = next;
@@ -1608,41 +1095,22 @@
         function applyTheme(next) {
             theme = next;
             document.documentElement.setAttribute('data-theme', theme);
-            const ico = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+            const ico = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
             ['themeIco', 'themeIcoM'].forEach(id => { const e = document.getElementById(id); if (e) e.className = ico; });
-        }
-
-        // العربية مكتوبةٌ في الصفحة: تُحفظ مرّة لتعود حين يرجع المستخدم إليها
-        const personaAr = {};
-        $$('.feat-grid').forEach(g => { personaAr[g.id] = g.innerHTML; });
-
-        function fillPanels() {
-            $$('.feat-grid').forEach(g => {
-                const key = g.id.replace('feat-', '');
-                if (lang === 'ar') { g.innerHTML = personaAr[g.id]; return; }
-                const set = (PERSONAS[lang] || PERSONAS.ar)[key] || [];
-                g.innerHTML = set.map(([ic, h, p]) => `
-                    <article class="card">
-                        <div class="card-ic"><i class="bi ${ic}" aria-hidden="true"></i></div>
-                        <h3>${h}</h3>
-                        <p>${p}</p>
-                    </article>`).join('');
-            });
         }
 
         function renderPersona(key) {
             persona = key;
-            $$('.seg').forEach(b => {
+            $$('.tab').forEach(b => {
                 const on = b.dataset.persona === key;
                 b.setAttribute('aria-selected', on ? 'true' : 'false');
                 b.tabIndex = on ? 0 : -1;
             });
-            $$('.feat-grid').forEach(g => { g.hidden = g.id !== 'feat-' + key; });
-            revealNow($('#feat-' + key));
+            $$('.perks').forEach(g => { g.hidden = g.id !== 'feat-' + key; });
         }
 
         // ── التبويبات: فأرة ولمس ولوحة مفاتيح ────────────────────────
-        $$('.seg').forEach((btn, i, all) => {
+        $$('.tab').forEach((btn, i, all) => {
             btn.addEventListener('click', () => renderPersona(btn.dataset.persona));
             btn.addEventListener('keydown', e => {
                 const dirRtl = document.documentElement.dir === 'rtl';
@@ -1664,8 +1132,9 @@
                 scrim.classList.toggle('open', open);
             });
             burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+            burger.innerHTML = open ? '<i class="bi bi-x-lg" aria-hidden="true"></i>' : '<i class="bi bi-list" aria-hidden="true"></i>';
             document.body.style.overflow = open ? 'hidden' : '';
-            if (!open) setTimeout(() => { if (!drawer.classList.contains('open')) { drawer.hidden = true; scrim.hidden = true; } }, 300);
+            if (!open) setTimeout(() => { if (!drawer.classList.contains('open')) { drawer.hidden = true; scrim.hidden = true; } }, 220);
         }
         burger.addEventListener('click', () => setDrawer(!drawer.classList.contains('open')));
         scrim.addEventListener('click', () => setDrawer(false));
@@ -1677,60 +1146,41 @@
             const e = document.getElementById(id);
             if (e) e.addEventListener('click', () => {
                 const next = lang === 'ar' ? 'en' : 'ar';
-                localStorage.setItem('w_lang', next); applyLang(next);
+                store.set('w_lang', next); applyLang(next);
             });
         });
         ['themeBtn', 'themeBtnM'].forEach(id => {
             const e = document.getElementById(id);
             if (e) e.addEventListener('click', () => {
                 const next = theme === 'dark' ? 'light' : 'dark';
-                localStorage.setItem('w_theme', next); applyTheme(next);
+                store.set('w_theme', next); applyTheme(next);
             });
         });
 
-        // ── الظهور التدريجي ─────────────────────────────────────────
-        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-        function revealNow(root) {
-            $$('.reveal', root).forEach(el => el.classList.add('in'));
+        // ── شريط التحميل: متجر الجهاز نفسه مباشرةً ──────────────────
+        //    آيفون ⇒ App Store، أندرويد ⇒ Google Play، غيرهما ⇒ قسم التحميل.
+        const ua = navigator.userAgent || '';
+        const getbarBtn = $('#getbarBtn');
+        const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (getbarBtn && isIOS) {
+            getbarBtn.href = 'https://apps.apple.com/app/id6807840888';
+            getbarBtn.querySelector('i').className = 'bi bi-apple';
+        } else if (getbarBtn && /Android/.test(ua)) {
+            getbarBtn.href = 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
+            getbarBtn.querySelector('i').className = 'bi bi-google-play';
         }
-        // تتابعٌ داخل كل مجموعة: البطاقات تدخل واحدةً بعد الأخرى لا كتلةً واحدة
-        ['.grid-auto', '.cities', '.steps', '.faq', '.shots', '.contact-grid'].forEach(sel => {
-            $$(sel).forEach(group => {
-                $$(':scope > .reveal', group).forEach((el, i) => { el.style.transitionDelay = Math.min(i * 80, 400) + 'ms'; });
-            });
-        });
-        const stepsEl = $('#steps');
-        if (reduce || !('IntersectionObserver' in window)) {
-            revealNow(document);
-            if (stepsEl) stepsEl.classList.add('in');
-            // مسار البطل ساكنٌ لمن طلب تقليل الحركة: SMIL لا يتبع وسيط CSS
-            const art = $('.route-art');
-            if (art && art.pauseAnimations) art.pauseAnimations();
-        } else {
-            const io = new IntersectionObserver((entries) => {
-                entries.forEach(en => {
-                    if (!en.isIntersecting) return;
-                    en.target.classList.add('in');
-                    io.unobserve(en.target);
-                });
-            }, { rootMargin: '0px 0px -8% 0px', threshold: .08 });
-            $$('.reveal').forEach(el => io.observe(el));
-            if (stepsEl) io.observe(stepsEl);
-        }
+        if (getbarBtn && getbarBtn.href.indexOf('#') === -1) { getbarBtn.target = '_blank'; getbarBtn.rel = 'noopener'; }
 
-        // ── ميلان الجهاز مع المؤشّر — حاسوبٌ بفأرة فقط، وبلا حركةٍ مقلَّلة
-        const stage = $('#stage'), phoneWrap = $('#phoneWrap');
-        if (stage && phoneWrap && !reduce && matchMedia('(hover: hover) and (pointer: fine)').matches) {
-            let raf = 0;
-            stage.addEventListener('pointermove', e => {
-                const r = stage.getBoundingClientRect();
-                const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
-                cancelAnimationFrame(raf);
-                raf = requestAnimationFrame(() => {
-                    phoneWrap.style.transform = `perspective(900px) rotateY(${(x * 10).toFixed(2)}deg) rotateX(${(-y * 8).toFixed(2)}deg)`;
-                });
-            });
-            stage.addEventListener('pointerleave', () => { cancelAnimationFrame(raf); phoneWrap.style.transform = ''; });
+        const getbar = $('#getbar');
+        const heroStores = $('.hero .stores');
+        const download = $('#download');
+        if (getbar && heroStores && download && 'IntersectionObserver' in window) {
+            let pastHero = false, atCta = false;
+            const sync = () => getbar.classList.toggle('show', pastHero && !atCta);
+            new IntersectionObserver(([en]) => {
+                pastHero = !en.isIntersecting && en.boundingClientRect.top < 0; sync();
+            }).observe(heroStores);
+            new IntersectionObserver(([en]) => { atCta = en.isIntersecting; sync(); }, { threshold: .2 }).observe(download);
         }
 
         // ── الترويسة + إبراز القسم الحالي ───────────────────────────
@@ -1738,24 +1188,10 @@
         const links = $$('.nav-links a');
         const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
         let ticking = false;
-        const progress = $('#progress');
         function onScroll() {
-            topbar.classList.toggle('is-stuck', scrollY > 16);
-            if (progress) {
-                const max = document.documentElement.scrollHeight - innerHeight;
-                progress.style.transformOrigin = document.documentElement.dir === 'rtl' ? 'right' : 'left';
-                progress.style.transform = `scaleX(${max > 0 ? Math.min(1, scrollY / max) : 0})`;
-            }
-            // زرّ واتساب يبتعد عن التذييل بدل أن يجلس فوق روابطه
-            const wa = $('#waFloat');
-            if (wa) {
-                const nearEnd = scrollY + innerHeight > document.body.scrollHeight - 140;
-                wa.classList.toggle('dim', nearEnd);
-            }
+            topbar.classList.toggle('is-stuck', scrollY > 8);
             let active = null;
-            for (const s of sections) {
-                if (s.getBoundingClientRect().top <= 140) active = s;
-            }
+            for (const s of sections) if (s.getBoundingClientRect().top <= 120) active = s;
             links.forEach(a => {
                 const on = active && a.getAttribute('href') === '#' + active.id;
                 if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
