@@ -75,5 +75,10 @@
     "puppeteer-core": "^25.3.0",
     "supertest": "^7.2.2",
     "vitest": "^3.2.3"
+  },
+  "overrides": {
+    "@codetrix-studio/capacitor-google-auth": {
+      "@capacitor/core": "$@capacitor/core"
+    }
   }
 }
