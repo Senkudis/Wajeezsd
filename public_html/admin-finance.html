@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <script src="js/admin-guard.js?v=c78a813b" data-perm="view_finance"></script>
+    <script src="js/admin-guard.js?v=8215ecec" data-perm="view_finance"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>الإدارة المالية والمحافظ | وجيز</title>
@@ -581,7 +581,8 @@
         <button class="tab-btn" onclick="switchTab('ledger', this)">
             <i class="fas fa-book" aria-hidden="true"></i> كشف الحساب المالي
         </button>
-        <button class="tab-btn" onclick="switchTab('settings', this)">
+        <!-- التسعيرة والعمولة والحساب البنكي: حفظها للإداري الأكبر وحده (PUT /settings superAdminOnly) -->
+        <button class="tab-btn" data-super-only onclick="switchTab('settings', this)">
             <i class="fas fa-sliders-h" aria-hidden="true"></i> التسعيرة وإعدادات النظام
         </button>
     </div>
@@ -645,7 +646,7 @@
     <div id="tab-debts" class="tab-content">
         
         <!-- DEBT ADJUSTMENT TOOL — للإداري الأكبر وحده (الخادم يرفض غيره) -->
-        <div class="section-card" id="debtAdjustCard">
+        <div class="section-card" id="debtAdjustCard" data-super-only>
             <div class="section-card-header">
                 <h2><i class="fas fa-sliders-h" aria-hidden="true"></i> إدارة وتعديل مديونية كابتن يدوياً</h2>
                 <span style="font-size:12px;color:var(--muted);">تصفير / تخفيض / إضافة مديونية من قِبل الإدارة</span>
@@ -819,7 +820,7 @@
     <!-- ========================================================= -->
     <!-- TAB 4: SYSTEM & PRICING SETTINGS                         -->
     <!-- ========================================================= -->
-    <div id="tab-settings" class="tab-content">
+    <div id="tab-settings" class="tab-content" data-super-only>
         
         <!-- SYSTEM COMMISSION SETTINGS -->
         <div class="section-card">
@@ -945,10 +946,6 @@ const adminToken = localStorage.getItem('adminToken');
 let userObj = null;
 try { userObj = JSON.parse(localStorage.getItem('user')); } catch(e) {}
 if (!adminToken || !userObj || userObj.role !== 'admin') window.location.href = 'admin-login.html';
-// 💰 تعديل المحفظة يدوياً للإداري الأكبر وحده — لا يُعرض لغيره زرٌّ يُرفض
-if (userObj && userObj.adminRole && userObj.adminRole !== 'super_admin') {
-    document.addEventListener('DOMContentLoaded', () => { const c = document.getElementById('debtAdjustCard'); if (c) c.style.display = 'none'; });
-}
 
 const API = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
 const H   = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` });

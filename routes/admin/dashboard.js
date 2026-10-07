@@ -373,7 +373,7 @@ router.get('/dashboard-limited', protect, adminOnly, async (req, res) => {
 // =========================================================
 // 🔔 GET /api/admin/push-status — تشخيص صحة نظام إشعارات الـ Push
 // =========================================================
-router.get('/push-status', protect, adminOnly, async (req, res) => {
+router.get('/push-status', protect, superAdminOnly, async (req, res) => {
     try {
         const { isFirebaseReady } = require('../../utils/firebasePush');
         const firebaseConfigured = isFirebaseReady();

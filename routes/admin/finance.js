@@ -232,7 +232,12 @@ router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_fin
     try {
         const DebtAdjustment = require('../../models/DebtAdjustment');
         const VALID_CITIES = CITY_KEYS;
-        const cityFilter = VALID_CITIES.includes(req.query.city) ? req.query.city : null;
+        let cityFilter = VALID_CITIES.includes(req.query.city) ? req.query.city : null;
+        // 🌍 الإداري والموظف: كشف مدنهم وحدها. كان المسار يقرأ ?city= كما جاء،
+        //    و«كل المدن» (بلا city) تُرجع عمولات ومديونيات كل البلاد.
+        const scopedCities = isSubAdmin(req) ? adminCities(req.user) : null;
+        if (scopedCities && cityFilter && !scopedCities.includes(cityFilter)) cityFilter = null;
+        const inScope = (city) => !scopedCities || scopedCities.includes(city);
 
         const fromDate = req.query.from ? new Date(req.query.from) : null;
         const toDate   = req.query.to   ? new Date(req.query.to + 'T23:59:59.999Z') : null;
@@ -240,6 +245,7 @@ router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_fin
         // ── 1. Delivered orders (commission entries) ──
         const orderMatch = { status: 'delivered' };
         if (cityFilter) orderMatch.city = cityFilter;
+        else if (scopedCities) orderMatch.city = { $in: scopedCities };
         if (fromDate || toDate) {
             orderMatch.updatedAt = {};
             if (fromDate) orderMatch.updatedAt.$gte = fromDate;
@@ -281,6 +287,7 @@ router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_fin
 
         const debtEntries = adjustments
             .filter(a => !cityFilter || (a.captain?.city === cityFilter))
+            .filter(a => inScope(a.captain?.city || 'Khartoum'))
             .map(a => ({
                 type:    a.mode === 'add' ? 'debt_add' : a.mode === 'zero' ? 'debt_zero' : 'debt_partial',
                 date:    a.createdAt,

@@ -81,6 +81,47 @@
                   (required === MANAGER_ONLY && !!user && user.adminRole === 'sub_admin') ||
                   (required !== SUPER_ONLY && required !== MANAGER_ONLY && anyOf.some(function (p) { return perms.indexOf(p) !== -1; }));
 
+    // ── 2.ب الواجهة على قدّ النطاق ──────────────────────────────────────
+    // الخادم يقيّد الإداري والموظف بمدنهم — لكن الصفحات كانت تعرض أزرار
+    // كل المدن (الخريطة، المالية…) وأقسام الأكبر (الحساب البنكي، التسعير)،
+    // فيظنّ أنه يرى ويملك ما لا يملك، ويضغط «حفظ» فيُرفض. هنا يُقصّ ذلك
+    // كلّه في كل صفحات الإدارة من مكانٍ واحد:
+    //   • زرٌّ يبدّل لمدينةٍ خارج مدنه (onclick فيه 'City') ⇒ يُخفى
+    //   • <option value="City"> خارج مدنه ⇒ يُحذف
+    //   • [data-super-only] ⇒ يُخفى
+    if (!isSuper && user) {
+        var mine = (Array.isArray(user.cities) && user.cities.length) ? user.cities : [user.city];
+        var pruneScope = function () {
+            var WC = (typeof window !== 'undefined') && window.WajeezCities;
+            var all = (WC && WC.KEYS) || ['Khartoum', 'PortSudan', 'Atbara'];
+            var foreign = all.filter(function (c) { return mine.indexOf(c) === -1; });
+            foreign.forEach(function (c) {
+                var q = '[onclick*="\'' + c + '\'"]';
+                Array.prototype.forEach.call(document.querySelectorAll(q), function (el) {
+                    if (/City/.test(el.getAttribute('onclick') || '')) el.style.display = 'none';
+                });
+                Array.prototype.forEach.call(document.querySelectorAll('option[value="' + c + '"]'), function (o) {
+                    o.remove();
+                });
+            });
+            Array.prototype.forEach.call(document.querySelectorAll('[data-super-only]'), function (el) {
+                el.style.display = 'none';
+            });
+        };
+        onReady(function () {
+            // القصّ تجميلٌ فوق قيد الخادم — لا يُسقط الحارس نفسه إن تعثّر
+            try { pruneScope(); } catch (e) { return; }
+            // ما يُرسم لاحقاً (قوائم تُبنى من البيانات) يُقصّ أيضاً
+            var t = null;
+            try {
+                new MutationObserver(function () {
+                    clearTimeout(t);
+                    t = setTimeout(function () { try { pruneScope(); } catch (e) {} }, 50);
+                }).observe(document.body, { childList: true, subtree: true });
+            } catch (e) { /* متصفّح قديم — القصّ الأول يكفي للثابت */ }
+        });
+    }
+
     if (allowed) {
         onReady(reveal);
         return;

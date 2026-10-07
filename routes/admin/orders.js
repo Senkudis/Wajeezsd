@@ -867,6 +867,10 @@ router.post('/orders/:id/remind-captains', protect, requirePermission('manage_or
 
 router.delete('/orders/:id', protect, requirePermission('manage_orders'), async (req, res) => {
     try {
+        // 🌍 المدينة قبل الحذف — كان يحذف طلب أي مدينة بمعرّفه
+        const found = await Order.findById(req.params.id).select('city').lean();
+        if (!found) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (denyOutsideCity(req, res, found.city || 'Khartoum')) return;
         const order = await Order.findByIdAndDelete(req.params.id);
         if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
 

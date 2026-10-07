@@ -45,7 +45,8 @@ router.get('/settings', protect, adminOnly, async (req, res) => {
 // @route   GET /api/admin/debug-settings
 // @desc    تشخيص — يعرض كل وثائق Settings في DB (للأدمن فقط)
 
-router.get('/debug-settings', protect, adminOnly, async (req, res) => {
+// 🔒 للأكبر وحده: يكشف الحساب البنكي والعمولة لكل المدن معاً
+router.get('/debug-settings', protect, superAdminOnly, async (req, res) => {
     try {
         const mongoose = require('mongoose');
         const allDocs = await mongoose.connection.db

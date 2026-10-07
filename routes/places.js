@@ -765,6 +765,15 @@ router.post('/', protect, requirePermission('manage_stores'), async (req, res) =
             return res.status(400).json({ message: 'حدد موقع المتجر على الخريطة — الإحداثيات غير صالحة' });
         }
 
+        // 🌍 المدينة: الإحداثيات مصدر الحقيقة (تصحّح اختيار مدينة خاطئ في النموذج)،
+        //    ثم اختيار الأدمن، ثم الخرطوم كاحتياط أخير. وتُحسم **قبل** أي كتابة:
+        //    الإداري المقيّد لا يُنشئ متجراً (ولا حساب تاجره) خارج مدنه.
+        const { cityFromCoords } = require('../utils/geofence');
+        const resolvedCity = cityFromCoords(locLat, locLng) || req.body.city || 'Khartoum';
+        if (isSubAdmin(req) && !adminCoversCity(req.user, resolvedCity)) {
+            return res.status(403).json({ message: 'موقع المتجر خارج نطاق مدينتك' });
+        }
+
         let resolvedOwnerId = ownerId || null;
         let createdMerchantInfo = null; // ✅ بيانات حساب التاجر المُنشأ لإعادتها للأدمن
 
@@ -833,15 +842,20 @@ router.post('/', protect, requirePermission('manage_stores'), async (req, res) =
 
         // ─── حالة 2: ربط بمستخدم موجود ──────────────────────────
         if (ownerId && !ownerName) {
-            // تأكد إن المستخدم موجود وحوّل دوره لتاجر
+            // 🔒 كان يحوّل **أي** حسابٍ لتاجر بمعرّفه — حساب أدمنٍ أكبر نفسه:
+            //    إداريٌّ بصلاحية المتاجر ينزّل شريكاً بطلب «إنشاء متجر». الآن:
+            //    لا حساب إدارة أبداً، ولا مستخدم خارج مدن المُنشئ.
+            const target = await User.findById(ownerId).select('role city');
+            if (!target) return res.status(404).json({ message: 'المستخدم المراد ربطه غير موجود' });
+            if (target.role === 'admin') return res.status(403).json({ message: 'لا يمكن ربط حساب إدارة بمتجر' });
+            if (isSubAdmin(req) && !adminCoversCity(req.user, target.city || 'Khartoum')) {
+                return res.status(403).json({ message: 'هذا المستخدم خارج نطاق مدينتك' });
+            }
             await User.findByIdAndUpdate(ownerId, { role: 'merchant', approvalStatus: 'approved' });
         }
 
         // ─── إنشاء المتجر ─────────────────────────────────────────
-        // 🌍 المدينة: الإحداثيات مصدر الحقيقة (تصحّح اختيار مدينة خاطئ في النموذج)،
-        //    ثم اختيار الأدمن، ثم الخرطوم كاحتياط أخير.
-        const { cityFromCoords } = require('../utils/geofence');
-        const resolvedCity = cityFromCoords(locLat, locLng) || req.body.city || 'Khartoum';
+        // (المدينة حُسمت أعلاه قبل أي كتابة — resolvedCity)
 
         const place = await Place.create({
             name, category, image_url, phone, whatsapp, location, address,
