@@ -121,14 +121,29 @@ maybe()('🔴 توكن الرفع يصل إلى مسار الوثائق', () => 
 });
 
 maybe()('الدخول قبل القبول يقول الحقيقة', () => {
-    it('«قيد المراجعة» لا «فعّل حسابك»', async () => {
+    it('«أكمل وثائقك» ثم «قيد المراجعة» — لا «فعّل حسابك»', async () => {
+        // تسجيلٌ واحد للحالتين: الملف قريبٌ من حدّ otpLimiter (انظر registerOk)
         const body = application();
         await registerOk(body);
-        const res = await request(app).post('/api/auth/login')
+        const login = () => request(app).post('/api/auth/login')
             .send({ email: body.email, password: body.password });
 
+        // بلا وثائق (رفعها تعثّر وقت التسجيل): طريقٌ لإكمالها لا طريقٌ مسدود
+        const missing = await login();
+        expect(missing.status).toBe(403);
+        expect(missing.body.needsDocs).toBe(true);
+        expect(missing.body.uploadToken).toBeTruthy();
+        expect(missing.body.code).not.toBe('ACCOUNT_NOT_VERIFIED');
+
+        // اكتملت الوثائق: ينتظر قرار الإدارة
+        await User.updateOne({ email: body.email }, { $set: {
+            'documents.idImage': 'x.jpg', 'documents.selfieImage': 'x.jpg',
+            'documents.profilePhoto': 'x.jpg', 'documents.vehiclePhoto': 'x.jpg'
+        } });
+        const res = await login();
         expect(res.status).toBe(403);
         expect(res.body.message).toContain('قيد المراجعة');
+        expect(res.body.needsDocs).toBeUndefined();
         expect(res.body.code).not.toBe('ACCOUNT_NOT_VERIFIED');
     });
 

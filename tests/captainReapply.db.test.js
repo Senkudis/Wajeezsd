@@ -100,9 +100,21 @@ maybe()('الكابتن المرفوض', () => {
             status: 'pending', reapplyCount: 1, previousRejectionReason: REASON, reapplyBlocked: false
         });
 
+        // عاد معلّقاً بلا وثائق ⇒ يُوجَّه لرفعها، لا «مرفوض» ولا «موقوف»
         const again = await login(local);
         expect(again.status).toBe(403);
-        expect(again.body.message).toContain('قيد المراجعة');
+        expect(again.body.needsDocs).toBe(true);
+        expect(again.body.rejected).toBeUndefined();
+        expect(again.body.message).not.toContain('موقوف');
+
+        // وبعد اكتمالها ⇒ «قيد المراجعة»
+        await User.updateOne({ _id: u._id }, { $set: {
+            'documents.idImage': 'x.jpg', 'documents.selfieImage': 'x.jpg',
+            'documents.profilePhoto': 'x.jpg', 'documents.vehiclePhoto': 'x.jpg'
+        } });
+        const ready = await login(local);
+        expect(ready.status).toBe(403);
+        expect(ready.body.message).toContain('قيد المراجعة');
     });
 
     it('🔒 المرفوض نهائياً ← 409 ولا إعادة', async () => {
