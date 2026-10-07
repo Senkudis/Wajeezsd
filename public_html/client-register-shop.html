@@ -12,6 +12,9 @@
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/maps-loader.js?v=9c3cdf9b"></script>
+    <script src="js/geo.js?v=9999b0e3"></script>
+    <script src="js/maps-link.js?v=b5e20727"></script>
+    <script src="js/maps-link-input.js?v=fa876f04"></script>
     <style>
         :root {
             --primary: #048c5b;
@@ -160,6 +163,8 @@
             font-family: 'Cairo', sans-serif;
         }
         #map-search-results > div:hover { background: #f8fafc; }
+        /* زرّ «الصق الرابط» يختفي ما دامت النتائج ظاهرة — كان ينزاح تحتها فيزاحم «موقعي» */
+        #map-search-results[style*="block"] + #mapLinkChip { display: none; }
 
         .status-card {
             background: white; border-radius: 16px; padding: 30px 20px;
@@ -332,6 +337,11 @@
             </div>
             <!-- Search Results -->
             <div id="map-search-results"></div>
+            <!-- 🔗 بديلٌ ظاهر لمن لا يستطيع وضع الدبوس — التشويش في بورتسودان -->
+            <button type="button" id="mapLinkChip" onclick="openShopLinkFromMap()"
+                style="margin-top:8px; background:white; color:#2563eb; border:none; border-radius:50px; padding:7px 13px; font-family:'Cairo',sans-serif; font-weight:800; font-size:12px; box-shadow:0 4px 12px rgba(0,0,0,0.12); cursor:pointer;">
+                <i class="bi bi-link-45deg"></i> الصق رابط الموقع بدلاً من ذلك
+            </button>
         </div>
 
         <!-- Locate Me Button -->
@@ -349,6 +359,7 @@
             <div id="map-address-preview" style="font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#1e293b; margin-bottom:14px; min-height:22px;">
                 حرّك الخريطة لتحديد موقع المتجر
             </div>
+            <div id="map-accuracy-note" style="font-family:'Cairo',sans-serif; font-size:11.5px; font-weight:700; color:#64748b; margin:-8px 0 12px;"></div>
             <button class="btn btn-success w-100 rounded-pill py-3 fw-bold shadow" onclick="confirmLocation()">
                 <i class="bi bi-check-circle-fill me-2"></i>تأكيد الموقع هنا
             </button>
@@ -519,6 +530,15 @@
                             <span><i class="bi bi-geo-alt me-2 text-danger"></i>لم يتم التحديد</span>
                             <i class="bi bi-chevron-left text-muted"></i>
                         </div>
+                        <!-- 🔗 بديل الخريطة: في بورتسودان تشويش الـGPS يجعل «موقعي»
+                             يعطي نقطةً بعيدة، فيبقى التاجر بلا طريقٍ لتحديد محلّه.
+                             رابط خرائط جوجل أو موقع واتساب يحمل الإحداثيات جاهزة. -->
+                        <details id="shopLinkBox" class="mt-2">
+                            <summary style="cursor:pointer; font-size:12.5px; font-weight:800; color:#2563eb; list-style:none;">
+                                <i class="bi bi-link-45deg"></i> صعب تحديد الموقع؟ الصق رابط موقع المتجر من خرائط جوجل أو واتساب
+                            </summary>
+                            <div id="shopLinkHost" style="margin-top:9px;"></div>
+                        </details>
                     </div>
                     <div class="mb-2">
                         <label class="form-label">وصف العنوان </label>
@@ -589,6 +609,7 @@
             </form>
         `;
         if (window.PaymentMethods) PaymentMethods.renderPicker(document.getElementById('fPaymentMethods'));
+        bindShopLinkBox();
     }
 
     // ─── Terms Modal Logic ────────────────────────────────────────
@@ -736,91 +757,251 @@
 
         // 📍 معاينة العنوان النصّي الحيّة عند توقّف الحركة (reverse geocode)
         map.addListener('idle', _updateShopRegPreview);
-
-        // خدمات البحث
+        // خدمات البحث — المُرمِّز مستقلّ عن مكتبة places: لو لم تُحمَّل
+        // يبقى البحث بالاسم والعنوان النصّي يعملان
+        geocoder = new google.maps.Geocoder();
         if (window.google.maps.places) {
             autocompleteService = new google.maps.places.AutocompleteService();
             placesService = new google.maps.places.PlacesService(map);
-            geocoder = new google.maps.Geocoder();
         }
 
-        // تحديد الموقع الحالي تلقائياً
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                pos => {
-                    mapCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    map.panTo(mapCenter);
-                    map.setZoom(17);
-                    document.getElementById('map-address-preview').textContent =
-                        `📍 ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-                },
-                () => {},
-                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-            );
-        }
+        // من يسحب الخريطة بيده قرّر مكانه — لا نخطفها منه بقراءة GPS متأخّرة
+        map.addListener('dragstart', () => { _userMovedMap = true; });
+
+        // تحديد الموقع الحالي تلقائياً — بصمت: بلا نوافذ إن فشل
+        locateMe(true);
     }
 
-    // خدمات البحث
+    // ─── المدينة وتشويش الـGPS ──────────────────────────────────
+    // في بورتسودان يُشوَّش على الـGPS فيعطي الجهاز نقطةً بعيدة — أحياناً في
+    // بلدٍ آخر. نقطةٌ خارج كل مدن وجيز لا تصلح موقعاً لمحلّ، فلا نحرّك
+    // الخريطة إليها، ونجرّب موقع الشبكة (واي فاي/أبراج) الذي لا يمسّه التشويش.
+    let _userMovedMap = false;
+
+    function cityKey() {
+        return currentCity && WajeezCities.isValid(currentCity) ? currentCity : WajeezCities.DEFAULT;
+    }
+    function inServedCity(lat, lng) { return !!WajeezCities.cityAt(lat, lng); }
+
+    function networkFix() {
+        return new Promise(resolve => {
+            if (!navigator.geolocation) return resolve(null);
+            navigator.geolocation.getCurrentPosition(
+                p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
+                () => resolve(null),
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+            );
+        });
+    }
+
+    /** GPS أولاً (أفضل قراءة خلال المهلة)، ثم الشبكة. → { fix, source } أو { error } */
+    async function findShopFix(onProgress) {
+        let gps = null, gpsErr = null;
+        if (window.WajeezGeo) {
+            try {
+                gps = await WajeezGeo.getPrecise({
+                    maxWait: 12000, maxAge: 0,
+                    onProgress: f => { if (inServedCity(f.lat, f.lng) && onProgress) onProgress(f); }
+                });
+            } catch (e) { gpsErr = e; }
+        }
+        if (gps && inServedCity(gps.lat, gps.lng)) return { fix: gps, source: 'gps' };
+        if (gpsErr && /رفض/.test(gpsErr.message || '')) return { error: 'denied' };
+
+        const net = await networkFix();
+        if (net && inServedCity(net.lat, net.lng)) return { fix: net, source: 'network' };
+        return { error: (gps || net) ? 'outside' : 'unavailable' };
+    }
+
+    function setAccuracyNote(text, warn) {
+        const n = document.getElementById('map-accuracy-note');
+        if (!n) return;
+        n.textContent = text || '';
+        n.style.color = warn ? '#b45309' : '#64748b';
+    }
+
+    // ─── البحث ──────────────────────────────────────────────────
     let autocompleteService = null, placesService = null, geocoder = null;
-    let searchTimeout;
+    let searchTimeout, _searchSeq = 0, _searchResults = [];
+
+    function _esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function renderSearchResults(list, q) {
+        const div = document.getElementById('map-search-results');
+        _searchResults = list;
+        if (!list.length) {
+            div.innerHTML = `<div style="padding:12px 16px; font-size:12.5px; color:#64748b; line-height:1.8;">
+                لا نتائج لـ «${_esc(q)}» — جرّب اسم الحي أو معلماً قريباً (مسجد، مدرسة، سوق)،
+                أو <a href="#" onclick="event.preventDefault(); openShopLinkFromMap();" style="font-weight:800;">الصق رابط الموقع</a>.
+            </div>`;
+            div.style.display = 'block';
+            return;
+        }
+        div.innerHTML = list.map((r, i) => `
+            <div onclick="pickSearchResult(${i})"
+                style="padding:12px 16px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:10px;">
+                <i class="bi bi-geo-alt-fill" style="color:var(--primary);"></i>
+                <div style="font-size:13px; font-weight:700;">${_esc(r.name)}
+                    <div style="font-size:11px; color:#64748b; font-weight:normal;">${_esc(r.sub || '')}</div>
+                </div>
+            </div>
+        `).join('');
+        div.style.display = 'block';
+    }
+
+    function googlePredictions(q) {
+        return new Promise(resolve => {
+            if (!autocompleteService) return resolve([]);
+            const c = WajeezCities.center(cityKey());
+            autocompleteService.getPlacePredictions(
+                {
+                    input: q,
+                    componentRestrictions: { country: 'sd' },
+                    // نتائج مدينة التاجر أولاً — كانت «السودان» كلّه فيطفو حيٌّ بالاسم نفسه في مدينةٍ أخرى
+                    locationBias: { center: c, radius: 40000 }
+                },
+                (predictions, status) => {
+                    if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) return resolve([]);
+                    resolve(predictions.slice(0, 5).map(p => ({
+                        name: p.structured_formatting.main_text,
+                        sub: p.structured_formatting.secondary_text || '',
+                        placeId: p.place_id
+                    })));
+                }
+            );
+        });
+    }
+
+    // OpenStreetMap — تغطيته لأحياء السودان وشوارعه أوسع من جوجل في مواضع كثيرة
+    async function osmSearch(q) {
+        try {
+            const b = WajeezCities.CITIES[cityKey()].bounds;
+            const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=ar&countrycodes=sd&limit=6'
+                + `&viewbox=${b.minLng},${b.maxLat},${b.maxLng},${b.minLat}&bounded=1&q=${encodeURIComponent(q)}`;
+            const data = await fetch(url).then(r => r.json());
+            return (Array.isArray(data) ? data : []).map(d => {
+                const parts = String(d.display_name || '').split(/[،,]\s*/);
+                return { name: d.name || parts[0], sub: parts.slice(1, 3).join('، '), lat: +d.lat, lng: +d.lon };
+            }).filter(r => isFinite(r.lat) && isFinite(r.lng));
+        } catch (_) { return []; }
+    }
+
+    async function runMapSearch(q, pickFirst) {
+        const seq = ++_searchSeq;
+
+        // إحداثيات مكتوبة مباشرة: «19.6158, 37.2164»
+        const m = q.match(/^\s*(-?\d{1,2}\.\d+)\s*[,،\s]\s*(-?\d{1,3}\.\d+)\s*$/);
+        let list = [];
+        if (m) {
+            list = [{ name: 'الإحداثيات المكتوبة', sub: `${m[1]}, ${m[2]}`, lat: +m[1], lng: +m[2] }];
+        } else if (window.MapsLink && MapsLink.looksLikeMapsLink(q)) {
+            // رابطٌ في خانة البحث — مكانه خانة الرابط التي تفكّ المختصر أيضاً
+            openShopLinkFromMap(q);
+            return;
+        } else {
+            list = await googlePredictions(q);
+            if (seq !== _searchSeq) return;
+            if (!list.length) list = await osmSearch(q);
+        }
+        if (seq !== _searchSeq) return;
+        renderSearchResults(list, q);
+        if (pickFirst && list.length) pickSearchResult(0);
+    }
 
     function handleMapSearch() {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const q = document.getElementById('map-search-input').value.trim();
-            const resultsDiv = document.getElementById('map-search-results');
-            if (q.length < 2 || !autocompleteService) { resultsDiv.style.display = 'none'; return; }
-            autocompleteService.getPlacePredictions(
-                { input: q, componentRestrictions: { country: 'sd' }, types: ['establishment', 'geocode'] },
-                (predictions, status) => {
-                    if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
-                        resultsDiv.style.display = 'none'; return;
-                    }
-                    resultsDiv.innerHTML = predictions.slice(0, 5).map(p => `
-                        <div onclick="selectPlace('${p.place_id}')"
-                            style="padding:12px 16px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:10px;">
-                            <i class="bi bi-geo-alt-fill" style="color:var(--primary);"></i>
-                            <div style="font-size:13px; font-weight:700;">${p.structured_formatting.main_text}
-                                <div style="font-size:11px; color:#64748b; font-weight:normal;">${p.structured_formatting.secondary_text || ''}</div>
-                            </div>
-                        </div>
-                    `).join('');
-                    resultsDiv.style.display = 'block';
-                }
-            );
-        }, 300);
-    }
-
-    function selectPlace(placeId) {
-        if (!placesService) return;
-        document.getElementById('map-search-results').style.display = 'none';
-        placesService.getDetails({ placeId, fields: ['geometry', 'name', 'formatted_address'] }, (place, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && place.geometry) {
-                const loc = place.geometry.location;
-                map.panTo(loc); map.setZoom(17);
-                // 📍 خزّن العنوان الدقيق (يُملأ تلقائياً عند التأكيد)
-                const nm = place.name || '';
-                const fa = (place.formatted_address || '').replace(/،?\s*السودان\s*$/, '').trim();
-                _shopRegAddress = [nm, fa].filter(Boolean).join('، ') || `${loc.lat().toFixed(5)}, ${loc.lng().toFixed(5)}`;
-                _shopRegKey = `${loc.lat().toFixed(4)},${loc.lng().toFixed(4)}`;
-                document.getElementById('map-address-preview').innerHTML =
-                    `<i class="bi bi-geo-alt-fill text-success"></i> ${_shopRegAddress}`;
-            }
-        });
-    }
-
-    function doGeocode() {
         const q = document.getElementById('map-search-input').value.trim();
-        if (!q || !geocoder) return;
+        if (q.length < 2) {
+            _searchSeq++;
+            document.getElementById('map-search-results').style.display = 'none';
+            return;
+        }
+        searchTimeout = setTimeout(() => runMapSearch(q, false), 350);
+    }
+
+    function _moveToPicked(lat, lng, label) {
+        _userMovedMap = true;   // اختيارٌ صريح — لا تسحبه قراءة GPS متأخّرة
+        map.panTo({ lat, lng }); map.setZoom(17);
+        _shopRegAddress = label || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        _shopRegKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        document.getElementById('map-address-preview').innerHTML =
+            `<i class="bi bi-geo-alt-fill text-success"></i> ${_esc(_shopRegAddress)}`;
+        setAccuracyNote('قرّب الخريطة وحرّكها حتى يقع الدبوس على باب المتجر تماماً');
+    }
+
+    function pickSearchResult(i) {
+        const r = _searchResults[i];
+        if (!r || !map) return;
         document.getElementById('map-search-results').style.display = 'none';
-        geocoder.geocode({ address: q + ' السودان' }, (results, status) => {
-            if (status === 'OK' && results[0]) {
-                map.panTo(results[0].geometry.location);
-                map.setZoom(17);
-                document.getElementById('map-address-preview').textContent =
-                    `📍 ${results[0].formatted_address || ''}`.split(',')[0];
-            }
+        document.getElementById('map-search-input').blur();
+        if (r.placeId && placesService) {
+            placesService.getDetails({ placeId: r.placeId, fields: ['geometry', 'name', 'formatted_address'] }, (place, status) => {
+                if (status !== google.maps.places.PlacesServiceStatus.OK || !place?.geometry) return;
+                const loc = place.geometry.location;
+                const fa = (place.formatted_address || '').replace(/،?\s*السودان\s*$/, '').trim();
+                _moveToPicked(loc.lat(), loc.lng(), [place.name || '', fa].filter(Boolean).join('، '));
+            });
+            return;
+        }
+        _moveToPicked(r.lat, r.lng, [r.name, r.sub].filter(Boolean).join('، '));
+    }
+
+    // زرّ البحث / Enter — أوّل نتيجة مباشرة
+    function doGeocode() {
+        clearTimeout(searchTimeout);
+        const q = document.getElementById('map-search-input').value.trim();
+        if (q.length < 2) return;
+        runMapSearch(q, true);
+    }
+
+    // ─── لصق الرابط ─────────────────────────────────────────────
+    let _shopLinkHandle = null;
+
+    function bindShopLinkBox() {
+        const box = document.getElementById('shopLinkBox');
+        if (!box) return;
+        _shopLinkHandle = null;
+        box.addEventListener('toggle', () => {
+            if (!box.open || _shopLinkHandle || !window.MapsLinkInput) return;
+            _shopLinkHandle = MapsLinkInput.mount('#shopLinkHost', {
+                label: 'رابط موقع المتجر',
+                city: () => cityKey(),
+                onPick: (lat, lng, meta) => {
+                    if (!inServedCity(lat, lng)) {
+                        Swal.fire('موقع خارج نطاق الخدمة',
+                            'هذا الرابط يشير إلى مكانٍ خارج المدن التي يعمل فيها وجيز. تأكّد أنه موقع متجرك.', 'warning');
+                        setTimeout(() => _shopLinkHandle && _shopLinkHandle.reset(), 0);
+                        return;
+                    }
+                    const label = meta?.placeName ? [meta.placeName, meta.address].filter(Boolean).join('، ') : (meta?.address || '');
+                    setShopLocation(lat, lng, label);
+                    if (map) { _userMovedMap = true; map.setCenter({ lat, lng }); map.setZoom(17); }
+                    box.open = false;
+                }
+            });
         });
+    }
+
+    /** من داخل الخريطة إلى خانة الرابط — مع لصقٍ مسبق إن كان الرابط بأيدينا */
+    function openShopLinkFromMap(prefill) {
+        closeMap();
+        const box = document.getElementById('shopLinkBox');
+        if (!box) return;
+        box.open = true;
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+            const input = document.querySelector('#shopLinkHost input');
+            if (!input) return;
+            if (prefill) {
+                input.value = prefill;
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            } else {
+                input.focus();
+            }
+        }, 120);
     }
 
     function openMap() {
@@ -847,42 +1028,89 @@
 
     function closeMap() { document.getElementById('mapModal').classList.remove('active'); }
 
-    function confirmLocation() {
-        if (!map) return;
-        const center = map.getCenter();
-        selectedLocation = { lat: center.lat(), lng: center.lng() };
+    /** مصدرٌ واحد لاعتماد الموقع — من الخريطة أو من الرابط */
+    function setShopLocation(lat, lng, address) {
+        selectedLocation = { lat, lng };
         if (window.FieldErrors) FieldErrors.clear('locationBtn');
 
         // 📍 املأ حقل العنوان تلقائياً من الموقع المحدد (إن كان فارغاً) — سلاسة أكبر
         const addrField = document.getElementById('fAddress');
-        if (addrField && _shopRegAddress && !addrField.value.trim()) {
-            addrField.value = _shopRegAddress;
-        }
+        if (addrField && address && !addrField.value.trim()) addrField.value = address;
 
         const btn = document.getElementById('locationBtn');
         btn.classList.add('selected');
         btn.innerHTML = `<span><i class="bi bi-geo-alt-fill me-2"></i>تم تحديد الموقع</span><i class="bi bi-check-circle-fill"></i>`;
+    }
+
+    function confirmLocation() {
+        if (!map) return;
+        const center = map.getCenter();
+        setShopLocation(center.lat(), center.lng(), _shopRegAddress);
         closeMap();
     }
 
-    function locateMe() {
+    /**
+     * «موقعي» — GPS ثم الشبكة، ولا يُقبل موقعٌ خارج مدن وجيز (تشويش).
+     * silent: للتحديد التلقائي عند فتح الخريطة — بلا نوافذ.
+     */
+    async function locateMe(silent) {
+        if (!map) return;
         const btn = document.getElementById('locateMeBtn');
-        if (btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm text-success"></span>';
-        if (navigator.geolocation && map) {
-            navigator.geolocation.getCurrentPosition(
-                pos => {
-                    map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                    map.setZoom(17);
-                    document.getElementById('map-address-preview').textContent =
-                        `📍 ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-                    if (btn) btn.innerHTML = '<i class="bi bi-crosshair2 fs-5"></i><span>موقعي</span>';
-                },
-                () => { if (btn) btn.innerHTML = '<i class="bi bi-crosshair2 fs-5"></i><span>موقعي</span>'; },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } else {
-            if (btn) btn.innerHTML = '<i class="bi bi-crosshair2 fs-5"></i><span>موقعي</span>';
+        const idle = '<i class="bi bi-crosshair2 fs-5"></i><span>موقعي</span>';
+        if (!silent) _userMovedMap = false;
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm text-success"></span><span>جارٍ التحديد…</span>'; }
+        setAccuracyNote('جارٍ تحديد موقعك…');
+
+        // القراءات تتحسّن تدريجياً — نحرّك الدبوس معها ليرى التاجر تقدّماً
+        const r = await findShopFix(f => {
+            if (_userMovedMap) return;
+            map.panTo({ lat: f.lat, lng: f.lng });
+            if (map.getZoom() < 16) map.setZoom(16);
+        });
+        if (btn) { btn.disabled = false; btn.innerHTML = idle; }
+
+        if (r.fix) {
+            if (!_userMovedMap) {
+                map.panTo({ lat: r.fix.lat, lng: r.fix.lng });
+                map.setZoom(r.fix.accuracy > 300 ? 15 : 17);
+            }
+            const weak = r.source === 'network' || (r.fix.accuracy || 0) > (window.WajeezGeo ? WajeezGeo.ACCEPTABLE_M : 100);
+            setAccuracyNote(r.source === 'network'
+                ? 'موقع تقريبي من الشبكة — حرّك الخريطة حتى يقع الدبوس على متجرك'
+                : (window.WajeezGeo ? WajeezGeo.describeAccuracy(r.fix.accuracy) : ''), weak);
+            return;
         }
+
+        setAccuracyNote('');
+        if (silent) return;
+
+        if (r.error === 'denied') {
+            Swal.fire({
+                icon: 'info',
+                title: 'إذن الموقع مرفوض',
+                html: 'فعّل إذن الموقع للتطبيق من إعدادات الهاتف، أو ابحث عن الحي في الأعلى، أو الصق رابط موقع المتجر.',
+                confirmButtonText: 'حسناً'
+            });
+            return;
+        }
+
+        const res = await Swal.fire({
+            icon: 'warning',
+            title: 'تعذّر تحديد موقعك بدقة',
+            html: (r.error === 'outside'
+                    ? 'جهازك أعطى موقعاً خارج المدينة — غالباً بسبب تشويش إشارة الـGPS في منطقتك.'
+                    : 'لم تصل إشارة موقع من جهازك.')
+                + '<br>حدّد المتجر بطريقةٍ أخرى:',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'الصق رابط الموقع',
+            denyButtonText: 'ابحث عن الحي',
+            cancelButtonText: 'سأحرّك الخريطة',
+            confirmButtonColor: '#2563eb',
+            denyButtonColor: '#0a8754'
+        });
+        if (res.isConfirmed) openShopLinkFromMap();
+        else if (res.isDenied) document.getElementById('map-search-input').focus();
     }
 
     // ─── Submit Logic ────────────────────────────────────────────
