@@ -1,0 +1,401 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+/* خطوط البراند الرسمية الثلاثة وحدها (marketing/brand-fonts) */
+@font-face { font-family: 'Alarabiya'; src: url('../brand-fonts/alarabiya/Alarabiya Normal Font.ttf'); }
+@font-face { font-family: 'ArabicModern'; src: url('../brand-fonts/arabic-modern/ArabicModern-Bold.otf'); }
+@font-face { font-family: 'IntroBlack'; src: url('../brand-fonts/intro/Intro Black Alt.otf'); }
+@font-face { font-family: 'IntroBold'; src: url('../brand-fonts/intro/Intro Bold Alt.otf'); }
+html,body{margin:0;background:#111}canvas{display:block;max-height:100vh}
+</style>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// ════════════════════════════════════════════════════════════════════
+// إعلان وجيز ٢ — موشن جرافيك مسطّح، 9:16.
+//
+// مبنيٌّ على التعليق الصوتي: كل مشهدٍ مدّته في جدول TIMING وحده، وكل
+// الحركة داخله بنسبةٍ من مدّته أو بثوانٍ من بدايته. فإن جاء التسجيل
+// أسرع أو أبطأ، تُعدَّل الأرقام هنا ويتبعها الفيديو كلّه.
+// ════════════════════════════════════════════════════════════════════
+const TIMING = [
+  // [المشهد, المدة بالثواني, سطر التعليق الصوتي]
+  ['hook',   3.6, 'لسه بتقوم من محلك… عشان تجيب حاجة؟'],
+  ['cats',   3.6, 'مع وجيز، أي حاجة بتجيك لحدّ عندك'],
+  ['order',  4.2, 'اختار المحل… واطلب في ثواني'],
+  ['offers', 4.2, 'الكباتن بيرسلوا عروضهم، وإنت بتختار البناسبك'],
+  ['track',  4.2, 'وتابع الكابتن خطوة بخطوة… لحدّي باب بيتك'],
+  ['usp',    2.8, 'سريع. آمن. اقتصادي.'],
+  ['end',    3.6, 'وجيز… اطلب بكل أمان وثقة'],
+];
+const W = 1080, H = 1920;
+let acc = 0; const SC = {}; for (const [k, d] of TIMING) { SC[k] = { from: acc, dur: d }; acc += d; }
+const DUR = acc;
+window.DUR = DUR; window.TIMING = TIMING; window.SC = SC;
+
+const g = document.getElementById('c').getContext('2d');
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+function spring(t, k = 170, d = 26) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(k), z = d / (2 * w0);
+  if (z < 1) { const wd = w0 * Math.sqrt(1 - z * z);
+    return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t)); }
+  return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+}
+const SNAP = [320, 30], DEF = [170, 26], HEAVY = [110, 20], PLAY = [240, 15];
+const sp = (t, p = DEF) => spring(t, p[0], p[1]);
+const ease = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+
+const C = { deep: '#08392A', brand: '#04553A', green: '#0A8754', mint: '#DDF1E6', yellow: '#F6B40E', yellowD: '#D99A00',
+  paper: '#F5F2EA', ink: '#0B1F17', white: '#FFFFFF', nile: '#7CC4E4', road: '#FFFFFF', block: '#D5E7DC', gray: '#8A9A92' };
+const F = { head: 'Alarabiya', sup: 'ArabicModern', lat: 'IntroBlack', latB: 'IntroBold' };
+
+// ── الصور ─────────────────────────────────────────────────────────
+const SRC = { logoW: 'img/logo-white.png', home: 'img/s_home.png', shop: 'img/s_shopDetail.png', accepted: 'img/s_acceptedPopup.png' };
+const IMG = {};
+window.ready = Promise.all(Object.entries(SRC).map(([k, s]) => new Promise((res, rej) => {
+  const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => rej(new Error(s)); i.src = s; })))
+  .then(() => Promise.all(['100px Alarabiya', '100px ArabicModern', '100px IntroBlack', '100px IntroBold']
+    .map(f => document.fonts.load(f, 'وجيز 3,500 Google'))));
+
+// ── أدوات الرسم ───────────────────────────────────────────────────
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+function text(s, x, y, size, { font = F.head, color = C.white, align = 'right', alpha = 1 } = {}) {
+  if (alpha <= 0) return;
+  g.save(); g.globalAlpha *= alpha; g.direction = 'rtl'; g.textAlign = align; g.textBaseline = 'alphabetic';
+  g.font = `${size}px ${font}`; g.fillStyle = color; g.fillText(s, x, y); g.restore();
+}
+const tw = (s, size, font = F.head) => { g.save(); g.font = `${size}px ${font}`; g.direction = 'rtl'; const w = g.measureText(s).width; g.restore(); return w; };
+// كلمةٌ تصعد من تحت قناعها — لا تلاشٍ
+function rise(s, x, y, size, t, opt = {}) {
+  const k = sp(t, opt.p || SNAP); if (k <= 0) return;
+  const out = opt.out != null ? easeOut(clamp((t - opt.out) / .25)) : 0;
+  g.save(); g.beginPath(); g.rect(0, y - size * 1.3, W, size * 1.65); g.clip();
+  text(s, x, y + (1 - k) * size * 1.35 - out * size * 1.4, size, opt);
+  g.restore();
+}
+function shadow(blur = 50, y = 24, a = .18) { g.shadowColor = `rgba(8,40,28,${a})`; g.shadowBlur = blur; g.shadowOffsetY = y; }
+function noShadow() { g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0; }
+
+// السهم والحلقة — عنصرا الشعار، ولغة الانتقالات كلّها
+function chevron(cx, cy, s, stroke, color = C.yellow, rot = 0) {
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.strokeStyle = color; g.lineWidth = stroke; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(-s * .32, -s * .5); g.lineTo(s * .32, 0); g.lineTo(-s * .32, s * .5); g.stroke(); g.restore();
+}
+function arc(cx, cy, r, stroke, from, to, color) {
+  if (to <= from) return;
+  g.save(); g.strokeStyle = color; g.lineWidth = stroke; g.lineCap = 'round';
+  g.beginPath(); g.arc(cx, cy, r, from, to); g.stroke(); g.restore();
+}
+
+// ── الأيقونات (مسطّحة، بخطٍّ واحد) ────────────────────────────────
+function icon(name, cx, cy, s, color) {
+  g.save(); g.translate(cx, cy); g.scale(s / 100, s / 100);
+  g.fillStyle = color; g.strokeStyle = color; g.lineWidth = 9; g.lineCap = 'round'; g.lineJoin = 'round';
+  const P = () => g.beginPath();
+  switch (name) {
+    case 'burger':
+      P(); g.moveTo(-40, -6); g.quadraticCurveTo(-40, -42, 0, -42); g.quadraticCurveTo(40, -42, 40, -6); g.closePath(); g.fill();
+      rr(-44, 2, 88, 14, 7); g.fill(); rr(-40, 24, 80, 18, 9); g.fill(); break;
+    case 'bag':
+      P(); g.moveTo(-36, -16); g.lineTo(36, -16); g.lineTo(30, 42); g.lineTo(-30, 42); g.closePath(); g.fill();
+      P(); g.arc(0, -16, 18, Math.PI, 0); g.stroke(); break;
+    case 'pharmacy':
+      rr(-40, -40, 80, 80, 18); g.stroke(); rr(-8, -26, 16, 52, 4); g.fill(); rr(-26, -8, 52, 16, 4); g.fill(); break;
+    case 'parcel':
+      rr(-40, -34, 80, 72, 8); g.stroke(); P(); g.moveTo(-40, -10); g.lineTo(40, -10); g.stroke();
+      rr(-9, -34, 18, 30, 3); g.fill(); break;
+    case 'pin':
+      P(); g.moveTo(0, 44); g.bezierCurveTo(-46, -4, -36, -44, 0, -44); g.bezierCurveTo(36, -44, 46, -4, 0, 44); g.fill();
+      g.fillStyle = C.white; P(); g.arc(0, -12, 13, 0, Math.PI * 2); g.fill(); break;
+    case 'store':
+      rr(-36, -6, 72, 48, 6); g.stroke();
+      for (let i = 0; i < 4; i++) { P(); g.arc(-27 + i * 18, -14, 9, 0, Math.PI); g.fill(); }
+      rr(-38, -34, 76, 20, 4); g.fill(); rr(-10, 14, 20, 28, 3); g.fill(); break;
+    case 'bolt':
+      P(); g.moveTo(10, -46); g.lineTo(-30, 6); g.lineTo(-2, 6); g.lineTo(-10, 46); g.lineTo(30, -6); g.lineTo(2, -6); g.closePath(); g.fill(); break;
+    case 'shield':
+      P(); g.moveTo(0, -44); g.lineTo(36, -30); g.lineTo(34, 4); g.quadraticCurveTo(28, 32, 0, 46); g.quadraticCurveTo(-28, 32, -34, 4); g.lineTo(-36, -30); g.closePath(); g.fill();
+      g.strokeStyle = C.deep; g.lineWidth = 9; P(); g.moveTo(-14, 2); g.lineTo(-3, 14); g.lineTo(17, -10); g.stroke(); break;
+    case 'tag':
+      P(); g.moveTo(-40, -6); g.lineTo(-6, -40); g.lineTo(40, -40); g.lineTo(40, 6); g.lineTo(6, 40); g.closePath(); g.fill();
+      g.fillStyle = C.deep; P(); g.arc(20, -20, 8, 0, Math.PI * 2); g.fill(); break;
+    case 'check':
+      g.lineWidth = 14; P(); g.moveTo(-30, 2); g.lineTo(-8, 24); g.lineTo(32, -20); g.stroke(); break;
+    case 'house':
+      P(); g.moveTo(-40, -4); g.lineTo(0, -40); g.lineTo(40, -4); g.lineTo(40, 40); g.lineTo(-40, 40); g.closePath(); g.fill();
+      g.fillStyle = C.white; rr(-10, 12, 20, 28, 3); g.fill(); break;
+    case 'star':
+      P(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 18 : 42; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); break;
+  }
+  g.restore();
+}
+
+// ── الهاتف بشاشاتٍ حقيقية ──────────────────────────────────────────
+function phone(cx, cy, w, layers, rot = 0) {
+  const h = w * 2.08, r = w * .14, x = cx - w / 2, y = cy - h / 2, b = w * .035;
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.translate(-cx, -cy);
+  shadow(90, 50, .28); rr(x, y, w, h, r); g.fillStyle = '#0E1210'; g.fill(); noShadow();
+  rr(x + b, y + b, w - 2 * b, h - 2 * b, r - b); g.save(); g.clip(); g.fillStyle = '#fff'; g.fillRect(x, y, w, h);
+  for (const L of layers) {
+    if (L.k <= 0) continue;
+    const sw = w - 2 * b, sh = sw * L.im.height / L.im.width;
+    g.save(); g.globalAlpha = L.alpha == null ? 1 : L.alpha;
+    g.drawImage(L.im, x + b + (1 - L.k) * sw * (L.dir || -1), y + b - (L.scroll || 0), sw, sh); g.restore();
+  }
+  g.restore();
+  rr(cx - w * .14, y + b + 14, w * .28, w * .07, w * .035); g.fillStyle = '#0E1210'; g.fill();
+  g.restore();
+  return { x: x + b, y: y + b, sw: w - 2 * b };
+}
+
+// ═══════════════════════════ المشاهد ═══════════════════════════════
+const D = {};
+
+// ① الخطّاف: «لسه بتقوم من محلك… عشان تجيب حاجة؟» — حلقة تحميلٍ لا تنتهي
+D.hook = (t, d) => {
+  g.fillStyle = C.deep; g.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = 1240, R = 230;
+  // مسار الحلقة باهتاً، والقوس يدور كمؤشّر انتظار
+  arc(cx, cy, R, 34, 0, Math.PI * 2, 'rgba(255,255,255,.08)');
+  const spin = t * 4.2, closeK = ease((t - (d - 1.0)) / .55);
+  const len = lerp(Math.PI * .55, Math.PI * 2, closeK);
+  arc(cx, cy, R, 34, spin, spin + len, closeK > 0 ? C.yellow : C.white);
+  // ثلاث نقاط انتظار
+  for (let i = 0; i < 3; i++) {
+    const a = .35 + .65 * (Math.sin(t * 6 - i * .7) * .5 + .5);
+    g.save(); g.globalAlpha = a * (1 - closeK); g.fillStyle = C.white; g.beginPath(); g.arc(cx - 50 + i * 50, cy, 14, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  // حين تنغلق: سهم الشعار يقفز داخلها
+  if (closeK > 0) chevron(cx + 8, cy, 170 * sp(t - (d - .55), PLAY), 34, C.yellow);
+  const X = W - 100;
+  rise('لسه', X, 420, 230, t - .05, { p: PLAY });
+  rise('بتقوم من محلك', X, 600, 130, t - .35);
+  rise('عشان تجيب حاجة؟', X, 760, 100, t - 1.15, { font: F.sup, color: C.yellow });
+};
+
+// ② «مع وجيز، أي حاجة بتجيك لحدّ عندك» — شبكة الأقسام على الأصفر
+const CATS = [['burger', 'مطاعم'], ['bag', 'بقالة'], ['pharmacy', 'صيدلية'], ['parcel', 'طرود'], ['store', 'متاجر'], ['pin', 'مشاوير']];
+D.cats = (t, d) => {
+  g.fillStyle = C.yellow; g.fillRect(0, 0, W, H);
+  // حلقةٌ عملاقة تدور في الخلفية
+  arc(W * .15, H * .82, 520, 90, -t * .5, -t * .5 + Math.PI * 1.4, 'rgba(255,255,255,.22)');
+  const X = W - 100;
+  rise('مع وجيز', X, 330, 170, t - .05, { color: C.deep, p: PLAY });
+  rise('أي حاجة بتجيك', X, 500, 112, t - .3, { color: C.deep });
+  rise('لحدّ عندك', X, 640, 112, t - .45, { color: C.brand });
+  const TS = 270, GAP = 40, x0 = W / 2 - (TS * 3 + GAP * 2) / 2, y0 = 820;
+  CATS.forEach(([ic, label], i) => {
+    const col = 2 - (i % 3), row = Math.floor(i / 3);                      // من اليمين (RTL)
+    const k = sp(t - .55 - i * .09, PLAY); if (k <= 0) return;
+    const out = ease((t - (d - .45)) / .4);                                 // تسقط عند الخروج
+    const cx = x0 + col * (TS + GAP) + TS / 2, cy = y0 + row * (TS + 90 + GAP) + TS / 2 + out * (900 + i * 60);
+    g.save(); g.translate(cx, cy); g.scale(lerp(.4, 1, k), lerp(.4, 1, k)); g.rotate((1 - k) * (i % 2 ? .2 : -.2));
+    shadow(40, 20, .15); rr(-TS / 2, -TS / 2, TS, TS + 70, 46); g.fillStyle = C.white; g.fill(); noShadow();
+    g.fillStyle = C.mint; g.beginPath(); g.arc(0, -20, 88, 0, Math.PI * 2); g.fill();
+    icon(ic, 0, -20, 110, C.brand);
+    text(label, 0, TS / 2 + 36, 54, { font: F.sup, color: C.deep, align: 'center' });
+    g.restore();
+  });
+};
+
+// ③ «اختار المحل… واطلب في ثواني» — الهاتف بشاشاتٍ حقيقية ولمسة
+D.order = (t, d) => {
+  g.fillStyle = C.green; g.fillRect(0, 0, W, H);
+  // لوحٌ أخضر يصعد من الأسفل بحافّةٍ مدوّرة — الانتقال من الأصفر
+  const X = W - 100;
+  rise('اختار المحل', X, 300, 130, t - .1);
+  rise('واطلب في ثواني', X, 450, 130, t - .3, { color: C.yellow });
+  const enter = sp(t - .2, DEF);
+  const toShop = sp(t - 1.25, SNAP), toDone = sp(t - 2.55, SNAP);
+  const cy = 1330 + (1 - enter) * 1300, pw = 640;
+  const scr = phone(W / 2, cy, pw, [
+    { im: IMG.home, k: 1, scroll: ease((t - .6) / .6) * 120 },
+    { im: IMG.shop, k: toShop },
+    { im: IMG.accepted, k: toDone, dir: 0, alpha: clamp((t - 2.55) * 6) },
+  ], (1 - enter) * .1 + Math.sin(t * 1.2) * .012);
+  // لمسة الإصبع على «أضف للسلة» (مكانه في لقطة المتجر)
+  const tapT = t - 1.95;
+  if (tapT > 0 && tapT < .6) {
+    const sh = scr.sw * IMG.shop.height / IMG.shop.width;
+    const px = scr.x + scr.sw * .74, py = scr.y + sh * .72;
+    g.save(); g.globalAlpha = 1 - tapT / .6; g.strokeStyle = C.yellow; g.lineWidth = 10;
+    g.beginPath(); g.arc(px, py, 26 + tapT * 160, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = clamp(1 - tapT * 3); g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(px, py, 30, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  // شارة «تم الطلب» تقفز بجانب الهاتف
+  const badge = sp(t - 2.75, PLAY);
+  if (badge > 0) {
+    g.save(); g.translate(260, 610); g.scale(badge, badge); g.rotate(-.08);
+    shadow(40, 18, .25); rr(-150, -56, 300, 112, 56); g.fillStyle = C.yellow; g.fill(); noShadow();
+    icon('check', 92, 0, 70, C.deep);
+    text('تم الطلب', 20, 20, 54, { font: F.sup, color: C.deep, align: 'center' });
+    g.restore();
+  }
+};
+
+// ④ «الكباتن بيرسلوا عروضهم، وإنت بتختار البناسبك» — بطاقات العروض
+const OFFERS = [['محمد عبدالله', '4.9', '3,500'], ['عثمان الطيب', '4.7', '4,000'], ['أحمد الصادق', '4.8', '3,800']];
+D.offers = (t, d) => {
+  g.fillStyle = C.paper; g.fillRect(0, 0, W, H);
+  arc(W * .9, H * .2, 420, 80, t * .4, t * .4 + Math.PI * 1.2, 'rgba(10,135,84,.10)');
+  const X = W - 100;
+  rise('الكباتن بيرسلوا', X, 300, 120, t - .05, { color: C.ink });
+  rise('عروضهم ليك', X, 440, 120, t - .2, { color: C.green });
+  rise('وإنت بتختار البناسبك', X, 560, 72, t - .45, { font: F.sup, color: C.ink });
+  const pick = t - 2.6;                                       // لحظة الاختيار
+  OFFERS.forEach(([name, rate, price], i) => {
+    const k = sp(t - .7 - i * .28, DEF); if (k <= 0) return;
+    const chosen = i === 0;
+    const away = chosen ? 0 : ease((pick - .15) / .45);
+    const lift = chosen ? sp(pick, PLAY) : 0;
+    const cw = 900, ch = 230, cx = W / 2 + (1 - k) * 1100 + away * (i % 2 ? -1200 : 1200);
+    const cy = 790 + i * 280 + lift * (-10 + 0);
+    g.save(); g.translate(cx, cy + ch / 2); g.scale(1 + lift * .05, 1 + lift * .05); g.translate(-cx, -(cy + ch / 2));
+    shadow(50, 22, .14 + lift * .1); rr(cx - cw / 2, cy, cw, ch, 40); g.fillStyle = C.white; g.fill(); noShadow();
+    if (lift > 0) { g.save(); g.globalAlpha = lift; g.strokeStyle = C.green; g.lineWidth = 8; rr(cx - cw / 2, cy, cw, ch, 40); g.stroke(); g.restore(); }
+    // الصورة الرمزية (الحرف الأول) يمين البطاقة
+    const ax = cx + cw / 2 - 110, ay = cy + ch / 2;
+    g.fillStyle = C.green; g.beginPath(); g.arc(ax, ay, 66, 0, Math.PI * 2); g.fill();
+    text(name[0], ax, ay + 26, 76, { align: 'center' });
+    text(name, ax - 100, cy + 100, 58, { font: F.sup, color: C.ink });
+    icon('star', ax - 120, cy + 158, 34, C.yellow);
+    text(rate, ax - 150, cy + 172, 40, { font: F.latB, color: C.gray });
+    // السعر يسار البطاقة
+    text(price, cx - cw / 2 + 60, cy + 118, 70, { font: F.lat, color: C.brand, align: 'left' });
+    text('ج.س', cx - cw / 2 + 60, cy + 178, 40, { font: F.sup, color: C.gray, align: 'left' });
+    // زرّ «قبول العرض» يظهر على المختار
+    if (chosen && lift > 0) {
+      const bk = sp(pick - .1, PLAY);
+      g.save(); g.translate(W / 2, cy + ch + 120); g.scale(bk, bk);
+      shadow(30, 14, .2); rr(-230, -60, 460, 120, 60); g.fillStyle = C.green; g.fill(); noShadow();
+      text('قبول العرض', 30, 18, 54, { font: F.sup, align: 'center' });
+      icon('check', 160, 0, 60, C.yellow);
+      g.restore();
+    }
+    g.restore();
+  });
+};
+
+// ⑤ «وتابع الكابتن خطوة بخطوة… لحدّي باب بيتك» — خريطةٌ مسطّحة والنيل
+const ROUTE = [[230, 1500], [230, 1180], [520, 1180], [520, 900], [840, 900], [840, 640]];
+function routeAt(u) {                                         // u ∈ [0,1] ⇒ نقطة على المسار
+  const seg = []; let tot = 0;
+  for (let i = 1; i < ROUTE.length; i++) { const l = Math.hypot(ROUTE[i][0] - ROUTE[i - 1][0], ROUTE[i][1] - ROUTE[i - 1][1]); seg.push(l); tot += l; }
+  let d = clamp(u) * tot;
+  for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const k = seg[i] ? d / seg[i] : 0;
+    return [lerp(ROUTE[i][0], ROUTE[i + 1][0], k), lerp(ROUTE[i][1], ROUTE[i + 1][1], k), i]; } d -= seg[i]; }
+}
+D.track = (t, d) => {
+  const z = 1.08 - easeOut(t / d) * .08;                      // الكاميرا تبتعد قليلاً
+  g.save(); g.translate(W / 2, H / 2); g.scale(z, z); g.translate(-W / 2, -H / 2);
+  g.fillStyle = '#EAF3EC'; g.fillRect(-100, -100, W + 200, H + 200);
+  // النيل
+  g.save(); g.strokeStyle = C.nile; g.lineWidth = 170; g.lineCap = 'round'; g.beginPath();
+  g.moveTo(-100, 420); g.bezierCurveTo(300, 520, 160, 900, -100, 1100); g.stroke(); g.restore();
+  // البلوكات والشوارع
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 4; c++) {
+    const bx = 120 + c * 280 + (r % 2) * 30, by = 560 + r * 190;
+    if (bx < 330 && by < 1150) continue;
+    rr(bx, by, 220, 130, 22); g.fillStyle = C.block; g.fill();
+  }
+  // المسار: رمادي كامل، ثم يُرسم أخضر حتى موقع الكابتن
+  const u = ease((t - .5) / (d - 1.1));
+  g.save(); g.lineWidth = 26; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.strokeStyle = 'rgba(10,135,84,.18)'; g.beginPath(); ROUTE.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+  const [kx, ky, si] = routeAt(u);
+  g.strokeStyle = C.green; g.beginPath(); for (let i = 0; i <= si; i++) i ? g.lineTo(ROUTE[i][0], ROUTE[i][1]) : g.moveTo(ROUTE[i][0], ROUTE[i][1]);
+  g.lineTo(kx, ky); g.stroke(); g.restore();
+  // المحل (بداية) والبيت (نهاية) — يقفزان
+  const s1 = sp(t - .15, PLAY), s2 = sp(t - .35, PLAY);
+  g.save(); g.translate(230, 1500); g.scale(s1, s1); g.fillStyle = C.white; shadow(20, 8, .2); g.beginPath(); g.arc(0, 0, 62, 0, Math.PI * 2); g.fill(); noShadow(); icon('store', 0, 0, 70, C.brand); g.restore();
+  const arrive = sp(t - (d - .55), PLAY);
+  g.save(); g.translate(840, 600); g.scale(s2 * (1 + arrive * .25), s2 * (1 + arrive * .25)); icon('pin', 0, -40, 130, arrive > .5 ? C.yellow : C.brand); g.restore();
+  // الكابتن: دائرةٌ بسهم الشعار، ونبضة
+  const p = (t * 1.4) % 1;
+  g.save(); g.globalAlpha = 1 - p; g.strokeStyle = C.green; g.lineWidth = 8; g.beginPath(); g.arc(kx, ky, 46 + p * 70, 0, Math.PI * 2); g.stroke(); g.restore();
+  shadow(24, 10, .3); g.fillStyle = C.brand; g.beginPath(); g.arc(kx, ky, 50, 0, Math.PI * 2); g.fill(); noShadow();
+  chevron(kx + 4, ky, 46, 12, C.yellow);
+  g.restore();
+  // بطاقة العنوان فوق الخريطة
+  const k = sp(t - .05, DEF);
+  g.save(); g.translate(0, (1 - k) * -400);
+  shadow(40, 16, .16); rr(60, 90, W - 120, 330, 48); g.fillStyle = C.white; g.fill(); noShadow();
+  g.restore();
+  const X = W - 130;
+  rise('تابع الكابتن', X, 220, 110, t - .15, { color: C.ink });
+  rise('خطوة بخطوة لحدّي بابك', X, 350, 76, t - .3, { font: F.sup, color: C.green });
+  // شريحة الوقت المتبقّي أسفل الشاشة
+  const eta = Math.max(1, Math.ceil(lerp(9, 1, u)));
+  const ek = sp(t - .6, DEF);
+  g.save(); g.translate(0, (1 - ek) * 300);
+  shadow(40, 16, .2); rr(140, H - 260, W - 280, 140, 70); g.fillStyle = C.deep; g.fill(); noShadow();
+  text(arrive > .3 ? 'الكابتن وصل!' : `الكابتن جاييك — ${eta} دقايق`, W / 2, H - 172, 58, { font: F.sup, align: 'center', color: arrive > .3 ? C.yellow : C.white });
+  g.restore();
+};
+
+// ⑥ «سريع. آمن. اقتصادي.» — كلمةٌ لكل نبضة
+D.usp = (t, d) => {
+  g.fillStyle = C.deep; g.fillRect(0, 0, W, H);
+  const items = [['bolt', 'سريع'], ['shield', 'آمن'], ['tag', 'اقتصادي']];
+  items.forEach(([ic, w], i) => {
+    const st = .1 + i * (d - .6) / 3, k = sp(t - st, PLAY);
+    if (k <= 0) return;
+    const y = 640 + i * 330;
+    // شريطٌ أصفر يكنس ثم تستقرّ الكلمة
+    const bar = easeOut((t - st) / .3);
+    g.fillStyle = i === 1 ? C.yellow : C.green; rr(W - 100 - 820 * bar, y - 150, 820 * bar, 190, 95); g.fill();
+    rise(w, W - 260, y, 150, t - st - .05, { p: PLAY, color: i === 1 ? C.deep : C.white });
+    g.save(); g.translate(W - 175, y - 55); g.scale(k, k); icon(ic, 0, 0, 100, i === 1 ? C.deep : C.yellow); g.restore();
+  });
+};
+
+// ⑦ الختام: «وجيز… اطلب بكل أمان وثقة»
+D.end = (t, d) => {
+  g.fillStyle = C.brand; g.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = 760;
+  arc(cx, cy, 330, 40, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * easeOut(t / .9), 'rgba(255,255,255,.12)');
+  const k = sp(t - .15, HEAVY);
+  const lw = 640 * lerp(.75, 1, k), lh = lw * IMG.logoW.height / IMG.logoW.width;
+  g.save(); g.globalAlpha = clamp(k * 2.2); g.drawImage(IMG.logoW, cx - lw / 2, cy - lh / 2, lw, lh); g.restore();
+  rise('اطلب بكل أمان وثقة', cx, 1210, 96, t - .45, { align: 'center' });
+  const b = sp(t - .75, SNAP);
+  if (b > 0) { g.save(); g.translate(cx, 1380); g.scale(b, b);
+    rr(-260, -58, 520, 116, 58); g.fillStyle = C.yellow; g.fill();
+    text('wajeezsd.com', 0, 18, 52, { font: F.lat, color: C.deep, align: 'center' }); g.restore(); }
+  text('Google Play  ·  App Store', cx, 1540, 46, { font: F.latB, align: 'center', alpha: clamp((t - 1.0) * 4) });
+  text('#وصل_لي_سابقا', cx, 1650, 56, { font: F.sup, align: 'center', color: C.yellow, alpha: clamp((t - 1.15) * 4) });
+};
+
+// ═══════════════════════════ الانتقالات ════════════════════════════
+// كلٌّ بشكلٍ من الشعار: حلقةٌ تتّسع، سهمٌ يكنس، لوحٌ يصعد.
+function transition(name, t) {
+  const at = (k) => { const s = SC[k]; return t - s.from; };
+  // hook → cats: الحلقة الصفراء تتّسع حتى تملأ الشاشة
+  { const x = at('cats') + .3; if (x > 0 && x < .55) {
+      const r = lerp(230, 2300, ease(x / .55)); g.fillStyle = C.yellow; g.beginPath(); g.arc(W / 2, 1240, r, 0, Math.PI * 2); g.fill(); } }
+  // cats → order: لوحٌ أخضر يصعد بحافّةٍ مدوّرة
+  { const x = at('order') + .25; if (x > 0 && x < .5) {
+      const y = lerp(H + 200, -300, ease(x / .5)); g.fillStyle = C.green; rr(-50, y, W + 100, H + 600, 220); g.fill(); } }
+  // order → offers / offers → track / track → usp: سهمٌ عملاق يكنس من اليسار لليمين
+  for (const [k, col] of [['offers', C.paper], ['track', '#EAF3EC'], ['usp', C.deep]]) {
+    const x = at(k) + .22; if (x <= 0 || x >= .44) continue;
+    const px = lerp(-900, W + 900, ease(x / .44));
+    g.fillStyle = C.yellow; g.beginPath();
+    g.moveTo(px - 900, 0); g.lineTo(px, 0); g.lineTo(px + 520, H / 2); g.lineTo(px, H); g.lineTo(px - 900, H); g.closePath(); g.fill();
+  }
+  // usp → end: دائرةٌ خضراء من المركز
+  { const x = at('end') + .25; if (x > 0 && x < .5) {
+      const r = lerp(0, 2300, ease(x / .5)); g.fillStyle = C.brand; g.beginPath(); g.arc(W / 2, H / 2, r, 0, Math.PI * 2); g.fill(); } }
+}
+
+window.seek = function (t) {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; noShadow();
+  let cur = TIMING[TIMING.length - 1][0];
+  for (const [k] of TIMING) if (t >= SC[k].from && t < SC[k].from + SC[k].dur) { cur = k; break; }
+  D[cur](t - SC[cur].from, SC[cur].dur);
+  transition(cur, t);
+};
+window.ready.then(() => window.seek(0));
+</script>
