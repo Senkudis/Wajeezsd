@@ -27,6 +27,7 @@ describe('team — بوابات الصلاحيات', () => {
         const routes = [
             ['get', '/api/team/admin/members'],
             ['get', '/api/team/admin/members/507f1f77bcf86cd799439011/qr'],
+            ['get', '/api/team/admin/qr-zip'],
             ['patch', '/api/team/admin/members/507f1f77bcf86cd799439011'],
             ['put', '/api/team/admin/reorder']
         ];

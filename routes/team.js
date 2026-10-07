@@ -56,6 +56,19 @@ const TEAM_BASE_URL = (process.env.TEAM_BASE_URL || 'https://wajeezsd.com/team')
  * الإقلاع ⇒ **الموقع كله لا يقوم**: الطلبات والمحادثات والدفع، كلها تسقط بسبب
  * توليد رمز QR في لوحة الأدمن. التحميل الكسول يحصر العطل في مساره وحده.
  */
+// مستوى تصحيح M فأعلى: البطاقة تُخدَش وتتّسخ في الجيب، والقراءة يجب أن تنجح
+// مع فقد جزء من الرمز. مشتركة بين الرمز المفرد والملف المضغوط.
+const QR_OPTIONS = { errorCorrectionLevel: 'M', type: 'png', width: 512, margin: 2 };
+
+/** اسم ملفٍ آمن على كل الأنظمة — يُبقي العربية ويحذف ما يرفضه ويندوز */
+function safeFileName(s) {
+    return String(s || '')
+        .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 60) || 'member';
+}
+
 function loadQRCode() {
     try {
         return require('qrcode');
@@ -258,27 +271,36 @@ const canManageTeam = requirePermission('manage_captains');
 // @route  GET /api/team/admin/members
 // @desc   كل المرشّحين للظهور (بما فيهم المخفيّون) لعرضهم في لوحة الإدارة
 // @access Admin (manage_captains)
+/**
+ * فلتر قائمة الإدارة من ?search و ?role — مشترك بين القائمة وتنزيل الرموز،
+ * فيحوي الملف المضغوط ما يراه الأدمن على الشاشة بالضبط.
+ */
+function adminMembersFilter(req) {
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const role = TEAM_ROLES.includes(req.query.role) ? req.query.role : '';
+
+    // الأدمن المساعد مقيّد بمدينته — نفس قاعدة بقية اللوحة
+    const filter = Object.assign(
+        {
+            role: role ? role : { $in: TEAM_ROLES },
+            isActive: true,
+            deletedAt: null,
+            approvalStatus: 'approved'
+        },
+        getAdminCityFilter(req)
+    );
+
+    if (search) {
+        // تهريب محارف RegExp: اسمٌ فيه «(» كان يرمي خطأً من قاعدة البيانات
+        const safe = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        filter.$or = [{ name: new RegExp(safe, 'i') }, { phone: new RegExp(safe, 'i') }];
+    }
+    return filter;
+}
+
 router.get('/admin/members', protect, canManageTeam, async (req, res) => {
     try {
-        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-        const role = TEAM_ROLES.includes(req.query.role) ? req.query.role : '';
-
-        // الأدمن المساعد مقيّد بمدينته — نفس قاعدة بقية اللوحة
-        const filter = Object.assign(
-            {
-                role: role ? role : { $in: TEAM_ROLES },
-                isActive: true,
-                deletedAt: null,
-                approvalStatus: 'approved'
-            },
-            getAdminCityFilter(req)
-        );
-
-        if (search) {
-            // تهريب محارف RegExp: اسمٌ فيه «(» كان يرمي خطأً من قاعدة البيانات
-            const safe = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            filter.$or = [{ name: new RegExp(safe, 'i') }, { phone: new RegExp(safe, 'i') }];
-        }
+        const filter = adminMembersFilter(req);
 
         const docs = await User.find(filter)
             .select(PUBLIC_FIELDS + ' phone approvalStatus isActive deletedAt')
@@ -437,14 +459,7 @@ router.get('/admin/members/:id/qr', protect, canManageTeam, async (req, res) => 
         }
 
         const url = `${TEAM_BASE_URL}/m/${publicId}`;
-        // مستوى تصحيح M فأعلى: البطاقة تُخدَش وتتّسخ في الجيب، والقراءة يجب أن
-        // تنجح مع فقد جزء من الرمز.
-        const buffer = await QRCode.toBuffer(url, {
-            errorCorrectionLevel: 'M',
-            type: 'png',
-            width: 512,
-            margin: 2
-        });
+        const buffer = await QRCode.toBuffer(url, QR_OPTIONS);
 
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Disposition', `attachment; filename="wajeez-card-${publicId}.png"`);
@@ -453,6 +468,64 @@ router.get('/admin/members/:id/qr', protect, canManageTeam, async (req, res) => 
     } catch (error) {
         logger.error({ err: error }, '[Team] فشل توليد رمز QR');
         res.status(500).json({ message: 'تعذّر توليد رمز QR' });
+    }
+});
+
+// @route  GET /api/team/admin/qr-zip
+// @desc   رموز QR لكل الأعضاء الظاهرين في القائمة (نفس ?search و ?role) في ملف ZIP
+//         واحد — للطباعة دفعةً. معه دليل CSV: الرقم، الاسم، المسمّى، المدينة، الرابط.
+// @access Admin (manage_captains)
+router.get('/admin/qr-zip', protect, canManageTeam, async (req, res) => {
+    try {
+        const QRCode = loadQRCode();
+        if (!QRCode) {
+            return res.status(503).json({
+                message: 'مكتبة توليد QR غير مثبّتة على السيرفر — شغّل npm install ثم أعد المحاولة'
+            });
+        }
+
+        const docs = await User.find(adminMembersFilter(req))
+            .select(PUBLIC_FIELDS + ' approvalStatus isActive deletedAt')
+            .limit(500)
+            .lean();
+        if (!docs.length) return res.status(404).json({ message: 'لا أعضاء في القائمة الحالية' });
+
+        docs.sort(compareTeamOrder);
+        await ensurePublicIds(docs);
+
+        const { buildZip } = require('../utils/zipStore');
+        const files = [];
+        const cell = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+        // BOM: بدونه يفتح إكسل العربية رموزاً مكسورة
+        const csv = ['﻿#,الاسم,المسمّى,المدينة,الرابط'];
+        const pad = String(docs.length).length;
+        let count = 0;
+        for (const doc of docs) {
+            const m = toAdminTeamMember(doc);
+            if (!m.publicId) continue;
+            count++;
+            const url = `${TEAM_BASE_URL}/m/${m.publicId}`;
+            const num = String(count).padStart(pad, '0');
+            const name = m.effectiveName || m.name;
+            // الرقم أولاً: ترتيب الملفات = ترتيب الصفحة العامة = ترتيب الطباعة.
+            // وآخر المعرّف يميّز اسمين متطابقين.
+            files.push({
+                name: `${num}-${safeFileName(name)}-${m.publicId.slice(-6)}.png`,
+                data: await QRCode.toBuffer(url, QR_OPTIONS)
+            });
+            const title = (m.jobTitles.length ? m.jobTitles : m.derivedJobTitles).join(' / ');
+            csv.push([num, cell(name), cell(title), cell(m.city), url].join(','));
+        }
+        files.push({ name: 'دليل-البطاقات.csv', data: Buffer.from(csv.join('\r\n'), 'utf8') });
+
+        const stamp = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="wajeez-team-qr-${stamp}.zip"`);
+        res.setHeader('X-Team-Count', String(count));
+        res.send(buildZip(files));
+    } catch (error) {
+        logger.error({ err: error }, '[Team] فشل تنزيل رموز QR');
+        res.status(500).json({ message: 'تعذّر تجهيز ملف الرموز' });
     }
 });
 

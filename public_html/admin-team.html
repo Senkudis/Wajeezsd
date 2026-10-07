@@ -196,6 +196,8 @@
         </select>
         <button class="btn-ghost" id="reloadBtn"><i class="fas fa-rotate" aria-hidden="true"></i> تحديث</button>
         <button class="btn-brand" id="saveOrderBtn" disabled><i class="fas fa-arrow-down-1-9" aria-hidden="true"></i> حفظ الترتيب</button>
+        <!-- كل الرموز في ملف ZIP — يتبع البحث والدور المختارين أعلاه -->
+        <button class="btn-ghost" id="downloadAllQrBtn" title="رموز QR لكل الأعضاء الظاهرين في القائمة"><i class="fas fa-file-zipper" aria-hidden="true"></i> تنزيل كل الرموز</button>
         <a class="btn-ghost" id="viewSiteBtn" href="#" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> عرض الصفحة</a>
     </div>
 
@@ -564,6 +566,7 @@
     async function openQr(id) {
         const member = members.find((m) => m.id === id);
         if (!member) return;
+        qrMember = member;
 
         $('qrTitle').textContent = 'رمز بطاقة ' + member.name;
         $('qrUrl').textContent = '…';
@@ -591,12 +594,59 @@
         if (qrObjectUrl) { URL.revokeObjectURL(qrObjectUrl); qrObjectUrl = null; }
     }
 
+    let qrMember = null;   // صاحب الرمز المفتوح — لاسم الملف
+
+    /** اسم ملفٍ آمن — كان كل رمزٍ يُحفظ wajeez-card.png فتختلط البطاقات */
+    function fileSafe(s) {
+        return String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'member';
+    }
+
+    function saveBlobUrl(url, name) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
     function downloadQr() {
         if (!qrObjectUrl) return;
-        const a = document.createElement('a');
-        a.href = qrObjectUrl;
-        a.download = 'wajeez-card.png';
-        a.click();
+        const m = qrMember || {};
+        saveBlobUrl(qrObjectUrl, 'wajeez-card-' + fileSafe(m.effectiveName || m.name) + '-' + String(m.publicId || '').slice(-6) + '.png');
+    }
+
+    async function downloadAllQr() {
+        const btn = $('downloadAllQrBtn');
+        const params = new URLSearchParams();
+        const search = $('searchInput').value.trim();
+        const role = $('roleFilter').value;
+        if (search) params.set('search', search);
+        if (role) params.set('role', role);
+
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> جارٍ التجهيز…';
+        try {
+            const res = await fetch(BASE + '/api/team/admin/qr-zip?' + params.toString(), { headers: AUTH });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || 'HTTP ' + res.status);
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const cd = res.headers.get('Content-Disposition') || '';
+            const name = (cd.match(/filename="([^"]+)"/) || [])[1] || 'wajeez-team-qr.zip';
+            saveBlobUrl(url, name);
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
+            const n = res.headers.get('X-Team-Count');
+            toast('success', n ? 'تم تنزيل ' + n + ' رمزاً' : 'تم التنزيل');
+        } catch (err) {
+            toast('error', err.message && !/^HTTP/.test(err.message) ? err.message : 'تعذّر تنزيل الرموز');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
     }
 
     // ── الربط ──────────────────────────────────────────────
@@ -616,6 +666,7 @@
     $('saveEditBtn').addEventListener('click', saveEdit);
     $('closeQrBtn').addEventListener('click', closeQr);
     $('downloadQrBtn').addEventListener('click', downloadQr);
+    $('downloadAllQrBtn').addEventListener('click', downloadAllQr);
     $('editModal').addEventListener('click', (e) => { if (e.target === $('editModal')) closeEdit(); });
     $('qrModal').addEventListener('click', (e) => { if (e.target === $('qrModal')) closeQr(); });
 
