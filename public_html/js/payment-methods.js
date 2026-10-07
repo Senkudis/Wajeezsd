@@ -1,5 +1,5 @@
 /**
- * 💳 طرق الدفع — بنكك، ماي كاشي، فوري، أوكاش.
+ * 💳 طرق الدفع — بنكك، ماي كاشي، فوري، أوكاش، برافو.
  *
  * مرآة utils/paymentMethods.js في الخادم: القائمة نفسها بالترتيب نفسه،
  * والفحص نفسه (رقمٌ من 4 إلى 30 خانة، واسمٌ من 3 أحرف فأكثر).
@@ -21,7 +21,8 @@
         { id: 'bankak',  label: 'بنكك',     numberLabel: 'رقم الحساب',  hint: 'رقم حساب بنكك (بنك الخرطوم)' },
         { id: 'mycashi', label: 'ماي كاشي', numberLabel: 'رقم المحفظة', hint: 'رقم محفظة ماي كاشي' },
         { id: 'fawry',   label: 'فوري',     numberLabel: 'رقم الحساب',  hint: 'رقم حساب فوري' },
-        { id: 'ocash',   label: 'أوكاش',    numberLabel: 'رقم الحساب',  hint: 'رقم حساب أوكاش' }
+        { id: 'ocash',   label: 'أوكاش',    numberLabel: 'رقم الحساب',  hint: 'رقم حساب أوكاش' },
+        { id: 'bravo',   label: 'برافو',    numberLabel: 'رقم المحفظة', hint: 'رقم محفظة برافو' }
     ];
     var NUMBER_MIN = 4, NUMBER_MAX = 30, NAME_MIN = 3, NAME_MAX = 80;
     var ICON_DIR = 'icons/payments/';
@@ -348,6 +349,7 @@
         if (/كاشي|cashi/.test(s)) return 'mycashi';
         if (/فوري|fawry|fawri/.test(s)) return 'fawry';
         if (/[اأ]وكاش|o-?cash|ocash|أمدرمان الوطني/.test(s)) return 'ocash';
+        if (/برافو|bravo/.test(s)) return 'bravo';
         return null;
     }
 

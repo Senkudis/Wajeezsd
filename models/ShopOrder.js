@@ -67,7 +67,7 @@ const ShopOrderSchema = new mongoose.Schema({
     paymentReceiptImage: { type: String, default: null }, // صورة إشعار الدفع
     // 💳 الطريقة التي حوّل بها العميل (utils/paymentMethods.js) — التاجر الذي
     //    يقبل بنكك وفوري معاً يعرف أيّ حسابٍ يراجع. 'bank' لحساب المتجر القديم.
-    paidVia: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash', 'bank', ''], default: '' },
+    paidVia: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash', 'bravo', 'bank', ''], default: '' },
 
     status: {
         type: String,

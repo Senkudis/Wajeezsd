@@ -15,7 +15,8 @@ const METHODS = {
     bankak:  { label: 'بنكك',     numberLabel: 'رقم الحساب' },
     mycashi: { label: 'ماي كاشي', numberLabel: 'رقم المحفظة' },
     fawry:   { label: 'فوري',     numberLabel: 'رقم الحساب' },
-    ocash:   { label: 'أوكاش',    numberLabel: 'رقم الحساب' }
+    ocash:   { label: 'أوكاش',    numberLabel: 'رقم الحساب' },
+    bravo:   { label: 'برافو',    numberLabel: 'رقم المحفظة' }
 };
 const METHOD_IDS = Object.keys(METHODS);
 
@@ -97,6 +98,7 @@ function guessMethod(bankName) {
     if (/كاشي|cashi/.test(s)) return 'mycashi';
     if (/فوري|fawry|fawri/.test(s)) return 'fawry';
     if (/[اأ]وكاش|o-?cash|ocash|أمدرمان الوطني/.test(s)) return 'ocash';
+    if (/برافو|bravo/.test(s)) return 'bravo';
     return null;
 }
 

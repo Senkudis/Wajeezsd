@@ -25,7 +25,7 @@ const PlaceSchema = new mongoose.Schema({
     paymentMethods: {
         type: [{
             _id: false,
-            method: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash'], required: true },
+            method: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash', 'bravo'], required: true },
             accountNumber: { type: String, default: '' },
             accountName: { type: String, default: '' }
         }],

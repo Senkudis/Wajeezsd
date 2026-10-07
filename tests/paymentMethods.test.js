@@ -26,8 +26,8 @@ beforeAll(() => {
 });
 
 describe('القائمة', () => {
-    it('الطرق الأربع بالترتيب نفسه في الخادم والواجهة', () => {
-        expect(PM.METHOD_IDS).toEqual(['bankak', 'mycashi', 'fawry', 'ocash']);
+    it('الطرق الخمس بالترتيب نفسه في الخادم والواجهة (برافو أُضيفت أكتوبر 2026)', () => {
+        expect(PM.METHOD_IDS).toEqual(['bankak', 'mycashi', 'fawry', 'ocash', 'bravo']);
         expect(FE.LIST.map(m => m.id)).toEqual(PM.METHOD_IDS);
         expect(FE.LIST.map(m => m.label)).toEqual(PM.METHOD_IDS.map(id => PM.METHODS[id].label));
     });
@@ -42,7 +42,7 @@ describe('القائمة', () => {
 
     it('والنموذجان يقبلان الطرق الأربع وحدها', () => {
         for (const f of ['models/Place.js', 'models/MerchantRequest.js']) {
-            expect(read(f), f).toContain("enum: ['bankak', 'mycashi', 'fawry', 'ocash']");
+            expect(read(f), f).toContain("enum: ['bankak', 'mycashi', 'fawry', 'ocash', 'bravo']");
         }
     });
 
@@ -116,7 +116,7 @@ describe('المتجر القديم (حسابٌ واحدٌ نصّيّ) لا يخ
     });
 
     it('تخمين الطريقة نفسه في الخادم والواجهة', () => {
-        for (const s of ['بنكك', 'بنك الخرطوم', 'ماي كاشي', 'MyCashi', 'فوري', 'أوكاش', 'O-Cash', 'بنك أمدرمان الوطني', 'بنك النيل', '']) {
+        for (const s of ['بنكك', 'بنك الخرطوم', 'ماي كاشي', 'MyCashi', 'فوري', 'أوكاش', 'O-Cash', 'بنك أمدرمان الوطني', 'برافو', 'Bravo', 'بنك النيل', '']) {
             expect(FE.guessMethod(s), s).toBe(PM.guessMethod(s));
         }
     });
@@ -205,7 +205,7 @@ describe('مراجعة المنطق — إشعار الدفع', () => {
             expect(r, name).toContain("paidVia: via.method");
             expect(r, name).toContain('عبر ${via.label}');
         }
-        expect(read('models/ShopOrder.js')).toContain("paidVia: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash', 'bank', ''], default: '' }");
+        expect(read('models/ShopOrder.js')).toContain("paidVia: { type: String, enum: ['bankak', 'mycashi', 'fawry', 'ocash', 'bravo', 'bank', ''], default: '' }");
     });
 
     it('العميل يختار الطريقة قبل رفع الإشعار حين تتعدّد — ويرسلها', () => {
@@ -281,5 +281,15 @@ describe('الواجهات', () => {
 
     it('بلا رموز تعبيرية في الوحدة', () => {
         expect(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(read('public_html/js/payment-methods.js').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ''))).toBe(false);
+    });
+});
+
+describe('برافو', () => {
+    it('طريقةٌ مقبولة برقم محفظة، وتُعرف من الاسم النصّي', () => {
+        const r = PM.cleanPaymentMethods([{ method: 'bravo', accountNumber: '0912 345 678', accountName: 'محل النور' }], { required: true });
+        expect(r.ok).toBe(true);
+        expect(r.methods[0]).toEqual({ method: 'bravo', accountNumber: '0912345678', accountName: 'محل النور' });
+        expect(PM.METHODS.bravo.numberLabel).toBe('رقم المحفظة');
+        expect(PM.guessMethod('محفظة برافو')).toBe('bravo');
     });
 });
