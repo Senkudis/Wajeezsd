@@ -665,6 +665,7 @@ const startScheduler = (app) => {
                 // 🔔 FCM Push للكباتن النشطين (التطبيق مقفول)
                 try {
                     const { sendPushToMany } = require('./utils/firebasePush');
+                    const { dispatchInHexWaves } = require('./utils/captainDispatch');
                     // 🌍 عزل المدن: أرسل فقط لكباتن مدينة الطلب — لا تُنبّه كل كباتن السودان.
                     // (نفس المبدأ المطبَّق في بث السوكت أعلاه cityRoom وفي routes/merchant.js)
                     const activeCaptains = await User.find({
@@ -672,22 +673,31 @@ const startScheduler = (app) => {
                         city: order.city || 'Khartoum',
                         fcmToken: { $exists: true, $ne: null },
                         isActive: true
-                    }).select('fcmToken');
+                    }).select('fcmToken currentLocation');
 
-                    const tokens = activeCaptains.map(c => c.fcmToken).filter(Boolean);
-                    if (tokens.length > 0) {
-                        const isShop = order.orderType === 'shop';
-                        const title = isShop ? '🛒 طلب محل مجدول متاح الآن! 🚨' : '📦 طلب توصيل مجدول متاح الآن! 🚨';
-                        const body  = isShop
-                            ? `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س — تم نشره الآن`
-                            : `طلب توصيل بسعر ${order.price} ج.س — تم نشره الآن`;
-                        await sendPushToMany(tokens, title, body, {
-                            type: isShop ? 'shop_order' : 'new_order',
-                            orderId: order._id.toString(),
-                            url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
-                        });
-                        logger.info({ orderId: order._id, captainCount: tokens.length }, 'Scheduled order FCM push sent');
-                    }
+                    const isShop = order.orderType === 'shop';
+                    const title = isShop ? '🛒 طلب محل مجدول متاح الآن! 🚨' : '📦 طلب توصيل مجدول متاح الآن! 🚨';
+                    const body  = isShop
+                        ? `طلب من ${order.shopName || 'محل'} بسعر ${order.price} ج.س — تم نشره الآن`
+                        : `طلب توصيل بسعر ${order.price} ج.س — تم نشره الآن`;
+                    const pushData = {
+                        type: isShop ? 'shop_order' : 'new_order',
+                        orderId: order._id.toString(),
+                        url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
+                    };
+                    // 🔷 موجات سداسية من الأقرب للأبعد (utils/captainDispatch.js)
+                    await dispatchInHexWaves({
+                        captains: activeCaptains.map(c => ({ fcmToken: c.fcmToken, currentLocation: c.currentLocation })),
+                        pickup: order.pickup,
+                        send: (tokens) => sendPushToMany(tokens, title, body, pushData),
+                        stillPending: async () => {
+                            const fresh = await Order.findById(order._id).select('status captain').lean();
+                            return !!fresh && fresh.status === 'pending' && !fresh.captain;
+                        },
+                        onAllDispatched: () => Order.updateOne({ _id: order._id }, { $set: { dispatchedAllAt: new Date() } }),
+                        log: logger,
+                        meta: { orderId: order._id, city: order.city, scheduled: true }
+                    });
                 } catch (pushErr) {
                     logger.error({ err: pushErr, orderId: order._id }, 'Scheduled order FCM push failed');
                 }
@@ -710,8 +720,12 @@ const startScheduler = (app) => {
                 status: 'pending',
                 captain: null,
                 dispatchedAllAt: null,
-                scheduledAt: null,
-                createdAt: { $lt: cutoff }
+                // المجدول يُنشر عند scheduledAt — فمهلته تُحسب منه لا من الإنشاء.
+                // (موجاته السداسية تعمل بمؤقّتات في الذاكرة كغيرها، فتحتاج الشبكة نفسها)
+                $or: [
+                    { scheduledAt: null, createdAt: { $lt: cutoff } },
+                    { scheduledAt: { $ne: null, $lt: cutoff } }
+                ]
             }).select('_id city orderType shopName price').limit(50);
 
             if (!stale.length) return;

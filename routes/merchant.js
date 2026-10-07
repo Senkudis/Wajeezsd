@@ -746,24 +746,41 @@ router.put('/orders/:id/ready', protect, merchantOnly, async (req, res) => {
             });
         }
         
-        // 📣 Send Push ONLY to captains in the same city
+        // 📣 Send Push ONLY to captains in the same city — موجات سداسية من الأقرب
+        //    للمتجر فالأبعد (utils/captainDispatch.js). كان بثّاً لكل كباتن المدينة دفعةً واحدة.
         try {
             const { sendPushToMany } = require('../utils/firebasePush');
+            const { dispatchInHexWaves } = require('../utils/captainDispatch');
+            const Order = require('../models/Order');   // غير مستورد أعلى الملف — كما في بقية المسارات هنا
             const activeCaptains = await User.find({
                 role: 'captain',
                 city: orderCity,   // 🌍 Scoped to order's city
                 fcmToken: { $exists: true, $ne: null },
                 isActive: true
-            }).select('fcmToken');
+            }).select('fcmToken currentLocation');
 
-            const tokens = activeCaptains.map(c => c.fcmToken);
-            if (tokens.length > 0) {
-                await sendPushToMany(tokens, '🛒 طلب محل جاهز! 🚨', `طلب من ${place.name} بسعر ${newDeliveryOrder.price} ج.س. متاح للتوصيل الآن!`, {
-                    type: 'shop_order',
-                    orderId: newDeliveryOrder._id.toString(),
-                    url: `/captain-orders.html?highlight=${newDeliveryOrder._id.toString()}` // 🧭 وجهة الكابتن
-                });
-            }
+            const deliveryId = newDeliveryOrder._id;
+            const pushData = {
+                type: 'shop_order',
+                orderId: deliveryId.toString(),
+                url: `/captain-orders.html?highlight=${deliveryId.toString()}` // 🧭 وجهة الكابتن
+            };
+            await dispatchInHexWaves({
+                captains: activeCaptains.map(c => ({ fcmToken: c.fcmToken, currentLocation: c.currentLocation })),
+                // نقطة الاستلام = المتجر؛ وإن غابت إحداثيات الطلب فإحداثيات المحل
+                pickup: (newDeliveryOrder.pickup && newDeliveryOrder.pickup.lat != null)
+                    ? newDeliveryOrder.pickup : (place.location || place),
+                send: (tokens) => sendPushToMany(tokens, '🛒 طلب محل جاهز! 🚨',
+                    `طلب من ${place.name} بسعر ${newDeliveryOrder.price} ج.س. متاح للتوصيل الآن!`, pushData),
+                stillPending: async () => {
+                    const fresh = await Order.findById(deliveryId).select('status captain').lean();
+                    return !!fresh && fresh.status === 'pending' && !fresh.captain;
+                },
+                // 🏷️ كان يبقى null فتعيد شبكة الأمان في scheduler البثّ للكل بعد 90ث
+                onAllDispatched: () => Order.updateOne({ _id: deliveryId }, { $set: { dispatchedAllAt: new Date() } }),
+                log: logger,
+                meta: { orderId: deliveryId, city: orderCity, shop: true }
+            });
         } catch (pushErr) {
             logger.error({ err: pushErr }, 'Captain push failed for shop order');
         }

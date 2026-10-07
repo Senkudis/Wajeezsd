@@ -1,97 +1,142 @@
 /**
- * Unit tests — utils/captainDispatch.planDispatch
- * التوزيع الذكي: الأقرب أولاً، مع ضمان وصول البقية كموجة ثانية.
+ * Unit tests — utils/captainDispatch: موجات سداسية (H3) من الأقرب للأبعد.
+ *
+ * يحرس: ترتيب الحلقات، وأن البعيد لا يُشعَر قبل القريب، وأن الوصول للكل
+ * مضمون (آخر موجة = البقية)، وأن الموجات تتوقّف لحظة قبول الطلب.
  */
-const { planDispatch } = require('../utils/captainDispatch');
+const h3 = require('h3-js');
+const { planHexWaves, dispatchInHexWaves, H3_RES, WAVE_GAP_MS } = require('../utils/captainDispatch');
 
 const PICKUP = { lat: 15.5007, lng: 32.5599 }; // الخرطوم
-// كباتن على مسافات متزايدة
-const near = { fcmToken: 'near',  currentLocation: { lat: 15.5020, lng: 32.5610 } }; // ~0.2كم
-const mid  = { fcmToken: 'mid',   currentLocation: { lat: 15.5300, lng: 32.5900 } }; // ~4كم
-const far  = { fcmToken: 'far',   currentLocation: { lat: 15.6500, lng: 32.7000 } }; // ~20كم
-const noLoc = { fcmToken: 'noloc' };                                                  // بلا موقع
+const NOW = Date.parse('2026-10-07T12:00:00Z');
+const fresh = (lat, lng) => ({ lat, lng, fixedAt: new Date(NOW - 60 * 1000) });
 
-describe('planDispatch', () => {
-    it('يرتّب الأقرب أولاً', () => {
-        const { near: n } = planDispatch([far, near, mid], PICKUP, { nearCount: 3 });
-        expect(n).toEqual(['near', 'mid', 'far']);
+const c0    = { fcmToken: 'same',  currentLocation: fresh(15.5010, 32.5602) };  // نفس الخليّة تقريباً
+const cMid  = { fcmToken: 'mid',   currentLocation: fresh(15.5300, 32.5900) };  // ≈ 4.4 كم
+const cFar  = { fcmToken: 'far',   currentLocation: fresh(15.6500, 32.7000) };  // ≈ 22 كم
+const noLoc = { fcmToken: 'noloc' };
+
+const ringOf = (p) => h3.gridDistance(h3.latLngToCell(PICKUP.lat, PICKUP.lng, H3_RES), h3.latLngToCell(p.lat, p.lng, H3_RES));
+
+describe('planHexWaves', () => {
+    it('الدقّة 8 والحلقة ≈ كيلومتر — الكابتن على 4.4كم في الحلقة 4–6', () => {
+        const r = ringOf(cMid.currentLocation);
+        expect(r).toBeGreaterThanOrEqual(4);
+        expect(r).toBeLessThanOrEqual(6);
     });
 
-    it('كل الكباتن في موجة واحدة إذا عددهم ≤ nearCount', () => {
-        const { near: n, rest } = planDispatch([near, mid], PICKUP, { nearCount: 8 });
-        expect(n.sort()).toEqual(['mid', 'near']);
-        expect(rest).toEqual([]);
+    it('الأقرب في أول موجة، والأبعد ومن بلا موقع في آخرها', () => {
+        const waves = planHexWaves([cFar, noLoc, cMid, c0], PICKUP, { now: NOW });
+        expect(waves.map(w => w.tokens)).toEqual([['same'], ['mid'], ['far', 'noloc']]);
+        expect(waves[0].rings).toEqual([0, 1]);
+        expect(waves[waves.length - 1].rings).toBeNull();
     });
 
-    it('🌊 يقسّم لموجتين: الأقرب في الأولى والبقية في الثانية', () => {
-        const many = Array.from({ length: 12 }, (_, i) => ({
-            fcmToken: 't' + i,
-            currentLocation: { lat: 15.50 + i * 0.01, lng: 32.56 } // الأبعد كلما زاد i
-        }));
-        const { near: n, rest } = planDispatch(many, PICKUP, { nearCount: 5 });
-        expect(n).toHaveLength(5);
-        expect(rest).toHaveLength(7);
-        expect(n[0]).toBe('t0'); // الأقرب
+    it('الحلقات الفارغة تُطوى — لا موجة فارغة ينتظرها أحد', () => {
+        const waves = planHexWaves([cMid, cFar], PICKUP, { now: NOW });
+        expect(waves.every(w => w.tokens.length > 0)).toBe(true);
+        expect(waves[0].tokens).toEqual(['mid']);
     });
 
-    it('الكباتن بلا موقع يُعامَلون كأبعد (آخر الترتيب)', () => {
-        const { near: n } = planDispatch([noLoc, near], PICKUP, { nearCount: 2 });
-        expect(n[0]).toBe('near');
-        expect(n[1]).toBe('noloc');
+    it('كل كابتن مرة واحدة — والوصول للكل مضمون', () => {
+        const all = [c0, cMid, cFar, noLoc];
+        const tokens = planHexWaves(all, PICKUP, { now: NOW }).flatMap(w => w.tokens);
+        expect(tokens.sort()).toEqual(['far', 'mid', 'noloc', 'same']);
     });
 
-    it('🔒 يزيل تكرار التوكن (جهاز واحد) ويُبقي الأقرب', () => {
-        const dup = { fcmToken: 'near', currentLocation: { lat: 15.60, lng: 32.70 } }; // نفس التوكن، أبعد
-        const { near: n } = planDispatch([dup, near], PICKUP, { nearCount: 8 });
-        expect(n).toEqual(['near']); // مرّة واحدة
+    it('توكن مكرّر (جهاز واحد) يُحسب بأقرب موقع', () => {
+        const dupFar = { fcmToken: 'same', currentLocation: cFar.currentLocation };
+        const waves = planHexWaves([dupFar, c0], PICKUP, { now: NOW });
+        expect(waves).toHaveLength(1);
+        expect(waves[0].tokens).toEqual(['same']);
     });
 
-    it('بلا إحداثيات طلب: الجميع بعيد لكن يُوزَّعون (لا انهيار)', () => {
-        const { near: n } = planDispatch([near, mid, far], {}, { nearCount: 8 });
-        expect(n.sort()).toEqual(['far', 'mid', 'near']);
+    it('موقعٌ أقدم من 30 دقيقة لا يجعل صاحبه «الأقرب»', () => {
+        const stale = { fcmToken: 'stale', currentLocation: { lat: 15.5010, lng: 32.5602, fixedAt: new Date(NOW - 2 * 3600 * 1000) } };
+        const waves = planHexWaves([stale, cMid], PICKUP, { now: NOW });
+        expect(waves[0].tokens).toEqual(['mid']);
+        expect(waves[waves.length - 1].tokens).toContain('stale');
     });
 
-    // ── حجم الموجة الأولى الافتراضي (بلا nearCount صريح) ──
-    it('افتراضياً: الموجة الأولى بنصف القطر لا بعدد ثابت — البعيدون في الثانية', () => {
-        // 40 كابتناً: 30 داخل ~1كم و10 على مسافات كبيرة
-        const close = Array.from({ length: 30 }, (_, i) => ({
-            fcmToken: 'c' + i,
-            currentLocation: { lat: 15.5007 + i * 0.0002, lng: 32.5599 }
-        }));
-        const distant = Array.from({ length: 10 }, (_, i) => ({
-            fcmToken: 'd' + i,
-            currentLocation: { lat: 15.5007 + 0.3 + i * 0.05, lng: 32.5599 }
-        }));
-        const { near: n, rest } = planDispatch([...distant, ...close], PICKUP);
-        expect(n).toHaveLength(25);              // maxNear يمنع البثّ الشامل
-        expect(rest).toHaveLength(15);           // البقية شبكة أمان بعد 18ث
-        expect(n.every(t => t.startsWith('c'))).toBe(true);
+    it('بلا إحداثيات استلام ⇒ الكل في موجة واحدة (لا ترتيب ممكن، لا ضياع)', () => {
+        const waves = planHexWaves([c0, cMid, cFar], {}, { now: NOW });
+        expect(waves).toHaveLength(1);
+        expect(waves[0].tokens).toHaveLength(3);
     });
 
-    it('افتراضياً: منطقة متفرقة — minNear يضمن ألا تكون الموجة الأولى ضئيلة', () => {
-        // كابتن واحد قريب و11 بعيدين ⇒ لولا minNear لكانت الموجة الأولى بواحد فقط
-        const only = { fcmToken: 'close', currentLocation: { lat: 15.5010, lng: 32.5601 } };
-        const distant = Array.from({ length: 11 }, (_, i) => ({
-            fcmToken: 'd' + i,
-            currentLocation: { lat: 15.5007 + 0.3 + i * 0.05, lng: 32.5599 }
-        }));
-        const { near: n, rest } = planDispatch([...distant, only], PICKUP);
-        expect(n).toHaveLength(8);
-        expect(n[0]).toBe('close');
-        expect(rest).toHaveLength(4);
+    it('(0,0) ليس موقعاً — يُعامَل كمجهول', () => {
+        const zero = { fcmToken: 'zero', currentLocation: { lat: 0, lng: 0, fixedAt: new Date(NOW) } };
+        const waves = planHexWaves([zero, c0], PICKUP, { now: NOW });
+        expect(waves[0].tokens).toEqual(['same']);
     });
 
-    it('nearCount الصريح يتجاوز حساب نصف القطر', () => {
-        const many = Array.from({ length: 30 }, (_, i) => ({
-            fcmToken: 't' + i,
-            currentLocation: { lat: 15.5007 + i * 0.0002, lng: 32.5599 }
-        }));
-        expect(planDispatch(many, PICKUP, { nearCount: 3 }).near).toHaveLength(3);
+    it('مدخلات فارغة', () => {
+        expect(planHexWaves([], PICKUP)).toEqual([]);
+        expect(planHexWaves(null, PICKUP)).toEqual([]);
+        expect(planHexWaves([{ currentLocation: PICKUP }], PICKUP)).toEqual([]);
+    });
+});
+
+describe('dispatchInHexWaves', () => {
+    beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+
+    it('الأولى فوراً، والتالية كل فاصل — ثم علامة «بُثّ للكل»', async () => {
+        const sent = [];
+        const onAll = vi.fn(async () => {});
+        const res = await dispatchInHexWaves({
+            captains: [cFar, cMid, c0],
+            pickup: PICKUP,
+            send: async (t) => { sent.push(t); return { success: t.length }; },
+            stillPending: async () => true,
+            onAllDispatched: onAll
+        });
+        expect(res).toEqual({ waves: 3, first: 1 });
+        expect(sent).toEqual([['same']]);
+
+        await vi.advanceTimersByTimeAsync(WAVE_GAP_MS - 1);
+        expect(sent).toHaveLength(1);           // البعيد لا يسبق الفاصل
+        await vi.advanceTimersByTimeAsync(1);
+        await flush();
+        expect(sent).toEqual([['same'], ['mid']]);
+        expect(onAll).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(WAVE_GAP_MS);
+        await flush();
+        expect(sent).toEqual([['same'], ['mid'], ['far']]);
+        expect(onAll).toHaveBeenCalledTimes(1);
     });
 
-    it('يتجاهل المدخلات بلا توكن ويتحمّل قائمة فارغة', () => {
-        expect(planDispatch([{ currentLocation: PICKUP }], PICKUP)).toEqual({ near: [], rest: [] });
-        expect(planDispatch([], PICKUP)).toEqual({ near: [], rest: [] });
-        expect(planDispatch(null, PICKUP)).toEqual({ near: [], rest: [] });
+    it('قُبل الطلب ⇒ تتوقّف الموجات ولا يُزعج البعيد', async () => {
+        const sent = [];
+        let pending = true;
+        await dispatchInHexWaves({
+            captains: [cFar, cMid, c0],
+            pickup: PICKUP,
+            send: async (t) => { sent.push(t); return {}; },
+            stillPending: async () => pending
+        });
+        pending = false;    // الأقرب قبل خلال الفاصل
+        await vi.advanceTimersByTimeAsync(WAVE_GAP_MS * 5);
+        await flush();
+        expect(sent).toEqual([['same']]);
+    });
+
+    it('موجة واحدة ⇒ العلامة فوراً', async () => {
+        const onAll = vi.fn(async () => {});
+        await dispatchInHexWaves({
+            captains: [c0], pickup: PICKUP,
+            send: async () => ({}), stillPending: async () => true, onAllDispatched: onAll
+        });
+        expect(onAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('بلا كباتن ⇒ لا إرسال', async () => {
+        const send = vi.fn();
+        const res = await dispatchInHexWaves({ captains: [], pickup: PICKUP, send, stillPending: async () => true });
+        expect(res).toEqual({ waves: 0, first: 0 });
+        expect(send).not.toHaveBeenCalled();
     });
 });

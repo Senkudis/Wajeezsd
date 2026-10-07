@@ -474,7 +474,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             setImmediate(async () => {
                 try {
                     const { sendPushToMany } = require('../utils/firebasePush');
-                    const { planDispatch } = require('../utils/captainDispatch');
+                    const { dispatchInHexWaves } = require('../utils/captainDispatch');
 
                     // كباتن المدينة الفعّالون ذوو توكن FCM (+ موقعهم للترتيب بالقرب)
                     // ⚠️ غياب `isAvailableForWork` هنا **مقصود** — لا تُضفه.
@@ -489,12 +489,7 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                         isActive: true              // account not suspended by admin
                     }).select('fcmToken currentLocation');
 
-                    const { near, rest } = planDispatch(
-                        activeCaptains.map(c => ({ fcmToken: c.fcmToken, currentLocation: c.currentLocation })),
-                        order.pickup
-                    );
-
-                    if (near.length === 0) {
+                    if (activeCaptains.length === 0) {
                         // 🔍 قابلية التشخيص: صفر توكنات (مدينة/isActive/توكن مفقود) — حالة كانت صامتة
                         logger.warn({ orderId: order._id, city: order.city }, 'New order: no captain FCM tokens in city — push skipped');
                         return;
@@ -520,41 +515,21 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                         url: `/captain-orders.html?highlight=${order._id.toString()}` // 🧭 وجهة الكابتن
                     };
 
-                    // 🌊 الموجة 1: الأقرب فوراً
-                    const r1 = await sendPushToMany(near, title, bodyMsg, pushData);
-                    logger.info({
-                        orderId: order._id, city: order.city, wave: 1,
-                        targeted: near.length, sent: r1.success, failed: r1.failure
-                    }, 'New order captain push (wave 1 — nearest)');
-
-                    // لا موجة ثانية (كل الكباتن في الأولى) ⇒ علّم البثّ للكل مكتملاً
-                    if (rest.length === 0) {
-                        await Order.updateOne({ _id: order._id }, { $set: { dispatchedAllAt: new Date() } });
-                    }
-
-                    // 🌊 الموجة 2: بقية كباتن المدينة بعد مهلة قصيرة، فقط إن ظلّ الطلب معلّقاً.
-                    // شبكة أمان: لو ضاع إشعار الأقرب ولم يُقبل الطلب، يصل الجميع خلال ~18ث.
-                    // (لو قَبِل الأقرب سريعاً لا نُزعج البقية — الطلب لم يعد متاحاً.)
-                    if (rest.length) {
-                        setTimeout(async () => {
-                            try {
-                                const fresh = await Order.findById(order._id).select('status captain');
-                                if (fresh && fresh.status === 'pending' && !fresh.captain) {
-                                    const r2 = await sendPushToMany(rest, title, bodyMsg, pushData);
-                                    // 🏷️ علّم أن البثّ للكل تمّ — يمنع شبكة الأمان في scheduler من التكرار
-                                    await Order.updateOne({ _id: order._id }, { $set: { dispatchedAllAt: new Date() } });
-                                    logger.info({
-                                        orderId: order._id, city: order.city, wave: 2,
-                                        targeted: rest.length, sent: r2.success, failed: r2.failure
-                                    }, 'New order captain push (wave 2 — fallback to all)');
-                                } else {
-                                    logger.debug({ orderId: order._id }, 'Wave 2 skipped — order no longer pending');
-                                }
-                            } catch (w2Err) {
-                                logger.error({ err: w2Err, orderId: order._id }, 'Wave 2 push failed');
-                            }
-                        }, 18000);
-                    }
+                    // 🔷 موجات سداسية (H3): حلقات الخلايا حول نقطة الاستلام، الأقرب
+                    //    فالأبعد كل 8ث، وتتوقّف لحظة قبول الطلب. آخر موجة = كل من تبقّى.
+                    await dispatchInHexWaves({
+                        captains: activeCaptains.map(c => ({ fcmToken: c.fcmToken, currentLocation: c.currentLocation })),
+                        pickup: order.pickup,
+                        send: (tokens) => sendPushToMany(tokens, title, bodyMsg, pushData),
+                        stillPending: async () => {
+                            const fresh = await Order.findById(order._id).select('status captain').lean();
+                            return !!fresh && fresh.status === 'pending' && !fresh.captain;
+                        },
+                        // 🏷️ البثّ للكل تمّ — يمنع شبكة الأمان في scheduler من التكرار
+                        onAllDispatched: () => Order.updateOne({ _id: order._id }, { $set: { dispatchedAllAt: new Date() } }),
+                        log: logger,
+                        meta: { orderId: order._id, city: order.city }
+                    });
                     // ملاحظة: إشعار/دفعة الأدمن تُعالَج عبر notifyAdmins (حفظ + socket + push) أعلاه.
                 } catch (pushErr) {
                     logger.error({ err: pushErr }, 'Multicast Push Failed in background');
