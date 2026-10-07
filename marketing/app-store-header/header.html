@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--
+  بانر رأس صفحة التطبيق في App Store («Header» في App Store Connect).
+  المقاسات المقبولة: 5244×2950 و 3840×1646. الصفحة تُرسم بأيٍّ منهما:
+    render.sh يفتحها بنافذةٍ بنصف المقاس وبمعامل كثافة 2.
+  كل الأبعاد بوحدات vh/vw فيتكيّف التخطيط مع النسبتين (16:9 تقريباً و 2.33:1).
+  المحتوى المهمّ داخل الوسط — المتجر قد يقصّ الأطراف أو يضع فوقها اسم التطبيق.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+    @font-face { font-family: 'Alarabiya'; src: url('../../public_html/assets/fonts/brand/alarabiya.woff2') format('woff2'); unicode-range: U+0000-061E, U+0620-10FFFF; }
+    @font-face { font-family: 'ArabicModern'; src: url('../../public_html/assets/fonts/brand/arabic-modern-bold.woff2') format('woff2'); }
+    @font-face { font-family: 'Intro'; src: url('../../public_html/assets/fonts/brand/intro-bold.woff2') format('woff2'); }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; }
+    body {
+        background: #04553A; color: #fff; font-synthesis: none;
+        display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+        padding: 0 9vw;
+        position: relative;
+    }
+
+    .copy { position: relative; z-index: 1; padding-inline-end: 4vw; }
+    .logo { height: 9vh; margin-bottom: 5vh; display: block; }
+    h1 {
+        font-family: 'Intro', 'Alarabiya', sans-serif; font-weight: 400;
+        font-size: 11.5vh; line-height: 1.25; margin-bottom: 3.5vh;
+    }
+    h1 em { font-style: normal; color: #f0cf7a; }
+    .sub {
+        font-family: 'Intro', 'ArabicModern', sans-serif;
+        font-size: 3.6vh; line-height: 1.6; color: #d7e9df; max-width: 26ch; margin-bottom: 4.5vh;
+    }
+    .cities {
+        display: inline-flex; gap: 1.6vh; align-items: center;
+        font-family: 'Intro', 'ArabicModern', sans-serif; font-size: 3vh; color: #fff;
+    }
+    .cities span { border: .2vh solid rgba(255,255,255,.35); border-radius: 1.4vh; padding: .6vh 2vh; }
+    .cities span.new { border-color: #c5972a; color: #f0cf7a; }
+
+    .phones { position: relative; z-index: 1; height: 100vh; }
+    .phone {
+        position: absolute; top: 50%; width: 22vh; aspect-ratio: 1290 / 2796;
+        border: 1.1vh solid #0d1512; border-radius: 4.4vh; overflow: hidden; background: #0d1512;
+        box-shadow: 0 3vh 6vh rgba(0, 0, 0, .35);
+    }
+    .phone img { width: 100%; height: 100%; object-fit: cover; border-radius: 3.3vh; display: block; }
+    /* هاتفان: التسوّق في المقدّمة، وصفحة المتجر خلفه مائلة.
+       (لقطة الرئيسية تحمل إعلاناً داخلياً قديماً مقصوص النصّ — لا تصلح لإعلان) */
+    .phone.mid { width: 34vh; left: 58%; transform: translate(-50%, -50%); z-index: 2; }
+    .phone.l { width: 30vh; left: 58%; transform: translate(-118%, -44%) rotate(-7deg); }
+</style>
+</head>
+<body>
+    <div class="copy">
+        <img class="logo" src="../../public_html/logo-white.png" alt="">
+        <h1>كل ما تحتاجه<br><em>يوصلك</em></h1>
+        <p class="sub">اطلب من متاجر مدينتك، وصّل أي شيء، أو خلّ الكابتن يشتري لك.</p>
+        <div class="cities"><span>أم درمان</span><span>بورتسودان</span><span class="new">عطبرة</span></div>
+    </div>
+    <div class="phones">
+        <div class="phone l"><img src="../../resources/ios/screenshots/03-صفحة-متجر.png" alt=""></div>
+        <div class="phone mid"><img src="../../resources/ios/screenshots/02-تسوق-المتاجر.png" alt=""></div>
+    </div>
+</body>
+</html>

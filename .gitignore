@@ -103,3 +103,6 @@ marketing/reel2/out/
 # خطوط الهوية المرخّصة بصيغة الويب — المستودع عام، فلا تُنشر فيه.
 # تُرفع إلى السيرفر يدوياً مع public_html (المصدر: marketing/brand-fonts/)
 public_html/assets/fonts/brand/
+
+# بانر App Store: المخرجات تُولَّد من header.html
+marketing/app-store-header/*.png
