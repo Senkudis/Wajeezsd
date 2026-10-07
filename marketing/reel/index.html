@@ -1,0 +1,229 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+/* خطوط البراند الرسمية: العربي Alarabiya، الإنجليزي Intro (marketing/brand-fonts) */
+@font-face { font-family: 'Alarabiya'; src: url('../brand-fonts/alarabiya/Alarabiya Normal Font.ttf'); }
+@font-face { font-family: 'IntroBlack'; src: url('../brand-fonts/intro/Intro Black Alt.otf'); }
+@font-face { font-family: 'IntroBold'; src: url('../brand-fonts/intro/Intro Bold Alt.otf'); }
+</style>
+<style>html,body{margin:0;background:#111}canvas{display:block;max-height:100vh}</style>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// إعلان وجيز — 15 ث، 9:16. كل إطار دالةٌ نقيّة في الزمن: window.seek(t).
+const W = 1080, H = 1920, DUR = 15;
+const g = document.getElementById('c').getContext('2d');
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+function spring(t, k = 170, d = 26) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(k), z = d / (2 * w0);
+  if (z < 1) { const wd = w0 * Math.sqrt(1 - z * z);
+    return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t)); }
+  return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+}
+const SNAP = [320, 30], DEF = [170, 26], HEAVY = [110, 20], PLAY = [240, 16];
+const sp = (t, p) => spring(t, p[0], p[1]);
+const easeIO = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+
+// الهوية: أخضر داكن، أخضر الشعار، أصفر السهم، وورقيّ فاتح
+const C = { deep: '#0A3B2C', green: '#0A8754', brand: '#04553A', yellow: '#F6B40E', paper: '#F4F1EA', ink: '#0B1F17', white: '#FFFFFF' };
+// Intro أولاً (لاتيني فقط) ثم Alarabiya للعربي — خطوط البراند الرسمية
+const DISPLAY = 'IntroBlack, Alarabiya', UI = 'IntroBold, Alarabiya';
+
+// ── الصور ───────────────────────────────────────────────
+const SRC = { road: 'img/road.jpg', box: 'img/box.jpg', bike: 'img/bike.jpg', logoW: 'img/logo-white.png', logo: 'img/logo.png',
+  home: 'img/s_home.png', shop: 'img/s_shopDetail.png', offers: 'img/s_ordersOffers.png', track: 'img/s_tracking.png', accepted: 'img/s_acceptedPopup.png' };
+const IMG = {};
+window.ready = Promise.all(Object.entries(SRC).map(([k, s]) => new Promise((res, rej) => {
+  const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => rej(new Error(s)); i.src = s; })))
+  .then(() => Promise.all(['100px Alarabiya', '100px IntroBlack', '100px IntroBold'].map(f => document.fonts.load(f, 'وجيز Google Play'))));
+
+// صورةٌ تملأ مستطيلاً (cover) بتكبيرٍ ونقطة تركيز
+function cover(im, x, y, w, h, zoom = 1, fx = .5, fy = .5) {
+  const s = Math.max(w / im.width, h / im.height) * zoom;
+  const dw = im.width * s, dh = im.height * s;
+  g.drawImage(im, x + (w - dw) * fx, y + (h - dh) * fy, dw, dh);
+}
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+function text(s, x, y, size, { weight = 400, font = DISPLAY, color = C.white, align = 'right', alpha = 1 } = {}) {
+  g.save(); g.globalAlpha *= alpha; g.direction = 'rtl'; g.textAlign = align; g.textBaseline = 'alphabetic';
+  g.font = `${weight} ${size}px ${font}`; g.fillStyle = color; g.fillText(s, x, y); g.restore();
+}
+const tw = (s, size, weight = 400, font = DISPLAY) => { g.save(); g.font = `${weight} ${size}px ${font}`; g.direction = 'rtl'; const w = g.measureText(s).width; g.restore(); return w; };
+
+// كلمةٌ تصعد من تحت قناعها بنابض — لا تلاشٍ
+function rise(s, x, y, size, t, opt = {}) {
+  const k = sp(t, opt.p || SNAP);
+  if (k <= 0) return;
+  g.save(); g.beginPath(); g.rect(0, y - size * 1.25, W, size * 1.55); g.clip();
+  text(s, x, y + (1 - k) * size * 1.3, size, opt);
+  g.restore();
+}
+
+// السهم الأصفر (من الشعار) — أداة الانتقال والزخرفة
+function chevron(cx, cy, size, stroke, color = C.yellow, rot = 0) {
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.strokeStyle = color; g.lineWidth = stroke; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(-size * .35, -size * .5); g.lineTo(size * .35, 0); g.lineTo(-size * .35, size * .5); g.stroke(); g.restore();
+}
+// حلقة الشعار تُرسم تدريجياً
+function ring(cx, cy, r, stroke, k, color = C.green, start = -Math.PI * .25) {
+  if (k <= 0) return;
+  g.save(); g.strokeStyle = color; g.lineWidth = stroke; g.lineCap = 'round';
+  g.beginPath(); g.arc(cx, cy, r, start, start + Math.PI * 1.55 * k); g.stroke(); g.restore();
+}
+
+// هاتفٌ بشاشةٍ حقيقية من التطبيق، مع تمرير داخلي
+function phone(cx, cy, w, screens, opt = {}) {
+  const h = w * 2.08, r = w * .14, x = cx - w / 2, y = cy - h / 2;
+  g.save();
+  if (opt.rot) { g.translate(cx, cy); g.rotate(opt.rot); g.translate(-cx, -cy); }
+  g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 80; g.shadowOffsetY = 40;
+  rr(x, y, w, h, r); g.fillStyle = '#0D0F0E'; g.fill();
+  g.shadowColor = 'transparent';
+  const b = w * .035; rr(x + b, y + b, w - 2 * b, h - 2 * b, r - b); g.save(); g.clip();
+  g.fillStyle = '#fff'; g.fillRect(x, y, w, h);
+  // screens: [{im, from, k}] — الشاشة الجديدة تنزلق فوق القديمة
+  for (const s of screens) {
+    if (s.k <= 0) continue;
+    const sw = w - 2 * b, sh = sw * s.im.height / s.im.width;
+    const off = (1 - s.k) * sw * (s.dir || 1);
+    g.drawImage(s.im, x + b + off, y + b - (s.scroll || 0), sw, sh);
+  }
+  g.restore();
+  // النتوء
+  rr(cx - w * .14, y + b + 14, w * .28, w * .07, w * .035); g.fillStyle = '#0D0F0E'; g.fill();
+  g.restore();
+}
+
+// نقطة (u,v) من صورة الشاشة ⇒ إحداثيات الإطار (بلا دوران)
+function phonePoint(cx, cy, w, u, v) {
+  const h = w * 2.08, b = w * .035, sw = w - 2 * b, sh = sw * 2110 / 975;
+  return [cx - w / 2 + b + sw * u, cy - h / 2 + b + sh * v];
+}
+
+// حبّة نصّ (مثل منشوراتكم: مستطيل أخضر داكن ونصّ أصفر/أبيض)
+function pill(s, cx, cy, size, k, { bg = C.deep, color = C.yellow, rot = 0 } = {}) {
+  if (k <= 0) return;
+  const w = tw(s, size) + size * .9, h = size * 1.5;
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(lerp(.6, 1, k), lerp(.6, 1, k));
+  g.globalAlpha = clamp(k * 3);
+  rr(-w / 2, -h / 2, w, h, h * .32); g.fillStyle = bg; g.fill();
+  text(s, 0, size * .36, size, { color, align: 'center' });
+  g.restore();
+}
+
+// ── المشاهد ──────────────────────────────────────────────
+const SCENES = [
+  // 1) الخطّاف: «لسه بتقوم من محلك… عشان تجيب حاجة؟»
+  { from: 0, to: 2.0, draw(t) {
+    g.fillStyle = C.deep; g.fillRect(0, 0, W, H);
+    // حلقة ضخمة تدور خلف النص
+    ring(W * .78, H * .30, 520, 70, sp(t, HEAVY) * .9, 'rgba(10,135,84,.55)', -Math.PI * .6 + t * .4);
+    const X = W - 90;
+    rise('لسه', X, 640, 260, t + .08, { p: PLAY });
+    rise('بتقوم من', X, 830, 150, t - .30);
+    rise('محلك', X, 1010, 190, t - .45, { color: C.yellow });
+    rise('عشان تجيب', X, 1230, 120, t - .95, {});
+    rise('حاجة?', X, 1400, 170, t - 1.1, { color: C.yellow });   // ؟ في Alarabiya يُرسم كـ «١»
+    // خطّ أصفر يكنس تحت «محلك»
+    const k = sp(t - .65, SNAP); g.fillStyle = C.yellow; g.fillRect(X - 560 * k, 1040, 560 * k, 16);
+  }},
+  // 2) الشارع الحقيقي: «وجيز بتجيبها ليك»
+  { from: 2.0, to: 4.0, draw(t) {
+    cover(IMG.road, 0, 0, W, H, 1.08 + t * .06, .5, .55);
+    const gr = g.createLinearGradient(0, H * .45, 0, H); gr.addColorStop(0, 'rgba(10,59,44,0)'); gr.addColorStop(1, 'rgba(10,59,44,.95)');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    const X = W - 90;
+    rise('وجيز', X, 1500, 230, t - .1, { p: PLAY, color: C.yellow });
+    rise('بتجيبها ليك', X, 1690, 140, t - .35);
+    // أسهم السرعة
+    for (let i = 0; i < 3; i++) chevron(W - 130 - i * 70 - (t * 300 % 70), 1290, 70, 16, C.yellow, Math.PI);
+  }},
+  // 3) التطبيق: الرئيسية ثم متجر — «اطلب أي حاجة، من أي محل»
+  { from: 4.0, to: 7.0, draw(t) {
+    g.fillStyle = C.paper; g.fillRect(0, 0, W, H);
+    ring(W * .5, H * .62, 470, 60, sp(t, HEAVY), 'rgba(10,135,84,.18)', -Math.PI / 2 + t * .3);
+    const X = W - 90;
+    rise('اطلب أي حاجة', X, 300, 120, t - .05, { color: C.ink });
+    rise('من أي محل', X, 450, 120, t - .2, { color: C.green });
+    const enter = sp(t - .15, DEF);
+    const swap = sp(t - 1.6, SNAP);
+    phone(W / 2, H * .76 + (1 - enter) * 1200, 700, [
+      { im: IMG.home, k: 1, scroll: easeIO((t - .7) / 1.0) * 260 },
+      { im: IMG.shop, k: swap, dir: -1, scroll: easeIO((t - 2.1) / .8) * 300 },
+    ], { rot: (1 - enter) * .12 - .03 });
+  }},
+  // 4) عروض الكباتن — «الكباتن بيرسلوا عروضهم… اختار الأنسب»
+  { from: 7.0, to: 9.0, draw(t) {
+    g.fillStyle = C.green; g.fillRect(0, 0, W, H);
+    const X = W - 90;
+    rise('الكباتن بيرسلوا', X, 300, 104, t - .05);
+    rise('عروضهم ليك', X, 430, 104, t - .18, { color: C.yellow });
+    rise('واختار الأنسب', X, 560, 84, t - .4, { font: UI });
+    phone(W / 2, H * .79, 700, [{ im: IMG.offers, k: 1, scroll: 0 }], { rot: .04 - sp(t, DEF) * .07 });
+    // شارة عدد العروض تقفز
+    pill('٢ عرض', 230, 860, 70, sp(t - .6, PLAY), { bg: C.yellow, color: C.ink, rot: -.08 });
+  }},
+  // 5) التتبّع الحيّ
+  { from: 9.0, to: 11.0, draw(t) {
+    g.fillStyle = C.deep; g.fillRect(0, 0, W, H);
+    const X = W - 90;
+    rise('تابع طلبك', X, 300, 130, t - .05);
+    rise('لحظة بلحظة', X, 460, 130, t - .2, { color: C.yellow });
+    phone(W / 2, H * .79, 700, [{ im: IMG.track, k: 1, scroll: 0 }], { rot: -.04 + sp(t, DEF) * .06 });
+    // نبضة على موقع الكابتن (مكانه في لقطة التتبّع: ~0.38 عرض، ~0.42 ارتفاع الشاشة المرئية)
+    const [px, py] = phonePoint(W / 2, H * .79, 700, .38, .416);
+    for (let i = 0; i < 2; i++) { const p = ((t * 1.2 + i * .5) % 1);
+      g.save(); g.strokeStyle = C.yellow; g.globalAlpha = 1 - p; g.lineWidth = 8; g.beginPath(); g.arc(px, py, 30 + p * 90, 0, Math.PI * 2); g.stroke(); g.restore(); }
+  }},
+  // 6) الصندوق الحقيقي — «اطلب بكل أمان وثقة»
+  { from: 11.0, to: 12.5, draw(t) {
+    cover(IMG.box, 0, 0, W, H, 1.18 - t * .08, .5, .42);
+    const gr = g.createLinearGradient(0, H * .55, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.85)');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    const X = W - 90;
+    rise('اطلب بكل', X, 1560, 130, t - .05);
+    rise('أمان وثقة', X, 1720, 150, t - .2, { color: C.yellow });
+  }},
+  // 7) سريع · آمن · اقتصادي
+  { from: 12.5, to: 13.6, draw(t) {
+    g.fillStyle = C.paper; g.fillRect(0, 0, W, H);
+    ring(W * .5, H * .5, 560, 80, 1, 'rgba(10,135,84,.12)', t);
+    pill('سريع', W * .58, 700, 150, sp(t - .0, PLAY), { rot: -.05, color: C.white });
+    pill('آمن', W * .40, 960, 150, sp(t - .18, PLAY), { rot: .04 });
+    pill('اقتصادي', W * .55, 1220, 150, sp(t - .36, PLAY), { rot: -.03, color: C.white });
+  }},
+  // 8) الختام: الشعار + حمّل
+  { from: 13.6, to: 15.0, draw(t) {
+    g.fillStyle = C.brand; g.fillRect(0, 0, W, H);
+    ring(W * .5, H * .40, 330, 46, sp(t, HEAVY) * .95, 'rgba(255,255,255,.12)', -Math.PI / 2);
+    const k = sp(t - .05, HEAVY);
+    const lw = 620 * lerp(.7, 1, k), lh = lw * IMG.logoW.height / IMG.logoW.width;
+    g.save(); g.globalAlpha = clamp(k * 2); g.drawImage(IMG.logoW, W / 2 - lw / 2, H * .40 - lh / 2, lw, lh); g.restore();
+    rise('حمّل وجيز هسّي', W / 2, 1230, 110, t - .3, { align: 'center' });
+    const b = sp(t - .5, SNAP);
+    pill('wajeezsd.com', W / 2, 1420, 64, b, { bg: C.yellow, color: C.ink });
+    text('Google Play  ·  App Store', W / 2, 1590, 50, { font: UI, align: 'center', alpha: clamp((t - .7) * 4) });
+    text('#وصل_لي_سابقا', W / 2, 1700, 56, { font: UI, align: 'center', color: C.yellow, alpha: clamp((t - .85) * 4) });
+  }},
+];
+
+// انتقال: سهمٌ أصفر عملاق يكنس الشاشة عند كل قطع (0.28 ث)
+function wipe(t) {
+  for (const s of SCENES) {
+    const d = t - s.from; if (s.from === 0 || d < -.14 || d > .14) continue;
+    const k = (d + .14) / .28;
+    const x = lerp(W + 700, -700, easeIO(k));
+    g.save(); g.fillStyle = C.yellow; g.beginPath();
+    g.moveTo(x - 500, 0); g.lineTo(x + 200, 0); g.lineTo(x + 700, H / 2); g.lineTo(x + 200, H); g.lineTo(x - 500, H); g.lineTo(x, H / 2); g.closePath(); g.fill(); g.restore();
+  }
+}
+
+window.seek = function (t) {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
+  const s = SCENES.find(s => t >= s.from && t < s.to) || SCENES[SCENES.length - 1];
+  s.draw(t - s.from);
+  wipe(t);
+};
+window.ready.then(() => window.seek(0));
+</script>

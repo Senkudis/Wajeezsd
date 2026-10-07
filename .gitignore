@@ -90,3 +90,9 @@ cap.zip
 # 💾 نسخ قاعدة البيانات — فيها بيانات مستخدمين حقيقية، لا تُرفع أبداً
 backups/
 private_uploads/
+
+# 🎬 إعلان motion-reel: المخرجات والصور الخام، وخطوط البراند (مرخّصة — لا تُنشر في المستودع)
+marketing/reel/out/
+marketing/reel/assets/
+marketing/reel/*.png
+marketing/brand-fonts/
