@@ -14,7 +14,7 @@ const ImpactStyle = { Light: 'LIGHT', Medium: 'MEDIUM', Heavy: 'HEAVY' };
 // (capacitor.config.json بلا server.url ⇒ التطبيق يحمّل أصول public_html المحزومة)،
 // فيمثّل إصدار النسخة المثبَّتة على الجهاز. يجب أن يساوي دائماً versionName في
 // android/app/build.gradle و version في package.json — تحقّق بـ: npm run version:check
-window.APP_VERSION = '1.6.1';
+window.APP_VERSION = '1.6.2';
 
 // 🏷️ يملأ كل [data-app-version] في الصفحة من الرقم أعلاه.
 // كانت أرقام الإصدار مكتوبة يدوياً داخل HTML فانحرفت بصمت (1.4.1 و2.0.0 بينما
@@ -561,7 +561,9 @@ const AppCore = {
             if (!isNative) return;
 
             const BASE = window.API_BASE_URL || window.API_URL || 'https://wajeezsd.com';
-            const res = await fetch(`${BASE}/api/auth/app-config`);
+            // المنصّة صريحةً: لكلٍّ أرقام إصداره ومتجره (utils/appConfig.js في الخادم)
+            const platform = (window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || '';
+            const res = await fetch(`${BASE}/api/auth/app-config?platform=${encodeURIComponent(platform)}`);
             if (!res.ok) return;
             const data = await res.json();
             
@@ -573,6 +575,8 @@ const AppCore = {
             const latest = data.appVersion;
             if (!current || !latest) return;
             const minVersion = data.minVersion || latest;
+            // متجر هذا الجهاز — كان رابط جوجل بلاي حتى على الآيفون
+            const storeLink = data.storeLink || data.playStoreLink || 'https://play.google.com/store/apps';
             
             // Helper to compare versions
             const cmp = (v1, v2) => {
@@ -609,7 +613,7 @@ const AppCore = {
                         allowEscapeKey: !isForced
                     }).then((result) => {
                         if (result.isConfirmed || isForced) {
-                            window.location.href = data.playStoreLink || 'https://play.google.com/store/apps';
+                            window.location.href = storeLink;
                             if (isForced) {
                                 // Prevent bypassing by returning from Play Store
                                 setTimeout(() => AppCore.checkForUpdates(), 1500);
@@ -619,12 +623,12 @@ const AppCore = {
                 } else {
                     if (isForced) {
                         alert(title + '\n' + text);
-                        window.location.href = data.playStoreLink || 'https://play.google.com/store/apps';
+                        window.location.href = storeLink;
                         setTimeout(() => AppCore.checkForUpdates(), 1500);
                     } else {
                         const confirmUpdate = window.confirm(title + '\n' + text);
                         if (confirmUpdate) {
-                            window.location.href = data.playStoreLink || 'https://play.google.com/store/apps';
+                            window.location.href = storeLink;
                         }
                     }
                 }

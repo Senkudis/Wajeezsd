@@ -414,16 +414,34 @@
                         <label class="form-label">
                             <i class="bi bi-tag" aria-hidden="true"></i> أحدث إصدار (مثال: 1.2.1)
                         </label>
-                        <input type="text" id="appVersion" class="form-control" placeholder="1.2.1" required>
-                        <small class="text-muted">أحدث إصدار متوفر</small>
+                        <input type="text" id="appVersion" class="form-control" placeholder="1.6.2" required inputmode="decimal">
+                        <small class="text-muted">أحدث إصدار <b>أندرويد</b> على جوجل بلاي</small>
                     </div>
 
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
                             <i class="bi bi-shield-lock" aria-hidden="true"></i> الحد الأدنى للإصدار (مثال: 1.2.1)
                         </label>
-                        <input type="text" id="minVersion" class="form-control" placeholder="1.2.1" required>
-                        <small class="text-muted">الإصدارات الأقدم ستجبر على التحديث</small>
+                        <input type="text" id="minVersion" class="form-control" placeholder="1.6.0" required inputmode="decimal">
+                        <small class="text-muted">أقدم إصدار <b>أندرويد</b> مسموح — ما دونه يُجبر على التحديث</small>
+                    </div>
+
+                    <!-- 🍏 الآيفون منفصل: المتجران لا يسيران معاً، ورقم أندرويد على
+                         الآيفون يُعلّق مستخدميه في «حدّث» إلى نسخةٍ غير موجودة -->
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-apple" aria-hidden="true"></i> أحدث إصدار آيفون
+                        </label>
+                        <input type="text" id="iosAppVersion" class="form-control" placeholder="1.6.1" inputmode="decimal">
+                        <small class="text-muted">المنشور فعلاً على App Store — فارغ = لا تنبيه تحديث للآيفون</small>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-apple" aria-hidden="true"></i> الحد الأدنى لإصدار الآيفون
+                        </label>
+                        <input type="text" id="iosMinVersion" class="form-control" placeholder="1.5.0" inputmode="decimal">
+                        <small class="text-muted">ما دونه يُجبر على التحديث — فارغ = أحدث إصدار آيفون</small>
                     </div>
 
                     <div class="col-md-4 mb-3">
@@ -624,10 +642,10 @@
         </div>
     </div>
 
-    <script src="js/admin-settings.js?v=d8c018b4"></script>
+    <script src="js/admin-settings.js?v=a6087fcf"></script>
     <script src="js/geo.js?v=9999b0e3"></script>
     <script src="js/input-hardener.js?v=95c0e89c"></script>
-<script type="module" src="js/app-core.js?v=5580954e"></script>
+<script type="module" src="js/app-core.js?v=34ddc6dc"></script>
     <script type="module" src="js/native-notifications.js?v=6426d1e7"></script>
 </body>
 

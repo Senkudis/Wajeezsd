@@ -41,6 +41,8 @@ async function loadSettings() {
             // بينما رقم مخترَع يوهمه بأن الإعداد سليم فيحفظه كما هو.
             document.getElementById('appVersion').value = settings.appVersion || '';
             document.getElementById('minVersion').value = settings.minVersion || settings.appVersion || '';
+            const _iav = document.getElementById('iosAppVersion'); if (_iav) _iav.value = settings.iosAppVersion || '';
+            const _imv = document.getElementById('iosMinVersion'); if (_imv) _imv.value = settings.iosMinVersion || '';
             document.getElementById('playStoreLink').value = settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app';
             const _asl = document.getElementById('appStoreLink');
             if (_asl) _asl.value = settings.appStoreLink || '';
@@ -106,6 +108,10 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
     if (document.getElementById('appVersion')) {
         data.appVersion = document.getElementById('appVersion').value.trim();
         data.minVersion = document.getElementById('minVersion').value.trim();
+        const _iavEl = document.getElementById('iosAppVersion');
+        if (_iavEl) data.iosAppVersion = _iavEl.value.trim();
+        const _imvEl = document.getElementById('iosMinVersion');
+        if (_imvEl) data.iosMinVersion = _imvEl.value.trim();
         data.playStoreLink = document.getElementById('playStoreLink').value.trim();
         const _aslEl = document.getElementById('appStoreLink');
         if (_aslEl) data.appStoreLink = _aslEl.value.trim();

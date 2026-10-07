@@ -76,7 +76,11 @@ describe('الإعداد يُضبط من اللوحة', () => {
 
     it('ويُعاد في app-config لتقرأه الواجهة', () => {
         const i = authRoute.indexOf("router.get('/app-config'");
-        expect(authRoute.slice(i, i + 900)).toContain('appStoreLink');
+        expect(authRoute.slice(i, i + 900)).toContain('buildAppConfig');
+        // الحقول نفسها تُبنى لكل منصّة في utils/appConfig.js
+        const { buildAppConfig } = require('../utils/appConfig');
+        expect(buildAppConfig({ appStoreLink: 'https://apps.apple.com/app/id1' }, 'android').appStoreLink)
+            .toBe('https://apps.apple.com/app/id1');
     });
 
     it('وله خانة في صفحة الإعدادات تُملأ وتُحفظ', () => {

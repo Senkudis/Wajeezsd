@@ -121,7 +121,8 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             'deliveryProofMode', 'deliveryProofRadiusMeters', 'deliveryProofMaxLocationAgeMin',
             'defaultCreditLimit',
             'bankName', 'bankAccountName', 'bankAccountNumber',
-            'appVersion', 'minVersion', 'playStoreLink', 'appStoreLink', 'forceUpdate',
+            'appVersion', 'minVersion', 'iosAppVersion', 'iosMinVersion',
+            'playStoreLink', 'appStoreLink', 'forceUpdate',
             // 👥 روابط مجموعات واتساب — لكل مدينة مجموعتها
             'captainGroupLink', 'merchantGroupLink',
             // 🔒 باب تسجيل الكباتن — لكل مدينة
@@ -147,6 +148,20 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
                 });
             }
             updates[f] = v;
+        }
+
+        // 📱 أرقام الإصدار بصيغة x.y.z — رقمٌ مشوّه («1.6.2 » أو «v1.6») يُقارَن
+        //    خطأً في التطبيق فيُظهر «تحديث» لمن هو محدَّث. إصدارا الآيفون
+        //    يقبلان الفراغ (= لا تنبيه للآيفون).
+        {
+            const { isValidVersion } = require('../../utils/appConfig');
+            for (const f of ['appVersion', 'minVersion', 'iosAppVersion', 'iosMinVersion']) {
+                if (updates[f] === undefined) continue;
+                updates[f] = String(updates[f] || '').trim();
+                if (!isValidVersion(updates[f], { allowEmpty: f.startsWith('ios') })) {
+                    return res.status(400).json({ message: `رقم الإصدار «${updates[f]}» غير صالح — اكتبه هكذا: 1.6.2` });
+                }
+            }
         }
 
         // 🔒 باب التسجيل: true أو false فقط. mongoose يحوّل أيّ نصٍّ آخر

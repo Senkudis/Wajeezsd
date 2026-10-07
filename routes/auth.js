@@ -803,14 +803,10 @@ router.get('/app-config', async (req, res) => {
     try {
         const Settings = require('../models/Settings');
         const settings = await Settings.getSettings();
+        // 📱 لكل منصّة أرقامها ومتجرها — انظر utils/appConfig.js
+        const { detectPlatform, buildAppConfig } = require('../utils/appConfig');
         res.json({
-            // بلا احتياطي حرفي: للحقلين افتراض في مخطّط Settings مصدره
-            // package.json، فالاحتياطي هنا كان شفرة ميتة تنحرف بصمت (بقي 1.2.1).
-            appVersion:   settings.appVersion,
-            minVersion:   settings.minVersion || settings.appVersion,
-            playStoreLink: settings.playStoreLink || 'https://play.google.com/store/apps/details?id=com.wajeezsd.app',
-            appStoreLink:  settings.appStoreLink  || 'https://apps.apple.com/app/id6807840888',
-            forceUpdate:  settings.forceUpdate || false,
+            ...buildAppConfig(settings, detectPlatform(req.query, req.headers['user-agent'])),
             // 💬 مدة صلاحية عرض المفاوضة — تُقرأ في واجهة الكابتن بدل رقم مكتوب
             // في HTML كان يبقى 5 بعد تغيير السيرفر، فيرى الكابتن مدة غير صحيحة
             negotiationTtlMinutes: NEGOTIATION_TTL_MINUTES

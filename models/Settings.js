@@ -168,6 +168,11 @@ const settingsSchema = new mongoose.Schema({
         type: String,
         default: () => require('../package.json').version   // أقل إصدار مقبول (ما دونه يُجبر على التحديث)
     },
+    // 🍏 أرقام الآيفون منفصلة: المتجران لا يسيران معاً (أندرويد 1.6.2 والآيفون
+    //    1.6.1 في الوقت نفسه). فارغٌ = لا تنبيه تحديث للآيفون — لا احتياط
+    //    برقم أندرويد، فهو بالضبط ما يُعلّق مستخدمي الآيفون. utils/appConfig.js
+    iosAppVersion: { type: String, default: '' },
+    iosMinVersion: { type: String, default: '' },
     playStoreLink: {
         type: String,
         default: 'https://play.google.com/store/apps/details?id=com.wajeezsd.app'
