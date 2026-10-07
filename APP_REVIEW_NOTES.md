@@ -83,9 +83,12 @@ The app does not operate in any highly regulated field:
   searchable in the app in any form. (An earlier build listed a pharmacy
   category; it has been removed from this build, and pharmacy results are now
   filtered out of the place search as well.)
-- No banking or financial services. The app processes no payments at all: every
-  order is paid in cash on delivery. There is no card, wallet or in-app payment
-  of any kind.
+- No banking or financial services. The app processes no payments at all and
+  has no card, stored-value wallet or in-app payment of any kind. Delivery fees
+  are paid in cash to the courier. For store orders, the customer pays the store
+  for the goods directly — a bank or mobile-wallet transfer (Bankak, MyCashi,
+  Fawry, OCash, Bravo) made in the customer's own banking app to the store's own
+  account. Wajeez never receives or holds that money (Guideline 3.1.3(e)).
 - No gambling, no cannabis, no air travel.
 
 The categories available in the app are: restaurants, groceries and
@@ -98,18 +101,19 @@ bank account and an owner ID document. We want to be precise about this, because
 it is the only sensitive data the app collects:
 
 - It is collected **only from business owners applying to sell on the platform**
-  — never from customers. A customer can order without providing any document,
-  and pays cash on delivery.
-- **Purpose of the bank account:** it is where we transfer the merchant their own
-  sales proceeds. We are not a payment provider and we hold no customer funds; we
-  transfer a merchant's earnings to their account by ordinary bank transfer.
+  — never from customers. A customer can order without providing any document
+  or any bank detail of their own.
+- **Purpose of the receiving account:** it is the store's own bank or
+  mobile-wallet account, where its customers pay it for goods. We are not a
+  payment provider and we hold no customer funds.
 - **Purpose of the ID document:** to verify that the person registering a store
   is its actual owner. Listing a shop that someone else does not own would expose
   both customers and the real owner to fraud.
-- **Handling:** these fields are stored on our server, are visible only to our
-  administrators, and are **never returned by any public API**. Store records
-  served to the app are explicitly stripped of all bank fields before they leave
-  the server.
+- **Handling:** the ID document is visible only to our administrators and is
+  **never returned by any API to other users**. The store's receiving account
+  number and holder name are **never part of public store listings or store
+  pages**; they are shown only to a signed-in customer who has placed an order
+  with that store, so that the customer can pay it.
 - Both fields belong to the merchant business account, are provided voluntarily
   during a commercial onboarding, and are not required to use the app as a
   customer.
@@ -185,7 +189,7 @@ Please let us know if anything else is needed — we will respond the same day.
   الحساب. هذا الشرط يخصّ المجالات شديدة التنظيم وحدها.
 - **سؤال 2.1 يُجاب بالكتابة لا بالمرفقات.** آبل تطلب المستندات حين تشير
   الإجابة إلى مجال منظَّم أو بيانات حسّاسة. والإجابة أعلاه لا تشير لأيٍّ
-  منهما: لا صحّة، ولا دفع داخل التطبيق (كلّه نقداً عند التسليم)، ولا بيانات
+  منهما: لا صحّة، ولا دفع داخل التطبيق (التوصيل نقداً للمندوب، والبضاعة تحويلٌ مباشر لحساب المتجر خارج التطبيق)، ولا بيانات
   حسّاسة.
 
 **واسم العمل مُدرَجٌ الآن**: «تطبيق وجيز للتوصيل» — مع نقلٍ حرفيّ

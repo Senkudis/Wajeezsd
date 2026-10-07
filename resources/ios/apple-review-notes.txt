@@ -10,7 +10,9 @@ deliveries are arranged by phone: prices haggled verbally, no way to see where
 the parcel is, no record if something goes wrong. Wajeez replaces that. A
 customer marks pickup and drop-off on a map and says what they need; nearby
 couriers ("captains") accept the price or propose another; the customer
-chooses, follows the captain live on the map, and pays cash on delivery.
+chooses, follows the captain live on the map, and pays the courier cash on
+delivery. For store orders, the customer pays the store for the goods directly,
+by bank or mobile-wallet transfer to the store's own account, outside the app.
 Customers can also browse local stores, order products, and chat.
 Audience: adults in Sudan needing parcels, groceries or restaurant orders
 delivered, and small merchants selling beyond walk-ins. Rated 4+, no
@@ -51,8 +53,15 @@ shown in the app.
 Google Maps SDK and Places API (maps, search, geocoding, routes); Google
 Sign-In (optional); Firebase Cloud Messaging (push); BRQ SMS (passcodes);
 WhatsApp Business API (opt-in); SMTP email; MongoDB Atlas.
-No payment processor: payment is cash to the courier on delivery; the app
-never collects card or bank details. No AI service, no ad network, and no SDK
+No payment processor and no in-app payment (Guideline 3.1.3(e): physical goods
+and services paid outside the app). Delivery fees are paid in cash to the
+courier. For store orders, the goods are paid by the customer directly to the
+store - a bank or mobile-wallet transfer (Bankak, MyCashi, Fawry, OCash, Bravo)
+made in the customer's own banking app to the store's own account. Wajeez never
+receives, holds or processes that money. The app shows the store's transfer
+details only to a customer with an order at that store, and the customer may
+attach a photo of the transfer receipt so the store can confirm it. The app
+never collects card details. No AI service, no ad network, and no SDK
 tracking users across apps or websites - matching our App Privacy answers,
 where tracking is declared "No".
 

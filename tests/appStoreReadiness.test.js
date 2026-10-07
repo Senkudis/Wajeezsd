@@ -193,3 +193,50 @@ describe('أيقونة App Store', () => {
         }
     });
 });
+
+describe('أذونات Google Play المقيّدة والاتجاه', () => {
+    const manifest = read('android/app/src/main/AndroidManifest.xml');
+    const main = read('android/app/src/main/java/com/wajeezsd/app/MainActivity.java');
+
+    it('REQUEST_IGNORE_BATTERY_OPTIMIZATIONS محذوف — إذنٌ مقيّد يسبّب الرفض', () => {
+        expect(manifest).toMatch(/REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" tools:node="remove"/);
+        // الشاشة التي لا تحتاج إذناً، لا نافذة الطلب المباشر
+        expect(main).not.toMatch(/new Intent\(android\.provider\.Settings\.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS\)/);
+        expect(main).toContain('ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS');
+    });
+
+    it('AD_ID محذوف — لا إعلانات، فلا تصريح بمعرّف الإعلانات', () => {
+        expect(manifest).toMatch(/permission\.AD_ID" tools:node="remove"/);
+    });
+
+    it('الشاشة الرئيسية عمودية على أندرويد وiOS', () => {
+        expect(manifest).toContain('android:screenOrientation="portrait"');
+        const wf = read('.github/workflows/ios-build.yml');
+        expect(wf).toContain('UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait');
+        expect(wf).toContain('UIRequiredDeviceCapabilities:0 string arm64');
+    });
+
+    it('أوصاف الموقع في الخلفية لا تناقض بعضها («المهمة النشطة فقط» كان يناقض «من تفعيل متصل»)', () => {
+        const wf = read('.github/workflows/ios-build.yml');
+        expect(wf).not.toContain('أثناء المهمة النشطة فقط');
+    });
+});
+
+describe('نصوص المراجعة تطابق طرق الدفع الفعلية', () => {
+    // التطبيق يعرض للعميل حساب المتجر للتحويل (بنكك وأخواتها) — فادّعاء
+    // «نقداً فقط، لا محفظة» في نصوص المراجعة يُقرأ تضليلاً (2.3).
+    for (const f of ['resources/ios/apple-review-notes.txt', 'resources/ios/app-store-listing.md',
+                     'APP_REVIEW_NOTES.md', 'APP_REVIEW_NOTES_SHORT.txt']) {
+        it(f, () => {
+            const t = read(f);
+            expect(t).not.toMatch(/every order is (paid in )?cash on delivery/i);
+            expect(t).not.toContain('لا نطلب بطاقة بنكية ولا محفظة إلكترونية');
+        });
+    }
+
+    it('بيان الخصوصية يعلن المعلومات المالية وسجل الطلبات', () => {
+        const m = read('resources/ios/PrivacyInfo.xcprivacy');
+        expect(m).toContain('NSPrivacyCollectedDataTypeOtherFinancialInfo');
+        expect(m).toContain('NSPrivacyCollectedDataTypePurchaseHistory');
+    });
+});
