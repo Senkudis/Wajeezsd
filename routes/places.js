@@ -678,6 +678,26 @@ router.delete('/:id/favorite', protect, async (req, res) => {
 // @route   GET /api/places/:id
 // @desc    Get a single place by ID
 // ============================================================
+// @route   GET /api/places/:id/admin
+// @desc    المتجر لنافذة تعديل الإدارة — ولو كان مخفيّاً أو قسمه مخفيّاً.
+//    كانت النافذة تقرأ المسار العام أدناه، وهو يردّ 404 لكل متجرٍ مخفيّ أو في
+//    قسمٍ مخفيّ (عمداً: صفحته مغلقة على العملاء) — فيظهر للأدمن «فشل جلب
+//    بيانات المحل» على المتجر نفسه الذي يحتاج تعديله ليُعيده. نفس الحقول
+//    التي كانت النافذة تأخذها، مقيّدةً بمدن الأدمن ومتاجر الموظف.
+router.get('/:id/admin', protect, requirePermission('view_stores'), async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
+        if (await placeOutsideCity(req, res, req.params.id)) return;
+        const place = await Place.findById(req.params.id)
+            .select(PLACE_CLIENT_EXCLUDE)
+            .populate('category', 'name icon isActive');
+        if (!place) return res.status(404).json({ message: 'المحل غير موجود' });
+        res.json(stripPlaceClientFields(place.toJSON()));
+    } catch (err) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 router.get('/:id', async (req, res) => {
     try {
         const place = await Place.findById(req.params.id)

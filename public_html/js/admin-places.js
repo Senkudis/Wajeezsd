@@ -617,8 +617,8 @@ let editPlaceMapInstance = null;
 async function openEditPlaceModal(id) {
     editingPlaceId = id;
     try {
-        const res = await fetch(`${API_URL}/api/places/${id}`, { headers: headers() });
-        if (!res.ok) throw new Error('فشل جلب بيانات المحل');
+        const res = await fetch(`${API_URL}/api/places/${id}/admin`, { headers: headers() });   // مسار الإدارة: يقرأ المخفيّ أيضاً
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || 'فشل جلب بيانات المحل');
         const p = await res.json();
 
         // Populate category selector
