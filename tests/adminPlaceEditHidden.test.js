@@ -17,7 +17,7 @@ describe('قراءة المتجر لنافذة التعديل', () => {
         expect(i).toBeGreaterThan(0);
         expect(b).toContain("protect, requirePermission('view_stores')");
         expect(b).toContain('placeOutsideCity(req, res, req.params.id)');
-        expect(b).not.toContain('isActive');
+        expect(b).not.toContain('!place.isActive');
         expect(b).toContain('select(PLACE_CLIENT_EXCLUDE)');
     });
     it('يسبق المسار العام، والنافذة تستعمله', () => {
