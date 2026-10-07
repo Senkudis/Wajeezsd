@@ -52,6 +52,34 @@ function docsForAdmin(req, users) {
     return Array.isArray(users) ? users.map(strip) : strip(users);
 }
 
+// @route   GET /api/admin/captains/:id/history
+// @desc    🗄️ أرشيف ما استبدله الكابتن (أو الإدارة) من وثائقه وبياناته —
+//          الأحدث أولاً. صور الهوية والسيلفي والرخصة بروابط موقّعة لمن يحقّ له
+//          رؤيتها، وفارغة لغيره، كما في عرض الوثائق الحالية.
+router.get('/captains/:id/history', protect, requireAnyPermission(['view_captains', 'view_captain_details', 'manage_captains']), async (req, res) => {
+    try {
+        if (!require('mongoose').Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'معرّف غير صالح' });
+        }
+        const user = await User.findById(req.params.id).select('+documentsHistory role city name').lean();
+        if (!user) return res.status(404).json({ message: 'المستخدم غير موجود' });
+        if (!adminCanActOnUser(req, user)) {
+            return res.status(403).json({ message: 'غير مصرح — هذا المستخدم خارج مدينتك' });
+        }
+
+        const seeIds = canSeeIdDocs(req.user);
+        const items = (user.documentsHistory || []).slice().reverse().map(h => {
+            let value = h.value || '';
+            if (SENSITIVE_DOC_FIELDS.includes(h.field)) value = seeIds ? sign(value) : '';
+            return { field: h.field, value, replacedAt: h.replacedAt, source: h.source };
+        });
+        res.json({ items, canSeeIdDocs: seeIds });
+    } catch (error) {
+        logger.error({ err: error }, '[Admin] captain history failed');
+        res.status(500).json({ message: 'تعذّر جلب السجل' });
+    }
+});
+
 router.get('/user/:id', protect, requireAnyPermission(['view_users', 'view_captains', 'manage_captains', 'manage_users']), async (req, res) => {
     try {
         const user = await User.findById(req.params.id).select('-password');
@@ -872,6 +900,10 @@ router.put('/users/:id', protect, requireAnyPermission(['manage_captains', 'mana
         const user = await User.findById(req.params.id);
 
         if (!user) return res.status(404).json({ message: 'المستخدم غير موجود' });
+        // 🗄️ بيانات الكابتن قبل التعديل — تُؤرشَف بعد الحفظ (utils/docHistory.js)
+        const beforeIdentity = user.role === 'captain'
+            ? { name: user.name, phone: user.phone, email: user.email, vehicleType: user.vehicleType }
+            : null;
 
         // 🌍 sub_admin لا يعدّل مستخدماً خارج مدينته
         if (!adminCanActOnUser(req, user)) {
@@ -925,7 +957,14 @@ router.put('/users/:id', protect, requireAnyPermission(['manage_captains', 'mana
         }
 
         await user.save();
-        
+
+        if (beforeIdentity) {
+            const { historyEntries, withHistory } = require('../../utils/docHistory');
+            const entries = historyEntries(beforeIdentity,
+                { name: user.name, phone: user.phone, email: user.email, vehicleType: user.vehicleType }, 'admin');
+            if (entries.length) await User.updateOne({ _id: user._id }, withHistory({}, entries));
+        }
+
         const userObj = user.toObject();
         delete userObj.password;
         delete userObj.fcmToken;

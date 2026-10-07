@@ -82,6 +82,21 @@ const UserSchema = new mongoose.Schema(
             idImage: { type: String },
             selfieImage: { type: String }
         },
+        // 🗄️ أرشيف ما استُبدل: الكابتن يحدّث وثائقه بعد مشكلةٍ فتضيع النسخة
+        //    التي نحتاجها للتحقيق. كل قيمةٍ قبل استبدالها تُحفظ هنا ولا تُحذف.
+        //    select:false — لا يخرج مع المستخدم إلا لمن يطلبه صراحةً (اللوحة).
+        //    utils/docHistory.js
+        documentsHistory: {
+            type: [{
+                _id: false,
+                field: { type: String },     // idImage | selfieImage | … | name | vehicleType
+                value: { type: String },     // الرابط أو النصّ السابق
+                replacedAt: { type: Date },
+                source: { type: String }     // captain_upload | profile_photo | reapply | admin
+            }],
+            default: undefined,
+            select: false
+        },
         rejectionReason: { type: String },
 
         // ── 🛵 طلب انتساب الكابتن ──

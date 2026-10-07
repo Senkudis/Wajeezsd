@@ -394,6 +394,14 @@ async function reapplyRejectedCaptain(req, res, userId, { name, password, vehicl
         return res.status(409).json({ message: 'هذا الرقم الوطني مسجل مسبقاً بحساب آخر.', field: 'nationalId' });
     }
 
+    // 🗄️ ما كان عليه قبل إعادة التقديم — اسمٌ ومركبة ورقمٌ وطني ولوحة قد
+    //    تتغيّر كلّها هنا، وهي ما نحتاجه إن وقعت مشكلةٌ في عهده السابق
+    const app0 = user.captainApplication || {};
+    const beforeData = {
+        name: user.name, vehicleType: user.vehicleType, city: user.city,
+        nationalId: app0.nationalId, plateNumber: app0.plateNumber, address: app0.address
+    };
+
     const VALID_CITIES_CAP = CITY_KEYS;
     user.name = name;
     user.vehicleType = vehicleType;
@@ -403,6 +411,16 @@ async function reapplyRejectedCaptain(req, res, userId, { name, password, vehicl
     user.isActive = true;
     reopenApplication(user, captainAppFields(req.body, nationalId));
     await user.save();
+
+    {
+        const { historyEntries, withHistory } = require('../utils/docHistory');
+        const app1 = user.captainApplication || {};
+        const entries = historyEntries(beforeData, {
+            name: user.name, vehicleType: user.vehicleType, city: user.city,
+            nationalId: app1.nationalId, plateNumber: app1.plateNumber, address: app1.address
+        }, 'reapply');
+        if (entries.length) await User.updateOne({ _id: user._id }, withHistory({}, entries));
+    }
 
     logger.info({ userId: String(user._id), reapplyCount: user.captainApplication.reapplyCount }, 'captain re-applied after rejection');
 

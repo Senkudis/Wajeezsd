@@ -521,6 +521,12 @@ function openDrawer(id) {
                 : '') +
         '</div>' +
 
+        // 🗄️ ما استُبدل من وثائقه وبياناته — لا يضيع بتحديثٍ بعد مشكلة
+        '<div class="sec">' +
+            '<div class="sec-t"><i class="fas fa-box-archive" aria-hidden="true"></i> سجل التغييرات (الوثائق والبيانات السابقة)</div>' +
+            '<div id="capHistory" class="small text-muted">جارٍ التحميل…</div>' +
+        '</div>' +
+
         '<div class="sec">' +
             '<div class="sec-t"><i class="fas fa-chart-simple" aria-hidden="true"></i> الأداء والمحفظة</div>' +
             kv('توصيلات مكتملة', c.deliveredCount) +
@@ -554,6 +560,46 @@ function openDrawer(id) {
 
     document.getElementById('drawer').classList.add('open');
     document.body.style.overflow = 'hidden';
+    loadCaptainHistory(c._id);
+}
+
+const HISTORY_LABELS = Object.assign({}, DOC_LABELS, {
+    name: 'الاسم', phone: 'الهاتف', email: 'البريد', vehicleType: 'المركبة', city: 'المدينة',
+    nationalId: 'الرقم الوطني', plateNumber: 'رقم اللوحة', address: 'المنطقة'
+});
+const HISTORY_SOURCES = {
+    captain_upload: 'رفعها الكابتن', profile_photo: 'غيّرها الكابتن',
+    reapply: 'إعادة تقديم', admin: 'عدّلتها الإدارة'
+};
+
+/** 🗄️ أرشيف ما استُبدل — صورٌ تُكبَّر، ونصوصٌ كما كانت */
+async function loadCaptainHistory(id) {
+    const box = document.getElementById('capHistory');
+    if (!box) return;
+    try {
+        const res = await fetch(API + '/api/admin/captains/' + id + '/history', { headers: authHeaders() });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+        if (document.getElementById('capHistory') !== box) return;   // فُتح كابتنٌ آخر
+        const items = data.items || [];
+        if (!items.length) { box.textContent = 'لا تغييرات — هذه وثائقه وبياناته كما سُجّلت أول مرة.'; return; }
+        box.classList.remove('text-muted');
+        box.innerHTML = items.map(h => {
+            const isDoc = Object.prototype.hasOwnProperty.call(DOC_LABELS, h.field);
+            const when = h.replacedAt ? new Date(h.replacedAt).toLocaleString('ar-SD', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+            const val = isDoc
+                ? (h.value
+                    ? '<img src="' + esc(fullUrl(h.value)) + '" alt="' + esc(HISTORY_LABELS[h.field] || h.field) + '" data-lightbox loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:8px;">'
+                    : '<span class="text-muted">مخفية — تحتاج صلاحية رؤية الوثائق</span>')
+                : '<bdi>' + esc(h.value) + '</bdi>';
+            return '<div class="kv" style="align-items:center;gap:10px;">' +
+                '<span class="k">' + esc(HISTORY_LABELS[h.field] || h.field) +
+                    '<br><small class="text-muted">' + esc(when) + ' · ' + esc(HISTORY_SOURCES[h.source] || h.source || '') + '</small></span>' +
+                '<span class="v">' + val + '</span></div>';
+        }).join('');
+    } catch (e) {
+        box.textContent = 'تعذّر تحميل السجل.';
+    }
 }
 
 /** يحوّل الرقم إلى صيغة واتساب الدولية (بلا +). */

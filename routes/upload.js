@@ -178,15 +178,20 @@ router.post('/profile-photo', protect, setUploadType('profiles'), (req, res) => 
         const fileUrl = `/uploads/profiles/${req.file.filename}`;
         const previous = req.user.documents && req.user.documents.profilePhoto;
 
-        // Update user profile photo
-        await User.findByIdAndUpdate(req.user._id, {
-            'documents.profilePhoto': fileUrl
-        });
+        // 🗄️ صورة الكابتن السابقة تُؤرشَف ولا يُحذف ملفّها: هي ما يُطابَق
+        //    بوجه من سلّم الطلب حين تقع مشكلة (utils/docHistory.js).
+        const isCaptain = req.user.role === 'captain';
+        const { historyEntries, withHistory } = require('../utils/docHistory');
+        const entries = isCaptain
+            ? historyEntries({ profilePhoto: previous }, { profilePhoto: fileUrl }, 'profile_photo')
+            : [];
+        await User.findByIdAndUpdate(req.user._id, withHistory({ 'documents.profilePhoto': fileUrl }, entries));
 
         // 🧹 حذف الصورة السابقة بعد نجاح التحديث لا قبله: الحذف أولاً يعني أن
         // فشل الكتابة يترك المستخدم بلا صورة إطلاقاً. مقيّد بمجلد الملفات
         // الشخصية كي لا يمسّ مساراً خارجياً أو صورة يشاركها سجلّ آخر.
-        if (previous && previous !== fileUrl && previous.startsWith('/uploads/profiles/')) {
+        // ولغير الكابتن وحده — صورة الكابتن مؤرشفة أعلاه فيبقى ملفّها.
+        if (!isCaptain && previous && previous !== fileUrl && previous.startsWith('/uploads/profiles/')) {
             safeUnlink(path.join(uploadDir, 'profiles', path.basename(previous)));
         }
 
@@ -255,7 +260,13 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
         const wasComplete = REQUIRED.every(k => before[k]);
         let nowComplete = wasComplete;
         if (Object.keys(updates).length > 0) {
-            const fresh = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('documents').lean();
+            // 🗄️ ما يُستبدل يُؤرشَف أولاً — كابتنٌ يحدّث وثائقه بعد مشكلةٍ لا يمحو
+            //    النسخة التي نحتاجها (utils/docHistory.js). والملفّ القديم يبقى.
+            const { historyEntries, withHistory } = require('../utils/docHistory');
+            const next = {};
+            for (const [k, v] of Object.entries(updates)) next[k.replace(/^documents\./, '')] = v;
+            const entries = historyEntries(before, next, 'captain_upload');
+            const fresh = await User.findByIdAndUpdate(req.user._id, withHistory(updates, entries), { new: true }).select('documents').lean();
             const d = (fresh && fresh.documents) || {};
             nowComplete = REQUIRED.every(k => d[k]);
         }
