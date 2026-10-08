@@ -52,6 +52,138 @@ function docsForAdmin(req, users) {
     return Array.isArray(users) ? users.map(strip) : strip(users);
 }
 
+// ── 🪪 طلبات تحديث الوثائق (utils/docChangeRequests.js) ──────────────────
+
+/** رابطٌ يراه الأدمن: موقّعٌ للهوية والسيلفي والرخصة لمن يحقّ له، وفارغٌ لغيره */
+function adminDocUrl(req, field, url) {
+    if (!url) return '';
+    if (!SENSITIVE_DOC_FIELDS.includes(field)) return url;
+    return canSeeIdDocs(req.user) ? sign(url) : '';
+}
+
+// @route   GET /api/admin/captains/doc-requests
+// @desc    الكباتن الذين لهم طلبات تحديث معلّقة — لشريط التنبيه في صفحة الكباتن
+router.get('/captains/doc-requests', protect, requireAnyPermission(['view_captains', 'view_captain_details', 'manage_captains']), async (req, res) => {
+    try {
+        const users = await User.find({
+            role: 'captain',
+            docChangeRequests: { $elemMatch: { status: 'pending' } },
+            ...getAdminCityFilter(req)
+        }).select('name phone city +docChangeRequests').lean();
+        const items = users.map(u => {
+            const pending = (u.docChangeRequests || []).filter(r => r.status === 'pending');
+            return {
+                captainId: u._id, name: u.name, phone: u.phone, city: u.city,
+                count: pending.length,
+                oldest: pending.reduce((m, r) => (!m || r.requestedAt < m ? r.requestedAt : m), null)
+            };
+        }).sort((a, b) => new Date(a.oldest) - new Date(b.oldest));
+        res.json({ items, total: items.reduce((n, i) => n + i.count, 0) });
+    } catch (error) {
+        logger.error({ err: error }, '[Admin] doc requests list failed');
+        res.status(500).json({ message: 'تعذّر جلب الطلبات' });
+    }
+});
+
+// @route   GET /api/admin/captains/:id/doc-requests
+// @desc    طلبات كابتنٍ واحد المعلّقة: الوثيقة الحالية بجانب المطلوبة
+router.get('/captains/:id/doc-requests', protect, requireAnyPermission(['view_captains', 'view_captain_details', 'manage_captains']), async (req, res) => {
+    try {
+        if (!require('mongoose').Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'معرّف غير صالح' });
+        }
+        const u = await User.findById(req.params.id).select('role city documents +docChangeRequests').lean();
+        if (!u) return res.status(404).json({ message: 'المستخدم غير موجود' });
+        if (!adminCanActOnUser(req, u)) return res.status(403).json({ message: 'غير مصرح — هذا المستخدم خارج مدينتك' });
+        const docs = u.documents || {};
+        const items = (u.docChangeRequests || []).filter(r => r.status === 'pending').map(r => ({
+            id: r._id, field: r.field, requestedAt: r.requestedAt,
+            requested: adminDocUrl(req, r.field, r.value),
+            current: adminDocUrl(req, r.field, docs[r.field])
+        }));
+        res.json({ items, canSeeIdDocs: canSeeIdDocs(req.user) });
+    } catch (error) {
+        logger.error({ err: error }, '[Admin] doc requests failed');
+        res.status(500).json({ message: 'تعذّر جلب الطلبات' });
+    }
+});
+
+// @route   PUT /api/admin/captains/:id/doc-requests/:reqId
+// @desc    قبول طلب تحديث وثيقة (تُستبدل وتُؤرشَف السابقة) أو رفضه بسبب يراه الكابتن
+router.put('/captains/:id/doc-requests/:reqId', protect, requirePermission('manage_captains'), async (req, res) => {
+    try {
+        const mongoose = require('mongoose');
+        const { id, reqId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(reqId)) {
+            return res.status(400).json({ message: 'معرّف غير صالح' });
+        }
+        const action = req.body && req.body.action;
+        if (action !== 'approve' && action !== 'reject') {
+            return res.status(400).json({ message: 'الإجراء يجب أن يكون قبولاً أو رفضاً' });
+        }
+        const reason = String((req.body && req.body.reason) || '').trim().slice(0, 300);
+        if (action === 'reject' && !reason) {
+            return res.status(400).json({ message: 'اكتب سبب الرفض — يصل للكابتن ليصحّح' });
+        }
+
+        const u = await User.findById(id).select('name role city documents +docChangeRequests').lean();
+        if (!u) return res.status(404).json({ message: 'المستخدم غير موجود' });
+        if (!adminCanActOnUser(req, u)) return res.status(403).json({ message: 'غير مصرح — هذا المستخدم خارج مدينتك' });
+        const r = (u.docChangeRequests || []).find(x => String(x._id) === String(reqId));
+        if (!r || r.status !== 'pending') {
+            return res.status(409).json({ message: 'هذا الطلب لم يعد معلّقاً — ربما قرّره مشرفٌ آخر أو استبدله الكابتن' });
+        }
+
+        const now = new Date();
+        const decided = {
+            'docChangeRequests.$.status': action === 'approve' ? 'approved' : 'rejected',
+            'docChangeRequests.$.reviewedAt': now,
+            'docChangeRequests.$.reviewedBy': req.user._id
+        };
+        if (action === 'reject') decided['docChangeRequests.$.reason'] = reason;
+
+        let update = { $set: decided };
+        if (action === 'approve') {
+            // القبول = الاستبدال، والسابقة إلى الأرشيف
+            const { historyEntries, withHistory } = require('../../utils/docHistory');
+            const before = { [r.field]: (u.documents || {})[r.field] };
+            const entries = historyEntries(before, { [r.field]: r.value }, 'change_request', now);
+            update = withHistory({ ...decided, [`documents.${r.field}`]: r.value }, entries);
+        }
+        // ذرّي: الشرط على حالة الطلب نفسه — مشرفان يقرّران معاً فيفوز أحدهما
+        const done = await User.updateOne(
+            { _id: id, docChangeRequests: { $elemMatch: { _id: reqId, status: 'pending' } } },
+            update
+        );
+        if (!done.modifiedCount) {
+            return res.status(409).json({ message: 'هذا الطلب لم يعد معلّقاً — ربما قرّره مشرفٌ آخر' });
+        }
+
+        const LABELS = { idImage: 'صورة الهوية', selfieImage: 'السيلفي', driverLicense: 'رخصة القيادة', vehiclePhoto: 'صورة المركبة' };
+        const label = LABELS[r.field] || 'الوثيقة';
+        try {
+            const { sendNotification } = require('../../utils/notificationHelper');
+            await sendNotification(req.app, {
+                userId: u._id,
+                title: action === 'approve' ? 'تم تحديث وثيقتك' : 'لم يُقبل تحديث وثيقتك',
+                message: action === 'approve'
+                    ? `وافقت الإدارة على تحديث ${label}.`
+                    : `لم يُقبل تحديث ${label}: ${reason}`,
+                type: 'doc_change_result'
+            });
+        } catch (e) {
+            logger.warn({ err: e && e.message }, 'doc change notify failed (non-critical)');
+        }
+        await logAdminAction(req, action === 'approve' ? 'approve_doc_change' : 'reject_doc_change',
+            `${action === 'approve' ? 'قبول' : 'رفض'} تحديث ${label} للكابتن ${u.name || id}${reason ? ' — ' + reason : ''}`);
+
+        res.json({ success: true, message: action === 'approve' ? 'تم القبول وتحديث الوثيقة' : 'تم الرفض وإبلاغ الكابتن' });
+    } catch (error) {
+        logger.error({ err: error }, '[Admin] doc request decision failed');
+        res.status(500).json({ message: 'تعذّر تنفيذ القرار' });
+    }
+});
+
 // @route   GET /api/admin/captains/:id/history
 // @desc    🗄️ أرشيف ما استبدله الكابتن (أو الإدارة) من وثائقه وبياناته —
 //          الأحدث أولاً. صور الهوية والسيلفي والرخصة بروابط موقّعة لمن يحقّ له

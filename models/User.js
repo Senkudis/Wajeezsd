@@ -97,6 +97,22 @@ const UserSchema = new mongoose.Schema(
             default: undefined,
             select: false
         },
+        // 🪪 طلبات تحديث الوثائق من الكابتن المعتمد — لا تُستبدل وثيقةٌ مقبولة
+        //    إلا بموافقة الإدارة (utils/docChangeRequests.js). الوثيقة الحالية
+        //    تبقى سارية حتى القرار.
+        docChangeRequests: {
+            type: [{
+                field: { type: String },     // idImage | selfieImage | driverLicense | vehiclePhoto
+                value: { type: String },     // رابط الملف المطلوب
+                status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+                requestedAt: { type: Date },
+                reviewedAt: { type: Date },
+                reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+                reason: { type: String }     // سبب الرفض — يراه الكابتن
+            }],
+            default: undefined,
+            select: false
+        },
         rejectionReason: { type: String },
 
         // ── 🛵 طلب انتساب الكابتن ──

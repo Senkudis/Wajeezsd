@@ -122,7 +122,15 @@ router.get('/profile-details', protect, captainOnly, async (req, res) => {
 
         const result = stats.length > 0 ? stats[0] : { totalEarnings: 0, totalOrders: 0 };
 
+        // 🪪 طلبات تحديث الوثائق: «بانتظار المراجعة» أو «رُفض: السبب»
+        const { requestStatusByField } = require('../utils/docChangeRequests');
+        const withReqs = await require('../models/User').findById(req.user._id).select('+docChangeRequests').lean();
+        const docRequests = requestStatusByField(withReqs && withReqs.docChangeRequests);
+
         res.json({
+            docRequests,
+            // تحديث الوثائق يمرّ بالمراجعة لمن اعتُمد — الواجهة تقول ذلك قبل الرفع
+            docsNeedReview: req.user.approvalStatus === 'approved',
             name: req.user.name,
             email: req.user.email,
             phone: req.user.phone,

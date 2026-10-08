@@ -259,6 +259,29 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
             ? req.user.documents.toObject() : (req.user.documents || {});
         const wasComplete = REQUIRED.every(k => before[k]);
         let nowComplete = wasComplete;
+
+        // 🪪 الكابتن المعتمد: الهوية والسيلفي والرخصة والمركبة تصير طلباً تراجعه
+        //    الإدارة، والوثيقة المقبولة تبقى سارية حتى القرار. صورة الملف
+        //    الشخصي تمرّ مباشرة (utils/docChangeRequests.js).
+        const { splitUpdates, submitRequests } = require('../utils/docChangeRequests');
+        const { direct, requests } = splitUpdates(req.user, updates);
+        if (requests.length) {
+            await submitRequests(User, req.user._id, requests);
+            try {
+                const { notifyAdmins } = require('../utils/notificationHelper');
+                await notifyAdmins(req.app, {
+                    title: 'طلب تحديث وثيقة',
+                    message: `${req.user.name || 'كابتن'} طلب تحديث وثيقة ويحتاج مراجعة`,
+                    type: 'captain_doc_change',
+                    relatedId: req.user._id,
+                    city: req.user.city
+                });
+            } catch (e) {
+                logger.error({ err: e }, 'تعذّر تنبيه الإدارة بطلب تحديث وثيقة (غير حرج)');
+            }
+        }
+        for (const k of Object.keys(updates)) if (!(k in direct)) delete updates[k];
+
         if (Object.keys(updates).length > 0) {
             // 🗄️ ما يُستبدل يُؤرشَف أولاً — كابتنٌ يحدّث وثائقه بعد مشكلةٍ لا يمحو
             //    النسخة التي نحتاجها (utils/docHistory.js). والملفّ القديم يبقى.
@@ -300,8 +323,12 @@ router.post('/captain-docs', protect, setUploadType('documents'), (req, res) => 
 
         res.json({
             success: true,
-            message: 'تم رفع الوثائق بنجاح',
-            files: updates
+            message: requests.length
+                ? 'أُرسل طلب التحديث للإدارة — وثيقتك الحالية تبقى سارية حتى الموافقة.'
+                : 'تم رفع الوثائق بنجاح',
+            files: updates,
+            // الحقول التي صارت طلباً لا تحديثاً — تعرضها صفحة الكابتن «بانتظار المراجعة»
+            pendingReview: requests.map(r => r.field)
         });
     });
 });

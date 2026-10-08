@@ -231,6 +231,10 @@
             profilePhoto:  { label: 'صورة الملف الشخصي',  icon: 'bi-image' }
         };
         let _docsState = {};
+        // 🪪 طلبات التحديث: { idImage: {status:'pending'|'rejected'|'approved', reason} }
+        let _docReqs = {};
+        let _docsNeedReview = false;
+        const REVIEWED_DOCS = ['idImage', 'selfieImage', 'driverLicense', 'vehiclePhoto'];
 
         function renderDocs(status, approvalStatus, rejectionReason) {
             _docsState = status || {};
@@ -245,9 +249,9 @@
             if (approvalStatus === 'approved') {
                 badge.className = 'badge rounded-pill bg-success';
                 badge.textContent = 'حساب معتمد';
-                hint.textContent = missing.length
-                    ? 'يمكنك تحديث أي وثيقة متى تغيّرت (رخصة جديدة، مركبة جديدة).'
-                    : 'وثائقك مكتملة. يمكنك تحديث أي منها متى تغيّرت.';
+                // التحديث بطلبٍ تراجعه الإدارة — يُقال قبل الرفع لا بعده
+                hint.textContent = 'تحديث الهوية أو السيلفي أو الرخصة أو صورة المركبة يُرسل للإدارة للمراجعة، '
+                    + 'ووثيقتك الحالية تبقى سارية حتى الموافقة. صورة الملف الشخصي تتغيّر مباشرة.';
             } else if (approvalStatus === 'rejected') {
                 badge.className = 'badge rounded-pill bg-danger';
                 badge.textContent = 'مرفوض';
@@ -264,17 +268,27 @@
 
             document.getElementById('docsList').innerHTML = Object.entries(DOC_LABELS).map(([key, d]) => {
                 const has = !!_docsState[key];
+                const reviewed = _docsNeedReview && REVIEWED_DOCS.includes(key);
+                const rq = reviewed ? _docReqs[key] : null;
+                const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+                let stateHtml = has
+                    ? '<div class="small text-success" style="font-size:11.5px;">تم الرفع</div>'
+                    : '<div class="small text-danger" style="font-size:11.5px;">لم تُرفع بعد</div>';
+                if (rq && rq.status === 'pending') {
+                    stateHtml = '<div class="small fw-bold" style="font-size:11.5px;color:#b45309;">تحديثك بانتظار مراجعة الإدارة</div>';
+                } else if (rq && rq.status === 'rejected') {
+                    stateHtml += '<div class="small text-danger" style="font-size:11.5px;">لم يُقبل آخر تحديث: ' + esc(rq.reason) + '</div>';
+                }
+                const btnText = !has ? 'رفع' : (reviewed ? (rq && rq.status === 'pending' ? 'استبدال الطلب' : 'طلب تحديث') : 'تحديث');
                 return `
                 <div class="d-flex align-items-center gap-2 border rounded-3 p-2" data-doc="${key}">
                     <i class="bi ${d.icon} fs-5 ${has ? 'text-success' : 'text-muted'}"></i>
                     <div class="flex-grow-1">
                         <div class="fw-bold" style="font-size:13.5px;">${d.label}</div>
-                        <div class="small ${has ? 'text-success' : 'text-danger'}" style="font-size:11.5px;">
-                            ${has ? 'تم الرفع' : 'لم تُرفع بعد'}
-                        </div>
+                        ${stateHtml}
                     </div>
                     <button type="button" class="btn btn-sm ${has ? 'btn-outline-secondary' : 'btn-primary'} fw-bold"
-                        onclick="pickDoc('${key}')">${has ? 'تحديث' : 'رفع'}</button>
+                        onclick="pickDoc('${key}')">${btnText}</button>
                 </div>`;
             }).join('');
         }
@@ -312,10 +326,17 @@
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.message || 'تعذّر رفع الوثيقة');
 
-                _docsState[key] = true;
+                const sentForReview = Array.isArray(data.pendingReview) && data.pendingReview.includes(key);
+                if (sentForReview) _docReqs[key] = { status: 'pending' };
+                else _docsState[key] = true;
                 renderDocs(_docsState, _lastApprovalStatus, _lastRejectionReason);
-                Swal.fire({ toast: true, position: 'top', icon: 'success', timer: 1800,
-                    showConfirmButton: false, title: 'تم رفع الوثيقة' });
+                if (sentForReview) {
+                    Swal.fire({ icon: 'info', title: 'أُرسل للمراجعة', confirmButtonText: 'حسناً',
+                        text: 'وثيقتك الحالية تبقى سارية حتى توافق الإدارة على التحديث، وسيصلك إشعار بالقرار.' });
+                } else {
+                    Swal.fire({ toast: true, position: 'top', icon: 'success', timer: 1800,
+                        showConfirmButton: false, title: 'تم رفع الوثيقة' });
+                }
             } catch (e) {
                 if (btn) { btn.disabled = false; btn.innerHTML = original; }
                 Swal.fire({ icon: 'error', title: 'تعذّر الرفع', text: friendlyError(e),
@@ -364,6 +385,8 @@
                     // 🪪 حالة الوثائق
                     _lastApprovalStatus = data.approvalStatus || 'pending';
                     _lastRejectionReason = data.rejectionReason || '';
+                    _docReqs = data.docRequests || {};
+                    _docsNeedReview = !!data.docsNeedReview;
                     if (data.documentsStatus) {
                         renderDocs(data.documentsStatus, _lastApprovalStatus, _lastRejectionReason);
                     }

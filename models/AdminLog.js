@@ -26,6 +26,8 @@ const adminLogSchema = new mongoose.Schema({
             //    كان يُكتب ولا يُسجَّل: الفعل غير معرَّف هنا، وadminLogger
             //    يبتلع خطأ الكتابة — فالتعليق يَعِد بتدقيقٍ لا يقع.
             'view_captain_details',
+            // 🪪 قرار طلب تحديث وثيقةٍ لكابتنٍ معتمد
+            'approve_doc_change', 'reject_doc_change',
             'view_merchant_requests',
             // 🔐 الموافقة على جهاز أدمنٍ جديد ورفضه — قرارُ وصولٍ يجب أن يُدقَّق
             'approve_device', 'reject_device',

@@ -230,6 +230,8 @@
 
         <div class="content-area">
             <div class="cap-stats" id="stats"></div>
+            <!-- 🪪 طلبات تحديث الوثائق من كباتن معتمدين — تنتظر قراراً -->
+            <div id="docReqBanner" hidden style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px 14px;margin-bottom:14px;"></div>
 
             <div class="cap-toolbar">
                 <div class="cap-search">
@@ -521,6 +523,12 @@ function openDrawer(id) {
                 : '') +
         '</div>' +
 
+        // 🪪 طلبات تحديثٍ معلّقة: الحالية بجانب المطلوبة، وقبولٌ أو رفض
+        '<div class="sec" id="capDocReqsSec" hidden>' +
+            '<div class="sec-t" style="color:#b45309;"><i class="fas fa-file-circle-question" aria-hidden="true"></i> طلبات تحديث الوثائق</div>' +
+            '<div id="capDocReqs"></div>' +
+        '</div>' +
+
         // 🗄️ ما استُبدل من وثائقه وبياناته — لا يضيع بتحديثٍ بعد مشكلة
         '<div class="sec">' +
             '<div class="sec-t"><i class="fas fa-box-archive" aria-hidden="true"></i> سجل التغييرات (الوثائق والبيانات السابقة)</div>' +
@@ -561,6 +569,91 @@ function openDrawer(id) {
     document.getElementById('drawer').classList.add('open');
     document.body.style.overflow = 'hidden';
     loadCaptainHistory(c._id);
+    loadCaptainDocRequests(c._id);
+}
+
+/** 🪪 طلبات كابتنٍ واحد: الحالية ← المطلوبة، بزرّي قبولٍ ورفض */
+async function loadCaptainDocRequests(id) {
+    const sec = document.getElementById('capDocReqsSec');
+    const box = document.getElementById('capDocReqs');
+    if (!sec || !box) return;
+    try {
+        const res = await fetch(API + '/api/admin/captains/' + id + '/doc-requests', { headers: authHeaders() });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+        if (document.getElementById('capDocReqs') !== box) return;   // فُتح كابتنٌ آخر
+        const items = data.items || [];
+        sec.hidden = !items.length;
+        if (!items.length) return;
+        const img = (u, alt) => u
+            ? '<img src="' + esc(fullUrl(u)) + '" alt="' + esc(alt) + '" data-lightbox loading="lazy" style="width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;">'
+            : '<div class="doc-none" style="width:96px;height:96px;" title="لا توجد أو تحتاج صلاحية رؤية الوثائق"><i class="fas fa-eye-slash" aria-hidden="true"></i></div>';
+        box.innerHTML = items.map(r => {
+            const label = DOC_LABELS[r.field] || r.field;
+            const when = r.requestedAt ? new Date(r.requestedAt).toLocaleString('ar-SD', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+            return '<div style="border:1px solid #fde68a;border-radius:12px;padding:10px;margin-bottom:10px;">' +
+                '<div class="fw-bold mb-2">' + esc(label) + ' <small class="text-muted fw-normal">· ' + esc(when) + '</small></div>' +
+                '<div class="d-flex align-items-center gap-2 flex-wrap">' +
+                    '<div class="text-center"><small class="text-muted d-block">الحالية</small>' + img(r.current, label + ' الحالية') + '</div>' +
+                    '<i class="fas fa-arrow-left text-muted" aria-hidden="true"></i>' +
+                    '<div class="text-center"><small class="text-muted d-block">المطلوبة</small>' + img(r.requested, label + ' المطلوبة') + '</div>' +
+                '</div>' +
+                '<div class="d-flex gap-2 mt-2">' +
+                    '<button type="button" class="btn btn-success btn-sm fw-bold" onclick="decideDocRequest(\'' + id + '\',\'' + r.id + '\',\'approve\')"><i class="fas fa-check" aria-hidden="true"></i> قبول</button>' +
+                    '<button type="button" class="btn btn-outline-danger btn-sm fw-bold" onclick="decideDocRequest(\'' + id + '\',\'' + r.id + '\',\'reject\')"><i class="fas fa-xmark" aria-hidden="true"></i> رفض</button>' +
+                '</div></div>';
+        }).join('');
+    } catch (e) {
+        sec.hidden = false;
+        box.textContent = 'تعذّر تحميل الطلبات.';
+    }
+}
+
+async function decideDocRequest(captainId, reqId, action) {
+    let reason = '';
+    if (action === 'reject') {
+        const r = await Swal.fire({
+            title: 'سبب الرفض', input: 'text', inputPlaceholder: 'مثال: الصورة غير واضحة',
+            inputValidator: v => (!v || !v.trim()) ? 'اكتب السبب — يصل للكابتن ليصحّح' : null,
+            showCancelButton: true, confirmButtonText: 'رفض', cancelButtonText: 'إلغاء', confirmButtonColor: '#dc2626'
+        });
+        if (!r.isConfirmed) return;
+        reason = r.value.trim();
+    }
+    try {
+        const res = await fetch(API + '/api/admin/captains/' + captainId + '/doc-requests/' + reqId, {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify({ action, reason })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'تعذّر تنفيذ القرار');
+        Swal.fire({ toast: true, position: 'top', icon: 'success', timer: 1800, showConfirmButton: false, title: data.message });
+        loadCaptainDocRequests(captainId);
+        loadCaptainHistory(captainId);
+        loadDocRequestsBanner();
+        if (action === 'approve') load();   // الوثيقة الحالية تغيّرت في البطاقة
+    } catch (e) {
+        Swal.fire('تنبيه', e.message, 'warning');
+    }
+}
+
+/** 🪪 شريطٌ أعلى الصفحة: من ينتظر قراراً في تحديث وثائقه، الأقدم أولاً */
+async function loadDocRequestsBanner() {
+    const el = document.getElementById('docReqBanner');
+    if (!el) return;
+    try {
+        const res = await fetch(API + '/api/admin/captains/doc-requests', { headers: authHeaders() });
+        const data = await res.json().catch(() => ({}));
+        const items = (res.ok && data.items) || [];
+        el.hidden = !items.length;
+        if (!items.length) return;
+        el.innerHTML = '<div class="fw-bold mb-2" style="color:#92400e;"><i class="fas fa-file-circle-question" aria-hidden="true"></i> ' +
+            data.total + ' طلب تحديث وثائق بانتظار المراجعة</div>' +
+            '<div class="d-flex flex-wrap gap-2">' + items.map(i =>
+                '<button type="button" class="btn btn-sm btn-light border fw-bold" onclick="openDrawer(\'' + i.captainId + '\')">' +
+                esc(i.name || 'كابتن') + (i.count > 1 ? ' (' + i.count + ')' : '') + '</button>').join('') + '</div>';
+    } catch (_) { el.hidden = true; }
 }
 
 const HISTORY_LABELS = Object.assign({}, DOC_LABELS, {
@@ -569,7 +662,7 @@ const HISTORY_LABELS = Object.assign({}, DOC_LABELS, {
 });
 const HISTORY_SOURCES = {
     captain_upload: 'رفعها الكابتن', profile_photo: 'غيّرها الكابتن',
-    reapply: 'إعادة تقديم', admin: 'عدّلتها الإدارة'
+    reapply: 'إعادة تقديم', admin: 'عدّلتها الإدارة', change_request: 'طلب تحديث مقبول'
 };
 
 /** 🗄️ أرشيف ما استُبدل — صورٌ تُكبَّر، ونصوصٌ كما كانت */
@@ -682,6 +775,7 @@ function exportCaptains() {
 
 document.getElementById('q').addEventListener('input', render);
 load();
+loadDocRequestsBanner();
 </script>
 </body>
 </html>

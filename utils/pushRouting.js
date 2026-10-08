@@ -80,6 +80,9 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'payment_approved':
                 case 'payment_rejected':
                     return '/captain-wallet.html';
+                // 🪪 قرار الإدارة في طلب تحديث وثيقة — يفتح وثائقه
+                case 'doc_change_result':
+                    return '/captain-profile.html';
                 default:
                     return '/captain-notifications.html';
             }
@@ -124,6 +127,9 @@ function resolvePushUrl(role, type, relatedId) {
                 case 'captain_pending':
                 case 'captain_blocked':
                     return '/admin.html?page=captains';
+                // 🪪 كابتنٌ معتمد طلب تحديث وثيقة — حيث يُقبل أو يُرفض
+                case 'captain_doc_change':
+                    return '/admin-captains.html';
                 case 'account_deletion':
                     return '/admin.html?page=users';
                 case 'shop_order':

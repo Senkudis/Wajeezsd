@@ -53,7 +53,9 @@ const NotificationSchema = new mongoose.Schema({
             'admin_alert', 'admin_order_alert', 'merchant_request',
             'settlement_request', 'legacy_order',
             // 👤 أحداث الحسابات التي تحتاج تدخّل الإدارة
-            'captain_pending', 'account_deletion', 'captain_blocked'
+            'captain_pending', 'account_deletion', 'captain_blocked',
+            // 🪪 طلب تحديث وثيقة من كابتنٍ معتمد، وقرار الإدارة فيه
+            'captain_doc_change', 'doc_change_result'
         ],
         default: 'system'
     },
