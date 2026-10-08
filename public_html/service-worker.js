@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wajeez-static-970113c1';
+const CACHE_NAME = 'wajeez-static-3ff12265';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -219,7 +219,8 @@ self.addEventListener('notificationclick', (event) => {
     const data = event.notification.data || {};
     // 🔗 Normalise the record id — server may send it as relatedId or orderId
     const recordId = data.orderId || data.relatedId || '';
-    let targetUrl = '/';
+    // «/» صار صفحة الهبوط — الإشعار بلا وجهةٍ صريحة يفتح صفحة الطلب
+    let targetUrl = '/index.html';
 
     // Explicit URL always wins
     if (data.url && data.url !== '/') {

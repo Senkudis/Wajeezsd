@@ -281,6 +281,16 @@ app.use('/team', (req, res, next) => {
     teamStatic(req, res, () => sendTeamIndex(req, res, next));
 });
 
+// 🏠 الصفحة الرئيسية للموقع = صفحة الهبوط (lande.html)، وصفحة الطلب تبقى
+//    index.html على /index.html. كانت lande.html تُعاد تسميتها index.html على
+//    السيرفر لتظهر على «/» — فتُمحى صفحة الطلب ولا يطلب أحدٌ من المتصفح.
+//    قبل express.static: وإلا قدّم index.html على «/» تلقائياً.
+//    التطبيق نفسه لا يتأثّر: يفتح index.html المحزومة داخله لا هذا المسار.
+app.get('/', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(__dirname, 'public_html', 'lande.html'));
+});
+
 // جعل مجلد public متاحاً — مع كاش محدود للملفات الثابتة (لا تتغير إلا بتغيير الكود)
 app.use(express.static(path.join(__dirname, 'public_html'), {
     // Versioned assets (?v=xxxx): cache 30 days

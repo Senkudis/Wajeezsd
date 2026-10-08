@@ -29,12 +29,13 @@ beforeEach(async () => { if (db.ok) await clearMongo(); });
 
 const maybe = () => (db.ok ? describe : describe.skip);
 
-maybe()('الكابتن المعتمد يحدّث وثيقته', () => {
+// كابتنٌ لم يُعتمد بعد: يرفع مباشرة (المعتمد يمرّ بطلب — docChangeRequests.db.test.js)
+maybe()('الكابتن قيد المراجعة يستبدل وثيقته', () => {
     it('🔑 النسخة السابقة تبقى في الأرشيف بتاريخها', async () => {
         const user = await User.create({
             name: 'كابتن', email: 'hist@example.com', phone: '249912000001', password: 'Test@1234',
             role: 'captain', city: 'Khartoum', vehicleType: 'motorcycle',
-            approvalStatus: 'approved', isActive: true, isVerified: true
+            approvalStatus: 'pending', isActive: true, isVerified: true
         });
         const token = signUserToken(user);
         const up = () => request(app).post('/api/upload/captain-docs')
