@@ -157,7 +157,7 @@
         } catch (e) {}
     </script>
 
-    <link rel="preload" as="image" href="/assets/app/home.jpg" fetchpriority="high">
+    <link rel="preload" as="image" href="/assets/hero/hero.webp" type="image/webp" fetchpriority="high">
     <!-- خطوط الهوية الثلاثة — مستضافة هنا لا من شبكة خارجية -->
     <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/brand/alarabiya.woff2" crossorigin>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -392,17 +392,14 @@
 
         /* الصورة: لقطةٌ حقيقية على لوحٍ أخضر — على الجوال يظهر نصفها العلوي
            فقط، فلا يأخذ الجهاز شاشةً كاملة كما كان */
+        /* صورةٌ مركّبة واحدة (marketing/hero/hero.html): الأجهزة وبطاقة الحالة
+           في نصفها العلوي، فتصمد للقصّ على الجوال */
         .hero-shot {
             position: relative; background: var(--green); border-radius: 22px 22px 0 0;
-            padding: 26px 0 0; overflow: hidden; display: grid; justify-items: center;
-            height: clamp(300px, 70vw, 560px);
+            overflow: hidden; height: clamp(300px, 70vw, 560px);
         }
-        @media (min-width: 960px) { .hero-shot { height: 600px; border-radius: 22px; padding-top: 44px; } }
-        .phone {
-            width: min(290px, 66vw); border: 9px solid #0d1512; border-bottom: 0;
-            border-radius: 36px 36px 0 0; background: #0d1512; overflow: hidden;
-        }
-        .phone img { width: 100%; height: auto; border-radius: 27px 27px 0 0; }
+        @media (min-width: 960px) { .hero-shot { height: 600px; border-radius: 22px; } }
+        .hero-shot img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
 
         /* ─── الخدمات ──────────────────────────────────────────────── */
         .svc { list-style: none; display: grid; border-top: 1px solid var(--line); counter-reset: svc; }
@@ -690,9 +687,10 @@
                 </div>
 
                 <figure class="hero-shot">
-                    <div class="phone">
-                        <img src="/assets/app/home.jpg" width="540" height="1170" alt="شاشة الطلب في تطبيق وجيز" fetchpriority="high" decoding="async">
-                    </div>
+                    <picture>
+                        <source srcset="/assets/hero/hero.webp" type="image/webp">
+                        <img src="/assets/hero/hero.jpg" width="1000" height="1200" alt="تطبيق وجيز: تسوّق من متاجر مدينتك وتابع الكابتن في الطريق إليك" fetchpriority="high" decoding="async">
+                    </picture>
                 </figure>
             </div>
         </section>

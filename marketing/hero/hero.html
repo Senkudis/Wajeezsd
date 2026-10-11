@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+  صورة بطل صفحة الهبوط (public_html/assets/hero/hero.jpg) — 1000×1200.
+  تُرسم بـ Chrome headless (render في رسالة الـ commit). مصمَّمة لتُقصّ:
+  على الجوال يظهر منها شريطٌ بارتفاع 300–560px من الأعلى، فالجهاز الأمامي
+  وبطاقة الحالة في النصف العلوي.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+    @font-face { font-family: 'Alarabiya'; src: url('../../public_html/assets/fonts/brand/alarabiya.woff2') format('woff2'); unicode-range: U+0000-061E, U+0620-10FFFF; }
+    @font-face { font-family: 'ArabicModern'; src: url('../../public_html/assets/fonts/brand/arabic-modern-bold.woff2') format('woff2'); }
+    @font-face { font-family: 'Intro'; src: url('../../public_html/assets/fonts/brand/intro-bold.woff2') format('woff2'); }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1000px; height: 1200px; overflow: hidden; }
+    body { background: #04553A; position: relative; font-synthesis: none; }
+
+    /* علامة وجيز («C» والسهم) كبيرةً خلف الأجهزة — هويةٌ لا زخرفةٌ عامة */
+    .mark {
+        position: absolute; width: 1180px; height: 1180px; left: -260px; top: 120px;
+        border-radius: 50%; border: 150px solid #0a6b49;
+        clip-path: polygon(0 0, 62% 0, 62% 100%, 0 100%);
+    }
+    .arrow {
+        position: absolute; left: 610px; top: 560px; width: 210px; height: 210px;
+        border-top: 64px solid #c5972a; border-right: 64px solid #c5972a;
+        border-radius: 18px; transform: rotate(45deg); opacity: .9;
+    }
+
+    .phone {
+        position: absolute; aspect-ratio: 1290 / 2796; background: #0d1512;
+        border: 14px solid #0d1512; border-radius: 64px; overflow: hidden;
+        box-shadow: 0 40px 80px rgba(0, 0, 0, .35);
+    }
+    .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 50px; display: block; }
+    .front { width: 430px; left: 300px; top: 70px; z-index: 3; }
+    .back  { width: 360px; left: 90px; top: 230px; z-index: 2; transform: rotate(-8deg); }
+
+    /* بطاقة حالة بلغة التطبيق نفسه — تتبّعٌ حيّ هو ما يميّز الخدمة */
+    .status {
+        position: absolute; z-index: 4; right: 40px; top: 600px; width: 400px;
+        background: #fff; border-radius: 26px; padding: 22px 24px;
+        box-shadow: 0 24px 50px rgba(0, 0, 0, .28);
+        display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: center;
+    }
+    .status .dot { grid-row: span 2; width: 58px; height: 58px; border-radius: 50%; background: #e7efe9; display: grid; place-items: center; }
+    .status .dot span { width: 22px; height: 22px; border-radius: 50%; background: #0a6b49; box-shadow: 0 0 0 8px rgba(10, 107, 73, .18); }
+    .status b { font-family: 'Intro', 'ArabicModern', sans-serif; font-size: 28px; color: #13201a; white-space: nowrap; }
+    .status small { font-family: 'Intro', 'Alarabiya', sans-serif; font-size: 22px; color: #5a675f; }
+</style>
+</head>
+<body>
+    <div class="mark"></div>
+    <div class="phone back"><img src="../../resources/ios/screenshots/03-صفحة-متجر.png" alt=""></div>
+    <div class="phone front"><img src="../../resources/ios/screenshots/02-تسوق-المتاجر.png" alt=""></div>
+    <div class="status">
+        <div class="dot"><span></span></div>
+        <b>الكابتن في الطريق</b>
+        <small>تابعه على الخريطة حتى بابك</small>
+    </div>
+</body>
+</html>
