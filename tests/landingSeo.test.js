@@ -95,16 +95,23 @@ describe('robots.txt و sitemap.xml', () => {
     const robots = read('public_html/robots.txt');
     const sitemap = read('public_html/sitemap.xml');
 
-    it('🔑 لوحات التحكّم وملفات المستخدمين خارج الفهرسة', () => {
-        for (const d of ['Disallow: /admin-*.html', 'Disallow: /api/', 'Disallow: /uploads/documents/', 'Disallow: /uploads/proofs/', 'Disallow: /uploads/chat/']) {
+    it('🔑 ملفات المستخدمين والـ API ممنوعةٌ زحفاً', () => {
+        for (const d of ['Disallow: /api/', 'Disallow: /uploads/documents/', 'Disallow: /uploads/proofs/', 'Disallow: /uploads/chat/']) {
             expect(robots).toContain(d);
         }
         expect(robots).toContain('Sitemap: https://wajeezsd.com/sitemap.xml');
     });
 
-    it('وصفحتا الانضمام مفتوحتان رغم حجب لوحات الكباتن والعملاء', () => {
-        expect(robots).toContain('Allow: /captain-signup.html');
-        expect(robots).toContain('Allow: /client-register-shop.html');
+    it('🔑 اللوحات **غير ممنوعة** زحفاً — يراها جوجل فيقرأ رأس noindex', () => {
+        // منعها كان يُبقي «دخول الإدارة» في نتائج البحث: الممنوع لا يُقرأ رأسه
+        expect(robots).not.toMatch(/^Disallow: \/(admin|merchant|captain|client)/m);
+        const { isNoindexPath } = require('../utils/seoRouting');
+        for (const p of ['/admin-login.html', '/admin.html', '/merchant-orders.html', '/captain-orders.html', '/client-my-orders.html', '/index.html']) {
+            expect(isNoindexPath(p), p).toBe(true);
+        }
+        for (const p of ['/', '/captain-signup.html', '/client-register-shop.html', '/pricing.html', '/privacy-policy.html']) {
+            expect(isNoindexPath(p), p).toBe(false);
+        }
     });
 
     it('الخريطة بالصفحات العامة وحدها', () => {

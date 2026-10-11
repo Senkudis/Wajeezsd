@@ -63,6 +63,17 @@ const server = http.createServer(app);
 // Allows rate limiters to use real client IP from X-Forwarded-For header
 app.set('trust proxy', 1);
 
+// 🔎 نطاقٌ واحد في البحث، وصفحات التطبيق خارج الفهرس (utils/seoRouting.js)
+{
+    const { wwwRedirectTarget, isNoindexPath } = require('./utils/seoRouting');
+    app.use((req, res, next) => {
+        const target = wwwRedirectTarget({ method: req.method, host: req.headers.host, originalUrl: req.originalUrl });
+        if (target) return res.redirect(301, target);
+        if (isNoindexPath(req.path)) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        next();
+    });
+}
+
 // 🛡️ NoSQL injection على الاستعلام — يُعالَج عند التحليل (المصدر).
 // في Express 5 صار req.query getter يُرجع كائناً جديداً في كل قراءة، فحذف
 // المفاتيح منه بعد القراءة يقع على نسخة تُرمى (protection وهمية). الحل الصحيح

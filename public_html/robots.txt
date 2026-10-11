@@ -1,21 +1,17 @@
 # وجيز - wajeezsd — https://wajeezsd.com
-# الصفحات العامة مفتوحة للفهرسة. لوحات التحكّم وملفات المستخدمين لا:
-# لا قيمة لها في نتائج البحث، وبعضها بيانات شخصية (وثائق الكباتن،
-# صور إثبات التسليم، مرفقات المحادثات).
+#
+# ⚠️ صفحات التطبيق واللوحات (admin-* و merchant-* و captain-* و client-* و
+#    index.html وغيرها) **غير ممنوعة هنا عمداً**: الخادم يرسلها برأس
+#    X-Robots-Tag: noindex (utils/seoRouting.js). المنع هنا كان يمنع جوجل من
+#    رؤية ذلك الرأس — فبقيت «دخول الإدارة» نتيجةً في البحث.
+#
+# الممنوع زحفاً: الـ API وملفات المستخدمين الخاصة (وثائق الكباتن، صور إثبات
+# التسليم، مرفقات المحادثات) — لا قيمة لها في البحث وبعضها بيانات شخصية.
 
 User-agent: *
 Allow: /
-Allow: /captain-signup.html
-Allow: /client-register-shop.html
 
 Disallow: /api/
-Disallow: /admin
-Disallow: /admin-*.html
-Disallow: /merchant-*.html
-Disallow: /captain-*.html
-Disallow: /client-*.html
-Disallow: /tracking.html
-Disallow: /chat.html
 Disallow: /uploads/documents/
 Disallow: /uploads/proofs/
 Disallow: /uploads/chat/
