@@ -1,0 +1,493 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+/* خطوط البراند الرسمية الثلاثة وحدها (marketing/brand-fonts — خارج المستودع) */
+@font-face { font-family: 'Alarabiya'; src: url('../brand-fonts/alarabiya/Alarabiya Normal Font.ttf'); }
+@font-face { font-family: 'ArabicModern'; src: url('../brand-fonts/arabic-modern/ArabicModern-Bold.otf'); }
+@font-face { font-family: 'IntroBlack'; src: url('../brand-fonts/intro/Intro Black Alt.otf'); }
+@font-face { font-family: 'IntroBold'; src: url('../brand-fonts/intro/Intro Bold Alt.otf'); }
+html,body{margin:0;background:#111}canvas{display:block;max-height:100vh}
+</style>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// ════════════════════════════════════════════════════════════════════
+// إعلان «وجيز وصل عطبرة» — مدينة القطر. موشن جرافيك مسطّح، 9:16.
+//
+// القصة: قضبانٌ في الليل وصافرة بعيدة ⇐ قطارٌ أخضر يدخل محطة عطبرة ⇐
+// بابه ينفتح على الشعار ⇐ خطّ السكة على خريطة عطبرة الحقيقية يتحوّل
+// لمسار كابتن من السوق الكبير إلى الداخلة ⇐ شاشات التطبيق الحقيقية
+// ببيانات عطبرة (المتاجر، «اشتري لي»، التتبّع) ⇐ الختام.
+//
+// كل مشهدٍ مدّته في TIMING وحده، والحركة داخله بثوانٍ من بدايته — فإن
+// جاء التسجيل الصوتي أسرع أو أبطأ تُعدَّل المدد ويتبعها كل شيء (والمؤثّرات
+// والموسيقى في build.mjs تُحسب من الجدول نفسه).
+// ════════════════════════════════════════════════════════════════════
+const TIMING = [
+  // [المشهد, المدة بالثواني, سطر التعليق الصوتي]
+  ['rails',  3.4, 'عطبرة… مدينة القطر'],
+  ['arrive', 3.8, 'والليلة… وصلها قطر جديد'],
+  ['doors',  3.0, 'وجيز… وصل عطبرة'],
+  ['map',    4.6, 'اطلب من محلات مدينتك… والكابتن يجيبها لحدّ بابك'],
+  ['errand', 4.4, 'والمحل ما موجود؟ قول ليهو: اشتري لي'],
+  ['track',  3.4, 'وتابعه لحظة بلحظة'],
+  ['end',    4.2, 'وجيز… عطبرة والدامر. حمّله هسّي'],
+];
+const W = 1080, H = 1920;
+let acc = 0; const SC = {}; for (const [k, d] of TIMING) { SC[k] = { from: acc, dur: d }; acc += d; }
+const DUR = acc;
+window.DUR = DUR; window.TIMING = TIMING; window.SC = SC;
+
+const g = document.getElementById('c').getContext('2d');
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+function spring(t, k = 170, d = 26) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(k), z = d / (2 * w0);
+  if (z < 1) { const wd = w0 * Math.sqrt(1 - z * z);
+    return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t)); }
+  return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+}
+const SNAP = [320, 30], DEF = [170, 26], HEAVY = [110, 20], PLAY = [240, 15], BRAKE = [38, 11];
+const sp = (t, p = DEF) => spring(t, p[0], p[1]);
+const ease = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const easeIn = (x) => Math.pow(clamp(x), 3);
+// عشوائيةٌ ثابتة (النجوم، البيوت) — الإطار دالّةٌ في الزمن وحده
+const hash = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+const C = { deep: '#08392A', brand: '#04553A', green: '#0A8754', mint: '#DDF1E6', yellow: '#F6B40E', yellowD: '#D99A00',
+  paper: '#F5F2EA', ink: '#0B1F17', white: '#FFFFFF', nile: '#7CC4E4', gray: '#8A9A92', steel: '#C9D6CF', night: '#062A1F' };
+const F = { head: 'Alarabiya', sup: 'ArabicModern', lat: 'IntroBlack', latB: 'IntroBold' };
+
+// ── الصور ─────────────────────────────────────────────────────────
+const SRC = { logoW: 'assets/logo-white.png', map: 'assets/map.png',
+  browse: 'assets/screens/shopBrowse.png', picker: 'assets/screens/errandPicker.png', track: 'assets/screens/tracking.png' };
+const IMG = {};
+window.ready = Promise.all(Object.entries(SRC).map(([k, s]) => new Promise((res, rej) => {
+  const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => rej(new Error(s)); i.src = s; })))
+  .then(() => Promise.all(['100px Alarabiya', '100px ArabicModern', '100px IntroBlack', '100px IntroBold']
+    .map(f => document.fonts.load(f, 'وجيز عطبرة 3,500 ATBARA'))));
+
+// ── أدوات الرسم ───────────────────────────────────────────────────
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+function text(s, x, y, size, { font = F.head, color = C.white, align = 'right', alpha = 1, maxW = 0 } = {}) {
+  if (alpha <= 0) return;
+  if (maxW) size = Math.min(size, size * maxW / tw(s, size, font));
+  g.save(); g.globalAlpha *= alpha; g.direction = 'rtl'; g.textAlign = align; g.textBaseline = 'alphabetic';
+  g.font = `${size}px ${font}`; g.fillStyle = color; g.fillText(s, x, y); g.restore();
+}
+const tw = (s, size, font = F.head) => { g.save(); g.font = `${size}px ${font}`; g.direction = 'rtl'; const w = g.measureText(s).width; g.restore(); return w; };
+// كلمةٌ تصعد من تحت قناعها — لا تلاشٍ
+function rise(s, x, y, size, t, opt = {}) {
+  const k = sp(t, opt.p || SNAP); if (k <= 0) return;
+  if (opt.maxW) size = Math.min(size, size * opt.maxW / tw(s, size, opt.font || F.head));
+  g.save(); g.beginPath(); g.rect(0, y - size * 1.3, W, size * 1.65); g.clip();
+  text(s, x, y + (1 - k) * size * 1.35, size, Object.assign({}, opt, { maxW: 0 }));
+  g.restore();
+}
+function shadow(blur = 50, y = 24, a = .18) { g.shadowColor = `rgba(8,40,28,${a})`; g.shadowBlur = blur; g.shadowOffsetY = y; }
+function noShadow() { g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0; }
+function circle(x, y, r, color) { g.fillStyle = color; g.beginPath(); g.arc(x, y, Math.max(0, r), 0, Math.PI * 2); g.fill(); }
+// سهم الشعار — لغة الانتقالات ورأس القطار
+function chevron(cx, cy, s, stroke, color = C.yellow, rot = 0) {
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.strokeStyle = color; g.lineWidth = stroke; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); g.moveTo(-s * .32, -s * .5); g.lineTo(s * .32, 0); g.lineTo(-s * .32, s * .5); g.stroke(); g.restore();
+}
+function arc(cx, cy, r, stroke, from, to, color) {
+  if (to <= from) return;
+  g.save(); g.strokeStyle = color; g.lineWidth = stroke; g.lineCap = 'round';
+  g.beginPath(); g.arc(cx, cy, r, from, to); g.stroke(); g.restore();
+}
+function pin(x, y, s, color, inner = C.white) {
+  g.save(); g.translate(x, y); g.scale(s / 100, s / 100);
+  g.fillStyle = color; g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(-46, -48, -36, -88, 0, -88); g.bezierCurveTo(36, -88, 46, -48, 0, 0); g.fill();
+  circle(0, -56, 15, inner); g.restore();
+}
+// شارة نصّ (اسم مكان) — حبّة بيضاء بنصٍّ داكن
+function chip(s, x, y, size, k, { bg = C.white, fg = C.deep, font = F.sup } = {}) {
+  if (k <= 0) return;
+  const w = tw(s, size, font) + size * 1.1, h = size * 1.75;
+  g.save(); g.translate(x, y); g.scale(k, k);
+  shadow(24, 10, .22); rr(-w / 2, -h / 2, w, h, h / 2); g.fillStyle = bg; g.fill(); noShadow();
+  text(s, 0, size * .36, size, { font, color: fg, align: 'center' }); g.restore();
+}
+
+// إسناد الخريطة — شرط ترخيص OpenStreetMap حيث تظهر بياناتها
+const osm = (y, color = 'rgba(8,57,42,.6)') => text('© OpenStreetMap contributors', 70, y, 24, { font: F.latB, color, align: 'left' });
+
+// ── الهاتف بشاشاتٍ حقيقية ──────────────────────────────────────────
+function phone(cx, cy, w, layers, rot = 0) {
+  const h = w * 2.08, r = w * .14, x = cx - w / 2, y = cy - h / 2, b = w * .035;
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.translate(-cx, -cy);
+  shadow(90, 50, .3); rr(x, y, w, h, r); g.fillStyle = '#0E1210'; g.fill(); noShadow();
+  rr(x + b, y + b, w - 2 * b, h - 2 * b, r - b); g.save(); g.clip(); g.fillStyle = '#fff'; g.fillRect(x, y, w, h);
+  for (const L of layers) {
+    if (L.k <= 0) continue;
+    const sw = w - 2 * b, sh = sw * L.im.height / L.im.width;
+    g.save(); g.globalAlpha = L.alpha == null ? 1 : L.alpha;
+    const ox = L.vert ? 0 : (1 - L.k) * sw * (L.dir || -1), oy = L.vert ? (1 - L.k) * (h - 2 * b) : 0;
+    g.drawImage(L.im, x + b + ox, y + b - (L.scroll || 0) + oy, sw, sh); g.restore();
+  }
+  g.restore();
+  rr(cx - w * .14, y + b + 14, w * .28, w * .07, w * .035); g.fillStyle = '#0E1210'; g.fill();
+  g.restore();
+  return { x: x + b, y: y + b, sw: w - 2 * b, px: (w - 2 * b) / 975 };     // px: بكسل اللقطة ⇐ الشاشة
+}
+// لمسة إصبع: دائرةٌ تنضغط وحلقةٌ تتّسع
+function tap(px, py, t) {
+  if (t < 0 || t > .65) return;
+  g.save(); g.globalAlpha = 1 - t / .65; g.strokeStyle = C.yellow; g.lineWidth = 10;
+  g.beginPath(); g.arc(px, py, 26 + t * 150, 0, Math.PI * 2); g.stroke();
+  g.globalAlpha = clamp(1 - t * 3); circle(px, py, 30 * (1 - t * .5), 'rgba(255,255,255,.9)'); g.restore();
+}
+
+// ── القطار (منظرٌ جانبي مسطّح، يتّجه يميناً كسهم الشعار) ────────────
+// x0: مقدّمة القاطرة (أنفها). العربات خلفها يساراً. y: خطّ القضيب.
+const LOCO = 760, CAR = 720, GAP = 26, BODY = 300;
+function wheel(x, y, r, ang) {
+  circle(x, y, r, '#0E1210'); circle(x, y, r * .62, '#2B3A33');
+  g.save(); g.strokeStyle = '#0E1210'; g.lineWidth = r * .14; g.translate(x, y); g.rotate(ang);
+  for (let i = 0; i < 3; i++) { g.rotate(Math.PI / 3); g.beginPath(); g.moveTo(-r * .6, 0); g.lineTo(r * .6, 0); g.stroke(); }
+  g.restore(); circle(x, y, r * .2, C.steel);
+}
+function car(x, y, len, ang, { loco = false, label = true } = {}) {
+  const top = y - 40 - BODY;
+  // الهيكل
+  g.fillStyle = C.green; rr(x, top, len, BODY, loco ? [40, 120, 40, 40] : 40); g.fill();
+  g.fillStyle = C.brand; rr(x, top, len, 34, loco ? [40, 120, 0, 0] : [40, 40, 0, 0]); g.fill();
+  // الشريط الأصفر
+  g.fillStyle = C.yellow; g.fillRect(x + 14, top + BODY - 74, len - (loco ? 60 : 28), 22);
+  if (loco) {
+    // الأنف: زجاجٌ أمامي وسهم الشعار ومصباح
+    g.fillStyle = C.mint; rr(x + len - 230, top + 62, 150, 96, [14, 60, 14, 14]); g.fill();
+    chevron(x + len - 92, top + 214, 70, 18, C.yellow);
+    circle(x + len - 26, top + BODY - 40, 16, '#FFF6D5');
+    text('WAJEEZ', x + 60, top + 150, 74, { font: F.lat, color: C.white, align: 'left' });
+    for (let i = 0; i < 6; i++) { g.fillStyle = C.brand; g.fillRect(x + 64 + i * 46, top + 186, 26, 52); }
+  } else {
+    // النوافذ والباب في المنتصف
+    const dx = x + len / 2;
+    for (const wx of [x + 50, x + 180, dx + 120, dx + 250]) { g.fillStyle = '#FCE7A6'; rr(wx, top + 70, 98, 92, 16); g.fill(); g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(wx + 12, top + 80, 16, 72); }
+    g.fillStyle = C.brand; rr(dx - 78, top + 52, 156, BODY - 70, 14); g.fill();
+    g.fillStyle = '#0B2E22'; g.fillRect(dx - 2, top + 52, 4, BODY - 70);
+    g.fillStyle = '#FCE7A6'; rr(dx - 62, top + 76, 46, 70, 10); g.fill(); rr(dx + 16, top + 76, 46, 70, 10); g.fill();
+    if (label) text('وجيز', x + len - 40, top + 252, 66, { color: C.white });
+  }
+  // العجلات والهيكل السفلي
+  g.fillStyle = '#123527'; g.fillRect(x + 30, y - 52, len - 60, 18);
+  const wx = loco ? [x + 110, x + 230, x + len - 230, x + len - 110] : [x + 100, x + 210, x + len - 210, x + len - 100];
+  for (const p of wx) wheel(p, y - 40, 40, ang);
+}
+function train(x0, y, ang) {
+  car(x0 - LOCO, y, LOCO, ang, { loco: true });
+  for (let i = 0; i < 3; i++) {
+    const cx = x0 - LOCO - GAP - (i + 1) * CAR - i * GAP;
+    g.fillStyle = '#123527'; g.fillRect(cx + CAR - 6, y - 150, GAP + 12, 26);        // الوصلة
+    car(cx, y, CAR, ang);
+  }
+}
+// مركز باب العربة الأولى (خلف القاطرة) — تدخل الكاميرا منه
+const doorX = (x0) => x0 - LOCO - GAP - CAR / 2;
+
+// ═══════════════════════════ المشاهد ═══════════════════════════════
+const D = {};
+
+// ① «عطبرة… مدينة القطر» — قضبانٌ في الليل تجري نحونا، ومصباحٌ يقترب
+const HZ = 1010, VPX = W / 2;
+D.rails = (t, d) => {
+  g.fillStyle = C.deep; g.fillRect(0, 0, W, HZ);
+  // نجوم ثابتة تومض
+  for (let i = 0; i < 70; i++) {
+    const x = hash(i) * W, y = 80 + hash(i + 99) * (HZ - 260), a = .25 + .5 * (Math.sin(t * 2.4 + i) * .5 + .5);
+    circle(x, y, 1.5 + hash(i + 7) * 2.5, `rgba(255,255,255,${a * .7})`);
+  }
+  // أفق المدينة: بيوتٌ واطئة، مئذنة، وخزّان ماء
+  g.fillStyle = '#0B4A36';
+  for (let i = 0; i < 26; i++) { const bw = 50 + hash(i + 3) * 70, bh = 24 + hash(i + 40) * 60, bx = i * 44 - 20; if (Math.abs(bx + bw / 2 - VPX) < 110) continue; g.fillRect(bx, HZ - bh, bw, bh); }
+  g.fillRect(812, HZ - 210, 22, 210); circle(823, HZ - 214, 18, '#0B4A36'); g.fillRect(819, HZ - 250, 8, 30);         // مئذنة
+  g.fillRect(180, HZ - 170, 10, 170); g.fillRect(232, HZ - 170, 10, 170); rr(160, HZ - 240, 102, 80, 16); g.fill();    // خزّان
+  // الأرض
+  g.fillStyle = C.night; g.fillRect(0, HZ, W, H - HZ);
+  // الفلنكات: منظورٌ حقيقي (y = HZ + k/z) وتنزلق نحونا
+  const speed = 7 + t * 2.2, N = 26, off = (t * speed) % 1;
+  for (let i = N; i >= 1; i--) {
+    const z = (i - off) * .9 + .55, y = HZ + 1050 / z, hw = 520 / z, th = 70 / z;
+    if (y > H + 60) continue;
+    g.fillStyle = '#0F4D38'; g.fillRect(VPX - hw, y - th / 2, hw * 2, th);
+  }
+  // القضيبان
+  for (const s of [-1, 1]) {
+    g.fillStyle = C.steel; g.beginPath();
+    g.moveTo(VPX + s * 3, HZ); g.lineTo(VPX + s * 5, HZ);
+    g.lineTo(VPX + s * 420, H + 40); g.lineTo(VPX + s * 340, H + 40); g.closePath(); g.fill();
+  }
+  // المصباح يقترب: حلقاتٌ صفراء تتّسع عند نقطة التلاشي
+  const near = easeIn(t / d);
+  for (let i = 3; i >= 0; i--) circle(VPX, HZ - 18, (10 + near * 110) * (1 + i * .55), `rgba(246,180,14,${.13 + (i ? 0 : .7)})`);
+  circle(VPX, HZ - 18, 6 + near * 46, '#FFF6D5');
+  const X = W - 90;
+  rise('عطبرة', X, 400, 270, t - .12, { p: PLAY });
+  rise('مدينة القطر', X, 590, 130, t - .62, { font: F.sup, color: C.yellow });
+};
+
+// ② «والليلة… وصلها قطر جديد» — القطار الأخضر يدخل المحطة ويقف
+const RAIL = 1170;
+const trainX = (t) => lerp(-2300, doorX(0) * -1 + W / 2, sp(t - .1, BRAKE));     // يقف وباب العربة الأولى في الوسط
+D.arrive = (t, d) => {
+  // دفع الكاميرا نحو الباب في آخر المشهد
+  const push = easeIn((t - (d - .5)) / .5), x0 = trainX(t);
+  const dX = doorX(x0), dY = RAIL - 40 - BODY + 52 + (BODY - 70) / 2;
+  const z = 1 + push * 7.2;
+  g.save(); g.translate(dX, dY); g.scale(z, z); g.translate(-dX, -dY);
+  g.fillStyle = C.yellow; g.fillRect(0, 0, W, H);
+  circle(W * .28, 560, 250, 'rgba(255,255,255,.32)');                              // شمس العصر
+  g.fillStyle = C.yellowD;                                                         // المدينة بعيداً
+  for (let i = 0; i < 22; i++) { const bw = 60 + hash(i + 5) * 80, bh = 40 + hash(i + 60) * 90; g.fillRect(i * 52 - 30, RAIL - 330 - bh, bw, bh + 10); }
+  g.fillRect(0, RAIL - 335, W, 335);
+  // الرصيف والقضبان
+  g.fillStyle = '#0E1210'; g.fillRect(0, RAIL - 4, W, 16);
+  g.fillStyle = C.deep; g.fillRect(0, RAIL + 60, W, H - RAIL);
+  g.fillStyle = C.yellow; g.fillRect(0, RAIL + 60, W, 16);
+  for (let i = 0; i < 12; i++) { g.fillStyle = '#2B3A33'; g.fillRect(i * 100 - ((x0 * 0) % 100), RAIL + 12, 60, 14); }
+  // القطار، وخطوط السرعة خلفه
+  const v = (trainX(t) - trainX(t - 1 / 60)) * 60;
+  if (v > 300) for (let i = 0; i < 7; i++) {
+    const ly = RAIL - 330 + i * 44, len = Math.min(900, v * .35) * (.5 + hash(i) * .6);
+    g.fillStyle = 'rgba(255,255,255,.55)'; rr(x0 - LOCO * 2 - len - hash(i + 3) * 400, ly, len, 10, 5); g.fill();
+  }
+  train(x0, RAIL, x0 / 40);
+  // المظلّة واللافتة المعلّقة
+  const can = sp(t - .05, DEF);
+  g.save(); g.translate(0, (1 - can) * -260);
+  g.fillStyle = C.deep; g.fillRect(0, 0, W, 300); g.fillRect(0, 300, W, 46); g.fillRect(90, 300, 30, RAIL - 300); g.fillRect(W - 120, 300, 30, RAIL - 300);
+  for (let i = 0; i < 9; i++) { g.fillStyle = C.brand; g.fillRect(i * 130, 230, 70, 70); }
+  const sway = Math.sin(t * 5) * .035 * Math.exp(-Math.max(0, t - 1.2) * 1.5) * (t > 1.2 ? 1 : .3);
+  g.save(); g.translate(W / 2, 346); g.rotate(sway);
+  g.strokeStyle = C.deep; g.lineWidth = 6; g.beginPath(); g.moveTo(-220, 0); g.lineTo(-220, 40); g.moveTo(220, 0); g.lineTo(220, 40); g.stroke();
+  shadow(30, 14, .25); rr(-330, 40, 660, 200, 22); g.fillStyle = C.paper; g.fill(); noShadow();
+  g.strokeStyle = C.deep; g.lineWidth = 8; rr(-314, 56, 628, 168, 14); g.stroke();
+  text('عطبرة · الدامر', 0, 158, 96, { color: C.ink, align: 'center', maxW: 560 });
+  text('ATBARA  ·  ED DAMER', 0, 206, 32, { font: F.latB, color: C.brand, align: 'center' });
+  g.restore(); g.restore();
+  g.restore();
+  // النصّ فوق المشهد (لا يدخل مع الكاميرا)
+  const out = clamp(1 - push * 2.5);
+  if (out > 0) {
+    g.save(); g.globalAlpha = out; const X = W - 90;
+    rise('والليلة…', X, 1480, 104, t - .15, { font: F.sup, color: C.white });
+    rise('وصلها قطر جديد', X, 1680, 140, t - .55, { color: C.yellow, maxW: W - 180 });
+    g.restore();
+  }
+};
+
+// ③ «وجيز… وصل عطبرة» — الباب ينفتح والشعار يخرج منه
+D.doors = (t, d) => {
+  const grow = ease((t - 1.55) / .6);                       // الإطار يتّسع ليملأ الشاشة
+  g.fillStyle = C.green; g.fillRect(0, 0, W, H);
+  const fw = lerp(1050, W + 400, grow), fh = lerp(1820, H + 600, grow), fx = W / 2 - fw / 2, fy = 960 - fh / 2;
+  g.fillStyle = C.yellow; g.fillRect(0, 1640, W, 140);      // شريط العربة الأصفر
+  rr(fx, fy, fw, fh, lerp(80, 0, grow)); g.fillStyle = C.brand; g.fill();
+  g.save(); rr(fx, fy, fw, fh, lerp(80, 0, grow)); g.clip();
+  // الداخل: ضوءٌ ينسكب، والشعار
+  const open = ease((t - .22) / .55);
+  for (let i = 0; i < 5; i++) { g.fillStyle = `rgba(255,255,255,${.035 * open})`; g.beginPath(); g.moveTo(W / 2 - 60 - i * 60, fy); g.lineTo(W / 2 + 60 + i * 60, fy); g.lineTo(W / 2 + 300 + i * 160, fy + fh); g.lineTo(W / 2 - 300 - i * 160, fy + fh); g.fill(); }
+  const k = sp(t - .5, HEAVY);
+  if (k > 0) {
+    const lw = 660 * lerp(.6, 1, k), lh = lw * IMG.logoW.height / IMG.logoW.width;
+    g.save(); g.globalAlpha = clamp(k * 2.5); g.drawImage(IMG.logoW, W / 2 - lw / 2, 820 - lh / 2, lw, lh); g.restore();
+  }
+  rise('وصل عطبرة', W / 2, 1230, 150, t - .85, { color: C.yellow, align: 'center' });
+  // درفتا الباب تنزلقان للجانبين
+  for (const s of [-1, 1]) {
+    const pw = fw / 2, px = W / 2 + (s < 0 ? -pw : 0) + s * open * (pw + 40);
+    g.fillStyle = C.brand; g.fillRect(px, fy, pw, fh);
+    g.fillStyle = '#FCE7A6'; rr(px + (s < 0 ? pw - 330 : 40), fy + 170, 290, 440, 40); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(px + (s < 0 ? pw - 290 : 80), fy + 200, 50, 380);
+    g.fillStyle = C.steel; rr(px + (s < 0 ? pw - 60 : 30), fy + 760, 26, 260, 13); g.fill();
+    g.fillStyle = C.yellow; g.fillRect(px, fy + fh - 260, pw, 60);
+  }
+  g.restore();
+};
+
+// ④ «اطلب من محلات مدينتك… والكابتن يجيبها لحدّ بابك»
+//    خريطة عطبرة الحقيقية (OpenStreetMap)، خطّ السكة يضيء ثم يتفرّع منه مسار الكابتن
+//    بإحداثيات الصورة assets/map.png (قصٌّ من x=700 لخريطة الزوم 17)
+const RAILLINE = [[905, 0], [910, 780], [915, 1208], [918, 1955]];
+const ROUTE = [[1000, 1208], [962, 1208], [592, 1208], [725, 862], [460, 950], [205, 1035], [205, 590], [140, 590]];
+const STATION = [890, 760], SHOP = ROUTE[0], HOME = ROUTE[ROUTE.length - 1];
+function along(pts, u) {
+  const seg = []; let tot = 0;
+  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(l); tot += l; }
+  let dd = clamp(u) * tot;
+  for (let i = 0; i < seg.length; i++) { if (dd <= seg[i] || i === seg.length - 1) { const k = seg[i] ? clamp(dd / seg[i]) : 0;
+    return { x: lerp(pts[i][0], pts[i + 1][0], k), y: lerp(pts[i][1], pts[i + 1][1], k), i }; } dd -= seg[i]; }
+}
+function strokeTo(pts, u, width, color) {
+  const p = along(pts, u); g.strokeStyle = color; g.lineWidth = width; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath(); for (let i = 0; i <= p.i; i++) i ? g.lineTo(pts[i][0], pts[i][1]) : g.moveTo(pts[i][0], pts[i][1]);
+  g.lineTo(p.x, p.y); g.stroke(); return p;
+}
+D.map = (t, d) => {
+  const k = ease((t - .25) / 1.6);
+  const cx = lerp(880, 575, k), cy = lerp(800, 905, k), s = lerp(2.1, 1.0, k);
+  const M = (x, y) => [W / 2 + (x - cx) * s, H / 2 + 60 + (y - cy) * s];        // الخريطة ⇐ الشاشة
+  g.fillStyle = '#E4F1E8'; g.fillRect(0, 0, W, H);
+  g.save(); g.translate(W / 2, H / 2 + 60); g.scale(s, s); g.translate(-cx, -cy);
+  g.drawImage(IMG.map, 0, 0);
+  // خطّ السكة يضيء من الشمال، ومعه قطارٌ صغير
+  const ru = easeOut(t / 1.3);
+  g.save(); g.globalAlpha = .9; strokeTo(RAILLINE, 1, 16 / s + 4, 'rgba(246,180,14,.25)'); g.restore();
+  const tp = strokeTo(RAILLINE, ru * .62, 14 / s + 6, C.yellow);
+  // المسار: يتفرّع من المزلقان (عند السوق) غرباً حتى الداخلة
+  const u = ease((t - 1.45) / (d - 2.15));
+  if (t > 1.45) { g.save(); g.globalAlpha = .35; strokeTo(ROUTE, 1, 12 / s + 8, C.green); g.restore(); }
+  const cp = strokeTo(ROUTE, u, 12 / s + 8, C.green);
+  g.restore();
+  // القطار الصغير على السكة حتى المزلقان، ثم يصير كابتن
+  const morph = clamp((t - 1.25) / .25);
+  if (morph < 1) { const [x, y] = M(tp.x, tp.y); g.save(); g.globalAlpha = 1 - morph; circle(x, y, 40, C.deep); chevron(x, y, 40, 11, C.yellow, Math.PI / 2); g.restore(); }
+  // المحطة، السوق، الداخلة
+  const [sx, sy] = M(...STATION); chip('محطة عطبرة', sx - 40, sy - 70, 44, sp(t - .35, PLAY) * (1 - ease((t - 1.6) / .4)));
+  const [hx, hy] = M(...HOME), [mx, my] = M(...SHOP);
+  const ps = sp(t - 1.3, PLAY), ph = sp(t - 1.5, PLAY), arrive = sp(t - (d - .7), PLAY);
+  if (ps > 0) { pin(mx, my, 120 * ps, C.green); chip('السوق الكبير', mx + 10, my + 60, 40, ps); }
+  if (ph > 0) { pin(hx, hy, 120 * ph * (1 + arrive * .25), arrive > .5 ? C.yellow : C.brand); chip('الداخلة', hx + 40, hy + 60, 40, ph); }
+  if (t > 1.3) {
+    const [kx, ky] = M(cp.x, cp.y), p = (t * 1.5) % 1, kk = sp(t - 1.3, PLAY);
+    g.save(); g.globalAlpha = 1 - p; g.strokeStyle = C.green; g.lineWidth = 8; g.beginPath(); g.arc(kx, ky, 44 + p * 70, 0, Math.PI * 2); g.stroke(); g.restore();
+    shadow(24, 10, .3); circle(kx, ky, 48 * kk, C.brand); noShadow(); chevron(kx + 4, ky, 44 * kk, 12, C.yellow);
+  }
+  osm(H - 420);
+  // اللوح العلوي والسفلي للنصّ
+  const pk = sp(t - .05, DEF);
+  g.save(); g.translate(0, (1 - pk) * -480);
+  shadow(40, 16, .16); rr(50, 80, W - 100, 360, 48); g.fillStyle = C.white; g.fill(); noShadow(); g.restore();
+  const X = W - 120;
+  rise('اطلب من محلات', X, 230, 120, t - .15, { color: C.ink, maxW: W - 240 });
+  rise('مدينتك', X, 380, 120, t - .3, { color: C.green });
+  const bk = sp(t - 2.0, DEF);
+  if (bk > 0) {
+    g.save(); g.translate(0, (1 - bk) * 420);
+    shadow(40, 16, .25); rr(50, H - 400, W - 100, 290, 48); g.fillStyle = C.deep; g.fill(); noShadow(); g.restore();
+    rise('والكابتن يجيبها', X, H - 270, 96, t - 2.1, { color: C.white });
+    rise('لحدّ بابك', X, H - 150, 96, t - 2.25, { color: C.yellow, font: F.sup });
+  }
+};
+
+// ⑤ «والمحل ما موجود؟ قول ليهو: اشتري لي» — شاشة المتاجر ثم «اطلب أي شيء»
+D.errand = (t, d) => {
+  g.fillStyle = C.paper; g.fillRect(0, 0, W, H);
+  arc(W * .05, H * .9, 560, 90, -t * .4, -t * .4 + Math.PI * 1.3, 'rgba(10,135,84,.09)');
+  const X = W - 90;
+  rise('والمحل', X, 250, 120, t - .05, { color: C.ink });
+  rise('ما موجود؟', X, 400, 150, t - .25, { color: C.green });
+  const enter = sp(t - .15, DEF), pw = 600;
+  const pk = sp(t - 2.05, SNAP);
+  const scr = phone(W / 2 + 70, 1290 + (1 - enter) * 1300, pw, [
+    { im: IMG.browse, k: 1, scroll: ease((t - .6) / .7) * 40 - ease((t - 1.35) / .3) * 40 },
+    { im: IMG.picker, k: pk, vert: true },
+  ], (1 - enter) * .12 - .025);
+  // اللمسة على «ما لقيت محلك؟ اطلب أي شيء» (مكانها من لقطة الشاشة)
+  tap(scr.x + 487 * scr.px, scr.y + 662 * scr.px, t - 1.7);
+  // ملصق «اشتري لي» يُختم فوق الهاتف
+  const st = t - 2.45, sk = sp(st, PLAY);
+  if (sk > 0) {
+    g.save(); g.translate(330, 720); g.rotate(-.1); const sc = lerp(1.8, 1, sk); g.scale(sc, sc); g.globalAlpha = clamp(st * 6);
+    shadow(40, 18, .3); rr(-270, -92, 540, 184, 92); g.fillStyle = C.yellow; g.fill(); noShadow();
+    text('اشتري لي', 20, 34, 104, { color: C.deep, align: 'center' });
+    chevron(-200, 0, 70, 16, C.deep, Math.PI);
+    g.restore();
+    rise('قول ليهو:', 420, 560, 70, st - .02, { font: F.sup, color: C.ink, align: 'center' });
+  }
+};
+
+// ⑥ «وتابعه لحظة بلحظة» — شاشة التتبّع الحقيقية في عطبرة
+D.track = (t, d) => {
+  g.fillStyle = C.deep; g.fillRect(0, 0, W, H);
+  arc(W * .95, H * .25, 470, 80, t * .5, t * .5 + Math.PI * 1.2, 'rgba(255,255,255,.06)');
+  const X = W - 90;
+  rise('وتابعه', X, 260, 150, t - .05, { p: PLAY });
+  rise('لحظة بلحظة', X, 420, 120, t - .3, { color: C.yellow, font: F.sup });
+  const enter = sp(t - .1, DEF), zoom = ease((t - 1.0) / 1.2);
+  // الكاميرا تقترب من الكابتن على الخريطة
+  const pw = 600, cx0 = W / 2, cy0 = 1340 + (1 - enter) * 1300;
+  const fx = cx0 - pw / 2 + 21.7 + 440 * (pw - 43.4) / 975, fy = cy0 - pw * 1.04 + 21.7 + 675 * (pw - 43.4) / 975;
+  const z = 1 + zoom * .32;
+  g.save(); g.translate(fx, fy); g.scale(z, z); g.translate(-fx, -fy);
+  const scr = phone(cx0, cy0, pw, [{ im: IMG.track, k: 1 }], (1 - enter) * -.1 + .02 * (1 - zoom));
+  // نبضة على الكابتن، وحلقة على «محطة عطبرة» في الخريطة
+  const kx = scr.x + 440 * scr.px, ky = scr.y + 675 * scr.px;
+  for (const ph of [0, .5]) { const p = ((t * 1.2) + ph) % 1; g.save(); g.globalAlpha = (1 - p) * .9; g.strokeStyle = C.yellow; g.lineWidth = 6 / z; g.beginPath(); g.arc(kx, ky, 30 + p * 80, 0, Math.PI * 2); g.stroke(); g.restore(); }
+  g.restore();
+  osm(H - 40, 'rgba(255,255,255,.55)');
+  // شريحة الوقت المتبقّي
+  const ek = sp(t - .9, PLAY), eta = Math.max(2, Math.ceil(lerp(6, 2, ease((t - 1) / (d - 1.3)))));
+  if (ek > 0) {
+    g.save(); g.translate(W / 2, H - 170); g.scale(ek, ek);
+    shadow(40, 16, .3); rr(-380, -70, 760, 140, 70); g.fillStyle = C.yellow; g.fill(); noShadow();
+    text(`الكابتن جاييك — ${eta} دقايق`, 0, 22, 58, { font: F.sup, color: C.deep, align: 'center' });
+    g.restore();
+  }
+};
+
+// ⑦ الختام: الشعار، «حمّله هسّي»، المتجران، وقطارٌ صغير يعبر
+D.end = (t, d) => {
+  g.fillStyle = C.brand; g.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = 620;
+  arc(cx, cy, 320, 40, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * easeOut(t / .9), 'rgba(255,255,255,.12)');
+  const k = sp(t - .15, HEAVY);
+  const lw = 600 * lerp(.75, 1, k), lh = lw * IMG.logoW.height / IMG.logoW.width;
+  g.save(); g.globalAlpha = clamp(k * 2.2); g.drawImage(IMG.logoW, cx - lw / 2, cy - lh / 2, lw, lh); g.restore();
+  rise('حمّله هسّي', cx, 1100, 150, t - .45, { align: 'center' });
+  // المتجران
+  [['Google Play', 'play'], ['App Store', 'store']].forEach(([s, ic], i) => {
+    const b = sp(t - .75 - i * .12, SNAP); if (b <= 0) return;
+    const bx = cx + (i ? -250 : 250), by = 1300;
+    g.save(); g.translate(bx, by); g.scale(b, b);
+    rr(-230, -66, 460, 132, 66); g.fillStyle = C.white; g.fill();
+    if (ic === 'play') { g.fillStyle = C.green; g.beginPath(); g.moveTo(-170, -28); g.lineTo(-170, 28); g.lineTo(-124, 0); g.closePath(); g.fill(); }
+    else { g.strokeStyle = C.green; g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); g.moveTo(-148, -30); g.lineTo(-148, 16); g.moveTo(-170, -4); g.lineTo(-148, 18); g.lineTo(-126, -4); g.moveTo(-172, 32); g.lineTo(-124, 32); g.stroke(); }
+    text(s, 40, 16, 46, { font: F.latB, color: C.deep, align: 'center' });
+    g.restore();
+  });
+  rise('وجيز… عطبرة والدامر', cx, 1520, 76, t - 1.05, { align: 'center', color: C.yellow, font: F.sup });
+  // سكةٌ وقطارٌ صغير يعبر من اليسار لليمين
+  const ry = 1800;
+  g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, ry, W, 8);
+  for (let i = 0; i < 22; i++) g.fillRect(i * 52 + 6, ry + 8, 30, 10);
+  const tx = lerp(-300, W + 2200, ease((t - .9) / (d - .9)));
+  g.save(); g.translate(tx, ry); g.scale(.34, .34);
+  train(0, 0, tx / 9);
+  g.restore();
+};
+
+// ═══════════════════════════ الانتقالات ════════════════════════════
+function transition(t) {
+  const at = (k) => t - SC[k].from;
+  // rails → arrive: المصباح يتّسع حتى يملأ الشاشة بالأصفر
+  { const x = at('arrive') + .45; if (x > 0 && x <= .45) {
+      const r = lerp(60, 2300, easeIn(x / .45)); circle(VPX, HZ - 18, r, C.yellow); } }
+  // doors → map ، track → end: سهمٌ عملاق يكنس من اليسار لليمين
+  for (const [k, col] of [['map', C.yellow], ['end', C.yellow]]) {
+    const x = at(k) + .22; if (x <= 0 || x >= .44) continue;
+    const px = lerp(-900, W + 900, ease(x / .44));
+    g.fillStyle = col; g.beginPath();
+    g.moveTo(px - 900, 0); g.lineTo(px, 0); g.lineTo(px + 520, H / 2); g.lineTo(px, H); g.lineTo(px - 900, H); g.closePath(); g.fill();
+  }
+  // map → errand: لوحٌ ورقيّ يصعد بحافّةٍ مدوّرة
+  { const x = at('errand') + .25; if (x > 0 && x < .5) {
+      const y = lerp(H + 200, -300, ease(x / .5)); g.fillStyle = C.paper; rr(-50, y, W + 100, H + 600, 220); g.fill(); } }
+  // errand → track: دائرةٌ داكنة من مكان اللمسة
+  { const x = at('track') + .25; if (x > 0 && x < .5) {
+      const r = lerp(0, 2400, ease(x / .5)); circle(330, 720, r, C.deep); } }
+}
+
+window.seek = function (t) {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; noShadow();
+  let cur = TIMING[TIMING.length - 1][0];
+  for (const [k] of TIMING) if (t >= SC[k].from && t < SC[k].from + SC[k].dur) { cur = k; break; }
+  D[cur](t - SC[cur].from, SC[cur].dur);
+  transition(t);
+};
+window.ready.then(() => window.seek(0));
+</script>
