@@ -35,16 +35,6 @@
   "license": "Unsplash License"
  },
  {
-  "file": "moto1",
-  "source": "https://unsplash.com/photos/1659484789150-7d9e164cf8a7",
-  "license": "Unsplash License"
- },
- {
-  "file": "moto2",
-  "source": "https://unsplash.com/photos/1707817812089-586ca2bfe711",
-  "license": "Unsplash License"
- },
- {
   "file": "handoff",
   "source": "https://unsplash.com/photos/1566576721346-d4a3b4eaeb55",
   "license": "Unsplash License"
@@ -83,5 +73,11 @@
   "source": "https://commons.wikimedia.org/wiki/File:Railway_station_Atbara_City.jpg",
   "license": "CC BY-SA 4.0",
   "author": "Esam Idris"
+ },
+ {
+  "file": "rider",
+  "source": "https://unsplash.com/photos/1542990725-319ce3f87c0c",
+  "license": "Unsplash License",
+  "note": "rider_wajeez.jpg: القميص مُعاد تلوينه بأخضر وجيز وعليه الشعار (tools/dress_rider.py)"
  }
 ]

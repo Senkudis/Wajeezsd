@@ -57,7 +57,7 @@ const F = { head: 'Alarabiya', sup: 'ArabicModern', lat: 'IntroBlack', latB: 'In
 
 // ── الصور ─────────────────────────────────────────────────────────
 const SRC = { logoW: 'assets/logo-white.png', browse: 'assets/screens/shopBrowse.png', picker: 'assets/screens/errandPicker.png', track: 'assets/screens/tracking.png' };
-for (const n of ['sun', 'atbara_rail', 'fan', 'phone1', 'moto2', 'atbara_house', 'handoff']) SRC[n] = `assets/photos/${n}.jpg`;
+for (const n of ['sun', 'atbara_rail', 'fan', 'phone1', 'rider_wajeez', 'atbara_house', 'handoff']) SRC[n] = `assets/photos/${n}.jpg`;
 const IMG = {};
 let GRAIN = null;
 window.ready = Promise.all(Object.entries(SRC).map(([k, s]) => new Promise((res, rej) => {
@@ -70,7 +70,25 @@ window.ready = Promise.all(Object.entries(SRC).map(([k, s]) => new Promise((res,
     const x = GRAIN.getContext('2d'), d = x.createImageData(512, 512); let s = 7;
     for (let i = 0; i < d.data.length; i += 4) { s = (s * 1664525 + 1013904223) >>> 0; const v = s >>> 24; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
     x.putImageData(d, 0, 0);
+    for (const [k, dark] of [['browse', false], ['picker', false], ['track', true]]) IMG[k + 'S'] = deviceScreen(IMG[k], dark);
   });
+
+// شاشةٌ كما تظهر على جهازٍ حقيقي: شريط الحالة (الساعة 2:00، الشبكة، البطارية)
+// والتطبيق تحته بمسافة الأمان، ثم بنعومة عدسة الصورة ودرجة إضاءتها —
+// اللقطة الخام أحدّ وأنصع من الصورة فتبدو ملصوقة.
+function deviceScreen(im, darkIcons) {
+  const w = 975, h = 2110, top = 118, c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+  x.drawImage(im, 0, top, w, w * im.height / im.width);
+  const px = x.getImageData(w / 2, top + 4, 1, 1).data; x.fillStyle = `rgb(${px[0]},${px[1]},${px[2]})`; x.fillRect(0, 0, w, top);
+  const ink = darkIcons ? '#111' : '#fff';
+  x.fillStyle = ink; x.font = `600 46px -apple-system, "Segoe UI", Arial`; x.textBaseline = 'middle'; x.direction = 'ltr'; x.fillText('2:00', 110, 66);
+  for (let i = 0; i < 4; i++) x.fillRect(720 + i * 16, 78 - 10 - i * 7, 10, 10 + i * 7);                 // الشبكة
+  x.lineWidth = 4; x.strokeStyle = ink; x.beginPath(); x.roundRect(806, 50, 66, 32, 9); x.stroke();     // البطارية
+  x.fillRect(812, 56, 44, 20); x.fillRect(876, 60, 5, 12);
+  const out = document.createElement('canvas'); out.width = w; out.height = h; const o = out.getContext('2d');
+  o.filter = 'blur(1.1px) brightness(.94) contrast(.93) saturate(.92)'; o.drawImage(c, 0, 0);
+  return out;
+}
 
 // ── التصوير ───────────────────────────────────────────────────────
 // الصورة تملأ الإطار حول نقطة تركيزها (fx,fy كنسبة)، بتكبيرٍ وانزياح.
@@ -170,7 +188,12 @@ function screenInPhone(xf, layers) {
   }
   // الجزيرة الديناميكية، ولمعانٌ خفيف على الزجاج
   g.fillStyle = '#050505'; g.beginPath(); g.roundRect(1000 - 92, 862, 184, 52, 26); g.fill();
-  const gl = g.createLinearGradient(700, 840, 1300, 1500); gl.addColorStop(0, 'rgba(255,255,255,.10)'); gl.addColorStop(.5, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(690, 830, 610, 1310);
+  // ضوء الغرفة من اليسار-أعلى كما في الصورة، وظلٌّ عند الحافّة السفلى، وانعكاسٌ مائل
+  const gl = g.createLinearGradient(700, 840, 1300, 2130); gl.addColorStop(0, 'rgba(255,250,240,.12)'); gl.addColorStop(.45, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(20,10,0,.16)');
+  g.fillStyle = gl; g.fillRect(690, 830, 610, 1310);
+  g.save(); g.globalAlpha = .07; g.fillStyle = '#fff'; g.beginPath(); g.moveTo(700, 1180); g.lineTo(1300, 900); g.lineTo(1300, 1010); g.lineTo(700, 1290); g.fill(); g.restore();
+  // حافّة الزجاج: ظلٌّ داخليّ رفيع
+  g.save(); g.translate(cx, cy); g.rotate(ang); g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 7; g.beginPath(); g.roundRect(-296, -644, 592, 1288, 64); g.stroke(); g.restore();
   g.restore();
 }
 const toScreen = (xf, p) => [xf.ox + p[0] * xf.s, xf.oy + p[1] * xf.s];
@@ -231,8 +254,8 @@ D.order = (t, d) => {
   const xf = photoXf(im, .5, .5, z, 0, 60);
   photo(g, im, xf, 'saturate(1.05) contrast(1.04)');
   const pk = sp(t - 2.15, SNAP);
-  screenInPhone(xf, [{ im: IMG.browse, k: 1 }, { im: IMG.picker, k: pk }]);
-  const [tx, ty] = toScreen(xf, quadAt(SCREEN, 487 / 975, 662 / 2110));
+  screenInPhone(xf, [{ im: IMG.browseS, k: 1 }, { im: IMG.pickerS, k: pk }]);
+  const [tx, ty] = toScreen(xf, quadAt(SCREEN, 487 / 975, (662 + 118) / 2110));
   tap(tx, ty, t - 1.75);
   grade(t, 0); scrim(true, true);
   rise('ما تمرق…', X, 250, 150, t - .05);
@@ -241,12 +264,8 @@ D.order = (t, d) => {
 
 // ⑤ الكابتن على الموتر — «والكابتن بجيبها ليك»
 D.ride = (t, d) => {
-  const im = IMG.moto2, xf = photoXf(im, .5, .56, 1.28, 90 - 170 * t, 0);
-  // خطوط سرعةٍ أفقية خفيفة فوق الخلفية
+  const im = IMG.rider_wajeez, xf = photoXf(im, .4, .42, 1.12 + .06 * t, 60 - 90 * t, 0);
   photo(g, im, xf, WARM);
-  g.save(); g.globalAlpha = .18; g.fillStyle = '#fff';
-  for (let i = 0; i < 9; i++) { const y = 260 + hash(i) * 1300, len = 300 + hash(i + 4) * 500, x = ((hash(i + 8) * W + t * 2600) % (W + 900)) - 600; g.fillRect(W - x - len, y, len, 4); }
-  g.restore();
   grade(t, .1); scrim(false, true);
   rise('والكابتن', X, 1560, 160, t - .05);
   boxed('بجيبها ليك', X, 1740, 120, t - .3);
@@ -268,9 +287,9 @@ D.track = (t, d) => {
   const im = IMG.phone1, z = 1.5 - .12 * easeOut(t / d);
   const xf = photoXf(im, .5, .5, z, 0, 120);
   photo(g, im, xf, 'saturate(1.05) contrast(1.04)');
-  screenInPhone(xf, [{ im: IMG.track, k: 1 }]);
+  screenInPhone(xf, [{ im: IMG.trackS, k: 1 }]);
   // نبضةٌ على الكابتن في الخريطة (مكانه في لقطة التتبّع)
-  const [kx, ky] = toScreen(xf, quadAt(SCREEN, 440 / 975, 675 / 2110));
+  const [kx, ky] = toScreen(xf, quadAt(SCREEN, 440 / 975, (675 + 118) / 2110));
   for (const ph of [0, .5]) { const p = ((t * 1.3) + ph) % 1; g.save(); g.globalAlpha = (1 - p) * .9; g.strokeStyle = C.yellow; g.lineWidth = 6; g.beginPath(); g.arc(kx, ky, 26 + p * 70, 0, Math.PI * 2); g.stroke(); g.restore(); }
   grade(t, 0); scrim(true, true);
   rise('وتابعه', X, 250, 150, t - .05);
