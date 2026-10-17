@@ -237,3 +237,28 @@ describe('حسابات التواصل', () => {
         expect(page).toContain('تحوّل قيمتها للمتجر مباشرةً');
     });
 });
+
+describe('🎬 فيديوهات الشرح من يوتيوب', () => {
+    const IDS = ['YbOaQ2o9BgA', 'RuV5o6lJJz8', 'G6M5QMDQueY'];   // العميل، التاجر، الكابتن
+
+    it('الثلاثة في قسم الشروحات، والمشغّل لا يُحمَّل إلا عند الضغط', () => {
+        const sec = page.slice(page.indexOf('id="tutorials"'), page.indexOf('class="faq-col"'));
+        for (const id of IDS) expect(sec, id).toContain(`data-yt="${id}"`);
+        expect(sec).not.toContain('<iframe');                       // لا مشغّل جاهز في الصفحة
+        expect(page).toContain("'https://www.youtube-nocookie.com/embed/' + id");
+        expect(page).toContain('href="https://www.youtube.com/@wajeezsd"');
+    });
+
+    it('🔑 $$ لا $ مع forEach — كان $ يُرجع عنصراً واحداً فيرمي ويوقف سكربت الصفحة كلّه', () => {
+        // String.replace يحوّل «$$» في نصّ الاستبدال إلى «$» — هكذا وقع
+        expect(code).not.toMatch(/[^$]\$\('[^']*'\)\.forEach/);
+        expect(code).toContain("$$('.video-frame[data-yt]').forEach");
+    });
+
+    it('وبيانات VideoObject لكل فيديو — تظهر في نتائج البحث', () => {
+        const blocks = [...page.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+        const videos = blocks.flatMap(b => b['@graph'] || [b]).filter(x => x['@type'] === 'VideoObject');
+        expect(videos.map(v => v.embedUrl.split('/').pop()).sort()).toEqual([...IDS].sort());
+        for (const v of videos) expect(v.thumbnailUrl).toMatch(/^https:\/\/i\.ytimg\.com\/vi\//);
+    });
+});
