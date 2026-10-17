@@ -472,7 +472,7 @@
     <link rel="stylesheet" href="css/enhanced-styles.css?v=ce667195">
     <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
     <!-- شاشة تحديد الموقع — مصدر واحد تتقاسمه مع shop-detail.html -->
-    <link rel="stylesheet" href="css/map-ui.css?v=082e13c5">
+    <link rel="stylesheet" href="css/map-ui.css?v=8efad6cb">
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/smart-search.css?v=8dc97789">
@@ -784,7 +784,6 @@
                 </div> -->
 
                     <!-- المدينة التي سيُرسل فيها الطلب — ظاهرةٌ قبل الإرسال، و«تغيير» منها -->
-                    <div id="order-city-line" class="wj-order-city" role="status" aria-live="polite"></div>
 
                     <button id="submit-btn" class="btn-submit" onclick="createOrder()">
                         <i class="bi bi-rocket-takeoff-fill me-2"></i> اطلب الكابتن الآن
@@ -1779,13 +1778,6 @@
                     btn.classList.toggle('is-away', away);
                     btn.setAttribute('aria-label', city
                         ? `المدينة: ${CityService.shortLabel(city)}${away ? ' (مؤقتاً)' : ''} — تغيير` : 'اختيار المدينة');
-                }
-                const line = document.getElementById('order-city-line');
-                if (line && city) {
-                    line.classList.toggle('is-away', away);
-                    line.innerHTML = `<i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                        <span>الطلب في <b>${CityService.shortLabel(city)}</b>${away ? ` — مؤقتاً، مدينتك ${CityService.shortLabel(CityService.getHomeCity())}` : ''}</span>
-                        <button type="button" class="wj-order-city-btn" onclick="window.chooseMapCity()">تغيير</button>`;
                 }
             }
             updateMapCityLabel();

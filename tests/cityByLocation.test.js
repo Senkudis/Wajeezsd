@@ -225,10 +225,9 @@ describe('٣ و٥. المدينة ظاهرة، والتبديل لوحةٌ صغ�
         expect(css).toContain('.wj-chip-city.is-away');
     });
 
-    it('سطر «الطلب في …» فوق زرّ الطلب، بزرّ «تغيير»', () => {
-        expect(idx).toMatch(/id="order-city-line"[\s\S]{0,200}id="submit-btn"/);
-        expect(idx).toContain('الطلب في <b>');
-        expect(css).toContain('.wj-order-city.is-away');
+    it('لا سطر «الطلب في …» فوق زرّ الطلب — شُيل، والتبديل من شريحة الخريطة', () => {
+        expect(idx).not.toContain('order-city-line');
+        expect(css).not.toContain('.wj-order-city');
     });
 
     it('زرّ التبديل يفتح اللوحة — ولا تعريف ثانٍ يغلبه', () => {

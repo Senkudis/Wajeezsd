@@ -159,18 +159,6 @@
 body.dark-mode #map-city-btn.wj-chip-city.is-away { background: #2a1f05 !important; color: #fde68a !important; }
 body.dark-mode #map-city-btn.is-away #map-city-label { color: #fde68a !important; }
 
-/* سطر المدينة فوق «اطلب الكابتن» */
-.wj-order-city { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; padding: 8px 12px;
-    border-radius: 12px; background: #f0fdf4; color: #065f46; font-size: .86rem; font-weight: 700; line-height: 1.6; }
-.wj-order-city:empty { display: none; }
-.wj-order-city > .bi { flex: none; }
-.wj-order-city > span { flex: 1; min-width: 0; }
-.wj-order-city.is-away { background: #fef3c7; color: #92400e; border: 1.5px solid #f59e0b; }
-.wj-order-city-btn { flex: none; background: transparent; border: none; color: inherit; font-family: inherit;
-    font-weight: 800; text-decoration: underline; padding: 6px 4px; min-height: 36px; cursor: pointer; }
-body.dark-mode .wj-order-city { background: #052e1a; color: #86efac; }
-body.dark-mode .wj-order-city.is-away { background: #2a1f05; color: #fde68a; }
-
 /* ── البطاقة السفلية: سطحٌ حقيقي بدل تدرّجٍ عارٍ ── */
 .wj-sheet {
     position: absolute;

@@ -240,7 +240,7 @@ const SHOTS = {
                  dropoffBtn: '#dropoff-block .map-select-btn, [onclick*="openMapModal(\'dropoff\')"]', dropoffAddr: '#dropoff-addr', dropoffName: '#dropoff-name', dropoffPhone: '#dropoff-phone',
                  saveAddr: '[onclick*="saveCurrent"], [onclick*="SaveAddress"], [onclick*="saveDropoff"]',
                  multi: '#multi-stop-actions', addDrop: '#multi-stop-actions button:first-child', addPick: '#multi-stop-actions button:last-child',
-                 details: '#details', photo: '#parcel-image', price: '#price', minus: '#price-minus', plus: '#price-plus', cityLine: '#order-city-line', submit: '#submit-btn' }
+                 details: '#details', photo: '#parcel-image', price: '#price', minus: '#price-minus', plus: '#price-plus', submit: '#submit-btn' }
     },
     multiStop: {
         url: 'index.html', wait: 2500, fullPage: true, mocks: [...BASE, PRICE, ADDR, BANNERS],
@@ -280,7 +280,7 @@ const SHOTS = {
             set('details', 'هدية لي خالد — برّاد شاي جديد'); set('price', '3000');
             if (document.activeElement) document.activeElement.blur(); return true;
         },
-        marks: { cityLine: '#order-city-line', submit: '#submit-btn', price: '#price' }
+        marks: { submit: '#submit-btn', price: '#price' }
     },
     // ── التسوّق ──────────────────────────────────────────────────────────
     shopBrowse: {
