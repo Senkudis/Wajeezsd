@@ -113,7 +113,7 @@ function chip(s, x, y, size, k, { bg = C.white, fg = C.deep, font = F.sup } = {}
 }
 
 // إسناد الخريطة — شرط ترخيص OpenStreetMap حيث تظهر بياناتها
-const osm = (y, color = 'rgba(8,57,42,.6)') => text('© OpenStreetMap contributors', 70, y, 24, { font: F.latB, color, align: 'left' });
+const osm = (y, color = 'rgba(8,57,42,.6)') => { g.save(); g.direction = 'ltr'; g.textAlign = 'left'; g.font = `24px ${F.latB}`; g.fillStyle = color; g.fillText('© OpenStreetMap contributors', 70, y); g.restore(); };
 
 // ── الهاتف بشاشاتٍ حقيقية ──────────────────────────────────────────
 function phone(cx, cy, w, layers, rot = 0) {
@@ -329,7 +329,7 @@ function strokeTo(pts, u, width, color) {
 }
 D.map = (t, d) => {
   const k = ease((t - .25) / 1.6);
-  const cx = lerp(880, 575, k), cy = lerp(800, 905, k), s = lerp(2.1, 1.0, k);
+  const cx = lerp(880, 585, k), cy = lerp(800, 905, k), s = lerp(2.1, .94, k);
   const M = (x, y) => [W / 2 + (x - cx) * s, H / 2 + 60 + (y - cy) * s];        // الخريطة ⇐ الشاشة
   g.fillStyle = '#E4F1E8'; g.fillRect(0, 0, W, H);
   g.save(); g.translate(W / 2, H / 2 + 60); g.scale(s, s); g.translate(-cx, -cy);
