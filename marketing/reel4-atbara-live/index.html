@@ -1,0 +1,339 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+/* خطوط البراند الرسمية الثلاثة وحدها (marketing/brand-fonts — خارج المستودع) */
+@font-face { font-family: 'Alarabiya'; src: url('../brand-fonts/alarabiya/Alarabiya Normal Font.ttf'); }
+@font-face { font-family: 'ArabicModern'; src: url('../brand-fonts/arabic-modern/ArabicModern-Bold.otf'); }
+@font-face { font-family: 'IntroBlack'; src: url('../brand-fonts/intro/Intro Black Alt.otf'); }
+@font-face { font-family: 'IntroBold'; src: url('../brand-fonts/intro/Intro Bold Alt.otf'); }
+html,body{margin:0;background:#111}canvas{display:block;max-height:100vh}
+</style>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// ════════════════════════════════════════════════════════════════════
+// إعلان عطبرة بالصور الحقيقية — «الحرّ ده… ما تمرق ليهو». 9:16.
+//
+// صورٌ فوتوغرافية (Unsplash، وصور عطبرة من ويكيميديا بترخيص CC BY)، وشاشات
+// التطبيق الحقيقية مركّبةٌ داخل الهاتف في الصورة بتحويلٍ منظوري، ونصوصٌ
+// متحركة بخطوط الهوية. القصّ على النبض (120 BPM)، وكل لقطةٍ تتحرّك.
+// المصادر والتراخيص: assets/photos/credits.json
+// ════════════════════════════════════════════════════════════════════
+const TIMING = [
+  // [المشهد, المدة بالثواني, سطر التعليق الصوتي]
+  ['sun',   2.5, 'عطبرة… الساعة اتنين الضهر'],
+  ['city',  2.0, 'والسخانة ما بتتحمّل'],
+  ['fan',   2.0, 'ومحتاج حاجة من السوق؟'],
+  ['order', 3.8, 'ما تمرق… اطلب من وجيز'],
+  ['ride',  2.4, 'والكابتن بجيبها ليك'],
+  ['house', 1.8, 'لحدّي بابك'],
+  ['track', 2.6, 'وتابعه لحظة بلحظة'],
+  ['hand',  2.5, 'الحرّ ده… ما تمرق ليهو'],
+  ['end',   4.0, 'وجيز… عطبرة والدامر. حمّله هسّي'],
+];
+const W = 1080, H = 1920;
+let acc = 0; const SC = {}; for (const [k, d] of TIMING) { SC[k] = { from: acc, dur: d }; acc += d; }
+const DUR = acc;
+window.DUR = DUR; window.TIMING = TIMING; window.SC = SC;
+
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const buf = document.createElement('canvas'); buf.width = W; buf.height = H; const b = buf.getContext('2d');
+const clamp = (x, a = 0, c = 1) => Math.min(c, Math.max(a, x));
+const lerp = (a, c, k) => a + (c - a) * k;
+function spring(t, k = 170, d = 26) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(k), z = d / (2 * w0);
+  if (z < 1) { const wd = w0 * Math.sqrt(1 - z * z);
+    return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t)); }
+  return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+}
+const SNAP = [320, 30], DEF = [170, 26], HEAVY = [110, 20], PLAY = [240, 15];
+const sp = (t, p = DEF) => spring(t, p[0], p[1]);
+const ease = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const hash = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+const C = { deep: '#08392A', brand: '#04553A', green: '#0A8754', mint: '#DDF1E6', yellow: '#F6B40E', ink: '#0B1F17', white: '#FFFFFF' };
+const F = { head: 'Alarabiya', sup: 'ArabicModern', lat: 'IntroBlack', latB: 'IntroBold' };
+
+// ── الصور ─────────────────────────────────────────────────────────
+const SRC = { logoW: 'assets/logo-white.png', browse: 'assets/screens/shopBrowse.png', picker: 'assets/screens/errandPicker.png', track: 'assets/screens/tracking.png' };
+for (const n of ['sun', 'atbara_rail', 'fan', 'phone1', 'moto2', 'atbara_house', 'handoff']) SRC[n] = `assets/photos/${n}.jpg`;
+const IMG = {};
+let GRAIN = null;
+window.ready = Promise.all(Object.entries(SRC).map(([k, s]) => new Promise((res, rej) => {
+  const i = new Image(); i.onload = () => { IMG[k] = i; res(); }; i.onerror = () => rej(new Error(s)); i.src = s; })))
+  .then(() => Promise.all(['100px Alarabiya', '100px ArabicModern', '100px IntroBlack', '100px IntroBold']
+    .map(f => document.fonts.load(f, 'وجيز عطبرة 2 Google'))))
+  .then(() => {
+    // حبيبات فيلم ثابتة (بذرة) — تعطي الصور المختلفة نسيجاً واحداً
+    GRAIN = document.createElement('canvas'); GRAIN.width = 512; GRAIN.height = 512;
+    const x = GRAIN.getContext('2d'), d = x.createImageData(512, 512); let s = 7;
+    for (let i = 0; i < d.data.length; i += 4) { s = (s * 1664525 + 1013904223) >>> 0; const v = s >>> 24; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+    x.putImageData(d, 0, 0);
+  });
+
+// ── التصوير ───────────────────────────────────────────────────────
+// الصورة تملأ الإطار حول نقطة تركيزها (fx,fy كنسبة)، بتكبيرٍ وانزياح.
+// تُعيد مصفوفة التحويل (صورة ⇐ شاشة) لرسم ما فوقها بإحداثيات الصورة.
+function photoXf(im, fx, fy, zoom = 1, dx = 0, dy = 0) {
+  const s = Math.max(W / im.width, H / im.height) * zoom;
+  let ox = W / 2 - fx * im.width * s + dx, oy = H / 2 - fy * im.height * s + dy;
+  ox = clamp(ox, W - im.width * s, 0); oy = clamp(oy, H - im.height * s, 0);
+  return { s, ox, oy };
+}
+function photo(ctx, im, xf, filter = 'none') {
+  ctx.save(); ctx.filter = filter; ctx.setTransform(xf.s, 0, 0, xf.s, xf.ox, xf.oy); ctx.drawImage(im, 0, 0); ctx.restore();
+}
+const WARM = 'saturate(1.18) contrast(1.08) sepia(.14) brightness(1.03)';
+// السخانة: الصورة تُرسم شرائحَ تتموّج أفقياً كهواء الضهر فوق الأسفلت
+function haze(t, amp, from = 0) {
+  for (let y = 0; y < H; y += 6) {
+    const k = clamp((y - from) / 600), off = Math.sin(y * .045 + t * 9) * amp * k + Math.sin(y * .013 - t * 5) * amp * .5 * k;
+    g.drawImage(buf, 0, y, W, 6, off, y, W, 6);
+  }
+}
+function grade(t, warm = .0) {
+  if (warm > 0) { g.save(); g.globalCompositeOperation = 'soft-light'; g.fillStyle = `rgba(255,140,20,${warm})`; g.fillRect(0, 0, W, H); g.restore(); }
+  const v = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H * .75);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.42)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  if (GRAIN) { g.save(); g.globalAlpha = .06; g.globalCompositeOperation = 'overlay'; const f = Math.floor(t * 30);
+    g.translate(-(hash(f) * 512 | 0), -(hash(f + 9) * 512 | 0)); g.fillStyle = g.createPattern(GRAIN, 'repeat'); g.fillRect(0, 0, W + 512, H + 512); g.restore(); }
+}
+
+// ── النصّ ─────────────────────────────────────────────────────────
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+const tw = (s, size, font = F.head) => { g.save(); g.font = `${size}px ${font}`; g.direction = 'rtl'; const w = g.measureText(s).width; g.restore(); return w; };
+function text(s, x, y, size, { font = F.head, color = C.white, align = 'right', alpha = 1, shadow = 0 } = {}) {
+  if (alpha <= 0) return;
+  g.save(); g.globalAlpha *= alpha; g.direction = 'rtl'; g.textAlign = align; g.textBaseline = 'alphabetic';
+  g.font = `${size}px ${font}`; g.fillStyle = color;
+  if (shadow) { g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = shadow; g.shadowOffsetY = shadow * .25; }
+  g.fillText(s, x, y); g.restore();
+}
+// سطرٌ يصعد من تحت قناعه
+function rise(s, x, y, size, t, opt = {}) {
+  const k = sp(t, opt.p || SNAP); if (k <= 0) return;
+  const maxW = opt.maxW || W - 140; size = Math.min(size, size * maxW / tw(s, size, opt.font));
+  g.save(); g.beginPath(); g.rect(0, y - size * 1.25, W, size * 1.6); g.clip();
+  text(s, x, y + (1 - k) * size * 1.3, size, Object.assign({ shadow: 30 }, opt)); g.restore();
+}
+// كلمةٌ داخل شريطٍ أصفر يكنس من اليمين ثم يظهر النصّ عليه
+function boxed(s, x, y, size, t, { bg = C.yellow, fg = C.deep, font = F.head } = {}) {
+  if (t <= 0) return;
+  size = Math.min(size, size * (W - 160) / tw(s, size, font));
+  const w = tw(s, size, font) + size * .7, h = size * 1.32, k = easeOut(t / .28);
+  g.save(); g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 30; g.shadowOffsetY = 10;
+  rr(x - w * k, y - h * .78, w * k, h, 14); g.fillStyle = bg; g.fill(); g.restore();
+  g.save(); rr(x - w * k, y - h * .78, w * k, h, 14); g.clip();
+  text(s, x - size * .35, y + (1 - sp(t - .12, SNAP)) * size, size, { font, color: fg }); g.restore();
+}
+// تعتيمٌ سفليّ خفيف تحت النصوص — يقرأ النصّ فوق أي صورة
+function scrim(top = true, bottom = true) {
+  if (bottom) { const s = g.createLinearGradient(0, H * .55, 0, H); s.addColorStop(0, 'rgba(0,0,0,0)'); s.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = s; g.fillRect(0, H * .55, W, H * .45); }
+  if (top) { const s = g.createLinearGradient(0, 0, 0, H * .3); s.addColorStop(0, 'rgba(0,0,0,.45)'); s.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = s; g.fillRect(0, 0, W, H * .3); }
+}
+
+// ── شاشة التطبيق داخل الهاتف في الصورة (تحويلٌ منظوري بشبكة مثلثات) ──
+// زوايا الشاشة في phone1.jpg (بكسل الصورة الأصلية)
+const SCREEN = [[705, 845], [1293, 836], [1286, 2128], [697, 2118]];
+const quadAt = (q, u, v) => { const a = [lerp(q[0][0], q[1][0], u), lerp(q[0][1], q[1][1], u)], c = [lerp(q[3][0], q[2][0], u), lerp(q[3][1], q[2][1], u)]; return [lerp(a[0], c[0], v), lerp(a[1], c[1], v)]; };
+function tri(im, s0, s1, s2, d0, d1, d2) {
+  // يرسم مثلث الصورة (s) فوق مثلث الوجهة (d) بتحويلٍ تآلفي
+  g.save(); g.beginPath(); const cx = (d0[0] + d1[0] + d2[0]) / 3, cy = (d0[1] + d1[1] + d2[1]) / 3;
+  for (const [i, p] of [d0, d1, d2].entries()) { const x = p[0] + (p[0] - cx) * .02, y = p[1] + (p[1] - cy) * .02; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+  g.closePath(); g.clip();
+  const den = (s1[0] - s0[0]) * (s2[1] - s0[1]) - (s2[0] - s0[0]) * (s1[1] - s0[1]);
+  const a = ((d1[0] - d0[0]) * (s2[1] - s0[1]) - (d2[0] - d0[0]) * (s1[1] - s0[1])) / den;
+  const bb = ((d1[1] - d0[1]) * (s2[1] - s0[1]) - (d2[1] - d0[1]) * (s1[1] - s0[1])) / den;
+  const c = ((d2[0] - d0[0]) * (s1[0] - s0[0]) - (d1[0] - d0[0]) * (s2[0] - s0[0])) / den;
+  const d = ((d2[1] - d0[1]) * (s1[0] - s0[0]) - (d1[1] - d0[1]) * (s2[0] - s0[0])) / den;
+  g.transform(a, bb, c, d, d0[0] - a * s0[0] - c * s0[1], d0[1] - bb * s0[0] - d * s0[1]);
+  g.drawImage(im, 0, 0); g.restore();
+}
+function screenInPhone(xf, layers) {
+  g.save(); g.setTransform(xf.s, 0, 0, xf.s, xf.ox, xf.oy);
+  const q = SCREEN, cx = (q[0][0] + q[2][0]) / 2, cy = (q[0][1] + q[2][1]) / 2, ang = Math.atan2(q[1][1] - q[0][1], q[1][0] - q[0][0]);
+  g.save(); g.translate(cx, cy); g.rotate(ang); g.beginPath(); g.roundRect(-296, -644, 592, 1288, 64); g.restore(); g.clip();
+  g.fillStyle = '#fff'; g.fill();
+  const N = 10;
+  for (const L of layers) {
+    if (L.k <= 0) continue;
+    const im = L.im, iw = im.width, ih = Math.min(im.height, iw * 2.164);
+    const off = (1 - L.k);                                                   // تنزلق من الأسفل
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const u0 = i / N, u1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
+      const vv0 = v0 + off, vv1 = v1 + off; if (vv0 >= 1) continue;
+      const d00 = quadAt(q, u0, Math.min(1, vv0)), d10 = quadAt(q, u1, Math.min(1, vv0)), d01 = quadAt(q, u0, Math.min(1, vv1)), d11 = quadAt(q, u1, Math.min(1, vv1));
+      const s00 = [u0 * iw, v0 * ih], s10 = [u1 * iw, v0 * ih], s01 = [u0 * iw, v1 * ih], s11 = [u1 * iw, v1 * ih];
+      tri(im, s00, s10, s11, d00, d10, d11); tri(im, s00, s11, s01, d00, d11, d01);
+    }
+  }
+  // الجزيرة الديناميكية، ولمعانٌ خفيف على الزجاج
+  g.fillStyle = '#050505'; g.beginPath(); g.roundRect(1000 - 92, 862, 184, 52, 26); g.fill();
+  const gl = g.createLinearGradient(700, 840, 1300, 1500); gl.addColorStop(0, 'rgba(255,255,255,.10)'); gl.addColorStop(.5, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(690, 830, 610, 1310);
+  g.restore();
+}
+const toScreen = (xf, p) => [xf.ox + p[0] * xf.s, xf.oy + p[1] * xf.s];
+function tap(x, y, t) {
+  if (t < 0 || t > .6) return;
+  g.save(); g.globalAlpha = 1 - t / .6; g.strokeStyle = C.yellow; g.lineWidth = 8; g.beginPath(); g.arc(x, y, 20 + t * 120, 0, Math.PI * 2); g.stroke();
+  g.globalAlpha = clamp(1 - t * 3); g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.arc(x, y, 24, 0, Math.PI * 2); g.fill(); g.restore();
+}
+function pinIcon(x, y, s, color) {
+  g.save(); g.translate(x, y); g.scale(s / 100, s / 100); g.fillStyle = color; g.beginPath();
+  g.moveTo(0, 0); g.bezierCurveTo(-46, -48, -36, -88, 0, -88); g.bezierCurveTo(36, -88, 46, -48, 0, 0); g.fill();
+  g.fillStyle = C.white; g.beginPath(); g.arc(0, -56, 15, 0, Math.PI * 2); g.fill(); g.restore();
+}
+
+// ═══════════════════════════ المشاهد ═══════════════════════════════
+const D = {};
+const X = W - 80;                     // هامش النصّ الأيمن
+
+// ① الشمس فوق النخيل — «عطبرة… الساعة اتنين الضهر»
+D.sun = (t, d) => {
+  const xf = photoXf(IMG.sun, .42, .5, 1.12 - .1 * easeOut(t / d) + .0, 0, -40 * t);
+  b.clearRect(0, 0, W, H); photo(b, IMG.sun, xf, 'saturate(1.25) contrast(1.1)'); haze(t, 5, 900);
+  // وهج الشمس ينبض
+  const [sx, sy] = toScreen(xf, [.4 * IMG.sun.width, .555 * IMG.sun.height]);
+  g.save(); g.globalCompositeOperation = 'screen'; const r = g.createRadialGradient(sx, sy, 0, sx, sy, 520 + 40 * Math.sin(t * 3));
+  r.addColorStop(0, 'rgba(255,230,160,.55)'); r.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = r; g.fillRect(0, 0, W, H); g.restore();
+  grade(t, .1); scrim(true, false);
+  rise('عطبرة', X, 330, 250, t - .1, { p: PLAY });
+  boxed('الساعة اتنين الضهر', X, 520, 96, t - .55);
+};
+
+// ② السكة حديد في الضهر — «والسخانة ما بتتحمّل»
+D.city = (t, d) => {
+  const xf = photoXf(IMG.atbara_rail, .52, .55, 1.0 + .06 * t, -60 * t, 0);
+  b.clearRect(0, 0, W, H); photo(b, IMG.atbara_rail, xf, WARM); haze(t, 7, 700);
+  grade(t, .22); scrim(false, true);
+  rise('والسخانة', X, 1560, 170, t - .05);
+  boxed('ما بتتحمّل', X, 1740, 110, t - .35);
+  text('عطبرة', X, 120, 46, { font: F.sup, color: 'rgba(255,255,255,.9)', alpha: clamp(t * 4), shadow: 20 });
+  pinIcon(X - tw('عطبرة', 46, F.sup) - 40, 128, 50, C.yellow);
+};
+
+// ③ المروحة تدور — «ومحتاج حاجة من السوق؟»
+D.fan = (t, d) => {
+  const im = IMG.fan, xf = photoXf(im, .52, .4, 1.15, 0, 0);
+  const [cx, cy] = toScreen(xf, [.522 * im.width, .36 * im.height]);
+  g.save(); g.translate(cx, cy); g.rotate(-t * .12); g.translate(-cx, -cy);
+  const zz = 1.12 + .08 * t, big = { s: xf.s * zz, ox: cx - (cx - xf.ox) * zz, oy: cy - (cy - xf.oy) * zz };
+  photo(g, im, big, 'saturate(1.1) contrast(1.05) sepia(.1)'); g.restore();
+  grade(t, .08); scrim(false, true);
+  rise('ومحتاج حاجة', X, 1560, 150, t - .05);
+  boxed('من السوق؟', X, 1740, 120, t - .35);
+};
+
+// ④ الهاتف: المتاجر الحقيقية، ثم «اطلب أي شيء» — «ما تمرق… اطلب من وجيز»
+D.order = (t, d) => {
+  const im = IMG.phone1, z = 1.32 + .1 * easeOut(t / d);
+  const xf = photoXf(im, .5, .5, z, 0, 60);
+  photo(g, im, xf, 'saturate(1.05) contrast(1.04)');
+  const pk = sp(t - 2.15, SNAP);
+  screenInPhone(xf, [{ im: IMG.browse, k: 1 }, { im: IMG.picker, k: pk }]);
+  const [tx, ty] = toScreen(xf, quadAt(SCREEN, 487 / 975, 662 / 2110));
+  tap(tx, ty, t - 1.75);
+  grade(t, 0); scrim(true, true);
+  rise('ما تمرق…', X, 250, 150, t - .05);
+  boxed('اطلب من وجيز', X, 1760, 120, t - .6);
+};
+
+// ⑤ الكابتن على الموتر — «والكابتن بجيبها ليك»
+D.ride = (t, d) => {
+  const im = IMG.moto2, xf = photoXf(im, .5, .56, 1.28, 90 - 170 * t, 0);
+  // خطوط سرعةٍ أفقية خفيفة فوق الخلفية
+  photo(g, im, xf, WARM);
+  g.save(); g.globalAlpha = .18; g.fillStyle = '#fff';
+  for (let i = 0; i < 9; i++) { const y = 260 + hash(i) * 1300, len = 300 + hash(i + 4) * 500, x = ((hash(i + 8) * W + t * 2600) % (W + 900)) - 600; g.fillRect(W - x - len, y, len, 4); }
+  g.restore();
+  grade(t, .1); scrim(false, true);
+  rise('والكابتن', X, 1560, 160, t - .05);
+  boxed('بجيبها ليك', X, 1740, 120, t - .3);
+};
+
+// ⑥ بيتٌ في عطبرة — «لحدّي بابك»
+D.house = (t, d) => {
+  const im = IMG.atbara_house, xf = photoXf(im, .47, .55, 1.04 + .07 * t, 0, 0);
+  b.clearRect(0, 0, W, H); photo(b, im, xf, WARM); haze(t, 4, 1000);
+  grade(t, .15); scrim(false, true);
+  boxed('لحدّي بابك', X, 1720, 150, t - .1);
+  // دبّوس الوجهة يسقط على البوابة
+  const [px, py] = toScreen(xf, [.43 * im.width, .52 * im.height]), k = sp(t - .35, PLAY);
+  if (k > 0) { g.save(); g.globalAlpha = clamp(k * 2); pinIcon(px, py - (1 - k) * 300, 150, C.green); g.restore(); }
+};
+
+// ⑦ التتبّع في الهاتف — «وتابعه لحظة بلحظة»
+D.track = (t, d) => {
+  const im = IMG.phone1, z = 1.5 - .12 * easeOut(t / d);
+  const xf = photoXf(im, .5, .5, z, 0, 120);
+  photo(g, im, xf, 'saturate(1.05) contrast(1.04)');
+  screenInPhone(xf, [{ im: IMG.track, k: 1 }]);
+  // نبضةٌ على الكابتن في الخريطة (مكانه في لقطة التتبّع)
+  const [kx, ky] = toScreen(xf, quadAt(SCREEN, 440 / 975, 675 / 2110));
+  for (const ph of [0, .5]) { const p = ((t * 1.3) + ph) % 1; g.save(); g.globalAlpha = (1 - p) * .9; g.strokeStyle = C.yellow; g.lineWidth = 6; g.beginPath(); g.arc(kx, ky, 26 + p * 70, 0, Math.PI * 2); g.stroke(); g.restore(); }
+  grade(t, 0); scrim(true, true);
+  rise('وتابعه', X, 250, 150, t - .05);
+  boxed('لحظة بلحظة', X, 1760, 120, t - .35);
+};
+
+// ⑧ التسليم — «الحرّ ده… ما تمرق ليهو»
+D.hand = (t, d) => {
+  const im = IMG.handoff, xf = photoXf(im, .55, .58, 1.18 - .1 * easeOut(t / d), 0, 0);
+  photo(g, im, xf, 'saturate(1.1) contrast(1.06) sepia(.06)');
+  grade(t, .06); scrim(true, true);
+  rise('الحرّ ده…', X, 270, 160, t - .05);
+  boxed('ما تمرق ليهو', X, 1760, 140, t - .45);
+};
+
+// ⑨ الختام
+D.end = (t, d) => {
+  g.fillStyle = C.brand; g.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = 640, k = sp(t - .1, HEAVY);
+  g.save(); g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 40; g.lineCap = 'round'; g.beginPath(); g.arc(cx, cy, 320, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * easeOut(t / .9)); g.stroke(); g.restore();
+  const lw = 600 * lerp(.75, 1, k), lh = lw * IMG.logoW.height / IMG.logoW.width;
+  g.save(); g.globalAlpha = clamp(k * 2.2); g.drawImage(IMG.logoW, cx - lw / 2, cy - lh / 2, lw, lh); g.restore();
+  rise('حمّله هسّي', cx, 1120, 150, t - .4, { align: 'center', shadow: 0 });
+  [['Google Play', 'play'], ['App Store', 'store']].forEach(([s, ic], i) => {
+    const bk = sp(t - .7 - i * .12, SNAP); if (bk <= 0) return;
+    g.save(); g.translate(cx + (i ? -250 : 250), 1320); g.scale(bk, bk);
+    rr(-230, -66, 460, 132, 66); g.fillStyle = C.white; g.fill();
+    if (ic === 'play') { g.fillStyle = C.green; g.beginPath(); g.moveTo(-170, -28); g.lineTo(-170, 28); g.lineTo(-124, 0); g.closePath(); g.fill(); }
+    else { g.strokeStyle = C.green; g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); g.moveTo(-148, -30); g.lineTo(-148, 16); g.moveTo(-170, -4); g.lineTo(-148, 18); g.lineTo(-126, -4); g.moveTo(-172, 32); g.lineTo(-124, 32); g.stroke(); }
+    text(s, 40, 16, 46, { font: F.latB, color: C.deep, align: 'center' }); g.restore();
+  });
+  rise('وجيز… عطبرة والدامر', cx, 1530, 76, t - 1.0, { align: 'center', color: C.yellow, font: F.sup, shadow: 0 });
+  g.save(); g.globalAlpha = clamp((t - 1.2) * 3) * .55; g.fillStyle = C.white; g.font = `22px ${F.latB}`; g.textAlign = 'center'; g.direction = 'ltr';
+  g.fillText('Photos: Unsplash  ·  Atbara by Bertramz / Wikimedia Commons, CC BY 3.0', cx, H - 70); g.restore();
+};
+
+// ═══════════════════════════ الانتقالات ════════════════════════════
+// قصٌّ على النبض: «لكمة» تكبيرٍ قصيرة في أول كل لقطة، وومضة بيضاء خاطفة
+// عند الدخول في الهاتف، وسهمٌ أصفر يكنس إلى بطاقة الختام.
+function punch(t) {
+  for (const [k] of TIMING) {
+    const x = t - SC[k].from; if (x < 0 || x > .18 || k === 'sun') continue;
+    const a = 1 - x / .18;
+    g.save(); g.globalAlpha = a * (k === 'order' || k === 'end' ? .5 : .18); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.restore();
+  }
+  const x = t - SC.end.from + .22;
+  if (x > 0 && x < .44) {
+    const px = lerp(-900, W + 900, ease(x / .44));
+    g.fillStyle = C.yellow; g.beginPath(); g.moveTo(px - 900, 0); g.lineTo(px, 0); g.lineTo(px + 520, H / 2); g.lineTo(px, H); g.lineTo(px - 900, H); g.closePath(); g.fill();
+  }
+}
+
+window.seek = function (t) {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.filter = 'none';
+  let cur = TIMING[TIMING.length - 1][0];
+  for (const [k] of TIMING) if (t >= SC[k].from && t < SC[k].from + SC[k].dur) { cur = k; break; }
+  const lt = t - SC[cur].from;
+  // اللكمة: تكبيرٌ 6% يرتدّ في أول 0.25 ث من كل لقطة
+  const pz = cur === 'sun' || cur === 'end' ? 1 : 1 + .06 * (1 - easeOut(lt / .25));
+  g.save(); g.translate(W / 2, H / 2); g.scale(pz, pz); g.translate(-W / 2, -H / 2);
+  D[cur](lt, SC[cur].dur);
+  g.restore();
+  punch(t);
+};
+window.ready.then(() => window.seek(0));
+</script>
