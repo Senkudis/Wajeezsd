@@ -305,7 +305,7 @@ export const ArriveScene: React.FC = () => {
       </div>
       {/* درفتا الباب تنزلقان */}
       {[-1, 1].map((s) => (
-        <div key={s} style={{ position: "absolute", top: 0, height: H, width: W / 2 + 4, left: s < 0 ? 0 : W / 2 - 4, background: C.brand, translate: `${s * open * (W / 2 + 40)}px 0`, boxShadow: "0 0 60px rgba(0,0,0,.25)" }}>
+        <div key={s} style={{ position: "absolute", top: 0, height: H, width: W / 2 + 4, left: s < 0 ? 0 : W / 2 - 4, background: C.brand, translate: `${s * open * (W / 2 + 140)}px 0`, boxShadow: "0 0 60px rgba(0,0,0,.25)" }}>
           <div style={{ position: "absolute", top: 820, [s < 0 ? "right" : "left"]: 40, width: 22, height: 180, borderRadius: 11, background: C.gold }} />
         </div>
       ))}
@@ -325,8 +325,9 @@ export const EndScene: React.FC = () => {
   const ctaSize = Math.min(92, Math.floor(fitText({ text: ctaText, withinWidth: SAFE_W, fontFamily: F.head }).fontSize));
   const nk = useSpring(36);
   const cx = (W - SAFE.right + SAFE.left) / 2;
+  const drift = interpolate(frame, [0, 102], [1, 1.035], clamp);
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(circle at ${cx}px 600px, #0B6B47, ${C.brand} 60%)` }}>
+    <AbsoluteFill style={{ background: `radial-gradient(circle at ${cx}px 600px, #0B6B47, ${C.brand} 60%)`, scale: `${drift}` }}>
       {/* معيّنٌ ذهبيّ يحيط بالشعار — آخر صدى للفكرة */}
       <svg width={W} height={H} style={{ position: "absolute", inset: 0 }}>
         <polygon points={`${cx},${600 - 300} ${cx + 300},600 ${cx},${600 + 300} ${cx - 300},600`} fill="none" stroke="rgba(227,163,59,.55)" strokeWidth={4}
