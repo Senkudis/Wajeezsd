@@ -110,3 +110,7 @@ public_html/assets/fonts/brand/
 
 # بانر App Store: المخرجات تُولَّد من header.html
 marketing/app-store-header/*.png
+# إعلان المتاجر (Remotion): الخطوط المرخّصة والمخرجات والحزم
+marketing/ad-stores/public/fonts/
+marketing/ad-stores/out/
+marketing/ad-stores/node_modules/
