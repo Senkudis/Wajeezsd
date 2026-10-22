@@ -470,7 +470,7 @@
     </style>
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=ce667195">
-    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <link rel="stylesheet" href="css/dark-mode.css?v=050be5c1">
     <!-- شاشة تحديد الموقع — مصدر واحد تتقاسمه مع shop-detail.html -->
     <link rel="stylesheet" href="css/map-ui.css?v=8efad6cb">
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
@@ -507,7 +507,7 @@
                             <i class="bi bi-arrow-right" style="font-size: 1.5rem;"></i>
                         </button>
                         <button class="btn bg-transparent border-0 shadow-none p-0 text-white" type="button"
-                            data-bs-toggle="offcanvas" data-bs-target="#sideMenu">
+                            data-bs-toggle="offcanvas" data-bs-target="#sideMenu" aria-label="القائمة" style="min-width:44px;min-height:44px;">
                             <i class="bi bi-list" style="font-size: 1.5rem;"></i>
                         </button>
                         <div>
@@ -1053,7 +1053,7 @@
         <div class="offcanvas-header text-white"
             style="background: linear-gradient(135deg, var(--primary), var(--primary-gradient)); padding-top: calc(16px + var(--sat, env(safe-area-inset-top, 0px))); flex-direction: column; align-items: flex-start; padding-bottom: 20px;">
             <div class="d-flex align-items-center justify-content-between w-100">
-                <img src="logo-white.png" height="38" class="app-logo logo-onbrand"
+                <img src="logo-white.png" height="38" class="app-logo logo-onbrand" alt="وجيز"
                     style="object-fit:contain;">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"
                     aria-label="Close"></button>
@@ -1226,7 +1226,7 @@
     <script src="js/input-validator.js?v=053253e2"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/saved-locations.js?v=410eccf9"></script>
-    <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/theme-manager.js?v=9030b1eb"></script>
     <script src="js/onboarding.js?v=28ff1803"></script>
 
     <!-- 🌍 City Startup Gate: must select city before using the app -->
@@ -1645,7 +1645,7 @@
                     <!-- Hidden inputs to prevent JS errors -->
                     <input type="hidden" id="shopOrderDetails" value="">
                     <input type="file" id="receiptImageInput" accept="image/*" class="d-none">
-                    <img id="receiptPreview" src="" class="d-none">
+                    <img id="receiptPreview" src="" alt="معاينة الإيصال" class="d-none">
                     <input type="hidden" id="shopOrderPlaceId" value="">
                 </div>
                 <div class="modal-footer border-0 p-3 bg-white shadow-sm">

@@ -1012,6 +1012,21 @@ html.kb-open .theme-toggle {
     opacity: 0;
     pointer-events: none;
 }
+/* غطّى عنصراً تفاعلياً أسفل الشاشة ⇒ أعلاها (js/theme-manager.js bindOverlapGuard) */
+/* !important وhtml body: لتغلب قواعد captain-ui.css المثبّتة بـ !important */
+html body .theme-toggle.theme-toggle--top {
+    top: calc(var(--sat, 0px) + 12px) !important;
+    bottom: auto !important;
+    right: auto !important;
+    left: 12px !important;
+    width: 40px;
+    height: 40px;
+}
+/* ولا مكان خالٍ هناك أيضاً ⇒ يغيب بدل أن يحجب زراً */
+.theme-toggle.theme-toggle--parked {
+    opacity: 0;
+    pointer-events: none;
+}
 
 .theme-toggle:hover {
     transform: scale(1.1) rotate(12deg);

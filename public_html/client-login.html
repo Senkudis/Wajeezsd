@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.rtl.min.css">
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css?v=3.4">
-    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <link rel="stylesheet" href="css/dark-mode.css?v=050be5c1">
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
 
     <style>
@@ -78,13 +78,13 @@
                 <div class="input-group">
                     <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••" autocomplete="current-password">
                     <button class="btn btn-outline-secondary" type="button"
-                        onclick="togglePasswordVisibility('password', this)" tabindex="-1">
+                        onclick="togglePasswordVisibility('password', this)" aria-label="إظهار كلمة المرور" tabindex="-1">
                         <i class="bi bi-eye-fill"></i>
                     </button>
                 </div>
                 <div class="text-start mt-2">
-                    <a href="#" onclick="openForgotPassword()"
-                        class="text-primary small text-decoration-none fw-bold">نسيت كلمة المرور؟</a>
+                    <a href="#" role="button" onclick="openForgotPassword(); return false;"
+                        class="text-primary small text-decoration-none fw-bold tap-link">نسيت كلمة المرور؟</a>
                 </div>
             </div>
 
@@ -114,7 +114,7 @@
                     </a>
                 </div>
                 <div class="border-top pt-3 mt-3">
-                    <a href="index.html" class="text-secondary small text-decoration-none">
+                    <a href="index.html" class="text-secondary small text-decoration-none tap-link">
                         <i class="bi bi-house-door-fill ms-1"></i> العودة للرئيسية
                     </a>
                 </div>
@@ -856,7 +856,7 @@
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>
 
-    <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/theme-manager.js?v=9030b1eb"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/role-redirect.js?v=80f153a8"></script>
     <script src="js/geo.js?v=9999b0e3"></script>

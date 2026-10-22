@@ -56,7 +56,7 @@ const ThemeManager = {
         const moonSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="theme-svg theme-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
 
         const iconHtml = isDark ? sunSvg : moonSvg;
-        const title = isDark ? 'تبديل للوضع النهاري ☀️' : 'تبديل للوضع الليلي 🌙';
+        const title = isDark ? 'تبديل للوضع النهاري' : 'تبديل للوضع الليلي';
 
         const buttons = document.querySelectorAll('.theme-toggle, .header-theme-toggle, .gv-theme-btn, [data-theme-toggle]');
         buttons.forEach(btn => {
@@ -89,6 +89,61 @@ const ThemeManager = {
         }
         this.updateButtonIcon();
         this.bindScrollHide(button);
+        this.bindOverlapGuard(button);
+    },
+
+    /**
+     * يُبعد الزرّ العائم عن أي عنصرٍ تفاعليّ يغطّيه.
+     *
+     * إخفاؤه أثناء التمرير لا يكفي: الصفحة الساكنة تبقى مغطّاة. على شاشة 375px
+     * كان يجلس فوق «إنشاء حساب جديد» في دخول العملاء، وفوق شريط الدخول في
+     * صفحة التسوّق. فإن غطّى زراً أو رابطاً أو حقلاً انتقل إلى أعلى الشاشة،
+     * وإن كان هناك مشغولاً أيضاً غاب — تبديل الوضع أهون من زرٍّ لا يُضغط.
+     */
+    bindOverlapGuard: function (button) {
+        if (this._overlapBound) return;
+        this._overlapBound = true;
+
+        const INTERACTIVE = 'a,button,input,select,textarea,label,[onclick],[role="button"],[tabindex]:not([tabindex="-1"])';
+        const coversSomething = () => {
+            const r = button.getBoundingClientRect();
+            if (!r.width) return false;
+            const pts = [
+                [r.left + r.width / 2, r.top + r.height / 2],
+                [r.left + 6, r.top + 6], [r.right - 6, r.top + 6],
+                [r.left + 6, r.bottom - 6], [r.right - 6, r.bottom - 6]
+            ];
+            const prev = button.style.pointerEvents;
+            button.style.pointerEvents = 'none';   // لنرى ما تحته
+            try {
+                return pts.some(([x, y]) => {
+                    const el = document.elementFromPoint(x, y);
+                    return !!(el && el !== button && !button.contains(el) && el.closest(INTERACTIVE));
+                });
+            } finally {
+                button.style.pointerEvents = prev;
+            }
+        };
+
+        const place = () => {
+            button.classList.remove('theme-toggle--top', 'theme-toggle--parked');
+            if (!coversSomething()) return;
+            button.classList.add('theme-toggle--top');
+            if (coversSomething()) {
+                button.classList.remove('theme-toggle--top');
+                button.classList.add('theme-toggle--parked');
+            }
+        };
+
+        let t = null;
+        const schedule = () => { clearTimeout(t); t = setTimeout(place, 250); };
+        window.addEventListener('resize', schedule, { passive: true });
+        window.addEventListener('scroll', schedule, { passive: true, capture: true });
+        // المحتوى يصل من الشبكة بعد التحميل — فالفحص يتكرّر حين يتغيّر الـ DOM
+        try {
+            new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        } catch (_) {}
+        schedule();
     },
 
     /**

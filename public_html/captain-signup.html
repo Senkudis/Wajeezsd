@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="style.css?v=3.4">
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
     <link rel="stylesheet" href="css/enhanced-styles.css?v=ce667195">
-    <link rel="stylesheet" href="css/dark-mode.css?v=432e909e">
+    <link rel="stylesheet" href="css/dark-mode.css?v=050be5c1">
     <script src="js/console-cleaner.js?v=d257b4ad"></script>
     <script src="js/config.js?v=7cd5021c"></script>
     <script src="js/city-service.js?v=f696d207"></script>
@@ -395,13 +395,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">الاسم الكامل *</label>
+                    <label for="name" class="form-label fw-bold small">الاسم الكامل *</label>
                     <input type="text" id="name" class="form-control form-control-lg" placeholder="أحمد محمد" autocomplete="name">
                     <div class="field-error" id="name-error"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">المدينة / المنطقة *</label>
+                    <label for="city" class="form-label fw-bold small">المدينة / المنطقة *</label>
                     <select id="city" class="form-select form-control-lg" required>
                         <option value="" disabled selected>— اختر المدينة —</option>
                         <option value="Khartoum">الخرطوم - أم درمان</option>
@@ -413,21 +413,21 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">البريد الإلكتروني *</label>
+                    <label for="email" class="form-label fw-bold small">البريد الإلكتروني *</label>
                     <input type="email" id="email" class="form-control form-control-lg" placeholder="name@example.com"
                         dir="ltr" autocomplete="email">
                     <div class="field-error" id="email-error"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">رقم الهاتف *</label>
+                    <label for="phone" class="form-label fw-bold small">رقم الهاتف *</label>
                     <input type="tel" id="phone" class="form-control form-control-lg" placeholder="0912345678"
                         dir="ltr" autocomplete="tel" inputmode="tel">
                     <div class="field-error" id="phone-error"></div>
                 </div>
 
                 <div class="mb-3" id="passwordWrap">
-                    <label class="form-label fw-bold small">كلمة المرور *</label>
+                    <label for="password" class="form-label fw-bold small">كلمة المرور *</label>
                     <input type="password" id="password" class="form-control form-control-lg"
                         placeholder="6 أحرف على الأقل" autocomplete="new-password">
                     <div class="field-error" id="password-error"></div>
@@ -449,11 +449,11 @@
 
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label fw-bold small">رقم اللوحة</label>
+                        <label for="plateNumber" class="form-label fw-bold small">رقم اللوحة</label>
                         <input type="text" id="plateNumber" class="form-control" placeholder="اختياري" maxlength="30">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold small">صندوق حمل؟</label>
+                        <label for="hasCarrier" class="form-label fw-bold small">صندوق حمل؟</label>
                         <select id="hasCarrier" class="form-select">
                             <option value="">غير محدد</option>
                             <option value="yes">نعم</option>
@@ -480,7 +480,7 @@
                 <h5 class="fw-bold mb-3"><i class="bi bi-person-vcard text-primary ms-1"></i> بيانات الانتساب</h5>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">الرقم الوطني *</label>
+                    <label for="nationalId" class="form-label fw-bold small">الرقم الوطني *</label>
                     <input type="text" id="nationalId" class="form-control form-control-lg"
                         inputmode="numeric" maxlength="14" placeholder="11 رقماً" autocomplete="off">
                     <div class="field-error" id="nationalId-error"></div>
@@ -488,13 +488,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">المنطقة *</label>
+                    <label for="address" class="form-label fw-bold small">المنطقة *</label>
                     <input type="text" id="address" class="form-control form-control-lg" placeholder="مثال: الرياض - مربع 5">
                     <div class="field-error" id="address-error"></div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">رقم الواتساب *</label>
+                    <label for="whatsapp" class="form-label fw-bold small">رقم الواتساب *</label>
                     <input type="tel" id="whatsapp" class="form-control form-control-lg" placeholder="0912345678" dir="ltr" autocomplete="tel" inputmode="tel">
                     <div class="field-error" id="whatsapp-error"></div>
                 </div>
@@ -502,18 +502,18 @@
                 <hr>
                 <h6 class="fw-bold mb-2"><i class="bi bi-telephone-plus text-danger ms-1"></i> جهة الطوارئ</h6>
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">الاسم *</label>
+                    <label for="emergencyContactName" class="form-label fw-bold small">الاسم *</label>
                     <input type="text" id="emergencyContactName" class="form-control" placeholder="اسم من نتصل به">
                     <div class="field-error" id="emergencyContactName-error"></div>
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label fw-bold small">رقمه *</label>
+                        <label for="emergencyPhone" class="form-label fw-bold small">رقمه *</label>
                         <input type="tel" id="emergencyPhone" class="form-control" placeholder="09xxxxxxxx" dir="ltr" autocomplete="off" inputmode="tel">
                     <div class="field-error" id="emergencyPhone-error"></div>
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold small">صلة القرابة *</label>
+                        <label for="emergencyRelation" class="form-label fw-bold small">صلة القرابة *</label>
                         <input type="text" id="emergencyRelation" class="form-control" placeholder="أخ، والد...">
                     <div class="field-error" id="emergencyRelation-error"></div>
                     </div>
@@ -579,14 +579,14 @@
                      كتابة الفقرة كاملةً بالإبهام على هاتف احتكاكٌ بلا مقابل،
                      وقيمة الإقرار في الموافقة الصريحة لا في إعادة النسخ. -->
                 <div class="mb-3">
-                    <label class="form-label fw-bold small">الإقرار والتعهّد *</label>
+                    <label for="pledgeName" class="form-label fw-bold small">الإقرار والتعهّد *</label>
                     <div class="pledge-card">
                         <span>أقرّ أنا الكابتن/</span>
                         <input type="text" id="pledgeName" class="pledge-blank" placeholder="اسمك الرباعي" autocomplete="name">
                         <span>بأنني قرأت جميع الشروط والضوابط المذكورة أعلاه، وأتعهّد بالالتزام
                               بها تماماً، وأتحمّل كافة المسؤولية في حال مخالفتها.</span>
                         <span>رقم الهاتف:</span>
-                        <input type="tel" id="pledgePhone" class="pledge-blank" placeholder="09xxxxxxxx" dir="ltr" autocomplete="tel">
+                        <input type="tel" id="pledgePhone" aria-label="رقم الهاتف في الإقرار" class="pledge-blank" placeholder="09xxxxxxxx" dir="ltr" autocomplete="tel">
                         <span>التاريخ: <b id="pledgeDate"></b></span>
                     </div>
                     <div class="form-check mt-2">
@@ -1372,7 +1372,7 @@
         }
     </script>
 
-    <script src="js/theme-manager.js?v=ef048761"></script>
+    <script src="js/theme-manager.js?v=9030b1eb"></script>
     <script src="js/share-app.js?v=b1135735"></script>
     <script src="/sw-register.js"></script>
     <script src="/install-prompt.js"></script>

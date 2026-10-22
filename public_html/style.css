@@ -475,3 +475,13 @@ button#map-confirm-btn.disabled {
 
 .logo-onbrand { background-color: transparent ; box-shadow: none ; filter: none ; }
 
+
+
+/* 👆 روابط نصّية صغيرة («نسيت كلمة المرور؟»، «العودة للرئيسية») كانت بارتفاع
+   17–26px — دون حدّ اللمس المريح (44px) فتُخطئها الإصبع. المساحة تكبر والنص لا. */
+.tap-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 6px;
+}

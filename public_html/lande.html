@@ -624,10 +624,13 @@
         .foot-brand img { height: 28px; margin-bottom: 10px; }
         .foot-brand p { max-width: 46ch; }
         .foot h3 { font-size: .95rem; color: var(--ink); margin-bottom: 8px; }
-        .foot ul { list-style: none; display: grid; gap: 6px; }
+        /* روابط التذييل كانت بارتفاع سطرها (17px) — المساحة القابلة للّمس 44px */
+        .foot ul { list-style: none; display: grid; gap: 0; }
+        .foot ul a { display: inline-flex; align-items: center; min-height: 44px; }
+        .foot ul span { display: inline-flex; align-items: center; min-height: 44px; }
         .foot ul a:hover { color: var(--ink); }
         .socials { display: flex; gap: 6px; margin-top: 12px; }
-        .socials a { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--ink); }
+        .socials a { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--ink); }
         .socials a:hover { border-color: var(--ink-2); }
         .foot-bottom { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); font-size: .82rem; }
 
