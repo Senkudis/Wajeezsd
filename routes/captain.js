@@ -585,7 +585,9 @@ router.get('/wallet', protect, captainOnly, async (req, res) => {
 // ==========================================
 router.post('/wallet/pay', protect, captainOnly, walletPayLimiter, async (req, res) => {
     try {
-        const { amount, transactionId, receiptImage } = req.body;
+        const { amount, receiptImage } = req.body;
+        // رقمٌ يصل من النموذج رقماً لا نصاً كان يُسقط .trim() بخطأ 500
+        const transactionId = String(req.body.transactionId ?? '').trim().slice(0, 100);
 
         if (!amount || !transactionId) {
             return res.status(400).json({ message: 'المبلغ ورقم الإشعار مطلوبان' });
@@ -609,6 +611,15 @@ router.post('/wallet/pay', protect, captainOnly, walletPayLimiter, async (req, r
             });
         }
 
+        // 🔁 إشعار التحويل نفسه لا يُقدَّم مرّتين (من هذا الكابتن أو غيره) — كان
+        //    إيصالٌ واحد يُرسَل مراراً، والمراجع يرى كل طلبٍ منفرداً فلا يلحظ التكرار
+        const dupTx = await PaymentRequest.findOne({
+            transactionId, status: { $in: ['pending', 'approved'] }
+        }).select('_id').lean();
+        if (dupTx) {
+            return res.status(409).json({ message: 'رقم الإشعار هذا مُستخدم في طلب سدادٍ سابق. تأكّد من الرقم.' });
+        }
+
         // 🧾 تحويل إيصال السداد من Base64 إلى ملف (بدل تخزينه داخل المستند)
         let receiptImageUrl = null;
         if (receiptImage) {
@@ -621,27 +632,24 @@ router.post('/wallet/pay', protect, captainOnly, walletPayLimiter, async (req, r
         const paymentRequest = await PaymentRequest.create({
             captainId: req.user._id,
             amount: Number(amount),
-            transactionId: transactionId.trim(),
+            transactionId,
             receiptImage: receiptImageUrl,
             status: 'pending'
         });
 
         logger.info(`💳 PaymentRequest created: ${paymentRequest._id} | Captain: ${req.user._id} | Amount: ${amount}`);
 
-        // 🔔 إشعار لجميع المسؤولين (Admins)
+        // 🔔 إشعار الإدارة — عبر notifyAdmins (حفظ + socket + push) ومُقيَّداً بمدينة
+        //    الكابتن: كانت حلقةٌ على كل الأدمنية تُنبّه إداريّ مدينةٍ أخرى بلا صلاحية
         try {
-            const User = require('../models/User');
-            const { sendNotification } = require('../utils/notificationHelper');
-            const admins = await User.find({ role: 'admin' });
-            for (const admin of admins) {
-                await sendNotification(req.app, {
-                    userId: admin._id,
-                    title: 'طلب سداد مديونية جديد',
-                    message: `الكابتن ${req.user.name} أرسل إشعار تحويل بمبلغ ${amount} ج.س — رقم الإشعار: ${transactionId}`,
-                    type: 'payment_request',   // 🧭 يفتح صفحة المالية للأدمن لا لوحة عامة
-                    relatedId: paymentRequest._id
-                });
-            }
+            const { notifyAdmins } = require('../utils/notificationHelper');
+            await notifyAdmins(req.app, {
+                title: 'طلب سداد مديونية جديد',
+                message: `الكابتن ${req.user.name} أرسل إشعار تحويل بمبلغ ${amount} ج.س — رقم الإشعار: ${transactionId}`,
+                type: 'payment_request',   // 🧭 يفتح صفحة المالية للأدمن لا لوحة عامة
+                relatedId: paymentRequest._id,
+                city: req.user.city
+            });
         } catch (notifErr) {
             logger.error('Admin notification error:', notifErr.message);
         }

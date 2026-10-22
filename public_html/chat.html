@@ -1830,7 +1830,7 @@
                     // ✅ Fire beacon to reliably leave room on server even if socket freezes
                     if (navigator.sendBeacon) {
                         const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
-                        const blob = new Blob([JSON.stringify({ orderId, userId })], { type: 'text/plain;charset=UTF-8' });
+                        const blob = new Blob([JSON.stringify({ orderId, token: localStorage.getItem('token') })], { type: 'text/plain;charset=UTF-8' });
                         navigator.sendBeacon(`${apiBase}/api/chat/leave-room`, blob);
                     }
                 }
@@ -1858,7 +1858,7 @@
                 
                 if (navigator.sendBeacon) {
                     const apiBase = (typeof API_URL !== 'undefined') ? API_URL : 'https://wajeezsd.com';
-                    const blob = new Blob([JSON.stringify({ orderId, userId })], { type: 'text/plain;charset=UTF-8' });
+                    const blob = new Blob([JSON.stringify({ orderId, token: localStorage.getItem('token') })], { type: 'text/plain;charset=UTF-8' });
                     navigator.sendBeacon(`${apiBase}/api/chat/leave-room`, blob);
                 }
             }

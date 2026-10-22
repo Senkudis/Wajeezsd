@@ -332,19 +332,20 @@ router.post('/', protect, async (req, res) => {
 
 // @route   POST /api/chat/leave-room
 // @desc    Reliably leave chat room via navigator.sendBeacon when app goes to background
-router.post('/leave-room', async (req, res) => {
+// sendBeacon لا يرسل ترويسات، فالتوكن في الجسم. والجسم text/plain — بلا
+// express.text كان req.body فارغاً فلم يعمل هذا المسار قطّ. والأهم: كان بلا
+// مصادقة ويقبل userId من الجسم، فيُخرج أيُّ أحد أيَّ مستخدم من غرفة الدردشة
+// (فيصله push مزعج وهو يقرأ). الهوية الآن من التوكن وحده.
+router.post('/leave-room', express.text({ type: 'text/plain', limit: '4kb' }), async (req, res) => {
     try {
-        let orderId, userId;
-        if (req.headers['content-type'] === 'text/plain;charset=UTF-8') {
-            try {
-                const parsed = JSON.parse(req.body);
-                orderId = parsed.orderId;
-                userId = parsed.userId;
-            } catch(e) {}
-        } else {
-            orderId = req.body.orderId;
-            userId = req.body.userId;
+        let body = req.body;
+        if (typeof body === 'string') {
+            try { body = JSON.parse(body); } catch (_) { body = {}; }
         }
+        const orderId = body && body.orderId;
+        const { verifySocketToken } = require('../utils/socketAuth');
+        const decoded = verifySocketToken(body && body.token);
+        const userId = decoded && (!decoded.scope || decoded.scope === 'full') ? decoded.userId : null;
 
         if (orderId && userId && req.app.get('chatRooms')) {
             const chatRooms = req.app.get('chatRooms');

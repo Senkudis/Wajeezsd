@@ -51,7 +51,7 @@ describe('١. الخادم: مدينة الطلب من مكانه', () => {
 
     it('إنشاء الطلب يستعمل مدينة المكان في الختم والتسعير والكوبون والمهلة', () => {
         const src = read('routes/orders.js');
-        const body = src.slice(src.indexOf("router.post('/', protect, requireCity"), src.indexOf('const order = await Order.create(orderData);'));
+        const body = src.slice(src.indexOf("router.post('/', protect, requireCity"), src.indexOf('const order = await Order.create(orderData)'));
         expect(body).toContain('resolveOrderCity(');
         expect(body).toContain("code: 'CROSS_CITY'");
         expect(body).toContain('city: orderCity,');

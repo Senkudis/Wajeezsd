@@ -914,7 +914,20 @@ router.put('/:id', protect, requirePermission('manage_stores'), async (req, res)
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         if (await placeOutsideCity(req, res, req.params.id)) return;
 
-        const update = { ...req.body };
+        // 🛡️ قائمة بيضاء بدل نسخ req.body كاملاً: كان أي حاملٍ لصلاحية
+        //    manage_stores يستطيع كتابة ownerId (نقل المتجر لحسابٍ آخر) أو
+        //    shopWalletBalance أو ratingAvg/ratingCount أو shareCode. صاحب المتجر
+        //    يُسند من /api/merchant/admin/assign-merchant وحده.
+        const PLACE_ADMIN_EDITABLE = [
+            'name', 'category', 'image_url', 'phone', 'whatsapp', 'location', 'address', 'map_url',
+            'bankAccountName', 'bankAccountNumber', 'bankName', 'paymentMethods',
+            'tier', 'description', 'city', 'workingHours', 'isOpenOverride', 'isActive',
+            'deliveryAvailable', 'errandEnabled', 'menu', 'notes'
+        ];
+        const update = {};
+        for (const key of PLACE_ADMIN_EDITABLE) {
+            if (key in req.body) update[key] = req.body[key];
+        }
 
         // 🗺️ إحداثيات غير صالحة في التعديل → لا تلمس الموقع المحفوظ
         // (كان الافتراضي الصامت يكتب وسط الخرطوم فوق مواقع صحيحة → دبابيس عشوائية)
@@ -1305,9 +1318,16 @@ router.put('/:placeId/products/:productId', protect, requirePermission('manage_s
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admins only' });
         if (await placeOutsideCity(req, res, req.params.placeId)) return;
-        const updateData = { ...req.body };
-        delete updateData.placeId;
-        delete updateData._id;
+        // 🛡️ قائمة بيضاء — كالتاجر في routes/merchant.js: ratingAvg/ratingCount/viewsCount
+        //    لا تُكتب يدوياً
+        const PRODUCT_ADMIN_EDITABLE = [
+            'name', 'description', 'price', 'image', 'category', 'sortOrder', 'stock', 'cost',
+            'lowStockThreshold', 'sku', 'isAvailable', 'salePrice', 'saleStartsAt', 'saleEndsAt'
+        ];
+        const updateData = {};
+        for (const key of PRODUCT_ADMIN_EDITABLE) {
+            if (key in req.body) updateData[key] = req.body[key];
+        }
         if ('price' in updateData) {
             const np = Number(updateData.price);
             if (isNaN(np) || np < 0) return res.status(400).json({ message: 'سعر غير صحيح' });

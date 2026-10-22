@@ -16,6 +16,20 @@ const ShopOrder = require('../models/ShopOrder');
 const PromoCode = require('../models/PromoCode');
 const { sendNotification, notifyAdmins } = require('../utils/notificationHelper');
 const logger = require('../utils/logger');
+const rateLimit = require('express-rate-limit');
+
+// 🛒 طلبات المتاجر تحجز المخزون فور إنشائها — بلا حدٍّ كان حسابٌ واحد يحجز
+//    مخزون متجرٍ كامل بطلباتٍ لا يُكملها (shop_pending لا تنتهي تلقائياً)
+const shopOrderLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 10,
+    message: { message: 'طلبات كثيرة في وقتٍ قصير. انتظر قليلاً ثم أعد المحاولة.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
+});
+const MAX_OPEN_SHOP_ORDERS = 3;      // طلبات بانتظار قبول المتاجر للعميل الواحد
+const MAX_SHOP_ORDER_LINES = 50;     // أسطر السلة — كل سطرٍ استعلام
 
 // 📡 بث تحديث طلب المتجر للوحة الأدمن الحية — كانت الإدارة عمياء تماماً عن
 // مرحلة المتجر (جديد/تجهيز/دفع)؛ هذا الحدث يغذي صفحة admin-shop-orders لحظياً.
@@ -1259,11 +1273,20 @@ router.get('/shop-order/:orderId/chat-info', protect, async (req, res) => {
 // ──────────────────────────────────────────────
 
 // POST /api/merchant/shop/:placeId/order — client places order
-router.post('/shop/:placeId/order', protect, async (req, res) => {
+router.post('/shop/:placeId/order', protect, shopOrderLimiter, async (req, res) => {
     try {
         const { items, dropoff, notes, deliveryFee: rawDeliveryFee, promoCode } = req.body;
-        if (!items || items.length === 0 || !dropoff) {
+        if (!Array.isArray(items) || items.length === 0 || !dropoff || typeof dropoff !== 'object') {
             return res.status(400).json({ message: 'المنتجات وعنوان التوصيل مطلوبان' });
+        }
+        if (items.length > MAX_SHOP_ORDER_LINES) {
+            return res.status(400).json({ message: `السلة كبيرة جداً (الحد ${MAX_SHOP_ORDER_LINES} صنفاً)` });
+        }
+        const openCount = await ShopOrder.countDocuments({ client: req.user._id, status: 'shop_pending' });
+        if (openCount >= MAX_OPEN_SHOP_ORDERS) {
+            return res.status(429).json({
+                message: `لديك ${openCount} طلبات بانتظار قبول المتاجر. انتظر ردّها أو ألغِ أحدها قبل طلبٍ جديد.`
+            });
         }
         
         // 🛡️ CRITICAL FIX: Payload size limits to prevent DB DOS
