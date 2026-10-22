@@ -1,6 +1,7 @@
 // routes/admin/finance.js — مُولّد من تقسيم admin.js الأصلي.
 // كل وحدة Router مستقلة تُركّب على /api/admin عبر routes/admin.js.
 const express = require('express');
+const { creditLimitFor } = require('../../utils/creditLimit');
 const { CITY_KEYS, cityLabel } = require('../../config/cities');   // 🌍 المدن — مصدرٌ واحد
 const router = express.Router();
 const validateObjectId = require('../../middleware/validateObjectId');
@@ -69,7 +70,7 @@ router.put('/captains/:id/adjust-debt', protect, superAdminOnly, async (req, res
         } else { // add
             // BUG-L10 FIX: منع إضافة دين يتجاوز ضعف حد الائتمان (سقف أمان للأدمن)
             // المعيار: الرصيد بعد الخصم لا يتجاوز credit_limit × 2
-            const effectiveCreditLimit = captain.credit_limit ?? -5000;
+            const effectiveCreditLimit = await creditLimitFor(captain);
             const projectedBalance = previousBalance - amount;
             if (projectedBalance < effectiveCreditLimit * 2) {
                 return res.status(400).json({
@@ -83,9 +84,11 @@ router.put('/captains/:id/adjust-debt', protect, superAdminOnly, async (req, res
         // is_blocked دالة مباشرة في الرصيد مقابل الحد الائتماني (انظر models/User.js:86 —
         // الحجب اليدوي للأدمن يتم عبر isActive لا هنا). الشرطان المتداخلان السابقان
         // كانا متكاملين، فالفرع الثالث "$is_blocked" لم يكن قابلاً للوصول أصلاً.
+        // 💳 الحدّ الفعلي (خاصٌّ أو حدّ المدينة) — utils/creditLimit
+        const adjLimit = await creditLimitFor(captain);
         pipelineUpdate.push({
             $set: {
-                is_blocked: { $lte: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] }
+                is_blocked: { $lte: ["$wallet_balance", adjLimit] }
             }
         });
 
@@ -397,6 +400,7 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
 
         // ✅ Atomic update using Aggregation Pipeline
         // يضمن عدم ضياع أي عمولات تحدث في نفس اللحظة (Race Condition Fix)
+        const payLimit = await creditLimitFor(captain);
         const updatedCaptainBefore = await User.findByIdAndUpdate(
             payReq.captainId,
             [
@@ -409,7 +413,8 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
                     $set: {
                         is_blocked: {
                             $cond: {
-                                if: { $gte: ["$wallet_balance", { $ifNull: ["$credit_limit", -5000] }] },
+                                // الحجب يقع عند (رصيد ≤ الحد)، فالفكّ عند تجاوزه فعلاً
+                                if: { $gt: ["$wallet_balance", payLimit] },
                                 then: false,
                                 else: "$is_blocked"
                             }
@@ -436,6 +441,17 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         const newBalance = Math.min(0, oldBalance + requestedAmount);
         const actualDeduction = newBalance - oldBalance;
 
+        // 💸 الزيادة عن الدين لا رصيد موجب لها في النظام (الحد الأعلى صفر) —
+        //    كانت تضيع بلا أثر. تُسجَّل على الطلب ليراها الأدمن والكابتن وتُردّ يدوياً.
+        const unappliedExcess = Math.max(0, Math.round((requestedAmount - actualDeduction) * 100) / 100);
+        if (unappliedExcess > 0) {
+            const prevNote = claimed.adminNote ? claimed.adminNote + ' — ' : '';
+            await PaymentRequest.updateOne(
+                { _id: payReq._id },
+                { $set: { adminNote: `${prevNote}مبلغ زائد عن الدين لم يُحتسب: ${unappliedExcess} ج.س (يُردّ للكابتن)` } }
+            ).catch(e => logger.warn({ err: e.message }, 'overpayment note failed'));
+        }
+
         // Update the captain object for the remaining logic
         captain = await User.findById(payReq.captainId);
         if (!captain) {
@@ -457,7 +473,8 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         const remainingDebt = Math.abs(captain.wallet_balance);
         const notifMsg = remainingDebt > 0
             ? `تمت الموافقة على دفعتك بمبلغ ${actualDeduction} ج.س. المتبقي عليك: ${remainingDebt} ج.س`
-            : `تمت الموافقة على دفعتك بمبلغ ${actualDeduction} ج.س. تم تصفير المديونية بنجاح!`;
+            : `تمت الموافقة على دفعتك بمبلغ ${actualDeduction} ج.س. تم تصفير المديونية بنجاح!`
+              + (unappliedExcess > 0 ? ` المبلغ الزائد (${unappliedExcess} ج.س) مسجّل وسيُردّ لك.` : '');
 
         await sendNotification(req.app, {
             userId: captain._id,
@@ -474,6 +491,7 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
             newBalance: captain.wallet_balance,
             deductedAmount: actualDeduction,
             remainingDebt: Math.abs(captain.wallet_balance),
+            unappliedExcess,
             isBlocked: captain.is_blocked
         });
     } catch (error) {

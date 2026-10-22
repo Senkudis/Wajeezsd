@@ -553,13 +553,7 @@ router.get('/wallet', protect, captainOnly, async (req, res) => {
         //  2. settings.defaultCreditLimit — the global limit admin set for ALL captains
         //  3. -5000 — hardcoded last-resort fallback
         // ─────────────────────────────────────────────────────
-        const SCHEMA_DEFAULT = -5000;
-        const hasCustomLimit = captain.credit_limit !== null &&
-                               captain.credit_limit !== undefined &&
-                               captain.credit_limit !== SCHEMA_DEFAULT;
-        const limit = hasCustomLimit
-            ? captain.credit_limit                             // per-captain override
-            : (settings.defaultCreditLimit ?? SCHEMA_DEFAULT); // global default
+        const limit = require('../utils/creditLimit').resolveCreditLimit(captain, settings);
 
         // ✅ FIX #13: clamp pctUsed to [0, 100] — positive balance = 0% used (fully paid)
         // Negative result happens when captain overpaid (balance > 0) — show 0%

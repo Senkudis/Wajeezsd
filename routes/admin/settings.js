@@ -291,6 +291,13 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
             }
         }
 
+        // الحدّ الائتماني القديم للمدينة — لتمييز الكباتن الذين يتبعونه عمّن له حدٌّ خاص
+        let oldCityCreditLimit;
+        if (updates.defaultCreditLimit !== undefined) {
+            const prev = await Settings.findOne({ city }).select('defaultCreditLimit').lean();
+            oldCityCreditLimit = prev ? prev.defaultCreditLimit : undefined;
+        }
+
         // 🌍 CITY-AWARE: findOneAndUpdate scoped to the target city
         // upsert:true ensures a new city doc is created if it doesn't exist yet
         const settings = await Settings.findOneAndUpdate(
@@ -305,8 +312,13 @@ router.put('/settings', protect, superAdminOnly, async (req, res) => {
         if (updates.defaultCreditLimit !== undefined) {
             const newLimit = updates.defaultCreditLimit;
             if (!isNaN(newLimit) && newLimit <= 0) {
+                // ⚠️ كان يكتب الحدّ الجديد فوق **كل** كباتن المدينة فيمحو الحدود الخاصة
+                //    التي منحتها الإدارة لكابتنٍ بعينه. الآن: من كان يتبع حدّ المدينة
+                //    القديم (أو بلا حدّ) وحده يتبع الجديد — utils/creditLimit.
+                const following = [null, -5000];
+                if (typeof oldCityCreditLimit === 'number') following.push(oldCityCreditLimit);
                 const result = await User.updateMany(
-                    { role: { $in: ['captain', 'driver'] }, city },
+                    { role: { $in: ['captain', 'driver'] }, city, credit_limit: { $in: following } },
                     { $set: { credit_limit: newLimit } }
                 );
                 logger.info({ city, updated: result.modifiedCount }, `✅ Credit limit synced to ${newLimit} for ${city} captains`);

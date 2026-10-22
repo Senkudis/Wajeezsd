@@ -1218,9 +1218,15 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
         return res.status(403).json({ message: 'حسابك قيد المراجعة ولم يُعتمد بعد — لا يمكنك تقديم عروض' });
     }
 
+    // نفس شروط القبول المباشر: عرضٌ مقبول يُسند الطلب دون المرور بـ /accept
+    if (!req.user.isAvailableForWork) {
+        return res.status(403).json({ message: 'أنت في وضع "غير متاح". فعّل وضع الاستقبال أولاً.' });
+    }
+
     try {
-        const { proposedPrice } = req.body;
-        if (!proposedPrice || proposedPrice <= 0) {
+        // رقمٌ صحيح موجب حصراً — النصّ كان يمرّ من الفحص ثم يفشل في الحفظ
+        const proposedPrice = Math.round(Number(req.body.proposedPrice));
+        if (!Number.isFinite(proposedPrice) || proposedPrice <= 0) {
             return res.status(400).json({ message: 'يرجى إدخال سعر صحيح' });
         }
 
@@ -1235,6 +1241,33 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
 
         if (order.status !== 'pending') {
             return res.status(400).json({ message: 'الطلب غير متاح للتفاوض' });
+        }
+
+        // 🌍 كابتن مدينةٍ أخرى لا يفاوض — /accept يشترطها، والعرض المقبول كان
+        //    يُسند طلب الخرطوم لكابتنٍ في بورتسودان
+        if (!order.city || String(order.city) !== String(req.user.city)) {
+            return res.status(403).json({ message: 'هذا الطلب خارج مدينتك' });
+        }
+
+        // 📈 سقف العرض من تسعيرة المدينة — السعر المتّفق عليه يتجاوز حدود
+        //    التسعيرة التي يفرضها إنشاء الطلب نفسه، فلا بدّ من حدٍّ هنا أيضاً
+        try {
+            const st = await getCachedSettings(order.city);
+            const surge = Number(st.maxPriceSurgePercent ?? 100);
+            let cap = Math.round((Number(order.price) || 0) * (1 + surge / 100));
+            if (order.orderType === 'delivery' || !order.orderType) {
+                const { calculateTripPricing } = require('../utils/tripPricing');
+                const pr = calculateTripPricing(st, {
+                    stops: order.isMultiStop ? order.stops : null,
+                    pickup: order.pickup, dropoff: order.dropoff
+                });
+                if (Number.isFinite(pr.maxAllowedPrice)) cap = Math.max(cap, pr.maxAllowedPrice);
+            }
+            if (cap > 0 && proposedPrice > cap) {
+                return res.status(400).json({ message: `أعلى سعر يمكن اقتراحه لهذا المشوار ${cap.toLocaleString('en-US')} ج.س` });
+            }
+        } catch (capErr) {
+            logger.warn({ err: capErr.message }, 'negotiate cap check skipped');
         }
 
         // BUG #22 FIX: Prevent captain from negotiating on their own order
@@ -1380,10 +1413,17 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
         if (action === 'accept') {
             // BUG-C6 FIX: التحقق من حالة الكابتن قبل إسناد الطلب — قد يُوقَف بعد تقديم عرضه
             const User = require('../models/User');
-            const captainDoc = await User.findById(captainId).select('is_blocked').lean();
+            const captainDoc = await User.findById(captainId).select('is_blocked isActive role approvalStatus city').lean();
             if (captainDoc && captainDoc.is_blocked) {
                 return res.status(400).json({
                     message: 'لا يمكن قبول عرض هذا الكابتن — حسابه موقوف حالياً. اختر كابتناً آخر.'
+                });
+            }
+            // أُوقف حسابه أو سُحب اعتماده أو نُقل لمدينة أخرى بعد تقديم العرض
+            if (!captainDoc || captainDoc.role !== 'captain' || !captainDoc.isActive ||
+                captainDoc.approvalStatus !== 'approved' || String(captainDoc.city) !== String(order.city)) {
+                return res.status(400).json({
+                    message: 'هذا الكابتن لم يعد متاحاً لهذا الطلب. اختر عرضاً آخر.'
                 });
             }
 
@@ -1618,7 +1658,8 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
         // 🛡️ CRITICAL FIX: Atomic update to prevent Race Condition
         // BUG-H2 FIX: أضيف city لمنع الكابتن من قبول طلب من مدينة أخرى
         const updatedOrder = await Order.findOneAndUpdate(
-            { _id: req.params.id, status: 'pending', city: req.user.city },
+            // client ≠ الكابتن: حسابٌ يطلب ثم يقبل طلبه بنفسه (كما في التفاوض)
+            { _id: req.params.id, status: 'pending', city: req.user.city, client: { $ne: req.user._id } },
             {
                 $set: {
                     status: 'accepted',
@@ -2250,13 +2291,9 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
         }
 
         // 💳 Commission Deduction — Negative Wallet System
+        //    الحدّ يُحسب من مستند الكابتن بعد الخصم (utils/creditLimit) — نفس
+        //    القاعدة التي يفكّ بها السداد الحجب وتعرضها المحفظة
         let creditLimit = -5000;
-        try {
-            const liveSettings = await getCachedSettings(order.city || 'Khartoum');
-            if (liveSettings?.defaultCreditLimit) creditLimit = liveSettings.defaultCreditLimit;
-        } catch (settingsErr) {
-            logger.warn('Could not load settings for credit limit, using default');
-        }
 
         // 💰 العمولة = appFee المحفوظ (نسبة المدينة من السعر الكامل قبل الخصم).
         //    ⚠️ كان التعليق هنا يقول إن appFee «على السعر بعد الخصم» — وهو ليس
@@ -2290,6 +2327,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                 );
 
                 if (captain) {
+                    creditLimit = await require('../utils/creditLimit').creditLimitFor(captain);
                     const orderPrice = order.price || 0;
                     const commissionRate = orderPrice > 0 ? commissionAmount / orderPrice : 0;
                     logger.info({
@@ -2786,20 +2824,33 @@ router.post('/:id/rate', protect, ratingLimiter, async (req, res) => {
         }
 
         // ✅ FIX #5: Use resolved captainId (works for both Order and ShopOrder)
-        const captain = await User.findById(captainId);
-        if (!captain) return res.status(404).json({ message: 'الكابتن غير موجود أو لم يُسنَد لهذا الطلب' });
+        const captainExists = captainId && await User.exists({ _id: captainId });
+        if (!captainExists) return res.status(404).json({ message: 'الكابتن غير موجود أو لم يُسنَد لهذا الطلب' });
 
-        // Update Captain Stats
-        captain.ratingSum = (captain.ratingSum || 0) + rating;
-        captain.ratingCount = (captain.ratingCount || 0) + 1;
-        captain.averageRating = captain.ratingSum / captain.ratingCount;
+        // 🛡️ قلبُ isRated ذرّياً أولاً: كان فحصاً ثم save()، فضغطتان سريعتان
+        //    تمرّان كلتاهما وتُضيفان التقييم لمجموع الكابتن مرّتين
+        const Model = order.constructor;
+        const flipped = await Model.findOneAndUpdate(
+            { _id: order._id, client: req.user._id, status: 'delivered', isRated: { $ne: true } },
+            { $set: { isRated: true, rating: { score: rating, comment, tags } } },
+            { new: true }
+        );
+        if (!flipped) return res.status(400).json({ message: 'تم تقييم هذا الطلب مسبقاً' });
+        order = flipped;
 
-        await captain.save();
-
-        // ✅ Save rating in order (as object with score)
-        order.rating = { score: rating, comment, tags };
-        order.isRated = true;
-        await order.save();
+        // إحصاء الكابتن بتحديثٍ ذرّي واحد: read-modify-save كان يُضيّع تقييماً
+        // يصل من عميلٍ آخر في اللحظة نفسها
+        const captain = await User.findOneAndUpdate(
+            { _id: captainId },
+            [
+                { $set: {
+                    ratingSum:   { $add: [{ $ifNull: ['$ratingSum', 0] }, rating] },
+                    ratingCount: { $add: [{ $ifNull: ['$ratingCount', 0] }, 1] }
+                } },
+                { $set: { averageRating: { $divide: ['$ratingSum', '$ratingCount'] } } }
+            ],
+            { new: true }
+        ).select('averageRating');
 
         // 📋 سجلّ التقييم المستقل — قبل هذا كان تقييم الكابتن يعيش في مستند
         //    الطلب وحده: لا يظهر في لوحة تقييمات الإدارة (targetType: 'captain'
@@ -2838,7 +2889,7 @@ router.post('/:id/rate', protect, ratingLimiter, async (req, res) => {
             relatedId: order._id
         });
 
-        res.json({ message: 'تم التقييم بنجاح', newAverage: captain.averageRating });
+        res.json({ message: 'تم التقييم بنجاح', newAverage: captain ? captain.averageRating : null });
 
     } catch (error) {
         logger.error({ err: error }, 'Rate order error');

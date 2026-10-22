@@ -1105,20 +1105,23 @@ router.put('/orders/:id', protect, requirePermission('manage_orders'), async (re
             if ((order.status === 'completed' || order.status === 'delivered') && order.captain && oldStatus !== 'completed' && oldStatus !== 'delivered') {
                 try {
                     const commissionAmount = order.appFee || 0;
-                    if (commissionAmount > 0) {
-                        const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
-                        const creditLimit = liveSettings?.defaultCreditLimit ?? -5000;
+                    // 🎟️ نفس قاعدة التسليم العادي (routes/orders.js): خصم الكوبون يُعوَّض للكابتن
+                    const couponCredit = Math.max(0, Math.min(Number(order.discountAmount) || 0, Number(order.price) || 0));
+                    const walletDelta = couponCredit - commissionAmount;
+                    if (walletDelta !== 0) {
+                        const capDoc = await User.findById(order.captain).select('credit_limit city').lean();
+                        const creditLimit = await require('../../utils/creditLimit').creditLimitFor(capDoc);
                         const updatedCaptainBefore = await User.findByIdAndUpdate(
                             order.captain,
                             [
-                                { $set: { wallet_balance: { $subtract: ["$wallet_balance", commissionAmount] } } },
+                                { $set: { wallet_balance: { $add: ["$wallet_balance", walletDelta] } } },
                                 { $set: { is_blocked: { $cond: { if: { $lte: ["$wallet_balance", creditLimit] }, then: true, else: "$is_blocked" } } } }
                             ],
                             { new: false }
                         );
                         const updatedCaptain = await User.findById(order.captain);
                         if (updatedCaptain) {
-                            logger.info({ admin: req.user._id, captainId: updatedCaptain._id, orderId: order._id, deducted: commissionAmount, newBalance: updatedCaptain.wallet_balance }, 'Admin completed order — Commission deducted');
+                            logger.info({ admin: req.user._id, captainId: updatedCaptain._id, orderId: order._id, deducted: commissionAmount, couponCredit, newBalance: updatedCaptain.wallet_balance }, 'Admin completed order — Commission deducted');
                             
                             if (updatedCaptainBefore && !updatedCaptainBefore.is_blocked && updatedCaptain.is_blocked) {
                                 const ioForBlock = req.app.get('io');
@@ -1137,20 +1140,21 @@ router.put('/orders/:id', protect, requirePermission('manage_orders'), async (re
                 // 🔄 Refund if admin reverts a completed order
                 try {
                     const commissionAmount = order.appFee || 0;
-                    if (commissionAmount > 0) {
+                    const couponCredit = Math.max(0, Math.min(Number(order.discountAmount) || 0, Number(order.price) || 0));
+                    const refundDelta = commissionAmount - couponCredit;   // عكس ما طُبّق عند الإتمام
+                    if (refundDelta !== 0) {
                         const updatedCaptain = await User.findByIdAndUpdate(
                             order.captain,
-                            { $inc: { wallet_balance: commissionAmount } },
+                            { $inc: { wallet_balance: refundDelta } },
                             { new: true }
                         );
                         if (updatedCaptain) {
                             logger.info({ admin: req.user._id, captainId: updatedCaptain._id, orderId: order._id, refunded: commissionAmount, newBalance: updatedCaptain.wallet_balance }, 'Admin reverted completed order — Commission refunded');
                             
-                            const liveSettings = await Settings.getSettings(order.city || 'Khartoum');
-                            const creditLimit = liveSettings?.defaultCreditLimit ?? -5000;
+                            const creditLimit = await require('../../utils/creditLimit').creditLimitFor(updatedCaptain);
                             if (updatedCaptain.wallet_balance > creditLimit && updatedCaptain.is_blocked) {
-                                updatedCaptain.is_blocked = false;
-                                await updatedCaptain.save();
+                                // ذرّياً بدل save() — لا يكتب فوق رصيدٍ تغيّر في اللحظة نفسها
+                                await User.updateOne({ _id: updatedCaptain._id }, { $set: { is_blocked: false } });
                             }
                         }
                     }
