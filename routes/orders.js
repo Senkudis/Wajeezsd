@@ -14,7 +14,6 @@ const Rating = require('../models/Rating');
 const { protect, captainOnly, clientOnly } = require('../middleware/authMiddleware');
 const { requireCity } = require('../middleware/cityMiddleware');
 const { validateOrder } = require('../middleware/validateMiddleware');
-const nodemailer = require('nodemailer');
 const { sendNotification, notifyAdmins } = require('../utils/notificationHelper');
 const { sendWhatsAppIfSubscribed, OrderMessages } = require('../utils/whatsappNotificationHelper');
 const rateLimit = require('express-rate-limit');
@@ -92,6 +91,16 @@ const tipLimiter = rateLimit({
     validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
 });
 
+// Rate Limiter لفحص الكوبونات — بدونه تُخمَّن الأكواد بالقوة (500 طلب/5د عامّ)
+const promoCheckLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 20,
+    message: { message: 'محاولات كثيرة لأكواد الخصم. انتظر قليلاً ثم أعد المحاولة.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false, ip: false }
+});
+
 // 💵 إجمالي ما يدفعه العميل نقداً: الأجرة بعد الخصم زائد الإكرامية.
 // دالةٌ واحدة لا حسابٌ مكرّر في كل معالج — اختلافُ نسختين من هذه المعادلة
 // يعني رقمين مختلفين على شاشة العميل وشاشة الكابتن لنفس الطلب.
@@ -101,14 +110,6 @@ function totalDueFromClient(order) {
     const tip = Number(order?.tip?.amount) || 0;
     return Math.max(0, price - discount) + tip;
 }
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
 
 // @route   POST /api/orders
 // @desc    Create a new order (with duplicate check)
@@ -259,13 +260,18 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
                 : { ok: false };
 
             if (check.ok) {
+                // ⛔ لا منتجات في طلب التوصيل: productsTotal كان يُقرأ من جسم الطلب،
+                //    فكوبونٌ نطاقه «المنتجات» يُعطي خصماً بحجم أي رقمٍ يرسله العميل
+                //    — أكبر من الأجرة نفسها، فيصير المشوار مجانياً.
                 const { discount } = computeDiscount(promoDoc, {
-                    productsTotal: Number(req.body.productsTotal) || 0,
+                    productsTotal: 0,
                     deliveryFee: Number(price) || 0,
                     fullOrderValue
                 });
-                if (discount > 0) {
-                    serverDiscount = discount;
+                // ولا يتجاوز الخصم الأجرة مهما كان نوع الكوبون
+                const capped = Math.min(discount, Number(price) || 0);
+                if (capped > 0) {
+                    serverDiscount = capped;
                     appliedPromoCode = promoDoc.code;
                     validatedPromoDoc = promoDoc;
                 }
@@ -394,41 +400,45 @@ router.post('/', protect, requireCity, createOrderLimiter, validateOrder, async 
             }
         }
 
-        const order = await Order.create(orderData);
-
-        // ✅ تحديث عداد الكوبون — فقط للكود الذي تحقّقنا منه وأنتج خصماً فعلياً.
-        // الخصم هنا هو serverDiscount المحسوب أعلاه؛ لا إعادة حساب من قيمة العميل.
+        // 🎟️ حجز الكوبون **ذرّياً قبل** إنشاء الطلب — نفس طريقة طلب المتجر
+        //    (routes/merchant.js). كان يُحتسب بعد الإنشاء، فإن امتلأ الحدّ في
+        //    اللحظة نفسها بقي الخصم على الطلب رغم رفض الحجز. والشرط يشمل حدّ
+        //    المستخدم أيضاً: طلبان متزامنان كانا يتجاوزانه معاً.
+        orderData._id = new mongoose.Types.ObjectId();
+        let promoClaimed = false;
         if (validatedPromoDoc && serverDiscount > 0) {
             const PromoCode = require('../models/PromoCode');
-            // ✅ BUG-002: تحديث ذرّي بشرط usageLimit — يمنع سباق يتخطّى الحد الأقصى
-            const atomicPromoFilter = {
-                code: validatedPromoDoc.code,
-                $or: [
-                    { usageLimit: null },
-                    { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
-                ]
-            };
-            const updatedPromo = await PromoCode.findOneAndUpdate(
-                atomicPromoFilter,
+            const perUser = validatedPromoDoc.userUsageLimit ?? 1;
+            const claimed = await PromoCode.findOneAndUpdate(
+                {
+                    _id: validatedPromoDoc._id,
+                    $and: [
+                        { $or: [{ usageLimit: null }, { $expr: { $lt: ['$usedCount', '$usageLimit'] } }] },
+                        { $expr: { $lt: [
+                            { $size: { $filter: { input: { $ifNull: ['$usedBy', []] }, as: 'u', cond: { $eq: ['$$u.user', req.user._id] } } } },
+                            perUser
+                        ] } }
+                    ]
+                },
                 {
                     $inc: { usedCount: 1 },
-                    $push: {
-                        usedBy: {
-                            user: req.user.id,
-                            usedAt: new Date(),
-                            orderId: order._id,
-                            discountAmount: serverDiscount
-                        }
-                    }
+                    $push: { usedBy: { user: req.user._id, usedAt: new Date(), orderId: orderData._id, discountAmount: serverDiscount } }
                 }
-            ).catch(err => {
-                logger.error({ err }, 'Failed to update PromoCode usage');
-                return null;
-            });
-            if (!updatedPromo) {
-                logger.warn({ promoCode: validatedPromoDoc.code, orderId: order._id }, 'Promo code usage limit reached during atomic check');
+            );
+            if (!claimed) {
+                return res.status(409).json({
+                    message: 'الكوبون وصل حدّ استخدامه للتوّ — أزله وأرسل الطلب بدونه',
+                    field: 'promoCode'
+                });
             }
+            promoClaimed = true;
         }
+
+        const order = await Order.create(orderData).catch(async (e) => {
+            // فشل الإنشاء بعد الحجز: الكوبون يعود — لا طلب استفاد منه
+            if (promoClaimed) await releasePromoUsage([orderData._id]);
+            throw e;
+        });
 
         // إشعار للكباتن فقط إذا الطلب فوري (ليس مجدولاً)
         if (!isScheduled) {
@@ -1681,7 +1691,7 @@ router.put('/:id/accept', protect, captainOnly, async (req, res) => {
         res.json({ message: 'Order accepted', order });
     } catch (error) {
         logger.error({ err: error }, 'Order accept error');
-        res.status(500).json({ message: 'Server error: ' + error.message });
+        res.status(500).json({ message: 'حدث خطأ في الخادم' });
     }
 });
 
@@ -2220,12 +2230,10 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
             logger.warn('Could not load settings for credit limit, using default');
         }
 
-        // BL-M2 FIX: العمولة تُحسب على المبلغ الفعلي الذي استلمه الكابتن من العميل.
-        // قبل الإصلاح: commissionAmount = appFee أو price * 15% (بغض النظر عن الكوبون)
-        // سيناريو المشكلة: أجرة 1000 + كوبون 300 → الكابتن يستلم 700 نقداً لكن عمولته 150.
-        // المنصة تحمّل الكابتن الـ 45 فرق الكوبون من ماله الخاص!
-        // الإصلاح: إذا كان appFee محفوظاً نستخدمه مباشرة (هو بالفعل على السعر الصحيح عند الإنشاء).
-        // وإذا احتجنا نحسبه: نطرح discountAmount أولاً.
+        // 💰 العمولة = appFee المحفوظ (نسبة المدينة من السعر الكامل قبل الخصم).
+        //    ⚠️ كان التعليق هنا يقول إن appFee «على السعر بعد الخصم» — وهو ليس
+        //    كذلك: يُحسب في الإنشاء من price. فالخصم يُعوَّض صراحةً أدناه
+        //    (couponCredit) بدل أن يتحمّله الكابتن.
         const discount = Number(order.discountAmount) || 0;
         const effectivePrice = Math.max(0, (Number(order.price) || 0) - discount);
         const rawCommission = (order.appFee != null)
@@ -2235,14 +2243,21 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
 
         logger.info({ orderId: order._id, storedAppFee: order.appFee, commissionAmount }, 'Commission deduction on deliver');
 
+        // 🎟️ الكوبون تموّله المنصّة لا الكابتن: الكابتن قبض نقداً (السعر − الخصم)
+        //    وعمولته محسوبة على السعر الكامل، فكان يدفع الخصم من جيبه. يُعوَّض
+        //    الخصم في محفظته مع خصم العمولة في عملية واحدة. (طلبات المتاجر لا
+        //    تحمل discountAmount على طلب التوصيل — خصمها على ShopOrder.)
+        const couponCredit = Math.max(0, Math.min(discount, Number(order.price) || 0));
+        const walletDelta = parseFloat((couponCredit - commissionAmount).toFixed(2));
+
         // 🛡️ Atomic Wallet Deduction ($inc)
-        if (commissionAmount > 0 && order.captain) {
+        if (walletDelta !== 0 && order.captain) {
             try {
                 const User = require('../models/User');
                 // new:true يعيد صورة ما بعد الخصم مباشرة — لا حاجة لقراءة ثانية
                 const captain = await User.findByIdAndUpdate(
                     order.captain,
-                    { $inc: { wallet_balance: -commissionAmount } },
+                    { $inc: { wallet_balance: walletDelta } },
                     { new: true }
                 );
 
@@ -2256,6 +2271,7 @@ router.put('/:id/deliver', protect, captainOnly, async (req, res) => {
                         orderPrice,
                         commissionRate: (commissionRate * 100).toFixed(1) + '%',
                         commissionAmount,
+                        couponCredit,
                         newBalance: captain.wallet_balance,
                         creditLimit
                     }, 'Commission deducted atomically');
@@ -2951,7 +2967,7 @@ router.get('/:id', protect, async (req, res) => {
 // @route  POST /api/orders/apply-promo
 // @desc   التحقق من صحة كود الخصم وحساب قيمة الخصم
 // @access Client
-router.post('/apply-promo', protect, async (req, res) => {
+router.post('/apply-promo', protect, promoCheckLimiter, async (req, res) => {
     try {
         const { code, orderValue, productsTotal, deliveryFee, city, placeId } = req.body;
         // قيمة الطلب الكاملة (بضاعة + توصيل) — تُحسب من المُرسَل أو من المجموع
@@ -2963,7 +2979,7 @@ router.post('/apply-promo', protect, async (req, res) => {
 
         const now = new Date();
         const promo = await PromoCode.findOne({
-            code:     code.toUpperCase().trim(),
+            code:     String(code).toUpperCase().trim(),
             isActive: true,
             validFrom:  { $lte: now },
             validUntil: { $gte: now }
@@ -2997,9 +3013,21 @@ router.post('/apply-promo', protect, async (req, res) => {
         // 🔒 نفس المنطق المشترك المستخدم في إنشاء الطلب — مصدر واحد يمنع تباين المسارين.
         // ✅ BUG-006: المدينة تُقارن بمدينة المستخدم المصادق عليه لا بما يرسله العميل.
         const { validatePromo, computeDiscount } = require('../utils/promo');
+        // 🌍 مدينة المعاينة = مدينة الطلب: الإنشاء يفحص الكوبون بمدينة **مكان**
+        //    الطلب (المتجر أو نقطة الاستلام)، فمعاينةٌ بمدينة الحساب كانت تقول
+        //    «صالح» ثم يُرفض عند الإرسال، أو العكس.
+        let promoCity = req.user.city;
+        if (placeId && mongoose.Types.ObjectId.isValid(placeId)) {
+            const P = require('../models/Place');
+            const pl = await P.findById(placeId).select('city').lean();
+            if (pl && pl.city) promoCity = pl.city;
+        } else {
+            const { VALID_CITIES } = require('../middleware/cityMiddleware');
+            if (VALID_CITIES.includes(city)) promoCity = city;
+        }
         const check = validatePromo(promo, {
             userId: req.user._id,
-            userCity: req.user.city,
+            userCity: promoCity,
             fullOrderValue,
             items,
             // 🏪 حصر المتاجر. المعاينة تُطابق قرار الإنشاء تماماً — ولو تُرك

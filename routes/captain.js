@@ -769,13 +769,15 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
             Order.find(delQuery)
                 .sort({ createdAt: -1 })
                 .limit(need)
-                .select('price appFee netRevenue pickup.address createdAt')
+                .select('price appFee discountAmount netRevenue pickup.address createdAt')
                 .lean(),
             // 🔢 الإجمالي الحقيقي — countDocuments لا طول المصفوفة المقصوصة
             DebtAdjustment.countDocuments(adjQuery),
             PaymentRequest.countDocuments(payQuery),
             Order.countDocuments(delQuery)
         ]);
+        // 🎟️ توصيلةٌ بكوبون لها سطرٌ ثانٍ: تعويض الخصم في المحفظة (orders.js /deliver)
+        const couponCount = await Order.countDocuments({ ...delQuery, discountAmount: { $gt: 0 } });
 
         // ── دمج وتحويل لتنسيق موحد ────────────────────────────────────────
         const timeline = [
@@ -811,6 +813,14 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
                 amount: d.appFee ?? 0,
                 note:   d.pickup?.address || '',
                 date:   d.createdAt
+            })),
+            ...deliveries.filter(d => Number(d.discountAmount) > 0).map(d => ({
+                _id:    d._id + '-coupon',
+                type:   'coupon_credit',
+                label:  'تعويض كوبون',
+                amount: Math.min(Number(d.discountAmount), Number(d.price) || 0),
+                note:   'خصم الكوبون تتحمّله وجيز — أُضيف إلى محفظتك',
+                date:   d.createdAt
             }))
         ];
 
@@ -819,7 +829,7 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
 
         // الإجمالي من العدّ الحقيقي للمجموعات الثلاث، لا من طول المصفوفة المدموجة
         // (تلك مقصوصة عند `need` عمداً — طولها لا يمثّل شيئاً).
-        const total = adjCount + payCount + delCount;
+        const total = adjCount + payCount + delCount + couponCount;
         const paged = timeline.slice(skip, skip + limit);
 
         res.json({
