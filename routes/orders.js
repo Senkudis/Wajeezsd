@@ -104,6 +104,19 @@ const promoCheckLimiter = rateLimit({
 // 💵 إجمالي ما يدفعه العميل نقداً: الأجرة بعد الخصم زائد الإكرامية.
 // دالةٌ واحدة لا حسابٌ مكرّر في كل معالج — اختلافُ نسختين من هذه المعادلة
 // يعني رقمين مختلفين على شاشة العميل وشاشة الكابتن لنفس الطلب.
+// 🔒 قبل القبول لا يرى الكابتن أرقام التواصل: لا هاتف العميل ولا المستلمين
+//    ولا عروض الكباتن الآخرين وأسعارهم. العنوان والسعر يكفيان لقرار القبول،
+//    والأرقام تُكشف بعد الإسناد. (هاتف المتجر في pickup يبقى: هو جهة عمل.)
+function stripPreAcceptContacts(o) {
+    if (!o) return o;
+    if (o.client && typeof o.client === 'object') o.client = { _id: o.client._id, name: o.client.name };
+    if (o.dropoff) { delete o.dropoff.receiverPhone; delete o.dropoff.contactPhone; }
+    if (o.orderType !== 'shop' && o.pickup) delete o.pickup.contactPhone;
+    if (Array.isArray(o.stops)) o.stops = o.stops.map(st => { const c = { ...st }; delete c.contactPhone; return c; });
+    if (Array.isArray(o.negotiations)) o.negotiations = [];
+    return o;
+}
+
 function totalDueFromClient(order) {
     const price = Number(order?.price) || 0;
     const discount = Number(order?.discountAmount) || 0;
@@ -1084,6 +1097,14 @@ router.get('/my-orders', protect, async (req, res) => {
         const paginatedOrders = [...ordersPage, ...mappedShopOrders]
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+        // 🔒 موقع الكابتن اللحظي للطلب الجاري وحده: بعد التسليم أو الإلغاء كان
+        //    سجلّ العميل يكشف مكان الكابتن الحالي إلى الأبد
+        paginatedOrders.forEach(o => {
+            if (o.captain && typeof o.captain === 'object' && !['accepted', 'picked_up'].includes(o.status)) {
+                delete o.captain.currentLocation;
+            }
+        });
+
         // 📊 إثراء كل طلب بالخط الزمني و ETA (بعد الترقيم لتوفير الحساب) — مصدر مشترك
         const { enrichOrder } = require('../utils/orderEnrich');
         paginatedOrders.forEach(enrichOrder);
@@ -1136,8 +1157,14 @@ router.get('/', protect, requireCity, captainOnly, async (req, res) => {
         return res.status(403).json({ message: 'حسابك موقوف مؤقتاً لتجاوزك الحد الائتماني للمديونية' });
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    // 🔒 الكابتن غير المعتمد لا يرى الطلبات — كما يُمنع من القبول والتفاوض
+    if (req.user.approvalStatus !== 'approved') {
+        return res.status(403).json({ message: 'حسابك قيد المراجعة ولم يُعتمد بعد' });
+    }
+
+    // سقفٌ للصفحة: ?limit=100000 كان يُفرغ كل طلبات المدينة دفعةً واحدة
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
     const skip = (page - 1) * limit;
 
     try {
@@ -1160,6 +1187,7 @@ router.get('/', protect, requireCity, captainOnly, async (req, res) => {
                 n => n.captainId && n.captainId.toString() === captainId && n.status === 'pending'
             );
             o.myOffer = myOffer || null;
+            stripPreAcceptContacts(o);
             return o;
         });
 
@@ -2931,6 +2959,7 @@ router.get('/:id', protect, async (req, res) => {
             order.status === 'pending' &&
             !order.captain &&
             req.user.role === 'captain' &&
+            req.user.approvalStatus === 'approved' &&
             !req.user.is_blocked &&
             !!order.city && String(order.city) === String(req.user.city)
         );
@@ -2948,6 +2977,21 @@ router.get('/:id', protect, async (req, res) => {
 
         if (!isClient && !isCaptain && !isAdmin && !isPendingAndUserIsCaptain && !isShopOwner) {
             return res.status(403).json({ message: 'غير مصرح' });
+        }
+
+        // 🔒 معاينة كابتنٍ لطلبٍ معروض (لم يُقبل بعد): بلا أرقام تواصل — كانت
+        //    القائمة تحجب هاتف العميل وهذا المسار يكشفه لأي كابتن في المدينة
+        if (isPendingAndUserIsCaptain && !isClient && !isCaptain && !isAdmin) {
+            const mine = (order.negotiations || []).find(n =>
+                n.captainId && String(n.captainId) === userId && n.status === 'pending');
+            stripPreAcceptContacts(order);
+            order.myOffer = mine || null;
+        }
+
+        // موقع الكابتن اللحظي لا يُكشف لغير الإدارة بعد انتهاء الطلب
+        if (!isAdmin && order.captain && typeof order.captain === 'object' &&
+            !['accepted', 'picked_up'].includes(order.status)) {
+            delete order.captain.currentLocation;
         }
 
         // 📊 إثراء الرد بالخط الزمني و ETA (بيانات محسوبة، لا تُخزَّن) — مصدر مشترك.

@@ -34,7 +34,7 @@ function app() {
 function captain(city) {
     return {
         _id: CAPTAIN_ID, id: CAPTAIN_ID, name: 'كابتن', role: 'captain',
-        isActive: true, tokenVersion: 0, is_blocked: false, city
+        isActive: true, tokenVersion: 0, is_blocked: false, approvalStatus: 'approved', city
     };
 }
 
@@ -77,6 +77,16 @@ describe('GET /api/orders/:id — معاينة الطلبات المعلّقة',
         const res = await get(user);
         expect(res.status).toBe(200);
         expect(res.body.client.name).toBe('عميل سرّي');
+        // 🔒 قبل القبول: لا هاتف للعميل ولا للمستلم
+        expect(JSON.stringify(res.body)).not.toMatch(/0912345678/);
+        expect(JSON.stringify(res.body)).not.toMatch(/0999999999/);
+    });
+
+    it('🔒 كابتن غير معتمد من نفس المدينة ⇒ 403', async () => {
+        const user = { ...captain('Khartoum'), approvalStatus: 'pending' };
+        stub(user, pendingOrder('Khartoum'));
+
+        expect((await get(user)).status).toBe(403);
     });
 
     it('🔒 كابتن من مدينة أخرى ⇒ 403 ولا تتسرّب بيانات العميل', async () => {

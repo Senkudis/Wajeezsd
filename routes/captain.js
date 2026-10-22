@@ -224,6 +224,12 @@ router.get('/rating-summary', protect, captainOnly, async (req, res) => {
 // ==========================================
 // ✅ FIX #11: Added protect — captain locations & phone numbers were exposed without a token
 router.get('/available', protect, async (req, res) => {
+    // 🔒 للإدارة وحدها: كان أي عميل مسجّل يحصل على اسم ورقم هاتف وموقع لحظي
+    //    لكل كابتن متاح في مدينته — تتبّعٌ لأشخاصٍ حقيقيين. ولا تستدعيه أي
+    //    شاشة عميل؛ خريطة الإدارة الحيّة لها مساراتها في routes/admin.
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'غير مصرح' });
+    }
     try {
         // ✅ FIX: رفع الحد من 5 دقائق إلى 30 دقيقة
         // كابتن ساكن لا يُحدّث موقعه طوال الوقت، 5 دقائق قصيرة جداً
