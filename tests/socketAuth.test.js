@@ -137,3 +137,19 @@ describe('resolveSocketIdentity', () => {
         expect((await resolveSocketIdentity(token, finder, OPTS)).city).toBeNull();
     });
 });
+
+describe('🔒 السوكت يحترم إبطال الجلسات (tokenVersion)', () => {
+    const jwt = require('jsonwebtoken');
+    const { resolveSocketIdentity } = require('../utils/socketAuth');
+    const secret = 'x'.repeat(40);
+    const user = (tv) => async () => ({ _id: 'u1', role: 'client', city: 'Khartoum', isActive: true, tokenVersion: tv });
+
+    it('توكنٌ صدر قبل رفع النسخة يُرفض', async () => {
+        const t = jwt.sign({ userId: 'u1', tv: 0 }, secret);
+        expect(await resolveSocketIdentity(t, user(1), { secret, legacySecret: '' })).toBeNull();
+    });
+    it('توكنٌ بالنسخة الحالية يُقبل', async () => {
+        const t = jwt.sign({ userId: 'u1', tv: 2 }, secret);
+        expect(await resolveSocketIdentity(t, user(2), { secret, legacySecret: '' })).not.toBeNull();
+    });
+});

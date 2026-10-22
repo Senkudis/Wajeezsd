@@ -46,7 +46,9 @@ const chatPreview = (text, imageUrl) => {
         logger.error('FATAL: JWT_SECRET matches weak pattern (wassili_secret)');
         process.exit(1);
     }
-    if (/123/.test(secret)) {
+    // «123» نمطٌ ضعيف حين يكون السرّ كلمةً بشرية؛ أما سرٌّ عشوائي طويل فقد
+    // يحتويه مصادفةً، فرفضه كان يمنع السيرفر من الإقلاع بسرٍّ قويّ.
+    if (/(^|[^0-9a-f])123/i.test(secret) && secret.length < 48) {
         logger.error('FATAL: JWT_SECRET matches weak pattern (contains 123)');
         process.exit(1);
     }
@@ -532,10 +534,8 @@ app.set('chatRooms', chatRooms);
 const { resolveSocketIdentity } = require('./utils/socketAuth');
 const { adminRoomsFor, toAdmins } = require('./utils/adminRooms');   // 📡 كلٌّ يسمع مدنه
 
-// ⚠️ مرحلة انتقالية: الاتصال بلا توكن مسموح لكنه لا يُمنح أي صلاحية —
-// لا غرفة شخصية، لا إرسال رسائل، لا admin_join. السبب أن نسخ أندرويد المثبّتة
-// تحمل واجهة مدمجة قديمة لا ترسل توكناً، فالرفض الفوري يضعها في حلقة إعادة اتصال.
-// بعد رفع minVersion وفرض التحديث: استبدل `return next()` بـ `next(new Error('unauthorized'))`.
+// الاتصال بلا توكن صالح يُرفض (unauthorized). وفشل الاستعلام نفسه (قاعدة
+// البيانات) يمرّ بلا أي صلاحية — لا غرفة شخصية، لا رسائل، لا admin_join.
 io.use(async (socket, next) => {
     socket.authUserId = null;
     socket.userRole = null;
@@ -547,7 +547,7 @@ io.use(async (socket, next) => {
     try {
         const identity = await resolveSocketIdentity(
             token,
-            (id) => User.findById(id).select('role city cities adminRole isActive').lean()
+            (id) => User.findById(id).select('role city cities adminRole isActive tokenVersion').lean()
         );
 
         if (!identity) {
@@ -714,10 +714,13 @@ io.on('connection', (socket) => {
 
             // 🚫 Block suspended captains from chatting
             // BUG-M3 FIX: User مستورد مسبقاً على مستوى الوحدة
-            const senderDoc = await User.findById(sender).select('is_blocked').lean();
+            const senderDoc = await User.findById(sender).select('is_blocked name').lean();
             if (senderDoc?.is_blocked) {
                 return sendAck({ status: 'error', error: 'حسابك موقوف بسبب تجاوزك الحد الائتماني. يرجى السداد أولاً.' });
             }
+            // 🔒 اسم المرسِل من القاعدة لا مما يرسله العميل — كان أي مستخدم يكتب
+            //    «الإدارة» أو اسم كابتن آخر فيظهر في الإشعار والدردشة باسمه.
+            const senderName = (senderDoc && senderDoc.name) || 'مستخدم';
 
             // ملاحظة: فحص تطابق socket.userId مع data.sender أُزيل — لم يعد له معنى
             // بعد أن صار المرسِل يُشتق من التوكن مباشرةً ولا يقبل أي إدخال من العميل.
@@ -779,7 +782,7 @@ io.on('connection', (socket) => {
                 { user: receiver, type: 'chat_message', relatedId: orderObjectId, isRead: false },
                 {
                     $set: {
-                        title: `رسالة من ${data.senderName || 'مستخدم'}`,
+                        title: `رسالة من ${senderName}`,
                         message: chatPreview(data.text, imageUrl),
                         createdAt: new Date()
                     }
@@ -790,7 +793,7 @@ io.on('connection', (socket) => {
             const messageData = {
                 _id: message._id,
                 tempId: data.tempId,
-                sender: { _id: sender, name: data.senderName },
+                sender: { _id: sender, name: senderName },
                 text: data.text || '',
                 imageUrl,
                 createdAt: message.createdAt,
@@ -823,13 +826,13 @@ io.on('connection', (socket) => {
                     if (receiverUser && receiverUser.fcmToken) {
                         await sendChatPush(
                             receiverUser.fcmToken,
-                            `💬 رسالة من ${data.senderName || 'مستخدم'}`,
+                            `💬 رسالة من ${senderName}`,
                             chatPreview(data.text, imageUrl),
                             {
                                 type: 'chat_message',
                                 orderId: order.toString(),
                                 senderId: sender,
-                                senderName: data.senderName || 'مستخدم'
+                                senderName: senderName
                             }
                         );
                     }
@@ -842,18 +845,26 @@ io.on('connection', (socket) => {
 
         } catch (error) {
             logger.error({ err: error }, 'Error saving message');
-            sendAck({ status: 'error', error: 'Failed to save message: ' + error.message });
+            sendAck({ status: 'error', error: 'تعذّر حفظ الرسالة، حاول مجدداً' });
         }
     });
 
     // ✅ FIX: typing events — نرسل للـ room مباشرة بدل activeUsers[socketId]
     // كل مستخدم يجوين room باسم userId عند user_join، فالإرسال للـ room أموثوق
     // 🔒 sender من التوكن — وإلا أمكن انتحال مؤشر "يكتب الآن" باسم أي مستخدم.
+    // ⛔ المستلم معرّف مستخدم حصراً: حدثٌ بلا بيانات كان يرمي TypeError داخل
+    //    process.nextTick فيُسقط السيرفر كله (uncaughtException)، وقيمة مثل
+    //    "room_Khartoum" كانت تبثّ "يكتب الآن" لمدينة كاملة.
+    const typingReceiver = (data) => {
+        const r = data && typeof data === 'object' ? (data.receiver || data.receiverId) : null;
+        return r && /^[0-9a-fA-F]{24}$/.test(String(r)) ? String(r) : null;
+    };
+
     socket.on('typing', (data) => {
         if (!socket.authUserId) return;
-        const receiver = data.receiver || data.receiverId;
+        const receiver = typingReceiver(data);
         if (receiver) {
-            io.to(String(receiver)).emit('user_typing', {
+            io.to(receiver).emit('user_typing', {
                 sender: socket.authUserId,
                 receiver
             });
@@ -862,9 +873,9 @@ io.on('connection', (socket) => {
 
     socket.on('stop_typing', (data) => {
         if (!socket.authUserId) return;
-        const receiver = data.receiver || data.receiverId;
+        const receiver = typingReceiver(data);
         if (receiver) {
-            io.to(String(receiver)).emit('user_stop_typing', {
+            io.to(receiver).emit('user_stop_typing', {
                 sender: socket.authUserId,
                 receiver
             });
@@ -875,8 +886,11 @@ io.on('connection', (socket) => {
         try {
             // 🔒 الهوية من التوكن حصراً — data.userId يُتجاهل (كان يسمح بتزوير موقع أي كابتن).
             if (!socket.authUserId) return;
+            // 🛵 الموقع للكباتن وحدهم: كان أي حساب (عميلٌ مثلاً) يكتب موقعه هنا
+            //    فيظهر على خريطة الإدارة الحيّة ككابتن.
+            if (socket.userRole !== 'captain') return;
             const userId = socket.authUserId;
-            const { orderId } = data;
+            const { orderId } = data || {};
             // 🧭 `!lat || !lng` كان يرفض الصفر مصادفةً ويمرّر النصوص والقيم خارج المدى.
             // المصدر الموحّد utils/coords.js يرفض (0,0) والقيم غير الصالحة صراحةً.
             if (!isUsableCoord(data.lat, data.lng)) return;

@@ -49,6 +49,12 @@ async function resolveSocketIdentity(token, findUserById, opts = {}) {
     if (!user) return null;
     if (!user.isActive) return null; // حساب أوقفته الإدارة
 
+    // 🔒 إبطال الجلسات — نفس قاعدة middleware/authMiddleware: توكنٌ صدر قبل آخر
+    //    رفعٍ لـ tokenVersion (تغيير كلمة المرور، الخروج من كل الأجهزة) يسقط.
+    //    بدون هذا كان التوكن المسروق يبقى يقرأ الرسائل ويرسلها عبر السوكت.
+    const tv = typeof decoded.tv === 'number' ? decoded.tv : 0;
+    if ((user.tokenVersion || 0) !== tv) return null;
+
     return {
         userId: String(user._id),
         role: user.role || null,

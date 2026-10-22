@@ -81,8 +81,12 @@ const protect = async (req, res, next) => {
         //    /api/upload/captain-docs. أي أن وثائق كل كابتنٍ سجّل من التطبيق
         //    لم تصل الإدارة قط، ثم يُرفض طلبه لنقص الوثائق.
         if (decoded.scope && decoded.scope !== 'full') {
+            // ⛔ مطابقةٌ تامّة للمسار بلا الاستعلام: كان الفحص originalUrl.includes
+            //    فيكفي إلحاق ?x=/api/upload/captain-docs بأي رابط ليصير توكن
+            //    المتقدّم المعلّق أو المرفوض توكناً كاملاً.
             const allowedPaths = ['/api/upload/captain-docs'];
-            if (!allowedPaths.some(p => req.originalUrl.includes(p))) {
+            const pathOnly = String(req.originalUrl || '').split('?')[0].replace(/\/+$/, '');
+            if (!allowedPaths.includes(pathOnly)) {
                 return res.status(403).json({ message: 'هذا التوكن مقيّد بمهام محددة فقط' });
             }
         }
