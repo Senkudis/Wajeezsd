@@ -1,4 +1,4 @@
-// node build.mjs [--ad stores|multistop] [--vo voice.wav] [--quick]
+// node build.mjs [--ad stores|multistop|merch] [--vo voice.wav] [--quick]
 // رندر Remotion (صامت) ⇒ موسيقى ومؤثّرات على لحظات المشاهد ⇒ مزجٌ عند −14 LUFS.
 // اللحظات من مدد المشاهد في src/Video.tsx (SCENES) وأزمنة الأحداث داخل كل مشهد.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -11,8 +11,10 @@ const AD = argv.includes('--ad') ? argv[argv.indexOf('--ad') + 1] : 'stores';
 const CFG = {
   stores: { file: 'src/Video.tsx', T: /const T = (\d+);/, SC: /export const SCENES = (\{[^}]+\})/, comp: 'StoresAd', out: 'wajeez-stores', dropKey: 'gather', dropAt: 0 },
   multistop: { file: 'src/multistop/Video.tsx', T: /export const MT = (\d+);/, SC: /export const MS_SCENES = (\{[^}]+\})/, comp: 'MultiStopAd', out: 'wajeez-multistop', dropKey: 'merge', dropAt: 44 / 30 },
+  merch: { comp: 'MerchReveal', out: 'wajeez-captain-uniform', frames: 450, music: 'lux' },
 }[AD];
-const src = readFileSync(CFG.file, 'utf8');
+const src = CFG.file ? readFileSync(CFG.file, 'utf8') : 'const T = 0; export const SCENES = { all: ' + CFG.frames + ' }';
+if (!CFG.file) { CFG.T = /const T = (\d+);/; CFG.SC = /export const SCENES = (\{[^}]+\})/; }
 const T = Number(src.match(CFG.T)[1]);
 const SC = eval('(' + src.match(CFG.SC)[1].replace(/\+ M?T(?![A-Za-z])/g, `+ ${T}`) + ')');
 const keys = Object.keys(SC), start = {}; let acc = 0;
@@ -57,11 +59,18 @@ const CUES = {
     { t: at('end', 2), type: 'whoosh', gain: .5 }, { t: at('end', 16), type: 'thump' }, { t: at('end', 32), type: 'pop' }, { t: at('end', 36), type: 'pop' },
   ],
 };
+CUES.merch = [
+  ...[22, 34, 46, 58, 70].map(f => ({ t: f / 30, type: 'tick', gain: .5 })),           // غرز التطريز
+  { t: 90 / 30, type: 'whoosh', gain: .5 }, { t: 212 / 30, type: 'whoosh', gain: .7 }, { t: 226 / 30, type: 'click', gain: .6 },
+  { t: 262 / 30, type: 'whoosh', gain: .6 }, { t: 290 / 30, type: 'thump', gain: .7 }, { t: 318 / 30, type: 'whoosh', gain: .5 },
+  { t: 352 / 30, type: 'whoosh', gain: .5 }, { t: 392 / 30, type: 'chime', gain: .6 },
+];
 const cues = CUES[AD];
 writeFileSync('cues.json', JSON.stringify(cues, null, 1));
 
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit', shell: cmd === 'npx' });
-run('python', ['music.py', 'out/music.wav', JSON.stringify({ arrive: 0.01, drop: start[CFG.dropKey] + CFG.dropAt, end: start.end + .12, dur: DUR + .6 })]);
+if (CFG.music === 'lux') run('python', ['lux.py', 'out/music.wav', JSON.stringify({ hits: [90 / 30, 226 / 30, 290 / 30, 392 / 30], dur: DUR + .6 })]);
+else run('python', ['music.py', 'out/music.wav', JSON.stringify({ arrive: 0.01, drop: start[CFG.dropKey] + CFG.dropAt, end: start.end + .12, dur: DUR + .6 })]);
 run('node', ['sfx.mjs', 'cues.json', 'out/sfx.wav']);
 if (!argv.includes('--quick')) run('npx', ['remotion', 'render', CFG.comp, `out/${AD}-silent.mp4`, '--browser-executable="C:/Program Files/Google/Chrome/Application/chrome.exe"', '--codec=h264', '--crf=16', '--log=error']);
 

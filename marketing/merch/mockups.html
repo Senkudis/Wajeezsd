@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>طقم كباتن وجيز — صور العرض</title>
+<style>
+/* خطوط الهوية (marketing/brand-fonts — خارج المستودع) */
+@font-face { font-family: 'Alarabiya'; src: url('../brand-fonts/alarabiya/Alarabiya Normal Font.ttf'); }
+@font-face { font-family: 'ArabicModern'; src: url('../brand-fonts/arabic-modern/ArabicModern-Bold.otf'); }
+@font-face { font-family: 'IntroBold'; src: url('../brand-fonts/intro/Intro Bold Alt.otf'); }
+:root { --cream: #F2EEE4; --ink: #0B1F17; --gray: #6B7A72; --green: #0A8754; }
+html, body { margin: 0; background: var(--cream); }
+.sheet { width: 2400px; padding: 90px 110px 70px; box-sizing: border-box; }
+h1 { font: 92px Alarabiya; color: var(--ink); margin: 0; }
+.sub { font: 34px ArabicModern; color: var(--gray); margin: 10px 0 60px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 50px; }
+.card { background: #E9E4D8; border-radius: 40px; position: relative; overflow: hidden; }
+.card svg { display: block; width: 100%; height: auto; }
+.tag { position: absolute; top: 34px; right: 40px; font: 30px ArabicModern; color: var(--ink); background: rgba(255,255,255,.7); padding: 8px 24px; border-radius: 999px; }
+.foot { margin-top: 50px; display: flex; gap: 40px; align-items: center; font: 26px ArabicModern; color: var(--gray); }
+.sw { display: inline-flex; align-items: center; gap: 12px; }
+.sw i { width: 44px; height: 44px; border-radius: 12px; display: inline-block; box-shadow: inset 0 0 0 2px rgba(0,0,0,.08); }
+.sw b { font: 24px IntroBold; color: var(--ink); direction: ltr; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>زيّ كباتن وجيز</h1>
+  <div class="sub">تيشيرت وكاب · أخضر الشعار · الشعار وحده</div>
+
+  <!-- تعريفات مشتركة: ظلال القماش وملمسه -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <!-- ملمس قطن: ضجيجٌ ناعم يُمزج فوق اللون -->
+      <filter id="weave" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="n" />
+        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .10 0" result="a" />
+        <feComposite in="a" in2="SourceGraphic" operator="in" result="t" />
+        <feMerge><feMergeNode in="SourceGraphic" /><feMergeNode in="t" /></feMerge>
+      </filter>
+      <!-- التطريز: حافّةٌ بارزة وظلٌّ قصير يرفع الخيط عن القماش -->
+      <filter id="stitch" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9 0.08" numOctaves="1" seed="3" result="thr" />
+        <feColorMatrix in="thr" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .10 0" result="th" />
+        <feComposite in="th" in2="SourceGraphic" operator="in" result="tex" />
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="b" />
+        <feOffset in="b" dy="2.5" result="o" />
+        <feFlood flood-color="#022a1b" flood-opacity=".55" /><feComposite in2="o" operator="in" result="sh" />
+        <feMerge><feMergeNode in="sh" /><feMergeNode in="SourceGraphic" /><feMergeNode in="tex" /></feMerge>
+      </filter>
+      <!-- الطباعة على القماش: تتبع طيّاته (إزاحة خفيفة) وتأخذ ظلاله -->
+      <filter id="printed" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="11" result="w" />
+        <feDisplacementMap in="SourceGraphic" in2="w" scale="6" xChannelSelector="R" yChannelSelector="G" result="d" />
+        <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="5" result="g" />
+        <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .18 0" result="ga" />
+        <feComposite in="ga" in2="d" operator="in" result="gt" />
+        <feMerge><feMergeNode in="d" /><feMergeNode in="gt" /></feMerge>
+      </filter>
+      <filter id="soft"><feGaussianBlur stdDeviation="9" /></filter>
+      <linearGradient id="shirtBody" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#077347" /><stop offset=".18" stop-color="#0A8754" /><stop offset=".5" stop-color="#0C9159" />
+        <stop offset=".82" stop-color="#0A8754" /><stop offset="1" stop-color="#066A41" />
+      </linearGradient>
+      <linearGradient id="shirtLight" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fff" stop-opacity=".10" /><stop offset=".4" stop-color="#fff" stop-opacity="0" /><stop offset="1" stop-color="#000" stop-opacity=".16" />
+      </linearGradient>
+      <radialGradient id="ground" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#000" stop-opacity=".22" /><stop offset="1" stop-color="#000" stop-opacity="0" />
+      </radialGradient>
+      <linearGradient id="capCrown" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#0D9A60" /><stop offset=".55" stop-color="#0A8754" /><stop offset="1" stop-color="#065F3B" />
+      </linearGradient>
+      <linearGradient id="brimTop" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0B8F59" /><stop offset="1" stop-color="#075E3A" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="grid">
+    <!-- ── التيشيرت من الأمام ─────────────────────────────── -->
+    <div class="card"><span class="tag">التيشيرت · الأمام</span>
+      <svg viewBox="0 0 1000 1150">
+        <ellipse cx="500" cy="1085" rx="380" ry="34" fill="url(#ground)" />
+        <g filter="url(#weave)">
+          <path id="tee" d="M388 92 Q500 172 612 92 L792 142 Q884 176 948 366 L838 448 L752 338 L758 1036 Q500 1064 242 1036 L248 338 L162 448 L52 366 Q116 176 208 142 Z" fill="url(#shirtBody)" />
+          <path d="M388 92 Q500 172 612 92 L792 142 Q884 176 948 366 L838 448 L752 338 L758 1036 Q500 1064 242 1036 L248 338 L162 448 L52 366 Q116 176 208 142 Z" fill="url(#shirtLight)" />
+        </g>
+        <!-- طيّات ناعمة -->
+        <g filter="url(#soft)"><path d="M300 420 Q330 700 290 980" stroke="#055B37" stroke-opacity=".22" stroke-width="30" fill="none" stroke-linecap="round" />
+        <path d="M700 460 Q676 720 712 990" stroke="#055B37" stroke-opacity=".18" stroke-width="26" fill="none" stroke-linecap="round" />
+        </g>
+        <path d="M258 340 Q300 380 320 470" stroke="#055B37" stroke-opacity=".25" stroke-width="10" fill="none" stroke-linecap="round" />
+        <path d="M742 340 Q700 380 680 470" stroke="#055B37" stroke-opacity=".25" stroke-width="10" fill="none" stroke-linecap="round" />
+        <!-- الياقة المضلّعة -->
+        <path d="M388 92 Q500 172 612 92" stroke="#066A41" stroke-width="26" fill="none" stroke-linecap="round" />
+        <path d="M388 92 Q500 172 612 92" stroke="#0B8F59" stroke-width="2" stroke-dasharray="2 6" fill="none" transform="translate(0,6)" />
+        <path d="M392 110 Q500 190 608 110" stroke="#04553A" stroke-width="2" stroke-dasharray="7 6" fill="none" opacity=".6" />
+        <!-- خياطة الأكمام والحاشية -->
+        <path d="M74 382 L170 456" stroke="#04553A" stroke-width="2.4" stroke-dasharray="8 6" opacity=".7" fill="none" />
+        <path d="M926 382 L830 456" stroke="#04553A" stroke-width="2.4" stroke-dasharray="8 6" opacity=".7" fill="none" />
+        <path d="M246 1012 Q500 1040 754 1012" stroke="#04553A" stroke-width="2.4" stroke-dasharray="8 6" opacity=".7" fill="none" />
+        <!-- الشعار على الصدر الأيسر للابس (يمين الناظر): 95 مم -->
+        <image href="src/lockup.svg" x="598" y="262" width="90" height="35" filter="url(#printed)" />
+      </svg>
+    </div>
+
+    <!-- ── التيشيرت من الخلف ─────────────────────────────── -->
+    <div class="card"><span class="tag">التيشيرت · الخلف</span>
+      <svg viewBox="0 0 1000 1150">
+        <ellipse cx="500" cy="1085" rx="380" ry="34" fill="url(#ground)" />
+        <g filter="url(#weave)">
+          <path d="M388 92 Q500 118 612 92 L792 142 Q884 176 948 366 L838 448 L752 338 L758 1036 Q500 1064 242 1036 L248 338 L162 448 L52 366 Q116 176 208 142 Z" fill="url(#shirtBody)" />
+          <path d="M388 92 Q500 118 612 92 L792 142 Q884 176 948 366 L838 448 L752 338 L758 1036 Q500 1064 242 1036 L248 338 L162 448 L52 366 Q116 176 208 142 Z" fill="url(#shirtLight)" />
+        </g>
+        <g filter="url(#soft)"><path d="M320 520 Q350 760 300 990" stroke="#055B37" stroke-opacity=".2" stroke-width="30" fill="none" stroke-linecap="round" />
+        <path d="M690 560 Q660 780 700 990" stroke="#055B37" stroke-opacity=".16" stroke-width="26" fill="none" stroke-linecap="round" /></g>
+        <path d="M388 92 Q500 118 612 92" stroke="#066A41" stroke-width="22" fill="none" stroke-linecap="round" />
+        <path d="M74 382 L170 456" stroke="#04553A" stroke-width="2.4" stroke-dasharray="8 6" opacity=".7" fill="none" />
+        <path d="M926 382 L830 456" stroke="#04553A" stroke-width="2.4" stroke-dasharray="8 6" opacity=".7" fill="none" />
+        <path d="M246 1012 Q500 1040 754 1012" stroke="#04553A" stroke-width="2.4" stroke-dasharray="8 6" opacity=".7" fill="none" />
+        <!-- الشعار الكبير على الظهر: 280 مم -->
+        <image href="src/lockup.svg" x="368" y="200" width="264" height="102" filter="url(#printed)" />
+      </svg>
+    </div>
+
+    <!-- ── الكاب من الأمام ────────────────────────────────── -->
+    <div class="card"><span class="tag">الكاب · الأمام</span>
+      <svg viewBox="0 0 1000 1150">
+        <ellipse cx="500" cy="905" rx="360" ry="40" fill="url(#ground)" />
+        <g transform="translate(0,170)">
+          <!-- التاج -->
+          <g filter="url(#weave)">
+            <path d="M170 600 C168 300 330 140 500 140 C670 140 832 300 830 600 Z" fill="url(#capCrown)" />
+          </g>
+          <!-- الدرزات والثقوب -->
+          <path d="M500 146 C470 260 420 430 380 600" stroke="#055B37" stroke-width="3" fill="none" opacity=".55" />
+          <path d="M500 146 C530 260 580 430 620 600" stroke="#055B37" stroke-width="3" fill="none" opacity=".55" />
+          <path d="M500 146 C380 220 250 380 215 600" stroke="#055B37" stroke-width="3" fill="none" opacity=".35" />
+          <path d="M500 146 C620 220 750 380 785 600" stroke="#055B37" stroke-width="3" fill="none" opacity=".35" />
+          <circle cx="300" cy="300" r="8" fill="#04553A" /><circle cx="300" cy="300" r="4" fill="#022a1b" />
+          <circle cx="700" cy="300" r="8" fill="#04553A" /><circle cx="700" cy="300" r="4" fill="#022a1b" />
+          <ellipse cx="500" cy="146" rx="26" ry="12" fill="#0B8F59" stroke="#055B37" stroke-width="2" />
+          <!-- ظلٌّ تحت المظلّة على التاج -->
+          <path d="M175 590 Q500 540 825 590 L830 600 L170 600 Z" fill="#022a1b" opacity=".25" />
+          <!-- الشعار مطرّز: 60 مم -->
+          <image href="src/mark.svg" x="400" y="300" width="200" height="178" filter="url(#stitch)" />
+          <!-- المظلّة -->
+          <path d="M140 598 Q500 528 860 598 Q912 640 846 690 Q500 770 154 690 Q88 640 140 598 Z" fill="url(#brimTop)" />
+          <path d="M160 610 Q500 548 840 610" stroke="#0B9A5F" stroke-width="2" stroke-dasharray="7 6" fill="none" opacity=".8" />
+          <path d="M175 640 Q500 585 825 640" stroke="#0B9A5F" stroke-width="2" stroke-dasharray="7 6" fill="none" opacity=".6" />
+          <path d="M154 690 Q500 770 846 690 Q500 790 154 690 Z" fill="#043D27" opacity=".7" />
+        </g>
+      </svg>
+    </div>
+
+    <!-- ── الكاب من الجانب ───────────────────────────────── -->
+    <div class="card"><span class="tag">الكاب · الجانب</span>
+      <svg viewBox="0 0 1000 1150">
+        <ellipse cx="520" cy="905" rx="400" ry="40" fill="url(#ground)" />
+        <g transform="translate(40,190)">
+          <g filter="url(#weave)">
+            <path d="M260 600 C250 330 400 160 590 160 C780 160 900 330 900 600 Z" fill="url(#capCrown)" />
+          </g>
+          <!-- الدرزات -->
+          <path d="M600 165 C560 300 520 450 500 600" stroke="#055B37" stroke-width="3" fill="none" opacity=".5" />
+          <path d="M600 165 C680 300 740 450 760 600" stroke="#055B37" stroke-width="3" fill="none" opacity=".4" />
+          <circle cx="690" cy="300" r="8" fill="#04553A" /><circle cx="690" cy="300" r="4" fill="#022a1b" />
+          <ellipse cx="596" cy="164" rx="22" ry="10" fill="#0B8F59" stroke="#055B37" stroke-width="2" />
+          <!-- فتحة الحزام في الخلف -->
+          <path d="M860 600 Q870 520 900 470 L900 600 Z" fill="#055B37" opacity=".5" />
+          <!-- السهم المطرّز على الجانب: 18 مم -->
+          <image href="src/chevron.svg" x="600" y="400" width="62" height="104" filter="url(#stitch)" />
+          <!-- المظلّة جانبياً -->
+          <path d="M262 600 L900 600 L900 612 Q600 624 262 612 Z" fill="#043D27" opacity=".55" />
+          <path d="M300 572 Q170 590 52 652 Q44 672 84 676 Q210 666 330 616 Q326 594 300 572 Z" fill="url(#brimTop)" />
+          <path d="M52 652 Q44 672 84 676 Q210 666 330 616 L332 630 Q212 684 82 688 Q36 684 52 652 Z" fill="#043D27" opacity=".8" />
+          <path d="M290 586 Q170 604 70 656" stroke="#0B9A5F" stroke-width="2" stroke-dasharray="7 6" fill="none" opacity=".7" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="sw"><i style="background:#0A8754"></i><b>#0A8754</b> القماش والخيط الأساسي</span>
+    <span class="sw"><i style="background:#FFFFFF"></i><b>#FFFFFF</b> الشعار</span>
+    <span class="sw"><i style="background:#F6B40E"></i><b>#F6B40E</b> السهم ونقطة الجيم</span>
+  </div>
+</div>
+</body>
+</html>
