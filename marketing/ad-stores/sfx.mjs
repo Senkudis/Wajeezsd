@@ -78,6 +78,8 @@ const V = {
   }),
   // تأكيد الطلب: نغمتان صاعدتان
   chime: () => synth(0.9, t => (Math.sin(2 * Math.PI * 1046.5 * t) * Math.exp(-t * 6) * (t < 0.12 ? 1 : 0.4) + (t > 0.11 ? Math.sin(2 * Math.PI * 1568 * (t - 0.11)) * Math.exp(-(t - 0.11) * 5) : 0)) * 0.22),
+  // إشعار: نغمتان قصيرتان هابطتان
+  ding: () => synth(0.5, t => (Math.sin(2 * Math.PI * 1318.5 * t) * Math.exp(-t * 14) * (t < 0.09 ? 1 : 0.3) + (t > 0.09 ? Math.sin(2 * Math.PI * 987.8 * (t - 0.09)) * Math.exp(-(t - 0.09) * 9) : 0)) * 0.28),
   // سكّين على الصينية: هسيسٌ قصير حادّ
   slice: () => { let p = 0; return synth(0.16, t => { const x = noise(); const h = x - p; p = x; return h * Math.exp(-t * 28) * 0.35 * Math.min(1, t / 0.01); }); },
   // ختمٌ: ضربة منخفضة + نقرة

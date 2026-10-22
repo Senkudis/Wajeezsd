@@ -4,11 +4,13 @@ import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, us
 import { fitText } from "@remotion/layout-utils";
 import { C, EASE_OUT, F, H, HEADLINE_BASELINE, SAFE, SAFE_W, W, clamp } from "./theme";
 
-// خط Alarabiya يرسم «؟» كأنها «١» و«…» فراغاً — هاتان العلامتان بخط Arabic Modern
+// خط Alarabiya يرسم «؟» كأنها «١» و«…» فراغاً — هاتان بخط Arabic Modern، والأرقام بخط Intro
 export const Rich: React.FC<{ text: string; font: string }> = ({ text, font }) => (
   <>
-    {text.split(/([؟…])/).map((s, i) =>
-      s === "؟" || s === "…" ? <span key={i} style={{ fontFamily: F.sup }}>{s}</span> : <span key={i} style={{ fontFamily: font }}>{s}</span>,
+    {text.split(/([؟…]|[0-9][0-9,]*)/).map((s, i) =>
+      s === "؟" || s === "…" ? <span key={i} style={{ fontFamily: F.sup }}>{s}</span>
+        : /^[0-9]/.test(s) ? <span key={i} style={{ fontFamily: F.latB, fontSize: "0.86em" }}>{s}</span>
+        : <span key={i} style={{ fontFamily: font }}>{s}</span>,
     )}
   </>
 );
