@@ -22,7 +22,9 @@ describe('sendEmail.otp — كود التحقق بالبريد', () => {
         expect(sent[0].to).toBe('a@b.com');
         expect(sent[0].subject).toBe('كود تفعيل حساب وجيز');
         expect(sent[0].html).toContain('482913');
-        expect(sent[0].html).toContain('<h1>تفعيل حسابك</h1>');
+        expect(sent[0].html).toMatch(/<h1[^>]*>تفعيل حسابك<\/h1>/);
+        expect(sent[0].html).toContain('صالح لمدة');
+        expect(sent[0].html).toContain('10 دقائق');
         expect(sent[0].text).toContain('482913');
         expect(sent[0].from).toContain('<info@wajeezsd.com>');
     });
@@ -30,8 +32,14 @@ describe('sendEmail.otp — كود التحقق بالبريد', () => {
     it('كود الاستعادة لا يرحّب بمستخدم جديد', async () => {
         await sendEmail.otp('a@b.com', '111222', 'reset');
         expect(sent[0].subject).toContain('استعادة كلمة المرور');
-        expect(sent[0].html).toContain('<h1>استعادة كلمة المرور</h1>');
-        expect(sent[0].html).not.toContain('يسعدنا انضمامك');
+        expect(sent[0].html).toMatch(/<h1[^>]*>استعادة كلمة المرور<\/h1>/);
+        expect(sent[0].html).not.toContain('مرحباً بك في');
+    });
+
+    it('كود تسجيل Google صالح 5 دقائق — مدة سجلّ Otp', async () => {
+        await sendEmail.otp('a@b.com', '333444', 'google');
+        expect(sent[0].html).toMatch(/<h1[^>]*>إكمال التسجيل<\/h1>/);
+        expect(sent[0].html).toContain('5 دقائق');
     });
 
     it('بلا بريد لا يُرسل شيئاً', async () => {

@@ -51,19 +51,23 @@ const sendEmail = async (email, subject, content, isVerification = false, templa
 
 /**
  * كود تحقق بالبريد — قناة احتياطية لا تعتمد على مزوّد الرسائل القصيرة (حساب BRQ محظور منذ 2026-10-15).
- * @param {'verify'|'reset'} purpose
+ * @param {'verify'|'reset'|'google'} purpose
  */
 const OTP_EMAIL = {
-    verify: { subject: 'كود تفعيل حساب وجيز', title: 'تفعيل حسابك' },
+    verify: { subject: 'كود تفعيل حساب وجيز', title: 'تفعيل حسابك', minutes: 10 },
     reset: {
-        subject: 'كود استعادة كلمة المرور — وجيز', title: 'استعادة كلمة المرور',
-        intro: 'وصلنا طلب لاستعادة كلمة مرور حسابك في <strong>وجيز</strong>. استخدم الكود أدناه خلال 10 دقائق:',
+        subject: 'كود استعادة كلمة المرور — وجيز', title: 'استعادة كلمة المرور', minutes: 10,
+        intro: 'وصلنا طلب لاستعادة كلمة مرور حسابك في <strong>وجيز</strong>. استخدم الكود أدناه لتعيين كلمة مرور جديدة:',
+    },
+    google: {
+        subject: 'كود إكمال التسجيل في وجيز', title: 'إكمال التسجيل', minutes: 5,
+        intro: 'أهلاً بك في <strong>وجيز</strong>. استخدم الكود أدناه لإكمال تسجيلك بحساب Google:',
     },
 };
 sendEmail.otp = (email, code, purpose = 'verify') => {
     if (!email) return Promise.resolve(null);
     const t = OTP_EMAIL[purpose] || OTP_EMAIL.verify;
-    return sendEmail(email, t.subject, String(code), true, { title: t.title, intro: t.intro });
+    return sendEmail(email, t.subject, String(code), true, { title: t.title, intro: t.intro, minutes: t.minutes });
 };
 
 module.exports = sendEmail;

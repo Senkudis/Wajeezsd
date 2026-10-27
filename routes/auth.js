@@ -1434,7 +1434,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
             logger.error('⚠️ BRQSMS send failed:', smsErr?.response?.data || smsErr.message);
         }
 
-        const emailSent = googleEmail ? !!(await sendEmail.otp(googleEmail, otpCode, 'verify')) : false;
+        const emailSent = googleEmail ? !!(await sendEmail.otp(googleEmail, otpCode, 'google')) : false;
         const channels = [smsSent && 'sms', emailSent && 'email'].filter(Boolean);
 
         res.json({
