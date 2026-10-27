@@ -86,3 +86,36 @@ describe('summarizeNegotiations', () => {
         expect(s.lowestPrice).toBe(900);
     });
 });
+
+describe('canRestoreOffer — استرجاع عرض فات العميل', () => {
+    const { canRestoreOffer, NEGOTIATION_RESTORE_WINDOW_MS } = require('../utils/negotiation.js');
+    const now = Date.parse('2026-10-27T12:00:00Z');
+    const ago = (ms) => new Date(now - ms);
+
+    it('عرض انتهى قبل دقائق يُسترجع', () => {
+        expect(canRestoreOffer({ status: 'expired', expiresAt: ago(5 * 60 * 1000) }, now)).toEqual({ ok: true });
+    });
+
+    it('المنتهي زمنياً ولم يمرّ عليه المجدول (ما زال pending) يُسترجع', () => {
+        expect(canRestoreOffer({ status: 'pending', expiresAt: ago(60 * 1000) }, now).ok).toBe(true);
+    });
+
+    it('العرض الساري لا يُسترجع — يُقبل مباشرة', () => {
+        expect(canRestoreOffer({ status: 'pending', expiresAt: new Date(now + 60 * 1000) }, now).reason).toBe('still_open');
+    });
+
+    it('بعد نافذة الاسترجاع يُرفض', () => {
+        expect(canRestoreOffer({ status: 'expired', expiresAt: ago(NEGOTIATION_RESTORE_WINDOW_MS + 1000) }, now).reason).toBe('too_old');
+    });
+
+    it('المرفوض والمسحوب والمقبول لا تُسترجع', () => {
+        for (const status of ['rejected', 'withdrawn', 'accepted']) {
+            expect(canRestoreOffer({ status, expiresAt: ago(60 * 1000) }, now).reason).toBe('not_expired');
+        }
+    });
+
+    it('بلا عرض أو بلا تاريخ انتهاء', () => {
+        expect(canRestoreOffer(null, now).reason).toBe('not_found');
+        expect(canRestoreOffer({ status: 'expired' }, now).reason).toBe('too_old');
+    });
+});

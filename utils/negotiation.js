@@ -15,6 +15,25 @@ const NEGOTIATION_TTL_MS = NEGOTIATION_TTL_MINUTES * 60 * 1000;
 // كم قبل الانتهاء يُذكَّر الكابتن بأن عرضه على وشك الانتهاء
 const NEGOTIATION_REMINDER_BEFORE_MS = 2 * 60 * 1000;
 
+// نافذة «استرجاع» العرض: العميل الذي فاته العرض يقبله مباشرة خلال هذه المدة بعد انتهائه.
+// أطول منها = الكابتن غالباً نسي العرض أو تغيّرت ظروفه، فيُطلب عرض جديد.
+const NEGOTIATION_RESTORE_WINDOW_MINUTES = 30;
+const NEGOTIATION_RESTORE_WINDOW_MS = NEGOTIATION_RESTORE_WINDOW_MINUTES * 60 * 1000;
+
+/**
+ * هل يجوز للعميل استرجاع هذا العرض الآن؟ (شروط العرض وحده — حال الكابتن والطلب تُفحص في المسار)
+ * المنتهي زمنياً قد يبقى pending حتى يمرّ المجدول، فيُعامَل كمنتهٍ.
+ * @returns {{ok: true} | {ok: false, reason: 'not_found'|'still_open'|'not_expired'|'too_old'}}
+ */
+function canRestoreOffer(offer, now = Date.now()) {
+    if (!offer) return { ok: false, reason: 'not_found' };
+    const exp = offer.expiresAt ? new Date(offer.expiresAt).getTime() : NaN;
+    if (offer.status === 'pending' && !(exp <= now)) return { ok: false, reason: 'still_open' };
+    if (offer.status !== 'expired' && offer.status !== 'pending') return { ok: false, reason: 'not_expired' };
+    if (!Number.isFinite(exp) || now - exp > NEGOTIATION_RESTORE_WINDOW_MS) return { ok: false, reason: 'too_old' };
+    return { ok: true };
+}
+
 /**
  * ملخّص مضغوط لعروض طلبٍ واحد — للوحة الإدارة.
  *
@@ -61,5 +80,8 @@ module.exports = {
     NEGOTIATION_TTL_MINUTES,
     NEGOTIATION_TTL_MS,
     NEGOTIATION_REMINDER_BEFORE_MS,
+    NEGOTIATION_RESTORE_WINDOW_MINUTES,
+    NEGOTIATION_RESTORE_WINDOW_MS,
+    canRestoreOffer,
     summarizeNegotiations
 };

@@ -20,7 +20,7 @@ const rateLimit = require('express-rate-limit');
 const { saveBase64Image } = require('../utils/imageUpload');
 const { validateOrderLocations } = require('../utils/geofence');
 const { evaluateDeliveryProof } = require('../utils/deliveryProof');
-const { NEGOTIATION_TTL_MS } = require('../utils/negotiation');
+const { NEGOTIATION_TTL_MS, NEGOTIATION_RESTORE_WINDOW_MINUTES, canRestoreOffer } = require('../utils/negotiation');
 const logger = require('../utils/logger');
 const { releasePromoUsage } = require('../utils/promoRelease');
 // 📈 عدّادات المسار — «أطلق وانسَ»، لا تُنتظر ولا تُفشل طلباً
@@ -1361,6 +1361,151 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
 
 
 // ==========================================
+// 💬 قبول عرض كابتن — مشترك بين «قبول» العميل و«استرجاع» عرضٍ انتهت صلاحيته
+// يُسند الطلب ذرياً بسعر العرض، ويرفض بقية العروض، ويُشعر الأطراف.
+// ==========================================
+async function acceptNegotiationOffer(req, res, order, offer, captainId) {
+    const io = req.app.get('io');
+    // BUG-C6 FIX: التحقق من حالة الكابتن قبل إسناد الطلب — قد يُوقَف بعد تقديم عرضه
+    const User = require('../models/User');
+    const captainDoc = await User.findById(captainId).select('is_blocked isActive role approvalStatus city').lean();
+    if (captainDoc && captainDoc.is_blocked) {
+        return res.status(400).json({
+            message: 'لا يمكن قبول عرض هذا الكابتن — حسابه موقوف حالياً. اختر كابتناً آخر.'
+        });
+    }
+    // أُوقف حسابه أو سُحب اعتماده أو نُقل لمدينة أخرى بعد تقديم العرض
+    if (!captainDoc || captainDoc.role !== 'captain' || !captainDoc.isActive ||
+        captainDoc.approvalStatus !== 'approved' || String(captainDoc.city) !== String(order.city)) {
+        return res.status(400).json({
+            message: 'هذا الكابتن لم يعد متاحاً لهذا الطلب. اختر عرضاً آخر.'
+        });
+    }
+
+    // Accept: update price, assign captain, change status
+    // BUG-L2 FIX: لا نُعدِّل order.negotiations المحلي ثم نكتبها كاملاً ($set: negotiations)
+    // — ذلك يُضيّع عروض كباتن أضافوا عرضاً بين findById والـ findOneAndUpdate.
+    // الحل: findOneAndUpdate يحمي الحقول الرئيسية فقط، ثم عمليتان ذريتان للـ negotiations.
+
+    // Recalculate fees using the ORDER's city commission rate
+    const settings = await getCachedSettings(order.city || 'Khartoum');
+    const commissionRate = settings.commissionRate ?? 0.15;
+    const acceptedPrice  = offer.proposedPrice;
+    const newAppFee      = acceptedPrice * commissionRate;
+    const newNetRevenue  = acceptedPrice - newAppFee;
+
+    // 🛡️ Step 1: قبول الطلب ذرياً — بدون كتابة negotiations
+    const updatedOrder = await Order.findOneAndUpdate(
+        { _id: req.params.id, status: 'pending' },
+        {
+            $set: {
+                price: acceptedPrice,
+                captain: captainId,
+                status: 'accepted',
+                acceptedAt: new Date(),   // ⏱️ للخط الزمني
+                negotiation: { isActive: false, status: 'none' },
+                appFee: newAppFee,
+                // ➕ الإكرامية جزء من صافي الكابتن ولا تمسّها المفاوضة
+                netRevenue: newNetRevenue + (Number(order.tip?.amount) || 0)
+            }
+        },
+        { new: true }
+    );
+
+    if (!updatedOrder) {
+        return res.status(400).json({ message: 'الطلب لم يعد متاحاً أو تم قبوله بالفعل' });
+    }
+
+    // 🛡️ Step 2: تحديث negotiations بعمليات ذرية — لا نكتب المصفوفة كاملاً
+    // علّم عرض الكابتن الفائز كمقبول (positional $)
+    await Order.updateOne(
+        { _id: updatedOrder._id, 'negotiations.captainId': new mongoose.Types.ObjectId(captainId), 'negotiations.status': 'pending' },
+        { $set: { 'negotiations.$.status': 'accepted' } }
+    ).catch(e => logger.warn({ err: e.message }, 'BUG-L2: mark winner offer failed'));
+
+    // ارفض كل العروض المعلّقة الأخرى (arrayFilters)
+    await Order.updateOne(
+        { _id: updatedOrder._id },
+        { $set: { 'negotiations.$[elem].status': 'rejected' } },
+        { arrayFilters: [{ 'elem.status': 'pending', 'elem.captainId': { $ne: new mongoose.Types.ObjectId(captainId) } }] }
+    ).catch(e => logger.warn({ err: e.message }, 'BUG-L2: reject other offers failed'));
+
+    // Sync ShopOrder manually
+    if (updatedOrder.shopOrderId) {
+        try {
+            const ShopOrder = require('../models/ShopOrder');
+            await ShopOrder.findByIdAndUpdate(updatedOrder.shopOrderId, {
+                status: 'captain_assigned',
+                captain: updatedOrder.captain,
+                captainAssignedAt: new Date()   // ⏱️ للخط الزمني
+            });
+            // 🏪 التاجر كان يُترك خارج الخبر هنا: يُسنَد كابتن لطلبه ولا
+            //    يعلم، فلا يعرف متى يُخرج الطلب للتسليم.
+            const { notifyMerchantOfShopOrder } = require('../utils/shopOrderNotify');
+            notifyMerchantOfShopOrder(req.app, {
+                shopOrderId: updatedOrder.shopOrderId,
+                title: 'تم إسناد كابتن للطلب',
+                message: 'قَبِل كابتن توصيل الطلب وهو في طريقه لاستلامه من المتجر.'
+            });
+        } catch (err) { logger.error('Error syncing ShopOrder negotiate', err); }
+    }
+
+    // Notify winning captain
+    if (io) {
+        io.to(captainId.toString()).emit('negotiation_resolved', {
+            orderId: order._id,
+            result: 'accepted',
+            finalPrice: acceptedPrice
+        });
+        io.to(order.client.toString()).emit('order_status_updated', {
+            orderId: order._id,
+            status: 'accepted',
+            captainId
+        });
+        // قبول عرض يُسند الطلب لكابتن دون أن يمرّ بمسار /accept، فلولا هذا
+        // البثّ تبقى لوحة الإدارة تعرض الطلب "قيد الانتظار" حتى تحديث الصفحة
+        toAdmins(io, order.city).emit('admin_order_update', {
+            orderId: order._id,
+            status: 'accepted',
+            captainName: offer.captainName || null,
+            city: order.city
+        });
+    }
+
+    // BUG-H3 FIX: فلترة الكباتن ذوي العروض المعلّقة من updatedOrder (قبل Step 2)
+    // الكباتن الذين رُفضوا في Step 2 ستظهر عروضهم لا تزال 'pending' في updatedOrder
+    // لأن updatedOrder جُلب قبل Step 2 — نستخدم $ne لتجنب إشعار الفائز
+    const rejectedCaptains = updatedOrder.negotiations.filter(
+        (n) => String(n.captainId) !== String(captainId) && n.captainId && n.status === 'pending'
+    );
+    for (const n of rejectedCaptains) {
+        if (io) {
+            io.to(n.captainId.toString()).emit('negotiation_resolved', {
+                orderId: updatedOrder._id,
+                result: 'order_taken'
+            });
+        }
+        await sendNotification(req.app, {
+            userId: n.captainId,
+            title: 'قُبل عرض كابتن آخر',
+            message: 'تم قبول عرض كابتن آخر من قبل العميل.',
+            type: 'order_update',
+            relatedId: updatedOrder._id
+        });
+    }
+
+    await sendNotification(req.app, {
+        userId: captainId,
+        title: 'تم قبول عرضك!',
+        message: `العميل وافق على السعر ${acceptedPrice} ج.س — انطلق الآن!`,
+        type: 'order_accepted',
+        relatedId: order._id
+    });
+
+    res.json({ message: 'تم قبول العرض — الطلب مؤكد', order: updatedOrder });
+}
+
+// ==========================================
 // 💬 رد العميل على عرض محدد
 // @route   PUT /api/orders/:id/negotiate-response
 // body: { action: 'accept'|'reject', captainId: '...' }
@@ -1411,144 +1556,7 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
         const io = req.app.get('io');
 
         if (action === 'accept') {
-            // BUG-C6 FIX: التحقق من حالة الكابتن قبل إسناد الطلب — قد يُوقَف بعد تقديم عرضه
-            const User = require('../models/User');
-            const captainDoc = await User.findById(captainId).select('is_blocked isActive role approvalStatus city').lean();
-            if (captainDoc && captainDoc.is_blocked) {
-                return res.status(400).json({
-                    message: 'لا يمكن قبول عرض هذا الكابتن — حسابه موقوف حالياً. اختر كابتناً آخر.'
-                });
-            }
-            // أُوقف حسابه أو سُحب اعتماده أو نُقل لمدينة أخرى بعد تقديم العرض
-            if (!captainDoc || captainDoc.role !== 'captain' || !captainDoc.isActive ||
-                captainDoc.approvalStatus !== 'approved' || String(captainDoc.city) !== String(order.city)) {
-                return res.status(400).json({
-                    message: 'هذا الكابتن لم يعد متاحاً لهذا الطلب. اختر عرضاً آخر.'
-                });
-            }
-
-            // Accept: update price, assign captain, change status
-            // BUG-L2 FIX: لا نُعدِّل order.negotiations المحلي ثم نكتبها كاملاً ($set: negotiations)
-            // — ذلك يُضيّع عروض كباتن أضافوا عرضاً بين findById والـ findOneAndUpdate.
-            // الحل: findOneAndUpdate يحمي الحقول الرئيسية فقط، ثم عمليتان ذريتان للـ negotiations.
-
-            // Recalculate fees using the ORDER's city commission rate
-            const settings = await getCachedSettings(order.city || 'Khartoum');
-            const commissionRate = settings.commissionRate ?? 0.15;
-            const acceptedPrice  = offer.proposedPrice;
-            const newAppFee      = acceptedPrice * commissionRate;
-            const newNetRevenue  = acceptedPrice - newAppFee;
-
-            // 🛡️ Step 1: قبول الطلب ذرياً — بدون كتابة negotiations
-            const updatedOrder = await Order.findOneAndUpdate(
-                { _id: req.params.id, status: 'pending' },
-                {
-                    $set: {
-                        price: acceptedPrice,
-                        captain: captainId,
-                        status: 'accepted',
-                        acceptedAt: new Date(),   // ⏱️ للخط الزمني
-                        negotiation: { isActive: false, status: 'none' },
-                        appFee: newAppFee,
-                        // ➕ الإكرامية جزء من صافي الكابتن ولا تمسّها المفاوضة
-                        netRevenue: newNetRevenue + (Number(order.tip?.amount) || 0)
-                    }
-                },
-                { new: true }
-            );
-
-            if (!updatedOrder) {
-                return res.status(400).json({ message: 'الطلب لم يعد متاحاً أو تم قبوله بالفعل' });
-            }
-
-            // 🛡️ Step 2: تحديث negotiations بعمليات ذرية — لا نكتب المصفوفة كاملاً
-            // علّم عرض الكابتن الفائز كمقبول (positional $)
-            await Order.updateOne(
-                { _id: updatedOrder._id, 'negotiations.captainId': new mongoose.Types.ObjectId(captainId), 'negotiations.status': 'pending' },
-                { $set: { 'negotiations.$.status': 'accepted' } }
-            ).catch(e => logger.warn({ err: e.message }, 'BUG-L2: mark winner offer failed'));
-
-            // ارفض كل العروض المعلّقة الأخرى (arrayFilters)
-            await Order.updateOne(
-                { _id: updatedOrder._id },
-                { $set: { 'negotiations.$[elem].status': 'rejected' } },
-                { arrayFilters: [{ 'elem.status': 'pending', 'elem.captainId': { $ne: new mongoose.Types.ObjectId(captainId) } }] }
-            ).catch(e => logger.warn({ err: e.message }, 'BUG-L2: reject other offers failed'));
-
-            // Sync ShopOrder manually
-            if (updatedOrder.shopOrderId) {
-                try {
-                    const ShopOrder = require('../models/ShopOrder');
-                    await ShopOrder.findByIdAndUpdate(updatedOrder.shopOrderId, {
-                        status: 'captain_assigned',
-                        captain: updatedOrder.captain,
-                        captainAssignedAt: new Date()   // ⏱️ للخط الزمني
-                    });
-                    // 🏪 التاجر كان يُترك خارج الخبر هنا: يُسنَد كابتن لطلبه ولا
-                    //    يعلم، فلا يعرف متى يُخرج الطلب للتسليم.
-                    const { notifyMerchantOfShopOrder } = require('../utils/shopOrderNotify');
-                    notifyMerchantOfShopOrder(req.app, {
-                        shopOrderId: updatedOrder.shopOrderId,
-                        title: 'تم إسناد كابتن للطلب',
-                        message: 'قَبِل كابتن توصيل الطلب وهو في طريقه لاستلامه من المتجر.'
-                    });
-                } catch (err) { logger.error('Error syncing ShopOrder negotiate', err); }
-            }
-
-            // Notify winning captain
-            if (io) {
-                io.to(captainId.toString()).emit('negotiation_resolved', {
-                    orderId: order._id,
-                    result: 'accepted',
-                    finalPrice: acceptedPrice
-                });
-                io.to(order.client.toString()).emit('order_status_updated', {
-                    orderId: order._id,
-                    status: 'accepted',
-                    captainId
-                });
-                // قبول عرض يُسند الطلب لكابتن دون أن يمرّ بمسار /accept، فلولا هذا
-                // البثّ تبقى لوحة الإدارة تعرض الطلب "قيد الانتظار" حتى تحديث الصفحة
-                toAdmins(io, order.city).emit('admin_order_update', {
-                    orderId: order._id,
-                    status: 'accepted',
-                    captainName: offer.captainName || null,
-                    city: order.city
-                });
-            }
-
-            // BUG-H3 FIX: فلترة الكباتن ذوي العروض المعلّقة من updatedOrder (قبل Step 2)
-            // الكباتن الذين رُفضوا في Step 2 ستظهر عروضهم لا تزال 'pending' في updatedOrder
-            // لأن updatedOrder جُلب قبل Step 2 — نستخدم $ne لتجنب إشعار الفائز
-            const rejectedCaptains = updatedOrder.negotiations.filter(
-                (n) => String(n.captainId) !== String(captainId) && n.captainId && n.status === 'pending'
-            );
-            for (const n of rejectedCaptains) {
-                if (io) {
-                    io.to(n.captainId.toString()).emit('negotiation_resolved', {
-                        orderId: updatedOrder._id,
-                        result: 'order_taken'
-                    });
-                }
-                await sendNotification(req.app, {
-                    userId: n.captainId,
-                    title: 'قُبل عرض كابتن آخر',
-                    message: 'تم قبول عرض كابتن آخر من قبل العميل.',
-                    type: 'order_update',
-                    relatedId: updatedOrder._id
-                });
-            }
-
-            await sendNotification(req.app, {
-                userId: captainId,
-                title: 'تم قبول عرضك!',
-                message: `العميل وافق على السعر ${acceptedPrice} ج.س — انطلق الآن!`,
-                type: 'order_accepted',
-                relatedId: order._id
-            });
-
-            res.json({ message: 'تم قبول العرض — الطلب مؤكد', order: updatedOrder });
-
+            return acceptNegotiationOffer(req, res, order, offer, captainId);
         } else if (action === 'reject') {
             // Reject: mark only this offer as rejected
             order.negotiations[offerIndex].status = 'rejected';
@@ -1581,6 +1589,68 @@ router.put('/:id/negotiate-response', protect, negotiateLimiter, async (req, res
         }
     } catch (error) {
         logger.error({ err: error }, 'Negotiate Response Error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+
+// ==========================================
+// ♻️ العميل يسترجع عرضاً انتهت صلاحيته ويقبله مباشرة
+// @route   PUT /api/orders/:id/negotiate-restore
+// body: { captainId }
+// العرض انتهى قبل أقل من NEGOTIATION_RESTORE_WINDOW_MINUTES، والطلب ما زال بانتظار كابتن،
+// والكابتن متاح وغير مشغول بطلب آخر. القبول نفسه (acceptNegotiationOffer) يفحص الاعتماد والمدينة.
+// ==========================================
+const RESTORE_REFUSAL = {
+    not_found: 'لم يتم العثور على عرض لهذا الكابتن',
+    still_open: 'العرض ما زال سارياً — يمكنك قبوله مباشرة',
+    not_expired: 'لا يمكن استرجاع هذا العرض',
+    too_old: `مرّ أكثر من ${NEGOTIATION_RESTORE_WINDOW_MINUTES} دقيقة على انتهاء هذا العرض — انتظر عرضاً جديداً`,
+};
+router.put('/:id/negotiate-restore', protect, negotiateLimiter, async (req, res) => {
+    try {
+        const { captainId } = req.body;
+        if (!captainId || !mongoose.Types.ObjectId.isValid(captainId)) {
+            return res.status(400).json({ message: 'معرف الكابتن غير صالح' });
+        }
+
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'الطلب غير موجود' });
+        if (order.client.toString() !== req.user.id) return res.status(403).json({ message: 'غير مصرح' });
+        if (order.status !== 'pending') {
+            return res.status(400).json({ message: 'الطلب لم يعد متاحاً للتفاوض أو تم إغلاقه' });
+        }
+
+        // آخر عرض لهذا الكابتن على الطلب
+        const offer = [...order.negotiations].reverse().find(n => n.captainId && n.captainId.toString() === captainId);
+        const verdict = canRestoreOffer(offer);
+        if (!verdict.ok) return res.status(400).json({ message: RESTORE_REFUSAL[verdict.reason], reason: verdict.reason });
+
+        // الكابتن وافق على السعر قبل دقائق، لكن ظروفه قد تغيّرت: لا نُسند له طلباً وهو غير متاح أو في مشوار
+        const User = require('../models/User');
+        const cap = await User.findById(captainId).select('isAvailableForWork').lean();
+        if (!cap || !cap.isAvailableForWork) {
+            return res.status(400).json({ message: 'الكابتن غير متاح حالياً — اختر عرضاً آخر', reason: 'captain_unavailable' });
+        }
+        const busy = await Order.exists({ captain: captainId, status: { $in: ['accepted', 'picked_up'] } });
+        if (busy) {
+            return res.status(400).json({ message: 'الكابتن مشغول بطلب آخر الآن — اختر عرضاً آخر', reason: 'captain_busy' });
+        }
+
+        // إحياء العرض ذرياً ليمرّ بمسار القبول نفسه (الذي يعلّم العرض pending الفائز مقبولاً)
+        const revived = await Order.updateOne(
+            { _id: order._id, status: 'pending', negotiations: { $elemMatch: { _id: offer._id, status: { $in: ['expired', 'pending'] } } } },
+            { $set: { 'negotiations.$.status': 'pending', 'negotiations.$.expiresAt': new Date(Date.now() + 60 * 1000) } }
+        );
+        if (!revived.matchedCount) {
+            return res.status(400).json({ message: 'الطلب لم يعد متاحاً أو تم قبوله بالفعل' });
+        }
+        offer.status = 'pending';
+        logger.info({ orderId: order._id, captainId }, 'Negotiation offer restored by client');
+
+        return acceptNegotiationOffer(req, res, order, offer, captainId);
+    } catch (error) {
+        logger.error({ err: error }, 'Negotiate Restore Error');
         res.status(500).json({ message: 'Server Error' });
     }
 });

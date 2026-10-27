@@ -693,7 +693,26 @@
         }
 
         // ───── 💬 بطاقات عروض الكباتن الاحترافية ─────
-        function renderOffersHtml(negotiations, respondId) {
+        // نافذة استرجاع العرض المنتهي — تطابق NEGOTIATION_RESTORE_WINDOW_MINUTES في utils/negotiation.js
+        const OFFER_RESTORE_WINDOW_MS = 30 * 60 * 1000;
+
+        function restoreBtnHtml(respondId, n) {
+            return `<button class="btn btn-success w-100" onclick="restoreNegotiation('${respondId}', '${n.captainId}', ${Number(n.proposedPrice) || 0}, this)"><i class="bi bi-arrow-counterclockwise me-1"></i> استرجاع العرض وقبوله</button>`;
+        }
+
+        // آخر عرض لكل كابتن انتهى قبل قليل ولم يحلّ محلّه عرض سارٍ منه — يمكن استرجاعه
+        function lapsedOffers(negotiations, openOffers) {
+            const now = Date.now(), last = new Map();
+            (negotiations || []).forEach(n => { if (n && n.captainId) last.set(String(n.captainId), n); });
+            return [...last.values()].filter(n => {
+                const exp = n.expiresAt ? new Date(n.expiresAt).getTime() : NaN;
+                const lapsed = n.status === 'expired' || (n.status === 'pending' && exp <= now);
+                return lapsed && now - exp <= OFFER_RESTORE_WINDOW_MS &&
+                    !openOffers.some(o => String(o.captainId) === String(n.captainId));
+            });
+        }
+
+        function renderOffersHtml(negotiations, respondId, opts = {}) {
             const cards = negotiations.map(n => {
                 const photo = n.captainPhoto ? ((n.captainPhoto.startsWith('http') ? '' : (window.API_URL || '')) + n.captainPhoto) : '';
                 const avatar = photo
@@ -704,10 +723,15 @@
                     : `<span style="color:var(--primary);"><i class="bi bi-stars"></i> كابتن جديد</span>`;
                 const vehicle = (n.captainVehicle && window.VehicleTypes)
                     ? `<span>${window.VehicleTypes.iconLabel(n.captainVehicle)}</span>` : '';
-                const countdown = n.expiresAt
-                    ? `<span class="offer-countdown" data-expires="${n.expiresAt}"><i class="bi bi-clock"></i> <span class="cd-text">—</span></span>` : '';
+                const countdown = opts.lapsed
+                    ? `<span class="offer-countdown" style="color:#dc2626;background:#fef2f2;"><i class="bi bi-clock"></i> انتهى العرض — يمكنك استرجاعه</span>`
+                    : (n.expiresAt
+                        ? `<span class="offer-countdown" data-expires="${n.expiresAt}"><i class="bi bi-clock"></i> <span class="cd-text">—</span></span>` : '');
+                const actions = opts.lapsed ? restoreBtnHtml(respondId, n) : `
+                        <button class="btn btn-success flex-grow-1" onclick="respondToNegotiation('${respondId}', 'accept', '${n.captainId}')"><i class="bi bi-check-lg me-1"></i> قبول العرض</button>
+                        <button class="btn btn-outline-danger" style="flex:0 0 40%;" onclick="respondToNegotiation('${respondId}', 'reject', '${n.captainId}')"><i class="bi bi-x-lg me-1"></i> رفض</button>`;
                 return `
-                <div class="offer-card">
+                <div class="offer-card" data-respond="${respondId}" data-captain="${n.captainId}" data-price="${Number(n.proposedPrice) || 0}">
                     <div class="offer-top">
                         ${avatar}
                         <div style="flex:1;min-width:0;">
@@ -721,13 +745,13 @@
                         </div>
                     </div>
                     ${countdown ? `<div class="mt-2">${countdown}</div>` : ''}
-                    <div class="offer-actions">
-                        <button class="btn btn-success flex-grow-1" onclick="respondToNegotiation('${respondId}', 'accept', '${n.captainId}')"><i class="bi bi-check-lg me-1"></i> قبول العرض</button>
-                        <button class="btn btn-outline-danger" style="flex:0 0 40%;" onclick="respondToNegotiation('${respondId}', 'reject', '${n.captainId}')"><i class="bi bi-x-lg me-1"></i> رفض</button>
+                    <div class="offer-actions">${actions}
                     </div>
                 </div>`;
             }).join('');
-            const header = `<div class="offers-header"><i class="bi bi-hand-thumbs-up-fill"></i> وصلك <span class="badge-count">${negotiations.length}</span> عرض — اختر الأنسب لك</div>`;
+            const header = opts.lapsed
+                ? `<div class="offers-header"><i class="bi bi-arrow-counterclockwise"></i> عروض انتهت قبل أن تقبلها — يمكنك استرجاعها خلال 30 دقيقة</div>`
+                : `<div class="offers-header"><i class="bi bi-hand-thumbs-up-fill"></i> وصلك <span class="badge-count">${negotiations.length}</span> عرض — اختر الأنسب لك</div>`;
             return header + cards;
         }
 
@@ -737,7 +761,13 @@
                 const ms = new Date(el.dataset.expires) - new Date();
                 const txt = el.querySelector('.cd-text');
                 if (!txt) return;
-                if (ms <= 0) { el.style.color = '#dc2626'; el.style.background = '#fef2f2'; txt.textContent = 'انتهى العرض'; return; }
+                if (ms <= 0) {
+                    el.style.color = '#dc2626'; el.style.background = '#fef2f2'; txt.textContent = 'انتهى العرض — يمكنك استرجاعه';
+                    el.removeAttribute('data-expires');
+                    const card = el.closest('.offer-card'), acts = card && card.querySelector('.offer-actions');
+                    if (acts) acts.innerHTML = restoreBtnHtml(card.dataset.respond, { captainId: card.dataset.captain, proposedPrice: card.dataset.price });
+                    return;
+                }
                 const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
                 txt.textContent = `ينتهي خلال ${m}:${String(s).padStart(2, '0')}`;
             });
@@ -1051,12 +1081,15 @@
                                 });
                                 const respondId = order.deliveryOrderId || order._id;
 
+                                const lapsed = lapsedOffers(order.negotiations, pendingNegotiations);
+                                const lapsedHtml = lapsed.length ? renderOffersHtml(lapsed, respondId, { lapsed: true }) : '';
+
                                 if (pendingNegotiations.length > 0) {
-                                    activeBtns = renderOffersHtml(pendingNegotiations, respondId);
+                                    activeBtns = renderOffersHtml(pendingNegotiations, respondId) + lapsedHtml;
                                     activeBtns += `<button class="btn btn-outline-danger w-100 rounded-pill fw-bold mt-1" onclick="cancelOrder('${order._id}')"><i class="bi bi-x-circle me-1"></i> إلغاء الطلب</button>`;
                                 } else {
-                                    // لا عروض بعد → لوحة "جاري البحث عن كابتن" المتحركة
-                                    activeBtns = renderSearchingPanel(order);
+                                    // لا عروض سارية → عروض فاتت العميل (إن وُجدت) فوق لوحة "جاري البحث عن كابتن"
+                                    activeBtns = lapsedHtml + renderSearchingPanel(order);
                                     // لوحة القرار تحمل زرّ الإلغاء داخلها، فلا يُكرَّر تحتها
                                     const _expired = order.searchDeadlineAt &&
                                         new Date(order.searchDeadlineAt).getTime() <= Date.now();
@@ -1375,6 +1408,37 @@
                     window.location.href = 'index.html?reorder=1';
                 } catch (e) {
                     Swal.fire('خطأ', 'تعذّرت إعادة الطلب', 'error');
+                }
+            };
+
+            // ♻️ استرجاع عرض انتهى قبل أن يقبله العميل — يُقبل مباشرة إن كان الكابتن ما زال متاحاً
+            window.restoreNegotiation = async function (orderId, captainId, price, btn) {
+                const ok = await Swal.fire({
+                    title: 'استرجاع العرض',
+                    html: `سنقبل عرض الكابتن بسعر <strong>${Number(price) || ''} ج.س</strong> ونرسل له الطلب مباشرة.`,
+                    icon: 'question', showCancelButton: true,
+                    confirmButtonText: 'استرجاع وقبول', cancelButtonText: 'إلغاء',
+                    confirmButtonColor: 'var(--primary)'
+                });
+                if (!ok.isConfirmed) return;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
+                try {
+                    const res = await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/negotiate-restore`, {
+                        method: 'PUT', headers: authHeaders, body: JSON.stringify({ captainId })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok) {
+                        Swal.fire({
+                            title: 'تم قبول العرض', text: 'تم تأكيد الطلب والكابتن في الطريق.', icon: 'success',
+                            confirmButtonText: 'تتبع الطلب', confirmButtonColor: 'var(--primary)'
+                        }).then(() => loadOrders().catch(() => showToast('تنبيه', 'تعذّر تحديث القائمة، اسحب للتحديث', 'warning')));
+                    } else {
+                        Swal.fire('تعذّر الاسترجاع', data.message || 'لم نستطع استرجاع العرض', 'info');
+                        loadOrders();
+                    }
+                } catch (e) {
+                    Swal.fire('خطأ', 'فشل الاتصال', 'error');
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i> استرجاع العرض وقبوله'; }
                 }
             };
 
