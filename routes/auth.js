@@ -324,7 +324,7 @@ router.post('/register', otpLimiter, validate(registerSchema), async (req, res) 
         }
 
         // إرسال الإيميل في الخلفية
-        sendEmail(email, 'كود تفعيل حساب وجيز', `كود التفعيل الخاص بك هو: ${verificationCode}`)
+        sendEmail.otp(email, verificationCode, 'verify')
             .catch(err => logger.info("⚠️ لم يتم إرسال الإيميل:", err.message));
 
         // ✅ إرسال SMS
@@ -684,7 +684,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
                     .catch(err => logger.error("⚠️ SMS Error (login-reactivate):", err.message));
             }
             // إرسال إيميل
-            sendEmail(user.email, 'كود تفعيل حساب وجيز', `كود التفعيل الخاص بك هو: ${newCode}`)
+            sendEmail.otp(user.email, newCode, 'verify')
                 .catch(err => logger.info("⚠️ Email Error (login-reactivate):", err.message));
 
             if (process.env.NODE_ENV === 'development') {
@@ -1007,7 +1007,7 @@ router.post('/resend-code', otpLimiter, async (req, res) => {
 
         // إرسال عبر البريد إذا كان لديه بريد
         if (user.email) {
-            sendEmail(user.email, 'إعادة إرسال كود التفعيل', `كود التفعيل الجديد هو: ${newCode}`)
+            sendEmail.otp(user.email, newCode, 'verify')
                 .catch(err => logger.info("Mail Error:", err.message));
         }
 
@@ -1054,7 +1054,7 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
 
         if (isEmail) {
             // إرسال عبر البريد الإلكتروني
-            sendEmail(user.email, 'استعادة كلمة المرور', `كود الاستعادة الخاص بك هو: ${resetCode}`)
+            sendEmail.otp(user.email, resetCode, 'reset')
                 .catch(err => logger.error('Email send error:', err));
 
             logger.info(`📧 Reset code sent via EMAIL to: ${user.email}`);
@@ -1063,19 +1063,25 @@ router.post('/forgot-password', otpLimiter, async (req, res) => {
                 method: 'email'
             });
         } else {
-            // إرسال عبر SMS
+            // إرسال عبر SMS — ومعه البريد احتياطاً، فالرسائل القصيرة قد لا تصل
             if (user.phone) {
                 sendSmsOTP(user.phone, `كود استعادة كلمة المرور في تطبيق وجيز هو: ${resetCode}`)
                     .catch(err => logger.error('SMS send error:', err));
+                if (user.email) {
+                    sendEmail.otp(user.email, resetCode, 'reset')
+                        .catch(err => logger.error('Email send error:', err));
+                }
 
-                logger.info(`📱 Reset code sent via SMS to: ${user.phone}`);
+                logger.info(`📱 Reset code sent via SMS${user.email ? ' + EMAIL' : ''} to: ${user.phone}`);
                 res.json({
-                    message: 'تم إرسال كود الاستعادة على هاتفك في رسالة نصية',
-                    method: 'sms'
+                    message: user.email
+                        ? 'تم إرسال كود الاستعادة على هاتفك وبريدك الإلكتروني'
+                        : 'تم إرسال كود الاستعادة على هاتفك في رسالة نصية',
+                    method: user.email ? 'sms+email' : 'sms'
                 });
             } else {
                 // احتياطي: إرسال عبر البريد
-                sendEmail(user.email, 'استعادة كلمة المرور', `كود الاستعادة: ${resetCode}`)
+                sendEmail.otp(user.email, resetCode, 'reset')
                     .catch(err => logger.error('Email send error:', err));
 
                 res.json({

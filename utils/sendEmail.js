@@ -5,7 +5,7 @@ const logger = require('./logger');
 /**
  * إرسال بريد إلكتروني باستخدام SMTP مع إعدادات Secure SSL/TLS
  */
-const sendEmail = async (email, subject, content, isVerification = false) => {
+const sendEmail = async (email, subject, content, isVerification = false, templateOpts = {}) => {
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
@@ -27,8 +27,10 @@ const sendEmail = async (email, subject, content, isVerification = false) => {
 
         // إذا كانت الرسالة هي كود تفعيل، نستخدم القالب الجميل
         let htmlContent = content;
+        let textContent = content.toString().replace(/<[^>]*>?/gm, '');
         if (isVerification) {
-            htmlContent = getVerificationEmailTemplate(content);
+            htmlContent = getVerificationEmailTemplate(content, templateOpts);
+            textContent = `${subject}: ${content}`;
         }
 
         const info = await transporter.sendMail({
@@ -36,7 +38,7 @@ const sendEmail = async (email, subject, content, isVerification = false) => {
             to: email,
             subject: subject,
             html: htmlContent, 
-            text: content.toString().replace(/<[^>]*>?/gm, '') 
+            text: textContent
         });
 
         logger.info({ messageId: info.messageId }, 'Email sent successfully');
@@ -45,6 +47,23 @@ const sendEmail = async (email, subject, content, isVerification = false) => {
         logger.error({ err: error }, 'Email send failed');
         return null;
     }
+};
+
+/**
+ * كود تحقق بالبريد — قناة احتياطية لا تعتمد على مزوّد الرسائل القصيرة (حساب BRQ محظور منذ 2026-10-15).
+ * @param {'verify'|'reset'} purpose
+ */
+const OTP_EMAIL = {
+    verify: { subject: 'كود تفعيل حساب وجيز', title: 'تفعيل حسابك' },
+    reset: {
+        subject: 'كود استعادة كلمة المرور — وجيز', title: 'استعادة كلمة المرور',
+        intro: 'وصلنا طلب لاستعادة كلمة مرور حسابك في <strong>وجيز</strong>. استخدم الكود أدناه خلال 10 دقائق:',
+    },
+};
+sendEmail.otp = (email, code, purpose = 'verify') => {
+    if (!email) return Promise.resolve(null);
+    const t = OTP_EMAIL[purpose] || OTP_EMAIL.verify;
+    return sendEmail(email, t.subject, String(code), true, { title: t.title, intro: t.intro });
 };
 
 module.exports = sendEmail;

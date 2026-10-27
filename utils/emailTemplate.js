@@ -1,9 +1,12 @@
 /**
  * قالب بريد إلكتروني احترافي لتطبيق وجيز
- * @param {string} code - كود التفعيل
+ * @param {string} code - كود التحقق
+ * @param {{title?: string, intro?: string}} [opts] - العنوان والنص بحسب الغرض (تفعيل، استعادة…)
  * @returns {string} HTML content
  */
-const getVerificationEmailTemplate = (code) => {
+const getVerificationEmailTemplate = (code, opts = {}) => {
+    const title = opts.title || 'تفعيل حسابك';
+    const intro = opts.intro || 'مرحباً بك في تطبيق <strong>وجيز</strong>. يسعدنا انضمامك إلينا! يرجى استخدام كود التفعيل أدناه لإتمام عملية التسجيل:';
     return `
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
@@ -88,8 +91,8 @@ const getVerificationEmailTemplate = (code) => {
                 <h2 style="color: white; margin: 0;">وجيز</h2>
             </div>
             <div class="content">
-                <h1>تفعيل حسابك</h1>
-                <p>مرحباً بك في تطبيق <strong>وجيز</strong>. يسعدنا انضمامك إلينا! يرجى استخدام كود التفعيل أدناه لإتمام عملية التسجيل:</p>
+                <h1>${title}</h1>
+                <p>${intro}</p>
                 <div class="code-box">${code}</div>
                 <p>إذا لم تكن قد طلبت هذا الكود، يرجى تجاهل هذا البريد الإلكتروني.</p>
             </div>
