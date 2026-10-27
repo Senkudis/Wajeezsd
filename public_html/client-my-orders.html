@@ -763,6 +763,29 @@
             return header + cards;
         }
 
+        // يُزيل بطاقات العروض فوراً من الشاشة — قبل أن يعود loadOrders من الشبكة.
+        // كانت البطاقة (بأزرار القبول والرفض) تبقى ثوانيَ بعد قبول العرض أو سحبه أو
+        // تغيّر حالة الطلب، فيضغط العميل عرضاً لم يعد قائماً.
+        // captainId: بطاقة ذلك الكابتن وحده، وبدونه: كل عروض الطلب.
+        function retireOffers(orderId, captainId) {
+            if (!orderId) return;
+            let cards = [...document.querySelectorAll(`.offer-card[data-respond="${CSS.escape(String(orderId))}"]`)];
+            if (captainId) cards = cards.filter(c => c.dataset.captain === String(captainId));
+            cards.forEach(card => {
+                const box = card.parentElement;
+                card.remove();
+                if (!box) return;
+                // العدّاد في الترويسة يتبع ما بقي من العروض السارية، والترويسة بلا عروضٍ تُزال
+                const live = box.querySelectorAll('.offer-card .offer-countdown[data-expires]').length;
+                const left = box.querySelectorAll('.offer-card').length;
+                box.querySelectorAll('.offers-header').forEach(h => {
+                    const count = h.querySelector('.badge-count');
+                    if (count) { if (live) count.textContent = live; else h.remove(); }
+                    else if (!left) h.remove();
+                });
+            });
+        }
+
         // ⏱️ مؤقّت تنازلي حي لعروض الكباتن (يحدّث كل ثانية)
         setInterval(() => {
             document.querySelectorAll('.offer-countdown[data-expires]').forEach(el => {
@@ -1452,6 +1475,13 @@
 
             // 💬 رد العميل على عرض محدد من كابتن بعينه
             window.respondToNegotiation = async function (orderId, action, captainId) {
+                const card = document.querySelector(`.offer-card[data-respond="${CSS.escape(String(orderId))}"][data-captain="${CSS.escape(String(captainId))}"]`);
+                const btns = card ? [...card.querySelectorAll('.offer-actions button')] : [];
+                const saved = btns.map(b => b.innerHTML);
+                btns.forEach(b => { b.disabled = true; });
+                const pressed = btns[action === 'accept' ? 0 : 1];
+                if (pressed) pressed.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                const restore = () => btns.forEach((b, i) => { b.disabled = false; b.innerHTML = saved[i]; });
                 try {
                     const res = await fetchWithRetry(`${SERVER_URL}/api/orders/${orderId}/negotiate-response`, {
                         method: 'PUT',
@@ -1461,24 +1491,29 @@
                     const data = await res.json();
                     if (res.ok) {
                         if (action === 'accept') {
+                            // قُبل عرضٌ واحد فسقطت البقية — لا تبقى بطاقاتها تحت النافذة
+                            retireOffers(orderId);
+                            // ✅ FIX: catch إضافي لمنع الفشل الصامت بعد قبول العرض
+                            loadOrders().catch(() => showToast('تنبيه', 'تعذّر تحديث القائمة، اسحب للتحديث', 'warning'));
                             Swal.fire({
                                 title: 'قبلت السعر!',
                                 text: 'تم تأكيد الطلب والكابتن في الطريق.',
                                 icon: 'success',
                                 confirmButtonText: 'تتبع الطلب',
                                 confirmButtonColor: 'var(--primary)'
-                            }).then(() =>
-                                // ✅ FIX: catch إضافي لمنع الفشل الصامت بعد قبول العرض
-                                loadOrders().catch(() => showToast('تنبيه', 'تعذّر تحديث القائمة، اسحب للتحديث', 'warning'))
-                            );
+                            }).then(r => { if (r.isConfirmed) window.location.href = `tracking.html?orderId=${orderId}`; });
                         } else {
+                            retireOffers(orderId, captainId);
                             showToast('تم الرفض', 'الطلب لا يزال متاحاً لكباتن آخر', 'info');
                             loadOrders();
                         }
                     } else {
+                        restore();
                         Swal.fire('خطأ', data.message, 'error');
+                        loadOrders(); // العرض ربما انتهى أو قُبل غيره — اعرض الحال الفعلي
                     }
                 } catch (e) {
+                    restore();
                     Swal.fire('خطأ', 'فشل الاتصال', 'error');
                 }
             };
@@ -1650,6 +1685,8 @@
 
                 socket.on('order_status_updated', (data) => {
                     const { orderId, status } = data;
+                    // الطلب خرج من الانتظار (قُبل، أُلغي…) فلا عروض قائمة عليه
+                    if (status && status !== 'pending') retireOffers(orderId);
                     if (status === 'accepted') {
                         Swal.fire({
                             title: 'تم قبول طلبك!',
@@ -1674,7 +1711,8 @@
                     loadOrders();
                 });
 
-                socket.on('negotiation_withdrawn', () => {
+                socket.on('negotiation_withdrawn', (data) => {
+                    if (data && data.orderId && data.captainId) retireOffers(data.orderId, data.captainId);
                     showToast('تحديث', 'سحب أحد الكباتن عرضه', 'info');
                     loadOrders();
                 });

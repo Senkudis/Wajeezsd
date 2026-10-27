@@ -8,6 +8,7 @@
 const {
     NEGOTIATION_TTL_MINUTES,
     NEGOTIATION_TTL_MS,
+    isOfferOpen,
     summarizeNegotiations
 } = require('../utils/negotiation');
 
@@ -117,5 +118,18 @@ describe('canRestoreOffer — استرجاع عرض فات العميل', () => 
     it('بلا عرض أو بلا تاريخ انتهاء', () => {
         expect(canRestoreOffer(null, now).reason).toBe('not_found');
         expect(canRestoreOffer({ status: 'expired' }, now).reason).toBe('too_old');
+    });
+});
+
+describe('isOfferOpen', () => {
+    it('المعلّق الساري مفتوح، والمنتهي زمنياً مغلق ولو بقي pending', () => {
+        expect(isOfferOpen({ status: 'pending', expiresAt: future(3) })).toBe(true);
+        expect(isOfferOpen({ status: 'pending', expiresAt: past(1) })).toBe(false);
+    });
+    it('غير المعلّق مغلق، وبلا تاريخ انتهاء يُعتمد على الحالة', () => {
+        expect(isOfferOpen({ status: 'expired', expiresAt: future(3) })).toBe(false);
+        expect(isOfferOpen({ status: 'rejected' })).toBe(false);
+        expect(isOfferOpen({ status: 'pending' })).toBe(true);
+        expect(isOfferOpen(null)).toBe(false);
     });
 });

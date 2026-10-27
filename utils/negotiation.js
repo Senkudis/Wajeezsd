@@ -21,6 +21,17 @@ const NEGOTIATION_RESTORE_WINDOW_MINUTES = 30;
 const NEGOTIATION_RESTORE_WINDOW_MS = NEGOTIATION_RESTORE_WINDOW_MINUTES * 60 * 1000;
 
 /**
+ * هل العرض مفتوح الآن؟ pending ولم تنتهِ صلاحيته.
+ * المنتهي زمنياً يبقى pending حتى يمرّ المجدول (كل 5 دقائق)، فالحالة وحدها
+ * كانت تُبقي «سحب عرضي» عند الكابتن وترفض عرضه الجديد بعد انتهاء القديم.
+ */
+function isOfferOpen(offer, now = Date.now()) {
+    if (!offer || offer.status !== 'pending') return false;
+    if (!offer.expiresAt) return true;
+    return new Date(offer.expiresAt).getTime() > now;
+}
+
+/**
  * هل يجوز للعميل استرجاع هذا العرض الآن؟ (شروط العرض وحده — حال الكابتن والطلب تُفحص في المسار)
  * المنتهي زمنياً قد يبقى pending حتى يمرّ المجدول، فيُعامَل كمنتهٍ.
  * @returns {{ok: true} | {ok: false, reason: 'not_found'|'still_open'|'not_expired'|'too_old'}}
@@ -82,6 +93,7 @@ module.exports = {
     NEGOTIATION_REMINDER_BEFORE_MS,
     NEGOTIATION_RESTORE_WINDOW_MINUTES,
     NEGOTIATION_RESTORE_WINDOW_MS,
+    isOfferOpen,
     canRestoreOffer,
     summarizeNegotiations
 };

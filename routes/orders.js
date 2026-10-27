@@ -20,7 +20,7 @@ const rateLimit = require('express-rate-limit');
 const { saveBase64Image } = require('../utils/imageUpload');
 const { validateOrderLocations } = require('../utils/geofence');
 const { evaluateDeliveryProof } = require('../utils/deliveryProof');
-const { NEGOTIATION_TTL_MS, NEGOTIATION_RESTORE_WINDOW_MINUTES, canRestoreOffer } = require('../utils/negotiation');
+const { NEGOTIATION_TTL_MS, NEGOTIATION_RESTORE_WINDOW_MINUTES, canRestoreOffer, isOfferOpen } = require('../utils/negotiation');
 const logger = require('../utils/logger');
 const { releasePromoUsage } = require('../utils/promoRelease');
 // 📈 عدّادات المسار — «أطلق وانسَ»، لا تُنتظر ولا تُفشل طلباً
@@ -1183,8 +1183,9 @@ router.get('/', protect, requireCity, captainOnly, async (req, res) => {
         const captainId = req.user._id.toString();
         const enriched = orders.map(order => {
             const o = order.toObject();
+            // العرض المنتهي زمنياً ليس «عرضي» — وإلا بقي زرّ السحب حتى يمرّ المجدول
             const myOffer = (o.negotiations || []).find(
-                n => n.captainId && n.captainId.toString() === captainId && n.status === 'pending'
+                n => n.captainId && n.captainId.toString() === captainId && isOfferOpen(n)
             );
             o.myOffer = myOffer || null;
             stripPreAcceptContacts(o);
@@ -1280,8 +1281,16 @@ router.put('/:id/negotiate', protect, captainOnly, async (req, res) => {
         const existingOffer = order.negotiations.find(
             n => n.captainId && n.captainId.toString() === captainId && n.status === 'pending'
         );
-        if (existingOffer) {
+        if (existingOffer && isOfferOpen(existingOffer)) {
             return res.status(400).json({ message: 'لديك عرض نشط بالفعل على هذا الطلب. يمكنك سحبه أولاً.' });
+        }
+        // عرضٌ انتهت صلاحيته ولم يمرّ عليه المجدول بعد: نُغلقه أولاً، وإلا بقي عرضان
+        // pending للكابتن نفسه فيلتقط قبولُ العميل (المطابِق بالكابتن والحالة) القديمَ منهما
+        if (existingOffer) {
+            await Order.updateOne(
+                { _id: order._id, negotiations: { $elemMatch: { _id: existingOffer._id, status: 'pending' } } },
+                { $set: { 'negotiations.$.status': 'expired' } }
+            );
         }
 
         const expiresAt = new Date(Date.now() + NEGOTIATION_TTL_MS);
@@ -3104,7 +3113,7 @@ router.get('/:id', protect, async (req, res) => {
         //    القائمة تحجب هاتف العميل وهذا المسار يكشفه لأي كابتن في المدينة
         if (isPendingAndUserIsCaptain && !isClient && !isCaptain && !isAdmin) {
             const mine = (order.negotiations || []).find(n =>
-                n.captainId && String(n.captainId) === userId && n.status === 'pending');
+                n.captainId && String(n.captainId) === userId && isOfferOpen(n));
             stripPreAcceptContacts(order);
             order.myOffer = mine || null;
         }
