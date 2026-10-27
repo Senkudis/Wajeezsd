@@ -140,14 +140,14 @@
                 </div>
                 <div class="modal-body p-4 text-end">
                     <p class="text-muted mb-3" style="font-size:14px;" id="forgot-modal-greeting">
-                        الرجاء إدخال رقم هاتفك لإرسال رمز إعادة التعيين.
+                        أدخل رقم هاتفك أو بريدك الإلكتروني، وسنرسل كود إعادة التعيين إلى الهاتف والبريد المسجّلين.
                     </p>
                     <div id="forgot-modal-alert" class="alert d-none mb-3" role="alert"></div>
 
                     <!-- Step 1: Request OTP -->
                     <div id="forgot-step-1" class="mb-3">
                         <label for="forgot-identifier" class="form-label fw-bold small text-muted">
-                            <i class="bi bi-person-badge-fill text-danger ms-1"></i>رقم الهاتف
+                            <i class="bi bi-person-badge-fill text-danger ms-1"></i>رقم الهاتف أو البريد الإلكتروني
                         </label>
                         <input type="text" id="forgot-identifier" class="form-control form-control-lg"
                             placeholder="09xxxxxxxx أو user@mail.com" dir="ltr" autocomplete="username">
@@ -249,7 +249,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <p class="text-muted mb-3" style="font-size:14px;" id="otp-modal-greeting">
-                        يرجى إدخال رقم هاتفك لتلقي كود التحقق (OTP).
+                        أدخل رقم هاتفك، وسنرسل كود التحقق إلى الهاتف وإلى بريدك في Google.
                     </p>
                     <div id="otp-modal-alert" class="alert d-none mb-3" role="alert"></div>
 
@@ -268,6 +268,10 @@
 
                     <!-- Step 2: OTP Input (Hidden Initially) -->
                     <div id="otp-step-2" class="mb-3 d-none">
+                        <div class="alert alert-warning text-center small py-2 mb-3" style="border-radius:10px;">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            إذا لم يصلك الكود، افتح بريدك وراجع مجلد <strong>الرسائل غير المرغوب فيها (Spam)</strong>.
+                        </div>
                         <label for="otp-code" class="form-label fw-bold small text-muted">
                             <i class="bi bi-shield-lock-fill text-success ms-1"></i> رمز الـ OTP (6 أرقام)
                         </label>
@@ -588,7 +592,7 @@
 
                 if (data.requiresPhone) {
                     _pendingGoogleData = data.googleData;
-                    document.getElementById('otp-modal-greeting').innerHTML = `مرحباً <strong>${data.googleData.name || ''}</strong><br>نحتاج لتأكيد رقم هاتفك لإكمال تسجيل الدخول.`;
+                    document.getElementById('otp-modal-greeting').innerHTML = `مرحباً <strong>${data.googleData.name || ''}</strong><br>أدخل رقم هاتفك لإكمال تسجيل الدخول، وسنرسل كود التحقق إلى الهاتف وإلى بريدك في Google.`;
                     document.getElementById('otp-phone').value = '';
                     document.getElementById('otp-code').value = '';
                     document.getElementById('otp-step-1').classList.remove('d-none');
@@ -741,7 +745,15 @@
         }
 
         // =============================================
-        // OTP Step 1: Request OTP (Send SMS)
+        // نصّ مكان وصول الكود بحسب ما نجح فعلاً (الخادم يعيد channels والبريد مقنَّعاً)
+        function otpSentText(data) {
+            const ch = (data && data.channels) || [];
+            if (ch.includes('email') && ch.includes('sms')) return `أرسلنا الكود إلى هاتفك وإلى بريدك ${data.email}`;
+            if (ch.includes('email')) return `أرسلنا الكود إلى بريدك ${data.email} — راجع مجلد Spam إن لم تجده`;
+            return 'أرسلنا الكود إلى هاتفك في رسالة نصية';
+        }
+
+        // OTP Step 1: Request OTP (phone + Google email)
         // =============================================
         async function requestOTP() {
             const phone = document.getElementById('otp-phone').value.trim();
@@ -763,11 +775,12 @@
                 const res = await fetch(`${API_URL}/api/auth/send-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phoneNumber: phone })
+                    // تسجيل Google: التوكن يتيح للخادم إرسال الكود لبريد Google أيضاً
+                    body: JSON.stringify({ phoneNumber: phone, googleIdToken: _pendingGoogleData ? _pendingGoogleData.idToken : undefined })
                 });
                 const data = await res.json();
 
-                if (!res.ok) {
+                if (!res.ok || data.sent === false) {
                     alertEl.className = 'alert alert-danger mb-3';
                     alertEl.textContent = data.message || 'حدث خطأ، يرجى المحاولة مجدداً.';
                     btn.innerHTML = originalText;
@@ -777,7 +790,7 @@
 
                 // Proceed to Step 2
                 alertEl.className = 'alert alert-success mb-3';
-                alertEl.textContent = 'تم إرسال كود التحقق لجوالك عبر رسالة نصية (SMS)';
+                alertEl.textContent = otpSentText(data);
 
                 // Switch UI Steps
                 setTimeout(() => {

@@ -47,6 +47,13 @@ const GOOGLE_AUDIENCES = [...new Set([
 ])];
 const googleClient = new OAuth2Client();
 
+/** a***@gmail.com — يكفي ليعرف المستخدم أين يبحث دون كشف البريد كاملاً */
+function maskEmail(email) {
+    const [u, d] = String(email || '').split('@');
+    if (!d) return '';
+    return `${u.slice(0, Math.min(2, u.length))}${'*'.repeat(Math.max(1, u.length - 2))}@${d}`;
+}
+
 async function verifyGoogleIdToken(idToken) {
     const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_AUDIENCES });
     return ticket.getPayload();
@@ -1375,8 +1382,20 @@ router.post('/google/complete', async (req, res) => {
 // ==========================================
 router.post('/send-otp', otpLimiter, async (req, res) => {
     try {
-        const { phoneNumber } = req.body;
+        const { phoneNumber, googleIdToken } = req.body;
         if (!phoneNumber) return res.status(400).json({ message: 'رقم الهاتف مطلوب' });
+
+        // 📧 تسجيل Google: الكود يُرسل أيضاً لبريد Google — الرسائل القصيرة قد لا تصل.
+        //    البريد يُستخرج من توكن موثَّق لا من الطلب، فلا يُستعمل المسار لمراسلة بريد غريب.
+        let googleEmail = null;
+        if (googleIdToken) {
+            try {
+                const payload = await verifyGoogleIdToken(googleIdToken);
+                if (isVerifiedGoogleEmail(payload)) googleEmail = payload.email;
+            } catch (e) {
+                logger.warn({ err: e.message }, '[send-otp] توكن Google غير صالح — إرسال بالهاتف فقط');
+            }
+        }
 
         const phone = normalizePhone(phoneNumber);
         const otpCode = generateOtpCode();
@@ -1415,11 +1434,16 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
             logger.error('⚠️ BRQSMS send failed:', smsErr?.response?.data || smsErr.message);
         }
 
+        const emailSent = googleEmail ? !!(await sendEmail.otp(googleEmail, otpCode, 'verify')) : false;
+        const channels = [smsSent && 'sms', emailSent && 'email'].filter(Boolean);
+
         res.json({
-            message: smsSent
+            message: channels.length
                 ? 'تم إرسال كود التحقق بنجاح'
-                : 'تعذّر إرسال الكود عبر الرسائل. تأكد من صحة الرقم وحاول مجدداً.',
-            sent: smsSent
+                : 'تعذّر إرسال الكود. تأكد من صحة الرقم وحاول مجدداً.',
+            sent: channels.length > 0,
+            channels,
+            email: emailSent ? maskEmail(googleEmail) : undefined
         });
     } catch (err) {
         logger.error('Send OTP Error:', err?.response?.data || err.message);
