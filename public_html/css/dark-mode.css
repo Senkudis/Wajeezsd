@@ -1490,21 +1490,22 @@ body.dark-mode #shopMapBadgeName {
 /* ========================================
    Place Details Modal (client-order.html) — Dark Mode
    Fix: pastel contact buttons + inline-colored texts
-   were unreadable in dark mode
+   were unreadable in dark mode. Scoped to the modal so
+   other pages' .contact-btn (tracking call button) keep their brand colors
    ======================================== */
-body.dark-mode .contact-btn.call {
+body.dark-mode #placeDetailsModal .contact-btn.call {
     background: linear-gradient(135deg, #1e3a5f, #172b46) !important;
     color: #93c5fd !important;
 }
-body.dark-mode .contact-btn.whatsapp {
+body.dark-mode #placeDetailsModal .contact-btn.whatsapp {
     background: linear-gradient(135deg, #1a3a2e, #0f2922) !important;
     color: #6ee7b7 !important;
 }
-body.dark-mode .contact-btn.maps {
+body.dark-mode #placeDetailsModal .contact-btn.maps {
     background: linear-gradient(135deg, #3a1a22, #2e0f16) !important;
     color: #fda4af !important;
 }
-body.dark-mode .contact-btn.menu {
+body.dark-mode #placeDetailsModal .contact-btn.menu {
     background: linear-gradient(135deg, #3d1f02, #2a1500) !important;
     color: #fcd34d !important;
 }

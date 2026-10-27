@@ -335,9 +335,7 @@
         body.dark-mode .contact-btn.chat { background: #14352a; color: #6ee7b7; }
         body.dark-mode .route-row, body.dark-mode .price-row { border-color: #334155; }
         body.dark-mode .drag-handle { background: #475569; }
-        /* dark-mode.css يلوّن .contact-btn.call لصفحةٍ أخرى بتدرّجٍ أزرق — نحدّد النطاق ليبقى أخضر الهوية */
-        body.dark-mode .captain-actions .contact-btn.call { background: var(--primary) !important; color: #fff !important; }
-        body.dark-mode .captain-actions .contact-btn.chat { background: #14352a; color: #6ee7b7; }
+        body.dark-mode .contact-btn.call { background: var(--primary); color: #fff; }
         body.dark-mode .step-circle { background: #1e293b; border-color: #334155; color: #94a3b8; }
         body.dark-mode .captain-trips { background: #0c3550; color: #7dd3fc; }
         body.dark-mode .track-live.live { background: #12382a; color: #6ee7b7; }
@@ -362,6 +360,22 @@
         .route-connector { margin: 2px 0; margin-inline-start: 14px; }
         .tip-chip { min-height: 44px; padding: 8px 14px; }
         .price-row { border-top: none; padding: 4px 2px 12px; }
+
+        /* دعوة التقييم بعد الوصول — تفتح نافذة التقييم الكاملة في «طلباتي» */
+        .rate-cta {
+            display: none; align-items: center; gap: 12px; margin: 0 0 12px; padding: 12px 14px;
+            border-radius: 16px; background: #fff8e6; border: 1px solid #fde3a7; text-decoration: none; color: var(--ink);
+        }
+        .rate-cta.show { display: flex; }
+        .rate-cta .rc-text { flex: 1; min-width: 0; }
+        .rate-cta .rc-title { font-size: 14px; font-weight: 800; color: var(--ink); }
+        .rate-cta .rc-stars { color: #F5A623; font-size: 15px; letter-spacing: 3px; margin-top: 2px; }
+        .rate-cta .rc-go {
+            background: var(--primary); color: #fff; font-weight: 800; font-size: 13px; border-radius: 12px;
+            padding: 0 16px; min-height: 44px; display: flex; align-items: center; white-space: nowrap;
+        }
+        body.dark-mode .rate-cta { background: #2a2312; border-color: #4a3b17; }
+        body.dark-mode .rate-cta .rc-title { color: #f1f5f9; }
     </style>
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
@@ -370,7 +384,7 @@
     <script src="js/fetch-retry.js?v=dfd06a9d"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/vehicle-types.js?v=3a11758f"></script>
-    <link rel="stylesheet" href="css/dark-mode.css?v=050be5c1">
+    <link rel="stylesheet" href="css/dark-mode.css?v=b5e34161">
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
 </head>
@@ -414,6 +428,15 @@
                     <span class="eta-unit" id="eta-unit">دقيقة</span>
                 </div>
             </div>
+
+            <!-- دعوة التقييم: تظهر بعد التسليم ما لم يُقيَّم الطلب -->
+            <a href="#" class="rate-cta" id="rate-cta">
+                <div class="rc-text">
+                    <div class="rc-title" id="rate-cta-title">كيف كانت رحلتك؟</div>
+                    <div class="rc-stars" aria-hidden="true"><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i></div>
+                </div>
+                <span class="rc-go">قيّم الكابتن</span>
+            </a>
 
             <!-- Step Progress Bar -->
             <div class="status-steps" id="status-steps">
@@ -652,7 +675,10 @@
             });
             // تبديل الوضع الليلي يغيّر ستايل الخريطة معه (مراقبٌ واحد مهما أُعيدت التهيئة)
             if (!window._mapThemeObserver) {
-                window._mapThemeObserver = new MutationObserver(() => map && map.setOptions({ styles: mapStyleFor() }));
+                window._mapThemeObserver = new MutationObserver(() => {
+                    if (map) map.setOptions({ styles: mapStyleFor() });
+                    if (captainLeg) captainLeg.setOptions({ icons: legIcons() });
+                });
                 window._mapThemeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
             }
 
@@ -850,6 +876,41 @@
         let captainPulse = null;
         let pulseRaf = 0;
 
+        // خطٌّ متقطّع من الكابتن إلى وجهته الحالية: الاستلام قبل الاستلام، ثم التسليم.
+        // مستقيمٌ عمداً لا طلب Directions — يتبع كل حركة بلا كلفة API.
+        let captainLeg = null;
+
+        function legGoal() {
+            const o = currentOrder;
+            if (!o) return null;
+            const p = o.status === 'accepted' ? o.pickup : (o.status === 'picked_up' ? o.dropoff : null);
+            return p && validCoord(p.lat, p.lng) ? { lat: p.lat, lng: p.lng } : null;
+        }
+
+        function legIcons() {
+            const color = document.body.classList.contains('dark-mode') ? '#6ee7b7' : '#04553A';
+            return [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, strokeColor: color, strokeWeight: 3, scale: 3 }, offset: '0', repeat: '14px' }];
+        }
+
+        function updateCaptainLeg() {
+            if (!map || typeof google === 'undefined') return;
+            const goal = legGoal();
+            const pos = captainMarker && captainMarker.getMap() && captainMarker.getPosition();
+            if (!goal || !pos) {
+                if (captainLeg) captainLeg.setMap(null);
+                return;
+            }
+            if (!captainLeg) {
+                captainLeg = new google.maps.Polyline({
+                    path: [pos, goal], map, clickable: false, zIndex: 5,
+                    strokeOpacity: 0, icons: legIcons()
+                });
+            } else {
+                captainLeg.setPath([pos, goal]);
+                if (!captainLeg.getMap()) captainLeg.setMap(map);
+            }
+        }
+
         function addCaptainPulse(lat, lng) {
             if (captainPulse || typeof google === 'undefined') return;
             captainPulse = new google.maps.Circle({
@@ -863,9 +924,10 @@
             if (window.MarkerMotion && MarkerMotion.reducedMotion()) return;
 
             const T0 = performance.now();
-            let lastTick = 0;
+            let lastTick = 0, lastLeg = 0;
             const tick = (now) => {
                 if (!captainPulse) return;
+                if (now - lastLeg >= 250) { lastLeg = now; updateCaptainLeg(); }
                 // ٣٠ إطاراً في الثانية تكفي لنبضةٍ بطيئة — نصف عمل المعالج على الهواتف الضعيفة
                 if (now - lastTick >= 33) {
                     lastTick = now;
@@ -1281,6 +1343,22 @@
             //    بعد الطلب — لم تُواءم أبداً فتخرج نقطة الاستلام من الشاشة.
             if (bounds && !bounds.isEmpty()) fitTo(bounds);
             if (captainMarker && !['accepted', 'picked_up'].includes(order.status)) captainMarker.setMap(null);
+            updateCaptainLeg();
+
+            // ⭐ دعوة التقييم: وصل الطلب ولم يُقيَّم. للعميل صاحب الطلب فقط (لا التاجر)،
+            //    والتقييم الكامل (نجوم + وسوم + تعليق) في «طلباتي» عبر ?rateOrder
+            const rateCta = document.getElementById('rate-cta');
+            if (rateCta) {
+                const ownerId = String(order.client?._id || order.client || '');
+                const showRate = order.status === 'delivered' && !order.isRated && !!order.captain
+                    && _userRole !== 'merchant' && (!ownerId || ownerId === String(userId));
+                rateCta.classList.toggle('show', showRate);
+                if (showRate) {
+                    rateCta.href = `client-my-orders.html?rateOrder=${encodeURIComponent(order._id || orderId)}`;
+                    const first = String(order.captain.name || '').trim().split(/\s+/)[0];
+                    document.getElementById('rate-cta-title').textContent = first ? `كيف كانت رحلتك مع ${first}؟` : 'كيف كانت رحلتك؟';
+                }
+            }
         }
 
         // ── 🛰️ حيوية التتبّع ─────────────────────────────────────────────
@@ -1364,6 +1442,7 @@
             if (!map || typeof google === 'undefined') return;
             if (captainMarker && captainMover) {
                 captainMover.moveTo({ lat, lng });
+                updateCaptainLeg();
                 return;
             }
             captainMarker = new google.maps.Marker({
@@ -1373,6 +1452,7 @@
             });
             captainMover = MarkerMotion.create(captainMarker, { iconFor: captainIconFor });
             addCaptainPulse(lat, lng);
+            updateCaptainLeg();
         }
 
         if (userId) {
