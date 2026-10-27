@@ -1,0 +1,193 @@
+// طبقة الموشن v3 — مبدأ واحد: لا شيء يغطّي المتكلّم.
+//  • لقطات المتكلّم: عنوان قصير في الفراغ فوق الرأس + ترجمة بلا صندوق في الثلث السفلي.
+//  • المعلومة البصرية (المشكلة، الشعار، شاشة التطبيق) = مشهد قطع كامل 1–3 ث ثم عودة للوجه.
+//  • منحنيات حركة ثابتة: easeOut للدخول، easeIn للخروج، ومدد قصيرة (0.25–0.45 ث).
+const C = document.getElementById('c'), X = C.getContext('2d');
+const W = 1080, H = 1920, CX = 500;          // مركز المحتوى يسار أزرار المنصّات قليلاً
+const COL = { g: '#048c5b', gd: '#033A27', ink: '#0d1117', gold: '#F5A623', w: '#ffffff', red: '#d64545' };
+const E = window.EDIT;
+
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (p) => 1 - Math.pow(1 - p, 3);
+const eIn = (p) => p * p * p;
+const eIO = (p) => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const eio = eIO, eo = eOut;   // أسماء قديمة تستعملها بطاقة النهاية
+const life = (t, a, b, i = .3, o = .2) => Math.min(eOut(lin(t, a, a + i)), 1 - eIn(lin(t, b - o, b)));
+
+const img = {};
+function load(k, src) { return new Promise(r => { const i = new Image(); i.onload = () => { img[k] = i; r(); }; i.onerror = () => r(); i.src = src; }); }
+function rr(x, y, w, h, r) { X.beginPath(); X.roundRect(x, y, w, h, r); }
+function font(f, s) { X.font = `${s}px ${f}`; }
+function shadow(b = 24, a = .35, y = 8) { X.shadowColor = `rgba(0,0,0,${a})`; X.shadowBlur = b; X.shadowOffsetY = y; }
+function noShadow() { X.shadowColor = 'transparent'; X.shadowBlur = 0; X.shadowOffsetY = 0; }
+
+/*ICONS*/
+function icon(name, x, y, s, color, lw) { X.save(); X.translate(x, y); X.strokeStyle = color; X.fillStyle = color; X.lineWidth = lw || s * .07; X.lineCap = 'round'; X.lineJoin = 'round'; ICON[name](s); X.restore(); }
+
+// نص بحدّ داكن وظل ناعم — مقروء فوق أي خلفية بلا صندوق
+function outlined(text, x, y, fill, stroke = 'rgba(0,0,0,.85)', sw = 13) {
+  X.lineJoin = 'round'; X.miterLimit = 2;
+  shadow(18, .45, 4); X.strokeStyle = stroke; X.lineWidth = sw; X.strokeText(text, x, y); noShadow();
+  X.fillStyle = fill; X.fillText(text, x, y);
+}
+
+// تظليل سفلي خفيف جداً لقراءة الترجمة (لا يُرى كصندوق)
+function grades() {
+  const g = X.createLinearGradient(0, 1250, 0, H);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.30)');
+  X.fillStyle = g; X.fillRect(0, 1250, W, H - 1250);
+  // شريط ظلّ ناعم خلف الترجمة (بلا حواف) لتُقرأ فوق القميص المخطّط
+  const b = X.createLinearGradient(0, 1330, 0, 1680); b.addColorStop(0, 'rgba(0,0,0,0)'); b.addColorStop(.45, 'rgba(0,0,0,.34)'); b.addColorStop(1, 'rgba(0,0,0,0)');
+  X.fillStyle = b; X.fillRect(0, 1330, W, 350);
+}
+
+function progress(t) {
+  if (t > E.endcard) return; const p = clamp(t / E.endcard);
+  X.fillStyle = 'rgba(255,255,255,.18)'; X.fillRect(0, 0, W, 6);
+  X.fillStyle = COL.gold; X.fillRect(W - W * p, 0, W * p, 6);
+}
+
+// ── شارة الشعار الصغيرة (أعلى اليسار، تحت شريط المنصّة) ──
+function bug(t) {
+  const a = life(t, E.bug[0], E.bug[1], .5, .3); if (a <= 0 || !img.logo) return;
+  const w = 150, h = w * img.logo.height / img.logo.width;
+  X.save(); X.globalAlpha = a * .9; X.drawImage(img.logo, 64, 176, w, h); X.restore();
+}
+
+// ── عنوان في فراغ الرأس: كلمة/عبارة واحدة تلخّص الجملة ──
+function heads(t) {
+  for (const h of E.heads || []) {
+    const a = life(t, h.s, h.e, .3, .2); if (a <= 0) continue;
+    const p = eOut(lin(t, h.s, h.s + .35));
+    X.save(); X.globalAlpha = a; X.direction = 'rtl'; X.textAlign = 'center';
+    let y = h.y || 330;
+    if (h.kicker) { font('ArB', 46); const kw = X.measureText(h.kicker).width;
+      const kp = eOut(lin(t, h.s, h.s + .3)); rr(W / 2 - kw / 2 - 26, y - 150 + (1 - kp) * 16, kw + 52, 68, 34); X.fillStyle = COL.g; X.fill();
+      X.fillStyle = '#fff'; X.fillText(h.kicker, W / 2, y - 102 + (1 - kp) * 16); }
+    let size = h.size || 88; font('ArB', size); const tw = X.measureText(h.t).width; if (tw > 820) { size = Math.floor(size * 820 / tw); font('ArB', size); }
+    X.translate(0, (1 - p) * 26);
+    outlined(h.t, W / 2, y, '#fff', 'rgba(0,0,0,.6)', 12);
+    // خطّ ذهبي يتمدّد تحت العنوان
+    const u = eOut(lin(t, h.s + .15, h.s + .55)), uw = Math.min(X.measureText(h.t).width, 420) * u;
+    X.fillStyle = COL.gold; rr(W / 2 - uw / 2, y + 26, uw, 8, 4); X.fill();
+    X.restore();
+  }
+}
+
+// ── الترجمة: بلا صندوق، سطر أو سطران، الكلمة الحالية ذهبية ──
+function captions(t) {
+  const ch = E.captions.find(c => t >= c.s - .04 && t < c.e + .1); if (!ch) return;
+  const a = life(t, ch.s - .04, ch.e + .1, .1, .08);
+  const size = 74; font('ArB', size); X.direction = 'rtl';
+  const ws = ch.words.map(w => X.measureText(w.w).width), gap = size * .3;
+  const width = (a0, b0) => ws.slice(a0, b0).reduce((p, q) => p + q, 0) + gap * (b0 - a0 - 1);
+  let rows = [[0, ws.length]];
+  if (width(0, ws.length) > 760 && ws.length > 1) {
+    let best = 1, bd = 1e9;
+    for (let k = 1; k < ws.length; k++) { const d = Math.max(width(0, k), width(k, ws.length)); if (d < bd) { bd = d; best = k; } }
+    rows = [[0, best], [best, ws.length]];
+  }
+  const lh = size * 1.22, y0 = E.capY - (rows.length - 1) * lh;
+  X.save(); X.globalAlpha = a; X.textAlign = 'right'; X.textBaseline = 'alphabetic';
+  if (ch.q) { // الصوت من وراء الكاميرا: وسم صغير فوق الترجمة
+    font('ArB', 52); X.textAlign = 'center'; outlined(E.qLabel, CX, y0 - size - 6, COL.gold, 'rgba(0,0,0,.7)', 8);
+    font('ArB', size); X.textAlign = 'right';
+  }
+  rows.forEach(([r0, r1], ri) => {
+    const ly = y0 + ri * lh; let x = CX + width(r0, r1) / 2;
+    for (let i = r0; i < r1; i++) {
+      const w = ch.words[i], on = t >= w.s && t < w.e + .06;
+      const fill = on ? COL.gold : (ch.q ? '#e9efe9' : '#ffffff');
+      X.save();
+      if (on) { const k = eOut(lin(t, w.s, w.s + .1)), s = 1 + .06 * k, mx = x - ws[i] / 2; X.translate(mx, ly); X.scale(s, s); X.translate(-mx, -ly); }
+      outlined(w.w, x, ly, fill);
+      X.restore(); x -= ws[i] + gap;
+    }
+  });
+  X.restore();
+}
+
+// ── خلفية المشاهد الكاملة: أخضر الهوية مع ضوء مائل بطيء ──
+function sceneBg(t, s) {
+  let g = X.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#05593f'); g.addColorStop(.6, COL.gd); g.addColorStop(1, '#06120d');
+  X.fillStyle = g; X.fillRect(0, 0, W, H);
+  const k = t - s, gx = 200 + 120 * Math.sin(k * .8);
+  g = X.createRadialGradient(gx, 520, 30, gx, 520, 820); g.addColorStop(0, 'rgba(4,140,91,.55)'); g.addColorStop(1, 'rgba(4,140,91,0)');
+  X.fillStyle = g; X.fillRect(0, 0, W, H);
+}
+
+// مشهد المشكلة: ثلاث بطاقات كبيرة تظهر مع كل كلمة
+function scenePains(t, sc) {
+  sceneBg(t, sc.s);
+  X.save(); X.direction = 'rtl'; X.textAlign = 'center';
+  const tp = eOut(lin(t, sc.s, sc.s + .3)); X.globalAlpha = tp; font('ArB', 60); outlined(sc.title, W / 2, 420 + (1 - tp) * 20, 'rgba(255,255,255,.92)', 'rgba(0,0,0,.35)', 6);
+  sc.items.forEach((it, i) => {
+    const p = eOut(lin(t, it.t, it.t + .32)); if (p <= 0) return;
+    const y = 560 + i * 230, w = 760, h = 190, x = W / 2 - w / 2;
+    X.globalAlpha = p; X.save(); X.translate(0, (1 - p) * 40);
+    shadow(40, .35, 14); rr(x, y, w, h, 36); X.fillStyle = 'rgba(255,255,255,.97)'; X.fill(); noShadow();
+    X.beginPath(); X.arc(x + w - 110, y + h / 2, 64, 0, 7); X.fillStyle = COL.red; X.fill(); icon(it.icon, x + w - 110, y + h / 2, 92, '#fff', 6.5);
+    X.textAlign = 'right'; font('ArB', 72); X.fillStyle = COL.ink; X.fillText(it.label, x + w - 210, y + h / 2 + 26);
+    X.restore();
+  });
+  X.restore();
+}
+
+// مشهد الشعار: ظهور واثق مع حلقات ذهبية
+function sceneLogo(t, sc) {
+  sceneBg(t, sc.s);
+  const k = t - sc.s, p = eOut(lin(k, 0, .45));
+  for (let r = 0; r < 2; r++) { const q = lin(k, r * .15, .9 + r * .15); if (q > 0 && q < 1) { X.strokeStyle = `rgba(245,166,35,${.7 * (1 - q)})`; X.lineWidth = 8 * (1 - q); X.beginPath(); X.arc(W / 2, 820, 160 + 360 * eOut(q), 0, 7); X.stroke(); } }
+  if (img.logo) { const w = 640 * (.88 + .12 * p), h = w * img.logo.height / img.logo.width; X.globalAlpha = p; X.drawImage(img.logo, W / 2 - w / 2, 820 - h / 2, w, h); X.globalAlpha = 1; }
+  if (sc.sub) { const q = eOut(lin(k, .25, .6)); X.globalAlpha = q; X.direction = 'rtl'; X.textAlign = 'center'; font('ArB', 58); X.fillStyle = 'rgba(255,255,255,.9)'; X.fillText(sc.sub, W / 2, 1110 + (1 - q) * 18); X.globalAlpha = 1; }
+}
+
+// مشهد شاشة التطبيق: هاتف كبير في المنتصف + عنوان
+function scenePhone(t, sc) {
+  sceneBg(t, sc.s);
+  const k = t - sc.s, p = eOut(lin(k, 0, .45));
+  X.save(); X.direction = 'rtl'; X.textAlign = 'center'; X.globalAlpha = eOut(lin(k, 0, .3)); font('ArB', 70);
+  outlined(sc.title, W / 2, 300 + (1 - p) * 20, '#fff', 'rgba(0,0,0,.35)', 6);
+  const uw = 300 * eOut(lin(k, .15, .55)); X.fillStyle = COL.gold; rr(W / 2 - uw / 2, 330, uw, 8, 4); X.fill(); X.restore();
+  const im = img[sc.img]; if (!im) return;
+  const w = 480, h = Math.min(w * im.height / im.width, w * 1.8), x = W / 2 - w / 2, y = 410 + (1 - p) * 120 - k * 14;
+  X.save(); X.globalAlpha = p;
+  shadow(60, .5, 24); rr(x - 18, y - 18, w + 36, h + 36, 62); X.fillStyle = '#0b0b0b'; X.fill(); noShadow();
+  X.save(); rr(x, y, w, h, 46); X.clip();
+  const sy = (sc.scroll || 0) * eIO(lin(k, .5, sc.e - sc.s)) * (im.height * w / im.width - h);   // تمرير بطيء للشاشات الطويلة
+  X.drawImage(im, x, y - sy, w, im.height * w / im.width); X.restore();
+  X.restore();
+}
+
+function scenes(t) {
+  for (const sc of E.scenes || []) {
+    if (t < sc.s || t >= sc.e) continue;
+    if (sc.type === 'pains') scenePains(t, sc); else if (sc.type === 'logo') sceneLogo(t, sc); else if (sc.type === 'phone') scenePhone(t, sc);
+    return true;
+  }
+  return false;
+}
+
+// ── شارة الدعوة أعلى الشاشة ──
+function cta(t) {
+  const c = E.cta; if (!c) return; const a = life(t, c.s, c.e, .3, .2); if (a <= 0) return;
+  const p = eOut(lin(t, c.s, c.s + .35)); X.save(); X.globalAlpha = a; X.direction = 'rtl'; X.textAlign = 'center';
+  font('ArB', 72); const tw = X.measureText(c.text).width; X.translate(W / 2, c.y + (1 - p) * 20);
+  shadow(30, .35, 10); rr(-tw / 2 - 46, -74, tw + 92, 120, 60); X.fillStyle = COL.gold; X.fill(); noShadow();
+  X.fillStyle = COL.ink; X.fillText(c.text, 0, 20); X.restore();
+}
+
+/*ENDCARD*/
+
+window.seek = (t) => {
+  X.clearRect(0, 0, W, H);
+  if (t < E.endcard + .6) {
+    const inScene = scenes(t);
+    if (!inScene) { grades(); bug(t); heads(t); cta(t); }
+    captions(t);
+  }
+  endcard(t); progress(t);
+};
+window.ready = Promise.all([load('logo', 'assets/logo-notag.png'), load('play', 'assets/dl/gp_en_crop.png'), load('appstore', 'assets/dl/as_en.svg'),
+  ...(E.images || []).map(k => load(k, `assets/${k}.png`)), document.fonts.load('80px ArB'), document.fonts.load('80px Ar'), document.fonts.load('80px En'), document.fonts.load('80px EnB')]).then(() => document.fonts.ready);

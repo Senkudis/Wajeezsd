@@ -71,59 +71,70 @@ for c in CAP:
 
 # امنع التداخل: نهاية كل مقطع ≤ بداية التالي
 for a, b in zip(caps, caps[1:]): a['e'] = min(a['e'], b['s'] - .02)
-caps[0]['s'] = max(caps[0]['s'], .3)   # الإطار الأول نظيف: العنوان وحده (صورة مصغّرة)
+caps[0]['s'] = max(caps[0]['s'], .3)
+caps[-1]['e'] = END + .35   # آخر جملة تبقى حتى مسح بطاقة النهاية   # الإطار الأول نظيف: العنوان وحده (صورة مصغّرة)
 
 T = lambda i: W[i][1]
+TE = lambda i: W[i][2]
+# ── v3: لا شيء فوق المتكلّم. المعلومة البصرية = مشهد كامل قصير، ثم عودة للوجه ──
+scenes = [
+    {'type': 'pains', 's': T(21) - .05, 'e': T(27), 'title': 'مشوار السوق يعني…',
+     'items': [{'t': T(22), 'icon': 'car', 'label': 'الزحمة'}, {'t': T(23), 'icon': 'fuel', 'label': 'البنزين الغالي'}, {'t': T(25), 'icon': 'queue', 'label': 'الصفوف'}]},
+    {'type': 'logo', 's': T(33), 'e': T(37), 'sub': 'تطبيق وجيز'},
+    {'type': 'phone', 's': T(48), 'e': T(56), 'img': 'tracking', 'title': 'تابع طلبك لحدّي ما يصلك'},
+    {'type': 'phone', 's': T(65), 'e': T(70), 'img': 'shopBrowse', 'title': 'واجهة بسيطة وسهلة', 'scroll': .35},
+]
+heads = [   # عناوين في فراغ الرأس أثناء لقطات المتكلّم فقط
+    {'s': -1, 'e': TE(15) + .05, 't': 'وين تطبيقات التوصيل؟', 'kicker': 'جاي من برّه؟', 'size': 84, 'y': 400},
+    {'s': T(37) + .05, 'e': T(42), 't': 'بسيط وسهل', 'y': 330},
+    {'s': T(42), 'e': T(47), 't': 'توصيل سريع ومضمون', 'y': 330},
+    {'s': T(58), 'e': T(65), 't': 'حدّد سعرك بنفسك', 'y': 330},
+]
 edit = {
-    'dur': DUR, 'endcard': END, 'capY': 1470, 'qLabel': 'صاحبو',
+    'dur': DUR, 'endcard': END, 'capY': 1500, 'qLabel': 'صاحبو', 'eye_y': 690,
     'bug': [T(37), END],
-    'hook': {'s': -1, 'e': W[15][2] + .1, 'y': 300, 'lines': [   # ظاهر كاملاً من الإطار الأول (صورة مصغّرة)
-        {'t': 'جاي من برّه؟', 'size': 64, 'box': '#048c5b'},
-        {'t': 'وين تطبيقات التوصيل؟', 'size': 96}]},
-    'pains': {'y': 300, 'e': T(33) + .1, 'strike': T(31), 'items': [
-        {'t': T(22), 'icon': 'car', 'label': 'الزحمة'},
-        {'t': T(23), 'icon': 'fuel', 'label': 'البنزين الغالي'},
-        {'t': T(25), 'icon': 'queue', 'label': 'الصفوف'}]},
-    'logoPop': {'s': T(33), 'e': T(37) - .05, 'y': 330},
-    'cards': [
-        {'s': T(37), 'e': T(42) - .1, 'y': 1150, 'icon': 'phone', 'title': 'بسيط وسهل جداً'},
-        {'s': T(42), 'e': T(47) - .1, 'y': 1150, 'icon': 'moto', 'title': 'توصيل سريع ومضمون'},
-        {'s': T(47), 'e': T(56) - .1, 'y': 1180, 'icon': 'pin', 'title': 'تابع طلبك لحدّي ما يصلك'},
-        {'s': T(56), 'e': T(65) - .1, 'y': 1150, 'icon': 'wallet', 'title': 'حدّد سعرك بنفسك'},
-        {'s': T(65), 'e': T(70) - .1, 'y': 1180, 'icon': 'check', 'title': 'واجهة بسيطة وسهلة'},
-    ],
-    'phones': [
-        {'s': T(48), 'e': T(55) + .2, 'img': 'tracking', 'x': 235, 'y': 150, 'w': 480, 'rot': 0.03},
-        {'s': T(65) + .1, 'e': T(70) - .1, 'img': 'shopBrowse', 'x': 235, 'y': 150, 'w': 480, 'rot': -0.03},
-    ],
-    'cta': {'s': T(74), 'e': END + .65, 'y': 330, 'text': 'حمّل التطبيق الآن'},
+    'scenes': scenes, 'heads': heads,
+    'cta': {'s': T(74), 'e': END + .6, 'y': 330, 'text': 'متوفّر على آيفون وأندرويد'},
     'images': ['tracking', 'shopBrowse'],
-    'flashes': [],
     'captions': caps,
     'endText1': 'حمّل التطبيق الآن', 'endText2': 'متوفّر على آيفون وأندرويد',
 }
 
-# المقاطع (زمن المصدر) مع الزووم: دفعات خفيفة تخفي القطعات وتعطي إيقاعاً
-Z = [  # (z, z2, cy)
-    (1.00, 1.06, .40),   # السؤال: دفع بطيء نحو الوجه
-    (1.24, 1.28, .36),   # بعد القطع: لقطة أقرب بوضوح (قطعة مقصودة لا خلل)
-    (1.00, 1.05, .40),   # بداية الحل
-    (1.20, 1.22, .36),   # «والمضمون وكمان»
-    (1.02, 1.08, .32),   # المميزات
-    (1.12, 1.20, .34),   # الدعوة
-]
-segments = [{'s': a, 'e': b, 'z': z, 'z2': z2, 'cy': cy} for (a, b), (z, z2, cy) in zip(SEGS, Z)]
-# نقاط القطع على الخط الزمني النهائي (لمؤثرات الانتقال)
+# ── مقاطع الفيديو: نقسم مقاطع الكلام عند بدايات الجمل لدفعات زووم (تغيير بصري كل 2–4 ث) ──
+FACES = json.load(open('src/faces.json'))
+def face_h(a, b):
+    hs = [r[3] for r in FACES if a <= r[0] <= b]; hs.sort(); return hs[len(hs) // 2] if hs else 330
+def src_of(t_out):
+    acc = 0
+    for a, b in SEGS:
+        if t_out <= acc + (b - a) + 1e-6: return a + t_out - acc
+        acc += b - a
+    return SEGS[-1][1]
+PUNCH_AT = [T(27), T(31), T(42), T(59), T(74)]          # «أسوي شنو» «حلّك» «بيتيح ليك» «تحدد» «حمّل»
+PUNCH_K = 1.08                                           # دفعة خفيفة: التكبير الأكبر يُليّن الوجه (المصدر 1072 عرضاً)
+punch_src = sorted(round(src_of(t), 3) for t in PUNCH_AT)
+Z_OVERRIDE = {(2.28, 6.1): 1.34,    # الافتتاح أقرب: يخفّف إحساس الزاوية العالية
+              (34.64, 35.46): 1.3}  # «رأيك شنو»: يُخرج الباب والكرسي من الكادر
+FACE_OUT = 400                                           # ارتفاع الوجه المستهدف في الإطار (لقطة متوسطة قريبة)
+segments = []
+for a, b in SEGS:
+    marks = [a] + [p for p in punch_src if a + .3 < p < b - .3] + [b]
+    for k, (x0, x1) in enumerate(zip(marks, marks[1:])):
+        base = min(1.4, max(1.04, FACE_OUT / face_h(x0, x1)))   # حجم الوجه من المقطع الفرعي نفسه
+        punched = any(abs(x0 - p) < .01 for p in punch_src)
+        z = base * (PUNCH_K if punched else 1.0)
+        for (o0, o1), zz in Z_OVERRIDE.items():                     # تصحيحات اللجنة لمقاطع بعينها
+            if abs(x0 - o0) < .01: z = zz
+        segments.append({'s': round(x0, 3), 'e': round(x1, 3), 'z': round(z, 3)})
 cuts, acc = [], 0
 for a, b in SEGS[:-1]: acc += b - a; cuts.append(round(acc, 3))
 
-sfx = [{'k': 'pop', 't': p['t'], 'g': .7} for p in edit['pains']['items']]
-sfx += [{'k': 'whoosh', 't': edit['pains']['strike'], 'g': .8}, {'k': 'riser', 't': T(33), 'd': .6, 'g': .5}, {'k': 'impact', 't': T(33), 'g': .9}]
-sfx += [{'k': 'whoosh', 't': c['s'], 'g': .55} for c in edit['cards']]
-sfx += [{'k': 'pop', 't': edit['cta']['s'], 'g': .6}, {'k': 'riser', 't': END, 'd': 1.2, 'g': .6}, {'k': 'impact', 't': END, 'g': .8}, {'k': 'chime', 't': END + 1.6, 'g': .7}]
-sfx += [{'k': 'whoosh', 't': c, 'g': .55} for c in cuts if not any(abs(c - s['t']) < .4 for s in sfx)]
+sfx = [{'k': 'whoosh', 't': sc['s'], 'g': .5} for sc in scenes]
+sfx += [{'k': 'pop', 't': it['t'], 'g': .6} for it in scenes[0]['items']]
+sfx += [{'k': 'impact', 't': scenes[1]['s'], 'g': .8}]
+sfx += [{'k': 'pop', 't': edit['cta']['s'], 'g': .5}, {'k': 'riser', 't': END, 'd': 1.0, 'g': .5}, {'k': 'impact', 't': END, 'g': .7}, {'k': 'chime', 't': END + 1.0, 'g': .6}]
 
-edit.update({'segments': segments, 'sfx': sfx, 'cuts': cuts, 'music_gain': .2, 'sfx_gain': .45})
+edit.update({'segments': segments, 'audio_segs': SEGS, 'sfx': sfx, 'cuts': cuts, 'music_gain': .2, 'sfx_gain': .4})
 json.dump(edit, open('edit.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 open('edit.js', 'w', encoding='utf-8').write('window.EDIT = ' + json.dumps(edit, ensure_ascii=False) + ';\n')
-print('speech', round(SPEECH, 2), 'endcard', END, 'dur', DUR, 'cuts', cuts)
+print('speech', round(SPEECH, 2), 'endcard', END, 'dur', DUR, 'segments', [(x['s'], x['e'], x['z']) for x in segments])

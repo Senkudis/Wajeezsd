@@ -12,30 +12,30 @@ canvas{display:block}
 <canvas id="c" width="1080" height="1920"></canvas>
 <script src="edit.js"></script>
 <script>
-// طبقة الموشن فوق الفيديو: window.seek(t) يرسم الإطار عند الثانية t (زمن المونتاج النهائي).
+// طبقة الموشن v3 — مبدأ واحد: لا شيء يغطّي المتكلّم.
+//  • لقطات المتكلّم: عنوان قصير في الفراغ فوق الرأس + ترجمة بلا صندوق في الثلث السفلي.
+//  • المعلومة البصرية (المشكلة، الشعار، شاشة التطبيق) = مشهد قطع كامل 1–3 ث ثم عودة للوجه.
+//  • منحنيات حركة ثابتة: easeOut للدخول، easeIn للخروج، ومدد قصيرة (0.25–0.45 ث).
 const C = document.getElementById('c'), X = C.getContext('2d');
-const W = 1080, H = 1920;
-const CX = 475, MAXW = 800;   // منطقة آمنة: x من 70 إلى 880 (أزرار تيك توك/ريلز يميناً)
-const COL = { g: '#048c5b', gd: '#033A27', ink: '#0d1117', gold: '#F5A623', w: '#ffffff' };
+const W = 1080, H = 1920, CX = 500;          // مركز المحتوى يسار أزرار المنصّات قليلاً
+const COL = { g: '#048c5b', gd: '#033A27', ink: '#0d1117', gold: '#F5A623', w: '#ffffff', red: '#d64545' };
 const E = window.EDIT;
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lin = (t, a, b) => clamp((t - a) / (b - a));
-const eo = (p) => 1 - Math.pow(1 - p, 3);
-const eio = (p) => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-const back = (p) => { const c = 1.7; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
-// دخول وخروج: 0→1 خلال in، ثم 1→0 قبل النهاية
-const life = (t, a, b, i = .35, o = .3) => Math.min(eo(lin(t, a, a + i)), 1 - eio(lin(t, b - o, b)));
+const eOut = (p) => 1 - Math.pow(1 - p, 3);
+const eIn = (p) => p * p * p;
+const eIO = (p) => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const eio = eIO, eo = eOut;   // أسماء قديمة تستعملها بطاقة النهاية
+const life = (t, a, b, i = .3, o = .2) => Math.min(eOut(lin(t, a, a + i)), 1 - eIn(lin(t, b - o, b)));
 
 const img = {};
 function load(k, src) { return new Promise(r => { const i = new Image(); i.onload = () => { img[k] = i; r(); }; i.onerror = () => r(); i.src = src; }); }
-
 function rr(x, y, w, h, r) { X.beginPath(); X.roundRect(x, y, w, h, r); }
 function font(f, s) { X.font = `${s}px ${f}`; }
 function shadow(b = 24, a = .35, y = 8) { X.shadowColor = `rgba(0,0,0,${a})`; X.shadowBlur = b; X.shadowOffsetY = y; }
 function noShadow() { X.shadowColor = 'transparent'; X.shadowBlur = 0; X.shadowOffsetY = 0; }
 
-// ── أيقونات خطّية (لا إيموجي) ──
 const ICON = {
   bike(s) { X.beginPath(); X.arc(-s*.32, s*.22, s*.2, 0, 7); X.moveTo(s*.52, s*.22); X.arc(s*.32, s*.22, s*.2, 0, 7);
     X.moveTo(-s*.32, s*.22); X.lineTo(-s*.05, -s*.12); X.lineTo(s*.22, -s*.12); X.lineTo(s*.32, s*.22);
@@ -57,173 +57,162 @@ const ICON = {
   phone(s) { rr(-s*.22, -s*.4, s*.44, s*.8, s*.08); X.stroke(); X.beginPath(); X.moveTo(-s*.06, s*.3); X.lineTo(s*.06, s*.3); X.stroke(); },
   check(s) { X.beginPath(); X.moveTo(-s*.26, 0); X.lineTo(-s*.06, s*.2); X.lineTo(s*.3, -s*.2); X.stroke(); },
 };
+
 function icon(name, x, y, s, color, lw) { X.save(); X.translate(x, y); X.strokeStyle = color; X.fillStyle = color; X.lineWidth = lw || s * .07; X.lineCap = 'round'; X.lineJoin = 'round'; ICON[name](s); X.restore(); }
 
-// ── تدرّج السماء + تظليل سفلي لقراءة النص ──
-function grades(t) {
-  let g = X.createLinearGradient(0, 0, 0, 760);
-  g.addColorStop(0, 'rgba(10,14,12,.30)'); g.addColorStop(1, 'rgba(10,14,12,0)');
-  X.fillStyle = g; X.fillRect(0, 0, W, 760);
-  g = X.createLinearGradient(0, 1250, 0, H);
-  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.38)');
+// نص بحدّ داكن وظل ناعم — مقروء فوق أي خلفية بلا صندوق
+function outlined(text, x, y, fill, stroke = 'rgba(0,0,0,.85)', sw = 13) {
+  X.lineJoin = 'round'; X.miterLimit = 2;
+  shadow(18, .45, 4); X.strokeStyle = stroke; X.lineWidth = sw; X.strokeText(text, x, y); noShadow();
+  X.fillStyle = fill; X.fillText(text, x, y);
+}
+
+// تظليل سفلي خفيف جداً لقراءة الترجمة (لا يُرى كصندوق)
+function grades() {
+  const g = X.createLinearGradient(0, 1250, 0, H);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.30)');
   X.fillStyle = g; X.fillRect(0, 1250, W, H - 1250);
+  // شريط ظلّ ناعم خلف الترجمة (بلا حواف) لتُقرأ فوق القميص المخطّط
+  const b = X.createLinearGradient(0, 1330, 0, 1680); b.addColorStop(0, 'rgba(0,0,0,0)'); b.addColorStop(.45, 'rgba(0,0,0,.34)'); b.addColorStop(1, 'rgba(0,0,0,0)');
+  X.fillStyle = b; X.fillRect(0, 1330, W, 350);
 }
 
-// ── شارة الشعار أعلى الشاشة ──
-function bug(t) {
-  const a = life(t, E.bug[0], E.bug[1], .6, .4); if (a <= 0 || !img.logo) return;
-  X.save(); X.globalAlpha = a * .95; const w = 170, h = w * img.logo.height / img.logo.width;
-  X.drawImage(img.logo, 60, 175 + (1 - a) * -20, w, h); X.restore();
-}
-
-// ── شريط التقدّم ──
 function progress(t) {
   if (t > E.endcard) return; const p = clamp(t / E.endcard);
-  X.fillStyle = 'rgba(255,255,255,.18)'; X.fillRect(0, 0, W, 8);
-  const g = X.createLinearGradient(W, 0, 0, 0); g.addColorStop(0, COL.gold); g.addColorStop(1, '#ffd36b');
-  X.fillStyle = g; X.fillRect(W - W * p, 0, W * p, 8);
+  X.fillStyle = 'rgba(255,255,255,.18)'; X.fillRect(0, 0, W, 6);
+  X.fillStyle = COL.gold; X.fillRect(W - W * p, 0, W * p, 6);
 }
 
-// ── الترجمة: كلمة بكلمة، الكلمة الحالية ذهبية ──
+// ── شارة الشعار الصغيرة (أعلى اليسار، تحت شريط المنصّة) ──
+function bug(t) {
+  const a = life(t, E.bug[0], E.bug[1], .5, .3); if (a <= 0 || !img.logo) return;
+  const w = 150, h = w * img.logo.height / img.logo.width;
+  X.save(); X.globalAlpha = a * .9; X.drawImage(img.logo, 64, 176, w, h); X.restore();
+}
+
+// ── عنوان في فراغ الرأس: كلمة/عبارة واحدة تلخّص الجملة ──
+function heads(t) {
+  for (const h of E.heads || []) {
+    const a = life(t, h.s, h.e, .3, .2); if (a <= 0) continue;
+    const p = eOut(lin(t, h.s, h.s + .35));
+    X.save(); X.globalAlpha = a; X.direction = 'rtl'; X.textAlign = 'center';
+    let y = h.y || 330;
+    if (h.kicker) { font('ArB', 46); const kw = X.measureText(h.kicker).width;
+      const kp = eOut(lin(t, h.s, h.s + .3)); rr(W / 2 - kw / 2 - 26, y - 150 + (1 - kp) * 16, kw + 52, 68, 34); X.fillStyle = COL.g; X.fill();
+      X.fillStyle = '#fff'; X.fillText(h.kicker, W / 2, y - 102 + (1 - kp) * 16); }
+    let size = h.size || 88; font('ArB', size); const tw = X.measureText(h.t).width; if (tw > 820) { size = Math.floor(size * 820 / tw); font('ArB', size); }
+    X.translate(0, (1 - p) * 26);
+    outlined(h.t, W / 2, y, '#fff', 'rgba(0,0,0,.6)', 12);
+    // خطّ ذهبي يتمدّد تحت العنوان
+    const u = eOut(lin(t, h.s + .15, h.s + .55)), uw = Math.min(X.measureText(h.t).width, 420) * u;
+    X.fillStyle = COL.gold; rr(W / 2 - uw / 2, y + 26, uw, 8, 4); X.fill();
+    X.restore();
+  }
+}
+
+// ── الترجمة: بلا صندوق، سطر أو سطران، الكلمة الحالية ذهبية ──
 function captions(t) {
-  const ch = E.captions.find(c => t >= c.s - .05 && t < c.e + .12); if (!ch) return;
-  const a = life(t, ch.s - .05, ch.e + .12, .12, .1);
-  const pop = back(lin(t, ch.s - .05, ch.s + .2));
-  const size = ch.big ? 92 : 76; font('ArB', size); X.direction = 'rtl';
-  const ws = ch.words.map(w => X.measureText(w.w).width), gap = size * .32;
+  const ch = E.captions.find(c => t >= c.s - .04 && t < c.e + .1); if (!ch) return;
+  const a = life(t, ch.s - .04, ch.e + .1, .1, .08);
+  const size = 74; font('ArB', size); X.direction = 'rtl';
+  const ws = ch.words.map(w => X.measureText(w.w).width), gap = size * .3;
   const width = (a0, b0) => ws.slice(a0, b0).reduce((p, q) => p + q, 0) + gap * (b0 - a0 - 1);
-  // سطر واحد إن اتّسع، وإلا سطران متوازنان (بدل تصغير الخط)
   let rows = [[0, ws.length]];
-  if (width(0, ws.length) > MAXW - 80 && ws.length > 1) {
+  if (width(0, ws.length) > 760 && ws.length > 1) {
     let best = 1, bd = 1e9;
     for (let k = 1; k < ws.length; k++) { const d = Math.max(width(0, k), width(k, ws.length)); if (d < bd) { bd = d; best = k; } }
     rows = [[0, best], [best, ws.length]];
   }
-  const lh = size * 1.25, total = Math.max(...rows.map(r => width(r[0], r[1])));
-  const y = E.capY - (rows.length - 1) * lh / 2, padX = 40, padY = 26;   // y = خط أساس السطر الأول
-  const boxTop = y - size * .78 - padY, boxH = size * 1.15 + padY * 2 + (rows.length - 1) * lh;
-  X.save(); X.globalAlpha = a;
-  const cyc = boxTop + boxH / 2; X.translate(CX, cyc); X.scale(.85 + .15 * pop, .85 + .15 * pop); X.translate(-CX, -cyc);
-  shadow(30, .35, 10); rr(CX - total / 2 - padX, boxTop, total + padX * 2, boxH, 30);
-  X.fillStyle = ch.q ? 'rgba(3,58,39,.88)' : 'rgba(13,17,23,.72)'; X.fill(); noShadow();
-  if (ch.q) { // كلام الشخص من وراء الكاميرا: شارة تميّزه عن إبراهيم
-    font('ArB', 40); const lw = X.measureText(E.qLabel).width; X.textAlign = 'center';
-    rr(CX + total / 2 + padX - lw - 44, boxTop - 50, lw + 44, 60, 30); X.fillStyle = COL.gold; X.fill();
-    X.fillStyle = COL.ink; X.fillText(E.qLabel, CX + total / 2 + padX - lw / 2 - 22, boxTop - 8); font('ArB', size);
+  const lh = size * 1.22, y0 = E.capY - (rows.length - 1) * lh;
+  X.save(); X.globalAlpha = a; X.textAlign = 'right'; X.textBaseline = 'alphabetic';
+  if (ch.q) { // الصوت من وراء الكاميرا: وسم صغير فوق الترجمة
+    font('ArB', 52); X.textAlign = 'center'; outlined(E.qLabel, CX, y0 - size - 6, COL.gold, 'rgba(0,0,0,.7)', 8);
+    font('ArB', size); X.textAlign = 'right';
   }
-  X.textAlign = 'right'; X.textBaseline = 'alphabetic';
   rows.forEach(([r0, r1], ri) => {
-    const ly = y + ri * lh; let x = CX + width(r0, r1) / 2;
+    const ly = y0 + ri * lh; let x = CX + width(r0, r1) / 2;
     for (let i = r0; i < r1; i++) {
-      const w = ch.words[i], on = t >= w.s && t < w.e + .08, past = t >= w.e;
-      if (on) { // كبسولة خلف الكلمة الحالية
-        const k = eo(lin(t, w.s, w.s + .12)); X.fillStyle = ch.q ? '#d9a21c' : COL.g; rr(x - ws[i] - 14, ly - size * .8, ws[i] + 28, size * 1.12, 16); X.globalAlpha = a * k; X.fill(); X.globalAlpha = a;
-      }
-      X.fillStyle = on ? COL.w : (w.hl ? COL.gold : (past ? '#ffffff' : 'rgba(255,255,255,.82)'));
-      X.fillText(w.w, x, ly); x -= ws[i] + gap;
+      const w = ch.words[i], on = t >= w.s && t < w.e + .06;
+      const fill = on ? COL.gold : (ch.q ? '#e9efe9' : '#ffffff');
+      X.save();
+      if (on) { const k = eOut(lin(t, w.s, w.s + .1)), s = 1 + .06 * k, mx = x - ws[i] / 2; X.translate(mx, ly); X.scale(s, s); X.translate(-mx, -ly); }
+      outlined(w.w, x, ly, fill);
+      X.restore(); x -= ws[i] + gap;
     }
   });
   X.restore();
 }
 
-// ── عنوان الخطّاف ──
-function hook(t) {
-  const H0 = E.hook; if (!H0) return; const a = life(t, H0.s, H0.e, .3, .35); if (a <= 0) return;
+// ── خلفية المشاهد الكاملة: أخضر الهوية مع ضوء مائل بطيء ──
+function sceneBg(t, s) {
+  let g = X.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#05593f'); g.addColorStop(.6, COL.gd); g.addColorStop(1, '#06120d');
+  X.fillStyle = g; X.fillRect(0, 0, W, H);
+  const k = t - s, gx = 200 + 120 * Math.sin(k * .8);
+  g = X.createRadialGradient(gx, 520, 30, gx, 520, 820); g.addColorStop(0, 'rgba(4,140,91,.55)'); g.addColorStop(1, 'rgba(4,140,91,0)');
+  X.fillStyle = g; X.fillRect(0, 0, W, H);
+}
+
+// مشهد المشكلة: ثلاث بطاقات كبيرة تظهر مع كل كلمة
+function scenePains(t, sc) {
+  sceneBg(t, sc.s);
   X.save(); X.direction = 'rtl'; X.textAlign = 'center';
-  H0.lines.forEach((ln, i) => {
-    const p = back(lin(t, H0.s + i * .18, H0.s + i * .18 + .45));
-    const y = H0.y + i * 128; X.globalAlpha = a * clamp(p);
-    font('ArB', ln.size || 110); const tw = X.measureText(ln.t).width;
-    X.save(); X.translate(W / 2, y); X.scale(.7 + .3 * p, .7 + .3 * p);
-    if (ln.box) { shadow(30, .4, 10); X.fillStyle = ln.box; rr(-tw / 2 - 34, -ln.size * .86, tw + 68, ln.size * 1.22, 22); X.fill(); noShadow(); }
-    else shadow(24, .55, 6);
-    X.fillStyle = ln.c || COL.w; X.fillText(ln.t, 0, 0); X.restore();
-  });
-  X.restore();
-}
-
-// ── بطاقة انفوجرافيك: أيقونة + عنوان + سطر ──
-function card(t, c) {
-  const a = life(t, c.s, c.e, .45, .3); if (a <= 0) return;
-  const p = back(lin(t, c.s, c.s + .55));
-  let ts = c.ts || 66; font('ArB', ts); let tw1 = X.measureText(c.title).width;
-  if (tw1 + 270 > MAXW) { ts = Math.floor(ts * (MAXW - 270) / tw1); font('ArB', ts); tw1 = X.measureText(c.title).width; } font('Ar', 46); const tw2 = c.sub ? X.measureText(c.sub).width : 0;
-  const w = Math.min(MAXW, Math.max(c.w || 560, Math.max(tw1, tw2) + 270)), h = c.h || (c.sub ? 200 : 160), x = CX - w / 2, y = c.y;
-  // دخول كطبقة واحدة: البطاقة تكبر من 0.8 وتظهر بسرعة، والنص يتبعها بعد أن تكتمل الخلفية
-  const al = Math.min(eo(lin(t, c.s, c.s + .2)), 1 - eio(lin(t, c.e - .25, c.e)));
-  X.save(); X.direction = 'rtl'; const sc = .9 + .1 * clamp(p, 0, 1.1);
-  X.translate(CX, y + h / 2); X.scale(sc, sc); X.translate(-CX, -(y + h / 2));
-  X.globalAlpha = al; shadow(40, .35 * al, 14); rr(x, y, w, h, 34); X.fillStyle = '#ffffff'; X.fill(); noShadow();
-  // شريط ذهبي جانبي
-  X.fillStyle = COL.gold; rr(x + w - 14, y + 30, 8, h - 60, 4); X.fill();
-  // دائرة الأيقونة
-  const cx = x + w - 110, cy = y + h / 2, ip = .85 + .15 * back(lin(t, c.s + .05, c.s + .45));   // نبضة خفيفة للأيقونة، دون أن تختفي
-  X.beginPath(); X.arc(cx, cy, 64 * ip, 0, 7); X.fillStyle = COL.g; X.fill();
-  icon(c.icon, cx, cy, 92 * ip, '#fff', 6.5);
-  X.textAlign = 'right'; X.fillStyle = COL.ink; font('ArB', ts); X.fillText(c.title, cx - 100, cy - (c.sub ? 8 : -20));
-  if (c.sub) { font('Ar', 46); X.fillStyle = '#4b5563'; X.fillText(c.sub, cx - 100, cy + 56); }
-  if (c.num) { // رقم كبير يعدّ تصاعدياً
-    const n = Math.round(c.num * eo(lin(t, c.s + .2, c.s + 1.1)));
-    font('EnB', 84); X.textAlign = 'left'; X.direction = 'ltr'; X.fillStyle = COL.g; X.fillText(n + (c.unit || ''), x + 46, cy + 30);
-  }
-  X.restore();
-}
-
-// ── شاشة التطبيق داخل هاتف ينزلق ──
-function phone(t, ph) {
-  const a = life(t, ph.s, ph.e, .5, .35); if (a <= 0 || !img[ph.img]) return;
-  const p = eo(lin(t, ph.s, ph.s + .6)); const im = img[ph.img];
-  const w = ph.w || 380, sh = w * im.height / im.width, h = Math.min(sh, w * 2.05);
-  const x = ph.x + (1 - p) * (ph.x > W / 2 ? 500 : -500), y = ph.y + Math.sin(t * 1.6) * 6;
-  X.save(); X.globalAlpha = a; X.translate(x + w / 2, y + h / 2); X.rotate((ph.rot || 0) * (1 - .3 * p)); X.translate(-w / 2, -h / 2);
-  shadow(50, .5, 20); rr(-16, -16, w + 32, h + 32, 54); X.fillStyle = '#111'; X.fill(); noShadow();
-  X.save(); rr(0, 0, w, h, 40); X.clip(); X.drawImage(im, 0, 0, im.width, h * im.width / w, 0, 0, w, h); X.restore();
-  X.restore();
-}
-
-// ── شرائح المشكلة (الزحمة، البنزين، الصفوف) تُشطب لحظة ظهور الحل ──
-function chips(t) {
-  const P = E.pains; if (!P || t < P.items[0].t - .1 || t > P.e) return;
-  const out = 1 - eio(lin(t, P.e - .35, P.e));
-  P.items.forEach((it, i) => {
-    const p = back(lin(t, it.t, it.t + .4)); if (p <= 0) return;
-    const y = P.y + i * 150; X.save(); X.globalAlpha = clamp(p) * out; X.direction = 'rtl';
-    font('ArB', 64); const tw = X.measureText(it.label).width, w = tw + 200, x = W / 2 - w / 2 + (1 - clamp(p)) * 120 * (i % 2 ? -1 : 1);
-    X.translate(W / 2, y); X.scale(.8 + .2 * clamp(p), .8 + .2 * clamp(p)); X.translate(-W / 2, -y);
-    shadow(30, .35, 10); rr(x, y - 58, w, 116, 58); X.fillStyle = 'rgba(13,17,23,.78)'; X.fill(); noShadow();
-    X.beginPath(); X.arc(x + w - 62, y, 40, 0, 7); X.fillStyle = '#d64545'; X.fill(); icon(it.icon, x + w - 62, y, 58, '#fff', 5);
-    X.textAlign = 'right'; X.fillStyle = '#fff'; X.fillText(it.label, x + w - 122, y + 22);
-    // الشطب
-    const k = eio(lin(t, P.strike + i * .08, P.strike + i * .08 + .3));
-    if (k > 0) { X.strokeStyle = COL.gold; X.lineWidth = 9; X.lineCap = 'round'; X.beginPath(); X.moveTo(x + w - 18, y); X.lineTo(x + w - 18 - (w - 36) * k, y); X.stroke(); }
+  const tp = eOut(lin(t, sc.s, sc.s + .3)); X.globalAlpha = tp; font('ArB', 60); outlined(sc.title, W / 2, 420 + (1 - tp) * 20, 'rgba(255,255,255,.92)', 'rgba(0,0,0,.35)', 6);
+  sc.items.forEach((it, i) => {
+    const p = eOut(lin(t, it.t, it.t + .32)); if (p <= 0) return;
+    const y = 560 + i * 230, w = 760, h = 190, x = W / 2 - w / 2;
+    X.globalAlpha = p; X.save(); X.translate(0, (1 - p) * 40);
+    shadow(40, .35, 14); rr(x, y, w, h, 36); X.fillStyle = 'rgba(255,255,255,.97)'; X.fill(); noShadow();
+    X.beginPath(); X.arc(x + w - 110, y + h / 2, 64, 0, 7); X.fillStyle = COL.red; X.fill(); icon(it.icon, x + w - 110, y + h / 2, 92, '#fff', 6.5);
+    X.textAlign = 'right'; font('ArB', 72); X.fillStyle = COL.ink; X.fillText(it.label, x + w - 210, y + h / 2 + 26);
     X.restore();
   });
+  X.restore();
 }
 
-// ── ظهور الشعار الكبير مع حلقات ──
-function logoPop(t) {
-  const L = E.logoPop; if (!L || !img.logo) return; const a = life(t, L.s, L.e, .2, .3); if (a <= 0) return;
-  const p = back(lin(t, L.s, L.s + .5)); const w = 520 * (.5 + .5 * clamp(p, 0, 1.15)), h = w * img.logo.height / img.logo.width;
-  X.save(); X.globalAlpha = a;
-  for (let r = 0; r < 3; r++) { const k = lin(t, L.s + r * .12, L.s + .9 + r * .12); if (k > 0 && k < 1) { X.strokeStyle = `rgba(245,166,35,${.8 * (1 - k)})`; X.lineWidth = 10 * (1 - k); X.beginPath(); X.arc(W / 2, L.y, 100 + 230 * eo(k), 0, 7); X.stroke(); } }
-  shadow(40, .45, 10); X.drawImage(img.logo, W / 2 - w / 2, L.y - h / 2, w, h); noShadow(); X.restore();
+// مشهد الشعار: ظهور واثق مع حلقات ذهبية
+function sceneLogo(t, sc) {
+  sceneBg(t, sc.s);
+  const k = t - sc.s, p = eOut(lin(k, 0, .45));
+  for (let r = 0; r < 2; r++) { const q = lin(k, r * .15, .9 + r * .15); if (q > 0 && q < 1) { X.strokeStyle = `rgba(245,166,35,${.7 * (1 - q)})`; X.lineWidth = 8 * (1 - q); X.beginPath(); X.arc(W / 2, 820, 160 + 360 * eOut(q), 0, 7); X.stroke(); } }
+  if (img.logo) { const w = 640 * (.88 + .12 * p), h = w * img.logo.height / img.logo.width; X.globalAlpha = p; X.drawImage(img.logo, W / 2 - w / 2, 820 - h / 2, w, h); X.globalAlpha = 1; }
+  if (sc.sub) { const q = eOut(lin(k, .25, .6)); X.globalAlpha = q; X.direction = 'rtl'; X.textAlign = 'center'; font('ArB', 58); X.fillStyle = 'rgba(255,255,255,.9)'; X.fillText(sc.sub, W / 2, 1110 + (1 - q) * 18); X.globalAlpha = 1; }
+}
+
+// مشهد شاشة التطبيق: هاتف كبير في المنتصف + عنوان
+function scenePhone(t, sc) {
+  sceneBg(t, sc.s);
+  const k = t - sc.s, p = eOut(lin(k, 0, .45));
+  X.save(); X.direction = 'rtl'; X.textAlign = 'center'; X.globalAlpha = eOut(lin(k, 0, .3)); font('ArB', 70);
+  outlined(sc.title, W / 2, 300 + (1 - p) * 20, '#fff', 'rgba(0,0,0,.35)', 6);
+  const uw = 300 * eOut(lin(k, .15, .55)); X.fillStyle = COL.gold; rr(W / 2 - uw / 2, 330, uw, 8, 4); X.fill(); X.restore();
+  const im = img[sc.img]; if (!im) return;
+  const w = 480, h = Math.min(w * im.height / im.width, w * 1.8), x = W / 2 - w / 2, y = 410 + (1 - p) * 120 - k * 14;
+  X.save(); X.globalAlpha = p;
+  shadow(60, .5, 24); rr(x - 18, y - 18, w + 36, h + 36, 62); X.fillStyle = '#0b0b0b'; X.fill(); noShadow();
+  X.save(); rr(x, y, w, h, 46); X.clip();
+  const sy = (sc.scroll || 0) * eIO(lin(k, .5, sc.e - sc.s)) * (im.height * w / im.width - h);   // تمرير بطيء للشاشات الطويلة
+  X.drawImage(im, x, y - sy, w, im.height * w / im.width); X.restore();
+  X.restore();
+}
+
+function scenes(t) {
+  for (const sc of E.scenes || []) {
+    if (t < sc.s || t >= sc.e) continue;
+    if (sc.type === 'pains') scenePains(t, sc); else if (sc.type === 'logo') sceneLogo(t, sc); else if (sc.type === 'phone') scenePhone(t, sc);
+    return true;
+  }
+  return false;
 }
 
 // ── شارة الدعوة أعلى الشاشة ──
 function cta(t) {
   const c = E.cta; if (!c) return; const a = life(t, c.s, c.e, .3, .2); if (a <= 0) return;
-  const p = back(lin(t, c.s, c.s + .45)); X.save(); X.globalAlpha = a; X.direction = 'rtl'; X.textAlign = 'center';
-  font('ArB', 84); const tw = X.measureText(c.text).width; X.translate(W / 2, c.y); const s = clamp(p, 0, 1.2) * (1 + .025 * Math.sin(t * 9)); X.scale(s, s);
-  shadow(40, .4, 12); rr(-tw / 2 - 50, -84, tw + 100, 140, 70); X.fillStyle = COL.gold; X.fill(); noShadow();
-  X.fillStyle = COL.ink; X.fillText(c.text, 0, 22); X.restore();
+  const p = eOut(lin(t, c.s, c.s + .35)); X.save(); X.globalAlpha = a; X.direction = 'rtl'; X.textAlign = 'center';
+  font('ArB', 72); const tw = X.measureText(c.text).width; X.translate(W / 2, c.y + (1 - p) * 20);
+  shadow(30, .35, 10); rr(-tw / 2 - 46, -74, tw + 92, 120, 60); X.fillStyle = COL.gold; X.fill(); noShadow();
+  X.fillStyle = COL.ink; X.fillText(c.text, 0, 20); X.restore();
 }
 
-// ── حلقات/وميض للانتقالات ──
-function flash(t) {
-  for (const f of E.flashes || []) { const k = lin(t, f, f + .25); if (k > 0 && k < 1) { X.fillStyle = `rgba(255,255,255,${.35 * (1 - k)})`; X.fillRect(0, 0, W, H); } }
-}
-
-// ── بطاقة النهاية ──
 function endcard(t) {
   const s = E.endcard; if (t < s) return; const k = t - s, EC = 500;   // مركز المحتوى بعيداً عن أزرار المنصّة يميناً
   // انتقال: ستارة تصعد من الأسفل بحافّة ذهبية رفيعة
@@ -257,17 +246,17 @@ function endcard(t) {
   X.globalAlpha = 1;
 }
 
+
 window.seek = (t) => {
   X.clearRect(0, 0, W, H);
-  if (t < E.endcard + .7) {
-    grades(t); bug(t); hook(t); chips(t); logoPop(t); cta(t);
-    for (const ph of E.phones || []) phone(t, ph);
-    for (const c of E.cards || []) card(t, c);
-    captions(t); flash(t);
+  if (t < E.endcard + .6) {
+    const inScene = scenes(t);
+    if (!inScene) { grades(); bug(t); heads(t); cta(t); }
+    captions(t);
   }
   endcard(t); progress(t);
 };
-window.ready = Promise.all([load('logo', 'assets/logo-notag.png'), load('play', 'assets/dl/gp_en_crop.png'), load('appstore', 'assets/dl/as_en.svg'), load('mark', 'assets/logo-mark-white.png'),
+window.ready = Promise.all([load('logo', 'assets/logo-notag.png'), load('play', 'assets/dl/gp_en_crop.png'), load('appstore', 'assets/dl/as_en.svg'),
   ...(E.images || []).map(k => load(k, `assets/${k}.png`)), document.fonts.load('80px ArB'), document.fonts.load('80px Ar'), document.fonts.load('80px En'), document.fonts.load('80px EnB')]).then(() => document.fonts.ready);
 </script>
 </body></html>
