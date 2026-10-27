@@ -92,18 +92,21 @@
                 <i class="bi bi-box-arrow-in-right ms-2"></i> تسجيل الدخول
             </button>
 
-            <!-- ✅ Google Sign-In Divider — مخفي مؤقتاً -->
-            <!-- <div class="d-flex align-items-center my-3">
-                <hr class="flex-grow-1">
-                <span class="px-3 text-muted small fw-bold">أو</span>
-                <hr class="flex-grow-1">
+            <!-- Google Sign-In: يظهره setupGoogleSignIn() — زر Google الرسمي على الويب، وزرّ أصلي في أندرويد، ومخفي في iOS -->
+            <div id="google-signin-wrap" class="d-none">
+                <div class="d-flex align-items-center my-3">
+                    <hr class="flex-grow-1">
+                    <span class="px-3 text-muted small fw-bold">أو</span>
+                    <hr class="flex-grow-1">
+                </div>
+                <div id="google-signin-web" class="d-none d-flex justify-content-center mb-3"></div>
+                <button id="google-signin-btn" type="button"
+                    class="btn w-100 py-3 mb-3 fw-bold shadow-sm align-items-center justify-content-center gap-2 d-none"
+                    onclick="loginWithGoogle()"
+                    style="background:#fff; border:2px solid #dadce0; color:#3c4043; border-radius:12px;">
+                    الدخول بواسطة جوجل
+                </button>
             </div>
-            <button id="google-signin-btn"
-                class="btn w-100 py-3 mb-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
-                onclick="loginWithGoogle()"
-                style="background:#fff; border:2px solid #dadce0; color:#3c4043; border-radius:12px;">
-                الدخول بواسطة جوجل
-            </button> -->
 
             <!-- Register + Back links -->
             <div class="text-center mt-4">
@@ -282,6 +285,7 @@
     </div>
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="js/google-signin.js?v=8d46e48c"></script>
     <script>
         // =============================================
         // Shared alert helper
@@ -518,40 +522,58 @@
         // Google Sign-In — Step 1
         // =============================================
         let _pendingGoogleData = null;
-        let _GoogleAuth = null; // cached after first load
 
+        // الويب يرسم زر Google الرسمي، وأندرويد يُظهر الزر الأصلي (js/google-signin.js)
+        function setupGoogleSignIn() {
+            const G = window.WajeezGoogle;
+            if (!G || !G.available()) return;
+            const wrap = document.getElementById('google-signin-wrap');
+            wrap.classList.remove('d-none');
+            if (G.platform === 'web') {
+                const box = document.getElementById('google-signin-web');
+                box.classList.remove('d-none');
+                G.mountWebButton(box, handleGoogleToken).catch((err) => {
+                    console.error('Google button error:', err);
+                    wrap.classList.add('d-none');
+                });
+            } else {
+                const btn = document.getElementById('google-signin-btn');
+                btn.classList.remove('d-none');
+                btn.classList.add('d-flex');
+            }
+        }
+        setupGoogleSignIn();
+
+        // أندرويد: الـ plugin الأصلي يعيد توكن الهوية
         async function loginWithGoogle() {
             const btn = document.getElementById('google-signin-btn');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الاتصال بجوجل...';
             btn.disabled = true;
-
             try {
-                // 1. Lazy-load the plugin (guarantees it is ready before signIn)
-                if (!_GoogleAuth) {
-                    const mod = await import('https://cdn.jsdelivr.net/npm/@codetrix-studio/capacitor-google-auth@3.4.0-rc.4/+esm');
-                    _GoogleAuth = mod.GoogleAuth;
-                    // Initialize for web platform (no-op on Android native)
-                    await _GoogleAuth.initialize({
-                        clientId: '168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com',
-                        scopes: ['profile', 'email'],
-                        grantOfflineAccess: true
-                    });
+                await handleGoogleToken(await window.WajeezGoogle.nativeIdToken());
+            } catch (err) {
+                // تفاصيل الخطأ في الكونسول فقط
+                console.error('Google sign-in error:', err);
+                const msg = String((err && err.message) || '').toLowerCase();
+                if (msg.includes('cancel') || msg.includes('dismiss')) {
+                    showAlert('تم إلغاء تسجيل الدخول بجوجل.', 'error');
+                } else {
+                    showAlert('خطأ في تسجيل الدخول بجوجل. تأكد من الاتصال وحاول مجدداً.', 'error');
                 }
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
 
-                // 2. Force account chooser by signing out first, then sign in
-                try { await _GoogleAuth.signOut(); } catch (_) { /* ignore - might not have active session */ }
-                const googleUser = await _GoogleAuth.signIn();
-                const idToken = googleUser?.authentication?.idToken;
-
-                if (!idToken) {
-                    showAlert('لم نتمكن من الحصول على بيانات جوجل. حاول مجدداً.', 'error');
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    return;
-                }
-
-                // 3. Send to backend for verification
+        // يتحقق الخادم من التوكن: مستخدم موجود يدخل، وجديد يؤكد رقم هاتفه أولاً
+        async function handleGoogleToken(idToken) {
+            if (!idToken) {
+                showAlert('لم نتمكن من الحصول على بيانات جوجل. حاول مجدداً.', 'error');
+                return;
+            }
+            try {
                 const res = await fetch(`${API_URL}/api/auth/google`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -561,48 +583,31 @@
 
                 if (!res.ok) {
                     showAlert(data.message || 'فشل التحقق من جوجل.', 'error');
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
                     return;
                 }
 
                 if (data.requiresPhone) {
                     _pendingGoogleData = data.googleData;
-                    // Reset UI
-                    document.getElementById('otp-modal-greeting').innerHTML = `مرحباً <strong>${data.googleData.name || ''}</strong>! 👋<br>نحتاج لتأكيد رقم هاتفك لإكمال تسجيل الدخول.`;
+                    document.getElementById('otp-modal-greeting').innerHTML = `مرحباً <strong>${data.googleData.name || ''}</strong><br>نحتاج لتأكيد رقم هاتفك لإكمال تسجيل الدخول.`;
                     document.getElementById('otp-phone').value = '';
                     document.getElementById('otp-code').value = '';
                     document.getElementById('otp-step-1').classList.remove('d-none');
                     document.getElementById('otp-step-2').classList.add('d-none');
                     document.getElementById('otp-modal-alert').classList.add('d-none');
-
-                    const modal = new bootstrap.Modal(document.getElementById('otpModal'));
-                    modal.show();
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    new bootstrap.Modal(document.getElementById('otpModal')).show();
                     return;
                 }
 
                 // Existing user — sign in immediately
                 if (typeof CityService !== 'undefined' && data.user && data.user.city) CityService.setCity(data.user.city);
                 window.Auth.setAuth(data.token, data.user);
-                showAlert('تم تسجيل الدخول بنجاح! 🎉', 'success');
+                showAlert('تم تسجيل الدخول بنجاح', 'success');
                 const returnUrl = localStorage.getItem('returnUrl') || 'index.html';
                 localStorage.removeItem('returnUrl');
                 setTimeout(() => { window.location.replace(returnUrl); }, 700);
-
             } catch (err) {
-                // تفاصيل الخطأ في الكونسول فقط. كان هنا alert تشخيصي
-                // بالإنجليزية يظهر للمستخدم قبل الرسالة العربية — ويظهر حتى
-                // عند مجرّد إغلاق نافذة جوجل، وهي حالة يُفترض أن تمرّ صامتة.
-                console.error('Google sign-in error:', err);
-                if (err.message && (err.message.toLowerCase().includes('cancel') || err.message.toLowerCase().includes('dismiss'))) {
-                    showAlert('تم إلغاء تسجيل الدخول بجوجل.', 'error');
-                } else {
-                    showAlert('خطأ في تسجيل الدخول بجوجل. تأكد من الاتصال وحاول مجدداً.', 'error');
-                }
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                console.error('Google verify error:', err);
+                showAlert('خطأ في تسجيل الدخول بجوجل. تأكد من الاتصال وحاول مجدداً.', 'error');
             }
         }
 

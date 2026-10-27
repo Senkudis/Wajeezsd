@@ -36,6 +36,22 @@ function isVerifiedGoogleEmail(payload) {
 
 const GOOGLE_UNVERIFIED_MESSAGE = 'بريد حساب Google غير مؤكَّد — لا يمكن استخدامه للدخول';
 
+// 🔑 الـ Web OAuth client لمشروع وجيز (168664276687). الويب (Google Identity Services) والتطبيق
+//    (serverClientId في capacitor.config) يطلبان التوكن له، فهو الجمهور (aud) دائماً.
+//    كان التحقق يعتمد على GOOGLE_CLIENT_ID وحده، وقيمته في البيئة من مشروع آخر ⇒ كل دخول يُرفض.
+//    معرّف الـ client عامّ لا سرّي؛ GOOGLE_CLIENT_ID (قائمة بفواصل) يضيف جماهير أخرى إن لزم.
+const WAJEEZ_WEB_CLIENT_ID = '168664276687-64upjeh9ef6ph9r48jns5k46qe809mel.apps.googleusercontent.com';
+const GOOGLE_AUDIENCES = [...new Set([
+    WAJEEZ_WEB_CLIENT_ID,
+    ...String(process.env.GOOGLE_CLIENT_ID || '').split(',').map(s => s.trim()).filter(Boolean),
+])];
+const googleClient = new OAuth2Client();
+
+async function verifyGoogleIdToken(idToken) {
+    const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_AUDIENCES });
+    return ticket.getPayload();
+}
+
 // ==========================================
 // 🛡️ Strict Rate Limiters (Clients & Captains)
 // ==========================================
@@ -1218,14 +1234,7 @@ router.post('/google', async (req, res) => {
         if (!idToken) return res.status(400).json({ message: 'idToken مطلوب' });
 
         // 1. Verify with Google
-        const googleClient = new OAuth2Client(
-            process.env.GOOGLE_CLIENT_ID
-        );
-        const ticket = await googleClient.verifyIdToken({
-            idToken,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-        const payload = ticket.getPayload();
+        const payload = await verifyGoogleIdToken(idToken);
         if (!isVerifiedGoogleEmail(payload)) {
             return res.status(403).json({ message: GOOGLE_UNVERIFIED_MESSAGE });
         }
@@ -1283,14 +1292,7 @@ router.post('/google/complete', async (req, res) => {
         }
 
         // 1. Re-verify idToken server-side (never trust client data)
-        const googleClient = new OAuth2Client(
-            process.env.GOOGLE_CLIENT_ID
-        );
-        const ticket = await googleClient.verifyIdToken({
-            idToken,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-        const payload = ticket.getPayload();
+        const payload = await verifyGoogleIdToken(idToken);
         if (!isVerifiedGoogleEmail(payload)) {
             return res.status(403).json({ message: GOOGLE_UNVERIFIED_MESSAGE });
         }
@@ -1445,9 +1447,7 @@ router.post('/verify-otp', otpLimiter, async (req, res) => {
         // 3. User Creation Logic
         if (!user && googleData) {
             // New User via Google Sign-In 2-Step Flow
-            const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-            const ticket = await googleClient.verifyIdToken({ idToken: googleData.idToken, audience: process.env.GOOGLE_CLIENT_ID });
-            const payload = ticket.getPayload();
+            const payload = await verifyGoogleIdToken(googleData.idToken);
             if (!isVerifiedGoogleEmail(payload)) {
                 return res.status(403).json({ message: GOOGLE_UNVERIFIED_MESSAGE });
             }
