@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:ArB;src:url('../brand-fonts/arabic-modern/ArabicModern-Bold.otf')}
+html,body{margin:0;background:#000}canvas{display:block}
+</style></head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// غلاف الإعلان: نفس وعد الهوك («مشوار السوق بقى هم؟») + الحل، والوجه مكشوف بالكامل.
+// العناصر داخل قصّ الشبكة 3:4 (y من 240 إلى 1680).
+const X = document.getElementById('c').getContext('2d'), W = 1080, H = 1920;
+const GOLD = '#F5A623', G = '#048c5b', INK = '#0d1117';
+const load = (s) => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = s; });
+function outlined(t, x, y, fill, sw = 14) { X.lineJoin = 'round'; X.shadowColor = 'rgba(0,0,0,.5)'; X.shadowBlur = 24; X.shadowOffsetY = 6;
+  X.strokeStyle = 'rgba(0,0,0,.6)'; X.lineWidth = sw; X.strokeText(t, x, y); X.shadowColor = 'transparent'; X.fillStyle = fill; X.fillText(t, x, y); }
+window.ready = (async () => {
+  const [bg, logo] = await Promise.all([load('assets/cover_bg.png'), load('assets/logo-notag.png')]); await document.fonts.load('80px ArB');
+  X.drawImage(bg, 0, 0, W, H);
+  let g = X.createLinearGradient(0, 0, 0, 760); g.addColorStop(0, 'rgba(8,10,9,.62)'); g.addColorStop(1, 'rgba(8,10,9,0)'); X.fillStyle = g; X.fillRect(0, 0, W, 760);
+  g = X.createLinearGradient(0, 1250, 0, H); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.7)'); X.fillStyle = g; X.fillRect(0, 1250, W, H - 1250);
+  X.direction = 'rtl'; X.font = '112px ArB';
+  const title = 'مشوار السوق', accent = 'بقى هم؟';
+  X.textAlign = 'center'; outlined(title, W / 2, 350, '#fff');
+  outlined(accent, W / 2, 485, GOLD);
+  // شارة الحل مع الشعار
+  X.font = '78px ArB'; const txt = 'الحل في وجيز', tw = X.measureText(txt).width, lw = 92, lh = lw * logo.height / logo.width;
+  const mark = 150, pw = tw + mark + 110, ph = 150, px = W / 2 - pw / 2, py = 1450;
+  X.shadowColor = 'rgba(0,0,0,.45)'; X.shadowBlur = 40; X.shadowOffsetY = 14;
+  X.beginPath(); X.roundRect(px, py, pw, ph, 75); X.fillStyle = G; X.fill(); X.shadowColor = 'transparent';
+  // رمز الشعار (الدائرة والسهم) فقط: الجزء الأيمن من ملف الشعار
+  const cut = .43; X.drawImage(logo, logo.width * (1 - cut), 0, logo.width * cut, logo.height, px + 40, py + 22, (ph - 44) * (logo.width * cut) / logo.height, ph - 44);
+  X.fillStyle = '#fff'; X.textAlign = 'right'; X.fillText(txt, px + pw - 50, py + 102);
+})();
+</script></body></html>

@@ -53,7 +53,7 @@ fc.append(f"[3:a]volume='if(lt(t,{END}),{E.get('music_gain',0.22)},0.75)':eval=f
 fc.append("[mus0][key]sidechaincompress=threshold=0.03:ratio=6:attack=15:release=350:makeup=1[mus]")
 fc.append(f"[4:a]volume={E.get('sfx_gain',0.5)}[sfx]")
 fc.append(f"[voice][mus][sfx]amix=inputs=3:normalize=0:duration=first,atrim=0:{DUR},"
-          "loudnorm=I=-14:TP=-1.0:LRA=9,aresample=48000[aout]")
+          "loudnorm=I=-14:TP=-1.0:LRA=9,aresample=48000,afade=t=in:d=0.01[aout]")
 
 cmd = [FF, '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
        '-i', SRC, '-i', 'out/voice_pre.wav', '-i', 'out/overlay.mov', '-i', 'out/music.wav', '-i', 'out/sfx.wav',

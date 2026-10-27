@@ -73,7 +73,7 @@ add(M, pluck(2 * D, 2.5, .8), END, 1.0); add(M, pluck(2 * A, 2.5, .8), END + .12
 # تلاشي نهاية الملف
 fade = np.ones(n); k = int(1.2 * SR); fade[-k:] = np.linspace(1, 0, k); M *= fade
 # الموسيقى قبل الخطّاف تبدأ بلطف
-k = int(.4 * SR); M[:, :k] *= np.linspace(0, 1, k)
+k = int(.03 * SR); M[:, :k] *= np.linspace(0, 1, k)   # تبدأ فوراً مع الهوك
 
 # ── المؤثرات ──
 S = buf()

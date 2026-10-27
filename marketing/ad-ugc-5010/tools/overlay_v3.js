@@ -91,7 +91,7 @@ function captions(t) {
   const lh = size * 1.22, y0 = E.capY - (rows.length - 1) * lh;
   X.save(); X.globalAlpha = a; X.textAlign = 'right'; X.textBaseline = 'alphabetic';
   if (ch.q) { // الصوت من وراء الكاميرا: وسم صغير فوق الترجمة
-    font('ArB', 52); X.textAlign = 'center'; outlined(E.qLabel, CX, y0 - size - 6, COL.gold, 'rgba(0,0,0,.7)', 8);
+    font('ArB', 60); X.textAlign = 'center'; outlined(E.qLabel, CX, y0 - size - 6, COL.gold, 'rgba(0,0,0,.7)', 8);
     font('ArB', size); X.textAlign = 'right';
   }
   rows.forEach(([r0, r1], ri) => {
@@ -109,21 +109,34 @@ function captions(t) {
 }
 
 // ── خلفية المشاهد الكاملة: أخضر الهوية مع ضوء مائل بطيء ──
-function sceneBg(t, s) {
-  let g = X.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#05593f'); g.addColorStop(.6, COL.gd); g.addColorStop(1, '#06120d');
+function sceneBg(t, s, tone) {
+  const pr = tone === 'problem';   // المشكلة: فحمي مع توهّج أحمر — والحل لاحقاً بأخضر الهوية
+  let g = X.createLinearGradient(0, 0, 0, H);
+  if (pr) { g.addColorStop(0, '#2a1416'); g.addColorStop(.6, '#141012'); g.addColorStop(1, '#070607'); }
+  else { g.addColorStop(0, '#05593f'); g.addColorStop(.6, COL.gd); g.addColorStop(1, '#06120d'); }
   X.fillStyle = g; X.fillRect(0, 0, W, H);
-  const k = t - s, gx = 200 + 120 * Math.sin(k * .8);
-  g = X.createRadialGradient(gx, 520, 30, gx, 520, 820); g.addColorStop(0, 'rgba(4,140,91,.55)'); g.addColorStop(1, 'rgba(4,140,91,0)');
+  const k = Math.max(0, t - s), gx = 200 + 120 * Math.sin(k * .8);
+  g = X.createRadialGradient(gx, 520, 30, gx, 520, 820);
+  g.addColorStop(0, pr ? 'rgba(214,69,69,.38)' : 'rgba(4,140,91,.55)'); g.addColorStop(1, pr ? 'rgba(214,69,69,0)' : 'rgba(4,140,91,0)');
   X.fillStyle = g; X.fillRect(0, 0, W, H);
 }
 
 // مشهد المشكلة: ثلاث بطاقات كبيرة تظهر مع كل كلمة
 function scenePains(t, sc) {
-  sceneBg(t, sc.s);
-  X.save(); X.direction = 'rtl'; X.textAlign = 'center';
-  const tp = eOut(lin(t, sc.s, sc.s + .3)); X.globalAlpha = tp; font('ArB', 60); outlined(sc.title, W / 2, 420 + (1 - tp) * 20, 'rgba(255,255,255,.92)', 'rgba(0,0,0,.35)', 6);
+  sceneBg(t, sc.s, sc.tone);
+  // اهتزاز قصير يتلاشى مع كل ضربة
+  let sh = 0; for (const it of sc.items) { const d = t - it.t; if (d >= 0 && d < .18) sh = Math.max(sh, 14 * (1 - d / .18)); }
+  X.save(); X.translate(sh * Math.sin(t * 157), sh * Math.cos(t * 131));
+  X.direction = 'rtl'; X.textAlign = 'center';
+  const tp = eOut(lin(t, sc.s, sc.s + .3)); X.globalAlpha = tp; font('ArB', 96); const ty = 430 + (1 - tp) * 20;
+  if (sc.accent && sc.title.endsWith(sc.accent)) { // الكلمة المفتاحية بالذهبي، والباقي أبيض — كل جزء يُرسم مرة واحدة
+    const head = sc.title.slice(0, -sc.accent.length), tw = X.measureText(sc.title).width;
+    X.textAlign = 'right'; outlined(head, W / 2 + tw / 2, ty, '#fff', 'rgba(0,0,0,.5)', 10);
+    X.textAlign = 'left'; outlined(sc.accent, W / 2 - tw / 2, ty, COL.gold, 'rgba(0,0,0,.5)', 10); X.textAlign = 'center';
+  } else outlined(sc.title, W / 2, ty, '#fff', 'rgba(0,0,0,.5)', 10);
+  const q = sc.q ? eOut(lin(t, sc.q.t, sc.q.t + .25)) : 0;   // لحظة السؤال: البطاقات تنسحب والسؤال يتصدّر
   sc.items.forEach((it, i) => {
-    const p = eOut(lin(t, it.t, it.t + .32)); if (p <= 0) return;
+    const p = eOut(lin(t, it.t, it.t + .32)) * (1 - q); if (p <= 0) return;
     const y = 560 + i * 230, w = 760, h = 190, x = W / 2 - w / 2;
     X.globalAlpha = p; X.save(); X.translate(0, (1 - p) * 40);
     shadow(40, .35, 14); rr(x, y, w, h, 36); X.fillStyle = 'rgba(255,255,255,.97)'; X.fill(); noShadow();
@@ -131,6 +144,10 @@ function scenePains(t, sc) {
     X.textAlign = 'right'; font('ArB', 72); X.fillStyle = COL.ink; X.fillText(it.label, x + w - 210, y + h / 2 + 26);
     X.restore();
   });
+  if (q > 0) {
+    X.globalAlpha = q; X.textAlign = 'center'; const s2 = .8 + .2 * q; X.save(); X.translate(W / 2, 900); X.scale(s2, s2);
+    font('ArB', 150); outlined(sc.q.text, 0, 0, COL.gold, 'rgba(0,0,0,.55)', 14); X.restore();
+  }
   X.restore();
 }
 
