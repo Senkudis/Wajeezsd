@@ -26,6 +26,9 @@
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <style>
+        /* زرّ الوضع الليلي على الترويسة الخضراء: القمر الرمادي (dark-mode.css) لا يُرى عليها */
+        .hdr-theme .theme-moon { fill: #ffffff !important; }
+
         body { background: var(--wn-bg) !important; }
     </style>
 </head>
@@ -63,7 +66,12 @@
                         </div>
                     </div>
                 </div>
-                <img src="logo-mark-white.png" alt="وجيز" style="height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+                <div class="d-flex align-items-center gap-2">
+                    <!-- الوضع الليلي في الترويسة بدل الزرّ العائم فوق المحتوى -->
+                    <button type="button" class="hdr-theme" data-theme-toggle aria-label="الوضع الليلي"
+                        style="width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;justify-content:center;"></button>
+                    <img src="logo-mark-white.png" alt="وجيز" style="height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+                </div>
             </div>
         </div>
     </div>
@@ -124,7 +132,7 @@
         }
     </script>
     <!-- Auth Helper & App Core -->
-    <script src="js/theme-manager.js?v=9030b1eb"></script>
+    <script src="js/theme-manager.js?v=4253109c"></script>
     <script src="js/input-hardener.js?v=95c0e89c"></script>
 <script src="js/app-core.js?v=34ddc6dc"></script>
     <script src="js/native-notifications.js?v=6426d1e7"></script>

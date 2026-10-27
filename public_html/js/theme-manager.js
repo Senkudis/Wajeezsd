@@ -60,7 +60,10 @@ const ThemeManager = {
 
         const buttons = document.querySelectorAll('.theme-toggle, .header-theme-toggle, .gv-theme-btn, [data-theme-toggle]');
         buttons.forEach(btn => {
-            btn.innerHTML = iconHtml;
+            // بندُ قائمة (data-theme-label) يحتفظ بنصّه بجانب الأيقونة، ويتبدّل مع الوضع
+            btn.innerHTML = btn.hasAttribute('data-theme-label')
+                ? `${iconHtml}<span>${isDark ? 'الوضع النهاري' : 'الوضع الليلي'}</span>`
+                : iconHtml;
             btn.setAttribute('title', title);
             btn.setAttribute('aria-label', title);
         });

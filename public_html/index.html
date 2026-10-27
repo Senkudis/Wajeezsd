@@ -125,6 +125,9 @@
 
 
     <style>
+        /* أيقونة الوضع الليلي في القائمة بحجم أيقونات bi المجاورة */
+        [data-theme-label] .theme-svg { width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -0.15em; margin-inline-end: .5rem; }
+
         .home-banner-img {
             width: 100%;
             height: 150px;
@@ -1083,6 +1086,10 @@
                 <a href="client-my-orders.html" class="list-group-item list-group-item-action">
                     <i class="bi bi-clock-history"></i> طلباتي
                 </a>
+                <!-- الوضع الليلي هنا بدل الزرّ العائم الذي كان يغطّي «أضف وجهة تسليم» (theme-manager يتخطّاه حين يجد data-theme-toggle) -->
+                <button type="button" class="list-group-item list-group-item-action" data-theme-toggle data-theme-label>
+                    <i class="bi bi-moon-stars"></i> الوضع الليلي
+                </button>
                 <a href="#" onclick="logout()" id="menu-logout-btn"
                     class="list-group-item list-group-item-action text-danger d-none">
                     <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
@@ -1226,7 +1233,7 @@
     <script src="js/input-validator.js?v=053253e2"></script>
     <script src="js/auth-helper.js?v=c97361b3"></script>
     <script src="js/saved-locations.js?v=410eccf9"></script>
-    <script src="js/theme-manager.js?v=9030b1eb"></script>
+    <script src="js/theme-manager.js?v=4253109c"></script>
     <script src="js/onboarding.js?v=28ff1803"></script>
 
     <!-- 🌍 City Startup Gate: must select city before using the app -->

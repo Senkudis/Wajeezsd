@@ -69,57 +69,6 @@
             flex-direction: column;
         }
 
-        .back-btn {
-            position: absolute;
-            top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));
-            right: 16px;
-            z-index: 1001;
-            width: 44px;
-            height: 44px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-            color: #1e293b;
-            text-decoration: none;
-            transition: transform 0.2s;
-            border: none;
-            font-size: 1.2rem;
-        }
-
-        .back-btn:active { transform: scale(0.9); }
-
-        /* Live Badge */
-        .live-badge {
-            position: absolute;
-            top: calc(16px + var(--sat, env(safe-area-inset-top, 0px)));
-            left: 16px;
-            z-index: 1001;
-            background: white;
-            border-radius: 99px;
-            padding: 8px 14px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            font-size: 12px;
-            font-weight: 800;
-            color: var(--primary);
-        }
-        .live-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: livePulse 1.5s ease-in-out infinite;
-        }
-        @keyframes livePulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.4); opacity: 0.6; }
-        }
-
         .tracking-card {
             background: white;
             border-radius: 24px 24px 0 0;
@@ -149,25 +98,6 @@
             margin: 8px auto 12px;
         }
 
-        /* Status Header row */
-        .status-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .status-pill {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-        .status-pending  { background: #fef3c7; color: #92400e; }
-        .status-accepted { background: #dbeafe; color: #1e40af; }
-        .status-picked_up{ background: #cffafe; color: #0e7490; }
-        .status-delivered{ background: #d1fae5; color: #065f46; }
-        .status-cancelled{ background: #fee2e2; color: #991b1b; }
 
         /* ===== Step Progress Bar ===== */
         .status-steps {
@@ -291,13 +221,6 @@
         .route-addr { color: #374151; font-weight: 600; flex: 1; font-size: 12px; }
         .route-connector { width: 2px; height: 12px; background: #e2e8f0; margin: 2px 0 2px 14px; }
 
-        /* ETA Bar */
-        .eta-bar {
-            display: flex; align-items: center; justify-content: space-between;
-            background: linear-gradient(135deg, var(--primary), #25d366);
-            border-radius: 12px; padding: 10px 16px; margin-top: 12px;
-            color: white;
-        }
         .step-time { font-size: 9px; color: #94a3b8; font-weight: 700; margin-top: 2px; min-height: 11px; }
         .step-item.done .step-time, .step-item.active .step-time { color: var(--primary); }
         .captain-rating { font-size: 11px; color: #f59e0b; font-weight: 800; }
@@ -305,9 +228,6 @@
             font-size: 10.5px; font-weight: 800; color: #0369a1;
             background: #e0f2fe; padding: 1px 7px; border-radius: 99px;
         }
-        .eta-bar .eta-label { font-size: 11px; opacity: 0.8; }
-        .eta-bar .eta-value { font-size: 15px; font-weight: 800; }
-        .eta-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.3); }
 
         /* 💚 إكرامية الكابتن */
         .tip-box {
@@ -333,6 +253,115 @@
         .tip-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
         .tip-chip.clear  { border-color: #fecaca; color: #b91c1c; }
         .tip-chip[disabled] { opacity: .55; pointer-events: none; }
+
+        /* ═══════════ إعادة التصميم: الخريطة هي البطل، واللوحة تجيب «متى يصل؟» أولاً ═══════════ */
+        :root { --ink: #0f172a; --muted: #64748b; --line: #eef2f0; --brand-deep: #04553A; }
+
+        /* شريط علوي: رجوع + الوضع الليلي في أزرار عائمة متطابقة (44px) — يحلّ محل الزر العائم العام فوق اللوحة */
+        .topbar-btn {
+            position: absolute; top: calc(14px + var(--sat, env(safe-area-inset-top, 0px))); z-index: 1001;
+            width: 44px; height: 44px; border-radius: 50%; border: none; background: #fff; color: var(--ink);
+            display: flex; align-items: center; justify-content: center; font-size: 1.15rem; text-decoration: none;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, .16); transition: transform .15s;
+        }
+        .topbar-btn:active { transform: scale(.92); }
+        .topbar-btn.back { right: 16px; }
+        .topbar-btn.theme { left: 16px; }
+
+        /* «اعرض المسار كاملاً» يطفو فوق اللوحة مباشرةً — يتبعها حين تتمدّد */
+        .recenter-btn {
+            position: absolute; left: 16px; bottom: calc(100% + 12px);
+            width: 44px; height: 44px; border-radius: 14px; border: none; background: #fff; color: var(--brand-deep);
+            display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, .16);
+        }
+
+        .info-panel { max-height: 54vh; transition: max-height .3s ease; }
+        .info-panel.expanded { max-height: 86vh; }
+        .tracking-card { border-radius: 26px 26px 0 0; padding-top: 0; }
+        .drag-handle { width: 44px; height: 5px; margin: 0 auto; background: #d6dde3; cursor: pointer; }
+        .handle-hit { position: sticky; top: 0; z-index: 3; background: inherit; padding: 10px 0 12px; cursor: pointer; }
+
+        /* البطل: الحالة بخطٍّ كبير، وزمن الوصول رقماً بارزاً بجانبها */
+        .hero { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+        .hero-text { flex: 1; min-width: 0; }
+        .hero-title { font-size: 19px; font-weight: 800; color: var(--ink); line-height: 1.35; margin: 0; }
+        .hero-sub { font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 3px; }
+        .eta-chip {
+            flex-shrink: 0; min-width: 76px; text-align: center; border-radius: 16px; padding: 8px 10px;
+            background: linear-gradient(160deg, var(--primary), var(--brand-deep)); color: #fff;
+            box-shadow: 0 8px 20px rgba(4, 140, 91, .28);
+        }
+        .eta-chip .eta-num { display: block; font-size: 24px; font-weight: 900; line-height: 1.1; }
+        .eta-chip .eta-unit { display: block; font-size: 11px; font-weight: 700; opacity: .9; }
+        .eta-chip.done { background: linear-gradient(160deg, #16a34a, #15803d); }
+        .eta-chip.done .eta-num { font-size: 22px; }
+
+        /* مراحل الطلب: نصٌّ مقروء (11px) وخطّ وصلٍ يتبع اتجاه القراءة RTL */
+        .status-steps { padding: 2px 0 14px; }
+        .step-item:not(:last-child)::after { left: auto; right: auto; inset-inline-start: calc(50% + 16px); inset-inline-end: calc(-50% + 16px); top: 15px; }
+        .step-circle { width: 30px; height: 30px; font-size: 13px; }
+        .step-label { font-size: 11px; }
+        .step-time { font-size: 10px; }
+
+        /* الكابتن: صورة أوضح وزرّا تواصل متساويان */
+        .captain-card { padding: 12px; gap: 12px; border: 1px solid var(--line); background: #fbfcfb; }
+        .captain-avatar { width: 50px; height: 50px; font-size: 20px; flex-shrink: 0; box-shadow: 0 0 0 3px #fff, 0 0 0 4px #d1fae5; }
+        .captain-name { font-weight: 800; font-size: 15px; color: var(--ink); }
+        .captain-actions { display: flex; gap: 8px; }
+        .contact-btn {
+            width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; text-decoration: none; border: none;
+        }
+        .contact-btn.call { background: var(--primary); color: #fff; box-shadow: 0 6px 14px rgba(4, 140, 91, .28); }
+        .contact-btn.chat { background: #e8f5ee; color: var(--brand-deep); }
+
+        .route-row { padding: 12px 0; border-top: 1px solid var(--line); }
+        .route-addr { font-size: 13px; color: #334155; }
+        .route-point-row .route-kind { display: block; font-size: 11px; color: #94a3b8; font-weight: 700; }
+
+        /* المبلغ المطلوب: سطرٌ واحد واضح بدل حشره داخل شريطٍ ملوّن */
+        .price-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            border-top: 1px solid var(--line); padding: 12px 0 2px;
+        }
+        .price-row .lbl { font-size: 13px; color: var(--muted); font-weight: 700; }
+        .price-row .val { font-size: 18px; font-weight: 900; color: var(--ink); }
+        .price-row .val small { font-size: 12px; font-weight: 700; color: var(--muted); }
+
+        body.dark-mode .topbar-btn, body.dark-mode .recenter-btn { background: #1e293b; color: #e2e8f0; }
+        body.dark-mode .hero-title, body.dark-mode .captain-name, body.dark-mode .price-row .val { color: #f1f5f9; }
+        body.dark-mode .captain-card { background: #1e293b; border-color: #334155; }
+        body.dark-mode .contact-btn.chat { background: #14352a; color: #6ee7b7; }
+        body.dark-mode .route-row, body.dark-mode .price-row { border-color: #334155; }
+        body.dark-mode .drag-handle { background: #475569; }
+        /* dark-mode.css يلوّن .contact-btn.call لصفحةٍ أخرى بتدرّجٍ أزرق — نحدّد النطاق ليبقى أخضر الهوية */
+        body.dark-mode .captain-actions .contact-btn.call { background: var(--primary) !important; color: #fff !important; }
+        body.dark-mode .captain-actions .contact-btn.chat { background: #14352a; color: #6ee7b7; }
+        body.dark-mode .step-circle { background: #1e293b; border-color: #334155; color: #94a3b8; }
+        body.dark-mode .captain-trips { background: #0c3550; color: #7dd3fc; }
+        body.dark-mode .track-live.live { background: #12382a; color: #6ee7b7; }
+        body.dark-mode .track-live.stale { background: #3b2f14; color: #fcd34d; }
+        body.dark-mode .tip-box { background: #102a20; border-color: #1f5a41; }
+        body.dark-mode .tip-title, body.dark-mode .tip-current { color: #a7f3d0; }
+        body.dark-mode .tip-current { background: #14532d; }
+        body.dark-mode .tip-sub { color: #6ee7b7; }
+        body.dark-mode .tip-chip { background: #0f172a; border-color: #1f5a41; color: #a7f3d0; }
+        body.dark-mode .tip-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        body.dark-mode .tip-chip.clear { border-color: #7f1d1d; color: #fca5a5; }
+        body.dark-mode .route-addr { color: #e2e8f0; }
+        /* المراحل القادمة باهتة والمكتملة/الحالية خضراء — كانت القادمة أسطع منها في الوضع الليلي */
+        /* .status-steps يرفع الخصوصية فوق «[class*="status-"] *» العامة في dark-mode.css */
+        body.dark-mode .status-steps .step-label, body.dark-mode .status-steps .step-time { color: #94a3b8; }
+        body.dark-mode .step-item.done .step-label, body.dark-mode .step-item.active .step-label,
+        body.dark-mode .step-item.done .step-time, body.dark-mode .step-item.active .step-time { color: #34d399; }
+        body.dark-mode .step-item:not(:last-child)::after { background: #334155; }
+        body.dark-mode .step-item.done:not(:last-child)::after { background: #22c55e; }
+        body.dark-mode .step-item.done .step-circle { background: #22c55e; border-color: #22c55e; color: #fff; }
+        body.dark-mode .step-item.active .step-circle { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .route-connector { margin: 2px 0; margin-inline-start: 14px; }
+        .tip-chip { min-height: 44px; padding: 8px 14px; }
+        .price-row { border-top: none; padding: 4px 2px 12px; }
     </style>
     <!-- Mobile App Overrides -->
     <link rel="stylesheet" href="css/mobile-overrides.css?v=e9a74842">
@@ -349,15 +378,13 @@
 <body class="bg-light">
 
     <!-- Back Button (role-aware: التاجر يعود لطلبات متجره) -->
-    <a href="client-my-orders.html" class="back-btn" id="backBtn">
+    <a href="client-my-orders.html" class="topbar-btn back" id="backBtn" aria-label="رجوع">
         <i class="bi bi-arrow-right"></i>
     </a>
-
-    <!-- Live Badge -->
-    <div class="live-badge">
-        <div class="live-dot"></div>
-        <span>تتبع مباشر</span>
-    </div>
+    <!-- زرّ الوضع الليلي هنا يمنع theme-manager من رسم زرّه العائم فوق اللوحة -->
+    <button type="button" class="topbar-btn theme" data-theme-toggle aria-label="الوضع الليلي">
+        <i class="bi bi-moon-stars-fill"></i>
+    </button>
 
     <!-- Map -->
     <div class="map-container">
@@ -365,15 +392,27 @@
     </div>
 
     <!-- Info Panel -->
-    <div class="info-panel">
+    <div class="info-panel" id="infoPanel">
+        <button type="button" class="recenter-btn" id="recenterBtn" aria-label="عرض المسار كاملاً" onclick="fitAll()">
+            <i class="bi bi-bullseye"></i>
+        </button>
         <div class="tracking-card">
-            <!-- Drag Handle -->
-            <div class="drag-handle"></div>
+            <!-- المقبض: لمسةٌ توسّع اللوحة أو تطويها -->
+            <div class="handle-hit" onclick="togglePanel()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();togglePanel();}"
+                 role="button" tabindex="0" aria-expanded="false" aria-label="توسيع التفاصيل">
+                <div class="drag-handle"></div>
+            </div>
 
-            <!-- Status Header -->
-            <div class="status-header-row">
-                <h6 class="fw-bold mb-0" style="font-size:14px;">تتبع الطلب</h6>
-                <span id="order-status" class="status-pill status-pending">⏳ جاري التحميل</span>
+            <!-- البطل: الحالة + زمن الوصول -->
+            <div class="hero">
+                <div class="hero-text">
+                    <h1 class="hero-title" id="order-status">جاري التحميل…</h1>
+                    <div class="hero-sub" id="hero-sub"></div>
+                </div>
+                <div class="eta-chip" id="eta-container" style="display:none;">
+                    <span class="eta-num" id="eta-text">—</span>
+                    <span class="eta-unit" id="eta-unit">دقيقة</span>
+                </div>
             </div>
 
             <!-- Step Progress Bar -->
@@ -404,7 +443,7 @@
             <div id="captain-info" class="captain-card" style="display:none;">
                 <div class="captain-avatar" id="captain-avatar"><i class="bi bi-person-fill"></i></div>
                 <div style="flex:1;min-width:0;">
-                    <div style="font-weight:700;font-size:13px;color:#1e293b;" id="captain-name">الكابتن</div>
+                    <div class="captain-name" id="captain-name">الكابتن</div>
                     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                         <span style="font-size:11px;color:#64748b;" id="captain-vehicle">—</span>
                         <span class="captain-rating" id="captain-rating" style="display:none;"></span>
@@ -416,14 +455,20 @@
                         </span>
                     </div>
                 </div>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <a href="#" id="captain-call-btn" class="btn btn-success btn-sm rounded-circle" style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
-                        <i class="bi bi-telephone-fill"></i>
-                    </a>
-                    <a href="#" id="captain-chat-btn" class="btn btn-outline-success" style="border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
+                <div class="captain-actions">
+                    <a href="#" id="captain-chat-btn" class="contact-btn chat" aria-label="مراسلة الكابتن">
                         <i class="bi bi-chat-dots-fill"></i>
                     </a>
+                    <a href="#" id="captain-call-btn" class="contact-btn call" aria-label="الاتصال بالكابتن">
+                        <i class="bi bi-telephone-fill"></i>
+                    </a>
                 </div>
+            </div>
+
+            <!-- المبلغ المطلوب نقداً (الأجرة − الخصم + الإكرامية) -->
+            <div class="price-row">
+                <span class="lbl"><i class="bi bi-cash-coin"></i> المطلوب نقداً عند التسليم</span>
+                <span class="val" id="order-price">—</span>
             </div>
 
             <div class="track-hint" id="track-hint">
@@ -435,35 +480,18 @@
             <div class="route-row" id="routeRow">
                 <div class="route-point-row">
                     <div class="route-icon pickup"><i class="bi bi-geo-alt-fill"></i></div>
-                    <div class="route-addr" id="pickup-txt">...</div>
+                    <div class="route-addr"><span class="route-kind">الاستلام</span><span id="pickup-txt">...</span></div>
                 </div>
                 <div class="route-connector"></div>
                 <div class="route-point-row">
                     <div class="route-icon dropoff"><i class="bi bi-flag-fill"></i></div>
-                    <div class="route-addr" id="dropoff-txt">...</div>
+                    <div class="route-addr"><span class="route-kind">التسليم</span><span id="dropoff-txt">...</span></div>
                 </div>
             </div>
 
             <!-- 🧭 Multi-stop progress list (replaces routeRow when order.isMultiStop) -->
             <div id="stopsProgress" style="display:none;"></div>
 
-            <!-- ETA Bar -->
-            <div class="eta-bar" id="eta-container" style="display:none;">
-                <div>
-                    <div class="eta-label"><i class="bi bi-clock-fill"></i> وقت الوصول</div>
-                    <div class="eta-value" id="eta-text">—</div>
-                </div>
-                <div class="eta-divider"></div>
-                <div>
-                    <div class="eta-label"><i class="bi bi-geo-alt-fill"></i> المسافة</div>
-                    <div class="eta-value" id="eta-distance">—</div>
-                </div>
-                <div class="eta-divider"></div>
-                <div>
-                    <div class="eta-label"><i class="bi bi-cash-coin"></i> السعر</div>
-                    <div class="eta-value" id="order-price">—</div>
-                </div>
-            </div>
 
             <!-- 💚 إكرامية الكابتن — تظهر للعميل صاحب الطلب قبل التسليم فقط -->
             <div class="tip-box" id="tipBox" style="display:none;">
@@ -550,6 +578,64 @@
         let directionsService = null;
         let directionsRenderer = null;
 
+        // ستايل خريطة هادئ: تختفي المحلات والمواصلات فيبرز المسار والكابتن. نسخةٌ للوضع الليلي.
+        const MAP_STYLE_LIGHT = [
+            { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+            { featureType: 'poi', elementType: 'labels.icon', stylers: [{ saturation: -60 }, { lightness: 15 }] },
+            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+            { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#f3f5f2' }] },
+            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+            { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#fbfbf8' }] },
+            { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#fde9b8' }] },
+            { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7b8794' }] },
+            { featureType: 'road.local', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
+            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cfe6f2' }] },
+            { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#5b6773' }] }
+        ];
+        const MAP_STYLE_DARK = [
+            { elementType: 'geometry', stylers: [{ color: '#1b2430' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#1b2430' }] },
+            { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+            { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#202c39' }] },
+            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2b3746' }] },
+            { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3b4a5c' }] },
+            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1d2b' }] }
+        ];
+        function mapStyleFor() {
+            return document.body.classList.contains('dark-mode') ? MAP_STYLE_DARK : MAP_STYLE_LIGHT;
+        }
+
+        // لوحة المعلومات: لمسة المقبض توسّعها أو تطويها، ثم تُعاد مواءمة الخريطة للمساحة الظاهرة
+        window.togglePanel = function () {
+            const panel = document.getElementById('infoPanel');
+            const expanded = panel.classList.toggle('expanded');
+            const hit = document.querySelector('.handle-hit');
+            if (hit) hit.setAttribute('aria-expanded', String(expanded));
+            // عند الطيّ فقط: اللوحة الموسّعة تغطّي الخريطة أصلاً، ولا داعي لإعادة التقريب تحتها
+            if (!expanded) setTimeout(fitAll, 320);
+        };
+
+        // مواءمة الخريطة مع المساحة الظاهرة فوق اللوحة. الحشو السفلي محدود: مع لوحةٍ موسّعة
+        // كان يقارب ارتفاع الشاشة فتنكمش الخريطة إلى مستوى مدينة وتتراكب النقاط.
+        function fitTo(bounds) {
+            if (!map || !bounds || bounds.isEmpty()) return;
+            const panel = document.getElementById('infoPanel');
+            const panelH = panel ? Math.ceil(panel.getBoundingClientRect().height) : 280;
+            const h = map.getDiv().clientHeight || window.innerHeight;
+            const bottom = Math.max(120, Math.min(panelH + 70, h - 90 - 160));
+            map.fitBounds(bounds, { top: 90, bottom, left: 50, right: 50 });
+        }
+
+        // يُظهر الاستلام والتسليم والكابتن معاً فوق اللوحة
+        window.fitAll = function () {
+            if (!map || typeof google === 'undefined') return;
+            const b = new google.maps.LatLngBounds();
+            [pickupMarker, dropoffMarker, captainMarker].forEach(m => { if (m && m.getMap() && m.getPosition()) b.extend(m.getPosition()); });
+            fitTo(b);
+        };
+
         window.initTrackingMap = function() {
             if (typeof google === 'undefined' || !google.maps || !google.maps.Map || typeof google.maps.Map !== 'function') {
                 setTimeout(window.initTrackingMap, 500);
@@ -559,29 +645,23 @@
                 center: { lat: 15.6067, lng: 32.5317 },
                 zoom: 13,
                 disableDefaultUI: true,
-                zoomControl: true,
+                zoomControl: false,
                 gestureHandling: 'greedy',
-                clickableIcons: false
+                clickableIcons: false,
+                styles: mapStyleFor()
             });
+            // تبديل الوضع الليلي يغيّر ستايل الخريطة معه (مراقبٌ واحد مهما أُعيدت التهيئة)
+            if (!window._mapThemeObserver) {
+                window._mapThemeObserver = new MutationObserver(() => map && map.setOptions({ styles: mapStyleFor() }));
+                window._mapThemeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+            }
 
             // Initialize Directions API for real street routes
             directionsService = new google.maps.DirectionsService();
             directionsRenderer = new google.maps.DirectionsRenderer({
                 suppressMarkers: true,  // Keep our custom pickup/dropoff markers
-                polylineOptions: {
-                    strokeColor: 'var(--primary)',
-                    strokeWeight: 5,
-                    strokeOpacity: 0,
-                    icons: [{
-                        icon: {
-                            path: 'M 0,-1 0,1',
-                            strokeOpacity: 0.9,
-                            scale: 4
-                        },
-                        offset: '0',
-                        repeat: '18px'
-                    }]
-                }
+                // ⚠️ كان strokeColor = 'var(--primary)' — Maps لا تفهم متغيّرات CSS فيُرسم المسار بلونٍ خاطئ
+                polylineOptions: { strokeColor: '#048c5b', strokeWeight: 6, strokeOpacity: 0.9 }
             });
             directionsRenderer.setMap(map);
 
@@ -621,10 +701,34 @@
         }
 
         // ⏱️ ETA Calculation
+        // يعرض زمن الوصول في البطل: رقمٌ كبير + وحدة، والمسافة في السطر الفرعي
+        function setEta(minutes, distKm) {
+            const chip = document.getElementById('eta-container');
+            chip.style.display = 'block';
+            chip.classList.remove('done');
+            const n = Math.max(1, Math.round(Number(minutes) || 0));
+            document.getElementById('eta-text').textContent = n;
+            document.getElementById('eta-unit').textContent = n <= 2 ? (n === 1 ? 'دقيقة' : 'دقيقتان') : (n <= 10 ? 'دقائق' : 'دقيقة');
+            if (distKm != null && Number.isFinite(Number(distKm))) {
+                const d = Number(distKm);
+                const accepted = currentOrder && currentOrder.status === 'accepted';
+                const target = accepted ? 'عن نقطة الاستلام' : 'عن نقطة التسليم';
+                let sub = `يبعد ${d < 1 ? (d * 1000).toFixed(0) + ' م' : d.toFixed(1) + ' كم'} ${target}`;
+                // قبل الاستلام: العميل يسأل «متى يصل طلبي؟» لا «متى يصل الكابتن للمحل؟»
+                const trip = currentOrder && currentOrder.eta && Number(currentOrder.eta.max || currentOrder.eta.minutes);
+                if (accepted && Number.isFinite(trip)) sub += ` · يصل التسليم خلال ~${n + Math.round(trip)} دقيقة`;
+                document.getElementById('hero-sub').textContent = sub;
+            }
+        }
+
         function updateETA(captainLat, captainLng) {
-            if (!currentOrder || !currentOrder.dropoff) return;
-            const dropLat = currentOrder.dropoff.lat;
-            const dropLng = currentOrder.dropoff.lng;
+            // بعد التسليم أو الإلغاء لا معنى لزمن وصول — البطل يعرض النتيجة
+            if (!currentOrder || !['accepted', 'picked_up'].includes(currentOrder.status)) return;
+            // قبل الاستلام يتّجه الكابتن إلى نقطة الاستلام، لا إلى العميل
+            const goal = currentOrder.status === 'accepted' ? currentOrder.pickup : currentOrder.dropoff;
+            if (!goal) return;
+            const dropLat = goal.lat;
+            const dropLng = goal.lng;
             if (!dropLat || !dropLng) return;
 
             // المسافة حسابٌ خالص لا يحتاج الخريطة. كان `if (google && …)` يرمي
@@ -641,9 +745,7 @@
             const avgSpeedKmh = (window.VehicleTypes ? window.VehicleTypes.speed(vehicleType) : 25);
             const etaMinutes = Math.ceil((distKm / avgSpeedKmh) * 60);
 
-            document.getElementById('eta-container').style.display = 'flex';
-            document.getElementById('eta-text').textContent = etaMinutes <= 1 ? 'أقل من دقيقة' : `~${etaMinutes} دقيقة`;
-            document.getElementById('eta-distance').textContent = distKm < 1 ? `${(distKm * 1000).toFixed(0)} م` : `${distKm.toFixed(1)} كم`;
+            setEta(etaMinutes, distKm);
         }
 
         // ===== Status Steps Logic =====
@@ -668,12 +770,21 @@
         // ⚠️ 'scheduled' خارج STATUS_ORDER عمداً: لم تبدأ الرحلة بعد، فلا خطوة
         // مكتملة. لكن غياب نصّها كان يترك العنوان فارغاً — طلبٌ حيّ بلا أي بيان.
         const STATUS_LABELS = {
-            'pending':   'في انتظار الكابتن',
-            'scheduled': 'مجدول — يُنشر للكباتن في موعده',
-            'accepted':  'الكابتن في الطريق إليك',
-            'picked_up': 'الكابتن استلم الطرد',
-            'delivered': 'تم التوصيل بنجاح!',
+            'pending':   'نبحث لك عن كابتن',
+            'scheduled': 'طلب مجدول',
+            'accepted':  'الكابتن في الطريق للاستلام',
+            'picked_up': 'الكابتن في الطريق إليك',
+            'delivered': 'تم التوصيل',
             'cancelled': 'تم إلغاء الطلب'
+        };
+        // السطر الفرعي قبل أن تُعرف المسافة الحيّة
+        const STATUS_SUBS = {
+            'pending':   'سيصلك إشعار فور قبول كابتن لطلبك',
+            'scheduled': 'يُنشر للكباتن في موعده',
+            'accepted':  'قبل الكابتن طلبك ويتّجه لنقطة الاستلام',
+            'picked_up': 'استلم الكابتن طلبك وهو في الطريق',
+            'delivered': 'شكراً لاستخدامك وجيز',
+            'cancelled': ''
         };
 
         function updateStatusSteps(status) {
@@ -685,9 +796,17 @@
                 if (i < currentIdx) el.classList.add('done');
                 else if (i === currentIdx) el.classList.add('active');
             });
-            const mb = document.getElementById('order-status');
-            mb.textContent = STATUS_LABELS[status] || status;
-            mb.className = `status-pill status-${status}`;
+            document.getElementById('order-status').textContent = STATUS_LABELS[status] || status;
+            const sub = document.getElementById('hero-sub');
+            if (sub) sub.textContent = STATUS_SUBS[status] || '';
+            const chip = document.getElementById('eta-container');
+            if (status === 'delivered' && chip) {
+                chip.style.display = 'block'; chip.classList.add('done');
+                document.getElementById('eta-text').innerHTML = '<i class="bi bi-check-lg"></i>';
+                document.getElementById('eta-unit').textContent = 'وصل';
+            } else if (!['accepted', 'picked_up'].includes(status) && chip) {
+                chip.style.display = 'none';
+            }
         }
 
         // ⏱️ يعرض أوقات انتقالات الحالة تحت كل مرحلة (الخط الزمني من السيرفر)
@@ -697,7 +816,7 @@
             const fmt = (iso) => {
                 if (!iso) return '';
                 try {
-                    return new Date(iso).toLocaleTimeString('ar-SD', { hour: '2-digit', minute: '2-digit' });
+                    return new Date(iso).toLocaleTimeString('ar-SD-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
                 } catch (_) { return ''; }
             };
             // مفاتيح السيرفر (placed) تُقابل عنصر الواجهة (pending)
@@ -1023,13 +1142,16 @@
 
             // ⏱️ ETA من السيرفر — يملأ الفجوة قبل ظهور موقع الكابتن الحيّ.
             // بمجرد وصول موقع الكابتن، updateETA (أدق) يستبدل هذه القيمة.
-            if (order.eta && order.eta.text && !(order.captain && order.captain.currentLocation)) {
-                document.getElementById('eta-container').style.display = 'flex';
-                document.getElementById('eta-text').textContent = '~' + order.eta.text;
-                if (order.eta.distanceKm != null) {
-                    document.getElementById('eta-distance').textContent = order.eta.distanceKm < 1
-                        ? `${(order.eta.distanceKm * 1000).toFixed(0)} م`
-                        : `${order.eta.distanceKm.toFixed(1)} كم`;
+            // قبل الاستلام بلا موقعٍ حيّ لا نعرف كم يبعد الكابتن عن الاستلام، فلا نخترع رقماً:
+            // السطر الفرعي يذكر مدّة الرحلة فقط. بعد الاستلام مدّة الرحلة تقريبٌ معقول للوصول.
+            if (order.eta && Number.isFinite(Number(order.eta.max || order.eta.minutes))
+                && !(order.captain && order.captain.currentLocation)) {
+                const tripMax = Number(order.eta.max || order.eta.minutes);
+                if (order.status === 'picked_up') {
+                    setEta(tripMax, null);
+                    document.getElementById('hero-sub').textContent = `مدّة المشوار ${order.eta.text}`;
+                } else if (order.status === 'accepted') {
+                    document.getElementById('hero-sub').textContent = `بعد الاستلام يستغرق المشوار ${order.eta.text}`;
                 }
             }
 
@@ -1037,7 +1159,7 @@
             const _tipAmt = Number(order.tip?.amount) || 0;
             if (order.price) {
                 const due = Math.max(0, (Number(order.price) || 0) - (Number(order.discountAmount) || 0)) + _tipAmt;
-                document.getElementById('order-price').textContent = `${due.toLocaleString('en-US')} ج.س`;
+                document.getElementById('order-price').innerHTML = `${due.toLocaleString('en-US')} <small>ج.س</small>`;
             }
 
             // 💚 صندوق الإكرامية
@@ -1153,14 +1275,12 @@
                     renderTrackingFreshness();
                 }
 
-                if (bounds && !bounds.isEmpty()) {
-                    // ⚠️ كان الحشو السفلي ثابتاً (280px): مع لوحة أطول من ذلك تختفي الدبابيس السفلية
-                    // خلفها. نقيس ارتفاع اللوحة الفعلي حتى تُحتسب المنطقة المرئية من الخريطة وحدها.
-                    const panel = document.querySelector('.info-panel');
-                    const panelH = panel ? Math.ceil(panel.getBoundingClientRect().height) : 280;
-                    map.fitBounds(bounds, { top: 80, bottom: panelH + 24, left: 40, right: 40 });
-                }
             }
+
+            // ⚠️ كانت المواءمة داخل «if (order.captain)» فقط: الطلب المنتظر — أول خريطةٍ يراها العميل
+            //    بعد الطلب — لم تُواءم أبداً فتخرج نقطة الاستلام من الشاشة.
+            if (bounds && !bounds.isEmpty()) fitTo(bounds);
+            if (captainMarker && !['accepted', 'picked_up'].includes(order.status)) captainMarker.setMap(null);
         }
 
         // ── 🛰️ حيوية التتبّع ─────────────────────────────────────────────
@@ -1191,6 +1311,12 @@
             const hint = document.getElementById('track-hint');
             const hintText = document.getElementById('track-hint-text');
             if (!badge || !text) return;
+            // «يتحرّك الآن» تخصّ رحلةً جارية فقط
+            if (currentOrder && !['accepted', 'picked_up'].includes(currentOrder.status)) {
+                badge.style.display = 'none';
+                if (hint) hint.classList.remove('show');
+                return;
+            }
 
             badge.style.display = 'inline-flex';
             badge.classList.remove('live', 'stale', 'off');
@@ -1330,7 +1456,7 @@
     <script src="js/input-hardener.js?v=95c0e89c"></script>
 <script type="module" src="js/app-core.js?v=34ddc6dc"></script>
     <script type="module" src="js/native-notifications.js?v=6426d1e7"></script>
-    <script src="js/theme-manager.js?v=9030b1eb"></script>
+    <script src="js/theme-manager.js?v=4253109c"></script>
 </body>
 
 </html>
