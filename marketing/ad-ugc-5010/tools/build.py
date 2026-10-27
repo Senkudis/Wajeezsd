@@ -1,0 +1,49 @@
+# التجميع النهائي: قصّ المقاطع + تلوين + زووم ديناميكي + طبقة الموشن + مزج الصوت.
+# python tools/build.py edit.json   (يفترض out/overlay.mov و out/music.wav و out/sfx.wav جاهزة)
+import json, subprocess, sys
+
+E = json.load(open(sys.argv[1], encoding='utf-8'))
+FF = open('tools/ffpath.txt').read().strip()
+SRC = 'src/graded.mp4'  # المصدر ملوّن مسبقاً (tools/grade.txt) بـ 30 إطاراً، كل إطار مفتاحي
+GRADE = open('tools/grade.txt').read().strip()
+FPS = 30; DUR = E['dur']; END = E['endcard']
+
+# كل مقطع: [من, إلى, زووم, مركز_y اختياري] بزمن المصدر
+segs = E['segments']
+vparts, aparts, fc = [], [], []
+for i, s in enumerate(segs):
+    a, b, z = s['s'], s['e'], s.get('z', 1.0)
+    z2 = s.get('z2', z)            # زووم متدرّج داخل المقطع (push-in بطيء)
+    cy = s.get('cy', 0.42)         # نقطة الارتكاز الرأسية (الوجه تقريباً)
+    d = b - a
+    # الزووم: نكبّر ثم نقص 1080x1920 حول الارتكاز
+    zexpr = f"({z}+({z2}-{z})*t/{d:.3f})"
+    fc.append(
+        f"[0:v]trim={a}:{b},setpts=PTS-STARTPTS,"
+        f"scale=w='trunc(1080*{zexpr}/2)*2':h='trunc(1920*{zexpr}/2)*2':eval=frame,"
+        f"crop=1080:1920:x='(iw-1080)/2':y='(ih-1920)*{cy}',setsar=1,format=yuv420p[v{i}]")
+    fc.append(f"[1:a]atrim={a}:{b},asetpts=PTS-STARTPTS,afade=t=in:d=0.012,afade=t=out:st={d-0.015:.3f}:d=0.015[a{i}]")
+    vparts.append(f"[v{i}]"); aparts.append(f"[a{i}]")
+n = len(segs)
+fc.append(f"{''.join(vparts)}concat=n={n}:v=1:a=0[vc]")
+fc.append(f"{''.join(aparts)}concat=n={n}:v=0:a=1[voice0]")
+# امدّ الفيديو حتى نهاية بطاقة النهاية (البطاقة تغطيه)
+fc.append(f"[vc]tpad=stop_mode=clone:stop_duration={DUR},trim=0:{DUR},setpts=PTS-STARTPTS[vbase]")
+fc.append("[2:v]setpts=PTS-STARTPTS,format=argb[ov]")
+fc.append(f"[vbase][ov]overlay=0:0:format=auto:shortest=0,trim=0:{DUR},format=yuv420p[vout]")
+# الصوت: الصوت البشري منظّف مسبقاً؛ الموسيقى تنخفض تحته (sidechain) وتعلو في النهاية
+fc.append(f"[voice0]aformat=channel_layouts=stereo,apad=whole_dur={DUR},asplit=2[voice][key]")
+fc.append(f"[3:a]volume='if(lt(t,{END}),{E.get('music_gain',0.22)},0.75)':eval=frame[mus0]")
+fc.append("[mus0][key]sidechaincompress=threshold=0.03:ratio=6:attack=15:release=350:makeup=1[mus]")
+fc.append(f"[4:a]volume={E.get('sfx_gain',0.5)}[sfx]")
+fc.append(f"[voice][mus][sfx]amix=inputs=3:normalize=0:duration=first,atrim=0:{DUR},"
+          "loudnorm=I=-14:TP=-1.0:LRA=9,aresample=48000[aout]")
+
+cmd = [FF, '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
+       '-i', SRC, '-i', 'out/voice_pre.wav', '-i', 'out/overlay.mov', '-i', 'out/music.wav', '-i', 'out/sfx.wav',
+       '-filter_complex', ';'.join(fc), '-map', '[vout]', '-map', '[aout]',
+       '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-profile:v', 'high', '-pix_fmt', 'yuv420p',
+       '-r', str(FPS), '-c:a', 'aac', '-b:a', '256k', '-movflags', '+faststart', E.get('outfile', 'out/wajeez-ad-final.mp4')]
+open('qc/filter.txt', 'w', encoding='utf-8').write(';\n'.join(fc))
+subprocess.run(cmd, check=True)
+print('built', E.get('outfile', 'out/wajeez-ad-final.mp4'))

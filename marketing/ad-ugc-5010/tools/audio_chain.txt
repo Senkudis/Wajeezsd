@@ -1,0 +1,1 @@
+aresample=48000,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=85,arnndn=m=models/rnn/sh.rnnn:mix=0.85,afftdn=nf=-42:nr=8:tn=1,equalizer=f=250:t=q:w=1.2:g=-2.5,equalizer=f=3200:t=q:w=1.0:g=3,equalizer=f=9000:t=h:w=0.7:g=2,deesser=i=0.35,acompressor=threshold=-22dB:ratio=3:attack=8:release=120:makeup=3,alimiter=limit=0.89
