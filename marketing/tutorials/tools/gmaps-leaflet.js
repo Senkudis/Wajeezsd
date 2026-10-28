@@ -48,6 +48,7 @@
       this.setZoom = function (z) { m.setZoom(z); }; this.getZoom = function () { return m.getZoom(); };
       this.addListener = function () { return { remove: function () {} }; }; this.setOptions = function () {};
       this.getCenter = function () { var q = m.getCenter(); return new LatLng(q.lat, q.lng); };
+      this.getDiv = function () { return el; };
     },
     Marker: function (o) {
       var mm = mapOf(o);
@@ -57,6 +58,7 @@
       this.getPosition = function () { var q = mk.getLatLng(); return new LatLng(q.lat, q.lng); };
       this.setIcon = function (ic) { o.icon = ic; mk.setIcon(iconFor(o)); };
       this.setMap = function (x) { if (!x) mk.remove(); else if (x._m) mk.addTo(x._m); };
+      this.getMap = function () { return mk._map ? { _m: mk._map } : null; };
       this.addListener = function () {}; this.setAnimation = function () {}; this.setTitle = function () {}; this.setZIndex = function () {};
       if (o.zIndex === 999) window.__capMarker = this;
     },
@@ -64,7 +66,7 @@
       var mm = mapOf(o); var dashed = !!o.icons;
       var pl = L.polyline((o.path || []).map(ll), { color: o.strokeColor, weight: dashed ? 3 : (o.strokeWeight || 4), opacity: dashed ? 0.6 : (o.strokeOpacity || 1), dashArray: dashed ? '6 9' : null });
       if (mm) pl.addTo(mm);
-      this.setMap = function (x) { if (!x) pl.remove(); }; this.setPath = function (p) { pl.setLatLngs(p.map(ll)); };
+      this.setMap = function (x) { if (!x) pl.remove(); }; this.setOptions = function () {}; this.getMap = function () { return pl._map ? { _m: pl._map } : null; }; this.getPath = function () { return { getArray: function () { return pl.getLatLngs().map(function (q) { return new LatLng(q.lat, q.lng); }); } }; }; this.setPath = function (p) { pl.setLatLngs(p.map(ll)); };
     },
     // منطقة التوصيل: مضلّع، وفحص «داخل المنطقة» كما في geometry.poly
     Polygon: function (o) {
