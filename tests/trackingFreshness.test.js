@@ -129,8 +129,10 @@ describe('شاشة العميل تقول الحقيقة وتُريح', () => {
         expect(tracking).toContain('STALE_MS');
     });
 
-    it('بلا إيموجي في الشريط — أيقونات Bootstrap', () => {
-        expect(tracking).toContain('<i class="bi bi-clock-fill"></i> وقت الوصول');
+    it('بلا إيموجي في البطل وسطر المبلغ — أيقونات Bootstrap', () => {
+        // بعد إعادة التصميم: زمن الوصول رقمٌ ووحدة في شارة البطل، والمبلغ سطرٌ بأيقونة
+        expect(tracking).toMatch(/<div class="eta-chip" id="eta-container"[^>]*>\s*<span class="eta-num" id="eta-text">/);
+        expect(tracking).toContain('<i class="bi bi-cash-coin"></i> المطلوب نقداً عند التسليم');
         expect(tracking).not.toContain('⏱ وقت الوصول');
         expect(tracking).not.toContain('💰 السعر');
     });
