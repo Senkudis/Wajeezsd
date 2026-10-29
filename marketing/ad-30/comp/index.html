@@ -50,6 +50,18 @@ html, body { margin: 0; background: #222; overflow: hidden; }
 #endBadges #badgeGP { height: 132px; margin: -20px -14px; }
 #endUrl { left: 0; right: 0; top: 880px; text-align: center; color: rgba(255,255,255,.9); font-family: 'Intro'; font-size: 34px; letter-spacing: 1px; direction: ltr; }
 #osm { left: 24px; bottom: 16px; font: 15px/1 Arial, sans-serif; color: rgba(16,36,28,.55); direction: ltr; }
+
+/* ── 9:16 ── */
+.v #hook { font-size: 190px; gap: 40px; }
+.v .prob { font-size: 104px; }
+.v #tag3 { top: 1110px; font-size: 92px; }
+.v .head { left: 0; right: 0; text-align: center; font-size: 104px; }
+.v #endLogo { top: 540px; width: 760px; margin-left: -380px; }
+.v #endTag { top: 880px; font-size: 100px; }
+.v #endCities { top: 1030px; font-size: 40px; }
+.v #endBadges { top: 1130px; }
+.v #endUrl { top: 1280px; }
+.v #osm { bottom: 360px; }
 #ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px; background: #111; color: #ddd; font: 13px system-ui; display: flex; gap: 10px; align-items: center; direction: ltr; }
 #ui input { flex: 1; }
 </style>
@@ -90,13 +102,17 @@ const eIn = x => { x = clamp(x); return x * x * x; };
 const kf = keys => t => { if (t <= keys[0][0]) return keys[0][1]; for (let i = 1; i < keys.length; i++) { const [a, va] = keys[i - 1], [b, vb, e = ease] = keys[i]; if (t <= b) return lerp(va, vb, e((t - a) / (b - a))); } return keys[keys.length - 1][1]; };
 function spring(t, w = 14, z = 0.9) { if (t <= 0) return 0; const wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t)); }
 
-const W = 1920, H = 1080, DUR = 30, BEAT = 0.625;
+// ?ar=916 → 1080×1920 مُعاد التكوين (لا قصّ): العنوان في شريطٍ أعلى، والهاتف أكبر تحته
+const VERT = /[?&]ar=916/.test(location.search);
+const W = VERT ? 1080 : 1920, H = VERT ? 1920 : 1080, DUR = 30, BEAT = 0.625;
+document.documentElement.classList.toggle('v', VERT);
 window.VIDEO = { w: W, h: H, duration: DUR, fps: 30 };
 const RENDER = location.search.includes('render');
 
 // ───────────────────────── الهاتف والكاميرا ─────────────────────────
 // شاشة التطبيق 390×844 (css). k: مقياسها في الإطار عند تقريب 1. C: موضع مركزها.
-const SW = 390, SH = 844, K = 880 / SH, C = { x: 700, y: 540 };
+const SW = 390, SH = 844, K = (VERT ? 1150 : 880) / SH, C = VERT ? { x: 540, y: 1060 } : { x: 700, y: 540 };
+const BAND = 440, HEAD_Y = VERT ? 300 : 540, PUSH = VERT ? 110 : 150;
 // الكاميرا: نقطة البؤرة (fx, fy) بإحداثيات الشاشة الظاهرة، والتقريب z
 const camZ = kf([[0, 1], [9.95, 1], [10.6, 1.9], [11.45, 1.9], [11.95, 1.35], [12.3, 1.35], [12.85, 1], [13.3, 1], [14.9, 1.55], [17.4, 1.55], [17.6, 1.5],
   [19.0, 1.5], [19.8, 1.6], [20.0, 1.75], [23.1, 1.75], [24.0, 1.5], [25.2, 1.5], [26.0, 1.55]]);
@@ -231,10 +247,10 @@ async function draw(t) {
   // ── الذروة: بطاقة العرض المقبول تخرج من الهاتف وتكبر (17.55–19.4)
   if (t >= 17.55 && t < 19.45 && IMG.offers3) {
     const R = CARD1, a = toFrame(c, R[0] + R[2] / 2, R[1] + R[3] / 2);
-    const w0 = R[2] * c.s, h0 = R[3] * c.s, w1 = 860, h1 = w1 * R[3] / R[2];
+    const w0 = R[2] * c.s, h0 = R[3] * c.s, w1 = VERT ? 940 : 860, h1 = w1 * R[3] / R[2];
     const up = eOut(seg(t, 17.55, 18.35)), back = ease(seg(t, 19.0, 19.42));
     const k = up * (1 - back);
-    const x = lerp(a.x, 700, k), y = lerp(a.y, 540, k), w = lerp(w0, w1, k), h = lerp(h0, h1, k);
+    const x = lerp(a.x, C.x, k), y = lerp(a.y, C.y, k), w = lerp(w0, w1, k), h = lerp(h0, h1, k);
     const lift = Math.sin(seg(t, 17.55, 18.35) * Math.PI) * 10;
     g.save(); g.globalAlpha = 1 - seg(t, 19.25, 19.45);
     g.shadowColor = 'rgba(4,85,58,.22)'; g.shadowBlur = 70 * k + 10; g.shadowOffsetY = 30 * k;
@@ -244,6 +260,12 @@ async function draw(t) {
     // حدٌّ ذهبي رفيع: اللمسة الذهبية الوحيدة في المشهد
     g.globalAlpha *= seg(t, 17.9, 18.3); g.strokeStyle = '#BF8B1F'; g.lineWidth = 3; rr(x - w / 2, y - h / 2 - lift, w, h, 16 * w / R[2]); g.stroke();
     g.restore();
+  }
+  // 9:16: شريط العنوان فوق نافذة الكاميرا — النص لا يقع أبداً على الواجهة
+  if (VERT && t >= 7.5 && t < 27.0) {
+    const gr = g.createLinearGradient(0, BAND - 36, 0, BAND);
+    gr.addColorStop(0, 'rgba(248,250,249,1)'); gr.addColorStop(1, 'rgba(248,250,249,0)');
+    g.fillStyle = '#F8FAF9'; g.fillRect(0, 0, W, BAND - 36); g.fillStyle = gr; g.fillRect(0, BAND - 36, W, 36);
   }
   // ── S7 ← S8: المستطيل الأخضر يكبر من مرحلة «وصل» إلى ملء الإطار
   if (t >= 26.9 && t < 27.6) {
@@ -255,7 +277,8 @@ async function draw(t) {
 
 // ───────────────────────── النص ─────────────────────────
 const $ = id => document.getElementById(id);
-const stage = $('stage');
+const stage = $('stage'); stage.style.width = W + 'px'; stage.style.height = H + 'px';
+const cvs = $('fx'); cvs.width = W; cvs.height = H;
 // دخول: صعود 28px مع ظهور؛ خروج: صعود وتلاشٍ أسرع
 function inOut(el, t, a, b, { dy = 28, dur = 0.45, out = 0.3 } = {}) {
   const i = eOut(seg(t, a, a + dur)), o = eIn(seg(t, b, b + out));
@@ -287,7 +310,7 @@ function texts(t) {
     const fade = id === 'p3' ? 0 : 1;
     el.style.visibility = t >= a && t < 6.3 && v > 0.001 ? 'visible' : 'hidden';
     el.style.opacity = v * (1 - 0.72 * push) * (id === 'p3' ? 1 : (1 - seg(t, 5.85, 6.05)));
-    const y = 540 - 150 * push + (1 - inn) * 34;
+    const y = H / 2 - PUSH * push + (1 - inn) * 34;
     el.style.transform = `scale(${1 - 0.45 * push})`;
     centerY(el, y);
   });
@@ -308,7 +331,7 @@ function texts(t) {
   $('logo3').style.transform += ` translate(-50%, -78%)`;
   inOut($('tag3'), t, 6.6, 7.0, { dur: 0.35, out: 0.18 });
   // العناوين بجانب الهاتف
-  for (const [id, a, b] of HEADS) { const el = $(id); inOut(el, t, a, b); centerY(el, 540); el.style.transform += ''; }
+  for (const [id, a, b] of HEADS) { const el = $(id); inOut(el, t, a, b); centerY(el, HEAD_Y); }
   $('osm').style.opacity = seg(t, 20.0, 20.3) * (1 - seg(t, 25.3, 25.6));
   $('osm').style.visibility = t >= 20 && t < 25.6 ? 'visible' : 'hidden';
   // S8

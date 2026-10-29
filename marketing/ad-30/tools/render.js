@@ -11,13 +11,14 @@ const fs = require('fs');
 const path = require('path');
 
 const [, , mode, out, a3, a4, a5, a6, a7] = process.argv;
-const PAGE = 'file:///' + path.resolve(__dirname, '..', 'comp', 'index.html').replace(/\\/g, '/') + '?render';
+const PAGE = 'file:///' + path.resolve(__dirname, '..', 'comp', 'index.html').replace(/\\/g, '/') + '?render' + (process.env.AR === '916' ? '&ar=916' : '');
+const VW = process.env.AR === '916' ? 1080 : 1920, VH = process.env.AR === '916' ? 1920 : 1080;
 const FFMPEG = 'C:/Users/kde/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-9.0.2-full_build/bin/ffmpeg.exe';
 const run = (args) => new Promise((res, rej) => { const p = spawn(FFMPEG, args, { stdio: 'inherit' }); p.on('close', c => c ? rej(new Error('ffmpeg ' + c)) : res()); });
 
 async function open(browser) {
   const p = await browser.newPage();
-  await p.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
+  await p.setViewport({ width: VW, height: VH, deviceScaleFactor: 1 });
   p.on('pageerror', e => console.warn('pageerror:', e.message.split('\n')[0]));
   await p.goto(PAGE, { waitUntil: 'load' });
   await p.waitForFunction(() => window.READY === true, { timeout: 120000 });
@@ -25,7 +26,7 @@ async function open(browser) {
   if (bad.length) console.warn('WARNING fonts not loaded:', bad.join(', '));
   return p;
 }
-const shot = async (p, t) => { await p.evaluate(t => window.seek(t), t); return p.screenshot({ type: 'jpeg', quality: 95, clip: { x: 0, y: 0, width: 1920, height: 1080 } }); };
+const shot = async (p, t) => { await p.evaluate(t => window.seek(t), t); return p.screenshot({ type: 'jpeg', quality: 95, clip: { x: 0, y: 0, width: VW, height: VH } }); };
 
 (async () => {
   // متصفّحٌ لكل عامل: الصفحات الخلفية في متصفّحٍ واحد تُخنق فتتعلّق لقطاتها
@@ -41,7 +42,7 @@ const shot = async (p, t) => { await p.evaluate(t => window.seek(t), t); return 
     await browser.close();
     if (times.length === 1) { fs.copyFileSync(`${dir}/000.jpg`, out.replace(/\.png$/, '.jpg')); }
     const cols = Math.min(3, times.length), rows = Math.ceil(times.length / cols);
-    await run(['-v', 'error', '-y', '-framerate', '1', '-i', `${dir}/%03d.jpg`, '-vf', `scale=960:-1,tile=${cols}x${rows}:padding=6:color=gray`, '-frames:v', '1', out]);
+    await run(['-v', 'error', '-y', '-framerate', '1', '-i', `${dir}/%03d.jpg`, '-vf', `scale=${VW > VH ? 960 : 540}:-1,tile=${cols}x${rows}:padding=6:color=gray`, '-frames:v', '1', out]);
     console.log('stills ->', out); return;
   }
   const fps = +(a3 || 30), sub = Math.max(1, +(a4 || 1)), workers = Math.max(1, +(a5 || 4));

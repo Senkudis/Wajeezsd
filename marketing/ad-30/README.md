@@ -8,7 +8,9 @@
 | `STORYBOARD.md` / `BEAT_SHEET.md` | الإطارات المفتاحية والجدول الكامل |
 | `ASSET_LIST.md` / `CREDITS.md` | الأصول والتراخيص |
 | `QUALITY_CONTROL.md` | الفحص والإصلاحات وما بقي مفتوحاً |
-| `out/preview.mp4` | **المعاينة** 16:9 بالموسيقى والمؤثرات (بلا تعليق صوتي) |
+| `out/final_16x9.mp4` / `out/final_9x16.mp4` | **النسخ النهائية** 30 ث (60 إطاراً/ث) |
+| `out/final_16x9_15s.mp4` / `out/final_9x16_15s.mp4` | نسختا 15 ث |
+| `out/preview.mp4` | المعاينة الأولى |
 | `comp/index.html` | التكوين — افتحه في المتصفّح وحرّك الشريط لترى أيّ لحظة |
 
 ## إعادة البناء
@@ -17,7 +19,10 @@
 # خادم public_html على 4175 (.claude/launch.json → static-public-4175)
 node tools/shots.js all                       # الشاشات الحقيقية + 225 إطار تتبّع → assets/
 python tools/music.py out/music.wav           # الموسيقى
-node tools/render.js video out/preview_silent.mp4 30 1 4
+node tools/render.js video out/final_16x9_silent.mp4 60 4 4          # النهائي (≈ 6 دقائق)
+AR=916 node tools/render.js video out/final_9x16_silent.mp4 60 4 4   # 9:16
+# بعد مرور الصوت على كلٍّ منهما (sound/final16، sound/final916):
+python tools/cut15.py out/final_16x9.mp4 out/final_16x9_15s.mp4
 node tools/render.js stills review/sheet.png 1.8,13.6,18.8   # فحص لقطات
 # الصوت: مهارة sound-effects (الأوامر في .claude/CREATIVE_SKILLS_STATUS.md)
 ```
@@ -33,6 +38,6 @@ node tools/render.js stills review/sheet.png 1.8,13.6,18.8   # فحص لقطات
 
 1. **تسجيل التعليق الصوتي** (النسخة A أو B) — أكبر تحسين متبقٍّ؛ بدونه الخطّاف يعتمد على النص وحده.
 2. **ضغط المشهد 4** بـ 0.3 ث (الضغطتان الأوليان) لإعطاء الذروة نفساً أطول.
-3. **نسخة 9:16 مُعادة التكوين** (لا قصّ): العنوان فوق الهاتف والهاتف أكبر — أهمّ مقاس لتيك توك وريلز.
+3. **نسخة 1:1** لمنشورات فيسبوك وإنستغرام عند الحاجة (المعامل `?ar=` جاهز للتوسعة).
 4. **نسخة لكل مدينة** تبدأ بالخطّاف نفسه وتنتهي باسم المدينة وحدها (بورتسودان، عطبرة) لإعلانات مستهدفة جغرافياً.
 5. **نسخة «اشترِ لي»** بالبنية نفسها: «السعر قبل الشراء» بدل «العروض» — ميزةٌ حقيقية وقوية لم تُعرض وحدها بعد.
