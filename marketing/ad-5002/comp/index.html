@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>وجيز — شهادة إبراهيم</title>
+<!--
+  مونتاج IMG_5002 — 9:16، 30 إطاراً/ث. seek(t) دالة نقيّة للزمن؛ كل البيانات في data.js
+  (EDIT: المونتاج والترجمة ومشاهد القطع — tools/build_edit.py؛ FACES: تتبّع الوجه).
+  الشاشات حقيقية من التطبيق (../../ad-30/assets) ببيانات تجريبية.
+-->
+<style>
+@font-face { font-family: 'Alarabiya'; src: url('../../ad-30/assets/fonts/Alarabiya.ttf'); }
+@font-face { font-family: 'ArabicModern'; src: url('../../ad-30/assets/fonts/ArabicModern-Bold.otf'); }
+@font-face { font-family: 'Intro'; src: url('../../ad-30/assets/fonts/IntroBold.otf'); }
+html, body { margin: 0; background: #222; overflow: hidden; }
+#stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; transform-origin: 0 0; background: #000; }
+#stage * { box-sizing: border-box; }
+#fx { position: absolute; inset: 0; }
+.t { position: absolute; white-space: nowrap; }
+#cap { left: 60px; right: 60px; top: 1430px; text-align: center; font-family: 'Alarabiya'; font-size: 86px; line-height: 1.25; color: #fff; white-space: normal; }
+#cap span { display: inline-block; margin: 0 10px; text-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 18px rgba(0,0,0,.55), 0 0 4px rgba(0,0,0,.6); }
+#cap span.k { color: #E2BD63; }
+#cap.dark span { color: #04553A; text-shadow: none; }
+#cap.dark span.k { color: #BF8B1F; }
+#end { position: absolute; inset: 0; }
+#endLogo { left: 50%; top: 520px; width: 780px; margin-left: -390px; }
+#endTag { left: 0; right: 0; top: 870px; text-align: center; color: #fff; font-family: 'Alarabiya'; font-size: 104px; }
+#endBadges { left: 0; right: 0; top: 1060px; display: flex; justify-content: center; align-items: center; gap: 36px; direction: rtl; }
+#endBadges img { height: 100px; display: block; }
+#endBadges .gp { height: 144px; margin: -22px -16px; }
+#endUrl { left: 0; right: 0; top: 1230px; text-align: center; color: rgba(255,255,255,.92); font-family: 'Intro'; font-size: 40px; letter-spacing: 1px; direction: ltr; }
+#osm { left: 24px; top: 1380px; font: 18px/1 Arial, sans-serif; color: rgba(16,36,28,.55); direction: ltr; }
+#ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px; background: #111; color: #ddd; font: 13px system-ui; display: flex; gap: 10px; align-items: center; direction: ltr; }
+#ui input { flex: 1; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="fx" width="1080" height="1920"></canvas>
+  <div id="cap" class="t"></div>
+  <div id="osm" class="t">Map data © OpenStreetMap contributors</div>
+  <div id="end">
+    <img id="endLogo" class="t" src="../../ad-30/assets/brand/logo-white-notag.png">
+    <div id="endTag" class="t">إنت من أسرة وجيز</div>
+    <div id="endBadges" class="t"><img src="../../ad-30/assets/badges/as_en.svg"><img class="gp" src="../../ad-30/assets/badges/gp_ar.png"></div>
+    <div id="endUrl" class="t">wajeezsd.com</div>
+  </div>
+</div>
+<div id="ui"><button id="pp">play</button><input id="sc" type="range" min="0" max="42" step="0.01" value="0"><span id="tt">0.00</span></div>
+<script src="data.js"></script>
+<script>
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = x => (x = clamp(x), x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eOut = x => { x = clamp(x); return 1 - Math.pow(1 - x, 4); };
+const kf = keys => t => { if (t <= keys[0][0]) return keys[0][1]; for (let i = 1; i < keys.length; i++) { const [a, va] = keys[i - 1], [b, vb, e = ease] = keys[i]; if (t <= b) return lerp(va, vb, e((t - a) / (b - a))); } return keys[keys.length - 1][1]; };
+
+const E = window.EDIT, W = 1080, H = 1920, FPS = 30, DUR = E.dur;
+window.VIDEO = { w: W, h: H, duration: DUR, fps: FPS };
+const RENDER = location.search.includes('render');
+const $ = id => document.getElementById(id);
+const cv = $('fx'), g = cv.getContext('2d');
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+
+// ── زمن المخرَج → زمن المصدر ──
+function srcT(t) { let s = E.segs[0]; for (const x of E.segs) if (t >= x.out) s = x; return Math.min(s.srcEnd - 1e-3, s.src + (t - s.out)); }
+const segAt = t => { let k = 0; E.segs.forEach((x, i) => { if (t >= x.out) k = i; }); return k; };
+
+// ── تأطير المتحدّث: الوجه في منتصف العرض، خط العين على 36% من الارتفاع ──
+// تنعيمٌ إضافي (نافذة ~1.2 ث) يُخبز مرةً عند التحميل: الإطار يتبع الوجه بهدوء ولا يرتجف مع اليد
+const F = window.FACES, FT = F.map(r => r[0]);
+const smooth = (k, win) => F.map((r, i) => { let s = 0, n = 0; for (let j = Math.max(0, i - win); j <= Math.min(F.length - 1, i + win); j++) { s += F[j][k]; n++; } return s / n; });
+const FX = smooth(1, 6), FY = smooth(2, 6);
+function face(ts) { const i = clamp(Math.round(ts * 10), 0, F.length - 1); return [FX[i], FY[i]]; }
+function zoomAt(t) { let z = E.scale[0].z, t0 = 0; for (const s of E.scale) if (t >= s.t) { z = s.z; t0 = s.t; } return z * (1 + 0.006 * (t - t0)); }  // دفعٌ بطيء داخل اللقطة
+function frameXf(t) {
+  const ts = srcT(t), z = zoomAt(t), [fx, fy] = face(ts);
+  let ox = W / 2 - fx * z, oy = H * 0.36 - fy * z;
+  ox = clamp(ox, W - W * z, 0); oy = clamp(oy, H - H * z, 0);
+  return { ts, z, ox, oy };
+}
+
+// ── الصور ──
+const cache = new Map();
+const load = src => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = src; });
+function img(src, keep = 40) {
+  if (cache.has(src)) return cache.get(src);
+  const p = load(src).then(im => { cache.set(src, im); if (cache.size > keep) cache.delete(cache.keys().next().value); return im; });
+  cache.set(src, p); return p;
+}
+const pad = (n, k = 5) => String(n).padStart(k, '0');
+const SCR = '../../ad-30/assets/screens/', SEQ = '../../ad-30/assets/seq/tracking/';
+const STATIC = {};
+
+// ── مشاهد القطع ──
+const CUT = Object.fromEntries(E.cuts.map(c => [c.k, c]));
+const inCut = t => E.cuts.find(c => t >= c.s && t < c.e);
+// الهاتف: شاشة 390×844 بإحداثياتها، الكاميرا تقرّب نحو نقطة
+const SW = 390, SH = 844, K = 1000 / SH, PC = { x: 540, y: 760 }, WIN = 1370;   // نافذة الهاتف تنتهي فوق منطقة الترجمة
+function phoneDraw(c, ims, opts) {
+  const s = K * c.z, sx = PC.x - c.fx * s, sy = PC.y - c.fy * s, sw = SW * s, sh = SH * s, bez = 11 * c.z, rad = 44 * c.z;
+  g.save(); g.beginPath(); g.rect(0, 0, W, WIN); g.clip();
+  g.save(); g.shadowColor = 'rgba(16,36,28,.18)'; g.shadowBlur = 60; g.shadowOffsetY = 26;
+  g.fillStyle = '#0E1512'; rr(sx - bez, sy - bez, sw + 2 * bez, sh + 2 * bez, rad + bez); g.fill(); g.restore();
+  g.save(); rr(sx, sy, sw, sh, rad); g.clip(); g.fillStyle = '#F5F7F6'; g.fillRect(sx, sy, sw, sh);
+  for (const [im, a, scroll] of ims) if (im && a > 0) { g.globalAlpha = a; g.drawImage(im, sx, sy - (scroll || 0) * s, sw, im.height * sw / im.width); }
+  g.globalAlpha = 1;
+  if (opts && opts.cards) for (const [im, R, p] of opts.cards) cardSettle(im, R, p, sx, sy, s);
+  g.restore();
+  const fade = g.createLinearGradient(0, WIN - 90, 0, WIN); fade.addColorStop(0, 'rgba(248,250,249,0)'); fade.addColorStop(1, 'rgba(248,250,249,1)');
+  g.fillStyle = fade; g.fillRect(0, WIN - 90, W, 90); g.restore();
+  return { sx, sy, s };
+}
+function cardSettle(im, R, p, sx, sy, s) {
+  if (!im || p <= 0 || p >= 1) return;
+  const e = eOut(p), dy = (1 - e) * -26, sc = lerp(1.035, 1, e);
+  const cx = sx + (R[0] + R[2] / 2) * s, cy = sy + (R[1] + R[3] / 2 + dy) * s, w = R[2] * s * sc, h = R[3] * s * sc;
+  g.save(); g.shadowColor = `rgba(4,85,58,${0.22 * (1 - e)})`; g.shadowBlur = 30; g.shadowOffsetY = 10;
+  g.drawImage(im, R[0] * 3, R[1] * 3, R[2] * 3, R[3] * 3, cx - w / 2, cy - h / 2, w, h); g.restore();
+}
+function touch(P, x, y, press, ring) {
+  const px = P.sx + x * P.s, py = P.sy + y * P.s, r = 34 * (1 - 0.16 * press);
+  g.save();
+  if (ring >= 0 && ring < 1) { g.globalAlpha = (1 - ring) * 0.6; g.lineWidth = 3; g.strokeStyle = '#fff'; g.beginPath(); g.arc(px, py, 34 + 50 * eOut(ring), 0, 7); g.stroke(); g.globalAlpha = 1; }
+  g.fillStyle = `rgba(16,36,28,${0.3 + 0.12 * press})`; g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 3;
+  g.beginPath(); g.arc(px, py, r, 0, 7); g.fill(); g.stroke(); g.restore();
+}
+const tapState = (t, taps) => { let press = 0, ring = -1; for (const tp of taps) { const d = t - tp; if (d > -0.12 && d < 0.1) press = Math.max(press, d < 0 ? seg(d, -0.12, 0) : 1 - seg(d, 0, 0.1)); if (d >= 0 && d < 0.5) ring = d / 0.5; } return [press, ring]; };
+const CARD1 = [37, 467, 316, 172], CARD2 = [37, 649, 316, 172];
+// زمن كلمة من الترجمة (بنصّها وترتيب ظهورها)
+const wordAt = (w, n = 0) => { let k = 0; for (const c of E.caps) for (const x of c.words) if (x.w === w && k++ === n) return x.s; return null; };
+
+async function drawCut(t, c) {
+  const u = t - c.s, a = eOut(seg(u, 0, 0.18)), zin = lerp(1.03, 1, a);
+  g.save(); g.globalAlpha = a;
+  g.translate(W / 2, H / 2); g.scale(zin, zin); g.translate(-W / 2, -H / 2);
+  if (c.k === 'logo') {
+    g.fillStyle = '#04553A'; g.fillRect(0, 0, W, H);
+    const lg = STATIC.logo, w = 780 * lerp(0.94, 1, eOut(seg(u, 0.05, 0.5))), h = w * lg.height / lg.width;
+    g.globalAlpha = a * eOut(seg(u, 0.05, 0.35)); g.drawImage(lg, W / 2 - w / 2, 720 - h / 2, w, h);
+  } else if (c.k === 'badges') {
+    g.fillStyle = '#04553A'; g.fillRect(0, 0, W, H);
+    const tGP = wordAt('وتنزّل') - c.s;
+    const show = (im, y, h, t0) => { const p = eOut(seg(u, t0, t0 + 0.35)); if (p <= 0) return; const w = h * im.width / im.height; g.globalAlpha = a * p; g.drawImage(im, W / 2 - w / 2, y - h / 2 + (1 - p) * 30, w, h); };
+    show(STATIC.as, 640, 190, 0.05); show(STATIC.gp, 900, 270, Math.max(0.4, tGP));
+  } else {
+    g.fillStyle = '#F8FAF9'; g.fillRect(0, 0, W, H);
+    if (c.k === 'price') {
+      const t1 = 0.75, t2 = 1.45, f = u < t1 + 0.05 ? 'form2' : u < t2 + 0.05 ? 'form3' : 'form4';
+      const cam = { z: kf([[0, 1.25], [0.6, 1.55]])(u), fx: 195, fy: 509 };
+      const P = phoneDraw(cam, [[STATIC[f], 1, 560]]);
+      const [pr, ring] = tapState(u, [t1, t2]); g.globalAlpha = a * eOut(seg(u, 0.25, 0.45)); touch(P, 53, 509, pr, ring);
+    } else if (c.k === 'offers') {
+      const k = Math.min(6, Math.max(0, Math.floor(u))), im = u < 0.9 ? STATIC.offer1 : STATIC['offers' + k];
+      const cam = { z: kf([[0, 1.15], [1.4, 1.35]])(u), fx: 195, fy: 630 };
+      const P = phoneDraw(cam, [[im, 1, 0]], { cards: [[STATIC.offer1, CARD1, seg(u, 0, 0.45)], [STATIC.offers0, CARD2, seg(u, 0.9, 1.35)]] });
+      const tap = 2.0, mv = eOut(seg(u, 1.3, 1.85)); const [pr, ring] = tapState(u, [tap]);
+      g.globalAlpha = a * seg(u, 1.2, 1.4); touch(P, lerp(250, 276, mv), lerp(700, 592, mv), pr, ring);
+    } else if (c.k === 'tracking') {
+      const recv = wordAt('وتستلم') - c.s;
+      const im = await img(SEQ + pad(Math.min(224, 40 + Math.floor(u * 36)), 4) + '.jpg', 60);
+      const cam = { z: kf([[0, 1.2], [recv, 1.2], [recv + 0.6, 1.2]])(u), fx: 195, fy: kf([[0, 330], [recv, 330], [recv + 0.6, 560]])(u) };
+      phoneDraw(cam, [[im, 1, 0], [STATIC.delivered, seg(u, recv, recv + 0.25), 0]]);
+    }
+  }
+  g.restore();
+}
+
+async function draw(t) {
+  g.clearRect(0, 0, W, H);
+  if (t < E.speech + 0.4) {   // آخر إطارٍ للمتحدّث يبقى تحت المستطيل الأخضر وهو يكبر
+    const x = frameXf(Math.min(t, E.speech - 0.001)), f = clamp(Math.round(x.ts * FPS), 0, 1757);
+    const fr = await img('../src/frames/' + pad(f) + '.jpg');
+    if (fr) g.drawImage(fr, x.ox, x.oy, W * x.z, H * x.z);
+    // تدرّجٌ داكن ناعم أسفل الإطار يفصل الترجمة عن القميص المخطّط (لا صندوق)
+    const gb = g.createLinearGradient(0, 1150, 0, H); gb.addColorStop(0, 'rgba(0,0,0,0)'); gb.addColorStop(0.45, 'rgba(0,0,0,.38)'); gb.addColorStop(1, 'rgba(0,0,0,.55)');
+    g.fillStyle = gb; g.fillRect(0, 1150, W, H - 1150);
+    // الخطّاف: العنوان في السماء خلف المتحدّث (قناع SAM 2 فوق النص)
+    if (t < E.hook.e + 0.2) {
+      const p = eOut(seg(t, E.hook.word - 0.08, E.hook.word + 0.35)), out = 1 - seg(t, E.hook.e - 0.05, E.hook.e + 0.2);
+      if (p * out > 0) {
+        g.save(); g.globalAlpha = p * out; g.fillStyle = '#fff'; g.font = '300px Alarabiya'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.direction = 'rtl';
+        g.shadowColor = 'rgba(4,40,28,.25)'; g.shadowBlur = 30;
+        const sc = lerp(1.08, 1, p); g.translate(W / 2, 330); g.scale(sc, sc);
+        g.fillText('مشكلة التوصيل', 0, 0, W - 60); g.restore();
+        const m = await img('../src/masks/' + pad(f) + '.png', 80);
+        if (m && fr) {           // المتحدّث فوق النص: إطاره مقصوصاً بالقناع
+          const tmp = STATIC.tmp, tg = tmp.getContext('2d'); tg.globalCompositeOperation = 'source-over'; tg.clearRect(0, 0, W, H);
+          tg.drawImage(m, x.ox, x.oy, W * x.z, H * x.z); tg.globalCompositeOperation = 'source-in'; tg.drawImage(fr, x.ox, x.oy, W * x.z, H * x.z);
+          g.drawImage(tmp, 0, 0);
+        }
+      }
+    }
+    const c = t < E.speech ? inCut(t) : null; if (c) await drawCut(t, c);
+  }
+  // الختام: المستطيل الأخضر يكبر من الأسفل ويملأ الإطار
+  if (t >= E.speech - 0.02) {   // يبدأ بعد آخر كلمة: لا شيء فوق المتحدّث وهو يتكلّم
+    const p = eOut(seg(t, E.speech - 0.02, E.speech + 0.34));
+    const w = lerp(240, W, p), h = lerp(120, H, p), r = lerp(60, 0, p);
+    g.fillStyle = '#04553A'; rr(W / 2 - w / 2, lerp(1640, 0, p), w, h, r); g.fill();
+  }
+}
+
+// ── الترجمة: العبارة كاملة، والكلمة المنطوقة مضيئة ──
+let lastCap = -1;
+function captions(t) {
+  const el = $('cap'), i = E.caps.findIndex(c => t >= c.s && t < c.e);
+  const hide = t < E.hook.e - 0.02 || t >= E.speech;
+  if (i < 0 || hide) { el.style.visibility = 'hidden'; lastCap = -1; return; }
+  const c = E.caps[i];
+  if (i !== lastCap) {   // سطران متوازنان كحدٍّ أقصى، بلا كسرٍ داخل اسمٍ مركّب
+    const n = c.words.length, br = n > 4 ? Math.ceil(n / 2) : -1;
+    el.innerHTML = c.words.map((w, k) => (k === br ? '<br>' : '') + `<span class="${w.k ? 'k' : ''}">${w.w}</span>`).join(' '); lastCap = i; }
+  const cc = inCut(t); el.classList.toggle('dark', !!cc && ['price', 'offers', 'tracking'].includes(cc.k));
+  el.style.visibility = 'visible';
+  const inA = eOut(seg(t, c.s, c.s + 0.12));
+  el.style.opacity = inA; el.style.transform = `translateY(${(1 - inA) * 14}px)`;
+  [...el.querySelectorAll('span')].forEach((sp, k) => {
+    const w = c.words[k], on = t >= w.s - 0.02;
+    const pop = on ? eOut(seg(t, w.s - 0.02, w.s + 0.14)) : 0;
+    sp.style.opacity = on ? 1 : 0.72;
+    sp.style.transform = `scale(${1 + 0.06 * (1 - pop) * (on ? 1 : 0)})`;
+  });
+}
+function endCard(t) {
+  const on = t >= E.speech + 0.2; $('end').style.visibility = on ? 'visible' : 'hidden'; if (!on) return;
+  const io = (id, a, d = 24) => { const p = eOut(seg(t, a, a + 0.5)); $(id).style.opacity = p; $(id).style.transform = `translateY(${(1 - p) * d}px)`; };
+  io('endLogo', E.speech + 0.28); io('endTag', E.speech + 0.62); io('endBadges', E.speech + 0.95, 16); io('endUrl', E.speech + 1.1, 12);
+}
+window.seek = async function (t) {
+  t = clamp(t, 0, DUR - 1e-6);
+  captions(t); endCard(t);
+  const c = inCut(t); $('osm').style.visibility = c && c.k === 'tracking' ? 'visible' : 'hidden';
+  await draw(t);
+};
+
+(async () => {
+  const S = { logo: '../../ad-30/assets/brand/logo-white-notag.png', as: '../../ad-30/assets/badges/as_en.svg', gp: '../../ad-30/assets/badges/gp_ar.png' };
+  for (const k of ['form2', 'form3', 'form4', 'offer1', 'delivered']) S[k] = SCR + k + '.png';
+  for (let i = 0; i < 7; i++) S['offers' + i] = SCR + 'offers' + i + '.png';
+  await Promise.all(Object.entries(S).map(async ([k, v]) => { STATIC[k] = await load(v); }));
+  STATIC.tmp = document.createElement('canvas'); STATIC.tmp.width = W; STATIC.tmp.height = H;
+  await Promise.all([...document.fonts].map(f => f.load().catch(() => {}))); await document.fonts.ready;
+  window.READY = true;
+  if (RENDER) { $('ui').remove(); return; }
+  const stage = $('stage'); const fit = () => { const s = Math.min(innerWidth / W, (innerHeight - 50) / H); stage.style.transform = `scale(${s})`; }; fit(); addEventListener('resize', fit);
+  let playing = false, t0 = 0, off = 0; const now = () => playing ? (off + (performance.now() - t0) / 1000) % DUR : off;
+  $('sc').max = DUR; $('pp').onclick = () => { if (playing) { off = now(); playing = false; } else { t0 = performance.now(); playing = true; } };
+  $('sc').oninput = e => { off = +e.target.value; playing = false; };
+  (async function loop() { const t = now(); await seek(t); $('tt').textContent = t.toFixed(2); if (playing) $('sc').value = t; requestAnimationFrame(loop); })();
+})();
+</script>
+</body>
+</html>

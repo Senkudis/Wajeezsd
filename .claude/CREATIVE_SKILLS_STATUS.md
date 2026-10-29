@@ -96,3 +96,5 @@ Claude loads a skill automatically when the request matches its `description`, a
 
 - `sound-effects/scripts/sound_pass.py` line 24: `.rstrip(',')` added when parsing ffprobe's frame rate. ffprobe 9 prints `30/1,` and the original `eval` returned a tuple. Re-apply after updating the skill.
 - On Windows, run the skill's Python with the ffmpeg folder first on `PATH` (child processes do not inherit the winget ffmpeg path), and create `C:	mp` (the script writes proof frames to `/tmp`).
+- `object-separation`: the SKILL.md install list omits **torchvision**, which `Sam2ImageProcessor` requires (transformers 5.21). Install it from the same CPU index: `.object-separation/Scripts/pip install torchvision --index-url https://download.pytorch.org/whl/cpu`.
+- `sound-effects/scripts/sound_pass.py` replaces the video's own audio with music + effects, so it cannot be used as-is on talking-head footage; mix the voice first (see `marketing/ad-5002/tools/mix.py`, same measured loudness loop).
