@@ -58,6 +58,31 @@ const ICON = {
   check(s) { X.beginPath(); X.moveTo(-s*.26, 0); X.lineTo(-s*.06, s*.2); X.lineTo(s*.3, -s*.2); X.stroke(); },
 };
 
+// ── أيقونات خطّية موحّدة: شبكة 24×24، سُمك موحّد، أطراف مستديرة (على نمط Lucide، ترخيص ISC) ──
+const LI = {
+  car: ['M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2', 'M9 17h6', 'M5 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0', 'M15 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0'],
+  fuel: ['M3 22h12', 'M4 9h10', 'M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18', 'M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5'],
+  users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
+  bag: ['M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z', 'M3 6h18', 'M16 10a4 4 0 0 1-8 0'],
+  pin: ['M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z', 'M9 10a3 3 0 1 0 6 0a3 3 0 1 0 -6 0'],
+  tag: ['M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z', 'M7 7.5a.5.5 0 1 0 1 0a.5.5 0 1 0 -1 0'],
+  zap: ['M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z'],
+  phone: ['M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z', 'M12 18h.01'],
+  plane: ['M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z'],
+  help: ['M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0', 'M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3', 'M12 17h.01'],
+};
+const LP = {}; for (const k in LI) LP[k] = LI[k].map(d => new Path2D(d));
+// x,y = المركز؛ s = الحجم بالبكسل؛ السُّمك بوحدات الشبكة (2 من 24) فيبقى متناسباً مهما كبرت الأيقونة
+function licon(name, x, y, s, color, sw = 2) {
+  if (!LP[name] || s <= 0) return; X.save(); X.translate(x - s / 2, y - s / 2); X.scale(s / 24, s / 24);
+  X.strokeStyle = color; X.lineWidth = sw; X.lineCap = 'round'; X.lineJoin = 'round';
+  for (const p of LP[name]) X.stroke(p); X.restore();
+}
+// نابض مغلق الصيغة (مبدأ motion-broll): كل تغيير هدفٍ نابضٌ يُجمع فوق السابق — دالة صِرفة لـ t، لا حالة بين الإطارات
+const SPR = { MORPH: [14, .78], FAST: [22, .9], SOFT: [9, .85] };
+function spring(dt, w, z) { if (dt <= 0) return 0; const wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * dt) * (Math.cos(wd * dt) + (z * w / wd) * Math.sin(wd * dt)); }
+function track(v0, keys, sp = SPR.MORPH) { return (t) => { let v = v0, prev = v0; for (const [tk, val] of keys) { v += (val - prev) * spring(t - tk, sp[0], sp[1]); prev = val; } return v; }; }
+
 function icon(name, x, y, s, color, lw) { X.save(); X.translate(x, y); X.strokeStyle = color; X.fillStyle = color; X.lineWidth = lw || s * .07; X.lineCap = 'round'; X.lineJoin = 'round'; ICON[name](s); X.restore(); }
 
 // نص بحدّ داكن وظل ناعم — مقروء فوق أي خلفية بلا صندوق
@@ -97,12 +122,19 @@ function heads(t) {
     const p = eOut(lin(t, h.s, h.s + .35));
     X.save(); X.globalAlpha = a; X.direction = 'rtl'; X.textAlign = 'center';
     let y = h.y || 330;
+    if (h.icon) { // أيقونة في قرص أبيض فوق العنوان، تدخل بنابض
+      const ip = spring(t - h.s, ...SPR.FAST), r = 54 * ip; X.save(); shadow(24, .3, 8);
+      X.beginPath(); X.arc(W / 2, y - 150, Math.max(0, r), 0, 7); X.fillStyle = '#fff'; X.fill(); noShadow();
+      if (ip > .2) licon(h.icon, W / 2, y - 150, 60 * ip, COL.g, 2.2); X.restore(); }
     if (h.kicker) { font('ArB', 46); const kw = X.measureText(h.kicker).width;
       const kp = eOut(lin(t, h.s, h.s + .3)); rr(W / 2 - kw / 2 - 26, y - 150 + (1 - kp) * 16, kw + 52, 68, 34); X.fillStyle = COL.g; X.fill();
       X.fillStyle = '#fff'; X.fillText(h.kicker, W / 2, y - 102 + (1 - kp) * 16); }
     let size = h.size || 88; font('ArB', size); const tw = X.measureText(h.t).width; if (tw > 820) { size = Math.floor(size * 820 / tw); font('ArB', size); }
     X.translate(0, (1 - p) * 26);
-    outlined(h.t, W / 2, y, '#fff', 'rgba(0,0,0,.6)', 12);
+    if (h.accent && h.t.endsWith(h.accent)) { const head = h.t.slice(0, -h.accent.length), tw2 = X.measureText(h.t).width;
+      X.textAlign = 'right'; outlined(head, W / 2 + tw2 / 2, y, '#fff', 'rgba(0,0,0,.6)', 12);
+      X.textAlign = 'left'; outlined(h.accent, W / 2 - tw2 / 2, y, COL.gold, 'rgba(0,0,0,.6)', 12); X.textAlign = 'center';
+    } else outlined(h.t, W / 2, y, '#fff', 'rgba(0,0,0,.6)', 12);
     // خطّ ذهبي يتمدّد تحت العنوان
     const u = eOut(lin(t, h.s + .15, h.s + .55)), uw = Math.min(X.measureText(h.t).width, 420) * u;
     X.fillStyle = COL.gold; rr(W / 2 - uw / 2, y + 26, uw, 8, 4); X.fill();
@@ -126,7 +158,7 @@ function captions(t) {
   const lh = size * 1.22, y0 = E.capY - (rows.length - 1) * lh;
   X.save(); X.globalAlpha = a; X.textAlign = 'right'; X.textBaseline = 'alphabetic';
   if (ch.q) { // الصوت من وراء الكاميرا: وسم صغير فوق الترجمة
-    font('ArB', 60); X.textAlign = 'center'; outlined(E.qLabel, CX, y0 - size - 6, COL.gold, 'rgba(0,0,0,.7)', 8);
+    font('ArB', 70); X.textAlign = 'center'; outlined(E.qLabel + ':', CX, y0 - size - 10, COL.gold, 'rgba(0,0,0,.75)', 10);
     font('ArB', size); X.textAlign = 'right';
   }
   rows.forEach(([r0, r1], ri) => {
@@ -186,6 +218,63 @@ function scenePains(t, sc) {
   X.restore();
 }
 
+// ── مشهد المشكلة (v6): شكل واحد لا يُقطع — يتبدّل حجمه وزواياه ولونه من حالة لحالة بنابض،
+//    والمحتوى داخله يتبادل بضبابية قصيرة. تحته عدّاد يجمع المشاكل الثلاث (إنفوجرافيك تراكمي). ──
+const MS = {
+  market:  { w: 640, h: 200, r: 100, bg: '#ffffff', icon: 'bag',   label: 'مشوار السوق', ic: COL.ink },
+  traffic: { w: 760, h: 560, r: 64,  bg: '#ffffff', icon: 'car',   label: 'الزحمة', ic: COL.red, n: 1 },
+  fuel:    { w: 760, h: 560, r: 64,  bg: '#ffffff', icon: 'fuel',  label: 'البنزين الغالي', ic: COL.red, n: 2 },
+  queue:   { w: 760, h: 560, r: 64,  bg: '#ffffff', icon: 'users', label: 'الصفوف', ic: COL.red, n: 3 },
+  q:       { w: 880, h: 300, r: 150, bg: COL.gold,  icon: 'help',  label: 'عندك حل؟', ic: COL.ink },
+};
+const hexRGB = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+function sceneMorph(t, sc) {
+  sceneBg(t, sc.s, sc.tone);
+  const st = sc.states, k0 = MS[st[0][1]], ks = (f) => st.slice(1).map(([tk, n]) => [tk, f(MS[n])]);
+  sc._w = sc._w || track(k0.w, ks(m => m.w));
+  sc._h = sc._h || track(k0.h, ks(m => m.h));
+  sc._r = sc._r || track(k0.r, ks(m => m.r));
+  sc._c = sc._c || [0, 1, 2].map(i => track(hexRGB(k0.bg)[i], ks(m => hexRGB(m.bg)[i]), SPR.FAST));
+  const intro = spring(t - sc.s, ...SPR.FAST);                      // الشكل يقفز للوجود مرة واحدة
+  const w = sc._w(t) * (.6 + .4 * intro), h = sc._h(t) * (.6 + .4 * intro), r = Math.min(sc._r(t), h / 2), cy = 900;
+  // العنوان الثابت فوق
+  X.save(); X.direction = 'rtl'; const tp = eOut(lin(t, sc.s, sc.s + .3)); X.globalAlpha = tp; font('ArB', 92);
+  const ty = 380 + (1 - tp) * 20, tw = X.measureText(sc.title).width, head = sc.title.slice(0, -sc.accent.length);
+  X.textAlign = 'right'; outlined(head, W / 2 + tw / 2, ty, '#fff', 'rgba(0,0,0,.5)', 10);
+  X.textAlign = 'left'; outlined(sc.accent, W / 2 - tw / 2, ty, COL.gold, 'rgba(0,0,0,.5)', 10); X.restore();
+  // الشكل
+  X.save(); X.globalAlpha = Math.min(1, intro * 1.5); shadow(60, .45, 22); rr(W / 2 - w / 2, cy - h / 2, w, h, r);
+  X.fillStyle = `rgb(${sc._c.map(f => Math.round(f(t))).join(',')})`; X.fill(); noShadow(); X.restore();
+  // المحتوى: كل حالة طبقة تدخل بضبابية وتخرج أسرع (تبادل لا قطع)
+  st.forEach(([tin, n], i) => {
+    const tout = i + 1 < st.length ? st[i + 1][0] : sc.e + 1, S = MS[n];
+    const inP = eOut(lin(t, tin + .05, tin + .28)), outP = eIn(lin(t, tout - .02, tout + .1)), o = Math.min(inP, 1 - outP);
+    if (o <= .01) return;
+    X.save(); X.globalAlpha = o; X.filter = `blur(${((1 - inP) * 14 + outP * 10).toFixed(1)}px)`;
+    X.direction = 'rtl'; X.textAlign = 'center';
+    if (n === 'market' || n === 'q') { // حبّة عريضة: أيقونة + نص في سطر
+      const big = n === 'q'; font('ArB', big ? 118 : 76);
+      const lw2 = X.measureText(S.label).width, is = big ? 110 : 76, gap = 28, tot = lw2 + is + gap;
+      X.fillStyle = S.ic; X.textAlign = 'right'; X.fillText(S.label, W / 2 + tot / 2, cy + (big ? 40 : 27));
+      licon(S.icon, W / 2 - tot / 2 + is / 2, cy, is, S.ic, 2.2);
+    } else { // بطاقة كبيرة: قرص أيقونة أحمر فاتح + عنوان
+      const s2 = .92 + .08 * inP; X.translate(W / 2, cy); X.scale(s2, s2);
+      X.beginPath(); X.arc(0, -70, 130, 0, 7); X.fillStyle = 'rgba(214,69,69,.12)'; X.fill();
+      licon(S.icon, 0, -70, 150, COL.red, 1.9);
+      font('ArB', 96); X.fillStyle = COL.ink; X.fillText(S.label, 0, 190);
+    }
+    X.restore();
+  });
+  // العدّاد التراكمي: كل مشكلة تستقرّ أيقونةً صغيرة في صفّ فوق الشكل (يمين ← يسار)
+  const pains = st.filter(([, n]) => MS[n].n);
+  pains.forEach(([tk, n], i) => {
+    const sp = spring(t - tk - .15, ...SPR.FAST); if (sp <= .01) return;
+    const x = W / 2 + (1 - i) * 150, y = 515;   // بين العنوان والشكل: بعيداً عن الترجمة في الثلث السفلي
+    X.save(); X.globalAlpha = Math.min(1, sp); shadow(20, .3, 6); X.beginPath(); X.arc(x, y, 56 * sp, 0, 7); X.fillStyle = COL.red; X.fill(); noShadow();
+    licon(MS[n].icon, x, y, 58 * sp, '#fff', 2.2); X.restore();
+  });
+}
+
 // مشهد الشعار: ظهور واثق مع حلقات ذهبية
 function sceneLogo(t, sc) {
   sceneBg(t, sc.s);
@@ -203,19 +292,28 @@ function scenePhone(t, sc) {
   outlined(sc.title, W / 2, 300 + (1 - p) * 20, '#fff', 'rgba(0,0,0,.35)', 6);
   const uw = 300 * eOut(lin(k, .15, .55)); X.fillStyle = COL.gold; rr(W / 2 - uw / 2, 330, uw, 8, 4); X.fill(); X.restore();
   const im = img[sc.img]; if (!im) return;
-  const w = 480, h = Math.min(w * im.height / im.width, w * 1.8), x = W / 2 - w / 2, y = 410 + (1 - p) * 120 - k * 14;
+  const w = 620, h = Math.min(w * im.height / im.width, 980), x = W / 2 - w / 2, y = 380 + (1 - p) * 120 - k * 10;
   X.save(); X.globalAlpha = p;
   shadow(60, .5, 24); rr(x - 18, y - 18, w + 36, h + 36, 62); X.fillStyle = '#0b0b0b'; X.fill(); noShadow();
   X.save(); rr(x, y, w, h, 46); X.clip();
   const sy = (sc.scroll || 0) * eIO(lin(k, .5, sc.e - sc.s)) * (im.height * w / im.width - h);   // تمرير بطيء للشاشات الطويلة
   X.drawImage(im, x, y - sy, w, im.height * w / im.width); X.restore();
   X.restore();
+  if (sc.chip) { // شارة بأيقونة: إنفوجرافيك صغير يربط الشاشة بالفائدة
+    const c = sc.chip, sp = spring(k - c.dt, ...SPR.FAST); if (sp > .01) {
+      font('ArB', 50); const tw = X.measureText(c.text).width, cw = tw + 150, chh = 110, cyy = Math.min(y + h - 150, 1230);
+      X.save(); X.globalAlpha = Math.min(1, sp); X.translate(W / 2, cyy + (1 - sp) * 60); X.scale(.85 + .15 * sp, .85 + .15 * sp);
+      shadow(40, .4, 14); rr(-cw / 2, -chh / 2, cw, chh, chh / 2); X.fillStyle = '#fff'; X.fill(); noShadow();
+      X.beginPath(); X.arc(cw / 2 - 58, 0, 38, 0, 7); X.fillStyle = COL.g; X.fill(); licon(c.icon, cw / 2 - 58, 0, 44, '#fff', 2.2);
+      X.direction = 'rtl'; X.textAlign = 'right'; X.fillStyle = COL.ink; X.fillText(c.text, cw / 2 - 112, 17); X.restore();
+    }
+  }
 }
 
 function scenes(t) {
   for (const sc of E.scenes || []) {
     if (t < sc.s || t >= sc.e) continue;
-    if (sc.type === 'pains') scenePains(t, sc); else if (sc.type === 'logo') sceneLogo(t, sc); else if (sc.type === 'phone') scenePhone(t, sc);
+    if (sc.type === 'morph') sceneMorph(t, sc); else if (sc.type === 'pains') scenePains(t, sc); else if (sc.type === 'logo') sceneLogo(t, sc); else if (sc.type === 'phone') scenePhone(t, sc);
     return true;
   }
   return false;
@@ -254,12 +352,12 @@ function endcard(t) {
   const l1 = up(.7, 1.15); X.globalAlpha = l1; font('ArB', 86); X.fillStyle = '#fff'; X.fillText(E.endText1, EC, 1095 + (1 - l1) * 24);
   const l2 = up(.82, 1.27); X.globalAlpha = l2; font('Ar', 48); X.fillStyle = 'rgba(255,255,255,.78)'; X.fillText(E.endText2, EC, 1175 + (1 - l2) * 24);
   // شارتا المتجرين الرسميتان، بنفس الارتفاع
-  const bh = 116, l3 = up(.95, 1.4);
+  const bh = 130, l3 = up(.95, 1.4);
   const bs = [img.appstore, img.play].filter(Boolean).map(im => ({ im, w: bh * im.width / im.height }));
   const gap = 28, tot = bs.reduce((a, b) => a + b.w, 0) + gap * (bs.length - 1);
   let bx = EC - tot / 2; X.globalAlpha = l3;
-  for (const b of bs) { shadow(30, .45, 10); X.drawImage(b.im, bx, 1270 + (1 - l3) * 30, b.w, bh); noShadow(); bx += b.w + gap; }
-  const l4 = up(1.15, 1.6); X.globalAlpha = l4 * .8; X.direction = 'ltr'; font('En', 44); X.fillStyle = '#fff'; X.fillText('wajeezsd.com', EC, 1500);
+  for (const b of bs) { shadow(30, .45, 10); X.drawImage(b.im, bx, 1260 + (1 - l3) * 30, b.w, bh); noShadow(); bx += b.w + gap; }
+  const l4 = up(1.15, 1.6); X.globalAlpha = l4 * .8; X.direction = 'ltr'; font('En', 44); X.fillStyle = '#fff'; X.fillText('wajeezsd.com', EC, 1540);
   X.globalAlpha = 1;
 }
 
