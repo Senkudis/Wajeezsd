@@ -21,7 +21,7 @@ A=ap.parse_args(); os.makedirs(A.out,exist_ok=True); os.makedirs(f'{A.out}/check
 random.seed(A.seed)
 run=lambda c:subprocess.run(c,capture_output=True,text=True)
 dur=float(run(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',A.video]).stdout)
-fps=eval(run(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=r_frame_rate','-of','csv=p=0',A.video]).stdout.strip())
+fps=eval(run(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=r_frame_rate','-of','csv=p=0',A.video]).stdout.strip().rstrip(','))
 cues=json.load(open(A.cues)); man=json.load(open(A.manifest)); base=os.path.dirname(os.path.abspath(A.manifest))
 log=[]
 # 1. beat grid + sub-120Hz check

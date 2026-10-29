@@ -6,11 +6,11 @@
 | شاشة العروض `ordersOffers` | حقيقية | `client-my-orders.html`، بيانات تجريبية | الأسماء والتقييمات والأسعار **توضيحية** |
 | «تم قبول طلبك» `acceptedPopup` | حقيقية | `client-my-orders.html` | |
 | التتبّع `tracking` | حقيقية | `tracking.html` (التصميم الجديد) | حركة الكابتن بوحدة الحركة الحقيقية في التطبيق |
-| مسار التتبّع | حقيقي (OSM) | يُرسم مسارٌ في **أم درمان** بـ `mkroute.js` من بيانات OpenStreetMap | النسبة «© OpenStreetMap contributors» تظهر في المشهد 6 |
+| مسار التتبّع | حقيقي (OSM) | شارع عبيد ختم ← المشتل ← الرياض، **الخرطوم** (`wajeez-ad-v2/tools/path.json`) | النسبة «© OpenStreetMap contributors» تظهر في المشهد 6 |
 | الشعار | مُورَّد (المشروع) | `public_html/logo-*.png`، `wajeez-logo-guide.html` | |
 | خطوط العلامة | مُورَّدة | `marketing/brand-fonts/` | Alarabiya، Arabic Modern Bold، Intro |
 | شارة Google Play (عربي/إنجليزي) | مُورَّدة | `ad-ugc-5010/assets/dl/` | |
-| شارة App Store | مُورَّدة جزئياً | `as_en.svg` إنجليزية فقط | **مطلوب:** النسخة العربية الرسمية من Apple، أو نستعمل الإنجليزيتين معاً |
+| شارة App Store | مُورَّدة جزئياً | `assets/badges/as_en.svg` الإنجليزية الرسمية | العربية في حزمة Apple خلف اتفاقية تنزيل — بانتظار موافقتك |
 | المؤشّر (Cursor/إصبع) | مُولَّد بالكود | SVG بسيط بلون محايد | |
 | بطاقة العرض / المستطيل الحامل | مُولَّد بالكود | من زوايا وألوان بطاقات التطبيق | |
 | الموسيقى | مُولَّدة بالكود | `tools/music.py` | بلا حقوق طرفٍ ثالث |

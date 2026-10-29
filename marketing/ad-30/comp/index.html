@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>وجيز — بتشيل كم؟</title>
+<!--
+  إعلان «بتشيل كم؟» — 30 ث، 96 BPM (الضربة 0.625، المازورة 2.5). seek(t) دالة نقيّة للزمن.
+  الشاشات حقيقية من التطبيق (../assets/screens، ../assets/seq/tracking) — بيانات تجريبية.
+
+  BEAT SHEET
+  0.00  S1 الخطّاف     «بتشيل» 0.30، «كم؟» 1.25 (pop)                       — صمت
+  2.50  S2 المشكلة     تتصل 2.50 / تفاصل 3.75 / وما عارف وصل وين؟ 5.00 (tick×3) — نقر منفرد
+  5.90  الـ ؟ الذهبية تنتقل للوسط ← 6.25 المستطيل الأخضر يكبر (whoosh)
+  6.25  S3 الشعار + «إنت بتختار.» 6.55 ← 7.00–7.50 المستطيل ينكمش إلى شاشة الهاتف
+  7.50  S4 نموذج الطلب: الاستلام 8.125، التسليم 8.75 (ui-blip)، تمرير 9.3، دفع 10.0،
+        «+» 10.625 و 11.25 (click)، «اطلب الكابتن الآن» 11.875 (click)       — الإيقاع يدخل 7.50
+  12.5  S5 البحث ← عرض 13.1 (pop) ← عرضان 14.4 (pop) ← تردّد 15.6–16.9 ← قبول 17.5
+        (riser 16.9، click+impact 17.5) ← البطاقة تخرج 17.55–18.4 ← «تم قبول طلبك» 19.0
+  20.0  S6 التتبّع (whoosh منخفض) — الكاميرا في الخريطة ثم 23.1 إلى شارة الدقائق
+  25.0  S7 الوصول 25.55 (ding) — سطر الكاش ← 26.9 المستطيل الأخضر يملأ الإطار
+  27.5  S8 الشعار (impact) / «إنت بتختار.» 28.1 / المدن والشارتان 28.75 — ثبات من 29.2
+-->
+<style>
+@font-face { font-family: 'Alarabiya'; src: url('../assets/fonts/Alarabiya.ttf'); }
+@font-face { font-family: 'ArabicModern'; src: url('../assets/fonts/ArabicModern-Bold.otf'); }
+@font-face { font-family: 'Intro'; src: url('../assets/fonts/IntroBold.otf'); }
+:root { --green: #04553A; --green-d: #033A27; --gold: #BF8B1F; --canvas: #F8FAF9; --ink: #10241C; }
+html, body { margin: 0; background: #222; overflow: hidden; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--canvas); }
+#stage * { box-sizing: border-box; }
+#fx { position: absolute; inset: 0; }
+.t { position: absolute; white-space: nowrap; will-change: transform, opacity; }
+.ar { font-family: 'Alarabiya'; font-weight: normal; line-height: 1; }
+#hook { left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 56px; color: #fff; font-size: 250px; }
+#hook span { display: inline-block; }
+.gold { color: var(--gold); }
+.q { font-family: "ArabicModern"; }
+.prob { left: 0; right: 0; text-align: center; color: var(--green); font-size: 150px; }
+#qmark { display: inline-block; }
+#logo3 { left: 50%; top: 50%; width: 760px; }
+#tag3 { left: 0; right: 0; text-align: center; top: 700px; color: #fff; font-size: 96px; }
+.head { right: 150px; top: 0; color: var(--green); font-size: 112px; text-align: right; }
+#end { position: absolute; inset: 0; }
+#endLogo { left: 50%; top: 210px; width: 640px; margin-left: -320px; }
+#endTag { left: 0; right: 0; top: 470px; text-align: center; color: #fff; font-size: 104px; }
+#endCities { left: 0; right: 0; top: 628px; text-align: center; color: rgba(255,255,255,.82); font-family: 'ArabicModern'; font-size: 38px; letter-spacing: 0; }
+#endBadges { left: 0; right: 0; top: 742px; display: flex; justify-content: center; gap: 36px; direction: rtl; }
+#endBadges { align-items: center; }
+#endBadges img { height: 92px; display: block; }
+#endBadges #badgeGP { height: 132px; margin: -20px -14px; }
+#endUrl { left: 0; right: 0; top: 880px; text-align: center; color: rgba(255,255,255,.9); font-family: 'Intro'; font-size: 34px; letter-spacing: 1px; direction: ltr; }
+#osm { left: 24px; bottom: 16px; font: 15px/1 Arial, sans-serif; color: rgba(16,36,28,.55); direction: ltr; }
+#ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px; background: #111; color: #ddd; font: 13px system-ui; display: flex; gap: 10px; align-items: center; direction: ltr; }
+#ui input { flex: 1; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="hook" class="t ar"><span id="h1">بتشيل</span><span id="h2">كم<span class="gold q">؟</span></span></div>
+  <div id="p1" class="t ar prob">تتصل..</div>
+  <div id="p2" class="t ar prob">تفاصل..</div>
+  <div id="p3" class="t ar prob">وما عارف وصل وين<span id="qmark" class="gold q">؟</span></div>
+  <img id="logo3" class="t" src="../assets/brand/logo-white-notag.png">
+  <div id="tag3" class="t ar">إنت بتختار.</div>
+  <div id="hd1" class="t ar head">حدّد مشوارك</div>
+  <div id="hd2" class="t ar head">واقترح سعرك</div>
+  <div id="hd3" class="t ar head">العروض بتجيك</div>
+  <div id="hd4" class="t ar head">والاختيار ليك</div>
+  <div id="hd5" class="t ar head">لحظة بلحظة</div>
+  <div id="hd6" class="t ar head">تستلم، وتدفع كاش</div>
+  <div id="osm" class="t">Map data © OpenStreetMap contributors</div>
+  <div id="end">
+    <img id="endLogo" class="t" src="../assets/brand/logo-white-notag.png">
+    <div id="endTag" class="t ar">إنت بتختار.</div>
+    <div id="endCities" class="t">الخرطوم · أم درمان · بحري · بورتسودان · عطبرة · الدامر</div>
+    <div id="endBadges" class="t"><img id="badgeAS" src="../assets/badges/as_ar.svg" onerror="this.onerror=null;this.src='../assets/badges/as_en.svg'"><img id="badgeGP" src="../assets/badges/gp_ar.png"></div>
+    <div id="endUrl" class="t">wajeezsd.com</div>
+  </div>
+</div>
+<div id="ui"><button id="pp">play</button><input id="sc" type="range" min="0" max="30" step="0.01" value="0"><span id="tt">0.00</span></div>
+<script>
+// ───────────────────────── helpers ─────────────────────────
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = x => (x = clamp(x), x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eOut = x => { x = clamp(x); return 1 - Math.pow(1 - x, 4); };          // ≈ cubic-bezier(.22,1,.36,1)
+const eIn = x => { x = clamp(x); return x * x * x; };
+const kf = keys => t => { if (t <= keys[0][0]) return keys[0][1]; for (let i = 1; i < keys.length; i++) { const [a, va] = keys[i - 1], [b, vb, e = ease] = keys[i]; if (t <= b) return lerp(va, vb, e((t - a) / (b - a))); } return keys[keys.length - 1][1]; };
+function spring(t, w = 14, z = 0.9) { if (t <= 0) return 0; const wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t)); }
+
+const W = 1920, H = 1080, DUR = 30, BEAT = 0.625;
+window.VIDEO = { w: W, h: H, duration: DUR, fps: 30 };
+const RENDER = location.search.includes('render');
+
+// ───────────────────────── الهاتف والكاميرا ─────────────────────────
+// شاشة التطبيق 390×844 (css). k: مقياسها في الإطار عند تقريب 1. C: موضع مركزها.
+const SW = 390, SH = 844, K = 880 / SH, C = { x: 700, y: 540 };
+// الكاميرا: نقطة البؤرة (fx, fy) بإحداثيات الشاشة الظاهرة، والتقريب z
+const camZ = kf([[0, 1], [9.95, 1], [10.6, 1.9], [11.45, 1.9], [11.95, 1.35], [12.3, 1.35], [12.85, 1], [13.3, 1], [14.9, 1.55], [17.4, 1.55], [17.6, 1.5],
+  [19.0, 1.5], [19.8, 1.6], [20.0, 1.75], [23.1, 1.75], [24.0, 1.5], [25.2, 1.5], [26.0, 1.55]]);
+const camX = kf([[0, 195], [20.0, 150], [23.1, 225], [24.0, 195]]);
+const camY = kf([[0, 422], [9.95, 422], [10.6, 509], [11.45, 509], [11.95, 600], [12.3, 600], [12.85, 422], [13.3, 422], [14.9, 640], [17.6, 640], [19.0, 640], [19.8, 380],
+  [20.0, 150], [23.1, 250], [24.0, 470], [25.2, 470], [26.0, 690]]);
+function cam(t) { const z = camZ(t); return { z, s: K * z, fx: camX(t), fy: camY(t) }; }
+// نقطة من الشاشة ← الإطار
+const toFrame = (c, x, y) => ({ x: C.x + (x - c.fx) * c.s, y: C.y + (y - c.fy) * c.s });
+
+// ───────────────────────── الصور ─────────────────────────
+const IMG = {}, SEQ = [], SEQN = 225;
+const SRC = { form0: 1, form1: 1, form2: 1, form3: 1, form4: 1, search: 1, offer1: 1, accepted: 1, delivered: 1 };
+for (let i = 0; i < 7; i++) SRC['offers' + i] = 1;
+const load = (src) => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = src; });
+// إطارات التتبّع تُحمَّل عند الطلب ويبقى منها القليل في الذاكرة
+const seqCache = new Map();
+function seqFrame(i) {
+  i = Math.max(0, Math.min(SEQN - 1, i));
+  if (seqCache.has(i)) return seqCache.get(i);
+  const p = load('../assets/seq/tracking/' + String(i).padStart(4, '0') + '.jpg').then(im => { seqCache.set(i, im); if (seqCache.size > 12) seqCache.delete(seqCache.keys().next().value); return im; });
+  seqCache.set(i, p); return p;
+}
+
+// ───────────────────────── رسم ─────────────────────────
+const cv = document.getElementById('fx'), g = cv.getContext('2d');
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+// محتوى الشاشة: [صورة، ألفا، إزاحة التمرير]
+function screenLayers(t) {
+  const L = [];
+  const form = (n) => IMG['form' + n];
+  const scroll = kf([[9.3, 0], [10.1, 560], [12.45, 560], [12.46, 0, x => 1]])(t);
+  if (t < 12.5) {
+    let f = 0;
+    if (t >= 8.2) f = 1; if (t >= 8.85) f = 2; if (t >= 10.68) f = 3; if (t >= 11.3) f = 4;
+    const prev = Math.max(0, f - 1), swap = [0, 8.2, 8.85, 10.68, 11.3][f];
+    const a = f && f < 3 ? seg(t, swap, swap + 0.16) : 1;      // تبديل السعر فوري كما في التطبيق
+    if (a < 1) L.push([form(prev), 1, scroll]);
+    L.push([form(f), a, scroll]);
+  }
+  if (t >= 12.2 && t < 19.6) {
+    const a = seg(t, 12.2, 12.42);
+    let im = IMG.search;
+    if (t >= 13.1) im = IMG.offer1;
+    if (t >= 14.4) im = IMG['offers' + Math.min(6, Math.floor(t - 14.4))];
+    L.push([im, a, 0]);
+  }
+  if (t >= 19.0 && t < 20.0) L.push([IMG.accepted, seg(t, 19.0, 19.25), 0]);
+  return L;
+}
+// بطاقة عرضٍ تستقرّ في مكانها عند وصولها (صورة البطاقة نفسها فوق الشاشة)
+const CARD1 = [37, 467, 316, 172], CARD2 = [37, 649, 316, 172];
+function cardSettle(t, t0, im, R, c) {
+  const p = seg(t, t0, t0 + 0.45); if (p <= 0 || p >= 1) return;
+  const e = eOut(p), dy = (1 - e) * -26, sc = lerp(1.035, 1, e);
+  const a = toFrame(c, R[0] + R[2] / 2, R[1] + R[3] / 2 + dy);
+  const w = R[2] * c.s * sc, h = R[3] * c.s * sc;
+  g.save(); g.globalAlpha = 1; g.shadowColor = `rgba(4,85,58,${0.22 * (1 - e)})`; g.shadowBlur = 30; g.shadowOffsetY = 10;
+  g.drawImage(im, R[0] * 3, R[1] * 3, R[2] * 3, R[3] * 3, a.x - w / 2, a.y - h / 2, w, h); g.restore();
+}
+// إصبع اللمس: [زمن، x، y] بإحداثيات الشاشة؛ الضغطات في TAPS
+const TOUCH = [[7.7, 330, 260], [7.95, 178, 108], [8.45, 178, 108], [8.6, 178, 347], [9.05, 178, 347], [9.6, 300, 600], [10.35, 53, 509], [11.0, 53, 509], [11.6, 53, 509],
+  [11.8, 195, 618], [12.15, 195, 618], [15.0, 200, 760], [15.6, 82, 712], [16.3, 82, 712], [16.9, 276, 604], [17.6, 276, 604]];
+const TAPS = [8.125, 8.75, 10.625, 11.25, 11.875, 17.5];
+const touchVis = t => (seg(t, 7.6, 7.85) - seg(t, 12.15, 12.35)) + (seg(t, 14.9, 15.2) - seg(t, 17.6, 17.8));
+function touchPos(t) {
+  let i = TOUCH.findIndex(k => k[0] >= t); if (i < 0) return TOUCH[TOUCH.length - 1].slice(1); if (i === 0) return TOUCH[0].slice(1);
+  const [a, ax, ay] = TOUCH[i - 1], [b, bx, by] = TOUCH[i], k = ease((t - a) / (b - a));
+  // مسارٌ منحنٍ قليلاً كحركة اليد
+  const bend = Math.sin(k * Math.PI) * Math.min(40, Math.hypot(bx - ax, by - ay) * 0.12);
+  return [lerp(ax, bx, k) + bend, lerp(ay, by, k) - bend * 0.4];
+}
+function drawTouch(t, c) {
+  const v = clamp(touchVis(t)); if (v <= 0) return;
+  const [x, y] = touchPos(t), p = toFrame(c, x, y);
+  let press = 0, ring = -1;
+  for (const tp of TAPS) { const d = t - tp; if (d > -0.14 && d < 0.1) press = Math.max(press, d < 0 ? seg(d, -0.14, 0) : 1 - seg(d, 0, 0.1)); if (d >= 0 && d < 0.5) ring = d / 0.5; }
+  const r = 30 * (1 - 0.16 * press);
+  g.save(); g.globalAlpha = v;
+  if (ring >= 0) { g.globalAlpha = v * (1 - ring) * 0.6; g.lineWidth = 3; g.strokeStyle = '#fff'; g.beginPath(); g.arc(p.x, p.y, 30 + 46 * eOut(ring), 0, 7); g.stroke(); g.globalAlpha = v; }
+  g.fillStyle = `rgba(16,36,28,${0.30 + 0.12 * press})`; g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 3;
+  g.shadowColor = 'rgba(0,0,0,.18)'; g.shadowBlur = 14; g.beginPath(); g.arc(p.x, p.y, r, 0, 7); g.fill(); g.shadowBlur = 0; g.stroke(); g.restore();
+}
+
+// الشكل الحامل: مستطيلٌ أخضر يتحوّل بين مواضع (س، ص، ع، ط، نصف القطر)
+function screenRect(c) { const a = toFrame(c, 0, 0); return [a.x, a.y, SW * c.s, SH * c.s, 44 * c.s / K]; }
+const lerpR = (A, B, k) => A.map((v, i) => lerp(v, B[i], k));
+const FULL = [0, 0, W, H, 0];
+
+async function draw(t) {
+  g.clearRect(0, 0, W, H);
+  const c = cam(t);
+  // ── S3: المستطيل الأخضر من الـ ؟ إلى ملء الإطار ثم إلى شاشة الهاتف
+  if (t >= 6.1 && t < 7.55) {
+    const Q = [W / 2 - 40, H / 2 - 60, 80, 120, 40];
+    const SR = screenRect(cam(7.5));
+    let R = t < 6.8 ? lerpR(Q, FULL, eOut(seg(t, 6.18, 6.72))) : lerpR(FULL, SR, ease(seg(t, 7.0, 7.5)));
+    g.fillStyle = '#04553A'; rr(...R); g.fill();
+  }
+  // ── الهاتف (S4–S7)
+  const phoneA = seg(t, 7.3, 7.5) * (1 - seg(t, 27.0, 27.4));
+  if (t >= 7.3 && t < 27.5) {
+    const [sx, sy, sw, sh, srad] = screenRect(c);
+    const bez = 11 * c.s / K;
+    g.save(); g.globalAlpha = phoneA;
+    g.shadowColor = 'rgba(16,36,28,.16)'; g.shadowBlur = 60 * c.z; g.shadowOffsetY = 26 * c.z;
+    g.fillStyle = '#0E1512'; rr(sx - bez, sy - bez, sw + 2 * bez, sh + 2 * bez, srad + bez); g.fill(); g.restore();
+    g.save(); rr(sx, sy, sw, sh, srad); g.clip();
+    g.fillStyle = '#F5F7F6'; g.fillRect(sx, sy, sw, sh);
+    // التتبّع والوصول
+    if (t >= 19.98) {
+      const im = await seqFrame(Math.floor((t - 20) * 30));
+      if (im) g.drawImage(im, sx, sy, sw, sh);
+      const da = seg(t, 25.45, 25.65);
+      if (da > 0 && IMG.delivered) { g.globalAlpha = da; g.drawImage(IMG.delivered, sx, sy, sw, sh); g.globalAlpha = 1; }
+    }
+    for (const [im, a, scroll] of screenLayers(t)) {
+      if (!im || a <= 0) continue;
+      g.globalAlpha = a * seg(t, 7.3, 7.5);
+      const sc = sw / im.width;
+      g.drawImage(im, sx, sy - scroll * c.s, sw, im.height * sc);
+    }
+    g.globalAlpha = 1;
+    if (t >= 13.1 && t < 13.6) cardSettle(t, 13.1, IMG.offer1, CARD1, c);
+    if (t >= 14.4 && t < 14.9) cardSettle(t, 14.4, IMG.offers0, CARD2, c);
+    // تعتيم الهاتف خلف البطاقة المرفوعة
+    const dim = seg(t, 17.6, 18.2) * (1 - seg(t, 19.0, 19.4));
+    if (dim > 0) { g.fillStyle = `rgba(248,250,249,${0.72 * dim})`; g.fillRect(sx, sy, sw, sh); }
+    g.restore();
+    drawTouch(t, c);
+  }
+  // ── الذروة: بطاقة العرض المقبول تخرج من الهاتف وتكبر (17.55–19.4)
+  if (t >= 17.55 && t < 19.45 && IMG.offers3) {
+    const R = CARD1, a = toFrame(c, R[0] + R[2] / 2, R[1] + R[3] / 2);
+    const w0 = R[2] * c.s, h0 = R[3] * c.s, w1 = 860, h1 = w1 * R[3] / R[2];
+    const up = eOut(seg(t, 17.55, 18.35)), back = ease(seg(t, 19.0, 19.42));
+    const k = up * (1 - back);
+    const x = lerp(a.x, 700, k), y = lerp(a.y, 540, k), w = lerp(w0, w1, k), h = lerp(h0, h1, k);
+    const lift = Math.sin(seg(t, 17.55, 18.35) * Math.PI) * 10;
+    g.save(); g.globalAlpha = 1 - seg(t, 19.25, 19.45);
+    g.shadowColor = 'rgba(4,85,58,.22)'; g.shadowBlur = 70 * k + 10; g.shadowOffsetY = 30 * k;
+    g.fillStyle = '#fff'; rr(x - w / 2, y - h / 2 - lift, w, h, 22 * w / w0 * c.s / c.s); g.fill(); g.shadowBlur = 0; g.shadowOffsetY = 0;
+    g.save(); rr(x - w / 2, y - h / 2 - lift, w, h, 16 * w / R[2]); g.clip();
+    g.drawImage(IMG.offers3, R[0] * 3, R[1] * 3, R[2] * 3, R[3] * 3, x - w / 2, y - h / 2 - lift, w, h); g.restore();
+    // حدٌّ ذهبي رفيع: اللمسة الذهبية الوحيدة في المشهد
+    g.globalAlpha *= seg(t, 17.9, 18.3); g.strokeStyle = '#BF8B1F'; g.lineWidth = 3; rr(x - w / 2, y - h / 2 - lift, w, h, 16 * w / R[2]); g.stroke();
+    g.restore();
+  }
+  // ── S7 ← S8: المستطيل الأخضر يكبر من مرحلة «وصل» إلى ملء الإطار
+  if (t >= 26.9 && t < 27.6) {
+    const p = toFrame(cam(26.9), 41, 593);
+    const R0 = [p.x - 30, p.y - 30, 60, 60, 30];
+    g.fillStyle = '#04553A'; rr(...lerpR(R0, FULL, eIn(seg(t, 26.95, 27.5)) * 0.15 + eOut(seg(t, 26.95, 27.5)) * 0.85)); g.fill();
+  }
+}
+
+// ───────────────────────── النص ─────────────────────────
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+// دخول: صعود 28px مع ظهور؛ خروج: صعود وتلاشٍ أسرع
+function inOut(el, t, a, b, { dy = 28, dur = 0.45, out = 0.3 } = {}) {
+  const i = eOut(seg(t, a, a + dur)), o = eIn(seg(t, b, b + out));
+  const v = i * (1 - o);
+  el.style.opacity = v; el.style.transform = `translateY(${(1 - i) * dy - o * dy * 0.8}px)`;
+  el.style.visibility = v > 0.001 ? 'visible' : 'hidden';
+  return v;
+}
+function centerY(el, y) { el.style.top = (y - el.offsetHeight / 2) + 'px'; }
+const HEADS = [['hd1', 7.9, 9.85], ['hd2', 10.0, 12.2], ['hd3', 13.0, 15.95], ['hd4', 16.25, 19.75], ['hd5', 20.4, 24.75], ['hd6', 25.2, 26.85]];
+
+function texts(t) {
+  // S1
+  const hookOn = t < 2.5;
+  $('hook').style.visibility = hookOn ? 'visible' : 'hidden';
+  if (hookOn) {
+    $('hook').style.transform = `scale(${lerp(1, 1.04, t / 2.5)})`;
+    const a = eOut(seg(t, 0.3, 0.7)), b = eOut(seg(t, 1.25, 1.6));
+    $('h1').style.opacity = a; $('h1').style.transform = `translateY(${(1 - a) * 30}px)`;
+    $('h2').style.opacity = b; $('h2').style.transform = `translateY(${(1 - b) * 30}px) rotate(${Math.sin(seg(t, 1.3, 1.75) * Math.PI * 3) * 2.2 * (1 - seg(t, 1.3, 1.75))}deg)`;
+  }
+  // S2: كل عبارة تدفع السابقة للأعلى وتُبهتها
+  const P = [['p1', 2.5], ['p2', 3.75], ['p3', 5.0]];
+  P.forEach(([id, a], i) => {
+    const el = $(id), next = P[i + 1] ? P[i + 1][1] : 99;
+    const inn = eOut(seg(t, a, a + 0.4)), push = eOut(seg(t, next, next + 0.45)), gone = P[i + 2] ? eOut(seg(t, P[i + 2][1], P[i + 2][1] + 0.35)) : 0;
+    let v = inn * (1 - gone);
+    if (id === 'p3') v *= 1;
+    const fade = id === 'p3' ? 0 : 1;
+    el.style.visibility = t >= a && t < 6.3 && v > 0.001 ? 'visible' : 'hidden';
+    el.style.opacity = v * (1 - 0.72 * push) * (id === 'p3' ? 1 : (1 - seg(t, 5.85, 6.05)));
+    const y = 540 - 150 * push + (1 - inn) * 34;
+    el.style.transform = `scale(${1 - 0.45 * push})`;
+    centerY(el, y);
+  });
+  // الـ ؟ الذهبية: بقية السطر تتلاشى وهي تنتقل إلى الوسط
+  const qm = $('qmark'), p3 = $('p3');
+  const m = ease(seg(t, 5.85, 6.25));
+  if (t >= 5.0 && t < 6.3) {
+    p3.style.color = `rgba(4,85,58,${1 - seg(t, 5.8, 6.05)})`;
+    const qr = qm.getBoundingClientRect(), sr = stage.getBoundingClientRect(), sc = sr.width / W;
+    const qx = (qr.left + qr.right) / 2 / sc - sr.left / sc, qy = (qr.top + qr.bottom) / 2 / sc - sr.top / sc;
+    qm.style.transform = '';
+    const r2 = qm.getBoundingClientRect(); const ox = ((r2.left + r2.right) / 2 - sr.left) / sc, oy = ((r2.top + r2.bottom) / 2 - sr.top) / sc;
+    qm.style.transform = `translate(${(W / 2 - ox) * m}px, ${(H / 2 - oy) * m}px) scale(${1 + 0.3 * m})`;
+    qm.style.opacity = 1 - seg(t, 6.15, 6.3);
+  }
+  // S3
+  const lv = inOut($('logo3'), t, 6.4, 7.0, { dy: 18, dur: 0.4, out: 0.2 });
+  $('logo3').style.transform += ` translate(-50%, -78%)`;
+  inOut($('tag3'), t, 6.6, 7.0, { dur: 0.35, out: 0.18 });
+  // العناوين بجانب الهاتف
+  for (const [id, a, b] of HEADS) { const el = $(id); inOut(el, t, a, b); centerY(el, 540); el.style.transform += ''; }
+  $('osm').style.opacity = seg(t, 20.0, 20.3) * (1 - seg(t, 25.3, 25.6));
+  $('osm').style.visibility = t >= 20 && t < 25.6 ? 'visible' : 'hidden';
+  // S8
+  $('end').style.visibility = t >= 27.4 ? 'visible' : 'hidden';
+  if (t >= 27.4) {
+    inOut($('endLogo'), t, 27.5, 99, { dy: 22, dur: 0.55 });
+    $('endLogo').style.transform += ` scale(${lerp(1, 1.02, seg(t, 27.5, 30))})`;
+    inOut($('endTag'), t, 28.1, 99, { dur: 0.5 });
+    inOut($('endCities'), t, 28.75, 99, { dur: 0.5, dy: 16 });
+    inOut($('endBadges'), t, 28.75, 99, { dur: 0.5, dy: 16 });
+    inOut($('endUrl'), t, 28.9, 99, { dur: 0.5, dy: 12 });
+  }
+  // الخلفية: أخضر في الخطّاف والختام
+  stage.style.background = (t < 2.5 || t >= 27.45) ? '#04553A' : '#F8FAF9';
+}
+
+window.seek = async function (t) { t = clamp(t, 0, DUR - 1e-6); texts(t); await draw(t); };
+
+// ───────────────────────── تحميل ومعاينة ─────────────────────────
+(async () => {
+  await Promise.all(Object.keys(SRC).map(async k => { IMG[k] = await load('../assets/screens/' + k + '.png'); }));
+  await Promise.all([...document.fonts].map(f => f.load().catch(() => {}))); await document.fonts.ready;
+  await Promise.all([...document.images].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+  window.READY = true;
+  if (RENDER) { $('ui').remove(); return; }
+  const fit = () => { const s = Math.min(innerWidth / W, (innerHeight - 50) / H); stage.style.transform = `scale(${s})`; };
+  fit(); addEventListener('resize', fit);
+  let playing = false, t0 = 0, off = 0;
+  const now = () => playing ? (off + (performance.now() - t0) / 1000) % DUR : off;
+  $('pp').onclick = () => { if (playing) { off = now(); playing = false; } else { t0 = performance.now(); playing = true; } };
+  $('sc').oninput = e => { off = +e.target.value; playing = false; };
+  (async function loop() { const t = now(); await seek(t); $('tt').textContent = t.toFixed(2); if (playing) $('sc').value = t; requestAnimationFrame(loop); })();
+})();
+</script>
+</body>
+</html>

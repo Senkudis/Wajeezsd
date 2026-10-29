@@ -1,0 +1,12 @@
+# مُولَّد ويُعاد بناؤه (tools/shots.js، tools/render.js، sound_pass.py)
+.sound-effects/
+assets/seq/
+out/*_silent.mp4
+out/music_pad.wav
+sound/after.mp4
+sound/mix_raw.wav
+sound/checks/
+sound/sound-effects-cache/
+review/*.frames/
+scout/*.json
+scout/*.txt

@@ -1,0 +1,108 @@
+[
+ {
+  "t": 1.25,
+  "type": "appear",
+  "desc": "hook question lands"
+ },
+ {
+  "t": 2.5,
+  "type": "hover_or_small_ui",
+  "desc": "problem line 1"
+ },
+ {
+  "t": 3.75,
+  "type": "hover_or_small_ui",
+  "desc": "problem line 2"
+ },
+ {
+  "t": 5.0,
+  "type": "hover_or_small_ui",
+  "desc": "problem line 3"
+ },
+ {
+  "t": 6.2,
+  "type": "movement",
+  "desc": "green shape grows from question mark"
+ },
+ {
+  "t": 7.0,
+  "type": "movement",
+  "desc": "shape shrinks into phone screen"
+ },
+ {
+  "t": 8.125,
+  "type": "click",
+  "desc": "tap pickup"
+ },
+ {
+  "t": 8.75,
+  "type": "click",
+  "desc": "tap dropoff"
+ },
+ {
+  "t": 10.625,
+  "type": "click",
+  "desc": "price plus 1"
+ },
+ {
+  "t": 11.25,
+  "type": "click",
+  "desc": "price plus 2"
+ },
+ {
+  "t": 11.875,
+  "type": "click",
+  "desc": "tap request captain"
+ },
+ {
+  "t": 13.1,
+  "type": "appear",
+  "desc": "first offer arrives"
+ },
+ {
+  "t": 14.4,
+  "type": "appear",
+  "desc": "second offer arrives"
+ },
+ {
+  "t": 16.9,
+  "type": "build_up",
+  "desc": "before accept",
+  "dur": 0.6
+ },
+ {
+  "t": 17.5,
+  "type": "click",
+  "desc": "tap accept offer"
+ },
+ {
+  "t": 17.6,
+  "type": "reveal",
+  "desc": "accepted card lifts out"
+ },
+ {
+  "t": 19.0,
+  "type": "success",
+  "desc": "order accepted dialog"
+ },
+ {
+  "t": 20.0,
+  "type": "scene_cut",
+  "desc": "cut to live tracking"
+ },
+ {
+  "t": 25.55,
+  "type": "success",
+  "desc": "delivered"
+ },
+ {
+  "t": 26.95,
+  "type": "movement",
+  "desc": "green shape fills frame"
+ },
+ {
+  "t": 27.5,
+  "type": "reveal",
+  "desc": "end card logo"
+ }
+]
