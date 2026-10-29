@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "C:\Users\kde\Desktop\wajeezsd\marketing\ad-5002\scout\tr.py", line 2, in <module>
+    from faster_whisper import WhisperModel
+ModuleNotFoundError: No module named 'faster_whisper'
