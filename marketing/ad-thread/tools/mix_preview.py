@@ -11,16 +11,15 @@ def load(p):
     a, sr = sf.read(p, dtype='float32', always_2d=True)
     if a.shape[1] == 1: a = np.repeat(a, 2, 1)
     return resample_poly(a, SR, sr, axis=0).astype(np.float32) if sr != SR else a
-CUES = [  # الزمن، الملف، الربح dB — كلٌّ مربوطٌ بحدثٍ في الصورة (التوقيتات بعد تعديل الافتتاحية)
-    (2.02, SFX + 'tick/fs721514.ogg', -16),                         # «؟» صارت خرزة
-    (3.10, SFX + 'impact/kenney-impact-impactsoft-heavy-000.ogg', -15),  # الخرزة تهبط — ثم سكون
-    (3.60, SFX + 'pop/kenney-interface-pluck-001.ogg', -14),        # الدبوس ينبت
-    (3.95, SFX + 'click/kenney-interface-select-001.ogg', -14),     # priceBump: «سعرك» يثبت
-    (5.10, SFX + 'pop/fs527522.ogg', -16), (5.30, SFX + 'pop/kenney-interface-drop-001.ogg', -16),   # الخيط يصل الكابتنين
-    (5.40, SFX + 'transition/kenney-interface-maximize-005.ogg', -17), (5.75, SFX + 'transition/kenney-interface-maximize-006.ogg', -17),  # العرضان ينهضان
-    (7.50, SFX + 'click/kenney-interface-toggle-001.ogg', -12),     # قبول العرض
-    (7.57, BELL, -14),                                              # جرس التطبيق: تم القبول
-    (7.70, SFX + 'transition/kenney-interface-minimize-001.ogg', -18),  # العرض الآخر يهبط
+CUES = [  # v3: أصواتٌ قليلة لأحداثٍ مهمّة فقط؛ لا صوت للرادار ولا لكل حركة صغيرة؛ صمتٌ قبل القرار
+    (0.80, SFX + 'click/fs788933.ogg', -19),                         # «+» على السعر
+    (1.60, SFX + 'click/kenney-interface-select-002.ogg', -13),     # «اطلب الكابتن الآن»
+    (2.30, SFX + 'impact/kenney-impact-impactsoft-heavy-000.ogg', -18),  # الطلب يستقر دبوساً
+    (4.32, SFX + 'ding/fs-349504-triangle-open-04.ogg', -15),       # العرض ينهض — صوتٌ له شخصية (مثلّث معدني)
+    (5.78, SFX + 'ding/kenney-interface-glass-001.ogg', -24),       # العرض الثاني: همسة
+    (7.22, SFX + 'pop/kenney-interface-pluck-002.ogg', -18),        # «سعرك» يلتقي «عرضه»
+    (8.15, SFX + 'click/kenney-interface-toggle-001.ogg', -11),     # «قبول العرض»
+    (8.20, BELL, -12),                                              # جرس التطبيق الحقيقي
 ]
 n = int(DUR * SR); mix = np.zeros((n, 2), np.float32)
 for t, f, db in CUES:
