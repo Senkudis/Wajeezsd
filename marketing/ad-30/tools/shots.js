@@ -70,6 +70,7 @@ const STILLS = {
   delivered: { url: 'tracking.html?orderId=650000000000000000a7c3f1', wait: 3000, mocks: null, before: null }
 };
 // العدّاد: لقطة لكل ثانية من مشهد العروض
+STILLS.offersFull = { url: 'client-my-orders.html', wait: 2500, h: 1060, mocks: ORDERS(() => order(OFFER(0))), before: offersRects };
 for (let i = 0; i < 7; i++) STILLS['offers' + i] = { url: 'client-my-orders.html', wait: 2500, mocks: ORDERS(() => order(OFFER(i))), before: offersRects };
 
 // ── التتبّع ─────────────────────────────────────────────────────────────
