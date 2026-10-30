@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>وجيز — طلبك وين ماشي؟ (Animatic 60)</title>
+<!--
+  «طلبك وين ماشي؟» — Animatic 60 ث، 1920×1080. seek(t) دالة نقيّة؛ canvas واحدة.
+  كل المكوّنات تُرسم بأنماط التطبيق ونصوصه الحقيقية؛ لا أسماء ولا أسعار ولا تقييمات ولا دقائق.
+
+  0:00–0:05  الخطّاف: ثلاث حاجات (مشوار، مشاوير، متجر) ← خيوطها تلتفّ في سهم الشعار
+  0:05–0:17  الطلب والعروض: سعرك، «اطلب الكابتن الآن»، البحث، عرضٌ واحد، «سعرك ← عرضه»، القبول + الجرس — بلا خريطة
+  0:17–0:29  المحطات: «+ أضف وجهة تسليم» ⟷ نقاط مرقّمة على أرضٍ من الأعلى، ثم «X / 3 اكتملت»
+  0:29–0:40  المتجر: «أضف للسلة» ← «عرض السلة» ← «تأكيد الطلب» ← حالات المتجر الحقيقية + «ارفع صورة إشعار الدفع»
+  0:40–0:51  التتبّع: عالم وجيز المائل، marker-motion، «الكابتن في الطريق إليك» ← «تم التوصيل» + الجرس
+  0:51–0:56  التجميع: ثلاثة خيوط (مشوار، مشاوير، مشتريات) تلتقي في نقطة
+  0:56–1:00  الختام: الشعار، «اطلب الكابتن الآن»، wajeezsd.com
+-->
+<link rel="stylesheet" href="../../../public_html/vendor/fonts/fonts.css">
+<style>
+@font-face { font-family: 'bootstrap-icons'; src: url('../../../public_html/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') format('woff2'); }
+html, body { margin: 0; background: #111; overflow: hidden; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: #04553A; }
+#fx { position: absolute; inset: 0; }
+#ui { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px; background: #111; color: #ddd; font: 13px system-ui; display: flex; gap: 10px; align-items: center; }
+#ui input { flex: 1; }
+.probe { position: absolute; left: 0; top: 0; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="fx" width="1920" height="1080"></canvas></div>
+<span class="probe" style="font-family:Cairo;font-weight:800">سعرك</span><span class="probe" style="font-family:Cairo;font-weight:400">سعرك</span><span class="probe" style="font-family:'bootstrap-icons'">&#xf844;</span>
+<div id="ui"><button id="pp">play</button><input id="sc" type="range" min="0" max="60" step="0.01" value="0"><span id="tt">0.00</span></div>
+<script src="../comp/world.js"></script>
+<script>
+const W = 1920, H = 1080, DUR = 60, FPS = 30;
+window.VIDEO = { w: W, h: H, duration: DUR, fps: FPS };
+const RENDER = location.search.includes('render');
+// ── أدوات ──
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = x => (x = clamp(x), x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eOut = x => { x = clamp(x); return 1 - Math.pow(1 - x, 4); };
+const eOut5 = x => { x = clamp(x); return 1 - Math.pow(1 - x, 5); };
+const eIn = x => { x = clamp(x); return x * x * x; };
+const settle = (x, over = 0.015) => { x = clamp(x); return eOut5(x) + Math.sin(x * Math.PI) * over * (1 - x) * 3; };
+const kf = keys => t => { if (t <= keys[0][0]) return keys[0][1]; for (let i = 1; i < keys.length; i++) { const [a, va] = keys[i - 1], [b, vb, e = ease] = keys[i]; if (t <= b) return lerp(va, vb, e((t - a) / (b - a))); } return keys[keys.length - 1][1]; };
+const cv = document.getElementById('fx'), g = cv.getContext('2d');
+const WD = window.WORLD;
+const C = { green: '#04553A', ui: '#048c5b', btn: '#198754', gold: '#BF8B1F', ground: '#E4EAE2', roof: '#EEF2EC', light: '#F4F7F3', ink: '#0f172a', muted: '#64748b', red: '#dc3545', orange: '#f59e0b' };
+const IC = { pin: '', flag: '', scooter: '', taxi: '', check: '', checkC: '', x: '', rocket: '', cartPlus: '', arrowL: '', shop: '', upload: '', image: '',
+  cats: ['', '', '', '', '', ''] };
+const IM = {};
+const load = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+function glyph(code, x, y, size, color) { g.font = `${size}px bootstrap-icons`; g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(code, x, y); }
+function txt(s, x, y, size, weight, color, align = 'center') { g.font = `${weight} ${size}px Cairo`; g.fillStyle = color; g.textAlign = align; g.textBaseline = 'middle'; g.direction = 'rtl'; g.fillText(s, x, y); }
+function shadowCard(x, y, w, h, r, fill = '#fff', sh = 0.16) { g.save(); g.shadowColor = `rgba(4,85,58,${sh})`; g.shadowBlur = 44; g.shadowOffsetY = 18; g.fillStyle = fill; rr(x, y, w, h, r); g.fill(); g.restore(); }
+function finger(x, y, a, press, ring) {
+  if (a <= 0) return;
+  g.save(); g.globalAlpha = a;
+  if (ring >= 0 && ring < 1) { g.globalAlpha = a * (1 - ring) * 0.6; g.lineWidth = 3; g.strokeStyle = '#fff'; g.beginPath(); g.arc(x, y, 34 + 52 * eOut(ring), 0, 7); g.stroke(); g.globalAlpha = a; }
+  g.fillStyle = `rgba(16,36,28,${0.32 + 0.12 * press})`; g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 3;
+  g.beginPath(); g.arc(x, y, 34 * (1 - 0.16 * press), 0, 7); g.fill(); g.stroke(); g.restore();
+}
+const pressAt = (t, tp) => { const d = t - tp; return [d > -0.14 && d < 0.1 ? (d < 0 ? seg(d, -0.14, 0) : 1 - seg(d, 0, 0.1)) : 0, d >= 0 && d < 0.5 ? d / 0.5 : -1]; };
+// إصبعٌ يتنقّل بين نقاط [زمن، x، y] ويضغط في أزمنة
+function fingerPath(t, pts, taps, a) { let p = pts[0]; for (let i = 1; i < pts.length; i++) if (t >= pts[i - 1][0]) { const [t0, x0, y0] = pts[i - 1], [t1, x1, y1] = pts[i]; const k = ease(seg(t, t0, t1)); p = [0, lerp(x0, x1, k), lerp(y0, y1, k)]; } let pr = 0, ring = -1; for (const tp of taps) { const [a1, b1] = pressAt(t, tp); if (a1 > pr) pr = a1; if (b1 >= 0) ring = b1; } finger(p[1], p[2], a, pr, ring); }
+
+// ── العالم: إسقاطٌ منظوري ومدينة (من الـ Preview المعتمد) ──
+const F = 1400;
+function P(c, x, y, z = 0) {
+  const dx = x - c.tx, dy = y - c.ty;
+  const xr = dx * Math.cos(c.y) - dy * Math.sin(c.y), yr = dx * Math.sin(c.y) + dy * Math.cos(c.y);
+  const Y = yr * Math.cos(c.p) + z * Math.sin(c.p), Z = c.D + yr * Math.sin(c.p) - z * Math.cos(c.p);
+  return { x: c.cx + F * xr / Z, y: c.cy - F * Y / Z, k: F / Z, Z };
+}
+const WIDTH = { '-1': 3, 0: 6, 1: 9, 2: 13, 3: 18 };
+function city(c, opts = {}) {
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  if (!opts.noBuildings) { g.fillStyle = C.roof;
+    for (const b of WD.buildings) { const q = b.p.map(p => P(c, p[0], p[1])); if (q.every(v => v.x < -50 || v.x > W + 50 || v.y < -50 || v.y > H + 50) || q.some(v => v.Z < 40)) continue;
+      g.beginPath(); q.forEach((v, i) => i ? g.lineTo(v.x, v.y) : g.moveTo(v.x, v.y)); g.closePath(); g.fill(); } }
+  g.strokeStyle = '#fff';
+  for (const rank of [-1, 0, 1, 2, 3]) for (const st of WD.streets) { if (st.r !== rank) continue;
+    const q = st.p.map(p => P(c, p[0], p[1])); if (q.every(v => v.x < -300 || v.x > W + 300 || v.y < -300 || v.y > H + 300) || q.some(v => v.Z < 40)) continue;
+    g.lineWidth = Math.min(54, Math.max(1, WIDTH[rank] * q[0].k * (opts.roadScale || 1))); g.beginPath(); q.forEach((v, i) => i ? g.lineTo(v.x, v.y) : g.moveTo(v.x, v.y)); g.stroke(); }
+  g.restore();
+  if (c.p > 0.05) { const far = P(c, c.tx + 3000 * Math.sin(c.y), c.ty + 3000 * Math.cos(c.y)), hz = Math.min(H, Math.max(-200, far.y));
+    const fog = g.createLinearGradient(0, hz, 0, hz + 420); fog.addColorStop(0, C.ground); fog.addColorStop(1, 'rgba(228,234,226,0)');
+    g.fillStyle = fog; g.fillRect(0, 0, W, hz + 420); g.fillStyle = C.ground; g.fillRect(0, 0, W, Math.max(0, hz)); }
+}
+const cum = pts => { const c = [0]; for (let i = 1; i < pts.length; i++) c.push(c[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); return c; };
+function along(pts, L, d) { d = clamp(d, 0, L[L.length - 1]); let i = L.findIndex(v => v >= d); if (i <= 0) return pts[0].slice(); const k = (d - L[i - 1]) / (L[i] - L[i - 1] || 1); return [lerp(pts[i - 1][0], pts[i][0], k), lerp(pts[i - 1][1], pts[i][1], k)]; }
+function sub(pts, L, d0, d1) { const out = [along(pts, L, d0)]; for (let i = 0; i < pts.length; i++) if (L[i] > d0 && L[i] < d1) out.push(pts[i]); out.push(along(pts, L, d1)); return out; }
+function threadW(c, pts, w, color = C.green, alpha = 1) {
+  g.save(); g.globalAlpha = alpha; g.lineCap = 'round'; g.lineJoin = 'round'; const s = pts.map(p => P(c, p[0], p[1]));
+  for (const [col, ww] of [['#fff', w + 5], [color, w]]) { g.strokeStyle = col; g.lineWidth = ww; g.beginPath(); s.forEach((v, i) => i ? g.lineTo(v.x, v.y) : g.moveTo(v.x, v.y)); g.stroke(); }
+  g.restore();
+}
+function threadS(pts, w, color = C.green, alpha = 1) {   // خيطٌ بإحداثيات الشاشة
+  g.save(); g.globalAlpha = alpha; g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const [col, ww] of [['#fff', w + 5], [color, w]]) { g.strokeStyle = col; g.lineWidth = ww; g.beginPath(); pts.forEach((v, i) => i ? g.lineTo(v[0], v[1]) : g.moveTo(v[0], v[1])); g.stroke(); }
+  g.restore();
+}
+function marker(x, y, p, code, alpha = 1, r0 = 40) {
+  if (p <= 0) return null; const r = r0 * p;
+  g.save(); g.globalAlpha = alpha; g.fillStyle = 'rgba(16,36,28,.18)'; g.beginPath(); g.ellipse(x, y + 4, r * 0.9, r * 0.35, 0, 0, 7); g.fill();
+  const cy = y - r; g.fillStyle = '#fff'; g.beginPath(); g.arc(x, cy, r + 5, 0, 7); g.fill(); g.fillStyle = C.green; g.beginPath(); g.arc(x, cy, r, 0, 7); g.fill();
+  glyph(code, x, cy + 1, r * 1.05, '#fff'); g.restore(); return { x, y: cy - r - 5 };
+}
+function pinIcon(x, y, p, color = C.ui, size = 90) { if (p <= 0) return; const sz = size * p; g.save(); g.fillStyle = 'rgba(16,36,28,.18)'; g.beginPath(); g.ellipse(x, y + 2, 18 * p, 7 * p, 0, 0, 7); g.fill(); glyph(IC.pin, x, y - sz * 0.48, sz, color); g.restore(); }
+function numDot(x, y, n, p, done = 0) { if (p <= 0) return; const r = 30 * p; g.save(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, r + 5, 0, 7); g.fill(); g.fillStyle = done > 0 ? C.ui : C.red; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); txt(done > 0.5 ? '✓' : String(n), x, y + 2, 34 * p, 800, '#fff'); g.restore(); }
+
+// ── مكوّنات الواجهة (أنماط التطبيق) ──
+function priceField(x, y, s, bump = 0, pressPlus = 0) {
+  const w = 600 * s, h = 120 * s, u = v => v * s;
+  g.save(); g.translate(x, y); g.scale(1 + bump, 1 + bump); g.translate(-x, -y);
+  g.fillStyle = C.btn; rr(x - w / 2, y - h / 2, w, h, u(20)); g.fill();
+  g.fillStyle = '#ecfdf3'; rr(x - w / 2 + u(118), y - h / 2 + u(10), w - u(236), h - u(20), u(14)); g.fill(); g.strokeStyle = '#0b3d2a'; g.lineWidth = u(5); g.stroke();
+  if (pressPlus > 0) { g.fillStyle = `rgba(0,0,0,${0.18 * pressPlus})`; rr(x - w / 2, y - h / 2, u(118), h, u(20)); g.fill(); }
+  txt('+', x - w / 2 + u(59), y + u(2), u(70), 300, '#fff'); txt('−', x + w / 2 - u(59), y + u(2), u(70), 300, '#fff'); txt('سعرك', x, y + u(6), u(64), 800, C.green);
+  g.restore(); return { x: x - w / 2 + u(118), y: y - h / 2, w: w - u(236), h };
+}
+const CW = 700, CH = 350;
+function offerCard(x, y, s, d) {
+  const w = CW * s, h = CH * s, u = v => v * s;
+  shadowCard(x, y, w, h, u(30)); g.save(); g.strokeStyle = 'rgba(4,140,91,.24)'; g.lineWidth = u(2.5); rr(x, y, w, h, u(30)); g.stroke();
+  const ax = x + w - u(84), ay = y + u(84), ar = u(52); const gr = g.createLinearGradient(ax - ar, ay - ar, ax + ar, ay + ar); gr.addColorStop(0, '#04553A'); gr.addColorStop(1, '#10b981');
+  g.fillStyle = gr; g.beginPath(); g.arc(ax, ay, ar, 0, 7); g.fill(); glyph(d.icon, ax, ay + u(2), u(54), '#fff');
+  txt('كابتن', ax - ar - u(26), y + u(86), u(62), 800, C.ink, 'right');
+  const bx = x + u(28), by = y + u(30), bw = u(230), bh = u(118);
+  g.fillStyle = '#f0fdf4'; rr(bx, by, bw, bh, u(20)); g.fill(); g.strokeStyle = d.gold ? C.gold : '#bbf7d0'; g.lineWidth = d.gold ? u(5) : u(2); g.stroke();
+  txt('عرضه', bx + bw / 2, by + bh / 2 + u(4), u(60), 900, '#16a34a');
+  const kx = x + w - u(28), ky = y + h - u(124), kw = u(430), kh = u(100);
+  g.fillStyle = d.pressed ? C.green : C.btn; rr(kx - kw, ky, kw, kh, u(50)); g.fill();
+  txt('قبول العرض', kx - kw / 2 + u(20), ky + kh / 2 + u(3), u(54), 700, '#fff'); glyph(IC.check, kx - kw + u(52), ky + kh / 2, u(42), '#fff');
+  txt('رفض', x + u(130), ky + kh / 2 + u(3), u(52), 700, C.red); glyph(IC.x, x + u(212), ky + kh / 2, u(36), C.red);
+  g.restore(); return { box: { x: bx, y: by, w: bw, h: bh }, accept: { x: kx - kw / 2, y: ky + kh / 2 } };
+}
+function mapButton(x, y, w, s, kind, label) {   // صفّ «من وين؟» / «لوين؟» بأيقونته (أخضر للاستلام، أحمر للتسليم)
+  const h = 96 * s, u = v => v * s, col = kind === 'pick' ? C.ui : C.red, bg = kind === 'pick' ? '#e8f5ee' : '#fdecee';
+  g.save(); g.fillStyle = bg; rr(x, y, w, h, u(18)); g.fill(); g.strokeStyle = col; g.lineWidth = u(3); g.stroke();
+  glyph(kind === 'pick' ? IC.pin : IC.flag, x + w - u(48), y + h / 2, u(44), col);
+  txt(label, x + w - u(92), y + h / 2 + u(4), u(44), 800, kind === 'pick' ? C.green : '#9b1c2c', 'right');
+  g.restore(); return h;
+}
+
+// ═════════ 0 — الخطّاف (0–5) ═════════
+const HK = [{ t: 0.15, x: 1440 }, { t: 1.35, x: 960 }, { t: 2.55, x: 480 }];
+function hookCard(i, x, y, a, s) {
+  const w = 440 * s, h = 300 * s, u = v => v * s, X = x - w / 2, Y = y - h / 2;
+  g.save(); g.globalAlpha = a; shadowCard(X, Y, w, h, u(28), '#fff', 0.28);
+  let anchor;
+  if (i === 0) {        // مشوار: من وين؟ ← لوين؟
+    mapButton(X + u(30), Y + u(40), w - u(60), s, 'pick', 'من وين؟'); mapButton(X + u(30), Y + u(164), w - u(60), s, 'drop', 'لوين؟');
+    g.strokeStyle = C.ui; g.lineWidth = u(5); g.beginPath(); g.moveTo(X + w - u(78), Y + u(118)); g.lineTo(X + w - u(78), Y + u(180)); g.stroke();
+    anchor = [X + w - u(78), Y + u(150)];
+  } else if (i === 1) { // مشاوير: ثلاث وجهات + أضف وجهة تسليم
+    for (let k = 0; k < 3; k++) { const yy = Y + u(30 + k * 66); g.fillStyle = '#fdecee'; rr(X + u(30), yy, w - u(60), u(54), u(14)); g.fill(); glyph(IC.flag, X + w - u(58), yy + u(27), u(30), C.red); txt('لوين؟', X + w - u(92), yy + u(29), u(32), 800, '#9b1c2c', 'right');
+      g.fillStyle = C.red; g.beginPath(); g.arc(X + u(66), yy + u(27), u(17), 0, 7); g.fill(); txt(String(k + 1), X + u(66), yy + u(29), u(24), 800, '#fff'); }
+    g.strokeStyle = C.ui; g.lineWidth = u(3); rr(X + u(30), Y + u(232), w - u(60), u(48), u(14)); g.stroke(); txt('+ أضف وجهة تسليم', X + w / 2, Y + u(258), u(30), 800, C.ui);
+    anchor = [X + u(66), Y + u(140)];
+  } else {              // متجر: منتجٌ وزرّ «أضف للسلة»
+    g.fillStyle = '#eaf5ee'; rr(X + u(30), Y + u(30), w - u(60), u(160), u(18)); g.fill(); glyph(IC.cats[3], X + w / 2, Y + u(110), u(84), C.ui);
+    const gr = g.createLinearGradient(X, 0, X + w, 0); gr.addColorStop(0, '#f59e0b'); gr.addColorStop(1, '#d97706'); g.fillStyle = gr; rr(X + u(30), Y + u(210), w - u(60), u(64), u(14)); g.fill();
+    txt('أضف للسلة', X + w / 2 - u(20), Y + u(244), u(36), 800, '#fff'); glyph(IC.cartPlus, X + w / 2 + u(116), Y + u(242), u(32), '#fff');
+    anchor = [X + w / 2, Y + u(110)];
+  }
+  g.restore(); return anchor;
+}
+// موضع سهم الشعار (الذهبي) داخل صورة الشعار الأبيض
+const LOGO_W = 760; const chevron = (cx, cy, w, h) => [cx - w / 2 + w * 0.935, cy - h / 2 + h * 0.47];
+function hook(t) {
+  g.fillStyle = C.green; g.fillRect(0, 0, W, H);
+  const conv = seg(t, 3.7, 4.5);
+  const lh = IM.logo ? LOGO_W * IM.logo.height / IM.logo.width : 290, ch = chevron(W / 2, 540, LOGO_W, lh);
+  HK.forEach((k, i) => {
+    const p = eOut5(seg(t, k.t, k.t + 0.5)); if (p <= 0) return;
+    const dim = i < 2 ? 1 - 0.35 * seg(t, HK[i + 1].t, HK[i + 1].t + 0.4) : 1;
+    const a = p * dim * (1 - seg(conv, 0.35, 0.8));
+    const an = hookCard(i, k.x, 540 + (1 - p) * 40, a, 1);
+    // الخيوط: من كل حاجةٍ إلى سهم الشعار (تُسحب بـ ease-in، كأنها تُشدّ)
+    if (conv > 0) { const k2 = eIn(conv); const sx = lerp(an[0], ch[0], k2), sy = lerp(an[1], ch[1], k2);
+      g.save(); g.globalAlpha = 1 - seg(conv, 0.85, 1); g.strokeStyle = C.gold; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(sx, sy);
+      g.quadraticCurveTo(lerp(an[0], ch[0], 0.5), lerp(an[1], ch[1], 0.5) - 120 * (1 - k2), ch[0], ch[1]); g.stroke(); g.restore(); }
+  });
+  const la = eOut(seg(t, 4.2, 4.6));
+  if (la > 0 && IM.logo) { g.save(); g.globalAlpha = la; g.drawImage(IM.logo, W / 2 - LOGO_W / 2, 540 - lh / 2 + (1 - la) * 14, LOGO_W, lh); g.restore(); }
+}
+
+// ═════════ 1 — الطلب والعروض (5–17) ═════════
+const PNL = { x: 960, y: 560, w: 900, h: 720 };
+function orderPanel(t) {
+  // 5.0–5.7: أخضر الخطّاف ينكمش ترويسةً للوحة، والشعار يصغر إلى مكانه فيها (Match)
+  const m = ease(seg(t, 5.0, 5.7)), X = PNL.x - PNL.w / 2, Y = PNL.y - PNL.h / 2;
+  const gx = lerp(0, X, m), gy = lerp(0, Y, m), gw = lerp(W, PNL.w, m), gh = lerp(H, 140, m);
+  const body = seg(t, 5.6, 5.9), toSearch = seg(t, 9.0, 9.55);   // الجسم يظهر بعد أن يستقرّ الأخضر ترويسةً
+  if (toSearch >= 1) return null;
+  g.save(); g.globalAlpha = 1 - seg(toSearch, 0.5, 1);
+  if (body > 0) { g.save(); g.globalAlpha *= body; shadowCard(X, Y, PNL.w, PNL.h, 36); g.restore(); }
+  const cr = lerp(0, 36, m); g.fillStyle = C.green; g.beginPath(); g.roundRect(gx, gy, gw, gh, [cr, cr, cr * (1 - m), cr * (1 - m)]); g.fill();
+  const lh0 = IM.logo ? LOGO_W * IM.logo.height / IM.logo.width : 290, lw = lerp(LOGO_W, 250, m), lhh = lw * lh0 / LOGO_W;
+  if (IM.logo) g.drawImage(IM.logo, lerp(W / 2 - LOGO_W / 2, X + 44, m), lerp(540 - lh0 / 2, Y + 70 - lhh / 2, m), lw, lhh);
+  let pf = null;
+  if (body > 0) {
+    g.globalAlpha *= body;
+    mapButton(X + 60, Y + 180, PNL.w - 120, 1, 'pick', 'من وين؟ (موقع الاستلام)'); mapButton(X + 60, Y + 296, PNL.w - 120, 1, 'drop', 'لوين؟ (موقع التسليم)');
+    const bump = Math.sin(seg(t, 6.65, 7.0) * Math.PI) * 0.05;
+    pf = priceField(PNL.x, Y + 488, 1, bump, pressAt(t, 6.6)[0]);
+    const bw = 640, bh = 116, bx = PNL.x - bw / 2, by = Y + 572, sp = pressAt(t, 8.8)[0];
+    const gr = g.createLinearGradient(bx, by, bx + bw, by + bh); gr.addColorStop(0, '#0A8754'); gr.addColorStop(1, '#04553A');
+    g.save(); g.translate(PNL.x, by + bh / 2); g.scale(1 - 0.04 * sp, 1 - 0.04 * sp); g.translate(-PNL.x, -(by + bh / 2));
+    g.fillStyle = gr; rr(bx, by, bw, bh, bh / 2); g.fill(); txt('اطلب الكابتن الآن', PNL.x - 24, by + bh / 2 + 4, 52, 800, '#fff'); glyph(IC.rocket, PNL.x + 262, by + bh / 2, 44, '#fff'); g.restore();
+  }
+  g.restore();
+  fingerPath(t, [[5.9, PNL.x - 160, Y + 520], [6.35, PNL.x - 241, Y + 488], [7.9, PNL.x - 241, Y + 488], [8.55, PNL.x + 40, Y + 630]], [6.6, 8.8], seg(t, 5.9, 6.1) * (1 - seg(t, 8.95, 9.1)));
+  return pf;
+}
+// شارة «سعرك» الصغيرة: حقل السعر يطير إلى أعلى الإطار ويبقى مرجعاً للعروض
+function priceChip(t) {
+  if (t < 9.0 || t > 16.6) return null;
+  const k = ease(seg(t, 9.0, 9.7)), a = 1 - seg(t, 16.0, 16.5);
+  const x = PNL.x, y = lerp(PNL.y - PNL.h / 2 + 488, 150, k), s = lerp(1, 0.62, k), bump = Math.sin(seg(t, 13.6, 13.95) * Math.PI) * 0.07;
+  g.save(); g.globalAlpha = a; const r = priceField(x, y, s, bump); g.restore();
+  return { x: r.x + r.w / 2, y: r.y + r.h };
+}
+function searchCard(t) {   // «جاري البحث عن أقرب كابتن لك» — لوحة البحث الخضراء بحلقات radarPulse
+  if (t < 9.2 || t > 11.6) return;
+  const a = seg(t, 9.2, 9.6) * (1 - seg(t, 11.0, 11.45)), sc = lerp(0.94, 1, eOut(seg(t, 9.2, 9.7))) * lerp(1, 0.86, eIn(seg(t, 11.0, 11.45)));
+  const w = 760 * sc, h = 440 * sc, x = 960 - w / 2, y = 560 - h / 2;
+  g.save(); g.globalAlpha = a; const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, '#04553A'); gr.addColorStop(1, '#0A8754');
+  g.shadowColor = 'rgba(4,85,58,.25)'; g.shadowBlur = 44; g.shadowOffsetY = 18; g.fillStyle = gr; rr(x, y, w, h, 34 * sc); g.fill(); g.shadowBlur = 0;
+  g.save(); rr(x, y, w, h, 34 * sc); g.clip();
+  for (let k = 0; k < 3; k++) { const u = ((t - 9.4 - k * 0.7) % 2.2 + 2.2) % 2.2 / 2.2; if (t < 9.4 + k * 0.7) continue;
+    g.strokeStyle = `rgba(255,255,255,${(1 - u) * 0.9})`; g.lineWidth = 4; g.beginPath(); g.arc(960, 470, lerp(0.3, 1, u) * 170 * sc, 0, 7); g.stroke(); }
+  g.restore();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(960, 470, 46 * sc, 0, 7); g.fill(); glyph(IC.scooter, 960, 472, 50 * sc, C.green);
+  txt('جاري البحث عن أقرب كابتن لك', 960, 560 + 140 * sc, 50 * sc, 800, '#fff');
+  g.restore();
+}
+function offersChapter(t, chip) {
+  if (t < 11.0 || t > 17.2) return;
+  // العرض الثاني: أصغر وأخفت تحت الأول
+  const f2 = 1 - seg(t, 15.45, 15.8);
+  if (t >= 12.3 && f2 > 0) { const p = settle(seg(t, 12.3, 12.9)), s = 0.58; g.save(); g.globalAlpha = p * 0.75 * f2; offerCard(1370 - CW * s / 2, lerp(980, 820, p), s, { icon: IC.taxi }); g.restore(); }
+  // العرض الأول: ينهض من مكان الرادار ويستقر (offerIn بوزن)، ثم يتحوّل إلى «تم قبول طلبك!»
+  const p = settle(seg(t, 11.05, 11.7)), s = lerp(0.3, 1.05, p), toPop = seg(t, 15.55, 16.15);
+  const w = CW * s, h = CH * s, x = 960 - w / 2 - 120 * p, y = lerp(560 - h / 2 + 60, 330, p);
+  let card = null;
+  if (toPop < 1) { g.save(); g.globalAlpha = clamp(p * 1.7) * (1 - toPop); card = offerCard(x, y, s, { icon: IC.scooter, gold: t > 13.55 && t < 15.6, pressed: t > 15.3 && t < 15.45 }); g.restore(); }
+  // «سعرك» ← «عرضه»: خيطٌ ذهبي قصير من الشارة إلى صندوق العرض
+  if (chip && card && t >= 12.9 && t < 15.6) {
+    const k = ease(seg(t, 12.9, 13.55)), tgt = [card.box.x + card.box.w / 2, card.box.y - 4];
+    g.save(); g.globalAlpha = 1 - seg(t, 15.3, 15.6); g.strokeStyle = C.gold; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath();
+    const mx = Math.min(chip.x, tgt[0]) - 60, my = (chip.y + tgt[1]) / 2;
+    for (let i = 0; i <= 40 * k; i++) { const u = i / 40; const xx = (1 - u) ** 2 * chip.x + 2 * (1 - u) * u * mx + u * u * tgt[0], yy = (1 - u) ** 2 * chip.y + 2 * (1 - u) * u * my + u * u * tgt[1]; i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
+    g.stroke(); g.restore();
+  }
+  if (card) fingerPath(t, [[14.6, card.accept.x + 140, card.accept.y + 160], [15.05, card.accept.x, card.accept.y]], [15.3], seg(t, 14.6, 14.8) * (1 - seg(t, 15.45, 15.6)));
+  // «تم قبول طلبك!» (نافذة القبول الحقيقية)
+  if (toPop > 0) {
+    const a = toPop * (1 - seg(t, 16.75, 17.05)), pw = 820, ph = 470, px = 960 - pw / 2, py = 560 - ph / 2;
+    g.save(); g.globalAlpha = a; shadowCard(px, py, pw, ph, 30);
+    const ck = checkPos(t); if (t < 16.6) glyph(IC.checkC, 960, py + 120, 130, '#22a06b');
+    txt('تم قبول طلبك!', 960, py + 268, 70, 800, C.ink); txt('الكابتن في الطريق إليك الآن.', 960, py + 360, 42, 600, C.muted);
+    g.restore();
+  }
+}
+// علامة الصح: من النافذة إلى دبوس الاستلام في فصل المحطات (Object Transformation)
+function checkPos(t) { const k = ease(seg(t, 16.6, 17.3)); return [lerp(960, MP.A[0], k), lerp(560 - 235 + 120, MP.A[1], k), lerp(130, 70, k)]; }
+
+// ═════════ 2 — المحطات (17–29) ═════════
+const MS = WD.multiStops, MPATH = WD.multi, ML = cum(MPATH);
+// المسافات على المسار عند كل محطة
+const MSD = MS.map(s => { let best = 0, bd = 1e9; MPATH.forEach((p, i) => { const d = Math.hypot(p[0] - s[0], p[1] - s[1]); if (d < bd) { bd = d; best = i; } }); return ML[best]; });
+const MAPR = { x: 90, y: 110, w: 960, h: 860 };
+const mcx = (Math.min(...MS.map(p => p[0])) + Math.max(...MS.map(p => p[0]))) / 2, mcy = (Math.min(...MS.map(p => p[1])) + Math.max(...MS.map(p => p[1]))) / 2;
+const MCAM = { tx: mcx, ty: mcy, D: 2600, p: 0, y: 0, cx: MAPR.x + MAPR.w / 2, cy: MAPR.y + MAPR.h / 2 };
+const MP = { A: (() => { const s = P(MCAM, MS[0][0], MS[0][1]); return [s.x, s.y]; })() };
+const LIST = { x: 1110, y: 150, w: 720 };
+function multiChapter(t) {
+  if (t < 16.9 || t > 29.6) return;
+  const a = seg(t, 16.9, 17.3) * (1 - seg(t, 29.0, 29.5));
+  g.save(); g.globalAlpha = a;
+  g.fillStyle = C.light; g.fillRect(0, 0, W, H);
+  // الأرض: طرقٌ بيضاء فقط (بلا مبانٍ) داخل إطارٍ دائري الزوايا
+  g.save(); rr(MAPR.x, MAPR.y, MAPR.w, MAPR.h, 36); g.clip(); g.fillStyle = C.ground; g.fillRect(MAPR.x, MAPR.y, MAPR.w, MAPR.h); city(MCAM, { noBuildings: true, roadScale: 2.2 }); g.restore();
+  // الخيط بين النقاط بالترتيب، ثم الكابتن يسير عليه
+  const legT = [[17.4, 18.1], [19.5, 20.2], [21.1, 21.8]];
+  let drawn = 0; legT.forEach(([a0, a1], i) => { const k = ease(seg(t, a0, a1)); if (k > 0) drawn = lerp(MSD[i], MSD[i + 1], k); });
+  const driveT = [[24.9, 26.0], [26.15, 27.25], [27.4, 28.5]];
+  let cap = null, doneN = 0;
+  driveT.forEach(([a0, a1], i) => { if (t >= a0) { const k = t < a1 ? (seg(t, a0, a1) < 0.5 ? 2 * seg(t, a0, a1) ** 2 : 1 - (-2 * seg(t, a0, a1) + 2) ** 2 / 2) : 1; cap = lerp(MSD[i], MSD[i + 1], k); if (t >= a1) doneN = i + 1; } });
+  if (drawn > 0) { const s = MPATH.map(p => { const q = P(MCAM, p[0], p[1]); return q; }); const pts = sub(MPATH, ML, MSD[0], drawn).map(p => { const q = P(MCAM, p[0], p[1]); return [q.x, q.y]; });
+    g.save(); rr(MAPR.x, MAPR.y, MAPR.w, MAPR.h, 36); g.clip(); threadS(pts, 7); if (cap != null) { const done = sub(MPATH, ML, MSD[0], cap).map(p => { const q = P(MCAM, p[0], p[1]); return [q.x, q.y]; }); threadS(done, 7, '#9fb8ad'); } g.restore(); }
+  // النقاط: الاستلام (علامة الصح صارت دبوساً) والوجهات المرقّمة
+  pinIcon(MP.A[0], MP.A[1], t < 17.25 ? 0 : clamp(eOut5(seg(t, 17.25, 17.6))));
+  const dotT = [17.9, 19.9, 21.6];
+  for (let i = 1; i <= 3; i++) { const q = P(MCAM, MS[i][0], MS[i][1]); numDot(q.x, q.y, i, clamp(eOut5(seg(t, dotT[i - 1], dotT[i - 1] + 0.35)) * 1.06 - 0.06 * seg(t, dotT[i - 1] + 0.2, dotT[i - 1] + 0.4)), i <= doneN ? 1 : 0); }
+  if (cap != null && t < 29.0) { const c = along(MPATH, ML, cap), q = P(MCAM, c[0], c[1]); marker(q.x, q.y, eOut5(seg(t, 24.6, 24.9)), IC.scooter); }
+  listPanel(t, doneN);
+  g.restore();
+}
+function listPanel(t, doneN) {
+  const toProg = seg(t, 24.2, 24.8), X = LIST.x, Y = LIST.y, w = LIST.w;
+  const rows = 1 + (t >= 19.3 ? 1 : 0) + (t >= 20.9 ? 1 : 0), grow = t < 19.3 ? 0 : t < 20.9 ? eOut5(seg(t, 19.3, 19.7)) : eOut5(seg(t, 20.9, 21.3));
+  const rowsH = 132 * (1 + (rows - 1 - 1 + grow) + (rows > 1 ? 0 : 0));
+  const nRows = rows - 1 + grow;
+  const h = 150 + 120 * (1 + nRows) + 150;
+  // أ) نموذج الطلب: «من وين؟» + الوجهات + «+ أضف وجهة تسليم» + السطر الحقيقي
+  if (toProg < 1) {
+    g.save(); g.globalAlpha *= 1 - toProg; shadowCard(X, Y, w, h, 32);
+    mapButton(X + 40, Y + 40, w - 80, 1, 'pick', 'من وين؟ (موقع الاستلام)');
+    for (let i = 0; i < 3; i++) { const vis = i === 0 ? 1 : i === 1 ? (t >= 19.3 ? eOut5(seg(t, 19.3, 19.7)) : 0) : (t >= 20.9 ? eOut5(seg(t, 20.9, 21.3)) : 0); if (vis <= 0) continue;
+      const yy = Y + 160 + i * 120 + (1 - vis) * -30; g.save(); g.globalAlpha *= vis; mapButton(X + 40, yy, w - 80, 1, 'drop', 'لوين؟ (موقع التسليم)');
+      g.fillStyle = C.red; g.beginPath(); g.arc(X + 92, yy + 48, 26, 0, 7); g.fill(); txt(String(i + 1), X + 92, yy + 51, 34, 800, '#fff'); g.restore(); }
+    const by = Y + 160 + (1 + nRows) * 120 + 6, press = Math.max(pressAt(t, 19.2)[0], pressAt(t, 20.8)[0]);
+    g.save(); g.translate(X + w / 2, by + 40); g.scale(1 - 0.04 * press, 1 - 0.04 * press); g.translate(-(X + w / 2), -(by + 40));
+    g.strokeStyle = C.ui; g.lineWidth = 4; g.fillStyle = press ? '#e8f5ee' : '#fff'; rr(X + 40, by, w - 80, 80, 18); g.fill(); g.stroke(); txt('+ أضف وجهة تسليم', X + w / 2, by + 44, 44, 800, C.ui); g.restore();
+    // السطر الحقيقي، يُبرَز بخطٍّ ذهبي يُرسم تحته
+    const ny = by + 128; txt('يمر الكابتن على كل نقاط الاستلام أولاً', X + w - 44, ny, 34, 700, C.muted, 'right'); txt('ثم يوصّل للوجهات بالترتيب', X + w - 44, ny + 48, 34, 700, C.muted, 'right');
+    const ul = ease(seg(t, 22.5, 23.3)); if (ul > 0) { g.strokeStyle = C.gold; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(X + w - 44, ny + 76); g.lineTo(X + w - 44 - (w - 120) * ul, ny + 76); g.stroke(); }
+    g.restore();
+    fingerPath(t, [[18.6, X + w / 2 + 120, by + 160], [19.0, X + w / 2, Y + 160 + 120 + 46], [20.4, X + w / 2, Y + 160 + 240 + 46]], [19.2, 20.8], seg(t, 18.6, 18.8) * (1 - seg(t, 21.0, 21.2)));
+  }
+  // ب) تقدّم المحطات (مكوّن التتبّع الحقيقي): «X / 3 اكتملت» وقائمة المحطات
+  if (toProg > 0) {
+    const ph = 560; g.save(); g.globalAlpha *= toProg; shadowCard(X, Y + 60, w, ph, 32);
+    const bump = [26.0, 27.25, 28.5].reduce((m, tb) => Math.max(m, Math.sin(seg(t, tb, tb + 0.35) * Math.PI) * 0.08), 0);
+    g.save(); g.translate(X + w / 2, Y + 150); g.scale(1 + bump, 1 + bump); txt(`${doneN} / 3 اكتملت`, 0, 0, 64, 800, doneN === 3 ? C.ui : C.ink); g.restore();
+    for (let i = 0; i < 3; i++) { const yy = Y + 250 + i * 110, d = i < doneN;
+      g.fillStyle = d ? '#e8f5ee' : '#f8fafc'; rr(X + 40, yy, w - 80, 90, 18); g.fill();
+      g.fillStyle = d ? C.ui : '#cbd5e1'; g.beginPath(); g.arc(X + w - 90, yy + 45, 28, 0, 7); g.fill(); txt(d ? '✓' : String(i + 1), X + w - 90, yy + 48, 34, 800, '#fff');
+      txt('لوين؟ (موقع التسليم)', X + w - 140, yy + 48, 40, 700, d ? C.green : C.muted, 'right'); }
+    g.restore();
+  }
+}
+
+// ═════════ 3 — المتجر (29–40) ═════════
+const TILE = { w: 300, h: 380, gap: 34 };
+function shopChapter(t) {
+  if (t < 28.9 || t > 40.9) return;
+  const a = seg(t, 29.85, 30.15);
+  // 28.9–29.4: النقطة الأخيرة (3/3) تصير أيقونة متجر وتتقدّم للوسط؛ 29.4–29.9: تنفتح دائرتها أخضرَ يملأ الإطار
+  // ثم تظهر صفحة المتجر وترويستها الخضراء امتدادٌ للون نفسه — بلا مزجٍ بين الخريطة والمتجر
+  if (t < 30.2) { const q = P(MCAM, MS[3][0], MS[3][1]), k = ease(seg(t, 28.9, 29.4)), o = ease(seg(t, 29.4, 29.9));
+    const cx = lerp(q.x, 960, k), cy = lerp(q.y, 540, k), r = lerp(lerp(30, 90, k), Math.hypot(W, H), o);
+    g.save(); g.fillStyle = C.green; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); g.globalAlpha = 1 - o; glyph(IC.shop, cx, cy, lerp(28, 90, k), '#fff'); g.restore(); }
+  const lift = eIn(seg(t, 39.9, 40.7));
+  g.save(); g.globalAlpha = a; g.translate(0, -lift * (H + 40));
+  g.fillStyle = '#F8FAF9'; g.fillRect(0, 0, W, H + 40);
+  // الترويسة وأقسام المتجر (أيقونات التطبيق)
+  g.fillStyle = C.green; g.fillRect(0, 0, W, 130); glyph(IC.shop, W - 110, 66, 56, '#fff'); txt('تسوق', W - 170, 70, 52, 800, '#fff', 'right');
+  if (IM.logo) { const lw = 220, lh = lw * IM.logo.height / IM.logo.width; g.drawImage(IM.logo, 70, 66 - lh / 2, lw, lh); }
+  // شبكة المنتجات (بلا أسماء ولا أسعار) — الكاميرا تنزلق أفقياً مرةً واحدة
+  const slide = -ease(seg(t, 30.0, 31.3)) * 380, cols = 7;
+  const prod = seg(t, 34.4, 35.2);   // تتراجع حين تُفتح السلة
+  g.save(); g.globalAlpha *= 1 - 0.5 * prod;
+  for (let i = 0; i < IC.cats.length; i++) { const cx = 230 + i * 150 + slide * 0.4; g.fillStyle = i === 3 ? C.ui : '#fff'; g.beginPath(); g.arc(cx, 210, 50, 0, 7); g.fill(); g.strokeStyle = '#d1e7dc'; g.lineWidth = 2; g.stroke(); glyph(IC.cats[i], cx, 212, 46, i === 3 ? '#fff' : C.ui); }
+  const tiles = [];
+  for (let r = 0; r < 2; r++) for (let cI = 0; cI < cols; cI++) { const x = 120 + cI * (TILE.w + TILE.gap) + slide, y = 300 + r * (TILE.h + 30);
+    tiles.push([x, y]); if (x > W + 20 || x + TILE.w < -20) continue;
+    shadowCard(x, y, TILE.w, TILE.h, 22, '#fff', 0.08); g.fillStyle = '#eaf5ee'; rr(x + 16, y + 16, TILE.w - 32, 220, 16); g.fill(); glyph(IC.cats[(r * 3 + cI) % 6], x + TILE.w / 2, y + 126, 80, '#7fbf9f');
+    const gr = g.createLinearGradient(x, 0, x + TILE.w, 0); gr.addColorStop(0, '#f59e0b'); gr.addColorStop(1, '#d97706'); g.fillStyle = gr; rr(x + 16, y + TILE.h - 96, TILE.w - 32, 76, 14); g.fill();
+    txt('أضف للسلة', x + TILE.w / 2 - 18, y + TILE.h - 56, 34, 800, '#fff'); glyph(IC.cartPlus, x + TILE.w / 2 + 104, y + TILE.h - 58, 30, '#fff'); }
+  g.restore();
+  // منتجان يطيران بقوسٍ قصير إلى شريط السلة (وزن وهبوط)
+  const taps = [[31.7, 2], [33.1, 9]], fab = { x: 960, y: 960 };
+  let count = 0;
+  taps.forEach(([tp, idx]) => { const [tx, ty] = tiles[idx]; const fly = seg(t, tp + 0.1, tp + 0.7);
+    if (fly > 0 && fly < 1) { const sx = tx + TILE.w / 2, sy = ty + 126, k = fly; const x = lerp(sx, fab.x - 200, k), y = lerp(sy, fab.y, k) - Math.sin(k * Math.PI) * 220, s = lerp(1, 0.4, k);
+      g.save(); g.fillStyle = '#eaf5ee'; rr(x - 70 * s, y - 70 * s, 140 * s, 140 * s, 20 * s); g.fill(); g.strokeStyle = '#bfe3cf'; g.lineWidth = 2; g.stroke(); glyph(IC.cats[(idx >= 7 ? 3 : 0) + idx % 3], x, y, 70 * s, '#7fbf9f'); g.restore(); }
+    if (t >= tp + 0.7) count++; });
+  // شريط السلة الحقيقي: «N عناصر» و«عرض السلة» (بلا المجموع)
+  const fabIn = eOut5(seg(t, 31.95, 32.4)), fb = [32.4, 33.8].reduce((m, tb) => Math.max(m, Math.sin(seg(t, tb, tb + 0.35) * Math.PI) * 0.06), 0);
+  if (fabIn > 0 && prod < 1) { const fw = 1100, fh = 120, fx = 960 - fw / 2, fy = lerp(H + 20, fab.y - fh / 2, fabIn);
+    g.save(); g.globalAlpha *= 1 - prod; g.translate(960, fy + fh / 2); g.scale(1 + fb, 1 + fb); g.translate(-960, -(fy + fh / 2));
+    const gr = g.createLinearGradient(fx, 0, fx + fw, 0); gr.addColorStop(0, '#04553A'); gr.addColorStop(1, '#086b43'); g.shadowColor = 'rgba(4,85,58,.3)'; g.shadowBlur = 30; g.shadowOffsetY = 10; g.fillStyle = gr; rr(fx, fy, fw, fh, 26); g.fill(); g.shadowBlur = 0;
+    g.fillStyle = 'rgba(255,255,255,.18)'; rr(fx + fw - 310, fy + 26, 270, 68, 34); g.fill(); txt(`${count} عناصر`, fx + fw - 175, fy + 62, 44, 800, '#fff');
+    txt('عرض السلة', fx + 230, fy + 62, 46, 800, '#fff'); glyph(IC.arrowL, fx + 70, fy + 60, 60, '#fff'); g.restore(); }
+  // درج السلة: «تأكيد الطلب»
+  if (prod > 0 && t < 35.6) { const k = eOut5(prod), dh = 420, dy = lerp(H, H - dh, k) + eIn(seg(t, 35.2, 35.6)) * 60;
+    g.save(); g.globalAlpha *= 1 - seg(t, 35.3, 35.6); g.shadowColor = 'rgba(0,0,0,.18)'; g.shadowBlur = 40; g.fillStyle = '#fff'; rr(260, dy, W - 520, dh + 40, 40); g.fill(); g.shadowBlur = 0;
+    g.fillStyle = '#e2e8f0'; rr(960 - 60, dy + 20, 120, 10, 5); g.fill(); txt('سلة مشترياتك', W - 330, dy + 90, 52, 800, C.ink, 'right'); txt(`${count} عناصر`, 360, dy + 92, 42, 700, C.muted, 'left');
+    const sp = pressAt(t, 35.1)[0], bw = 760, bx = 960 - bw / 2, by = dy + 210; g.save(); g.translate(960, by + 58); g.scale(1 - 0.04 * sp, 1 - 0.04 * sp); g.translate(-960, -(by + 58));
+    g.fillStyle = C.btn; rr(bx, by, bw, 116, 58); g.fill(); txt('تأكيد الطلب', 960, by + 62, 54, 800, '#fff'); g.restore(); g.restore(); }
+  // بطاقة طلب المتجر: الحالات الحقيقية، ورفع إشعار الدفع
+  if (t >= 35.5) { orderStatusCard(t); }
+  g.restore();
+  fingerPath(t, [[31.2, tiles[2][0] + TILE.w / 2 + 120, tiles[2][1] + TILE.h + 60], [31.5, tiles[2][0] + TILE.w / 2, tiles[2][1] + TILE.h - 58], [32.7, tiles[9][0] + TILE.w / 2, tiles[9][1] + TILE.h - 58], [34.0, 960 - 330, 960], [34.8, 960, H - 420 + 268]], [31.7, 33.1, 34.2, 35.1], seg(t, 31.2, 31.4) * (1 - seg(t, 35.2, 35.4)));
+}
+function orderStatusCard(t) {
+  const p = settle(seg(t, 35.5, 36.1)), cw = 920, ch = 520, cx = 960 - cw / 2, cy = lerp(620, 300, p);
+  g.save(); g.globalAlpha *= clamp(p * 1.6); shadowCard(cx, cy, cw, ch, 32);
+  g.fillStyle = C.green; g.beginPath(); g.arc(cx + cw - 90, cy + 90, 50, 0, 7); g.fill(); glyph(IC.shop, cx + cw - 90, cy + 92, 52, '#fff');
+  txt('طلب من متجر', cx + cw - 162, cy + 92, 52, 800, C.ink, 'right');
+  // الحالة: تتبدّل بنزولٍ للنص القديم وصعودٍ للجديد
+  const S = [[35.6, 'بانتظار موافقة المتجر', '#fff7ed', '#c2410c'], [37.7, 'المتجر يُجهّز طلبك', '#ecfdf3', '#15803d'], [38.7, 'بانتظار كابتن', '#eff6ff', '#1d4ed8']];
+  S.forEach(([ts, label, bg, fg], i) => { const next = S[i + 1] ? S[i + 1][0] : 99; const inK = eOut5(seg(t, ts, ts + 0.4)), outK = eIn(seg(t, next, next + 0.3)); const a = inK * (1 - outK); if (a <= 0) return;
+    g.save(); g.globalAlpha *= a; g.font = '800 48px Cairo'; const tw = g.measureText(label).width + 80, y = cy + 200 + (1 - inK) * -24 + outK * 24;
+    g.fillStyle = bg; rr(cx + cw - 60 - tw, y - 44, tw, 88, 44); g.fill(); txt(label, cx + cw - 60 - tw / 2, y + 2, 48, 800, fg); g.restore(); });
+  // «ارفع صورة إشعار الدفع» — التدفق الحقيقي للدفع للمتجر؛ بعد الرفع: صورة مصغّرة بعلامة صح
+  const up = pressAt(t, 36.6)[0], sent = eOut5(seg(t, 36.75, 37.1)), bx = cx + 60, by = cy + 300, bw = cw - 120, bh = 110;
+  g.save(); g.translate(bx + bw / 2, by + bh / 2); g.scale(1 - 0.04 * up, 1 - 0.04 * up); g.translate(-(bx + bw / 2), -(by + bh / 2));
+  g.globalAlpha *= 1 - sent; g.strokeStyle = C.ui; g.lineWidth = 4; g.setLineDash([12, 10]); rr(bx, by, bw, bh, 22); g.stroke(); g.setLineDash([]);
+  txt('ارفع صورة إشعار الدفع', bx + bw / 2 - 30, by + bh / 2 + 4, 46, 800, C.ui); glyph(IC.upload, bx + bw / 2 + 270, by + bh / 2, 46, C.ui); g.restore();
+  if (sent > 0) { g.save(); g.globalAlpha *= sent; g.fillStyle = '#ecfdf3'; rr(bx, by, bw, bh, 22); g.fill(); glyph(IC.image, bx + bw - 70, by + bh / 2, 54, C.ui); glyph(IC.checkC, bx + 70, by + bh / 2, 50, '#22a06b'); g.restore(); }
+  g.restore();
+  fingerPath(t, [[36.1, bx + bw / 2 + 160, by + 200], [36.4, bx + bw / 2, by + bh / 2]], [36.6], seg(t, 36.1, 36.25) * (1 - seg(t, 36.75, 36.9)));
+  // «بانتظار كابتن» يُطلق الخيط من حافة البطاقة نزولاً نحو التتبّع
+  if (t >= 39.0) { const k = eIn(seg(t, 39.0, 40.2)); threadS([[960, cy + ch], [960, cy + ch + k * (H - cy - ch + 60)]], 7); }
+}
+
+// ═════════ 4 — التتبّع (40–51) ═════════
+const R = WD.route, RL = cum(R), RLEN = RL[RL.length - 1] - 30;   // يتوقف قبل دبوس العميل بقليل فيبقى الدبوس ظاهراً
+// marker-motion: تسارع (0.9 ث)، سرعة ثابتة، تباطؤ (1.2 ث)، توقّف عند 47.3
+function driveR(t) { const a = 40.9, b = 47.3; if (t <= a) return 0; if (t >= b) return RLEN; const T = b - a, ta = 0.9, td = 1.2, v = RLEN / (T - ta / 2 - td / 2), u = t - a;
+  if (u < ta) return v * u * u / (2 * ta); if (u < T - td) return v * ta / 2 + v * (u - ta); const r = T - u; return RLEN - v * r * r / (2 * td); }
+let FOL = null;
+function follow() { if (FOL) return FOL; FOL = []; let fx = R[0][0], fy = R[0][1]; for (let i = 0; i <= 3600; i++) { const t = i / 60; const c = along(R, RL, driveR(t)); const k = 1 - Math.exp(-2.2 / 60); fx += (c[0] - fx) * k; fy += (c[1] - fy) * k; FOL.push([fx, fy]); } return FOL; }
+function trackCam(t) {
+  const f = follow()[clamp(Math.round(t * 60), 0, 3600)];
+  // 51–56: الكاميرا ترتفع وتصير عمودية فوق الخيوط الثلاثة
+  const up = ease(seg(t, 51.0, 52.6)), gx = 300, gy = -1050;
+  return { tx: lerp(f[0], gx, up), ty: lerp(f[1], gy, up), D: lerp(1000, 5200, up), p: lerp(50, 0, up) * Math.PI / 180, y: lerp(166, 180, up) * Math.PI / 180, cx: W / 2 - 40, cy: lerp(H / 2 + 200, H / 2, up) };
+}
+function trackChapter(t) {
+  if (t < 39.95) return;
+  const c = trackCam(t);
+  g.fillStyle = C.ground; g.fillRect(0, 0, W, H); city(c);
+  const d = driveR(t), rev = eOut(seg(t, 40.2, 41.0)) * RLEN;
+  const gather = seg(t, 51.4, 53.0);
+  if (t < 51.4) { threadW(c, sub(R, RL, d, Math.max(d + 1, rev + 30)), 7); }
+  // الأيقونات: المتجر عند A، ودبوس العميل عند B
+  const a0 = P(c, R[0][0], R[0][1]), b0 = P(c, R[R.length - 1][0], R[R.length - 1][1]);
+  if (t < 51.4) { marker(a0.x, a0.y, eOut5(seg(t, 40.3, 40.6)), IC.shop, 1 - seg(t, 42.0, 42.6)); pinIcon(b0.x, b0.y, eOut5(seg(t, 40.6, 41.0))); }
+  if (t >= 40.8 && t < 51.4) { const cp = along(R, RL, d), q = P(c, cp[0], cp[1]); const stopF = Math.sin(seg(t, 47.3, 47.7) * Math.PI) * 6; marker(q.x, q.y + stopF * 0, eOut5(seg(t, 40.8, 41.1)), IC.scooter); }
+  if (t < 51.4) trackPanel(t);
+  if (t >= 51.0) gatherScene(t, c);
+}
+function trackPanel(t) {   // لوحة التتبّع الحقيقية مصغّرة: العنوان والمراحل (بلا دقائق ولا مسافة)
+  const a = eOut5(seg(t, 41.0, 41.5)) * (1 - seg(t, 50.8, 51.3)), pw = 760, ph = 290, px = W - 80 - pw, py = H - 70 - ph;
+  if (a <= 0) return;
+  g.save(); g.globalAlpha = a; shadowCard(px, py, pw, ph, 30);
+  const arrived = t >= 47.6, tb = eOut5(seg(t, 47.6, 48.0));
+  txt(arrived ? 'تم التوصيل' : 'الكابتن في الطريق إليك', px + pw - 40, py + 70, 52, 800, C.ink, 'right');
+  const steps = ['انتظار', 'قُبل', 'استلم', 'وصل'], doneAt = [0, 0, 41.8, 47.6];
+  const sx = i => px + pw - 110 - i * ((pw - 220) / 3);
+  g.strokeStyle = '#e2e8f0'; g.lineWidth = 8; g.beginPath(); g.moveTo(sx(0), py + 170); g.lineTo(sx(3), py + 170); g.stroke();
+  const prog = t >= 47.6 ? 3 : t >= 41.8 ? 2 + ease(seg(t, 41.8, 47.6)) * 0.98 : 1;
+  g.strokeStyle = '#22c55e'; g.beginPath(); g.moveTo(sx(0), py + 170); g.lineTo(lerp(sx(0), sx(3), prog / 3), py + 170); g.stroke();
+  steps.forEach((s, i) => { const done = t >= doneAt[i]; const pop = i >= 2 ? Math.sin(seg(t, doneAt[i], doneAt[i] + 0.35) * Math.PI) * 0.15 : 0;
+    g.save(); g.translate(sx(i), py + 170); g.scale(1 + pop, 1 + pop); g.fillStyle = done ? '#22c55e' : '#fff'; g.beginPath(); g.arc(0, 0, 30, 0, 7); g.fill(); g.strokeStyle = done ? '#22c55e' : '#cbd5e1'; g.lineWidth = 4; g.stroke();
+    if (done) txt('✓', 0, 3, 34, 800, '#fff'); g.restore(); txt(s, sx(i), py + 240, 36, 800, done ? C.green : C.muted); });
+  g.restore();
+}
+
+// ═════════ 5 — التجميع (51–56) + 6 — الختام (56–60) ═════════
+const SG = WD.single, SGL = cum(SG);
+function gatherScene(t, c) {
+  const draw = ease(seg(t, 51.6, 53.2)), conv = seg(t, 54.2, 55.6);
+  const center = [W / 2 - 40, H / 2];
+  const routes = [[SG, SGL, IC.pin], [MPATH, ML, null], [R, RL, IC.shop]];
+  routes.forEach(([pts, L, ic], i) => {
+    const len = L[L.length - 1] * clamp(draw * 1.1 - i * 0.05);
+    let sp = sub(pts, L, 0, Math.max(1, len)).map(p => { const q = P(c, p[0], p[1]); return [q.x, q.y]; });
+    const k = eIn(seg(conv, i * 0.12, 0.7 + i * 0.12));
+    if (k > 0) sp = sp.map(([x, y]) => [lerp(x, center[0], k), lerp(y, center[1], k)]);
+    threadS(sp, 8, C.green, 1 - seg(conv, 0.9, 1));
+    const s0 = sp[0]; if (ic && k < 0.9) { g.save(); g.globalAlpha = 1 - k; marker(s0[0], s0[1] + 30, eOut5(seg(t, 51.5, 51.9)), ic, 1, 32); g.restore(); }
+  });
+  // نقاط المحطات الثلاث على خيط «المشاوير»
+  const kM = eIn(seg(conv, 0.12, 0.82));
+  for (let i = 1; i <= 3; i++) { const q = P(c, MS[i][0], MS[i][1]); numDot(lerp(q.x, center[0], kM), lerp(q.y, center[1], kM), i, eOut5(seg(t, 52.0 + i * 0.25, 52.3 + i * 0.25)) * (1 - kM), 0); }
+}
+function endCard(t) {
+  if (t < 55.4) return;
+  const o = seg(t, 55.4, 56.0), cx = W / 2 - 40, cy = H / 2, R0 = Math.hypot(W, H);
+  g.fillStyle = C.green; g.beginPath(); g.arc(cx, cy, lerp(12, R0, o < 0.5 ? 2 * o * o : 1 - Math.pow(-2 * o + 2, 2) / 2), 0, 7); g.fill();
+  const la = eOut(seg(t, 56.0, 56.4)), ca = eOut(seg(t, 56.3, 56.7)), ua = eOut(seg(t, 56.6, 57.0));
+  if (IM.logo && la > 0) { const lw = 640, lh = lw * IM.logo.height / IM.logo.width; g.save(); g.globalAlpha = la; g.drawImage(IM.logo, W / 2 - lw / 2, 400 - lh / 2 + (1 - la) * 16, lw, lh); g.restore(); }
+  if (ca > 0) { const bw = 640, bh = 120, bx = W / 2 - bw / 2, by = 630 + (1 - ca) * 14; g.save(); g.globalAlpha = ca; g.fillStyle = '#fff'; rr(bx, by, bw, bh, bh / 2); g.fill();
+    txt('اطلب الكابتن الآن', W / 2 - 24, by + bh / 2 + 4, 54, 800, C.green); glyph(IC.rocket, W / 2 + 260, by + bh / 2, 44, C.green); g.restore(); }
+  if (ua > 0) { g.save(); g.globalAlpha = ua * 0.9; g.font = '600 40px Cairo'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.direction = 'ltr'; g.fillText('wajeezsd.com', W / 2, 830); g.restore(); }
+}
+
+// ═════════ التجميع النهائي ═════════
+async function draw(t) {
+  g.clearRect(0, 0, W, H);
+  if (t < 5.0) { hook(t); return; }
+  if (t < 17.0) { g.fillStyle = C.light; g.fillRect(0, 0, W, H); }
+  if (t < 9.6) orderPanel(t);
+  searchCard(t);
+  const chip = priceChip(t);
+  offersChapter(t, chip);
+  multiChapter(t);
+  if (t >= 16.55 && t < 17.35) { const [x, y, s] = checkPos(t); glyph(IC.checkC, x, y - s * 0.1, s, '#22a06b'); }
+  trackChapter(t);      // العالم تحت صفحة المتجر: ترتفع الصفحة فينكشف
+  shopChapter(t);
+  endCard(t);
+  const osm = t >= 17 && t < 29 ? 0.5 : t >= 40.3 && t < 55.4 ? 0.5 : 0;
+  if (osm) { g.save(); g.globalAlpha = osm; g.font = '16px Arial'; g.fillStyle = C.ink; g.textAlign = 'left'; g.direction = 'ltr'; g.fillText('Map data © OpenStreetMap contributors', 24, H - 20); g.restore(); }
+}
+window.seek = async t => { await draw(clamp(t, 0, DUR - 1e-6)); };
+(async () => {
+  IM.logo = await load('../assets/logo-white.png');
+  await document.fonts.load('800 64px Cairo'); await document.fonts.load('600 40px Cairo'); await document.fonts.load('60px bootstrap-icons'); await document.fonts.ready;
+  window.READY = true;
+  if (RENDER) { document.getElementById('ui').remove(); return; }
+  const stage = document.getElementById('stage'); const fit = () => { const s = Math.min(innerWidth / W, (innerHeight - 50) / H); stage.style.transform = `scale(${s})`; }; fit(); addEventListener('resize', fit);
+  let playing = false, t0 = 0, off = 0; const now = () => playing ? (off + (performance.now() - t0) / 1000) % DUR : off;
+  document.getElementById('pp').onclick = () => { if (playing) { off = now(); playing = false; } else { t0 = performance.now(); playing = true; } };
+  document.getElementById('sc').oninput = e => { off = +e.target.value; playing = false; };
+  (async function loop() { const t = now(); await seek(t); document.getElementById('tt').textContent = t.toFixed(2); if (playing) document.getElementById('sc').value = t; requestAnimationFrame(loop); })();
+})();
+</script>
+</body>
+</html>
