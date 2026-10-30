@@ -1,0 +1,70 @@
+{
+ "order_home": {
+  "info": true,
+  "errs": []
+ },
+ "order_filled": {
+  "info": 0,
+  "errs": []
+ },
+ "order_price": {
+  "info": 0,
+  "errs": []
+ },
+ "search": {
+  "info": null,
+  "errs": []
+ },
+ "offer": {
+  "info": null,
+  "errs": []
+ },
+ "accepted": {
+  "info": true,
+  "errs": []
+ },
+ "multi_form": {
+  "info": 0,
+  "errs": []
+ },
+ "multi_track": {
+  "info": true,
+  "errs": []
+ },
+ "SHOP_list": {
+  "info": null,
+  "errs": []
+ },
+ "SHOP_detail": {
+  "info": null,
+  "errs": []
+ },
+ "SHOP_cart": {
+  "info": 2,
+  "errs": []
+ },
+ "SHOP_drawer": {
+  "info": true,
+  "errs": []
+ },
+ "SHOP_pending": {
+  "info": null,
+  "errs": []
+ },
+ "SHOP_preparing": {
+  "info": null,
+  "errs": []
+ },
+ "SHOP_ready": {
+  "info": null,
+  "errs": []
+ },
+ "tracking": {
+  "info": true,
+  "errs": []
+ },
+ "delivered": {
+  "info": true,
+  "errs": []
+ }
+}
