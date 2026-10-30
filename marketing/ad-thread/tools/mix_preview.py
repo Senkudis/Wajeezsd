@@ -11,16 +11,16 @@ def load(p):
     a, sr = sf.read(p, dtype='float32', always_2d=True)
     if a.shape[1] == 1: a = np.repeat(a, 2, 1)
     return resample_poly(a, SR, sr, axis=0).astype(np.float32) if sr != SR else a
-CUES = [  # الزمن، الملف، الربح dB، السبب
-    (1.62, SFX + 'tick/fs721514.ogg', -16),                         # نقطة «؟» تنفصل
-    (2.18, SFX + 'impact/kenney-impact-impactsoft-heavy-000.ogg', -15),  # الخرزة تهبط
-    (2.55, SFX + 'pop/kenney-interface-pluck-001.ogg', -14),        # الدبوس ينبت
-    (3.05, SFX + 'click/kenney-interface-select-001.ogg', -14),     # priceBump: السعر يُثبَّت
-    (4.30, SFX + 'pop/fs527522.ogg', -16), (4.50, SFX + 'pop/kenney-interface-drop-001.ogg', -16),   # الخيط يصل الكابتنين
-    (4.80, SFX + 'transition/kenney-interface-maximize-005.ogg', -17), (5.15, SFX + 'transition/kenney-interface-maximize-006.ogg', -17),  # العرضان ينهضان
-    (7.35, SFX + 'click/kenney-interface-toggle-001.ogg', -12),     # قبول العرض
-    (7.42, BELL, -14),                                              # جرس التطبيق: تم القبول
-    (7.55, SFX + 'transition/kenney-interface-minimize-001.ogg', -18),  # العرض الآخر يهبط
+CUES = [  # الزمن، الملف، الربح dB — كلٌّ مربوطٌ بحدثٍ في الصورة (التوقيتات بعد تعديل الافتتاحية)
+    (2.02, SFX + 'tick/fs721514.ogg', -16),                         # «؟» صارت خرزة
+    (3.10, SFX + 'impact/kenney-impact-impactsoft-heavy-000.ogg', -15),  # الخرزة تهبط — ثم سكون
+    (3.60, SFX + 'pop/kenney-interface-pluck-001.ogg', -14),        # الدبوس ينبت
+    (3.95, SFX + 'click/kenney-interface-select-001.ogg', -14),     # priceBump: «سعرك» يثبت
+    (5.10, SFX + 'pop/fs527522.ogg', -16), (5.30, SFX + 'pop/kenney-interface-drop-001.ogg', -16),   # الخيط يصل الكابتنين
+    (5.40, SFX + 'transition/kenney-interface-maximize-005.ogg', -17), (5.75, SFX + 'transition/kenney-interface-maximize-006.ogg', -17),  # العرضان ينهضان
+    (7.50, SFX + 'click/kenney-interface-toggle-001.ogg', -12),     # قبول العرض
+    (7.57, BELL, -14),                                              # جرس التطبيق: تم القبول
+    (7.70, SFX + 'transition/kenney-interface-minimize-001.ogg', -18),  # العرض الآخر يهبط
 ]
 n = int(DUR * SR); mix = np.zeros((n, 2), np.float32)
 for t, f, db in CUES:

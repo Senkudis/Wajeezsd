@@ -59,16 +59,16 @@ const COL = { ground: '#E7ECE5', road: '#FFFFFF', roof: '#F7F9F6', wall: [204, 2
 
 // ── الكاميرا: هدف (م)، مسافة (م)، ميل وانحراف (درجات) ──
 const F = 1400;
-const camTX0 = kf([[0, A[0]], [8.2, A[0]]]);
-const camTY0 = kf([[0, A[1]], [3.6, A[1]], [4.6, A[1] + 40], [8.2, A[1] + 40]]);
+const camTX0 = kf([[0, A[0]], [8.35, A[0]]]);
+const camTY0 = kf([[0, A[1]], [4.4, A[1]], [5.3, A[1] + 40], [8.35, A[1] + 40]]);
 // بعد 8.2: الهدف يلحق بالكابتن متأخّراً (مرشّحٌ أُسّي محسوب مسبقاً — حالةٌ تُخبز مرةً)
-let FOLLOW = null; function follow() { if (FOLLOW) return FOLLOW; FOLLOW = []; let fx = 0, fy = 0; for (let i = 0; i <= 600; i++) { const t = i / 60; const tgt = t <= 8.2 ? null : along(DRV, LD, driveS(t)); if (!tgt) { fx = camTX0(t); fy = camTY0(t); } else { const k = 1 - Math.exp(-1.6 / 60); fx += (tgt[0] - fx) * k; fy += (tgt[1] - fy) * k; } FOLLOW.push([fx, fy]); } return FOLLOW; }
+let FOLLOW = null; function follow() { if (FOLLOW) return FOLLOW; FOLLOW = []; let fx = 0, fy = 0; for (let i = 0; i <= 600; i++) { const t = i / 60; const tgt = t <= 8.35 ? null : along(DRV, LD, driveS(t)); if (!tgt) { fx = camTX0(t); fy = camTY0(t); } else { const k = 1 - Math.exp(-1.6 / 60); fx += (tgt[0] - fx) * k; fy += (tgt[1] - fy) * k; } FOLLOW.push([fx, fy]); } return FOLLOW; }
 const camTX = t => follow()[clamp(Math.round(t * 60), 0, 600)][0], camTY = t => follow()[clamp(Math.round(t * 60), 0, 600)][1];
-const camD = kf([[0, 640], [2.6, 640], [3.4, 700], [4.6, 1180, x => eOut(x)], [7.6, 1220], [10, 860]]);
-const camP = kf([[0, 0], [2.6, 0], [3.7, 52, x => spring(x * 0.9, 9, 0.92)], [8.2, 52], [10, 57]]);
-const camY = kf([[0, 180], [2.6, 180], [3.7, 166, x => spring(x * 0.9, 9, 0.92)], [7.6, 170], [10, 162]]);
+const camD = kf([[0, 600], [3.6, 600], [4.4, 640], [5.4, 1080, x => eOut(x)], [7.8, 1110], [10, 820]]);
+const camP = kf([[0, 0], [3.6, 0], [4.6, 52, x => spring(x * 0.9, 9, 0.92)], [8.35, 52], [10, 57]]);
+const camY = kf([[0, 180], [3.6, 180], [4.6, 166, x => spring(x * 0.9, 9, 0.92)], [7.8, 170], [10, 162]]);
 let DOTX = 640;
-function cam(t) { return { tx: camTX(t), ty: camTY(t), D: camD(t), p: camP(t) * Math.PI / 180, y: camY(t) * Math.PI / 180, cx: lerp(DOTX, W / 2, ease(seg(t, 2.6, 3.7))), cy: lerp(H / 2 + 120, H / 2 + 170, ease(seg(t, 2.6, 3.7))) }; }
+function cam(t) { return { tx: camTX(t), ty: camTY(t), D: camD(t), p: camP(t) * Math.PI / 180, y: camY(t) * Math.PI / 180, cx: lerp(DOTX, W / 2, ease(seg(t, 3.6, 4.6))), cy: lerp(H / 2 + 140, H / 2 + 190, ease(seg(t, 3.6, 4.6))) }; }
 // العالم → الشاشة. z لأعلى بالمتر
 function P(c, x, y, z = 0) {
   const dx = x - c.tx, dy = y - c.ty;
@@ -145,7 +145,7 @@ function city(c, alpha) {
 // ── عناصر ──
 function pin(c, t0, t) {   // دبوس الاستلام: ينبت من الخرزة
   const p = spring(t - t0, 16, 0.72); if (p <= 0) return;
-  const s = P(c, A[0], A[1]); const sz = 70 * p;
+  const s = P(c, A[0], A[1]); const sz = 84 * p;
   g.save(); g.globalAlpha = clamp(p * 1.4);
   g.fillStyle = 'rgba(16,36,28,.16)'; g.beginPath(); g.ellipse(s.x, s.y + 2, 16 * p, 6 * p, 0, 0, 7); g.fill();
   glyph('', s.x, s.y - sz * 0.48, sz, COL.ui);
@@ -153,7 +153,7 @@ function pin(c, t0, t) {   // دبوس الاستلام: ينبت من الخر�
 }
 function captain(c, pos, t0, t, glyphCode, fade = 1) {
   const p = spring(t - t0, 15, 0.7); if (p <= 0) return;
-  const s = P(c, pos[0], pos[1]); const r = 30 * p;
+  const s = P(c, pos[0], pos[1]); const r = 36 * p;
   g.save(); g.globalAlpha = fade;
   g.fillStyle = 'rgba(16,36,28,.18)'; g.beginPath(); g.ellipse(s.x, s.y + 4, r * 0.9, r * 0.35, 0, 0, 7); g.fill();
   g.fillStyle = '#fff'; g.beginPath(); g.arc(s.x, s.y - r, r + 4, 0, 7); g.fill();
@@ -164,34 +164,70 @@ function captain(c, pos, t0, t, glyphCode, fade = 1) {
 }
 function radar(c, t) {     // radarPulse: حلقاتٌ على الأرض، تتوقف عند العثور على الكباتن
   for (let k = 0; k < 3; k++) {
-    const t0 = 3.2 + k * 0.7; if (t < t0 || t0 > 4.3) continue;
-    const u = ((t - t0) % 2.2) / 2.2, sc = lerp(0.3, 1, u), op = (1 - u) * 0.9 * (1 - seg(t, 4.3, 4.7));
+    const t0 = 4.0 + k * 0.7; if (t < t0 || t0 > 5.1) continue;
+    const u = ((t - t0) % 2.2) / 2.2, sc = lerp(0.3, 1, u), op = (1 - u) * 0.9 * (1 - seg(t, 5.1, 5.5));
     if (op <= 0) continue;
     const R = 300 * sc, pts = []; for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2; pts.push([A[0] + R * Math.cos(a), A[1] + R * Math.sin(a)]); }
-    g.save(); g.globalAlpha = op; g.strokeStyle = COL.ui; g.lineWidth = 2.5; poly(c, pts); g.stroke(); g.restore();
+    g.save(); g.globalAlpha = op; g.strokeStyle = COL.ui; g.lineWidth = 3.5; poly(c, pts); g.stroke(); g.restore();
   }
 }
+function searchLabel(c, t) {
+  const a = eOut(seg(t, 4.05, 4.4)) * (1 - seg(t, 5.15, 5.45)); if (a <= 0) return;
+  const s = P(c, A[0], A[1]);
+  g.save(); g.globalAlpha = a; g.font = '700 44px Cairo'; g.direction = 'rtl'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const w = g.measureText('جاري البحث عن كابتن').width + 64, y = s.y + 92 + (1 - a) * 10;
+  g.fillStyle = '#fff'; g.shadowColor = 'rgba(16,36,28,.12)'; g.shadowBlur = 24; g.shadowOffsetY = 8; rr(s.x - w / 2, y - 38, w, 76, 38); g.fill(); g.shadowBlur = 0;
+  g.fillStyle = COL.green; g.fillText('جاري البحث عن كابتن', s.x, y + 2); g.restore();
+}
 // بطاقة عرض حقيقية تنهض من كابتنها (offerIn بشخصيته: صعودٌ قصير وظهور، مع وزنٍ يستقر)
-function offer(im, anchor, t0, t, side, out) {
+// نص الاسم «كابتن» هو ما يعرضه التطبيق حين لا يكون للكابتن اسم (client-my-orders.html)،
+// «عرضه» تسمية صندوق السعر نفسها، ونوع المركبة من utils/vehicleTypes.js. لا أرقام.
+const CARD_W = 640, CARD_H = 330;
+function drawCard(x, y, sc, d) {
+  const w = CARD_W * sc, h = CARD_H * sc, u = v => v * sc;
+  g.save(); g.shadowColor = 'rgba(4,140,91,.14)'; g.shadowBlur = u(36); g.shadowOffsetY = u(14);
+  g.fillStyle = '#fff'; rr(x, y, w, h, u(28)); g.fill(); g.shadowBlur = 0; g.shadowOffsetY = 0;
+  g.strokeStyle = 'rgba(4,140,91,.22)'; g.lineWidth = u(2.5); g.stroke();
+  g.direction = 'rtl'; g.textBaseline = 'middle';
+  // الصورة الرمزية: تدرّج التطبيق (primary ← #10b981) وأيقونة المركبة
+  const ax = x + w - u(78), ay = y + u(78), ar = u(48);
+  const gr = g.createLinearGradient(ax - ar, ay - ar, ax + ar, ay + ar); gr.addColorStop(0, '#04553A'); gr.addColorStop(1, '#10b981');
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(ax, ay, ar + u(4), 0, 7); g.fill(); g.fillStyle = gr; g.beginPath(); g.arc(ax, ay, ar, 0, 7); g.fill();
+  glyph(d.icon, ax, ay + u(2), u(50), '#fff');
+  // نوع المركبة تحمله الأيقونة وحدها؛ سطره النصي يصير غير مقروء على الهاتف فحُذف
+  g.textAlign = 'right'; g.fillStyle = '#0f172a'; g.font = `800 ${u(58)}px Cairo`; g.fillText('كابتن', ax - ar - u(24), y + u(80));
+  // صندوق السعر
+  const bx = x + u(26), by = y + u(26), bw = u(190), bh = u(130);
+  g.fillStyle = '#f0fdf4'; rr(bx, by, bw, bh, u(18)); g.fill(); g.strokeStyle = '#bbf7d0'; g.lineWidth = u(2); g.stroke();
+  g.textAlign = 'center'; g.fillStyle = '#166534'; g.font = `700 ${u(30)}px Cairo`; g.fillText('عرضه', bx + bw / 2, by + u(34));
+  g.fillStyle = '#16a34a'; g.font = `900 ${u(60)}px Cairo`; g.fillText(d.price, bx + bw / 2, by + u(86));
+  // الأزرار: «قبول العرض» (bi-check-lg) و«رفض» (bi-x-lg)
+  const kx = x + w - u(26), ky = y + h - u(108), kw = u(330), kh = u(82);
+  g.fillStyle = d.pressed ? '#04553A' : '#198754'; rr(kx - kw, ky, kw, kh, u(41)); g.fill();
+  g.fillStyle = '#fff'; g.font = `700 ${u(42)}px Cairo`; g.fillText('قبول العرض', kx - kw / 2 + u(16), ky + kh / 2 + u(2));
+  glyph('', kx - kw + u(44), ky + kh / 2, u(34), '#fff');
+  g.direction = 'rtl'; g.textAlign = 'center'; g.fillStyle = '#dc3545'; g.font = `700 ${u(40)}px Cairo`; g.fillText('رفض', x + u(150), ky + kh / 2 + u(2));
+  glyph('', x + u(220), ky + kh / 2, u(28), '#dc3545');
+  g.restore();
+  return { price: { x: bx, y: by, w: bw, h: bh } };
+}
+// offerIn بشخصيته: البطاقة تنهض من كابتنها بوزنٍ يستقر، معلّقةً بالخيط
+function offer(d, anchor, t0, t, side, out) {
   const p = spring(t - t0, 11, 0.86); if (p <= 0 || !anchor) return null;
-  const w = 460, h = w * im.height / im.width;
-  const tx = anchor.x + side * 30, ty = anchor.y - 56 - h;
-  let x = lerp(anchor.x - w * 0.08, tx - w / 2, p), y = lerp(anchor.y - 20, ty, p), sc = lerp(0.12, 1, p);
-  let a = clamp(p * 1.6);
-  if (out) { x = lerp(x, anchor.x - w * sc * 0.06 / 2, out.k); y = lerp(y, anchor.y - h * 0.06, out.k); sc *= lerp(1, 0.06, out.k); a *= 1 - seg(out.k, 0.6, 1); y += out.sag || 0; }
-  const cw = w * sc, ch = h * sc, cx = x + (w - cw) / 2, cy = y + (h - ch);
-  // الخيط الذي يحمل البطاقة من الكابتن
-  g.save(); g.globalAlpha = a; g.strokeStyle = COL.ui; g.lineWidth = 3; g.beginPath(); g.moveTo(anchor.x, anchor.y);
+  const K = 0.87, w = CARD_W * K, h = CARD_H * K, tx = anchor.x + side * 24, ty = anchor.y - 50 - h;
+  const fx = clamp(tx - w / 2, 70, W - 70 - w);   // البطاقة لا تتجاوز الهامش الآمن
+  let x = lerp(anchor.x - w * 0.08, fx, p), y = lerp(anchor.y - 20, ty, p), sc = lerp(0.12, 1, p) * K, a = clamp(p * 1.6);
+  if (out) { x = lerp(x, anchor.x, out.k); y = lerp(y, anchor.y, out.k); sc *= lerp(1, 0.05, out.k); a *= 1 - seg(out.k, 0.6, 1); y += out.sag || 0; }
+  const cw = CARD_W * sc, ch = CARD_H * sc, cx = x + (w - cw) / 2, cy = y + (h - ch);
+  g.save(); g.globalAlpha = a; g.strokeStyle = COL.ui; g.lineWidth = 4; g.beginPath(); g.moveTo(anchor.x, anchor.y);
   const sag = out ? (out.sag || 0) * 1.6 : 0;
   g.quadraticCurveTo(anchor.x + sag * 0.3, (anchor.y + cy + ch) / 2 + sag, cx + cw / 2, cy + ch - 2); g.stroke();
-  g.shadowColor = 'rgba(16,36,28,.16)'; g.shadowBlur = 40; g.shadowOffsetY = 18;
-  g.fillStyle = '#fff'; rr(cx, cy, cw, ch, 22 * sc); g.fill(); g.shadowBlur = 0; g.shadowOffsetY = 0;
-  g.save(); rr(cx, cy, cw, ch, 22 * sc); g.clip(); g.drawImage(im, cx, cy, cw, ch); g.restore();
+  const r = drawCard(cx, cy, sc, d);
   g.restore();
-  return { x: cx, y: cy, w: cw, h: ch, sc };
+  return { x: cx, y: cy, w: cw, h: ch, sc, price: r.price };
 }
 function touch(x, y, t, tap) {
-  const v = seg(t, 6.75, 6.95) * (1 - seg(t, 7.65, 7.85)); if (v <= 0) return;
+  const v = seg(t, 6.95, 7.15) * (1 - seg(t, 7.8, 8.0)); if (v <= 0) return;
   const d = t - tap, press = d > -0.14 && d < 0.1 ? (d < 0 ? seg(d, -0.14, 0) : 1 - seg(d, 0, 0.1)) : 0, ring = d >= 0 && d < 0.5 ? d / 0.5 : -1;
   g.save(); g.globalAlpha = v;
   if (ring >= 0) { g.globalAlpha = v * (1 - ring) * 0.6; g.lineWidth = 3; g.strokeStyle = '#fff'; g.beginPath(); g.arc(x, y, 30 + 46 * eOut(ring), 0, 7); g.stroke(); g.globalAlpha = v; }
@@ -199,114 +235,122 @@ function touch(x, y, t, tap) {
   g.beginPath(); g.arc(x, y, 30 * (1 - 0.16 * press), 0, 7); g.fill(); g.stroke(); g.restore();
 }
 
-// ── الترويسة: السؤال الحقيقي «طلبك وين ماشي اليوم؟» ──
-const Q = ['طلبك', 'وين', 'ماشي', 'اليوم؟'], QT = [0.25, 0.55, 0.85, 1.15], QS = 112, QY = 520;
+// ── الترويسة كما في التطبيق: الشعار يساراً والسؤال يميناً على أخضر العلامة ──
+// «؟» تُرسم وحدها: 1.55–2.05 تنكمش نحو نقطتها وتصير خرزةً بيضاء، ثم سكون قصير قبل السقوط
+const Q = ['طلبك', 'وين', 'ماشي', 'اليوم'], QT = [0.35, 0.6, 0.85, 1.1], QS = 112, QY = 560, QR = 1780;
 function header(t) {
-  // Anticipation: الترويسة تهبط 12px ثم ترتفع بوزن وتكشف المدينة تحتها
-  const dip = Math.sin(seg(t, 1.62, 1.85) * Math.PI) * 12;
-  const up = eIn(seg(t, 1.8, 2.4)) * 0.6 + eOut(seg(t, 1.8, 2.4)) * 0.4;
+  const dip = Math.sin(seg(t, 2.05, 2.28) * Math.PI) * 12;                       // Anticipation
+  const up = eIn(seg(t, 2.22, 2.95)) * 0.6 + eOut(seg(t, 2.22, 2.95)) * 0.4;
   const oy = dip - up * (H + 40);
   if (oy <= -H - 30) return null;
   g.save(); g.translate(0, oy);
   g.fillStyle = COL.green; g.fillRect(0, -40, W, H + 40);
+  // الشعار الحقيقي — جزءٌ من الترويسة منذ الإطار الأول، لا شاشة شعار
+  if (IM.logo) { const la = eOut(seg(t, 0.0, 0.45)), lw = 380, lh = lw * IM.logo.height / IM.logo.width;
+    g.globalAlpha = la; g.drawImage(IM.logo, 140, QY - lh * 0.62 + (1 - la) * 10, lw, lh); g.globalAlpha = 1; }
   g.font = `700 ${QS}px Cairo`; g.textBaseline = 'alphabetic'; g.direction = 'rtl'; g.textAlign = 'right';
-  const sp = g.measureText(' ').width, ws = Q.map(w => g.measureText(w).width), total = ws.reduce((a, b) => a + b) + sp * 3;
-  let x = W / 2 + total / 2; let dot = null;
-  Q.forEach((w, i) => {
-    const p = eOut(seg(t, QT[i], QT[i] + 0.45));
-    g.globalAlpha = p; g.fillStyle = '#fff'; g.fillText(w, x, QY + (1 - p) * 18);
-    if (i === 3) dot = { x: x - ws[i] + QS * 0.17, y: QY + oy - QS * 0.02 };
-    x -= ws[i] + sp;
-  });
+  const sp = g.measureText(' ').width; let x = QR;
+  Q.forEach((w, i) => { const p = eOut(seg(t, QT[i], QT[i] + 0.45)); g.globalAlpha = p; g.fillStyle = '#fff'; g.fillText(w, x, QY + (1 - p) * 18); x -= g.measureText(w).width + (i < 3 ? sp : 0); });
+  const qw = g.measureText('؟').width, qx = x - qw / 2, dotY = QY - QS * 0.07;
+  const p = eOut(seg(t, QT[3] + 0.12, QT[3] + 0.57)), col = seg(t, 1.55, 2.05);
+  g.globalAlpha = p * (1 - seg(col, 0.55, 1));
+  g.save(); g.translate(qx, dotY); g.scale(lerp(1, 0.5, ease(col)), lerp(1, 0.12, ease(col))); g.translate(-qx, -dotY);
+  g.fillStyle = '#fff'; g.fillText('؟', x, QY + (1 - p) * 18); g.restore();
+  g.globalAlpha = 1;
+  const bead = { x: qx, y: dotY + oy, r: 15 * eOut(seg(col, 0.25, 1)) };
   g.restore();
-  return dot;
+  return bead;
 }
 
 let DOT0 = null;
 async function draw(t) {
   const c = cam(t);
   g.fillStyle = COL.ground; g.fillRect(0, 0, W, H);
-  city(c, seg(t, 1.75, 2.3));
+  city(c, seg(t, 2.2, 2.7));
 
-  // الخيط يتدلّى من نقطة «؟»: الخرزة تسقط مباشرةً تحتها (A تحت النقطة)، والترويسة ترتفع والخيط مشدود بينهما،
-  // ثم يفلت طرفه حين تخرج الترويسة ويلتفّ نازلاً إلى الدبوس (Follow-through)
+  // الخرزة تتدلّى من مكان «؟» بخيطٍ مشدود، الترويسة ترتفع، والخرزة تهبط على A الموضوعة تحتها تماماً
   const aS = P(c, A[0], A[1]);
-  const dot = header(t); if (dot && t < 1.6) { DOT0 = { x: dot.x, y: dot.y }; DOTX = dot.x; }
+  const hb = header(t); if (hb && t < 2.0) { DOT0 = { x: hb.x, y: hb.y }; DOTX = hb.x; }
   const d0 = DOT0 || { x: DOTX, y: QY };
-  if (t >= 1.58 && t < 2.8) {
-    const fall = seg(t, 1.62, 2.18), by = t < 1.62 ? d0.y : lerp(d0.y, aS.y, fall * fall);
-    const bx = d0.x + (aS.x - d0.x) * fall;
-    const top = dot ? dot.y : -40;                                   // طرف الخيط العلوي يتبع الترويسة
-    const free = seg(t, 2.32, 2.62), tipY = lerp(top, by, eOut(free) * 1.04);
-    g.save(); g.lineCap = 'round'; g.strokeStyle = t < 2.0 ? '#fff' : COL.ui; g.lineWidth = 4;
-    if (tipY < by - 2) { g.beginPath(); g.moveTo(dot ? dot.x : bx + 6 * Math.sin(free * 9), tipY); g.lineTo(bx, by); g.stroke(); }
-    const sq = t > 2.18 ? Math.sin(seg(t, 2.18, 2.36) * Math.PI) * 0.38 : 0;   // انضغاطٌ عند الهبوط ثم استقرار
-    g.fillStyle = t < 2.0 ? '#fff' : COL.ui; g.beginPath(); g.ellipse(bx, by + 10 * sq, 11 * (1 + sq), 11 * (1 - sq), 0, 0, 7); g.fill();
+  if (t >= 1.7 && t < 3.75) {
+    const fall = seg(t, 2.25, 3.1), by = lerp(d0.y, aS.y, fall * fall), bx = d0.x;
+    const top = hb ? hb.y : -40, free = seg(t, 2.85, 3.25), tipY = lerp(top, by, eOut(free) * 1.03);
+    const onMap = t > 2.6;
+    g.save(); g.lineCap = 'round'; g.strokeStyle = onMap ? COL.ui : '#fff'; g.lineWidth = 7;
+    if (tipY < by - 4 && t >= 2.25) { g.beginPath(); g.moveTo(bx + (hb ? 0 : 5 * Math.sin(free * 8) * (1 - free)), tipY); g.lineTo(bx, by); g.stroke(); }
+    const sq = t > 3.1 ? Math.sin(seg(t, 3.1, 3.3) * Math.PI) * 0.36 : 0;
+    const r = t < 2.05 && hb ? hb.r : 15;
+    g.fillStyle = onMap ? COL.ui : '#fff'; g.beginPath(); g.ellipse(bx, by + r * sq, r * (1 + sq), r * (1 - sq), 0, 0, 7); g.fill();
+    if (onMap) { g.strokeStyle = '#fff'; g.lineWidth = 3; g.stroke(); }
     g.restore();
   }
-  if (t < 2.6) header(t);
   radar(c, t);
   // الخيط يتفرّع على الشوارع إلى الكابتنين (رأسه يتسارع ثم يتباطأ عند الوصول)
-  const g1 = eOut(seg(t, 3.6, 4.35)) * L1[L1.length - 1], g2 = ease(seg(t, 3.7, 4.55)) * L2[L2.length - 1];
+  const g1 = eOut(seg(t, 4.4, 5.15)) * L1[L1.length - 1], g2 = ease(seg(t, 4.5, 5.35)) * L2[L2.length - 1];
   // بعد الاختيار: خيط الكابتن الثاني يعود إليه، وخيط الأول يُستهلك مع سير الكابتن
-  const ret2 = ease(seg(t, 7.6, 8.25)) * L2[L2.length - 1];
-  const dv = driveS(t), drive = t > 8.2 ? along(DRV, LD, dv) : null;
-  if (t >= 3.6) {
-    if (g2 - ret2 > 1) thread(c, sub(S2, L2, ret2, g2), 4, COL.ui);   // يتراجع من جهة A نحو كابتنه
-    if (t <= 8.2) { if (g1 > 1) thread(c, sub(S1, L1, 0, g1), 4.5, COL.ui); }
+  const ret2 = ease(seg(t, 7.7, 8.35)) * L2[L2.length - 1];
+  const dv = driveS(t), drive = t > 8.35 ? along(DRV, LD, dv) : null;
+  if (t >= 4.4) {
+    if (g2 - ret2 > 1) thread(c, sub(S2, L2, ret2, g2), 6, COL.ui);   // يتراجع من جهة A نحو كابتنه
+    if (t <= 8.35) { if (g1 > 1) thread(c, sub(S1, L1, 0, g1), 6.5, COL.ui); }
     else {   // أمام الكابتن فقط: ما بقي حتى A، ثم المسار إلى العميل يُكشف تدريجياً
-      const lead = LR + eOut(seg(t, 9.0, 10.4)) * (LD[LD.length - 1] - LR) * 0.55;
-      if (lead - dv > 1) thread(c, sub(DRV, LD, dv, lead), 4.5, COL.ui);
+      const lead = LR + eOut(seg(t, 9.1, 10.4)) * (LD[LD.length - 1] - LR) * 0.55;
+      if (lead - dv > 1) thread(c, sub(DRV, LD, dv, lead), 6.5, COL.ui);
     }
   }
-  pin(c, 2.55, t);
+  pin(c, 3.6, t);
+  searchLabel(c, t);
 
   // الكابتنان: يظهران حين يصلهما الخيط
-  const a1 = t >= 4.3 ? captain(c, drive || WD.C1, 4.3, t, '') : null;
-  const a2 = t >= 4.5 ? captain(c, WD.C2, 4.5, t, '', 1 - 0.55 * seg(t, 7.8, 8.3)) : null;
+  const a1 = t >= 5.1 ? captain(c, drive || WD.C1, 5.1, t, '') : null;
+  const a2 = t >= 5.3 ? captain(c, WD.C2, 5.3, t, '', 1 - 0.55 * seg(t, 7.9, 8.4)) : null;
 
-  // حقل السعر الحقيقي: يرتفع من الدبوس، priceBump مرةً واحدة حين يُثبَّت
+  // حقل «سعرك»: بأنماط حقل السعر في التطبيق (index.html#price)، بلا رقم؛ priceBump مرةً واحدة حين يثبت
   let pill = null;
-  if (t >= 2.75 && IM.price) {
-    const p = spring(t - 2.75, 12, 0.85), bump = Math.sin(seg(t, 3.05, 3.4) * Math.PI) * 0.06;
-    const shrink = ease(seg(t, 7.8, 8.25));
-    const w = 330 * (1 + bump) * lerp(1, 0.1, shrink), h = w * IM.price.height / IM.price.width;
-    const x = aS.x - w / 2, y = lerp(aS.y - 20, aS.y + 46 + h / 2, p);
-    const px = lerp(x, aS.x, shrink), py = lerp(y, aS.y - 40, shrink);
+  if (t >= 3.75) {
+    const p = spring(t - 3.75, 12, 0.85), bump = Math.sin(seg(t, 3.95, 4.3) * Math.PI) * 0.06, shrink = ease(seg(t, 7.95, 8.4));
+    const sc = (1 + bump) * lerp(1, 0.1, shrink), w = 470 * sc, h = 96 * sc;
+    const x = aS.x - w / 2, y = lerp(aS.y - 20, aS.y + 60 + h / 2, p), py = lerp(y, aS.y - 40, shrink);
     g.save(); g.globalAlpha = clamp(p * 1.5) * (1 - seg(shrink, 0.7, 1));
-    g.shadowColor = 'rgba(16,36,28,.14)'; g.shadowBlur = 30; g.shadowOffsetY = 12; g.fillStyle = '#fff'; rr(px, py - h / 2, w, h, 14); g.fill(); g.shadowBlur = 0;
-    g.save(); rr(px, py - h / 2, w, h, 14); g.clip(); g.drawImage(IM.price, px, py - h / 2, w, h); g.restore(); g.restore();
-    pill = { x: px + w * 0.3, y: py - h * 0.5 };
+    g.shadowColor = 'rgba(16,36,28,.14)'; g.shadowBlur = 30; g.shadowOffsetY = 12;
+    g.fillStyle = '#198754'; rr(x, py - h / 2, w, h, 16 * sc); g.fill(); g.shadowBlur = 0;
+    g.fillStyle = '#ecfdf3'; rr(x + 92 * sc, py - h / 2 + 8 * sc, w - 184 * sc, h - 16 * sc, 12 * sc); g.fill();
+    g.strokeStyle = '#0b3d2a'; g.lineWidth = 4 * sc; g.stroke();
+    g.fillStyle = '#fff'; g.font = `300 ${54 * sc}px Cairo`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('+', x + 46 * sc, py + 2 * sc); g.fillText('−', x + w - 46 * sc, py + 2 * sc);
+    g.fillStyle = '#04553A'; g.direction = 'rtl'; g.font = `800 ${50 * sc}px Cairo`; g.fillText('سعرك', x + w / 2, py + 4 * sc);
+    g.restore();
+    pill = { x: x + w * 0.3, y: py - h / 2 };
   }
 
   // العروض: تنهض من الكابتن (الأقرب أولاً)، والمرفوض يرتخي ويهبط، والمقبول ينطوي في كابتنه
-  const out2 = t >= 7.45 ? { k: ease(seg(t, 7.55, 8.15)), sag: Math.sin(seg(t, 7.45, 7.75) * Math.PI / 2) * 26 } : null;
-  const out1 = t >= 7.7 ? { k: ease(seg(t, 7.7, 8.2)) } : null;
-  const o2 = a2 ? offer(IM.card2, a2, 5.15, t, -1, out2) : null;
-  const o1 = a1 ? offer(IM.card1, a1, 4.8, t, 1, out1) : null;
+  const out2 = t >= 7.6 ? { k: ease(seg(t, 7.7, 8.3)), sag: Math.sin(seg(t, 7.6, 7.9) * Math.PI / 2) * 26 } : null;
+  const out1 = t >= 7.85 ? { k: ease(seg(t, 7.85, 8.35)) } : null;
+  const o2 = a2 ? offer({ icon: '\uf8ac', vehicle: 'ركشة', price: 'سعره' }, a2, 5.75, t, -1, out2) : null;
+  const o1 = a1 ? offer({ icon: '\uf8ab', vehicle: 'دراجة نارية', price: 'سعرك', pressed: t > 7.5 && t < 7.62 }, a1, 5.4, t, 1, out1) : null;
 
   // خيط السعر: من حقل السعر إلى سعر العرض المطابق (3500)
-  if (pill && o1 && t >= 5.7 && t < 7.75) {
-    const pr = { x: o1.x + o1.w * 0.03, y: o1.y + o1.h * 0.2 };
-    const k = eOut(seg(t, 5.7, 6.3)), a = 1 - seg(t, 7.45, 7.75);
-    g.save(); g.globalAlpha = a; g.strokeStyle = COL.gold; g.lineWidth = 3; g.lineCap = 'round';
+  if (pill && o1 && o1.price && t >= 6.15 && t < 7.9) {
+    const pr = { x: o1.price.x, y: o1.price.y + o1.price.h * 0.6 };
+    const k = eOut(seg(t, 6.15, 6.75)), a = 1 - seg(t, 7.6, 7.9);
+    g.save(); g.globalAlpha = a; g.strokeStyle = COL.gold; g.lineWidth = 5; g.lineCap = 'round';
     const mx = Math.min(pill.x, pr.x) - 90, my = (pill.y + pr.y) / 2 + 30;
     g.beginPath(); for (let i = 0; i <= 40 * k; i++) { const u = i / 40; const x = (1 - u) ** 2 * pill.x + 2 * (1 - u) * u * mx + u * u * pr.x, y = (1 - u) ** 2 * pill.y + 2 * (1 - u) * u * my + u * u * pr.y; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
-    if (k > 0.98) { g.lineWidth = 3; rr(o1.x + o1.w * 0.03, o1.y + o1.h * 0.04, o1.w * 0.22, o1.h * 0.33, 14 * o1.sc); g.stroke(); }
+    if (k > 0.98) { g.lineWidth = 4; rr(o1.price.x - 6, o1.price.y - 6, o1.price.w + 12, o1.price.h + 12, 22); g.stroke(); }
     g.restore();
   }
   // الضغط على «قبول العرض»
-  if (o1) touch(o1.x + o1.w * 0.72, o1.y + o1.h * 0.8, t, 7.35);
+  if (o1) touch(o1.x + o1.w * 0.72, o1.y + o1.h * 0.8, t, 7.5);
 
   // نسبة OpenStreetMap حين تظهر المدينة
-  const att = seg(t, 2.2, 2.6); if (att > 0) { g.save(); g.globalAlpha = att * 0.6; g.font = '15px Arial'; g.fillStyle = COL.ink; g.textAlign = 'left'; g.direction = 'ltr'; g.fillText('Map data © OpenStreetMap contributors', 24, H - 20); g.restore(); }
+  const att = seg(t, 2.6, 3.0); if (att > 0) { g.save(); g.globalAlpha = att * 0.6; g.font = '15px Arial'; g.fillStyle = COL.ink; g.textAlign = 'left'; g.direction = 'ltr'; g.fillText('Map data © OpenStreetMap contributors', 24, H - 20); g.restore(); }
 }
 // marker-motion: انطلاقٌ ناعم، سرعةٌ ثابتة، تمهّلٌ قصير عند الاستلام A (9.3)، ثم يواصل نحو العميل
-function driveS(t) { if (t <= 8.2) return 0; if (t <= 9.3) return LR * ease(seg(t, 8.2, 9.3)); return LR + 260 * eIn(seg(t, 9.3, 9.7)) * 0.4 + 260 * Math.max(0, t - 9.7); }
+function driveS(t) { if (t <= 8.35) return 0; if (t <= 9.35) return LR * ease(seg(t, 8.35, 9.35)); return LR + 260 * eIn(seg(t, 9.35, 9.75)) * 0.4 + 260 * Math.max(0, t - 9.75); }
 
 window.seek = async t => { await draw(clamp(t, 0, DUR - 1e-6)); };
 (async () => {
-  for (const k of ['card1', 'card2', 'price']) IM[k] = await load('../assets/' + k + '.png');
+  IM.logo = await load('../assets/logo-white.png');
   await document.fonts.load('700 112px Cairo'); await document.fonts.load('60px bootstrap-icons'); await document.fonts.ready;
   window.READY = true;
   if (RENDER) { document.getElementById('ui').remove(); return; }
