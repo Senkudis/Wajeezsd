@@ -59,8 +59,8 @@ const COL = { ground: '#E4EAE2', road: '#FFFFFF', roof: '#EEF2EC', green: '#0455
 
 // ── الكاميرا: ميلٌ واحد ثابت، دفعٌ بطيء جداً، ثم تلحق الكابتن قليلاً ──
 const F = 1400;
-const camD = kf([[0, 1040], [8.5, 960], [10, 560, x => ease(x) * 0.85 + eOut(x) * 0.15]]);   // بعد القبول: الكاميرا تقترب من الكابتن والدبوس — الرحلة تبدأ
-const camTX = kf([[0, A[0]], [8.5, A[0]], [10, lerp(A[0], WD.C1[0], 0.45)]]), camTY = kf([[0, A[1] + 30], [8.5, A[1] + 30], [10, lerp(A[1], WD.C1[1], 0.45)]]);
+const camD = kf([[0, 1040], [8.3, 960], [9.0, 840]]);   // بعد القبول: اقترابٌ هادئ قبل أن تنفتح البطاقة الختامية
+const camTX = kf([[0, A[0]], [8.3, A[0]], [9.0, lerp(A[0], WD.C1[0], 0.2)]]), camTY = kf([[0, A[1] + 30], [8.3, A[1] + 30], [9.0, lerp(A[1] + 30, WD.C1[1], 0.2)]]);
 function cam(t) { return { tx: camTX(t), ty: camTY(t), D: camD(t), p: 50 * Math.PI / 180, y: 166 * Math.PI / 180, cx: W / 2 - 60, cy: H / 2 + 210 }; }
 function P(c, x, y, z = 0) {
   const dx = x - c.tx, dy = y - c.ty;
@@ -138,7 +138,7 @@ function priceField(x, y, s, bump = 0, pressPlus = 0) {
   return { x: x - w / 2 + u(118), y: y - h / 2, w: w - u(236), h };
 }
 // بطاقة العرض بأنماط .offer-card: «كابتن» (نص التطبيق حين لا اسم)، صندوق «عرضه»، «قبول العرض» و«رفض»
-const CW = 700, CH = 330;
+const CW = 700, CH = 350;
 function card(x, y, s, d) {
   const w = CW * s, h = CH * s, u = v => v * s;
   g.save(); g.shadowColor = 'rgba(4,85,58,.18)'; g.shadowBlur = u(44); g.shadowOffsetY = u(18);
@@ -151,10 +151,10 @@ function card(x, y, s, d) {
   const bx = x + u(28), by = y + u(30), bw = u(230), bh = u(118);
   g.fillStyle = '#f0fdf4'; rr(bx, by, bw, bh, u(20)); g.fill(); g.strokeStyle = d.gold ? COL.gold : '#bbf7d0'; g.lineWidth = d.gold ? u(5) : u(2); g.stroke();
   txt('عرضه', bx + bw / 2, by + bh / 2 + u(4), u(60), 900, '#16a34a');
-  const kx = x + w - u(28), ky = y + h - u(112), kw = u(380), kh = u(86);
+  const kx = x + w - u(28), ky = y + h - u(124), kw = u(430), kh = u(100);
   g.fillStyle = d.pressed ? COL.green : COL.btn; rr(kx - kw, ky, kw, kh, u(43)); g.fill();
-  txt('قبول العرض', kx - kw / 2 + u(18), ky + kh / 2 + u(3), u(46), 700, '#fff'); glyph('', kx - kw + u(48), ky + kh / 2, u(36), '#fff');
-  txt('رفض', x + u(150), ky + kh / 2 + u(3), u(44), 700, '#dc3545'); glyph('', x + u(226), ky + kh / 2, u(30), '#dc3545');
+  txt('قبول العرض', kx - kw / 2 + u(20), ky + kh / 2 + u(3), u(54), 700, '#fff'); glyph('', kx - kw + u(52), ky + kh / 2, u(42), '#fff');
+  txt('رفض', x + u(130), ky + kh / 2 + u(3), u(52), 700, '#dc3545'); glyph('', x + u(212), ky + kh / 2, u(36), '#dc3545');
   g.restore();
   return { box: { x: bx, y: by, w: bw, h: bh }, accept: { x: kx - kw / 2, y: ky + kh / 2 } };
 }
@@ -218,22 +218,22 @@ async function draw(t) {
   // الخيط إلى أقرب كابتن: يبدأ سريعاً ويتباطأ ويستقر؛ أعرض لحظة وصوله فقط
   const reach = LR * eOut(seg(t, 3.4, 4.1)), dv = driveS(t);
   const thick = 6 + 3 * Math.sin(seg(t, 3.9, 4.6) * Math.PI);
-  if (t >= 3.4 && t < 8.75 && reach > 1) thread(c, sub(S1, L1, 0, reach), thick);
-  if (t >= 8.75) thread(c, sub(S1, L1, 0, LR - dv), 7);
+  if (t >= 3.4 && t < 8.5 && reach > 1) thread(c, sub(S1, L1, 0, reach), thick);
+  if (t >= 8.5) thread(c, sub(S1, L1, 0, LR - dv), 7);
   // العرض الثاني: خيطٌ خافت
-  const r2 = L2[L2.length - 1] * ease(seg(t, 5.2, 5.75)), fade2 = 1 - seg(t, 8.3, 8.7);
+  const r2 = L2[L2.length - 1] * ease(seg(t, 5.2, 5.75)), fade2 = 1 - seg(t, 8.25, 8.55);
   if (t >= 5.2 && fade2 > 0) thread(c, sub(S2, L2, 0, r2), 4, COL.ui, 0.55 * fade2);
 
   pin(pA.x, pA.y, t < 2.15 ? 0 : clamp(eOut5(seg(t, 2.15, 2.5)) * 1.04 - 0.04 * seg(t, 2.4, 2.6)));
   // «سعرك» يبقى مع الطلب تحت الدبوس، ويعود إليه بعد القبول
   let chip = null;
   if (t >= 2.15) {
-    const p = settle(seg(t, 2.15, 2.75)), back = eIn(seg(t, 8.4, 8.85)), bump = Math.sin(seg(t, 7.2, 7.55) * Math.PI) * 0.07;
+    const p = settle(seg(t, 2.15, 2.75)), back = eIn(seg(t, 8.25, 8.55)), bump = Math.sin(seg(t, 7.2, 7.55) * Math.PI) * 0.07;
     const s = lerp(0.2, 0.62, p) * (1 - back);
     if (s > 0.02) { g.save(); g.globalAlpha = 1 - seg(back, 0.6, 1); const r = priceField(pA.x, pA.y + 92, s, bump); g.restore(); chip = { x: r.x + r.w / 2, y: r.y }; }
   }
   // الكابتن الأقرب: Anticipation (ينخفض ثم يرتفع) قبل أن تنهض بطاقته
-  const cpos = t >= 8.75 ? along(S1, L1, LR - dv) : WD.C1, cS = P(c, cpos[0], cpos[1]);
+  const cpos = t >= 8.5 ? along(S1, L1, LR - dv) : WD.C1, cS = P(c, cpos[0], cpos[1]);
   const lift = -6 * Math.sin(seg(t, 4.12, 4.28) * Math.PI) + 10 * Math.sin(seg(t, 4.26, 4.5) * Math.PI);
   const m1 = marker(cS.x, cS.y, clamp(eOut5(seg(t, 3.95, 4.2))), '', lift);
   const c2 = P(c, WD.C2[0], WD.C2[1]);
@@ -249,7 +249,7 @@ async function draw(t) {
   // العرض الأول — البطل: ينهض من كابتنه بوزن ويستقر، ويُقرأ وحده
   let c1 = null;
   if (m1 && t >= 4.3) {
-    const p = settle(seg(t, 4.3, 4.95)), fold = eIn(seg(t, 8.35, 8.75));
+    const p = settle(seg(t, 4.3, 4.95)), fold = eIn(seg(t, 8.25, 8.55));
     const s = lerp(0.1, 1, p) * lerp(1, 0.06, fold), w = CW * s, h = CH * s;
     const tx = Math.min(W - 90 - CW, m1.x - CW * 0.35), ty = m1.y - 64 - CH;
     const x = lerp(m1.x - w / 2, lerp(tx, m1.x - w / 2, fold), p), y = lerp(m1.y - h, lerp(ty, m1.y - h, fold), p);
@@ -268,13 +268,30 @@ async function draw(t) {
     g.stroke(); g.restore();
   }
   // القرار: صمتٌ، الإصبع يصل 7.80، الضغط 8.15
-  if (c1) { const [pr, ring] = pressAt(t, 8.15); finger(c1.accept.x, c1.accept.y, seg(t, 7.75, 7.95) * (1 - seg(t, 8.35, 8.5)), pr, ring); }
+  if (c1) { const [pr, ring] = pressAt(t, 8.15); finger(c1.accept.x, c1.accept.y, seg(t, 7.75, 7.95) * (1 - seg(t, 8.28, 8.4)), pr, ring); }
 
   panel(t);
-  const att = seg(t, 2.4, 2.8); if (att > 0) { g.save(); g.globalAlpha = att * 0.55; g.font = '16px Arial'; g.fillStyle = COL.ink; g.textAlign = 'left'; g.direction = 'ltr'; g.fillText('Map data © OpenStreetMap contributors', 24, H - 20); g.restore(); }
+  endCard(t, pA);
+  const att = seg(t, 2.4, 2.8) * (1 - seg(t, 8.6, 8.8)); if (att > 0) { g.save(); g.globalAlpha = att * 0.55; g.font = '16px Arial'; g.fillStyle = COL.ink; g.textAlign = 'left'; g.direction = 'ltr'; g.fillText('Map data © OpenStreetMap contributors', 24, H - 20); g.restore(); }
+}
+// البطاقة الختامية (8.60–10.0): رأس دبوس الطلب ينفتح دائرةً بأخضر العلامة تملأ الإطار — نقطة الطلب صارت وجيز —
+// ثم الشعار الحقيقي و«اطلب الكابتن الآن» (نص زرّ الإرسال في التطبيق وأيقونته)، وثباتٌ حتى النهاية
+function endCard(t, pA) {
+  if (t < 8.6) return;
+  const ox = pA.x, oy = pA.y - 58, R = Math.hypot(Math.max(ox, W - ox), Math.max(oy, H - oy)) + 20;
+  const open = seg(t, 8.6, 8.95), r = lerp(10, R, open < 0.5 ? 2 * open * open : 1 - Math.pow(-2 * open + 2, 2) / 2);
+  g.save(); g.fillStyle = COL.green; g.beginPath(); g.arc(ox, oy, r, 0, 7); g.fill(); g.restore();
+  const la = eOut(seg(t, 8.9, 9.2)), ca = eOut(seg(t, 9.05, 9.35));
+  if (la > 0 && IM.logo) { const lw = 620, lh = lw * IM.logo.height / IM.logo.width; g.save(); g.globalAlpha = la; g.drawImage(IM.logo, W / 2 - lw / 2, 430 - lh / 2 + (1 - la) * 18, lw, lh); g.restore(); }
+  if (ca > 0) {
+    const bw = 620, bh = 120, bx = W / 2 - bw / 2, by = 650 + (1 - ca) * 16;
+    g.save(); g.globalAlpha = ca; g.fillStyle = '#fff'; rr(bx, by, bw, bh, bh / 2); g.fill();
+    txt('اطلب الكابتن الآن', W / 2 - 24, by + bh / 2 + 4, 54, 800, COL.green); glyph('', W / 2 + 248, by + bh / 2, 44, COL.green);
+    g.restore();
+  }
 }
 // marker-motion: تسارعٌ تدريجي من السكون، ثم سرعةٌ ثابتة — الرحلة لا تكتمل في الـ Preview
-function driveS(t) { if (t <= 8.75) return 0; const u = t - 8.75; return u < 0.9 ? 60 * u * u / 0.9 : 54 + 130 * (u - 0.9); }
+function driveS(t) { if (t <= 8.5) return 0; const u = t - 8.5; return 70 * u * u; }   // marker-motion: يتسارع من السكون، ولا يتوقف أمام الكاميرا
 
 window.seek = async t => { await draw(clamp(t, 0, DUR - 1e-6)); };
 (async () => {
