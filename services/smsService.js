@@ -49,8 +49,8 @@ async function sendSmsOTP(phone, message) {
             recipient: phone,
             // اسم المرسل يجب أن يكون معتمداً في حساب BRQ (Sender ID). من البيئة
             // ليُبدَّل باسمٍ معتمد دون تعديل الكود — رُفض 'Wajeezsd' في 2026-10-14
-            // بـ «Originator ... is not authorized».
-            sender_id: process.env.BRQSMS_SENDER_ID || 'Wajeezsd',
+            // بـ «Originator ... is not authorized»، والمعتمد في الحساب الجديد verify_WZ.
+            sender_id: process.env.BRQSMS_SENDER_ID || 'verify_WZ',
             type: 'plain',
             message: message
         };

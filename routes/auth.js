@@ -1408,30 +1408,15 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         const newOtp = new Otp({ phone, otp: otpCode });
         await newOtp.save();
 
-        // Send via BRQSMS
-        const BRQSMS_TOKEN = process.env.BRQSMS_TOKEN;
-        const payload = {
-            recipient: phone,
-            sender_id: "Wajeezsd",
-            type: "plain",
-            message: `كود التحقق الخاص بتطبيق وجيز هو: ${otpCode}`
-        };
-
+        // 📩 عبر sendSmsOTP لا نداءٍ مباشر: كان هنا sender_id «Wajeezsd» مكتوباً يدوياً
+        //    (يتجاهل BRQSMS_SENDER_ID فيُرفض بعد تغيير الاسم المعتمد)، وكان يعدّ أي
+        //    HTTP 200 نجاحاً مع أن BRQ تُرجع 200 على الرفض أيضاً.
         let smsSent = false;
         try {
-            const response = await axios.post('https://dash.brqsms.com/api/v3/sms/send', payload, {
-                headers: {
-                    'Authorization': `Bearer ${BRQSMS_TOKEN}`,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                timeout: 10000 // 10 sec timeout
-            });
-            logger.info(`📱 [BRQSMS] OTP Sent to ${phone}`, response.data);
+            await sendSmsOTP(phone, `كود التحقق الخاص بتطبيق وجيز هو: ${otpCode}`);
             smsSent = true;
         } catch (smsErr) {
-            // SMS failed — OTP is still in DB, captain can request resend
-            logger.error('⚠️ BRQSMS send failed:', smsErr?.response?.data || smsErr.message);
+            // الكود محفوظ في القاعدة — يستطيع طلب إعادة الإرسال؛ sendSmsOTP سجّل السبب
         }
 
         const emailSent = googleEmail ? !!(await sendEmail.otp(googleEmail, otpCode, 'google')) : false;

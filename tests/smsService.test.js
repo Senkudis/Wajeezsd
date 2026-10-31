@@ -93,3 +93,20 @@ describe('🔗 مسار الإرسال يُعلن الفشل بدل ابتلاع
         expect(src).toMatch(/timeout:\s*\d+/);
     });
 });
+
+describe('📛 اسم المرسل من مصدرٍ واحد', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const auth = fs.readFileSync(path.join(__dirname, '..', 'routes/auth.js'), 'utf8');
+
+    it('لا نداء BRQ مباشر في المسارات — كلها عبر sendSmsOTP', () => {
+        // كان /send-otp يكتب sender_id «Wajeezsd» يدوياً فيتجاهل BRQSMS_SENDER_ID ويُرفض
+        expect(auth).not.toContain('dash.brqsms.com');
+        expect(auth).not.toMatch(/sender_id\s*:/);
+    });
+
+    it('الافتراضي هو الاسم المعتمد في الحساب الجديد', () => {
+        const src = fs.readFileSync(path.join(__dirname, '..', 'services/smsService.js'), 'utf8');
+        expect(src).toContain("process.env.BRQSMS_SENDER_ID || 'verify_WZ'");
+    });
+});
