@@ -303,10 +303,44 @@ router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_fin
                 newBalance:  a.newBalance,
             }));
 
-        // ── 3. Merge, sort by date desc, take top 100 ──
-        const all = [...orderEntries, ...debtEntries]
-            .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .slice(0, 100);
+        // ── 3. Approved captain payments (they zero or reduce debt too) ──
+        const PaymentRequest = require('../../models/PaymentRequest');
+        const payMatch = { status: 'approved' };
+        if (fromDate || toDate) {
+            payMatch.reviewedAt = {};
+            if (fromDate) payMatch.reviewedAt.$gte = fromDate;
+            if (toDate)   payMatch.reviewedAt.$lte = toDate;
+        }
+        const payments = await PaymentRequest.find(payMatch)
+            .populate('captainId', 'name phone city')
+            .populate('reviewedBy', 'name')
+            .sort({ reviewedAt: -1 })
+            .limit(200)
+            .lean();
+        const paymentEntries = payments
+            .filter(p => !cityFilter || (p.captainId?.city === cityFilter))
+            .filter(p => inScope(p.captainId?.city || 'Khartoum'))
+            .map(p => {
+                // طلبات ما قبل حفظ الأثر: المبلغ المعتمد إن عُدّل، وإلا المحوَّل
+                const amount = p.appliedAmount ?? p.deductedAmount ?? p.amount ?? 0;
+                return {
+                    type:    p.balanceAfter === 0 ? 'payment_zero' : 'payment',
+                    date:    p.reviewedAt || p.updatedAt,
+                    city:    p.captainId?.city || 'Khartoum',
+                    amount,
+                    captain: p.captainId ? { name: p.captainId.name, phone: p.captainId.phone } : { name: '—' },
+                    admin:   p.reviewedBy?.name || '—',
+                    note:    `سداد كابتن${p.transactionId ? ' — رقم العملية ' + p.transactionId : ''}`,
+                    prevBalance: p.balanceBefore,
+                    newBalance:  p.balanceAfter,
+                };
+            });
+
+        // ── 4. Merge, sort by date desc ──
+        // ⚠️ كان القصّ على 100 بعد الدمج: مئة عمولة بعد تصفيرٍ ما تُخرجه من الكشف كأنه
+        //    لم يحدث. كل مصدر محدود بـ 200 أصلاً، فالدمج يُعاد كاملاً.
+        const all = [...orderEntries, ...debtEntries, ...paymentEntries]
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
 
         res.json({ total: all.length, entries: all });
     } catch (error) {
@@ -444,13 +478,15 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         // 💸 الزيادة عن الدين لا رصيد موجب لها في النظام (الحد الأعلى صفر) —
         //    كانت تضيع بلا أثر. تُسجَّل على الطلب ليراها الأدمن والكابتن وتُردّ يدوياً.
         const unappliedExcess = Math.max(0, Math.round((requestedAmount - actualDeduction) * 100) / 100);
+        // 📒 أثر السداد على الطلب نفسه — منه يُبنى كشف الحساب. كان التصفير والخصم
+        //    بالسداد لا يتركان أي أثر في السجل المالي ولا في سجل النشاط.
+        const effect = { appliedAmount: actualDeduction, balanceBefore: oldBalance, balanceAfter: newBalance };
         if (unappliedExcess > 0) {
             const prevNote = claimed.adminNote ? claimed.adminNote + ' — ' : '';
-            await PaymentRequest.updateOne(
-                { _id: payReq._id },
-                { $set: { adminNote: `${prevNote}مبلغ زائد عن الدين لم يُحتسب: ${unappliedExcess} ج.س (يُردّ للكابتن)` } }
-            ).catch(e => logger.warn({ err: e.message }, 'overpayment note failed'));
+            effect.adminNote = `${prevNote}مبلغ زائد عن الدين لم يُحتسب: ${unappliedExcess} ج.س (يُردّ للكابتن)`;
         }
+        await PaymentRequest.updateOne({ _id: payReq._id }, { $set: effect })
+            .catch(e => logger.warn({ err: e.message }, 'payment effect record failed'));
 
         // Update the captain object for the remaining logic
         captain = await User.findById(payReq.captainId);
@@ -485,6 +521,10 @@ router.put('/payment-requests/:id/approve', protect, requirePermission('manage_f
         });
 
         logger.info(`✅ PaymentRequest ${payReq._id} APPROVED | Captain balance: ${prevBalance} → ${captain.wallet_balance} | Deducted: ${actualDeduction} | Blocked: ${captain.is_blocked}`);
+        await logAdminAction(req, 'approve_payment',
+            `موافقة على سداد ${actualDeduction} ج.س${newBalance === 0 ? ' (صُفّرت المديونية)' : ''} — الكابتن: ${captain.name}`,
+            captain._id, captain.name,
+            { paymentRequestId: payReq._id, previousBalance: oldBalance, newBalance, appliedAmount: actualDeduction, unappliedExcess });
 
         res.json({
             message: 'تمت الموافقة على السداد بنجاح',
@@ -531,6 +571,10 @@ router.put('/payment-requests/:id/reject', protect, requirePermission('manage_fi
             type: 'payment_rejected',   // 🧭 يفتح محفظة الكابتن
             relatedId: payReq._id
         });
+
+        await logAdminAction(req, 'reject_payment',
+            `رفض سداد ${payReq.amount} ج.س — الكابتن: ${payReq.captainId.name || '—'}`,
+            payReq.captainId._id, payReq.captainId.name || '', { paymentRequestId: payReq._id, reason: payReq.adminNote });
 
         res.json({ message: 'تم رفض الطلب وإشعار الكابتن' });
     } catch (error) {

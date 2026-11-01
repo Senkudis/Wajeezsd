@@ -1862,6 +1862,8 @@ async function loadLedger() {
         debt_add:     { label: 'إضافة دين',    cls: 'rejected', icon: 'minus-circle', color: 'var(--danger)' },
         debt_zero:    { label: 'تصفير دين',    cls: 'pending',  icon: 'times-circle', color: 'var(--warning)' },
         debt_partial: { label: 'خصم جزئي',    cls: 'pending',  icon: 'minus-circle', color: 'var(--warning)' },
+        payment:      { label: 'سداد كابتن',   cls: 'approved', icon: 'money-bill-wave', color: 'var(--success)' },
+        payment_zero: { label: 'سداد وتصفير',  cls: 'approved', icon: 'check-circle', color: 'var(--success)' },
     };
 
     try {

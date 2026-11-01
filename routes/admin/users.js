@@ -1061,6 +1061,7 @@ router.put('/users/:id', protect, requireAnyPermission(['manage_captains', 'mana
         }
 
         // 💳 Financial fields — للمسؤول الرئيسي فقط
+        const balanceBefore = user.wallet_balance ?? 0;
         if (!isSubAdmin) {
             if (wallet !== undefined) user.wallet = wallet;
             if (req.body.wallet_balance !== undefined) {
@@ -1089,6 +1090,25 @@ router.put('/users/:id', protect, requireAnyPermission(['manage_captains', 'mana
         }
 
         await user.save();
+
+        // 📒 تغيير الرصيد من صفحة المستخدم كان يُحفظ بلا أي أثر — لا في سجل
+        //    المديونية ولا في كشف الحساب ولا في سجل النشاط. يُسجَّل الآن كتعديل الإدارة.
+        const balanceAfter = user.wallet_balance ?? 0;
+        if (user.role === 'captain' && balanceAfter !== balanceBefore) {
+            const mode = balanceAfter < balanceBefore ? 'add' : (balanceAfter >= 0 ? 'zero' : 'partial');
+            const amount = Math.abs(balanceAfter - balanceBefore);
+            const note = 'تعديل الرصيد يدوياً من صفحة المستخدم';
+            try {
+                await require('../../models/DebtAdjustment').create({
+                    captain: user._id, admin: req.user._id, mode, amount,
+                    previousBalance: balanceBefore, newBalance: balanceAfter, note
+                });
+            } catch (e) { logger.warn({ err: e.message }, 'DebtAdjustment (user edit) failed'); }
+            const { logAdminAction } = require('../../utils/adminLogger');
+            await logAdminAction(req, mode === 'add' ? 'debt_add' : mode === 'zero' ? 'debt_zero' : 'debt_partial',
+                `${note}: ${balanceBefore} ← ${balanceAfter} ج.س — الكابتن: ${user.name}`,
+                user._id, user.name, { previousBalance: balanceBefore, newBalance: balanceAfter, adjustedAmount: amount });
+        }
 
         if (beforeIdentity) {
             const { historyEntries, withHistory } = require('../../utils/docHistory');

@@ -771,7 +771,7 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
             PaymentRequest.find(payQuery)
                 .sort({ createdAt: -1 })
                 .limit(need)
-                .select('amount transactionId adminNote createdAt')
+                .select('amount transactionId adminNote createdAt reviewedAt appliedAmount deductedAmount balanceAfter')
                 .lean(),
             // ── 3. طلبات التوصيل المكتملة (عمولة مخصومة) ────────────────────
             Order.find(delQuery)
@@ -807,10 +807,12 @@ router.get('/wallet/transactions', protect, captainOnly, async (req, res) => {
             ...payments.map(p => ({
                 _id:    p._id,
                 type:   'payment_approved',
-                label:  'دفعة مقبولة',
-                amount: p.amount,
+                label:  p.balanceAfter === 0 ? 'دفعة مقبولة — صُفّر الدين' : 'دفعة مقبولة',
+                // المخصوم فعلاً من الدين (قد يقلّ عن المحوَّل)، وبتاريخ الموافقة لا الإرسال
+                amount: p.appliedAmount ?? p.deductedAmount ?? p.amount,
+                ...(p.balanceAfter != null ? { balance: p.balanceAfter } : {}),
                 note:   `رقم الإشعار: ${p.transactionId}${p.adminNote ? ' — ' + p.adminNote : ''}`,
-                date:   p.createdAt
+                date:   p.reviewedAt || p.createdAt
             })),
             ...deliveries.map(d => ({
                 _id:    d._id,

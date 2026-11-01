@@ -47,7 +47,16 @@ const PaymentRequestSchema = new mongoose.Schema(
         reviewedAt: {
             type: Date,
             default: null
-        }
+        },
+
+        // 💳 أثر الموافقة على الرصيد — لكشف الحساب المالي.
+        //    deductedAmount كان يُكتب عند تعديل الأدمن للمبلغ ولا يُحفظ: لم يكن في
+        //    المخطّط، فيُسقطه Mongoose بصمت. appliedAmount = ما خُصم من الدين فعلاً
+        //    (قد يقلّ عن المحوَّل إن زاد عن الدين).
+        deductedAmount: { type: Number, default: null },
+        appliedAmount: { type: Number, default: null },
+        balanceBefore: { type: Number, default: null },
+        balanceAfter: { type: Number, default: null }
     },
     { timestamps: true }
 );
