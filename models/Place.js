@@ -64,7 +64,7 @@ const PlaceSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-// Virtual: compute is_open from workingHours (Sudan timezone UTC+3)
+// Virtual: compute is_open from workingHours (Sudan timezone UTC+2 — utils/sudanTime)
 PlaceSchema.virtual('is_open').get(function () {
     // Safety: if workingHours not loaded (partial populate), return true as default
     if (!this.workingHours) return true;
@@ -72,7 +72,8 @@ PlaceSchema.virtual('is_open').get(function () {
     if (this.isOpenOverride !== null && this.isOpenOverride !== undefined) {
         return this.isOpenOverride;
     }
-    const now = new Date(Date.now() + 3 * 60 * 60 * 1000); // UTC+3
+    // UTC+2: كانت +3 فيظهر المتجر «مفتوحاً» قبل موعده بساعة ويُغلق قبله بساعة
+    const now = new Date(Date.now() + require('../utils/sudanTime').OFFSET_MS);
     const day = now.getUTCDay();
     const hour = now.getUTCHours();
     const minute = now.getUTCMinutes();

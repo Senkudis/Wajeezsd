@@ -43,9 +43,9 @@ const DailyStatSchema = new mongoose.Schema({
 DailyStatSchema.index({ day: 1, city: 1 }, { unique: true });
 DailyStatSchema.index({ day: -1 });
 
-/** يوم السودان (UTC+3) — حتى لا ينقسم مساء اليوم على يومين */
+/** يوم السودان (UTC+2) — حتى لا ينقسم مساء اليوم على يومين */
 DailyStatSchema.statics.today = function () {
-    return new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    return require('../utils/sudanTime').sudanDayKey();   // UTC+2 — كان +3 فيبدأ اليوم 11 مساءً
 };
 
 module.exports = mongoose.model('DailyStat', DailyStatSchema);

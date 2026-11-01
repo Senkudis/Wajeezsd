@@ -323,8 +323,8 @@ router.get('/errand-stats', protect, requirePermission('view_stats'), async (req
 
         const city = statsCityFor(req, CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum');
         const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 90);
-        const since = new Date(Date.now() + 3 * 60 * 60 * 1000 - days * 86400000)
-            .toISOString().slice(0, 10);
+        const { sudanDayKey, DAY_MS } = require('../utils/sudanTime');
+        const since = sudanDayKey(new Date(Date.now() - days * DAY_MS));
 
         const [daily, topQueries, failedQueries, learnedCount, topPlaces, leadsClosed] = await Promise.all([
             PlaceSearchStat.find({ city, day: { $gte: since } }).sort({ day: 1 }).lean(),

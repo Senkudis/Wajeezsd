@@ -64,16 +64,12 @@ function requirePro(req, res, next) {
 }
 
 // ──────────────────────────────────────────────
-// Helper: نطاق الفترة الزمنية (توقيت السودان UTC+3)
+// Helper: نطاق الفترة الزمنية (توقيت السودان UTC+2 — utils/sudanTime)
 // ──────────────────────────────────────────────
 function getPeriodRange(period, fromStr, toStr) {
-    const SUDAN_OFFSET = 3 * 60 * 60 * 1000;
     const now = new Date();
-    const sudanNow = new Date(now.getTime() + SUDAN_OFFSET);
-    // بداية اليوم بتوقيت السودان → نعيدها لـ UTC
-    const startOfToday = new Date(Date.UTC(
-        sudanNow.getUTCFullYear(), sudanNow.getUTCMonth(), sudanNow.getUTCDate()
-    ) - SUDAN_OFFSET);
+    // بداية اليوم بتوقيت السودان. كانت +3 فيبدأ «اليوم» الساعة 11 مساءً من الليلة السابقة
+    const startOfToday = require('../utils/sudanTime').startOfSudanDay(now);
 
     let from, to = now;
     switch (period) {
@@ -194,7 +190,7 @@ router.get('/reports/sales-series', protect, merchantOnly, loadPlace, requirePro
     try {
         const period = ['week', 'month'].includes(req.query.period) ? req.query.period : 'week';
         const { from, to } = getPeriodRange(period);
-        const dateFmt = { format: '%Y-%m-%d', timezone: '+03:00' };
+        const dateFmt = { format: '%Y-%m-%d', timezone: require('../utils/sudanTime').TZ };
 
         const appSeries = await ShopOrder.aggregate([
             { $match: { place: req.place._id, status: 'delivered', deliveredAt: { $gte: from, $lt: to } } },
@@ -228,9 +224,9 @@ router.get('/reports/sales-series', protect, merchantOnly, loadPlace, requirePro
             byDay[r._id].orders += r.orders;
         }
         const series = [];
-        const SUDAN_OFFSET = 3 * 60 * 60 * 1000;
+        const { sudanDayKey } = require('../utils/sudanTime');
         for (let t = from.getTime(); t < to.getTime(); t += 24 * 60 * 60 * 1000) {
-            const key = new Date(t + SUDAN_OFFSET).toISOString().slice(0, 10);
+            const key = sudanDayKey(new Date(t));
             const d = byDay[key] || { revenue: 0, cogs: 0, orders: 0 };
             series.push({ date: key, revenue: d.revenue, profit: d.revenue - d.cogs, orders: d.orders });
         }

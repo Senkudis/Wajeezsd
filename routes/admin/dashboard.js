@@ -226,14 +226,20 @@ router.get('/scoped-stats', protect, requirePermission('view_stats'), async (req
         const RANGES = { day: 1, week: 7, month: 30 };
         const rangeKey = RANGES[req.query.range] ? req.query.range : 'week';
         const days = RANGES[rangeKey];
+        const { TZ, DAY_MS, startOfSudanDay, sudanDayKeys } = require('../../utils/sudanTime');
 
         const cityFilter = getAdminCityFilter(req);
-        const since = new Date(Date.now() - days * 86400000);
-        // الفترة السابقة بنفس الطول — بلا مقارنةٍ الرقمُ وحده لا يقول شيئاً
-        const prevSince = new Date(Date.now() - days * 2 * 86400000);
+        // 🕑 أيامٌ تقويمية بتوقيت السودان: «اليوم» من منتصف الليل، و«الأسبوع» اليوم
+        //    وستة قبله. كانت آخر 24 ساعة (فيظهر لليوم رقمٌ قبل أن يبدأ) وآخر 7×24.
+        const now = new Date();
+        const since = new Date(startOfSudanDay(now).getTime() - (days - 1) * DAY_MS);
+        // المقارنة بالمدة نفسها المنقضية: اليوم حتى الآن ← أمس حتى الساعة نفسها.
+        // مقارنة يومٍ لم يكتمل بيومٍ كامل كانت تُظهر هبوطاً كل صباح.
+        const prevSince = new Date(since.getTime() - days * DAY_MS);
+        const prevUntil = new Date(now.getTime() - days * DAY_MS);
 
-        const base = { ...cityFilter, createdAt: { $gte: since } };
-        const prev = { ...cityFilter, createdAt: { $gte: prevSince, $lt: since } };
+        const base = { ...cityFilter, createdAt: { $gte: since, $lte: now } };
+        const prev = { ...cityFilter, createdAt: { $gte: prevSince, $lt: prevUntil } };
         const canSeeMoney = !isSubAdmin(req)
             || (req.user.permissions || []).includes('view_finance');
 
@@ -246,7 +252,7 @@ router.get('/scoped-stats', protect, requirePermission('view_stats'), async (req
             Order.aggregate([
                 { $match: base },
                 { $group: {
-                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: TZ } },
                     orders:    { $sum: 1 },
                     delivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
                     cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } },
@@ -294,10 +300,20 @@ router.get('/scoped-stats', protect, requirePermission('view_stats'), async (req
         const total = Object.values(statusCounts).reduce((a, b) => a + b, 0);
         const delivered = statusCounts.delivered || 0;
         const cancelled = statusCounts.cancelled || 0;
+        // النسب من الطلبات المنتهية: الجارية لم تُحسم بعد، وقسمتها معها كانت تُظهر
+        // إتماماً منخفضاً لكل يومٍ لم ينتهِ
+        const finished = delivered + cancelled;
+        // سلسلة بلا فجوات: يومٌ بلا طلبات صفرٌ ظاهر، لا يومٌ يختفي من الرسم
+        const dayMap = new Map(byDay.map(r => [r._id, r]));
+        const byDayFull = sudanDayKeys(since, now).map(k =>
+            dayMap.get(k) || { _id: k, orders: 0, delivered: 0, cancelled: 0, revenue: 0 });
 
         res.json({
             range: rangeKey,
             days,
+            from: since,
+            to: now,
+            timezone: TZ,
             cities: cityFilter.city
                 ? (typeof cityFilter.city === 'string' ? [cityFilter.city] : cityFilter.city.$in)
                 : CITY_KEYS,
@@ -307,8 +323,9 @@ router.get('/scoped-stats', protect, requirePermission('view_stats'), async (req
                 cancelled,
                 previousOrders: prevTotal,
                 // النسبة أصدق من الفرق المطلق حين تختلف أحجام المدن
-                deliveryRate: total ? +(delivered / total * 100).toFixed(1) : 0,
-                cancelRate:   total ? +(cancelled / total * 100).toFixed(1) : 0,
+                deliveryRate: finished ? +(delivered / finished * 100).toFixed(1) : 0,
+                cancelRate:   finished ? +(cancelled / finished * 100).toFixed(1) : 0,
+                active: total - finished,
                 newCaptains,
                 avgAcceptMinutes: avgAccept[0] ? +avgAccept[0].avg.toFixed(1) : null,
                 acceptSampleSize: avgAccept[0] ? avgAccept[0].n : 0
@@ -319,7 +336,7 @@ router.get('/scoped-stats', protect, requirePermission('view_stats'), async (req
                 ? { gross: (money[0] && money[0].gross) || 0, fees: (money[0] && money[0].fees) || 0 }
                 : null,
             statusCounts,
-            byDay,
+            byDay: byDayFull,
             byCity,
             topCaptains,
             cancelReasons

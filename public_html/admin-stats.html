@@ -168,8 +168,8 @@
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div class="range-tabs" id="rangeTabs">
                             <button class="range-tab" data-range="day">اليوم</button>
-                            <button class="range-tab active" data-range="week">الأسبوع</button>
-                            <button class="range-tab" data-range="month">الشهر</button>
+                            <button class="range-tab active" data-range="week">آخر 7 أيام</button>
+                            <button class="range-tab" data-range="month">آخر 30 يوماً</button>
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap" id="cityChips"></div>
                         <button class="admin-export-btn" onclick="exportStats()">
@@ -281,14 +281,14 @@
          * الرقم وحده لا يقول شيئاً: «١٤٠ طلباً» جيّدةٌ أم سيّئة؟ الجواب في
          * الفترة التي قبلها بنفس الطول — وهي ما يُرسله الخادم.
          */
-        function deltaHtml(now, before) {
+        function deltaHtml(now, before, vsWord = 'عن الفترة السابقة') {
             if (!before) return '<div class="kpi-delta flat">لا مقارنة — لا بيانات قبلها</div>';
             const pct = ((now - before) / before) * 100;
-            if (Math.abs(pct) < 0.5) return '<div class="kpi-delta flat">كما الفترة السابقة</div>';
+            if (Math.abs(pct) < 0.5) return `<div class="kpi-delta flat">مثل ${esc(vsWord.replace(/^مقارنةً ب/, ''))}</div>`;
             const up = pct > 0;
             return `<div class="kpi-delta ${up ? 'up' : 'down'}">
                 <i class="fas fa-arrow-${up ? 'up' : 'down'}" aria-hidden="true"></i>
-                ${Math.abs(pct).toFixed(1)}% عن الفترة السابقة</div>`;
+                ${Math.abs(pct).toFixed(1)}% ${esc(vsWord)}</div>`;
         }
 
         function kpi(label, value, accent, sub, delta) {
@@ -302,11 +302,13 @@
 
         function renderKpis(d) {
             const t = d.totals;
-            const rangeWord = { day: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر' }[d.range];
+            const rangeWord = { day: 'اليوم منذ 12 منتصف الليل', week: 'آخر 7 أيام', month: 'آخر 30 يوماً' }[d.range];
+            const vsWord = d.range === 'day' ? 'مقارنةً بأمس حتى الساعة نفسها' : 'مقارنةً بالفترة السابقة';
             let html = '';
-            html += kpi('إجمالي الطلبات', n(t.orders), '#0a8754', rangeWord, deltaHtml(t.orders, t.previousOrders));
-            html += kpi('مكتملة', n(t.delivered), '#16a34a', `نسبة الإتمام ${t.deliveryRate}%`);
-            html += kpi('ملغاة', n(t.cancelled), '#ef4444', `نسبة الإلغاء ${t.cancelRate}%`);
+            html += kpi('إجمالي الطلبات', n(t.orders), '#0a8754',
+                rangeWord + (t.active ? ` · ${n(t.active)} جارٍ` : ''), deltaHtml(t.orders, t.previousOrders, vsWord));
+            html += kpi('مكتملة', n(t.delivered), '#16a34a', `نسبة الإتمام ${t.deliveryRate}% من المنتهية`);
+            html += kpi('ملغاة', n(t.cancelled), '#ef4444', `نسبة الإلغاء ${t.cancelRate}% من المنتهية`);
             html += kpi('متوسط زمن القبول',
                 t.avgAcceptMinutes == null ? '—' : t.avgAcceptMinutes + ' <span style="font-size:14px">د</span>',
                 '#3b82f6',

@@ -403,8 +403,8 @@ router.get('/analytics', protect, superAdminOnly, async (req, res) => {
 
         // الحدّ الأعلى تسعون يوماً: نطاقٌ أوسع يقرأ وثائق كثيرة بلا فائدة
         const days = Math.max(1, Math.min(90, Number(req.query.days) || 30));
-        const from = new Date(Date.now() + 3 * 3600000 - (days - 1) * 86400000)
-            .toISOString().slice(0, 10);
+        const { sudanDayKey, DAY_MS } = require('../../utils/sudanTime');
+        const from = sudanDayKey(new Date(Date.now() - (days - 1) * DAY_MS));
 
         const filter = { day: { $gte: from } };
         if (req.query.city) filter.city = analytics.normalizeCity(req.query.city);
