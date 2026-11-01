@@ -350,6 +350,85 @@ router.get('/ledger', protect, requireAnyPermission(['view_finance', 'manage_fin
 });
 
 // =========================================================
+// 💵 سجل إيداعات الكباتن — كل سدادٍ قُبل (أو رُفض) بمبلغه وأثره ومن راجعه
+// @route   GET /api/admin/deposits
+// query: ?from=YYYY-MM-DD&to=YYYY-MM-DD&city=&captainId=&status=approved|rejected|pending|all
+// طلبات السداد صندوق مراجعة؛ هذا سجلٌّ للفترة: المجاميع، والرصيد قبل وبعد، والمراجِع.
+// =========================================================
+router.get('/deposits', protect, requireAnyPermission(['view_finance', 'manage_finance']), async (req, res) => {
+    try {
+        const PaymentRequest = require('../../models/PaymentRequest');
+        const status = ['approved', 'rejected', 'pending'].includes(req.query.status) ? req.query.status
+            : req.query.status === 'all' ? null : 'approved';
+
+        const match = status ? { status } : {};
+        // التاريخ: الموافقة/الرفض للمراجَع، والإرسال للمعلّق
+        const dateField = status === 'pending' || !status ? 'createdAt' : 'reviewedAt';
+        const fromDate = req.query.from ? new Date(req.query.from) : null;
+        const toDate   = req.query.to   ? new Date(req.query.to + 'T23:59:59.999Z') : null;
+        if (fromDate || toDate) {
+            match[dateField] = {};
+            if (fromDate) match[dateField].$gte = fromDate;
+            if (toDate)   match[dateField].$lte = toDate;
+        }
+
+        // 🌍 المدينة: من مدينة الكابتن — والأدمن المساعد مقيّدٌ بمدنه
+        const VALID = CITY_KEYS;
+        const city = VALID.includes(req.query.city) ? req.query.city : null;
+        const scoped = await scopedUserIds(req, { role: 'captain' });
+        let captainIds = scoped;
+        if (city) {
+            const inCity = await User.find({ role: 'captain', city }).distinct('_id');
+            captainIds = scoped ? inCity.filter(id => scoped.some(s => String(s) === String(id))) : inCity;
+        }
+        if (req.query.captainId && mongoose.Types.ObjectId.isValid(req.query.captainId)) {
+            const one = new mongoose.Types.ObjectId(req.query.captainId);
+            captainIds = captainIds ? captainIds.filter(id => String(id) === String(one)) : [one];
+        }
+        if (captainIds) match.captainId = { $in: captainIds };
+
+        const rows = await PaymentRequest.find(match)
+            .populate('captainId', 'name phone city wallet_balance')
+            .populate('reviewedBy', 'name')
+            .sort({ [dateField]: -1 })
+            .limit(500)
+            .lean();
+
+        const entries = rows.map(p => ({
+            _id: p._id,
+            status: p.status,
+            date: p[dateField] || p.createdAt,
+            submittedAt: p.createdAt,
+            captain: p.captainId ? { _id: p.captainId._id, name: p.captainId.name, phone: p.captainId.phone, city: p.captainId.city } : null,
+            amount: p.amount,
+            // المخصوم فعلاً من الدين — للطلبات القديمة: المعدَّل إن وُجد وإلا المحوَّل
+            applied: p.status === 'approved' ? (p.appliedAmount ?? p.deductedAmount ?? p.amount) : 0,
+            balanceBefore: p.balanceBefore,
+            balanceAfter: p.balanceAfter,
+            transactionId: p.transactionId,
+            receiptImage: p.receiptImage,
+            reviewedBy: p.reviewedBy?.name || null,
+            adminNote: p.adminNote || ''
+        }));
+
+        const approved = entries.filter(e => e.status === 'approved');
+        res.json({
+            entries,
+            summary: {
+                count: entries.length,
+                totalTransferred: approved.reduce((s, e) => s + (Number(e.amount) || 0), 0),
+                totalApplied: approved.reduce((s, e) => s + (Number(e.applied) || 0), 0),
+                captains: new Set(entries.map(e => e.captain && String(e.captain._id)).filter(Boolean)).size,
+                zeroed: approved.filter(e => e.balanceAfter === 0).length
+            }
+        });
+    } catch (error) {
+        logger.error({ err: error }, 'Deposits Log Error');
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// =========================================================
 // ⚙️ الجزء الخامس: الإعدادات (Settings)
 // =========================================================
 

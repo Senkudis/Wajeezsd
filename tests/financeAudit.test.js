@@ -63,3 +63,23 @@ describe('تعديل الرصيد من صفحة المستخدم', () => {
         expect(users).toMatch(/balanceAfter !== balanceBefore/);
     });
 });
+
+describe('💵 سجل إيداعات الكباتن', () => {
+    const finance = read('routes', 'admin', 'finance.js');
+    const route = finance.slice(finance.indexOf("router.get('/deposits'"), finance.indexOf('// ⚙️ الجزء الخامس'));
+
+    it('مسارٌ محميّ بصلاحية المالية، ومقيّد بمدن الأدمن المساعد', () => {
+        expect(route).toContain("requireAnyPermission(['view_finance', 'manage_finance'])");
+        expect(route).toContain('scopedUserIds(req');
+    });
+
+    it('يعيد المخصوم فعلاً والرصيد قبل وبعد ومن راجع', () => {
+        for (const k of ['applied:', 'balanceBefore:', 'balanceAfter:', 'reviewedBy:', 'totalApplied:']) expect(route).toContain(k);
+    });
+
+    it('للصفحة تبويبٌ يقرؤه', () => {
+        const ui = read('public_html', 'admin-finance.html');
+        expect(ui).toContain("switchTab('deposits', this)");
+        expect(ui).toContain('/api/admin/deposits?');
+    });
+});
