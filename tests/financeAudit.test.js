@@ -77,9 +77,10 @@ describe('💵 سجل إيداعات الكباتن', () => {
         for (const k of ['applied:', 'balanceBefore:', 'balanceAfter:', 'reviewedBy:', 'totalApplied:']) expect(route).toContain(k);
     });
 
-    it('للصفحة تبويبٌ يقرؤه', () => {
-        const ui = read('public_html', 'admin-finance.html');
-        expect(ui).toContain("switchTab('deposits', this)");
+    it('يُعرض داخل سجل المديونيات (عرضٌ ثانٍ)، لا تبويباً في المالية', () => {
+        const ui = read('public_html', 'admin-debt-history.html');
+        expect(ui).toContain("setView('deposits')");
         expect(ui).toContain('/api/admin/deposits?');
+        expect(read('public_html', 'admin-finance.html')).not.toContain('/api/admin/deposits');
     });
 });

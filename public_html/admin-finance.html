@@ -212,9 +212,6 @@
         .section-card-header h2 { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 10px; margin: 0; color: var(--text); }
         .section-card-header h2 i { color: var(--primary); }
         .section-card-body { padding: 24px; }
-        .dep-kpi { background: var(--bg); border: 1px solid var(--border, rgba(0,0,0,.06)); border-radius: 14px; padding: 14px 16px; }
-        .dep-kpi .lbl { font-size: 12px; color: var(--muted); font-weight: 700; }
-        .dep-kpi .val { font-size: 20px; font-weight: 900; color: var(--text); margin-top: 4px; }
 
         /* ────────── SEARCH & FILTER CONTROLS ────────── */
         .search-box {
@@ -584,9 +581,6 @@
         <button class="tab-btn" onclick="switchTab('ledger', this)">
             <i class="fas fa-book" aria-hidden="true"></i> كشف الحساب المالي
         </button>
-        <button class="tab-btn" onclick="switchTab('deposits', this)">
-            <i class="fas fa-piggy-bank" aria-hidden="true"></i> سجل الإيداعات
-        </button>
         <!-- التسعيرة والعمولة والحساب البنكي: حفظها للإداري الأكبر وحده (PUT /settings superAdminOnly) -->
         <button class="tab-btn" data-super-only onclick="switchTab('settings', this)">
             <i class="fas fa-sliders-h" aria-hidden="true"></i> التسعيرة وإعدادات النظام
@@ -824,69 +818,6 @@
     </div>
 
     <!-- ========================================================= -->
-    <!-- TAB: CAPTAIN DEPOSITS LOG — كل سدادٍ قُبل بمبلغه وأثره ومن راجعه -->
-    <!-- ========================================================= -->
-    <div id="tab-deposits" class="tab-content">
-        <div class="section-card">
-            <div class="section-card-header">
-                <h2><i class="fas fa-piggy-bank" aria-hidden="true"></i> سجل إيداعات الكباتن</h2>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                    <div class="search-box">
-                        <i class="fas fa-search" aria-hidden="true"></i>
-                        <input type="text" id="depSearch" placeholder="بحث باسم الكابتن أو الهاتف أو رقم العملية..." oninput="renderDeposits()">
-                    </div>
-                    <select id="depStatus" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadDeposits()" aria-label="حالة الإيداع">
-                        <option value="approved">المقبولة</option>
-                        <option value="rejected">المرفوضة</option>
-                        <option value="pending">المعلّقة</option>
-                        <option value="all">الكل</option>
-                    </select>
-                    <select id="depCity" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadDeposits()" aria-label="المدينة">
-                        <option value="">كل المدن</option>
-                    </select>
-                    <input type="date" id="depFrom" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadDeposits()" aria-label="من تاريخ">
-                    <input type="date" id="depTo" class="field-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadDeposits()" aria-label="إلى تاريخ">
-                    <button class="btn-brand" style="font-size:13px;padding:8px 18px;" onclick="loadDeposits()">
-                        <i class="fas fa-sync-alt" aria-hidden="true"></i> تحديث
-                    </button>
-                    <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.dep-table', 'wajeez_captain_deposits')">
-                        <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
-                    </button>
-                </div>
-            </div>
-            <div class="section-card-body" style="padding-bottom:0;">
-                <div class="row g-3" id="depKpis">
-                    <div class="col-6 col-md-3"><div class="dep-kpi"><div class="lbl">إجمالي المخصوم من الديون</div><div class="val" id="depKpiApplied">—</div></div></div>
-                    <div class="col-6 col-md-3"><div class="dep-kpi"><div class="lbl">إجمالي المحوَّل</div><div class="val" id="depKpiTransferred">—</div></div></div>
-                    <div class="col-6 col-md-3"><div class="dep-kpi"><div class="lbl">عدد الإيداعات</div><div class="val" id="depKpiCount">—</div></div></div>
-                    <div class="col-6 col-md-3"><div class="dep-kpi"><div class="lbl">كباتن صُفّرت ديونهم</div><div class="val" id="depKpiZeroed">—</div></div></div>
-                </div>
-            </div>
-            <div class="table-wrap">
-                <table class="pay-table dep-table">
-                    <thead>
-                        <tr>
-                            <th>التاريخ</th>
-                            <th>الكابتن</th>
-                            <th>المدينة</th>
-                            <th>المحوَّل</th>
-                            <th>المخصوم من الدين</th>
-                            <th>الرصيد قبل ← بعد</th>
-                            <th>رقم العملية</th>
-                            <th>الإيصال</th>
-                            <th>الحالة</th>
-                            <th>راجعه</th>
-                        </tr>
-                    </thead>
-                    <tbody id="depTableBody">
-                        <tr class="loading-row"><td colspan="10">اختر الفترة لعرض الإيداعات</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========================================================= -->
     <!-- TAB 4: SYSTEM & PRICING SETTINGS                         -->
     <!-- ========================================================= -->
     <div id="tab-settings" class="tab-content" data-super-only>
@@ -1073,7 +1004,6 @@ function switchTab(tabId, btn) {
     if (btn) btn.classList.add('active');
     const target = document.getElementById(`tab-${tabId}`);
     if (target) target.classList.add('active');
-    if (tabId === 'deposits' && !depLoaded) loadDeposits();
 }
 
 // ──────────────────────────────────────────
@@ -1973,77 +1903,6 @@ async function loadLedger() {
         toast('تعذّر تحميل كشف الحساب', 'error');
         tbody.innerHTML = `<tr class="loading-row"><td colspan="6">تعذّر التحميل</td></tr>`;
     }
-}
-
-// ──────────────────────────────────────────
-// CAPTAIN DEPOSITS LOG
-// ──────────────────────────────────────────
-let depLoaded = false, depEntries = [];
-async function loadDeposits() {
-    depLoaded = true;
-    const tbody = document.getElementById('depTableBody');
-    const citySel = document.getElementById('depCity');
-    if (citySel && citySel.options.length === 1 && window.WajeezCities) {
-        WajeezCities.KEYS.forEach(c => citySel.add(new Option(WajeezCities.label(c) || c, c)));
-    }
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="10"><i class="fas fa-circle-notch spin" style="font-size:20px;" aria-hidden="true"></i></td></tr>`;
-    const q = new URLSearchParams();
-    const v = (id) => document.getElementById(id)?.value || '';
-    if (v('depStatus')) q.set('status', v('depStatus'));
-    if (v('depCity')) q.set('city', v('depCity'));
-    if (v('depFrom')) q.set('from', v('depFrom'));
-    if (v('depTo')) q.set('to', v('depTo'));
-    try {
-        const res = await fetch(`${API}/api/admin/deposits?${q}`, { headers: H() });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        depEntries = data.entries || [];
-        const s = data.summary || {};
-        const money = (n) => `${Math.round(n || 0).toLocaleString()} ج.س`;
-        document.getElementById('depKpiApplied').textContent = money(s.totalApplied);
-        document.getElementById('depKpiTransferred').textContent = money(s.totalTransferred);
-        document.getElementById('depKpiCount').textContent = `${s.count || 0} — ${s.captains || 0} كابتن`;
-        document.getElementById('depKpiZeroed').textContent = s.zeroed || 0;
-        renderDeposits();
-    } catch (e) {
-        toast('تعذّر تحميل سجل الإيداعات', 'error');
-        tbody.innerHTML = `<tr class="loading-row"><td colspan="10">تعذّر التحميل</td></tr>`;
-    }
-}
-
-function renderDeposits() {
-    const tbody = document.getElementById('depTableBody');
-    const term = (document.getElementById('depSearch')?.value || '').trim().toLowerCase();
-    const list = term ? depEntries.filter(e => AdminSearch.matches(term, e.captain || {}, [e.transactionId])) : depEntries;
-    if (!list.length) {
-        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><i class="fas fa-piggy-bank" aria-hidden="true"></i><p>لا توجد إيداعات في هذه الفترة</p></div></td></tr>`;
-        return;
-    }
-    const ST = { approved: ['approved', 'مقبول'], rejected: ['rejected', 'مرفوض'], pending: ['pending', 'معلّق'] };
-    const num = (n) => (n == null ? '—' : Math.round(n).toLocaleString());
-    tbody.innerHTML = list.map(e => {
-        const st = ST[e.status] || ST.pending;
-        const date = new Date(e.date).toLocaleString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        const bal = e.balanceBefore == null ? '<span style="color:var(--muted);font-size:12px;">غير محفوظ</span>'
-            : `${num(e.balanceBefore)} ← <strong style="color:${e.balanceAfter === 0 ? 'var(--success)' : 'var(--text)'};">${num(e.balanceAfter)}</strong>`;
-        let receipt = '<span class="no-receipt">لا يوجد</span>';
-        if (e.receiptImage) {
-            const key = `dep_receipt_${e._id}`; adminImagesMap[key] = getFullImageUrl(e.receiptImage);
-            receipt = `<img src="${esc(adminImagesMap[key])}" class="receipt-thumb" data-img-key="${key}" onclick="openLightboxByKey(this.dataset.imgKey)" alt="إيصال">`;
-        }
-        return `<tr>
-            <td style="font-size:12px;color:var(--muted);white-space:nowrap;">${date}</td>
-            <td><div style="font-weight:700;font-size:13px;">${esc(e.captain?.name) || '—'}</div><div style="font-size:11px;color:var(--muted);">${esc(e.captain?.phone)}</div></td>
-            <td style="font-size:12px;">${esc(WajeezCities.label(e.captain?.city) || '—')}</td>
-            <td>${num(e.amount)} ج.س</td>
-            <td><strong style="color:var(--success);">${e.status === 'approved' ? num(e.applied) + ' ج.س' : '—'}</strong></td>
-            <td style="font-size:12px;white-space:nowrap;">${bal}</td>
-            <td style="font-size:12px;">${esc(e.transactionId) || '—'}</td>
-            <td>${receipt}</td>
-            <td><span class="status-badge ${st[0]}" style="font-size:11px;">${st[1]}</span></td>
-            <td style="font-size:12px;color:var(--muted);">${esc(e.reviewedBy) || '—'}</td>
-        </tr>`;
-    }).join('');
 }
 
 // ──────────────────────────────────────────

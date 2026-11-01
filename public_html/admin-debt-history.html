@@ -4,7 +4,7 @@
     <script src="js/admin-guard.js?v=8215ecec" data-perm="view_finance"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>سجل تعديلات المديونية | وجيز</title>
+    <title>سجل المديونيات | وجيز</title>
     <link href="vendor/fonts/fonts.css" rel="stylesheet">
     <link href="vendor/bootstrap/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
@@ -197,6 +197,19 @@
         .mode-badge.zero    { background: rgba(229,62,62,0.1); color: var(--danger); }
         .mode-badge.partial { background: rgba(217,119,6,0.1); color: var(--warning); }
 
+        /* view switch: تعديلات المديونية | الإيداعات */
+        .view-switch { display: inline-flex; background: var(--surface, #fff); border: 1.5px solid var(--border); border-radius: 30px; padding: 4px; gap: 4px; margin-bottom: 18px; }
+        .view-switch button { border: 0; background: transparent; color: var(--muted); font-family: 'Cairo',sans-serif; font-weight: 800; font-size: 14px; padding: 9px 20px; border-radius: 24px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+        .view-switch button.active { background: var(--primary); color: #fff; box-shadow: 0 4px 14px var(--brand-glow); }
+        body.dark-mode .view-switch { background: #1f2937 !important; border-color: #374151 !important; }
+        [data-view-only] { display: none; }
+        body[data-view="adjust"] [data-view-only="adjust"], body[data-view="deposits"] [data-view-only="deposits"] { display: revert; }
+        .receipt-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid var(--border); }
+        .status-chip { display: inline-flex; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .status-chip.approved { background: rgba(34,197,94,0.1); color: var(--success); }
+        .status-chip.rejected { background: rgba(229,62,62,0.1); color: var(--danger); }
+        .status-chip.pending  { background: rgba(217,119,6,0.1); color: var(--warning); }
+
         .amount-add     { color: var(--success); font-weight: 800; }
         .amount-forgive { color: var(--danger);  font-weight: 800; }
 
@@ -240,7 +253,7 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
     <script src="js/admin-palette.js?v=03121c22"></script>
 <script src="js/admin-search.js?v=7649b4af"></script>
 </head>
-<body>
+<body data-view="adjust">
 
 <!-- TOPBAR -->
 <header class="topbar">
@@ -265,12 +278,46 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
 <div class="page-wrap">
 
     <div class="page-header">
-        <h1><i class="fas fa-history" style="color:var(--brand);" aria-hidden="true"></i> سجل تعديلات المديونية</h1>
-        <p>عرض كامل لكل عمليات تعديل أرصدة الكباتن من الإدارة، مع التأثير على الأرباح.</p>
+        <h1><i class="fas fa-history" style="color:var(--brand);" aria-hidden="true"></i> سجل المديونيات</h1>
+        <p data-view-only="adjust">عرض كامل لكل عمليات تعديل أرصدة الكباتن من الإدارة، مع التأثير على الأرباح.</p>
+        <p data-view-only="deposits">كل إيداعٍ سدّد به كابتنٌ دينه: المحوَّل، والمخصوم فعلاً، والرصيد قبل وبعد، ومن راجعه.</p>
     </div>
 
-    <!-- KPIS -->
-    <div class="kpi-grid">
+    <div class="view-switch" role="tablist" aria-label="نوع السجل">
+        <button type="button" role="tab" id="viewBtn-adjust" class="active" onclick="setView('adjust')"><i class="fas fa-sliders-h" aria-hidden="true"></i> تعديلات المديونية</button>
+        <button type="button" role="tab" id="viewBtn-deposits" onclick="setView('deposits')"><i class="fas fa-piggy-bank" aria-hidden="true"></i> الإيداعات</button>
+    </div>
+
+    <!-- KPIS: الإيداعات -->
+    <div class="kpi-grid" data-view-only="deposits">
+        <div class="kpi-card green">
+            <div class="kpi-icon green"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></div>
+            <div class="kpi-label">المخصوم من الديون</div>
+            <div class="kpi-value" id="depKpiApplied">0 ج.س</div>
+            <div class="kpi-sub">من الإيداعات المقبولة</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-icon blue"><i class="fas fa-exchange-alt" aria-hidden="true"></i></div>
+            <div class="kpi-label">إجمالي المحوَّل</div>
+            <div class="kpi-value" id="depKpiTransferred">0 ج.س</div>
+            <div class="kpi-sub">كما في الإشعارات</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-icon orange"><i class="fas fa-list-ol" aria-hidden="true"></i></div>
+            <div class="kpi-label">عدد الإيداعات</div>
+            <div class="kpi-value" id="depKpiCount">0</div>
+            <div class="kpi-sub" id="depKpiCaptains">0 كابتن</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-icon red"><i class="fas fa-check-double" aria-hidden="true"></i></div>
+            <div class="kpi-label">صُفّرت ديونهم</div>
+            <div class="kpi-value" id="depKpiZeroed">0</div>
+            <div class="kpi-sub">بإيداعٍ غطّى الدين كله</div>
+        </div>
+    </div>
+
+    <!-- KPIS: التعديلات -->
+    <div class="kpi-grid" data-view-only="adjust">
         <div class="kpi-card green">
             <div class="kpi-icon green"><i class="fas fa-plus-circle" aria-hidden="true"></i></div>
             <div class="kpi-label">مديونيات مُضافة (إيرادات)</div>
@@ -303,7 +350,7 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
             <h2><i class="fas fa-filter" aria-hidden="true"></i> الفلاتر</h2>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button class="btn-ghost" onclick="resetFilters()"><i class="fas fa-undo" aria-hidden="true"></i> إعادة تعيين</button>
-                <button class="admin-export-btn" onclick="AdminExport.tableToCSV('.pay-table', 'wajeez_debt_history')">
+                <button class="admin-export-btn" onclick="exportCurrent()">
                     <i class="fas fa-file-excel" style="color:#16a34a;" aria-hidden="true"></i> تصدير Excel
                 </button>
                 <button class="btn-brand" onclick="applyFilters()"><i class="fas fa-search" aria-hidden="true"></i> تطبيق</button>
@@ -323,8 +370,21 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
                     <label class="field-label">رقم/اسم الكابتن</label>
                     <input type="text" id="filterCaptain" class="field-input" placeholder="بحث..." oninput="filterClientSide()">
                 </div>
+                <div class="field-group" data-view-only="deposits">
+                    <label class="field-label">المدينة</label>
+                    <select id="filterCity" class="field-input" onchange="applyFilters()"><option value="">كل المدن</option></select>
+                </div>
             </div>
-            <div style="margin-top:14px;">
+            <div style="margin-top:14px;" data-view-only="deposits">
+                <label class="field-label" style="display:block; margin-bottom:8px;">حالة الإيداع</label>
+                <div class="filter-pills" id="statusPills">
+                    <span class="pill active" data-status="approved">المقبولة</span>
+                    <span class="pill" data-status="rejected">المرفوضة</span>
+                    <span class="pill" data-status="pending">المعلّقة</span>
+                    <span class="pill" data-status="all">الكل</span>
+                </div>
+            </div>
+            <div style="margin-top:14px;" data-view-only="adjust">
                 <label class="field-label" style="display:block; margin-bottom:8px;">نوع العملية</label>
                 <div class="filter-pills" id="modePills">
                     <span class="pill active" data-mode="">الكل</span>
@@ -336,15 +396,46 @@ body.dark-mode .pay-table tbody tr:hover { background: #263449 !important; }
         </div>
     </div>
 
-    <!-- TABLE -->
-    <div class="section-card">
+    <!-- TABLE: الإيداعات -->
+    <div class="section-card" data-view-only="deposits">
+        <div class="section-card-header">
+            <h2><i class="fas fa-piggy-bank" aria-hidden="true"></i> الإيداعات</h2>
+            <span id="depResultsCount" style="font-size:13px; color:var(--muted);"></span>
+        </div>
+        <div class="section-card-body" style="padding:0;">
+            <div class="table-wrap">
+                <table class="pay-table dep-table">
+                    <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الكابتن</th>
+                        <th>المحوَّل</th>
+                        <th>المخصوم من الدين</th>
+                        <th>الرصيد قبل</th>
+                        <th>الرصيد بعد</th>
+                        <th>رقم العملية</th>
+                        <th>الإيصال</th>
+                        <th>الحالة</th>
+                        <th>راجعه</th>
+                    </tr>
+                    </thead>
+                    <tbody id="depTbody">
+                    <tr><td colspan="10" class="loading-state"><i class="fas fa-circle-notch spin" aria-hidden="true"></i> جارِ التحميل...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLE: التعديلات -->
+    <div class="section-card" data-view-only="adjust">
         <div class="section-card-header">
             <h2><i class="fas fa-table" aria-hidden="true"></i> العمليات</h2>
             <span id="resultsCount" style="font-size:13px; color:var(--muted);"></span>
         </div>
         <div class="section-card-body" style="padding:0;">
             <div class="table-wrap">
-                <table class="pay-table">
+                <table class="pay-table adj-table">
                     <thead>
                     <tr>
                         <th>التاريخ</th>
@@ -376,6 +467,26 @@ if (!adminTokenAuth || !userObj || userObj.role !== 'admin') window.location.hre
 const API = window.API_BASE_URL || window.API_URL || '';
 let cachedEntries = [];
 let currentMode   = '';  // 🔧 FIX: was missing — caused ReferenceError
+// 💵 الإيداعات: عرضٌ ثانٍ في الصفحة نفسها (يُفتح مباشرةً بـ #deposits)
+let currentView   = location.hash === '#deposits' ? 'deposits' : 'adjust';
+let currentStatus = 'approved';
+let depEntries    = [];
+
+function setView(v) {
+    currentView = v === 'deposits' ? 'deposits' : 'adjust';
+    document.body.dataset.view = currentView;
+    ['adjust', 'deposits'].forEach(k => {
+        const b = document.getElementById('viewBtn-' + k);
+        if (b) { b.classList.toggle('active', k === currentView); b.setAttribute('aria-selected', String(k === currentView)); }
+    });
+    history.replaceState(null, '', currentView === 'deposits' ? '#deposits' : location.pathname);
+    applyFilters();
+}
+
+function exportCurrent() {
+    AdminExport.tableToCSV(currentView === 'deposits' ? '.dep-table' : '.adj-table',
+        currentView === 'deposits' ? 'wajeez_captain_deposits' : 'wajeez_debt_history');
+}
 
 function H() {
     const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
@@ -416,6 +527,72 @@ document.querySelectorAll('#modePills .pill').forEach(p => {
     });
 });
 
+document.querySelectorAll('#statusPills .pill').forEach(p => {
+    p.addEventListener('click', () => {
+        document.querySelectorAll('#statusPills .pill').forEach(x => x.classList.remove('active'));
+        p.classList.add('active');
+        currentStatus = p.dataset.status;
+        applyFilters();
+    });
+});
+
+async function loadDeposits() {
+    const tbody = document.getElementById('depTbody');
+    tbody.innerHTML = `<tr><td colspan="10" class="loading-state"><i class="fas fa-circle-notch spin" aria-hidden="true"></i> جارِ التحميل...</td></tr>`;
+    const citySel = document.getElementById('filterCity');
+    if (citySel && citySel.options.length === 1 && window.WajeezCities) {
+        WajeezCities.KEYS.forEach(c => citySel.add(new Option(WajeezCities.label(c) || c, c)));
+    }
+    const params = new URLSearchParams({ status: currentStatus });
+    const from = document.getElementById('filterFrom').value, to = document.getElementById('filterTo').value;
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (citySel && citySel.value) params.set('city', citySel.value);
+    try {
+        const r = await fetch(`${API}/api/admin/deposits?${params.toString()}`, { headers: H() });
+        if (!r.ok) throw new Error();
+        const data = await r.json();
+        const s = data.summary || {};
+        document.getElementById('depKpiApplied').textContent = fmt(s.totalApplied) + ' ج.س';
+        document.getElementById('depKpiTransferred').textContent = fmt(s.totalTransferred) + ' ج.س';
+        document.getElementById('depKpiCount').textContent = s.count || 0;
+        document.getElementById('depKpiCaptains').textContent = (s.captains || 0) + ' كابتن';
+        document.getElementById('depKpiZeroed').textContent = s.zeroed || 0;
+        depEntries = Array.isArray(data.entries) ? data.entries : [];
+        filterClientSide();
+    } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><i class="fas fa-exclamation-circle" aria-hidden="true"></i> تعذّر تحميل الإيداعات. <button type="button" class="btn btn-sm btn-link p-0" onclick="applyFilters()">أعد المحاولة</button></td></tr>';
+    }
+}
+
+function renderDeposits(entries) {
+    const tbody = document.getElementById('depTbody');
+    if (!entries.length) {
+        tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="fas fa-piggy-bank" aria-hidden="true"></i> لا توجد إيداعات في هذا النطاق</td></tr>`;
+        return;
+    }
+    const esc = (v) => window.escapeHtml ? window.escapeHtml(v ?? '') : String(v ?? '');
+    const ST = { approved: 'مقبول', rejected: 'مرفوض', pending: 'معلّق' };
+    const bal = (v) => v == null ? '<span style="color:var(--muted);font-size:12px;">غير محفوظ</span>' : fmt(v) + ' ج.س';
+    tbody.innerHTML = entries.map(e => {
+        const name = esc(e.captain?.name || 'محذوف');
+        const url = e.receiptImage && window.getFullImageUrl ? getFullImageUrl(e.receiptImage) : '';
+        return `<tr>
+            <td style="white-space:nowrap; font-size:12.5px;">${formatDate(e.date)}</td>
+            <td><div class="captain-cell"><div class="captain-avatar">${initials(name)}</div>
+                <div><div class="captain-name">${name}</div><div class="captain-phone">${esc(e.captain?.phone || '—')}</div></div></div></td>
+            <td>${fmt(e.amount)} ج.س</td>
+            <td><span class="amount-add">${e.status === 'approved' ? fmt(e.applied) + ' ج.س' : '—'}</span></td>
+            <td style="color:var(--muted);">${bal(e.balanceBefore)}</td>
+            <td style="font-weight:700;${e.balanceAfter === 0 ? 'color:var(--success);' : ''}">${bal(e.balanceAfter)}</td>
+            <td style="font-size:13px;">${esc(e.transactionId || '—')}</td>
+            <td>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" class="receipt-thumb" alt="إيصال"></a>` : '<span style="color:var(--muted);font-size:12px;">لا يوجد</span>'}</td>
+            <td><span class="status-chip ${esc(e.status)}">${ST[e.status] || esc(e.status)}</span></td>
+            <td style="font-size:13px;">${esc(e.reviewedBy || '—')}</td>
+        </tr>`;
+    }).join('');
+}
+
 function resetFilters() {
     document.getElementById('filterFrom').value = '';
     document.getElementById('filterTo').value = '';
@@ -423,10 +600,12 @@ function resetFilters() {
     document.querySelectorAll('#modePills .pill').forEach(x => x.classList.remove('active'));
     document.querySelector('#modePills .pill[data-mode=""]').classList.add('active');
     currentMode = '';
+    const city = document.getElementById('filterCity'); if (city) city.value = '';
     applyFilters();
 }
 
 async function applyFilters() {
+    if (currentView === 'deposits') return loadDeposits();
     const from = document.getElementById('filterFrom').value;
     const to   = document.getElementById('filterTo').value;
 
@@ -468,6 +647,12 @@ async function applyFilters() {
 
 function filterClientSide() {
     const q = (document.getElementById('filterCaptain').value || '').trim().toLowerCase();
+    if (currentView === 'deposits') {
+        const list = q ? depEntries.filter(e => AdminSearch.matches(q, e.captain || {}, [e.transactionId])) : depEntries;
+        renderDeposits(list);
+        document.getElementById('depResultsCount').textContent = list.length ? `${list.length} إيداع` : '';
+        return;
+    }
     let entries = cachedEntries;
     if (q) {
         entries = entries.filter(e => {
@@ -520,8 +705,8 @@ function renderTable(entries) {
     tbody.innerHTML = rows;
 }
 
-// initial load
-document.addEventListener('DOMContentLoaded', applyFilters);
+// initial load — العرض من الرابط (#deposits) أو التعديلات
+document.addEventListener('DOMContentLoaded', () => setView(currentView));
 </script>
 </body>
 </html>
