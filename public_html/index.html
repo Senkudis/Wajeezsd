@@ -479,6 +479,8 @@
     <!-- الجولة الترحيبية — بعد dark-mode.css عمداً (انظر رأس الملف) -->
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/smart-search.css?v=8dc97789">
+    <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً -->
+    <link rel="stylesheet" href="css/client-ui.css?v=779a8a05">
 
 
     <script src="js/maps-link-input.js?v=fa876f04"></script>
@@ -591,7 +593,7 @@
                             </div>
 
                             <div class="mb-4 position-relative" id="pickup-block" role="group" aria-labelledby="pickup-section-label">
-                                <label class="text-muted small fw-bold d-block mb-2" id="pickup-section-label">من وين؟ (موقع الاستلام)</label>
+                                <label class="cu-point-label" id="pickup-section-label">من وين نستلم؟</label>
                                 <button type="button" class="btn map-select-btn map-select-btn-pickup w-100 mb-2"
                                     onclick="event.preventDefault(); event.stopPropagation(); openMapModal('pickup')">
                                     <i class="bi bi-geo-alt-fill me-2"></i>تحديد من الخريطة
@@ -600,28 +602,37 @@
                                 <div class="input-wrapper">
                                     <input type="text" class="form-control location-input bg-white" id="pickup-addr"
                                         aria-label="عنوان الاستلام — يُحدَّد من الخريطة"
-                                        placeholder="الموقع غير محدد (اختر من الخريطة)" readonly
+                                        placeholder="اختار المكان من الخريطة" readonly
                                         style="cursor: pointer;" onclick="openMapModal('pickup')">
                                     <span class="input-icon text-success"><i class="bi bi-geo-alt-fill"></i></span>
                                 </div>
-                                <div class="row g-2 mt-1" id="pickup-contact-row">
-                                    <div class="col-7">
-                                        <input type="text" id="pickup-name"
-                                            class="form-control form-control-sm bg-white"
-                                            aria-label="اسم المرسل أو المحل"
-                                            placeholder="اسم المرسل / المحل">
+                                <!-- المرسل غالباً هو العميل نفسه: home-simple.js يملأ الخانتين
+                                     من حسابه ويطويهما في سطر «المرسل: أنت · تغيير» -->
+                                <div class="mt-1" id="pickup-contact-row">
+                                    <div class="cu-contact-summary">
+                                        <i class="bi bi-person-fill" aria-hidden="true"></i>
+                                        <span class="cu-contact-who">المرسل: <b id="pickup-contact-who"></b></span>
+                                        <button type="button" class="cu-link" id="pickup-contact-edit">تغيير</button>
                                     </div>
-                                    <div class="col-5">
-                                        <input type="tel" id="pickup-phone"
-                                            class="form-control form-control-sm bg-white english-num"
-                                            aria-label="هاتف المرسل"
-                                            placeholder="رقم الهاتف">
+                                    <div class="row g-2 cu-contact-fields">
+                                        <div class="col-6">
+                                            <input type="text" id="pickup-name"
+                                                class="form-control form-control-sm bg-white" autocomplete="name"
+                                                aria-label="اسم المرسل أو المحل"
+                                                placeholder="اسم المرسل">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="tel" id="pickup-phone" inputmode="tel" autocomplete="tel"
+                                                class="form-control form-control-sm bg-white english-num"
+                                                aria-label="هاتف المرسل"
+                                                placeholder="رقم المرسل">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-0 position-relative" role="group" aria-labelledby="dropoff-section-label">
-                                <label class="text-muted small fw-bold d-block mb-2" id="dropoff-section-label">لوين؟ (موقع التسليم)</label>
+                                <label class="cu-point-label" id="dropoff-section-label">لوين نوصّل؟</label>
                                 <button type="button" class="btn map-select-btn map-select-btn-dropoff w-100 mb-2"
                                     onclick="event.preventDefault(); event.stopPropagation(); openMapModal('dropoff')">
                                     <i class="bi bi-flag-fill me-2"></i>تحديد من الخريطة
@@ -630,38 +641,44 @@
                                 <div class="input-wrapper">
                                     <input type="text" class="form-control location-input bg-white" id="dropoff-addr"
                                         aria-label="عنوان التسليم — يُحدَّد من الخريطة"
-                                        placeholder="الوجهة غير محددة (اختر من الخريطة)" readonly
+                                        placeholder="اختار المكان من الخريطة" readonly
                                         style="cursor: pointer;" onclick="openMapModal('dropoff')">
                                     <span class="input-icon text-danger"><i class="bi bi-flag-fill"></i></span>
                                 </div>
                                 <div class="row g-2 mt-1">
-                                    <div class="col-7">
+                                    <div class="col-6">
                                         <input type="text" id="dropoff-name"
-                                            class="form-control form-control-sm bg-white"
+                                            class="form-control form-control-sm bg-white" autocomplete="off"
                                             aria-label="اسم المستلم أو المحل"
-                                            placeholder="اسم المستلم / المحل">
+                                            placeholder="اسم المستلم">
                                     </div>
-                                    <div class="col-5">
-                                        <input type="tel" id="dropoff-phone"
+                                    <div class="col-6">
+                                        <input type="tel" id="dropoff-phone" inputmode="tel" autocomplete="off"
                                             class="form-control form-control-sm bg-white english-num"
                                             aria-label="هاتف المستلم"
-                                            placeholder="رقم الهاتف">
+                                            placeholder="رقم المستلم">
                                     </div>
                                 </div>
-                                <button type="button" id="saveDropoffBtn" class="btn btn-link btn-sm text-success fw-bold p-0 mt-2 d-none"
-                                    onclick="saveCurrentDropoff()">
-                                    <i class="bi bi-bookmark-plus-fill me-1"></i>حفظ هذه الوجهة في عناويني
-                                </button>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <!-- يظهر لمن في حسابه رقمٌ صالح — home-simple.js -->
+                                    <button type="button" id="dropoff-me-btn" class="cu-link d-none">
+                                        <i class="bi bi-person-check" aria-hidden="true"></i>أنا المستلم
+                                    </button>
+                                    <button type="button" id="saveDropoffBtn" class="cu-link d-none"
+                                        onclick="saveCurrentDropoff()">
+                                        <i class="bi bi-bookmark-plus" aria-hidden="true"></i>احفظ العنوان
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- 🧭 نقاط إضافية — توصيل متعدد النقاط (رحلة واحدة بعدة محطات) -->
                             <div id="extraStopsList" class="mt-2"></div>
-                            <div class="d-flex gap-2 mt-3" id="multi-stop-actions">
-                                <button type="button" class="btn btn-outline-success btn-sm flex-grow-1 fw-bold" onclick="addStop('dropoff')">
-                                    <i class="bi bi-plus-lg me-1"></i>أضف وجهة تسليم
+                            <div class="d-flex mt-2" id="multi-stop-actions">
+                                <button type="button" class="cu-link" onclick="addStop('dropoff')">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>وجهة تانية
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 fw-bold" onclick="addStop('pickup')">
-                                    <i class="bi bi-plus-lg me-1"></i>أضف نقطة استلام
+                                <button type="button" class="cu-link" onclick="addStop('pickup')">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>استلام من مكان تاني
                                 </button>
                             </div>
                             <div class="text-muted mt-1" id="multi-stop-hint" style="font-size:11.5px;">
@@ -727,12 +744,12 @@
                     </div>
 
                     <textarea id="details" class="form-control mb-3" rows="2"
-                        aria-label="وصف الأغراض (اختياري)"
-                        placeholder="وصف للأغراض (مثلاً: كيس ملابس، مستندات...)" maxlength="500"></textarea>
+                        aria-label="وصف الأغراض"
+                        placeholder="شنو الحاجة؟ مثلاً: كيس ملابس، مستندات" maxlength="500"></textarea>
 
                     <label class="parcel-upload-btn w-100" for="parcel-image" id="parcel-upload-label">
-                        <i class="bi bi-camera-fill"></i>
-                        <span>صورة للطرد (اختياري)</span>
+                        <i class="bi bi-camera"></i>
+                        <span>أضف صورة (اختياري)</span>
                     </label>
                     <input type="file" id="parcel-image" class="d-none" accept="image/*" onchange="previewImage(this)">
 
@@ -744,9 +761,11 @@
                     </div>
                 </div>
 
-                <div class="section-card bg-light border-0">
+                <!-- cu-collapsed: السعر يُحسب تلقائياً بعد تحديد المكانين، فلا نعرض «0»
+                     قبلها. updatePriceHint في home.js يرفع الطيّ فور الحساب -->
+                <div class="section-card bg-light border-0 cu-collapsed" id="price-card">
                     <label class="section-title text-success mb-2" for="price">
-                        <i class="bi bi-cash-stack" aria-hidden="true"></i> تقدير السعر
+                        <i class="bi bi-cash-stack" aria-hidden="true"></i> سعر المشوار
                     </label>
 
 
@@ -767,7 +786,7 @@
                         </button>
                     </div>
                     <div id="price-hint" class="text-center text-muted small mb-3" style="margin-top:-8px;">
-                        <i class="bi bi-info-circle"></i> اضغط <b>+</b> أو <b>−</b> لتعديل السعر بمقدار 100 ج.س
+                        <i class="bi bi-info-circle"></i> السعر بيتحسب براه لما تحدد المكانين
                     </div>
 
                     <!-- ⏰ Scheduling Toggle 
@@ -789,7 +808,7 @@
                     <!-- المدينة التي سيُرسل فيها الطلب — ظاهرةٌ قبل الإرسال، و«تغيير» منها -->
 
                     <button id="submit-btn" class="btn-submit" onclick="createOrder()">
-                        <i class="bi bi-rocket-takeoff-fill me-2"></i> اطلب الكابتن الآن
+                        اطلب كابتن
                     </button>
                 </div>
             </div> <!-- End of home-section -->
@@ -1264,8 +1283,9 @@
     <script type="module" src="js/native-notifications.js?v=6426d1e7"></script>
 
     <!-- أخطاء الإدخال في خاناتها + فحص الهاتف السوداني — قبل home.js الذي يستعملهما -->
-    <script src="js/field-errors.js?v=47c453dc"></script>
-    <script src="js/home.js?v=0bc7f37b"></script>
+    <script src="js/field-errors.js?v=92e1e909"></script>
+    <script src="js/home.js?v=2423473c"></script>
+    <script src="js/home-simple.js?v=27db7fc9"></script>
     <script src="js/order-feature.js?v=730d8dc8"></script>
     <script src="js/errand-context.js?v=f33a33bc"></script>
     <script src="js/smart-search.js?v=927a66dc"></script>

@@ -1,0 +1,296 @@
+/* ============================================================
+   واجهات العميل — طبقة التبسيط المشتركة
+   تُحمَّل آخر ملف CSS في كل صفحة عميل، بعد الأنماط المضمّنة وبعد
+   dark-mode.css، فتوحّد ما تفرّق بين الصفحات دون لمس أي معرّف.
+   القرار وأسبابه: docs/customer-ui-redesign.md
+   ============================================================ */
+
+:root {
+    /* لونٌ أساسي واحد: كانت الصفحات تتنازع ثلاث درجات أخضر، و#048c5b
+       مع نصٍّ أبيض تباينه 4.3:1 — دون الحدّ */
+    --primary: #04553A;
+    --primary-gradient: #0A6B49;
+    --primary-color: #04553A;
+    --primary-dark: #0A6B49;
+    --primary-light: #E7F1EC;
+    /* الأحمر للأخطاء والإلغاء فقط — كان لونَ الوجهة فبدت الوجهة خطأً */
+    --secondary-color: #13201A;
+
+    --cu-ink: #13201A;
+    --cu-ink-2: #4B5A52;
+    --cu-placeholder: #6B7770;
+    --cu-line: #D5DCD8;
+    --cu-surface: #FFFFFF;
+    --cu-field: #F6F7F5;
+    --cu-danger: #B42318;
+    --cu-gold-ink: #8A6212;
+    --cu-tap: 48px;
+}
+
+body.dark-mode {
+    --secondary-color: #F3F4F6;
+    --cu-ink: #F9FAFB;
+    --cu-ink-2: #C3CBD4;
+    --cu-placeholder: #9CA3AF;
+    --cu-line: #374151;
+    --cu-surface: #1F2937;
+    --cu-field: #111827;
+}
+
+/* ── الخانات: 16px تمنع تكبير iOS التلقائي، و48px هدف لمسٍ مريح ── */
+.form-control,
+.form-select {
+    font-size: 16px;
+    min-height: var(--cu-tap);
+}
+
+.form-control-sm {
+    font-size: 16px;
+    min-height: var(--cu-tap);
+    padding: 10px 14px;
+    border-radius: 12px;
+}
+
+textarea.form-control {
+    min-height: 0;
+}
+
+.form-control::placeholder,
+input::placeholder,
+textarea::placeholder {
+    color: var(--cu-placeholder);
+    opacity: 1;
+}
+
+/* ── تركيزٌ يُرى: كان outline:none مع ظلٍّ شفافٍ بنسبة 10% ── */
+:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(4, 85, 58, 0.18);
+}
+
+body.dark-mode :focus-visible {
+    outline-color: #D8B765;
+}
+
+/* ── البطاقات ثابتة تحت الإصبع: القفز عند المرور لا معنى له على الهاتف ── */
+.section-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── الزر الأساسي: لونٌ واحد مسطّح بلا تموّج ── */
+.btn-submit {
+    background: var(--primary-color);
+    min-height: 56px;
+    box-shadow: 0 4px 14px rgba(4, 85, 58, 0.25);
+}
+
+.btn-submit:hover {
+    transform: none;
+}
+
+.btn-submit::before {
+    display: none;
+}
+
+/* ── شريط التنقّل: نصّ يُقرأ ── */
+.mobile-nav-glass .nav-item-link span {
+    font-size: 12px;
+}
+
+/* ── رابطٌ بحجم إصبع: للإجراءات الثانوية بدل الأزرار المحدّدة ── */
+.cu-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 4px;
+    background: none;
+    border: 0;
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+body.dark-mode .cu-link {
+    color: #34D399;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .section-card {
+        animation: none;
+    }
+}
+
+/* ============================================================
+   الرئيسية — نموذج «اطلب كابتن»
+   ============================================================ */
+
+/* رأس أقصر: سطر ترحيب واحد بدل سطرين وشعارٍ كبير */
+#main-app-wrapper .app-header .app-logo {
+    height: 34px;
+}
+
+#main-app-wrapper .app-header #greeting + p {
+    display: none;
+}
+
+/* عنوان كل طرف: سؤالٌ واضح بحجم يُقرأ */
+.cu-point-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--cu-ink);
+}
+
+/* سطرٌ واحد لكل مكان: خانة العنوان نفسها تفتح الخريطة، فزرّ
+   «تحديد من الخريطة» فوقها كان نسخةً ثانية من الشيء نفسه */
+#home-section .map-select-btn {
+    display: none;
+}
+
+#home-section .route-inputs .input-wrapper::after {
+    content: "\F284";
+    font-family: "bootstrap-icons";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--cu-ink-2);
+    pointer-events: none;
+}
+
+#home-section .route-inputs .location-input {
+    height: 56px;
+    padding-left: 40px !important;
+    font-size: 16px;
+    background: var(--cu-field) !important;
+    border: 1.5px solid var(--cu-line) !important;
+    border-radius: 14px;
+    color: var(--cu-ink);
+}
+
+#home-section .route-inputs .location-input:placeholder-shown {
+    border-style: dashed !important;
+    border-color: var(--primary-color) !important;
+}
+
+#home-section .route-inputs .location-input::placeholder {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+body.dark-mode #home-section .route-inputs .location-input::placeholder {
+    color: #34D399;
+}
+
+/* الوجهة بلون الحبر لا بلون الخطأ */
+#home-section .route-inputs .input-icon.text-danger {
+    color: var(--cu-ink) !important;
+}
+
+/* ── بيانات المرسل: تُملأ من الحساب وتُطوى في سطرٍ واحد ── */
+.cu-contact-summary {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 15px;
+    color: var(--cu-ink-2);
+}
+
+.cu-contact-summary .bi {
+    color: var(--primary-color);
+}
+
+.cu-contact-summary .cu-contact-who {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cu-contact-summary b {
+    color: var(--cu-ink);
+}
+
+.cu-collapsed > .cu-contact-summary {
+    display: flex;
+}
+
+.cu-collapsed > .cu-contact-fields {
+    display: none;
+}
+
+/* ── النقاط الإضافية: روابط خفيفة، والشرح يظهر فقط حين توجد نقطة ── */
+#multi-stop-actions {
+    flex-wrap: wrap;
+    gap: 4px 16px !important;
+}
+
+#multi-stop-actions .cu-link {
+    font-size: 14px;
+}
+
+#extraStopsList:empty ~ #multi-stop-hint {
+    display: none;
+}
+
+/* ── الصورة: خيارٌ ثانوي، فلا تستحق صندوقاً منقّطاً كبيراً ── */
+#home-section .parcel-upload-btn {
+    justify-content: flex-start;
+    padding: 0 4px;
+    min-height: 44px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    color: var(--primary-color);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+#home-section .parcel-upload-btn i {
+    font-size: 1.15rem;
+}
+
+body.dark-mode #home-section .parcel-upload-btn {
+    background: none !important;
+    border: 0 !important;
+    color: #34D399 !important;
+}
+
+/* ── السعر: لا «0» يوحي بأن على العميل اختراع السعر ── */
+#price-card.cu-collapsed .price-stepper {
+    display: none;
+}
+
+#price-card.cu-collapsed #price-hint {
+    margin-top: 0 !important;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--cu-ink) !important;
+    font-size: 15px;
+}
+
+#price-hint {
+    font-size: 14px;
+    color: var(--cu-ink-2) !important;
+}
+
+body.dark-mode #price-card.cu-collapsed #price-hint {
+    background: #1a3a2e;
+}
+
+#home-section #details {
+    font-size: 16px;
+}

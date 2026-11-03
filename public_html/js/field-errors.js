@@ -124,6 +124,7 @@
 
     function mark(el, message) {
         injectStyle();
+        unfold(el);
         clear(el);
         const msgId = (el.id || 'fe' + Math.random().toString(36).slice(2, 8)) + '-fe-msg';
         const msg = document.createElement('div');
@@ -143,6 +144,13 @@
             const off = () => clear(el);
             el.addEventListener('input', off);
             el.addEventListener('change', off);
+        }
+    }
+
+    /** خانةٌ داخل جزءٍ مطويّ (.cu-collapsed) تُفتح أولاً — وإلا أشار الخطأ لما لا يُرى */
+    function unfold(el) {
+        for (let box = el.closest && el.closest('.cu-collapsed'); box; box = box.parentElement && box.parentElement.closest('.cu-collapsed')) {
+            box.classList.remove('cu-collapsed');
         }
     }
 

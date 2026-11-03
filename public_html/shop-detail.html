@@ -290,6 +290,8 @@
         .shop-hero-action.visible { display: flex; }
         .shop-hero-action:active { transform: scale(0.88); }
     </style>
+    <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً (docs/customer-ui-redesign.md) -->
+    <link rel="stylesheet" href="css/client-ui.css?v=779a8a05">
 </head>
 <body>
 
@@ -555,7 +557,7 @@
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
 <!-- أخطاء الإدخال تحت خاناتها + فحص الهاتف + تسجيل تعثّر العملاء -->
-<script src="js/field-errors.js?v=47c453dc"></script>
+<script src="js/field-errors.js?v=92e1e909"></script>
 <script>
     const token = window.Auth?.getToken() || localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');

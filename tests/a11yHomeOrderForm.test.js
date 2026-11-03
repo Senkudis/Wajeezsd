@@ -36,7 +36,7 @@ describe('نموذج طلب التوصيل — كل حقلٍ له اسم', () =>
     it('قسما الاستلام والتسليم مجموعتان مسمّاتان', () => {
         expect(html).toContain('id="pickup-block" role="group" aria-labelledby="pickup-section-label"');
         expect(html).toContain('role="group" aria-labelledby="dropoff-section-label"');
-        expect(html).toContain('id="dropoff-section-label">لوين؟ (موقع التسليم)</label>');
+        expect(html).toContain('id="dropoff-section-label">لوين نوصّل؟</label>');
     });
 
     it('عنوانا الاستلام والتسليم', () => {
@@ -55,7 +55,7 @@ describe('نموذج طلب التوصيل — كل حقلٍ له اسم', () =>
     });
 
     it('ووصف الأغراض وحقل السعر', () => {
-        expect(near('id="details"')).toContain('aria-label="وصف الأغراض (اختياري)"');
+        expect(near('id="details"')).toContain('aria-label="وصف الأغراض"');
         expect(html).toContain('class="section-title text-success mb-2" for="price"');
     });
 });

@@ -717,7 +717,10 @@ window.confirmLocationSelection = function() {
             showCancelButton: true,
             cancelButtonText: 'إلغاء'
         }).then((res) => {
-            if (res.isConfirmed) window.location.href = 'client-login.html';
+            if (!res.isConfirmed) return;
+            // ما ملأه الزائر يعود معه بعد الدخول — كان يرجع لنموذجٍ فارغ
+            if (window.saveGuestDraft) window.saveGuestDraft();
+            window.location.href = 'client-login.html';
         });
         return; // Block confirmation
     }
@@ -1203,7 +1206,9 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 function updatePriceHint(limits) {
     const priceHint = document.getElementById('price-hint');
     if (!priceHint || !limits) return;
-    priceHint.innerHTML = `<i class="bi bi-info-circle"></i> السعر التقديري: <b>${limits.estimated.toLocaleString()} ج.س</b> (أقل سعر مسموح: <b>${limits.minAllowed.toLocaleString()} ج.س</b>)`;
+    priceHint.innerHTML = `<i class="bi bi-info-circle"></i> السعر المقترح <b>${limits.estimated.toLocaleString()} ج.س</b>. تقدر تعدّله بـ + و − (أقل سعر <b>${limits.minAllowed.toLocaleString()} ج.س</b>)`;
+    // قبل الحساب تُطوى أداة السعر (لا «0» يوحي بأن على العميل اختراعه) — الآن صار له معنى
+    document.getElementById('price-card')?.classList.remove('cu-collapsed');
 }
 
 /**
@@ -1399,7 +1404,9 @@ function collectOrderErrors() {
     const priceVal = val('price');
     const price = parseFloat(SudanPhone.fold(priceVal));
     if (!priceVal || isNaN(price) || price <= 0) {
-        add('price', 'حدّد سعر العرض');
+        // قبل تحديد المكانين لا سعر بعد (يُحسب تلقائياً) — خطأ المكان أعلاه يكفي،
+        // و«حدّد سعر العرض» هنا يفتح أداة السعر على «0» ويوحي بأن على العميل اختراعه
+        if (val('pickup-lat') && val('dropoff-lat')) add('price', 'حدّد سعر العرض');
     } else {
         // 🛡️ حدود السعر النسبي (الأرضية والسقف)
         const limits = getPriceLimits();
@@ -1464,7 +1471,10 @@ window.createOrder = async function() {
             cancelButtonText: 'إلغاء',
             confirmButtonColor: '#04553A'
         });
-        if (res.isConfirmed) window.location.href = 'client-login.html';
+        if (res.isConfirmed) {
+            if (window.saveGuestDraft) window.saveGuestDraft();
+            window.location.href = 'client-login.html';
+        }
         return;
     }
 
