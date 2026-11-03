@@ -58,19 +58,37 @@ const order = (negs) => ({ _id: OID, status: 'pending', orderType: 'delivery', p
 const ORDERS = (list) => [[/auth\/me/, ME], [/auth\/refresh/, {}], [/unread-count/, { count: 0 }], [/feedback\/pending/, { pending: null }],
   [/my-orders/, () => ({ orders: list, currentPage: 1, totalPages: 1, total: list.length })]];
 
-// ── المتجر (توضيحي للتحقق فقط) ──────────────────────────────────────────
-const CATS = [{ _id: 'c1', name: 'مطاعم', icon: 'bi-cup-hot-fill' }, { _id: 'c2', name: 'سوبر ماركت', icon: 'bi-cart4' }, { _id: 'c3', name: 'صيدليات', icon: 'bi-capsule' }, { _id: 'c4', name: 'مخابز', icon: 'bi-basket2-fill' }];
+// ── المتجر ─────────────────────────────────────────────────────────────
+// بيانات المتجر الشريك من partner-shop/shop.json — تُستعمل فقط بعد موافقة صاحبه (consent.approved).
+// بدونها: بيانات توضيحية للتحقق من الوصول، ولقطاتها SHOP_* لا تدخل الإعلان.
+const PDIR = path.join(__dirname, '..', 'partner-shop');
+const PS = JSON.parse(fs.readFileSync(path.join(PDIR, 'shop.json'), 'utf8'));
+const PARTNER = !!(PS.consent && PS.consent.approved && PS.shop && PS.shop.name && PS.products.some(x => x.name));
+const img = (f) => { if (!f) return null; const fp = path.join(PDIR, f); if (!fs.existsSync(fp)) throw new Error('صورة غير موجودة: ' + f);
+  const ext = path.extname(f).slice(1).toLowerCase().replace('jpg', 'jpeg'); return `data:image/${ext};base64,` + fs.readFileSync(fp).toString('base64'); };
 const PID = '64f1a2b3c4d5e6f7a8b9c0d1';
-const PLACE = { _id: PID, name: 'متجر (توضيحي)', is_open: true, isOpenOverride: true, ratingAvg: 0, ratingCount: 0, ownerId: 'm1', address: 'الرياض', location: { lat: 15.584, lng: 32.566 }, category: CATS[1], city: 'Khartoum' };
-const PRODUCTS = [1, 2, 3, 4, 5, 6].map(i => ({ _id: 'p0' + i, name: 'منتج ' + i + ' (توضيحي)', category: 'قسم', price: 1000 * i, stock: 10 }));
+const CAT = PARTNER ? { _id: 'c1', name: PS.shop.category, icon: PS.shop.categoryIcon || 'bi-shop' } : { _id: 'c1', name: 'سوبر ماركت', icon: 'bi-cart4' };
+const CATS = [CAT];
+const SHOP_NAME = PARTNER ? PS.shop.name : 'متجر (توضيحي)';
+const PLACE = { _id: PID, name: SHOP_NAME, is_open: true, isOpenOverride: true, ratingAvg: 0, ratingCount: 0, ownerId: 'm1',
+  address: PARTNER ? PS.shop.address : 'الرياض', location: { lat: 15.584, lng: 32.566 }, category: CAT, city: 'Khartoum',
+  image_url: PARTNER ? img(PS.shop.cover || PS.shop.logo) : undefined, logo: PARTNER ? img(PS.shop.logo) : undefined };
+const PRODUCTS = PARTNER
+  ? PS.products.filter(x => x.name).map((x, i) => ({ _id: 'p0' + (i + 1), name: x.name, category: x.section || '', price: Number(x.price) || 0, image: img(x.image), stock: 10 }))
+  : [1, 2, 3, 4, 5, 6].map(i => ({ _id: 'p0' + i, name: 'منتج ' + i + ' (توضيحي)', category: 'قسم', price: 1000 * i, stock: 10 }));
+const PICKS = (PARTNER ? PS.cartPicks : [0, 1]).map(i => PRODUCTS[i] && PRODUCTS[i]._id).filter(Boolean);
 const SHOP_LIST = [[/auth\/me/, ME], [/auth\/refresh/, {}], [/unread-count/, { count: 0 }], [/banners/, []], [/places\/categories/, CATS],
   [/places\/favorites\/ids/, { ids: [] }], [/places\/favorites/, []], [/api\/places\?/, [PLACE]], PRICE];
 const SHOP_DETAIL = [[/auth\/me/, ME], [/auth\/refresh/, {}], [/unread-count/, { count: 0 }], [/merchant\/shop\/[0-9a-f]+\/products/, { place: PLACE, products: PRODUCTS }],
   [/places\/favorites\/ids/, { ids: [] }], [/delivery-zone/, {}], PRICE];
-const addItems = `(() => { addToCart('p01'); addToCart('p02'); document.querySelectorAll('.swal2-container').forEach(e => e.remove()); document.body.classList.remove('swal2-shown','swal2-height-auto'); return Object.keys(cart).length; })()`;
-const PAY = [{ method: 'bankak', label: 'بنكك', accountNumber: '—', accountName: 'متجر (توضيحي)' }];
+const addItems = `(() => { ${JSON.stringify(PICKS)}.forEach(id => addToCart(id)); document.querySelectorAll('.swal2-container').forEach(e => e.remove()); document.body.classList.remove('swal2-shown','swal2-height-auto'); return Object.keys(cart).length; })()`;
+// رقم الحساب لا يظهر أبداً في الإعلان
+const PAY = [{ method: (PS.paymentMethod || {}).method || 'bankak', label: (PS.paymentMethod || {}).label || 'بنكك', accountNumber: '—', accountName: SHOP_NAME }];
+const ITEMS = PICKS.reduce((t, id) => t + ((PRODUCTS.find(x => x._id === id) || {}).price || 0), 0);
 const shopOrder = (st, ps) => ({ _id: 'so1', shopOrderId: 'so1', orderType: 'shop', status: 'pending', realShopStatus: st, paymentStatus: ps || 'pending',
-  placeId: PID, price: 0, pickup: { address: 'متجر (توضيحي)' }, dropoff: { address: DROP }, createdAt: ago(3), details: '', paymentMethods: PAY, negotiations: [] });
+  placeId: PID, price: PARTNER ? ITEMS : 0, itemsTotal: PARTNER ? ITEMS : 0, pickup: { address: SHOP_NAME }, dropoff: { address: DROP }, createdAt: ago(3),
+  details: PARTNER ? PICKS.map(id => '1x ' + PRODUCTS.find(x => x._id === id).name).join('، ') : '', paymentMethods: PAY, negotiations: [] });
+const SP = PARTNER ? 'shop_' : 'SHOP_';   // لقطات الإعلان (shop_) أو التحقق فقط (SHOP_)
 
 // ── التتبّع ─────────────────────────────────────────────────────────────
 const TID = '650000000000000000a7c3f1';
@@ -110,14 +128,14 @@ const S = {
   // 06 التوصيل المتعدد في نموذج الطلب، 07 تقدّم المحطات في التتبّع
   multi_form:      { url: 'index.html', mocks: [...BASE, PRICE], before: fillForm(0), then: multiStops, then2: scrollTo('#dropoff-addr', 160) },
   multi_track:     { url: 'tracking.html?orderId=' + TID, mocks: TMOCK(track('picked_up', mid, MULTI)), before: mapReady(false) },
-  // 08–11 المتجر (توضيحي للتحقق)
-  SHOP_list:       { url: 'client-order.html', local: { wajeez_last_fix: { lat: 15.581, lng: 32.570, ts: NOW } }, mocks: SHOP_LIST },
-  SHOP_detail:     { url: 'shop-detail.html?placeId=' + PID, mocks: SHOP_DETAIL },
-  SHOP_cart:       { url: 'shop-detail.html?placeId=' + PID, mocks: SHOP_DETAIL, before: addItems },
-  SHOP_drawer:     { url: 'shop-detail.html?placeId=' + PID, mocks: SHOP_DETAIL, before: addItems, then: `(() => { if (window.openCart) openCart(); else if (window.toggleCart) toggleCart(); return true; })()` },
-  SHOP_pending:    { url: 'client-my-orders.html', mocks: ORDERS([shopOrder('shop_pending')]) },
-  SHOP_preparing:  { url: 'client-my-orders.html', mocks: ORDERS([shopOrder('shop_preparing', 'confirmed')]) },
-  SHOP_ready:      { url: 'client-my-orders.html', mocks: ORDERS([shopOrder('ready_for_pickup', 'confirmed')]) },
+  // 08–14 المتجر: الشريك (shop_*) أو توضيحي للتحقق (SHOP_*)
+  [SP + 'list']:       { url: 'client-order.html', local: { wajeez_last_fix: { lat: 15.581, lng: 32.570, ts: NOW } }, mocks: SHOP_LIST },
+  [SP + 'detail']:     { url: 'shop-detail.html?placeId=' + PID, mocks: SHOP_DETAIL },
+  [SP + 'cart']:       { url: 'shop-detail.html?placeId=' + PID, mocks: SHOP_DETAIL, before: addItems },
+  [SP + 'drawer']:     { url: 'shop-detail.html?placeId=' + PID, mocks: SHOP_DETAIL, before: addItems, then: `(() => { if (window.openCart) openCart(); else if (window.toggleCart) toggleCart(); return true; })()` },
+  [SP + 'pending']:    { url: 'client-my-orders.html', mocks: ORDERS([shopOrder('shop_pending')]) },
+  [SP + 'preparing']:  { url: 'client-my-orders.html', mocks: ORDERS([shopOrder('shop_preparing', 'confirmed')]) },
+  [SP + 'ready']:      { url: 'client-my-orders.html', mocks: ORDERS([shopOrder('ready_for_pickup', 'confirmed')]) },
   // 12 التتبّع، 13 الوصول
   tracking:        { url: 'tracking.html?orderId=' + TID, mocks: TMOCK(track('picked_up', mid)), before: mapReady(true) },
   delivered:       { url: 'tracking.html?orderId=' + TID, mocks: TMOCK(track('delivered', B)), before: mapReady(true) }
