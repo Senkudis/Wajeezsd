@@ -294,3 +294,176 @@ body.dark-mode #price-card.cu-collapsed #price-hint {
 #home-section #details {
     font-size: 16px;
 }
+
+/* ============================================================
+   التسوّق (client-order.html)
+   ============================================================ */
+
+/* البطل: سطرٌ واحد ثم البحث — كان ترحيباً وعنواناً بسطرين ووصفاً وشعاراً
+   كبيراً، فينزل البحث (أهمّ ما في الصفحة) إلى منتصف الشاشة */
+.order-hero .hero-greeting,
+.order-hero .hero-subtitle {
+    display: none;
+}
+
+.order-hero .hero-title {
+    font-size: 20px;
+    margin: 0;
+}
+
+.order-hero .hero-logo img {
+    height: 34px;
+}
+
+.order-hero .hero-search input {
+    font-size: 16px;
+}
+
+.order-hero .hero-search input::placeholder {
+    color: rgba(255, 255, 255, 0.78);
+}
+
+/* نصوص البطاقات: لا شيء تحت 12px */
+.cat-chip .chip-label,
+.place-card-status,
+.place-card-cat,
+.errand-chip,
+.errand-place-meta,
+.srf-chip span,
+.sr-shop,
+.recent-chip {
+    font-size: 12.5px;
+}
+
+/* أهداف لمس بحجم إصبع */
+.place-fav-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
+}
+
+.errand-map-btn {
+    width: 44px;
+    height: 44px;
+}
+
+.place-card-menu-btn {
+    min-height: 44px;
+    font-size: 13px;
+}
+
+/* بحث «اطلب من أي محل»: خطّه 13px كان يكبّر الصفحة في iOS عند الكتابة */
+#errandSearch {
+    font-size: 16px !important;
+    padding: 12px 38px 12px 12px !important;
+    min-height: 48px;
+}
+
+/* ============================================================
+   صفحة المتجر (shop-detail.html)
+   ============================================================ */
+
+/* أزرار الكمية: 28px و24px في السلة — أصغر من إصبع. والبرتقالي مع أبيض
+   تباينه 2.2:1 فالعلامتان + و − بالكاد تُقرآن */
+.qty-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.qty-control {
+    gap: 12px;
+}
+
+.cart-item .qty-control {
+    gap: 8px !important;
+}
+
+.shop-hero-action {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+}
+
+.cu-hero-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.product-name {
+    font-size: 15px;
+}
+
+.product-desc {
+    font-size: 13px;
+    color: var(--cu-ink-2);
+}
+
+.product-more {
+    font-size: 13px;
+    padding: 6px 0 10px;
+}
+
+/* ============================================================
+   طلباتي والتتبّع
+   ============================================================ */
+
+/* الإلغاء رابطٌ أحمر في الوسط — كان أعرض زرٍّ في البطاقة، فيصير
+   «إلغاء الطلب» أوضح خيارٍ أمام من ينتظر كابتنه */
+.cu-cancel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 6px;
+    background: none;
+    border: 0;
+    color: var(--cu-danger);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+body.dark-mode .cu-cancel {
+    color: #F87171;
+}
+
+/* مراحل الطلب: 9px و10px بلونٍ رماديٍّ فاتح — أهمّ معلومة في الشاشة كانت أصغرها */
+.o-tl-lbl,
+.step-label {
+    font-size: 12px;
+    color: var(--cu-ink-2);
+}
+
+.o-tl-time,
+.step-time {
+    font-size: 11.5px;
+    color: var(--cu-ink-2);
+}
+
+.offer-price-box .lbl {
+    font-size: 12.5px;
+}
+
+.route-point-row,
+.route-addr {
+    font-size: 14px;
+}
+
+/* الوجهة بلون الحبر لا الأحمر — كما في نموذج الطلب */
+.route-icon.dropoff {
+    background: #E9ECEA;
+    color: var(--cu-ink);
+}
+
+body.dark-mode .route-icon.dropoff {
+    background: #374151;
+    color: #F3F4F6;
+}

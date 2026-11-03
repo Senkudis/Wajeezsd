@@ -17,6 +17,7 @@
 
 const logger = require('./logger');
 const { arabicFlexibleRegex } = require('./arabicSearch');
+const { nameScore, pinInOtherCity, byRelevance } = require('./searchRank');
 
 /** منطقة التوصيل المرسومة للمدينة — أو null حين لا تُضبط بعد */
 async function deliveryZoneFor(city) {
@@ -76,7 +77,13 @@ async function runErrandSearch({ q = '', categoryKey = '', city = 'Khartoum', la
             category: (p.category && p.category.name) || '',
             curated: p.errandEnabled === true,
             source: 'wajeez'
-        })).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+        }))
+            .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+            // 🌍 متجرٌ مسجّل بمدينةٍ ودبّوسه في أخرى: لا يُقترح خارج مدينته الفعلية
+            .filter(p => !pinInOtherCity({ lat: p.lat, lng: p.lng }, city))
+            .map(p => ({ ...p, _score: nameScore(p.name, q) }))
+            .sort(byRelevance)
+            .map(({ _score, ...p }) => p);
     }
 
     // 2) بقية العالم — محصورة في منطقة توصيل المدينة.

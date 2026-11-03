@@ -48,6 +48,21 @@ const logger = require('../utils/logger');
 // 🔤 Arabic-aware search regex ⇐ utils/arabicSearch
 // (نُقل ليتشاركه بحث المتاجر وبحث "اشترِ لي" فلا يفترق تطبيعهما)
 const { arabicFlexibleRegex } = require('../utils/arabicSearch');
+// 🎯 قوّة المطابقة وحراسة المدينة بالدبوس — مشتركة مع بحث «اشترِ لي»
+const { nameScore, pinInOtherCity, byRelevance } = require('../utils/searchRank');
+
+/**
+ * 🌍 مدينة البحث للعميل: المختارة إن صلحت، وإلا مدينة موقعه، وإلا الخرطوم.
+ * ⚠️ CityService.getCity() يُرجع null حين لا تُحفظ مدينة (أو مُسح التخزين)،
+ *    فكانت الواجهة ترسل city=null: بحث المتاجر يبحث عن مدينةٍ اسمها «null»
+ *    فلا يجد شيئاً، وبحث «اشترِ لي» يسقط للخرطوم — فيرى عميل عطبرة محلات
+ *    الخرطوم. الواجهة ترسل موقعه أصلاً (lat/lng)، فهو الحَكَم حين تغيب المدينة.
+ */
+function searchCity(req) {
+    if (CITY_KEYS.includes(req.query.city)) return req.query.city;
+    const { cityFromCoords } = require('../utils/geofence');
+    return cityFromCoords(parseFloat(req.query.lat), parseFloat(req.query.lng)) || 'Khartoum';
+}
 // 🏷️ السعر الفعّال بعد العرض الظاهر — نفس الدالة التي يحسب بها الطلب
 const { effectivePrice } = require('../utils/productPricing');
 
@@ -145,7 +160,7 @@ router.get('/search', async (req, res) => {
         const term = (req.query.q || '').trim();
         if (term.length < 1) return res.json({ places: [], products: [] });
 
-        const cityFilter = (req.query.city && req.query.city !== 'all') ? req.query.city : 'Khartoum';
+        const cityFilter = searchCity(req);
 
         // 🔤 تطبيع البحث العربي: يطابق كل أشكال الحرف ويتجاهل التشكيل
         //    (أ/إ/آ/ا متكافئة، ة/ه، ي/ى/ئ، و/ؤ) — يطابق بيانات القاعدة مهما كان رسمها.
@@ -176,37 +191,48 @@ router.get('/search', async (req, res) => {
         const activeCatIds = activeCatDocs.map(c => c._id);
         const placeOr = [{ name: rx }];
         if (matchedCatIds.length) placeOr.push({ category: { $in: matchedCatIds } });
+        // 🎯 30 لا 20: الترتيب بقوّة المطابقة يجري بعد الجلب، فنجلب هامشاً ثم نقصّ
         const placeDocs = await Place.find({
             isActive: true, city: cityFilter, category: { $in: activeCatIds }, $or: placeOr
         })
             .select(PLACE_CLIENT_EXCLUDE)   // 🔒 نفس التسريب كان في البحث أيضاً
             .populate('category', 'name icon')
-            .limit(20);
+            .limit(30);
 
         // 2) منتجات: مطابقة بالاسم أو الوصف أو التصنيف الداخلي (كلمات عامة)،
-        //    ثم نربطها بمتاجرها داخل نفس المدينة
-        const productDocs = await Product.find({
-            isAvailable: true,
-            $or: [{ name: rx }, { description: rx }, { category: rx }]
-        })
-            .select('name price salePrice saleStartsAt saleEndsAt image placeId category ratingAvg')
-            .limit(40)
-            .lean();
-
-        const prodPlaceIds = [...new Set(productDocs.map(p => String(p.placeId)))];
-        const prodPlaces = await Place.find({ _id: { $in: prodPlaceIds }, isActive: true, city: cityFilter })
+        //    **من متاجر المدينة وحدها**.
+        //    ⚠️ كان السقف (40) يُطبَّق على منتجات كل المدن ثم تُصفّى بالمدينة:
+        //    كلمةٌ شائعة في الخرطوم تملأ الأربعين، فلا يبقى لعميل عطبرة منتجٌ
+        //    واحد من متاجر مدينته — «ما لقينا» والمنتج موجود.
+        const cityPlaces = await Place.find({ isActive: true, city: cityFilter, category: { $in: activeCatIds } })
             .select('name location image_url')
             .lean();
         const placeMap = {};
-        prodPlaces.forEach(pl => { placeMap[String(pl._id)] = pl; });
+        cityPlaces
+            .filter(pl => !pinInOtherCity(pl.location, cityFilter))
+            .forEach(pl => { placeMap[String(pl._id)] = pl; });
+
+        const productDocs = await Product.find({
+            isAvailable: true,
+            placeId: { $in: Object.keys(placeMap) },
+            $or: [{ name: rx }, { description: rx }, { category: rx }]
+        })
+            .select('name price salePrice saleStartsAt saleEndsAt image placeId category ratingAvg')
+            .limit(60)
+            .lean();
 
         // متاجر للعرض (مع الـ virtuals مثل is_open) + المسافة
-        let places = placeDocs.map(p => {
-            const obj = stripPlaceClientFields(p.toJSON());
-            if (p.ownerId) obj.ownerId = p.ownerId;
-            if (hasLoc) obj.distanceKm = distKm(obj.location);
-            return obj;
-        });
+        // 🌍 دبّوسٌ في مدينةٍ أخرى = متجرٌ مسجّل بمدينةٍ خاطئة: لا يُعرض هنا
+        let places = placeDocs
+            .filter(p => !pinInOtherCity(p.location, cityFilter))
+            .map(p => {
+                const obj = stripPlaceClientFields(p.toJSON());
+                if (p.ownerId) obj.ownerId = p.ownerId;
+                if (hasLoc) obj.distanceKm = distKm(obj.location);
+                // مطابقة الاسم أقوى من مطابقة القسم وحده
+                obj._score = nameScore(p.name, term) || 20;
+                return obj;
+            });
 
         // 🛍️ فصل محلات "اشترِ لي" (بلا تاجر) عن المتاجر: بطاقتها تقود لطلب شراء لا
         // لصفحة متجر فارغة، وعدُّها ضمن المتاجر كان يُخفي عن العميل أن محلّه غير
@@ -224,8 +250,10 @@ router.get('/search', async (req, res) => {
                 distanceKm: p.distanceKm,
                 curated: true,
                 errandOnly: true,   // للواجهة: لا تفتح صفحة متجر — ابدأ طلب شراء
-                source: 'wajeez'    // مسجّل عندنا ⇒ الطلب يُربط بمعرّفه
-            }));
+                source: 'wajeez',   // مسجّل عندنا ⇒ الطلب يُربط بمعرّفه
+                _score: p._score
+            }))
+            .sort(byRelevance);
         places = places.filter(p => !(!p.ownerId && p.errandEnabled === true));
 
         // منتجات للعرض (فقط ما متجره ضمن المدينة وفعّال) + اسم المتجر + المسافة
@@ -244,15 +272,21 @@ router.get('/search', async (req, res) => {
                     place: { _id: pl._id, name: pl.name, image_url: pl.image_url, location: pl.location }
                 };
                 if (hasLoc) out.distanceKm = distKm(pl.location);
+                // الاسم أولاً، ثم التصنيف الداخلي، والوصف أضعفها (كلمةٌ عابرة فيه)
+                out._score = nameScore(pr.name, term)
+                    || (rx.test(pr.category || '') ? 20 : 10);
                 return out;
             });
 
-        // ترتيب بالأقرب عند توفّر الموقع
-        if (hasLoc) {
-            const byDist = (a, b) => (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9);
-            places.sort(byDist);
-            products.sort(byDist);
-        }
+        // 🎯 الأقوى مطابقةً أولاً ثم الأقرب — كان الترتيب بالمسافة وحدها
+        places.sort(byRelevance);
+        products.sort(byRelevance);
+        places = places.slice(0, 20);
+        products = products.slice(0, 40);
+        const strip = (o) => { delete o._score; return o; };
+        places.forEach(strip);
+        products.forEach(strip);
+        errandPlaces.forEach(strip);
 
         res.json({ categories: matchedCats, places, products, errandPlaces });
     } catch (err) {
@@ -280,7 +314,7 @@ router.get('/errand-categories', (req, res) => {
 // @access  عام — بيانات من قاعدتنا فقط
 router.get('/errand-featured', async (req, res) => {
     try {
-        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
+        const city = searchCity(req);
 
         const [curated, popular] = await Promise.all([
             // ⚠️ errandEnabled فقد دوره القديم (كان السبيل الوحيد لإضافة محل) حين صار
@@ -465,7 +499,7 @@ router.get('/errand-search', protect, async (req, res) => {
         const { runErrandSearch } = require('../utils/errandSearch');
         const q = String(req.query.q || '').trim();
         const categoryKey = String(req.query.category || '').trim();
-        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
+        const city = searchCity(req);
 
         if (!q && !categoryKey) return res.json({ ours: [], external: [] });
 
@@ -513,7 +547,7 @@ router.get('/errand-suggest', async (req, res) => {
         const { runErrandSearch } = require('../utils/errandSearch');
         const { normalizeQuery } = require('../utils/placesSearch');
         const q = String(req.query.q || '').trim();
-        const city = CITY_KEYS.includes(req.query.city) ? req.query.city : 'Khartoum';
+        const city = searchCity(req);
 
         // أقلّ من حرفين يطابق نصف القاعدة — ضوضاء لا اقتراح
         if (q.length < 2) return res.json({ external: [] });

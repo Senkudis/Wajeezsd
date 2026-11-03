@@ -291,7 +291,7 @@
         .shop-hero-action:active { transform: scale(0.88); }
     </style>
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً (docs/customer-ui-redesign.md) -->
-    <link rel="stylesheet" href="css/client-ui.css?v=779a8a05">
+    <link rel="stylesheet" href="css/client-ui.css?v=5a64ff72">
 </head>
 <body>
 
@@ -300,7 +300,7 @@
     <div id="shopHeroContainer" class="shop-hero-fallback"><i class="bi bi-shop"></i></div>
     <div class="shop-info-overlay">
         <div class="d-flex align-items-center gap-2 mb-1">
-            <a href="javascript:history.back()" class="text-white text-decoration-none"><i class="bi bi-arrow-right fs-5"></i></a>
+            <a href="javascript:history.back()" class="text-white text-decoration-none cu-hero-back" aria-label="رجوع"><i class="bi bi-arrow-right fs-5" aria-hidden="true"></i></a>
             <span id="shopBadge" class="open-badge" style="background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.5);color:#86efac;">
                 <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></span> مفتوح
             </span>
@@ -441,7 +441,7 @@
                 <h6 class="modal-title fw-bold">
                     <i class="bi bi-bag-check-fill me-2"></i>تأكيد الطلب
                 </h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body p-4">
                 <!-- Order Summary -->
@@ -1100,9 +1100,9 @@
                     alt="${escapeHtml(p.name)}" onerror="prodImgFallback(this)"></button>`
             : `<i class="bi bi-box-seam-fill"></i>`;
 
-        const shareBtnHtml = `<button onclick="shareProduct('${p._id}', event)"
+        const shareBtnHtml = `<button onclick="shareProduct('${p._id}', event)" aria-label="مشاركة المنتج"
             class="btn btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm d-flex align-items-center justify-content-center"
-            style="width:32px; height:32px; padding:0; z-index:2;">
+            style="width:40px; height:40px; padding:0; z-index:2;">
             <i class="bi bi-share-fill text-primary" style="font-size:14px;"></i>
         </button>`;
 
@@ -1255,9 +1255,9 @@
             <div class="cart-item">
                 <div class="cart-item-name">${escapeHtml(product.name)}</div>
                 <div class="qty-control" style="margin:0;gap:6px;">
-                    <button class="qty-btn" style="width:24px;height:24px;font-size:12px;" onclick="changeQty('${product._id}', -1)">−</button>
+                    <button class="qty-btn" aria-label="إنقاص" onclick="changeQty('${product._id}', -1)">−</button>
                     <span class="qty-num" style="font-size:14px;">${qty}</span>
-                    <button class="qty-btn" style="width:24px;height:24px;font-size:12px;" onclick="changeQty('${product._id}', 1)">+</button>
+                    <button class="qty-btn" aria-label="زيادة" onclick="changeQty('${product._id}', 1)">+</button>
                 </div>
                 <span class="fw-bold text-success" style="min-width:70px;text-align:left;">${unitPrice(product) * qty} ج.س</span>
             </div>

@@ -152,8 +152,17 @@ window.openMapModal = function(mode) {
     const _locHere = window.userLocation && (!window.CityService || CityService.inCurrentCity(window.userLocation));
     if (window.userLocation && window.CityService) CityService.noticeLocation(window.userLocation.lat, window.userLocation.lng);
 
+    // ✏️ تعديل نقطةٍ محدّدة: افتح عليها هي لا على موقع العميل. كان كل فتحٍ
+    // يقفز لموقعه الحالي، فمن أراد تحريك دبّوس الاستلام أمتاراً يبحث عنه من جديد.
+    const _prevLat = parseFloat(document.getElementById(`${mode}-lat`)?.value);
+    const _prevLng = parseFloat(document.getElementById(`${mode}-lng`)?.value);
+    const _hasPrev = Number.isFinite(_prevLat) && Number.isFinite(_prevLng);
+
     if (mapInitialized && map) {
-        if (_locHere) {
+        if (_hasPrev) {
+            map.panTo({ lat: _prevLat, lng: _prevLng });
+            map.setZoom(17);
+        } else if (_locHere) {
             map.panTo(window.userLocation);
         }
 
@@ -654,6 +663,7 @@ function _sheetResolving(on) {
 function _updateCenterAddress() {
     if (!map) return;
     const c = map.getCenter();
+    if (!c) return;   // الخريطة لم تُرسم بعد
     const lat = c.lat(), lng = c.lng();
     const previewEl = document.getElementById('map-address-preview');
 
@@ -728,11 +738,23 @@ window.confirmLocationSelection = function() {
     const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
     let center = WajeezCities.center(currentCity);
 
-    if (map && mapInitialized) {
-        const c = map.getCenter();
+    // خريطةٌ لم تُرسم (شبكة ضعيفة أو رفض المفتاح) تُرجع مركزاً فارغاً: كان التأكيد
+    // ينهار بخطأ صامت، والبديل الأسوأ — مركز المدينة — يضع الدبوس حيث لم يقصد.
+    const c = (map && mapInitialized && map.getCenter) ? map.getCenter() : null;
+    if (c) {
         center = { lat: c.lat(), lng: c.lng() };
     } else if (window.userLocation) {
         center = { ...window.userLocation };
+    } else {
+        Swal.fire({
+            target: document.getElementById('static-map-container'),
+            icon: 'warning',
+            title: 'الخريطة ما اتحمّلت',
+            text: 'اتأكد من النت وجرّب تاني، أو الصق رابط الموقع من خرائط جوجل.',
+            confirmButtonText: 'حاضر',
+            confirmButtonColor: '#04553A'
+        });
+        return;
     }
 
     const mode = currentSelectionMode;
@@ -770,6 +792,12 @@ window.confirmLocationSelection = function() {
 
     // ارسم المسار الكامل عبر كل النقاط المحددة (يشمل النقاط الإضافية إن وُجدت)
     refreshMultiRoute();
+
+    // ➡️ الخطوة التالية بلا بحث: بعد الاستلام تفتح الوجهة مباشرة إن كانت فارغة.
+    // كان العميل يعود للنموذج ويبحث بعينه عن «لوين» — وهو أكثر موضعٍ يتوقّف فيه.
+    if (mode === 'pickup' && !window._errandMode && !document.getElementById('dropoff-lat').value) {
+        setTimeout(() => window.openMapModal('dropoff'), 250);
+    }
 };
 
 // ══════════════════════════════════════════════════════
