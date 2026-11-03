@@ -22,7 +22,7 @@
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً (docs/customer-ui-redesign.md) -->
-    <link rel="stylesheet" href="css/client-ui.css?v=5a64ff72">
+    <link rel="stylesheet" href="css/client-ui.css?v=714c19a3">
 </head>
 
 <body class="bg-light">
@@ -31,15 +31,13 @@
         <div class="auth-box glass-card card-hover p-4 p-md-5">
             <div class="text-center mb-4">
                 <a href="index.html" class="d-inline-block transition-transform hover-scale">
-                    <img src="logo-mark-white.png" alt="???? ????" height="80" style="object-fit:contain; background:var(--primary); border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
+                    <img src="logo-mark-white.png" alt="شعار وجيز" height="80" style="object-fit:contain; background:var(--primary); border-radius:24px; padding:12px; display:block; box-shadow: 0 6px 20px rgba(4,85,58,0.25);">
                 </a>
             </div>
 
             <!-- Step 1: Register Form -->
             <div id="register-step">
-                <h2 class="text-center mb-4 fw-bold text-dark">
-                    إنشاء حساب عميل <i class="bi bi-person-plus text-primary"></i>
-                </h2>
+                <h2 class="text-center mb-4 fw-bold text-dark">حساب جديد</h2>
 
                 <div id="error" class="alert alert-danger d-none mb-3" role="alert"></div>
 
@@ -49,8 +47,8 @@
                 </div>
 
                 <div class="mb-3 text-end">
-                    <label for="phone" class="form-label fw-bold small text-muted">رقم الهاتف</label>
-                    <input type="text" id="phone" class="form-control" placeholder="09xxxxxxxx" dir="ltr" autocomplete="tel" inputmode="tel">
+                    <label for="phone" class="form-label fw-bold small text-muted">رقم تلفونك</label>
+                    <input type="tel" id="phone" class="form-control" placeholder="0912345678" dir="ltr" autocomplete="tel" inputmode="tel">
                 </div>
 
                 <div class="mb-3 text-end">
@@ -59,11 +57,11 @@
                 </div>
 
                 <div class="mb-4 text-end">
-                    <label for="password" class="form-label fw-bold small text-muted">كلمة المرور</label>
+                    <label for="password" class="form-label fw-bold small text-muted">كلمة السر (6 حروف أو أكتر)</label>
                     <div class="input-group">
                         <input type="password" id="password" class="form-control" placeholder="******" autocomplete="new-password">
                         <button class="btn btn-outline-secondary" type="button"
-                            onclick="togglePasswordVisibility('password', this)" tabindex="-1">
+                            onclick="togglePasswordVisibility('password', this)" aria-label="إظهار كلمة السر">
                             <i class="bi bi-eye-fill"></i>
                         </button>
                     </div>
@@ -71,9 +69,7 @@
 
                 <!-- 🌍 City Selection -->
                 <div class="mb-4 text-end">
-                    <label for="registerCity" class="form-label fw-bold small text-muted">
-                        <i class="bi bi-geo-alt-fill text-success ms-1"></i> المدينة
-                    </label>
+                    <label for="registerCity" class="form-label fw-bold small text-muted">مدينتك</label>
                     <select id="registerCity" class="form-select" required
                         style="padding: 12px; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 12px; background-color: #f8f9fa; transition: border-color 0.3s;">
                         <option value="" disabled selected>— اختر مدينتك —</option>
@@ -81,11 +77,11 @@
                         <option value="PortSudan">البحر الأحمر - بورتسودان</option>
                         <option value="Atbara">نهر النيل - عطبرة</option>
                     </select>
-                    <small class="text-muted" style="font-size: 11px;">لا يمكن تغيير المدينة لاحقاً إلا بواسطة الإدارة</small>
+                    <small class="text-muted" style="font-size: 13px;">تغييرها بعدين بيكون عن طريق الإدارة</small>
                 </div>
 
-                <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="registerStep()">
-                    إنشاء الحساب وإرسال الكود
+                <button id="registerSubmitBtn" class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="registerStep()">
+                    أعمل الحساب
                 </button>
 
                 <!-- Google Sign-In: يظهره setupGoogleSignIn() — زر Google الرسمي على الويب، وزرّ أصلي في أندرويد، ومخفي في iOS -->
@@ -105,8 +101,8 @@
                 </div>
 
                 <div class="text-center mt-3">
-                    <p class="text-muted">لديك حساب؟
-                        <a href="client-login.html" class="text-primary fw-bold text-decoration-none">دخل الآن</a>
+                    <p class="text-muted">عندك حساب؟
+                        <a href="client-login.html" class="text-primary fw-bold text-decoration-none tap-link">أدخل</a>
                     </p>
                 </div>
             </div>
@@ -329,7 +325,9 @@
             const normalizedPhone = normalizePhone(phone);
 
             // زر تحميل
-            const regBtn = document.querySelector('#register-step button');
+            // زرّ الإرسال بمعرّفه: «أوّل زرّ في النموذج» كان زرّ إظهار كلمة السر،
+            // فيدور التحميل عليه ويبقى الإرسال قابلاً لضغطةٍ ثانية أثناء الطلب
+            const regBtn = document.getElementById('registerSubmitBtn');
             const oldText = regBtn.innerText;
             regBtn.innerHTML = '<span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span> جاري المعالجة...';
             regBtn.disabled = true;

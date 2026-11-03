@@ -417,7 +417,7 @@
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً (docs/customer-ui-redesign.md) -->
-    <link rel="stylesheet" href="css/client-ui.css?v=5a64ff72">
+    <link rel="stylesheet" href="css/client-ui.css?v=714c19a3">
 </head>
 
 <body class="bg-light">
@@ -739,7 +739,7 @@
                         ? `<span class="offer-countdown" data-expires="${n.expiresAt}"><i class="bi bi-clock"></i> <span class="cd-text">—</span></span>` : '');
                 const actions = opts.lapsed ? restoreBtnHtml(respondId, n) : `
                         <button class="btn btn-success flex-grow-1" onclick="respondToNegotiation('${respondId}', 'accept', '${n.captainId}')"><i class="bi bi-check-lg me-1"></i> قبول العرض</button>
-                        <button class="btn btn-outline-danger" style="flex:0 0 40%;" onclick="respondToNegotiation('${respondId}', 'reject', '${n.captainId}')"><i class="bi bi-x-lg me-1"></i> رفض</button>`;
+                        <button class="btn btn-light border" style="flex:0 0 34%;" onclick="respondToNegotiation('${respondId}', 'reject', '${n.captainId}')">رفض</button>`;
                 return `
                 <div class="offer-card" data-respond="${respondId}" data-captain="${n.captainId}" data-price="${Number(n.proposedPrice) || 0}">
                     <div class="offer-top">
@@ -951,15 +951,14 @@
             let _ordersSeen = [];
             let _activeFilter = 'active';
 
+            // تبويبان لا خمسة: «بانتظار كابتن» كان جزءاً من «جارية»، و«الكل» يكرّر
+            // الاثنين، و«مكتملة/ملغاة» سؤالٌ واحد عند العميل: «طلباتي اللي فاتت».
+            // وحالة كل طلبٍ مكتوبةٌ على بطاقته أصلاً.
+            const ACTIVE_STATUSES = ['pending','scheduled','accepted','picked_up',
+                'shop_pending','shop_preparing','ready_for_pickup','captain_assigned'];
             const ORDER_TABS = [
-                { key: 'active', label: 'جارية', icon: 'bi-lightning-charge-fill', match: s =>
-                    ['pending','scheduled','accepted','picked_up',
-                     'shop_pending','shop_preparing','ready_for_pickup','captain_assigned'].includes(s) },
-                { key: 'waiting', label: 'بانتظار كابتن', icon: 'bi-hourglass-split', match: s =>
-                    ['pending','ready_for_pickup'].includes(s) },
-                { key: 'delivered', label: 'مكتملة', icon: 'bi-check-circle-fill', match: s => s === 'delivered' },
-                { key: 'cancelled', label: 'ملغاة', icon: 'bi-x-circle-fill', match: s => s === 'cancelled' },
-                { key: 'all', label: 'الكل', icon: 'bi-grid-fill', match: () => true }
+                { key: 'active', label: 'جارية', icon: 'bi-lightning-charge-fill', match: s => ACTIVE_STATUSES.includes(s) },
+                { key: 'past', label: 'السابقة', icon: 'bi-clock-history', match: s => !ACTIVE_STATUSES.includes(s) }
             ];
 
             function renderOrderTabs() {
@@ -978,6 +977,13 @@
                     </button>`;
                 }).join('');
             }
+
+            /** طلبٌ قادم من إشعار قد يكون في التبويب الآخر — افتح تبويبه قبل إبرازه */
+            window._showOrderTab = function (id) {
+                const o = _ordersSeen.find(x => String(x.id) === String(id));
+                const t = o && ORDER_TABS.find(tab => tab.match(o.fstatus));
+                if (t && t.key !== _activeFilter) applyOrderFilter(t.key);
+            };
 
             window.applyOrderFilter = function (key) {
                 _activeFilter = key;
@@ -1001,7 +1007,7 @@
                         document.getElementById('orders-list').appendChild(empty);
                     }
                     empty.innerHTML = `<i class="bi bi-funnel fs-1 text-secondary opacity-50 mb-2 d-block"></i>
-                        <p class="text-muted fw-bold mb-0">لا توجد طلبات ${tab.label === 'الكل' ? '' : 'في «' + tab.label + '»'}</p>`;
+                        <p class="text-muted fw-bold mb-0">${tab.key === 'active' ? 'ما عندك طلب جاري هسي' : 'ما عندك طلبات سابقة'}</p>`;
                 } else if (empty) {
                     empty.remove();
                 }
@@ -1370,7 +1376,7 @@
                     // يفتح العميل الصفحة لأجله، لا سجلّ ما انتهى قبل شهر.
                     if (!append) {
                         const hasActive = _ordersSeen.some(o => ORDER_TABS[0].match(o.fstatus));
-                        _activeFilter = hasActive ? 'active' : 'all';
+                        _activeFilter = hasActive ? 'active' : 'past';
                     }
                     applyOrderFilter(_activeFilter);
 
@@ -2115,6 +2121,7 @@
             function highlightOrderCard(id) {
                 const card = document.getElementById(`order-${id}`);
                 if (!card) return;
+                if (window._showOrderTab) window._showOrderTab(id);
                 card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 card.style.transition = 'box-shadow 0.4s, transform 0.4s';
                 card.style.boxShadow = '0 0 0 4px rgba(10,135,84,0.5), 0 10px 30px rgba(10,135,84,0.3)';

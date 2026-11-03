@@ -43,7 +43,7 @@
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً (docs/customer-ui-redesign.md) -->
-    <link rel="stylesheet" href="css/client-ui.css?v=5a64ff72">
+    <link rel="stylesheet" href="css/client-ui.css?v=714c19a3">
 </head>
 
 <body class="bg-light">
@@ -58,40 +58,33 @@
                 </a>
             </div>
 
-            <h2 class="text-center mb-4 fw-bold text-dark">
-                <i class="bi bi-person-check-fill text-primary ms-2"></i>
-                أهلاً بك!
-            </h2>
+            <h2 class="text-center mb-4 fw-bold text-dark">سجّل دخولك</h2>
 
             <div id="alert-box" class="alert d-none align-items-center mb-4" role="alert"></div>
 
             <div class="mb-3 text-end">
-                <label for="email" class="form-label fw-bold small text-muted">
-                    <i class="bi bi-person-fill text-primary ms-1"></i> رقم الهاتف أو البريد الإلكتروني
-                </label>
+                <label for="email" class="form-label fw-bold small text-muted">رقم تلفونك (أو الإيميل)</label>
                 <input type="text" id="email" class="form-control form-control-lg"
-                    placeholder="09xxxxxxxx أو name@example.com" dir="ltr" autocomplete="username">
+                    placeholder="0912345678" dir="ltr" autocomplete="username" enterkeyhint="next">
             </div>
 
             <div class="mb-4 text-end">
-                <label for="password" class="form-label fw-bold small text-muted">
-                    <i class="bi bi-lock-fill text-primary ms-1"></i> كلمة المرور
-                </label>
+                <label for="password" class="form-label fw-bold small text-muted">كلمة السر</label>
                 <div class="input-group">
-                    <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••" autocomplete="current-password">
+                    <input type="password" id="password" class="form-control form-control-lg" placeholder="••••••••" autocomplete="current-password" enterkeyhint="go">
                     <button class="btn btn-outline-secondary" type="button"
-                        onclick="togglePasswordVisibility('password', this)" aria-label="إظهار كلمة المرور" tabindex="-1">
+                        onclick="togglePasswordVisibility('password', this)" aria-label="إظهار كلمة السر">
                         <i class="bi bi-eye-fill"></i>
                     </button>
                 </div>
                 <div class="text-start mt-2">
                     <a href="#" role="button" onclick="openForgotPassword(); return false;"
-                        class="text-primary small text-decoration-none fw-bold tap-link">نسيت كلمة المرور؟</a>
+                        class="text-primary small text-decoration-none fw-bold tap-link">نسيت كلمة السر؟</a>
                 </div>
             </div>
 
             <button class="btn btn-primary w-100 py-3 mb-3 fw-bold shadow-sm" onclick="login()">
-                <i class="bi bi-box-arrow-in-right ms-2"></i> تسجيل الدخول
+                دخول
             </button>
 
             <!-- Google Sign-In: يظهره setupGoogleSignIn() — زر Google الرسمي على الويب، وزرّ أصلي في أندرويد، ومخفي في iOS -->
@@ -113,9 +106,9 @@
             <!-- Register + Back links -->
             <div class="text-center mt-4">
                 <div class="mb-4">
-                    <p class="text-muted mb-2">ليس لديك حساب؟</p>
+                    <p class="text-muted mb-2">ما عندك حساب؟</p>
                     <a href="client-register.html" class="btn btn-outline-primary w-100 py-2 fw-bold">
-                        <i class="bi bi-person-plus-fill me-2"></i> إنشاء حساب جديد
+                        أعمل حساب جديد
                     </a>
                 </div>
                 <div class="border-top pt-3 mt-3">

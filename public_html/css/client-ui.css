@@ -25,6 +25,15 @@
     --cu-danger: #B42318;
     --cu-gold-ink: #8A6212;
     --cu-tap: 48px;
+
+    /* أزرق Bootstrap الافتراضي كان يظهر في الدخول والروابط والأيقونات — لونٌ
+       ليس من الهوية. نعيد تعريفه بأخضر وجيز في صفحات العميل وحدها */
+    --bs-primary: #04553A;
+    --bs-primary-rgb: 4, 85, 58;
+    --bs-link-color: #04553A;
+    --bs-link-color-rgb: 4, 85, 58;
+    --bs-link-hover-color: #0A6B49;
+    --bs-link-hover-color-rgb: 10, 107, 73;
 }
 
 body.dark-mode {
@@ -466,4 +475,69 @@ body.dark-mode .cu-cancel {
 body.dark-mode .route-icon.dropoff {
     background: #374151;
     color: #F3F4F6;
+}
+
+/* عرض الكابتن: السعر هو القرار، فهو أكبر ما في البطاقة */
+.offer-price-box .val {
+    font-size: 23px;
+}
+
+.offer-actions .btn {
+    min-height: 48px;
+}
+
+/* تبويبا «جارية / السابقة» يتقاسمان العرض */
+.orders-filterbar .of-tab {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+    font-size: 14px;
+}
+
+/* ============================================================
+   الدخول والتسجيل
+   ============================================================ */
+
+/* زرّ Bootstrap الأساسي بلون الهوية — قيمه حرفية في الحزمة لا متغيّرات */
+.auth-box .btn-primary {
+    --bs-btn-bg: #04553A;
+    --bs-btn-border-color: #04553A;
+    --bs-btn-hover-bg: #0A6B49;
+    --bs-btn-hover-border-color: #0A6B49;
+    --bs-btn-active-bg: #03442E;
+    --bs-btn-active-border-color: #03442E;
+    min-height: 56px;
+    font-size: 17px;
+}
+
+.auth-box .btn-outline-primary {
+    --bs-btn-color: #04553A;
+    --bs-btn-border-color: #04553A;
+    --bs-btn-hover-bg: #04553A;
+    --bs-btn-hover-border-color: #04553A;
+    --bs-btn-active-bg: #03442E;
+    min-height: 48px;
+}
+
+.auth-box .form-label {
+    font-size: 15px;
+    color: var(--cu-ink) !important;
+}
+
+.auth-box .tap-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 14px;
+}
+
+/* التتبّع: تفاصيل الكابتن 11px كانت أصغر من أن تُقرأ أثناء الانتظار في الشارع */
+#captain-vehicle,
+.captain-rating,
+.captain-trips {
+    font-size: 13px !important;
+}
+
+.price-row .lbl {
+    font-size: 14px;
 }
