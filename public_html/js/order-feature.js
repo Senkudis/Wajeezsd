@@ -232,9 +232,9 @@ window.renderCategoryChips = function(categories, isSearchResult = false) {
         const color = CAT_COLORS[i % CAT_COLORS.length];
 
         return `
-        <div class="cat-chip fade-in-up" data-cat-id="${escapeHtml(String(cat._id))}" data-cat-name="${(cat.name||'').replace(/"/g,'&quot;')}" data-cat-notes="${(cat.notes||'').replace(/"/g,'&quot;')}">
+        <div class="cat-chip fade-in-up" role="button" tabindex="0" data-cat-id="${escapeHtml(String(cat._id))}" data-cat-name="${(cat.name||'').replace(/"/g,'&quot;')}" data-cat-notes="${(cat.notes||'').replace(/"/g,'&quot;')}">
             <div class="chip-icon" style="background:${color.bg};">
-                <i class="bi ${catIcon(cat.icon)}" style="color:white;font-size:22px;"></i>
+                <i class="bi ${catIcon(cat.icon)}"></i>
             </div>
             <div class="chip-label">${escapeHtml(cat.name)}</div>
         </div>`;
@@ -243,6 +243,9 @@ window.renderCategoryChips = function(categories, isSearchResult = false) {
     document.querySelectorAll('.cat-chip').forEach(chip => {
         chip.addEventListener('click', function() {
             selectCatChip(this, this.dataset.catId, this.dataset.catName, this.dataset.catNotes);
+        });
+        chip.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
         });
     });
 };
@@ -783,50 +786,51 @@ window.renderPlacesList = function(places, container, prependHtml = '', opts = {
             ? formatDistance(p.distanceKm)
             : (p.distanceKm != null ? '' : `<span class="dist-loading"></span>`);
 
-        // 🏷️ شارة القسم — تظهر فقط عند طلبها ومتى توفّر القسم مأهولاً (name/icon)
+        // 🏷️ القسم نصٌّ في سطر المعلومات — كان شارةً فوق الغلاف تزاحم الحالة والقلب
         const cat = (opts.showCategory && p.category && typeof p.category === 'object') ? p.category : null;
-        const catBadge = cat
-            ? `<div class="place-card-cat"><i class="bi ${catIcon(cat.icon)}"></i> ${escapeHtml(cat.name || '')}</div>`
+        const catItem = cat
+            ? `<span class="meta-item"><i class="bi ${catIcon(cat.icon)}"></i> ${escapeHtml(cat.name || '')}</span>`
             : '';
 
         // التقييم: يظهر النجمة والمعدّل وعدد المقيّمين، أو شارة "جديد" إن لم يُقيّم بعد
         const ratingHtml = p.ratingAvg > 0
-            ? `<span class="meta-item rating"><i class="bi bi-star-fill"></i> ${Number(p.ratingAvg).toFixed(1)} <span style="color:#9ca3af;font-weight:600;">(${p.ratingCount || 0})</span></span>`
+            ? `<span class="meta-item rating"><i class="bi bi-star-fill"></i> ${Number(p.ratingAvg).toFixed(1)} <span class="rating-count">(${p.ratingCount || 0})</span></span>`
             : `<span class="meta-item is-new"><i class="bi bi-stars"></i> جديد</span>`;
 
         const menuBtn = p.menu
             ? `<button class="place-card-menu-btn" onclick="event.stopPropagation(); viewMenuInList('${getFullImageUrl(p.menu)}')">
-                <i class="bi bi-card-image" style="color:#f59e0b;"></i> المنيو
+                <i class="bi bi-card-image"></i> المنيو
                </button>`
             : '';
 
+        // 📋 صفٌّ لا بطاقةٌ عمودية: صورةٌ صغيرة واسمٌ وسطر معلومات — يقارن العميل
+        //    المحلات بنظرة. زرّ «تسوق» حُذف: البطاقة كلها تفتح المحل أصلاً، وكان
+        //    يكرّر اسم تبويب التنقّل ويَعِد بالتسوّق من محلٍّ مغلق.
         return `
-        <div class="place-card fade-in-up" data-place-id="${p._id}" onclick="openPlaceDetails('${p._id}')"
-            style="animation-delay:${Math.min(idx * 0.07, 0.4)}s; opacity:0;">
+        <div class="place-card place-row fade-in-up" data-place-id="${p._id}" role="link" tabindex="0"
+            aria-label="${escapeHtml(p.name)}"
+            onclick="openPlaceDetails('${p._id}')"
+            onkeydown="if(event.key==='Enter'){openPlaceDetails('${p._id}')}"
+            style="animation-delay:${Math.min(idx * 0.05, 0.3)}s; opacity:0;">
             <div class="place-card-cover">
                 ${window.placeCoverPlaceholder(p)}
-                ${imgSrc ? `<img src="${imgSrc}" alt="${escapeHtml(p.name)}" loading="lazy"
+                ${imgSrc ? `<img src="${imgSrc}" alt="" loading="lazy"
                     onerror="this.remove()">` : ''}
-                <div class="place-card-cover-overlay"></div>
-                ${catBadge}
-                ${menuBtn}
-                <div class="place-card-status ${isOpen ? 'open' : 'closed'}">
-                    <span class="status-dot"></span>${isOpen ? 'مفتوح' : 'مغلق'}
-                </div>
-                ${window.favBtnHtml(p._id)}
             </div>
             <div class="place-card-body">
                 <div class="place-card-name">${escapeHtml(p.name)}</div>
+                <div class="place-card-meta">
+                    <span class="meta-item place-open ${isOpen ? 'is-open' : 'is-closed'}">${isOpen ? 'مفتوح' : 'مغلق'}</span>
+                    ${catItem ? `<span class="meta-dot">·</span>${catItem}` : ''}
+                </div>
                 <div class="place-card-meta">
                     ${ratingHtml}
                     ${dist ? `<span class="meta-dot">·</span>
                     <span class="meta-item place-dist"><i class="bi bi-geo-alt-fill"></i> ${dist}</span>` : ''}
                 </div>
-                <button class="place-card-cta">
-                    <i class="bi bi-bag-plus-fill"></i>
-                    تسوق
-                </button>
+                ${menuBtn}
             </div>
+            ${window.favBtnHtml(p._id)}
         </div>`;
     }).join('');
 

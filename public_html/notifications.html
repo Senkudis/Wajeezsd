@@ -32,7 +32,7 @@
         body { background: var(--wn-bg) !important; }
     </style>
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً (docs/customer-ui-redesign.md) -->
-    <link rel="stylesheet" href="css/client-ui.css?v=714c19a3">
+    <link rel="stylesheet" href="css/client-ui.css?v=9d9ab01f">
 </head>
 
 <body class="bg-light">
@@ -82,10 +82,10 @@
         <div class="wn-toolbar" id="wnToolbar" role="group" aria-label="تصفية الإشعارات" hidden>
             <button type="button" class="wn-chip" id="chipAll" aria-pressed="true" data-filter="all">الكل</button>
             <button type="button" class="wn-chip" id="chipUnread" aria-pressed="false" data-filter="unread">
-                غير المقروء<span class="wn-chip-count" id="unreadCount" aria-label="لا إشعارات غير مقروءة">0</span>
+                الجديدة<span class="wn-chip-count" id="unreadCount" aria-label="لا إشعارات غير مقروءة">0</span>
             </button>
             <button type="button" class="wn-mark-all" id="markAllReadBtn">
-                <i class="bi bi-check2-all me-1" aria-hidden="true"></i>تحديد الكل كمقروء
+                <i class="bi bi-check2-all me-1" aria-hidden="true"></i>علّم الكل مقروء
             </button>
         </div>
 
@@ -117,15 +117,17 @@
     </div>
 
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="js/notifications-ui.js?v=2546c1a5"></script>
+    <script src="js/notifications-ui.js?v=68488764"></script>
     <script>
         WajeezNotifications.init({
             loginUrl: 'client-login.html',
             registerUrl: 'client-register.html',
             guestTitle: 'سجّل الدخول لعرض إشعاراتك',
             guestText: 'ستصلك هنا تحديثات طلباتك ورسائل الكابتن.',
-            emptyTitle: 'لا توجد إشعارات بعد',
-            emptyText: 'سنخبرك هنا فور قبول طلبك أو وصول رسالة من الكابتن.'
+            emptyTitle: 'لسه ما في إشعارات',
+            emptyText: 'بنبلّغك هنا لمن يصلك عرض من كابتن، أو يتقبل طلبك، أو تجيك رسالة.',
+            unreadEmptyTitle: 'قريت كل إشعاراتك',
+            unreadEmptyText: 'أي جديد بيظهر هنا براه.'
         });
 
         function logout() {

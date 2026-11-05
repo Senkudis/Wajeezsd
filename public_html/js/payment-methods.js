@@ -259,7 +259,7 @@
         if (!methods.length) {
             box._pmMethods = [];
             box._pmSelected = null;
-            box.innerHTML = '<p class="pm-empty">لم يُضف المتجر طريقة دفعٍ بعد — تواصل معه من المحادثة.</p>';
+            box.innerHTML = '<p class="pm-empty">المحل لسه ما أضاف طريقة دفع — كلّمه من زرّ «كلّم المحل» تحت.</p>';
             return;
         }
         if (methods.length === 1) {

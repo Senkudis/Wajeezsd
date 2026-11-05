@@ -417,7 +417,7 @@
     <script src="js/safe-area.js?v=8b338400"></script>
     <script src="js/ui-states.js?v=fbce8d4e"></script>
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً (docs/customer-ui-redesign.md) -->
-    <link rel="stylesheet" href="css/client-ui.css?v=714c19a3">
+    <link rel="stylesheet" href="css/client-ui.css?v=9d9ab01f">
 </head>
 
 <body class="bg-light">
@@ -445,7 +445,7 @@
                         <i class="bi bi-box-seam-fill text-white" style="font-size: 1.4rem;" aria-hidden="true"></i>
                     </div>
                     <div>
-                        <h2 class="h5 fw-bold mb-0 text-white">سجل طلباتي</h2>
+                        <h2 class="h5 fw-bold mb-0 text-white">طلباتي</h2>
                         <div class="live-status-pill">
                             <span class="pulse-dot" aria-hidden="true"></span>
                             <span>متابعة حالة الطلبات مباشرة</span>
@@ -540,7 +540,7 @@
 
     <script src="vendor/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="notification-toast.js"></script>
-    <script src="js/payment-methods.js?v=99c11e98"></script>
+    <script src="js/payment-methods.js?v=7391bc98"></script>
     <script>
         /**
          * 💳 طرق دفع المتجر لطلبٍ بانتظار الدفع. الخادم الجديد يرسل
@@ -624,7 +624,7 @@
             const countdown = hasDeadline
                 ? `<div class="search-countdown" data-deadline="${deadline.toISOString()}"
                         data-order="${order._id}">
-                     <i class="bi bi-clock"></i> <span class="cd-val">--:--</span>
+                     <i class="bi bi-clock"></i> باقي <span class="cd-val">--:--</span>
                    </div>`
                 : '';
 
@@ -634,11 +634,8 @@
                     <span class="ring"></span><span class="ring"></span><span class="ring"></span>
                     <div class="radar-core"><i class="bi bi-bicycle"></i></div>
                 </div>
-                <div class="searching-title">جاري البحث عن أقرب كابتن لك</div>
-                <div class="searching-sub">
-                    أرسلنا طلبك للكباتن القريبين منك<br>
-                    ستصلك عروض الأسعار خلال لحظات — يمكنك اختيار الأنسب
-                </div>
+                <div class="searching-title">بنبحث ليك عن كابتن قريب</div>
+                <div class="searching-sub">عروض الكباتن بتصلك هنا</div>
                 ${countdown}
                 <div class="searching-progress"></div>
                 <div class="typing-dots mt-2"><span></span><span></span><span></span></div>
@@ -738,8 +735,8 @@
                     : (n.expiresAt
                         ? `<span class="offer-countdown" data-expires="${n.expiresAt}"><i class="bi bi-clock"></i> <span class="cd-text">—</span></span>` : '');
                 const actions = opts.lapsed ? restoreBtnHtml(respondId, n) : `
-                        <button class="btn btn-success flex-grow-1" onclick="respondToNegotiation('${respondId}', 'accept', '${n.captainId}')"><i class="bi bi-check-lg me-1"></i> قبول العرض</button>
-                        <button class="btn btn-light border" style="flex:0 0 34%;" onclick="respondToNegotiation('${respondId}', 'reject', '${n.captainId}')">رفض</button>`;
+                        <button class="btn btn-success flex-grow-1" onclick="respondToNegotiation('${respondId}', 'accept', '${n.captainId}')"><i class="bi bi-check-lg me-1"></i> اقبل العرض</button>
+                        <button class="btn btn-light border" style="flex:0 0 34%;" onclick="respondToNegotiation('${respondId}', 'reject', '${n.captainId}')">ارفض</button>`;
                 return `
                 <div class="offer-card" data-respond="${respondId}" data-captain="${n.captainId}" data-price="${Number(n.proposedPrice) || 0}">
                     <div class="offer-top">
@@ -749,7 +746,7 @@
                             <div class="offer-meta">${rating} ${vehicle}</div>
                         </div>
                         <div class="offer-price-box">
-                            <div class="lbl">عرضه</div>
+                            <div class="lbl">سعره</div>
                             <div class="val">${escapeHtml(n.proposedPrice)}</div>
                             <div class="lbl">ج.س</div>
                         </div>
@@ -761,7 +758,7 @@
             }).join('');
             const header = opts.lapsed
                 ? `<div class="offers-header"><i class="bi bi-arrow-counterclockwise"></i> عروض انتهت قبل أن تقبلها — يمكنك استرجاعها خلال 30 دقيقة</div>`
-                : `<div class="offers-header"><i class="bi bi-hand-thumbs-up-fill"></i> وصلك <span class="badge-count">${negotiations.length}</span> عرض — اختر الأنسب لك</div>`;
+                : `<div class="offers-header"><i class="bi bi-people-fill"></i> عروض الكباتن <span class="badge-count">${negotiations.length}</span> — اختار واحد</div>`;
             return header + cards;
         }
 
@@ -802,7 +799,7 @@
                     return;
                 }
                 const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
-                txt.textContent = `ينتهي خلال ${m}:${String(s).padStart(2, '0')}`;
+                txt.textContent = `العرض باقي ${m}:${String(s).padStart(2, '0')}`;
             });
         }, 1000);
 
@@ -855,54 +852,48 @@
 
             // ⚠️ 'scheduled' حالةٌ في النموذج ولم تكن هنا: العميل الذي يجدول
             // طلبه كان يرى كلمة "scheduled" بالإنجليزية وشارةً رمادية مجهولة.
-            const getStatusName = (s) => ({
-                'chat_initiated': 'محادثة مع التاجر',
-                'pending': 'في الانتظار',
-                'scheduled': 'مجدول — سيُنشر في موعده',
-                'negotiating': 'جاري التفاوض',
-                'accepted': 'جاري التنفيذ',
-                'picked_up': 'تم الاستلام',
-                'delivered': 'تم التوصيل',
-                'cancelled': 'ملغي'
-            }[s] || s);
+            // 🏷️ خريطة حالةٍ واحدة: الاسم ونبرة الشارة معاً، وتشمل حالات المتجر.
+            //    كانت ثلاث خرائط منفصلة بلا مفاتيح المتجر، و«|| s» يُظهر المفتاح
+            //    الخام («shop_pending») للعميل حين يغيب realShopStatus.
+            //    النبرة: wait انتظار، active جارٍ، done انتهى، cancel أُلغي.
+            const ORDER_STATUS = {
+                'chat_initiated':   ['محادثة مع المحل', 'wait'],
+                'pending':          ['بنبحث عن كابتن', 'wait'],
+                'scheduled':        ['مجدول — بيبدأ في وقته', 'wait'],
+                'negotiating':      ['وصلتك عروض', 'wait'],
+                'accepted':         ['الكابتن في الطريق للاستلام', 'active'],
+                'picked_up':        ['الطلب مع الكابتن', 'active'],
+                'delivered':        ['تم التوصيل', 'done'],
+                'cancelled':        ['ملغي', 'cancel'],
+                'shop_pending':     ['مستني موافقة المحل', 'wait'],
+                'shop_preparing':   ['المحل بيجهّز طلبك', 'active'],
+                'ready_for_pickup': ['جاهز — بنبحث عن كابتن', 'wait'],
+                'captain_assigned': ['الكابتن في الطريق للمحل', 'active']
+            };
+            const statusKey = (order) => (order.orderType === 'shop' && order.realShopStatus) ? order.realShopStatus : order.status;
+            const getStatusName = (s) => (ORDER_STATUS[s] || ['قيد المعالجة'])[0];
+            const statusTone = (s) => (ORDER_STATUS[s] || [null, 'wait'])[1];
 
-            const getStatusBadge = (s) => ({
-                'chat_initiated': 'style="background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;"',
-                'pending': 'style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;"',
-                'scheduled': 'style="background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;"',
-                'negotiating': 'style="background:#e0f2fe;color:#0284c7;border:1px solid #bae6fd;"',
-                'accepted': 'style="background:#e6f7f0;color:#048c5b;border:1px solid #a7f3d0;"',
-                'picked_up': 'style="background:#e0e7ff;color:#4338ca;border:1px solid #c7d2fe;"',
-                'delivered': 'style="background:#dcfce7;color:#15803d;border:1px solid #86efac;"',
-                'cancelled': 'style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;"'
-            }[s] || 'style="background:#f1f5f9;color:#64748b;"');
-
-            const getStatusDotColor = (s) => ({
-                'pending': '#f59e0b',
-                'scheduled': '#0284c7',
-                'negotiating': '#0284c7',
-                'accepted': '#048c5b',
-                'picked_up': '#4338ca',
-                'delivered': '#16a34a',
-                'cancelled': '#ef4444'
-            }[s] || '#64748b');
-
-            // اسم الحالة المعروض — واعٍ بطلبات المتجر عبر realShopStatus
-            // حتى لا يظهر "في الانتظار" العام بينما الطلب فعلياً عند المتجر.
+            // اسم الحالة المعروض — واعٍ بطلبات المتجر، وبالعروض الواصلة
             const getDisplayStatusName = (order) => {
-                if (order.orderType === 'shop' && order.realShopStatus) {
-                    return ({
-                        'chat_initiated': 'محادثة مع التاجر',
-                        'shop_pending':   'بانتظار موافقة المتجر',
-                        'shop_preparing': 'المتجر يُجهّز طلبك',
-                        'ready_for_pickup': 'جاري البحث عن كابتن',
-                        'captain_assigned': 'كابتن في الطريق للمتجر',
-                        'picked_up':      'الطلب مع الكابتن',
-                        'delivered':      'تم التوصيل',
-                        'cancelled':      'ملغي'
-                    }[order.realShopStatus] || getStatusName(order.status));
+                const key = statusKey(order);
+                if (key === 'pending' && Array.isArray(order.negotiations) &&
+                    order.negotiations.some(n => n.status === 'pending' && (!n.expiresAt || new Date(n.expiresAt) > new Date()))) {
+                    return 'وصلتك عروض';
                 }
-                return getStatusName(order.status);
+                return getStatusName(key);
+            };
+
+            /** «اليوم 3:40 م» / «أمس 9:10 م» / «3 نوفمبر» — متى طُلب؟ كانت البطاقة بلا تاريخ */
+            const orderWhen = (order) => {
+                const d = new Date(order.createdAt);
+                if (!order.createdAt || isNaN(d.getTime())) return '';
+                const t = d.toLocaleTimeString('ar-SD-u-nu-latn', { hour: 'numeric', minute: '2-digit' });
+                const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+                const diff = Math.round((day(new Date()) - day(d)) / 86400000);
+                if (diff === 0) return 'اليوم ' + t;
+                if (diff === 1) return 'أمس ' + t;
+                return d.toLocaleDateString('ar-SD-u-nu-latn', { day: 'numeric', month: 'long' });
             };
 
             // ⏱️ يبني كتلة ETA + الخط الزمني المصغّر من بيانات السيرفر (order.eta / order.timeline)
@@ -1006,8 +997,10 @@
                         empty.className = 'text-center py-5';
                         document.getElementById('orders-list').appendChild(empty);
                     }
-                    empty.innerHTML = `<i class="bi bi-funnel fs-1 text-secondary opacity-50 mb-2 d-block"></i>
-                        <p class="text-muted fw-bold mb-0">${tab.key === 'active' ? 'ما عندك طلب جاري هسي' : 'ما عندك طلبات سابقة'}</p>`;
+                    empty.innerHTML = `<i class="bi bi-box-seam fs-1 text-secondary opacity-50 mb-2 d-block"></i>
+                        <p class="fw-bold mb-1">${tab.key === 'active' ? 'ما عندك طلب شغّال هسي' : 'لسه ما في طلبات سابقة'}</p>
+                        <p class="text-muted mb-3">${tab.key === 'active' ? 'الطلب الجديد بيظهر هنا وبتتابعه خطوة بخطوة.' : 'الطلب اللي يوصل أو يتلغى بيتحفظ هنا.'}</p>
+                        <a href="index.html" class="btn btn-success rounded-pill px-4">اطلب توصيل</a>`;
                 } else if (empty) {
                     empty.remove();
                 }
@@ -1057,8 +1050,12 @@
                         list.innerHTML = `
                         <div class="text-center py-5">
                             <i class="bi bi-box-seam fs-1 text-secondary opacity-50 mb-3"></i>
-                            <p class="text-muted fw-bold">لم تقم بأي طلبات بعد</p>
-                            <a href="index.html" class="btn btn-primary rounded-pill px-4 shadow-sm">ابدأ طلب جديد</a>
+                            <p class="fw-bold mb-1">لسه ما طلبت حاجة</p>
+                            <p class="text-muted mb-3">لمن تطلب توصيل أو من محل، بتتابعه هنا خطوة بخطوة.</p>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="index.html" class="btn btn-success rounded-pill px-4">اطلب توصيل</a>
+                                <a href="client-order.html" class="btn btn-outline-success rounded-pill px-4">تسوّق</a>
+                            </div>
                         </div>`;
                         return;
                     }
@@ -1080,7 +1077,7 @@
 
                     orders.forEach(order => {
                         if (order.isRated) ratedOrders.add(order._id);
-                        const badgeClass = getStatusBadge(order.status);
+                        const badgeTone = statusTone(statusKey(order));
 
                         let activeBtns = '';
 
@@ -1153,7 +1150,7 @@
                             // المعرّف الصحيح يصل من السيرفر أصلاً في deliveryOrderId.
                             const trackId = order.deliveryOrderId || (order.orderType === 'shop' ? null : order._id);
                             const trackBtn = trackId
-                                ? `<a href="tracking.html?orderId=${trackId}" class="btn btn-success flex-grow-1 rounded-pill fw-bold shadow-sm"><i class="bi bi-geo-alt-fill me-1"></i> تتبع</a>`
+                                ? `<a href="tracking.html?orderId=${trackId}" class="btn btn-success flex-grow-1 rounded-pill fw-bold shadow-sm"><i class="bi bi-geo-alt-fill me-1"></i> تتبّع الطلب</a>`
                                 : '';
                             activeBtns = `
                             <div class="d-flex gap-2">
@@ -1172,7 +1169,7 @@
                             activeBtns = `
                             <button class="btn btn-outline-success w-100 rounded-pill fw-bold mb-2 mt-2"
                                 onclick="chat('${order.shopOrderId || order._id}', '', 'merchant')">
-                                <i class="bi bi-shop me-1"></i> محادثة التاجر
+                                <i class="bi bi-chat-dots me-1"></i> كلّم المحل
                             </button>` + activeBtns;
                         }
 
@@ -1187,7 +1184,7 @@
                             //    — كان الشرط على shopId فلا يظهر الزر، والرابط بـ ?id= فلا يفتح المتجر
                             const reorderPlace = order.placeId || order.shopId;
                             if (order.status === 'cancelled' && order.orderType === 'shop' && reorderPlace) {
-                                activeBtns += `<a href="shop-detail.html?placeId=${encodeURIComponent(reorderPlace)}" class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2"><i class="bi bi-arrow-repeat me-1"></i> اطلب من نفس المتجر</a>`;
+                                activeBtns += `<a href="shop-detail.html?placeId=${encodeURIComponent(reorderPlace)}" class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2"><i class="bi bi-arrow-repeat me-1"></i> اطلب من نفس المحل</a>`;
                             } else if (order.status === 'cancelled' && order.orderType !== 'shop') {
                                 activeBtns += `<button class="btn btn-outline-success w-100 rounded-pill fw-bold mt-2" onclick='reorderDelivery(${JSON.stringify({
                                     pAddr: order.pickup?.address || '', pName: order.pickup?.contactName || '', pPhone: order.pickup?.contactPhone || '', pLat: order.pickup?.lat, pLng: order.pickup?.lng,
@@ -1201,16 +1198,10 @@
                         if (order.orderType === 'shop' && order.status !== 'chat_initiated' && order.status !== 'cancelled') {
                             if (order.paymentStatus === 'pending') {
                                 paymentHtml = `
-                                <div class="p-3 rounded-3 mb-3 border border-warning shadow-sm" style="background:rgba(234,179,8,0.12);">
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <i class="bi bi-wallet2 text-warning fs-4"></i>
-                                        <strong>في انتظار الدفع للمتجر</strong>
-                                    </div>
-                                    <p class="small mb-2">
-                                        يرجى تحويل مبلغ <strong class="text-danger fs-5">${order.itemsTotal || order.price} ج.س</strong> (قيمة المنتجات) 
-                                        وإرفاق الإشعار لكي يبدأ المتجر بتجهيز طلبك.<br>
-                                        <span class="text-primary mt-1 d-block"><i class="bi bi-info-circle-fill me-1"></i> رسوم التوصيل تُدفع للكابتن عند الاستلام.</span>
-                                    </p>
+                                <div class="cu-pay mb-3">
+                                    <div class="cu-pay-title"><i class="bi bi-wallet2" aria-hidden="true"></i> ادفع للمحل عشان يبدأ يجهّز</div>
+                                    <div class="cu-pay-step"><span class="cu-pay-num">1</span>
+                                        <span>حوّل <b>${order.itemsTotal || order.price} ج.س</b> (سعر المنتجات) للمحل</span></div>
                                     
                                     <!-- 💳 طرق دفع المتجر: يختار العميل إحداها فتظهر بياناتها
                                          (js/payment-methods.js). ⚠️ كان رقم الحساب واسمه — نصٌّ
@@ -1221,11 +1212,13 @@
                                          "Choose File / No file chosen" وسط واجهة عربية — أوّل ما
                                          تقع عليه العين في أهمّ خطوة (رفع إشعار الدفع). -->
                                     <input type="file" id="receiptFile-${order.shopOrderId || order._id}" accept="image/*" class="d-none" onchange="compressAndUploadReceipt('${order.shopOrderId || order._id}')">
+                                    <div class="cu-pay-step"><span class="cu-pay-num">2</span><span>ارفع صورة إشعار التحويل</span></div>
                                     <label for="receiptFile-${order.shopOrderId || order._id}" class="upload-receipt-btn">
                                         <i class="bi bi-cloud-arrow-up-fill"></i>
                                         <span>ارفع صورة إشعار الدفع</span>
                                     </label>
                                     <small id="upload-status-${order.shopOrderId || order._id}" class="text-muted d-block text-center" role="status" aria-live="polite"></small>
+                                    <div class="cu-pay-note"><i class="bi bi-info-circle" aria-hidden="true"></i> التوصيل بتدفعه للكابتن لمن يوصّلك</div>
                                 </div>
                                 `;
                             } else if (order.paymentStatus === 'receipt_sent') {
@@ -1233,9 +1226,9 @@
                                 <div class="p-3 rounded-3 mb-3 border border-info shadow-sm" style="background:rgba(6,182,212,0.1);">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="bi bi-hourglass-split text-info fs-4"></i>
-                                        <strong>جاري مراجعة الإشعار</strong>
+                                        <strong>المحل بيراجع الإشعار</strong>
                                     </div>
-                                    <p class="small mb-0 mt-1">تم إرفاق الإشعار، في انتظار تأكيد المتجر للبدء بالتجهيز.</p>
+                                    <p class="small mb-0 mt-1">وصل الإشعار. لمن يأكّده المحل بيبدأ يجهّز طلبك.</p>
                                 </div>
                                 `;
                             } else if (order.paymentStatus === 'confirmed') {
@@ -1254,7 +1247,8 @@
 
                         // 💰 حساب الإجمالي المعروض للعميل بناءً على حالة الدفع
                         let displayTotal = order.price;
-                        let displayTotalLabel = 'الإجمالي';
+                        // قبل قبول عرض: هذا ما عرضه العميل لا ما سيدفعه، والعروض أمامه بأرقامٍ أخرى
+                        let displayTotalLabel = (order.status === 'pending' && order.orderType !== 'shop') ? 'سعرك المقترح' : 'السعر';
                         let breakdown = '';
 
                         if (order.orderType === 'shop' && order.deliveryFee) {
@@ -1269,7 +1263,7 @@
                                     </div>
                                     <div class="o-cost-sub">
                                         <span>التوصيل (يُدفع للكابتن)</span>
-                                        <span class="text-danger fw-bold">${order.deliveryFee} ج.س</span>
+                                        <span class="fw-bold">${order.deliveryFee} ج.س</span>
                                     </div>`;
                             } else {
                                 // العميل لم يدفع أو الدفع قيد المراجعة
@@ -1280,7 +1274,7 @@
                                     </div>
                                     <div class="o-cost-sub">
                                         <span>التوصيل (للكابتن)</span>
-                                        <span class="text-danger">${order.deliveryFee} ج.س</span>
+                                        <span>${order.deliveryFee} ج.س</span>
                                     </div>`;
                             }
                         }
@@ -1292,11 +1286,11 @@
                         const html = `
                         <div class="o-card" id="order-${order._id}" data-fstatus="${_fstatus}">
                             <div class="o-head">
-                                <span class="o-status" ${badgeClass}>
-                                    <span class="status-dot" style="background:${getStatusDotColor(order.status)};"></span>
+                                <span class="o-status cu-badge--${badgeTone}">
+                                    <span class="status-dot"></span>
                                     <span>${getDisplayStatusName(order)}</span>
                                 </span>
-                                <span class="o-id">#${order._id.slice(-6)}</span>
+                                <span class="o-when">${orderWhen(order)}</span>
                             </div>
                             <div class="o-body">
                                 ${(order.isMultiStop && Array.isArray(order.stops) && order.stops.length >= 2) ? `
@@ -1309,7 +1303,7 @@
                                     ${order.stops.map((s, i) => `
                                     <div class="o-route-row" style="${s.done ? 'opacity:0.6;' : ''}">
                                         <div class="o-route-node ${s.type === 'pickup' ? 'from' : 'to'}">
-                                            <i class="bi ${s.done ? 'bi-check' : (s.type === 'pickup' ? 'bi-geo-alt-fill' : 'bi-flag-fill')}"></i>
+                                            <i class="bi ${s.done ? 'bi-check' : (s.type === 'pickup' ? 'bi-geo-alt-fill' : 'bi-geo-alt')}"></i>
                                         </div>
                                         <span class="o-route-txt"><span class="o-route-lbl">${s.type === 'pickup' ? 'استلام' : 'تسليم'} ${i + 1}:</span> ${escapeHtml(s.address || '')}</span>
                                     </div>${i < order.stops.length - 1 ? '<div class="o-route-connector"></div>' : ''}`).join('')}
@@ -1321,7 +1315,7 @@
                                     </div>
                                     <div class="o-route-connector"></div>
                                     <div class="o-route-row">
-                                        <div class="o-route-node to"><i class="bi bi-flag-fill"></i></div>
+                                        <div class="o-route-node to"><i class="bi bi-geo-alt"></i></div>
                                         <span class="o-route-txt"><span class="o-route-lbl">إلى:</span> ${escapeHtml(order.dropoff?.address || 'غير محدد')}</span>
                                     </div>
                                 </div>`}
@@ -1329,7 +1323,7 @@
                                 ${orderProgressHtml(order)}
 
                                 ${order.details ? `
-                                <div class="o-detail"><span class="o-detail-lbl">التفاصيل:</span> ${escapeHtml(order.details)}</div>` : ''}
+                                <div class="o-detail"><i class="bi bi-box-seam" aria-hidden="true"></i><span><span class="o-detail-lbl">الأغراض:</span> ${escapeHtml(order.details)}</span></div>` : ''}
 
                                 <div class="o-cost">
                                     <div class="o-cost-main">
@@ -1359,6 +1353,7 @@
                                 </div>` : ''}
 
                                 <div class="o-actions">${paymentHtml}${activeBtns}</div>
+                                <div class="o-ref">رقم الطلب <span dir="ltr">#${order._id.slice(-6)}</span></div>
                             </div>
                         </div>
                     `;

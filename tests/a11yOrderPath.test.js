@@ -48,7 +48,7 @@ describe('الأزرار الأيقونية لها أسماء', () => {
 describe('حقول الإدخال مسمّاة', () => {
     it('البحث الرئيسي — لا يعتمد على placeholder وحده', () => {
         const i = html.indexOf('id="globalSearchInput"');
-        expect(html.slice(i, i + 200)).toContain('aria-label="ابحث عن منتج أو متجر أو قسم"');
+        expect(html.slice(i, i + 200)).toContain('aria-label="ابحث عن محل أو منتج"');
     });
 
     it('البحث على الخريطة', () => {

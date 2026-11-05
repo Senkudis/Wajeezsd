@@ -541,3 +541,671 @@ body.dark-mode .route-icon.dropoff {
 .price-row .lbl {
     font-size: 14px;
 }
+
+/* ============================================================
+   طلباتي — بطاقة الطلب (قرار اللجنة، الجولة الثالثة)
+   ============================================================ */
+
+/* الترويسة: العنوان وحده — شريط «متابعة مباشرة» كان ضجيجاً لا معلومة */
+.app-header .live-status-pill {
+    display: none;
+}
+
+/* لون حالةٍ واحد لكل نبرة — كانت سبع درجات أخضر وأزرق وبنفسجي، و«جارٍ» 3.9:1 */
+.o-status {
+    font-size: 13px;
+    font-weight: 700;
+    min-height: 28px;
+    padding: 4px 11px;
+    border: 0;
+}
+
+.o-status .status-dot {
+    background: currentColor;
+}
+
+.cu-badge--wait { background: #FDF6E3; color: #8A6212; }
+.cu-badge--active { background: #E7F1EC; color: #04553A; }
+.cu-badge--done { background: #EEF1EF; color: #13201A; }
+.cu-badge--cancel { background: #FDECEA; color: #B42318; }
+
+body.dark-mode .cu-badge--wait { background: #3A2E12; color: #FCD34D; }
+body.dark-mode .cu-badge--active { background: #12352A; color: #6EE7B7; }
+body.dark-mode .cu-badge--done { background: #2A3441; color: #CBD5E1; }
+body.dark-mode .cu-badge--cancel { background: #3B1A1A; color: #FCA5A5; }
+
+/* متى طُلب — مكان رقم الطلب في الرأس */
+.o-when {
+    font-size: 13px;
+    color: var(--cu-ink-2);
+    font-weight: 600;
+}
+
+/* رقم الطلب: للدعم لا للعميل — سطرٌ صغير في ذيل البطاقة */
+.o-ref {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--cu-ink-2);
+    text-align: center;
+}
+
+.o-card {
+    border-color: var(--cu-line);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(19, 32, 26, 0.06);
+}
+
+.o-card:active {
+    transform: none;
+}
+
+.o-head {
+    border-bottom-color: var(--cu-line);
+}
+
+/* المسار: الوجهة دبّوسٌ بلون الحبر لا رايةٌ حمراء */
+.o-route {
+    border: 0;
+    background: var(--cu-field);
+}
+
+.o-route-row {
+    font-size: 14px;
+}
+
+.o-route-txt {
+    color: var(--cu-ink);
+}
+
+.o-route-lbl {
+    font-size: 13px;
+    color: var(--cu-ink-2);
+}
+
+.o-route-node.from {
+    background: #E7F1EC;
+    color: #04553A;
+    border-color: #04553A;
+}
+
+.o-route-node.to {
+    background: #04553A;
+    color: #fff;
+    border-color: #04553A;
+}
+
+.o-route-connector {
+    background: var(--cu-line);
+    opacity: 1;
+}
+
+/* الأغراض: سطرٌ ثالث بنفس لغة المسار لا فقرةٌ بخطٍ آخر */
+.o-detail {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 10px;
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--cu-ink);
+    line-height: 1.6;
+}
+
+.o-detail > .bi {
+    width: 22px;
+    text-align: center;
+    color: var(--cu-ink-2);
+    flex-shrink: 0;
+}
+
+.o-detail-lbl {
+    color: var(--cu-ink-2);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.o-cost {
+    border-top-color: var(--cu-line);
+}
+
+.o-cost-main > span:first-child {
+    font-size: 14px;
+    color: var(--cu-ink-2);
+}
+
+.o-cost-total {
+    font-size: 18px;
+    color: #04553A;
+}
+
+body.dark-mode .o-cost-total {
+    color: #6EE7B7;
+}
+
+.o-cost-sub {
+    font-size: 13px;
+    color: var(--cu-ink-2);
+}
+
+.o-actions .btn {
+    min-height: 48px;
+    font-size: 15px;
+}
+
+/* «جاري البحث»: سطحٌ هادئ بدل كتلةٍ داكنة بتدرّجٍ ووهجٍ ورادار —
+   الحالة مكتوبة في الشارة، وهذا يكفيه سطران وعدّاد */
+.searching-panel:not(.decision):not(.searching-panel--merchant) {
+    background: #E7F1EC;
+    color: var(--cu-ink);
+    box-shadow: none;
+    padding: 14px 16px;
+}
+
+.searching-panel:not(.decision):not(.searching-panel--merchant)::before,
+.searching-panel .searching-progress,
+.searching-panel .typing-dots {
+    display: none;
+}
+
+.searching-panel:not(.decision):not(.searching-panel--merchant) .radar {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 8px;
+}
+
+.searching-panel:not(.decision):not(.searching-panel--merchant) .radar .ring {
+    border-color: rgba(4, 85, 58, 0.45);
+}
+
+.searching-panel:not(.decision):not(.searching-panel--merchant) .radar .radar-core {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+    box-shadow: none;
+}
+
+.searching-panel:not(.decision):not(.searching-panel--merchant) .search-countdown {
+    background: #fff;
+    color: #04553A;
+}
+
+.searching-title {
+    font-size: 16px;
+}
+
+.searching-sub {
+    font-size: 14px;
+}
+
+body.dark-mode .searching-panel:not(.decision):not(.searching-panel--merchant) {
+    background: #12352A;
+    color: #F3F4F6;
+}
+
+body.dark-mode .searching-panel:not(.decision):not(.searching-panel--merchant) .search-countdown {
+    background: #1F2937;
+    color: #6EE7B7;
+}
+
+/* عرض الكابتن: السعر بلون الهوية لا الأخضر الفاتح (3.2:1) */
+.offer-price-box {
+    background: #E7F1EC;
+    border-color: transparent;
+}
+
+.offer-price-box .val,
+.offer-price-box .lbl {
+    color: #04553A;
+}
+
+.offer-meta {
+    font-size: 13px;
+}
+
+/* الدفع للمحل: خطوتان مرقّمتان، والمبلغ بالحبر لا بالأحمر */
+.cu-pay {
+    background: #FDF6E3;
+    border-radius: 12px;
+    padding: 14px;
+    color: var(--cu-ink);
+}
+
+.cu-pay-title {
+    font-weight: 800;
+    font-size: 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cu-pay-title .bi {
+    color: #8A6212;
+}
+
+.cu-pay-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 15px;
+    margin: 8px 0;
+    line-height: 1.6;
+}
+
+.cu-pay-num {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #8A6212;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cu-pay-note {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--cu-ink-2);
+}
+
+.cu-pay .upload-receipt-btn {
+    min-height: 48px;
+    background: #fff;
+}
+
+body.dark-mode .cu-pay {
+    background: #3A2E12;
+    color: #F3F4F6;
+}
+
+body.dark-mode .cu-pay .upload-receipt-btn {
+    background: transparent;
+}
+
+.of-tab .cnt {
+    font-size: 12.5px;
+}
+
+/* ============================================================
+   الإشعارات (notifications.html وحدها تحمّل هذا الملف — الكابتن
+   والتاجر يتشاركان notifications-ui ولا يمسّهم هذا القسم)
+   ============================================================ */
+
+/* المرشّحات بحجم إصبع، والمضغوط أخضر الهوية مسطّحاً لا تدرّجاً نحو الأزرق */
+.wn-chip {
+    min-height: 44px;
+    font-size: 15px;
+}
+
+.wn-chip[aria-pressed="true"] {
+    background: #04553A;
+    box-shadow: none;
+}
+
+.wn-chip .wn-chip-count {
+    font-size: 12.5px;
+}
+
+/* «علّم الكل مقروء» إجراءٌ ثانوي: رابطٌ لا زرٌّ محدّد */
+.wn-mark-all {
+    min-height: 44px;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: #04553A;
+    font-size: 14px;
+}
+
+.wn-mark-all:disabled {
+    display: none;
+}
+
+body.dark-mode .wn-mark-all {
+    color: #6EE7B7;
+}
+
+/* عنوان المجموعة نصٌّ لا كبسولة */
+.wn-wrap .wn-group-title {
+    background: none;
+    padding: 0;
+    margin: 20px 4px 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cu-ink-2);
+}
+
+body.dark-mode .wn-wrap .wn-group-title {
+    background: none;
+}
+
+.wn-item {
+    border-radius: 16px;
+    border-color: var(--cu-line);
+    box-shadow: 0 1px 2px rgba(19, 32, 26, 0.06);
+    min-height: 72px;
+}
+
+/* الأيقونة: لونٌ واحد هادئ — تسع عائلات بتدرّجات كانت تسبق العنوان للعين.
+   الاستثناءان: الأحمر لما تعطّل، والكهرماني لما ينتظر منك فعلاً */
+.wn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 18px;
+    box-shadow: none;
+    background: #E7F1EC !important;
+    color: #04553A !important;
+}
+
+.wn-icon[data-family="danger"] {
+    background: #FDECEA !important;
+    color: #B42318 !important;
+}
+
+.wn-icon[data-family="warn"] {
+    background: #FDF6E3 !important;
+    color: #8A6212 !important;
+}
+
+body.dark-mode .wn-icon {
+    background: #12352A !important;
+    color: #6EE7B7 !important;
+}
+
+body.dark-mode .wn-icon[data-family="danger"] {
+    background: #3B1A1A !important;
+    color: #FCA5A5 !important;
+}
+
+body.dark-mode .wn-icon[data-family="warn"] {
+    background: #3A2E12 !important;
+    color: #FCD34D !important;
+}
+
+.wn-item .wn-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cu-ink);
+}
+
+.wn-item .wn-msg {
+    font-size: 15px;
+    color: var(--cu-ink-2);
+    line-height: 1.5;
+}
+
+/* الوقت نصٌّ مقروء لا كبسولة رمادية (2.3:1) */
+.wn-item .wn-time {
+    font-size: 13px;
+    color: var(--cu-ink-2);
+    background: none;
+    padding: 0;
+}
+
+/* غير المقروء: نقطةٌ وعنوانٌ عريض وحافة — الصبغة الخفيفة وحدها تختفي تحت الشمس */
+.wn-item.is-unread {
+    background: var(--cu-surface);
+}
+
+.wn-item.is-unread .wn-title {
+    font-weight: 800;
+}
+
+.wn-item.is-unread .wn-title::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #04553A;
+    margin-inline-end: 7px;
+    vertical-align: middle;
+}
+
+.wn-item.is-unread::before {
+    background: #04553A;
+    width: 4px;
+}
+
+body.dark-mode .wn-item.is-unread .wn-title::before,
+body.dark-mode .wn-item.is-unread::before {
+    background: #6EE7B7;
+}
+
+/* ============================================================
+   التسوّق — قرار اللجنة (الجولة الثالثة)
+   ============================================================ */
+
+.section-label {
+    font-size: 17px;
+    color: var(--cu-ink);
+    margin: 20px 0 10px;
+}
+
+.section-label::after {
+    display: none;
+}
+
+.featured-head {
+    font-size: 17px;
+    color: var(--cu-ink);
+}
+
+/* «ما لقيت محلك؟» بديلٌ لا بداية: صفٌّ فاتح محدَّد بدل كتلةٍ خضراء داكنة
+   تسبق الأقسام والمحلات للعين */
+.errand-promo {
+    background: var(--cu-surface);
+    color: var(--cu-ink);
+    border: 1.5px solid var(--cu-line);
+    box-shadow: none;
+    padding: 12px 14px;
+}
+
+.errand-promo-icon {
+    background: #E7F1EC;
+    color: #04553A;
+}
+
+.errand-promo-sub {
+    font-size: 14px;
+    opacity: 1;
+    color: var(--cu-ink-2);
+}
+
+.errand-promo-arrow {
+    color: var(--cu-ink-2);
+}
+
+body.dark-mode .errand-promo {
+    background: #1F2937;
+    border-color: #374151;
+    color: #F3F4F6;
+}
+
+/* الأقسام: صفٌّ واحد يُسحب أفقياً بدل شبكةٍ بصفّين تدفع المحلات للأسفل */
+.cats-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.cats-grid::-webkit-scrollbar {
+    display: none;
+}
+
+.cats-grid .cat-chip {
+    flex: 0 0 auto;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 14px 6px 8px;
+    border-radius: 999px;
+    border: 1.5px solid var(--cu-line);
+    box-shadow: none;
+    background: var(--cu-surface);
+}
+
+.cats-grid .cat-chip:hover,
+.cats-grid .cat-chip:active,
+.cats-grid .cat-chip.active {
+    transform: none;
+}
+
+.cats-grid .cat-chip .chip-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 17px;
+    box-shadow: none;
+    background: #E7F1EC !important;
+    color: #04553A;
+}
+
+.cats-grid .cat-chip .chip-label {
+    font-size: 15px;
+    white-space: nowrap;
+    color: var(--cu-ink);
+}
+
+.cats-grid .cat-chip.active {
+    background: #04553A;
+    border-color: #04553A;
+    box-shadow: none;
+}
+
+.cats-grid .cat-chip.active .chip-icon {
+    filter: none;
+    transform: none;
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #fff;
+}
+
+.cats-grid .cat-chip.active .chip-label {
+    color: #fff;
+}
+
+body.dark-mode .cats-grid .cat-chip {
+    background: #1F2937;
+    border-color: #374151;
+}
+
+body.dark-mode .cats-grid .cat-chip .chip-icon {
+    background: #12352A !important;
+    color: #6EE7B7;
+}
+
+/* المحلات: صفوفٌ في عمودٍ واحد */
+#places-list,
+.featured-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.place-card.place-row {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid var(--cu-line);
+    box-shadow: 0 1px 2px rgba(19, 32, 26, 0.06);
+}
+
+.place-card.place-row:active {
+    transform: none;
+}
+
+.place-row .place-card-cover {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+}
+
+.place-row .place-card-ph {
+    font-size: 26px;
+}
+
+.place-row:hover .place-card-cover img {
+    transform: none;
+}
+
+.place-row .place-card-body {
+    padding: 0;
+    min-width: 0;
+}
+
+.place-row .place-card-name {
+    font-size: 16px;
+    min-height: 0;
+    margin-bottom: 4px;
+    color: var(--cu-ink);
+    -webkit-line-clamp: 1;
+}
+
+.place-row .place-card-meta {
+    font-size: 13.5px;
+    color: var(--cu-ink-2);
+    margin-bottom: 2px;
+}
+
+.place-row .place-card-meta .meta-item.rating {
+    color: var(--cu-ink);
+}
+
+.place-row .rating-count {
+    color: var(--cu-ink-2);
+    font-weight: 600;
+}
+
+.place-row .place-card-meta .meta-item.is-new {
+    font-size: 13px;
+    background: none;
+    padding: 0;
+    color: #04553A;
+}
+
+.place-open.is-open {
+    color: #04553A;
+}
+
+.place-open.is-closed {
+    color: #B42318;
+}
+
+body.dark-mode .place-open.is-open {
+    color: #6EE7B7;
+}
+
+body.dark-mode .place-open.is-closed {
+    color: #FCA5A5;
+}
+
+/* القلب في الصف نفسه، بحجم إصبع */
+.place-row .place-fav-btn {
+    position: static;
+    box-shadow: none;
+    background: transparent;
+    border: 1.5px solid var(--cu-line);
+}
+
+.place-row .place-card-menu-btn {
+    margin-top: 6px;
+    min-height: 40px;
+    background: transparent;
+    border-color: var(--cu-line);
+    color: var(--cu-ink);
+}
+
+body.dark-mode .place-card.place-row {
+    border-color: #374151;
+}

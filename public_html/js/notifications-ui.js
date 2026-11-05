@@ -79,7 +79,15 @@ window.WajeezNotifications = (function () {
 
     function visualFor(type) {
         const pair = TYPES[type] || TYPES.system;
-        return Object.assign({}, FAMILY[pair[0]], { icon: pair[1] });
+        return Object.assign({}, FAMILY[pair[0]], { icon: pair[1], family: pair[0] });
+    }
+
+    /** «دقيقة / دقيقتين / 5 دقائق / 15 دقيقة» — كانت «قبل 5 د»: حرفٌ لا يُقرأ */
+    function minutesAr(n) {
+        if (n === 1) return 'دقيقة';
+        if (n === 2) return 'دقيقتين';
+        if (n >= 3 && n <= 10) return n + ' دقائق';
+        return n + ' دقيقة';
     }
 
     // العنوان والرسالة قد يحملان محتوى كتبه طرف آخر (سبب إلغاء مثلاً).
@@ -115,17 +123,19 @@ window.WajeezNotifications = (function () {
     function timeLabel(date) {
         const diffMin = Math.round((Date.now() - date.getTime()) / 60000);
         if (diffMin < 1) return 'الآن';
-        if (diffMin < 60) return 'قبل ' + diffMin + ' د';
+        if (diffMin < 60) return 'قبل ' + minutesAr(diffMin);
 
         const today = startOfDay(new Date());
         const day = startOfDay(date);
-        if (day === today) {
-            return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        // «اليوم» و«أمس» عنوانا مجموعتين أصلاً: الساعة هنا هي المعلومة، واسم
+        // اليوم تحت «أمس» كان يكرّر العنوان
+        if (day === today || day === today - DAY) {
+            return date.toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
         }
         if (day > today - 7 * DAY) {
             return date.toLocaleDateString('ar-EG', { weekday: 'long' });
         }
-        return date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
+        return date.toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'short' });
     }
 
     function init(options) {
@@ -140,6 +150,8 @@ window.WajeezNotifications = (function () {
             guestText: 'ستصلك هنا كل التحديثات المتعلقة بحسابك.',
             emptyTitle: 'لا توجد إشعارات بعد',
             emptyText: 'سنخبرك هنا فور وصول أي جديد.',
+            unreadEmptyTitle: 'لا شيء غير مقروء',
+            unreadEmptyText: 'اطّلعت على كل إشعاراتك.',
             // نص العنوان الفرعي حين لا يوجد غير مقروء — يختلف بين الأدوار
             subtitleIdle: 'كل جديدك هنا'
         }, options || {});
@@ -209,7 +221,7 @@ window.WajeezNotifications = (function () {
                 (n.isRead ? '' : 'is-unread ') + (url ? 'is-tappable' : '') + '"' +
                 ' data-id="' + esc(n._id) + '" data-url="' + esc(url) + '">' +
                 (n.isRead ? '' : '<span class="wn-sr">غير مقروء.</span>') +
-                '<span class="wn-icon" aria-hidden="true" style="background:' + v.bg + ';color:' + v.fg + '">' +
+                '<span class="wn-icon" aria-hidden="true" style="background:' + v.bg + ';color:' + v.fg + '" data-family="' + v.family + '">' +
                 '<i class="bi ' + v.icon + '"></i></span>' +
                 '<span class="wn-body">' +
                 '<span class="wn-head">' +
@@ -227,7 +239,7 @@ window.WajeezNotifications = (function () {
 
             if (!items.length) {
                 list.innerHTML = filter === 'unread'
-                    ? emptyState('bi-check2-circle', 'لا شيء غير مقروء', 'اطّلعت على كل إشعاراتك.')
+                    ? emptyState('bi-check2-circle', opts.unreadEmptyTitle, opts.unreadEmptyText)
                     : emptyState('bi-bell-slash', opts.emptyTitle, opts.emptyText);
                 return;
             }
