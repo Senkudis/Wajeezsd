@@ -145,3 +145,22 @@ if (inSource.length) {
 
 console.log(`\n✓ الإصدار متزامن: ${values[0]}`);
 console.log('✓ لا أرقام إصدار مكتوبة يدوياً في HTML ولا في الكود');
+
+// 📦 ما يُحزم فعلاً داخل تطبيق أندرويد: android/app/src/main/assets/public
+//    (نسخةٌ يكتبها `npx cap sync android` من public_html). الإصدار 1.6.3 بُني
+//    ونُشر بأصول 1.6.2 لأن خطوة النسخ نُسيت — فلم يظهر أيّ إصلاح، والتطبيق
+//    يقول عن نفسه 1.6.2 فيُرسَل لمتجرٍ لا يجد فيه أحدث منه (حلقة «تحديث إجباري»).
+//    --release: يُشغَّل قبل بناء AAB، ويرفض البناء إن لم تُنسخ الأصول.
+const ANDROID_CORE = path.join(ROOT, 'android/app/src/main/assets/public/js/app-core.js');
+if (process.argv.includes('--release') && fs.existsSync(path.join(ROOT, 'android'))) {
+    const packed = fs.existsSync(ANDROID_CORE)
+        ? (read(ANDROID_CORE).match(/window\.APP_VERSION\s*=\s*'([^']+)'/) || [])[1]
+        : null;
+    const sameFiles = packed && read(ANDROID_CORE) === read(APP_CORE);
+    if (packed !== values[0] || !sameFiles) {
+        console.error(`\n❌ أصول أندرويد المحزومة قديمة: APP_VERSION داخل التطبيق = ${packed || '(غير موجود)'}، والمصدر = ${values[0]}`);
+        console.error('   شغّل: npx cap sync android   ثم أعد الفحص قبل البناء.');
+        process.exit(1);
+    }
+    console.log('✓ أصول أندرويد المحزومة مطابقة لـ public_html (cap sync تمّ)');
+}

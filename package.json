@@ -18,7 +18,8 @@
     "postinstall": "node -e \"var f=require('path').resolve('scripts/patch-bg-geolocation.js');require('fs').existsSync(f)?require(f):console.log('postinstall: patch-bg-geolocation skipped')\"",
     "backup": "node scripts/backup-db.js",
     "backup:dry": "node scripts/backup-db.js --dry-run",
-    "restore": "node scripts/restore-db.js"
+    "restore": "node scripts/restore-db.js",
+    "release:android": "npm run cache && npx cap sync android && node scripts/check-version.js --release"
   },
   "keywords": [],
   "author": "",
