@@ -163,5 +163,20 @@
     }
     if (!wrapOpen()) document.addEventListener('DOMContentLoaded', wrapOpen);
 
+    // ── الأزرار العائمة (موقعي/الطبقات) فوق البطاقة دائماً ─────────────────
+    //    كانت على مسافةٍ ثابتة (184px) من الأسفل، فلما طالت البطاقة (شرائح
+    //    الاختيار السريع، سطرا عنوان) غطّتها. الآن تتبع ارتفاع البطاقة الفعلي.
+    function keepFabsAboveSheet() {
+        const s = sheet();
+        const btn = $('locate-me-btn');
+        const wrap = btn && btn.parentElement;
+        if (!s || !wrap || !window.ResizeObserver) return;
+        const place = () => { wrap.style.bottom = (s.offsetHeight + 12) + 'px'; };
+        new ResizeObserver(place).observe(s);
+        place();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', keepFabsAboveSheet);
+    else keepFabsAboveSheet();
+
     window.MapExperience = { refreshQuickPicks: renderQuickPicks };
 })();
