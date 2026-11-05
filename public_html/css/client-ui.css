@@ -1026,12 +1026,16 @@ body.dark-mode .errand-promo {
     color: #F3F4F6;
 }
 
-/* الأقسام: صفٌّ واحد يُسحب أفقياً بدل شبكةٍ بصفّين تدفع المحلات للأسفل */
+/* الأقسام: أيقوناتٌ كبيرة باسمٍ تحتها، صفٌّ يُسحب أفقياً — نمط تطبيقات
+   التوصيل. الكبسولة الصغيرة كانت تُقرأ نصّاً لا تُلتقط بالعين */
 .cats-grid {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
-    padding: 2px 2px 8px;
+    margin: 0 -16px;
+    padding: 4px 16px 10px;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 16px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
 }
@@ -1040,67 +1044,231 @@ body.dark-mode .errand-promo {
     display: none;
 }
 
+.cats-grid {
+    align-items: flex-start;
+}
+
 .cats-grid .cat-chip {
-    flex: 0 0 auto;
-    width: auto;
+    justify-content: flex-start;
+    flex: 0 0 76px;
+    width: 76px;
     height: auto;
-    flex-direction: row;
+    flex-direction: column;
     gap: 8px;
-    min-height: 48px;
-    padding: 6px 14px 6px 8px;
-    border-radius: 999px;
-    border: 1.5px solid var(--cu-line);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
     box-shadow: none;
-    background: var(--cu-surface);
+    overflow: visible;
+    scroll-snap-align: start;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .cats-grid .cat-chip:hover,
 .cats-grid .cat-chip:active,
 .cats-grid .cat-chip.active {
     transform: none;
+    box-shadow: none;
+    background: none;
 }
 
 .cats-grid .cat-chip .chip-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    font-size: 17px;
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    font-size: 28px;
     box-shadow: none;
     background: #E7F1EC !important;
     color: #04553A;
+    transition: background-color .18s ease, color .18s ease, transform .12s ease;
+}
+
+.cats-grid .cat-chip:active .chip-icon {
+    transform: scale(0.94);
 }
 
 .cats-grid .cat-chip .chip-label {
-    font-size: 15px;
-    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
     color: var(--cu-ink);
-}
-
-.cats-grid .cat-chip.active {
-    background: #04553A;
-    border-color: #04553A;
-    box-shadow: none;
+    max-width: 76px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .cats-grid .cat-chip.active .chip-icon {
-    filter: none;
-    transform: none;
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: #04553A !important;
     color: #fff;
+    filter: none;
 }
 
 .cats-grid .cat-chip.active .chip-label {
-    color: #fff;
+    color: #04553A;
 }
 
-body.dark-mode .cats-grid .cat-chip {
-    background: #1F2937;
-    border-color: #374151;
+.cats-grid .cat-chip:focus-visible {
+    outline: none;
+}
+
+.cats-grid .cat-chip:focus-visible .chip-icon {
+    outline: 3px solid #04553A;
+    outline-offset: 2px;
+}
+
+/* dark-mode.css يكسو الشريحة القديمة بطاقةً (!important) — البلاطة الآن أيقونةٌ واسمٌ بلا إطار */
+body.dark-mode .cats-grid .cat-chip,
+body.dark-mode .cats-grid .cat-chip.active {
+    background: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+body.dark-mode .cats-grid .cat-chip.active .chip-label {
+    color: #6EE7B7 !important;
 }
 
 body.dark-mode .cats-grid .cat-chip .chip-icon {
     background: #12352A !important;
     color: #6EE7B7;
+}
+
+body.dark-mode .cats-grid .cat-chip.active .chip-icon {
+    background: #6EE7B7 !important;
+    color: #0F1714;
+}
+
+body.dark-mode .cats-grid .cat-chip .chip-label {
+    color: #F3F4F6 !important;
+}
+
+/* «قريب منك»: بطاقات غلافٍ تُسحب أفقياً، تُظهر حافة البطاقة التالية فيعرف
+   العميل أن هناك المزيد */
+.nearby-row {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    margin: 0 -16px 8px;
+    padding: 2px 16px 12px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.nearby-row::-webkit-scrollbar {
+    display: none;
+}
+
+.nearby-card {
+    position: relative;
+    flex: 0 0 72%;
+    max-width: 280px;
+    scroll-snap-align: start;
+    background: var(--cu-surface);
+    border: 1px solid var(--cu-line);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.nearby-hit {
+    display: block;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nearby-hit:active .nearby-cover {
+    opacity: .9;
+}
+
+.nearby-hit:focus-visible {
+    outline: 3px solid #04553A;
+    outline-offset: -3px;
+}
+
+.nearby-cover {
+    position: relative;
+    height: 124px;
+    overflow: hidden;
+}
+
+.nearby-cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.nearby-cover .place-card-ph {
+    font-size: 44px;
+}
+
+.nearby-body {
+    padding: 10px 12px 12px;
+}
+
+.nearby-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--cu-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.nearby-body .place-card-meta {
+    font-size: 13.5px;
+    color: var(--cu-ink-2);
+    margin: 0;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.nearby-body .meta-item.rating {
+    color: var(--cu-ink);
+}
+
+.nearby-body .meta-item.rating i {
+    color: #E0A100;
+}
+
+.nearby-body .meta-item.is-new {
+    color: #04553A;
+    background: none;
+    padding: 0;
+    font-size: 13.5px;
+}
+
+/* القلب فوق الغلاف بحجم إصبع */
+.nearby-card .place-fav-btn {
+    position: absolute;
+    top: 8px;
+    inset-inline-start: 8px;
+    bottom: auto;
+    background: rgba(255, 255, 255, 0.94);
+}
+
+body.dark-mode .nearby-card {
+    background: #1F2937;
+    border-color: #374151;
+}
+
+body.dark-mode .nearby-name,
+body.dark-mode .nearby-body .meta-item.rating {
+    color: #F3F4F6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nearby-row,
+    .cats-grid {
+        scroll-behavior: auto;
+    }
 }
 
 /* المحلات: صفوفٌ في عمودٍ واحد */

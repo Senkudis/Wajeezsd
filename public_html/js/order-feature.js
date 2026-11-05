@@ -535,7 +535,7 @@ window.loadFeaturedShops = async function () {
     const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
     const cacheKey = `wajeez_featured_${currentCity}`;
 
-    const HEAD = `<div class="featured-head"><i class="bi bi-shop-window"></i> المحلات القريبة منك</div>`;
+    const HEAD = `<div class="featured-head">كل المحلات</div>`;
 
     // فلترة (استبعاد متجر التاجر نفسه) + ترتيب بالمسافة + رندر
     const finalize = (places, loc) => {
@@ -554,7 +554,19 @@ window.loadFeaturedShops = async function () {
                                           // يُستبدل عند دخول أي تصنيف، فيضيع مرجع هذه البطاقات
 
         if (!places.length) { section.innerHTML = ''; return; }
-        section.innerHTML = HEAD + `<div class="featured-grid" id="featured-grid"></div>`;
+        paintFeatured(places);
+    };
+
+    // 🧭 «قريب منك» شريطٌ يُسحب ببطاقات غلاف، ثم «كل المحلات» قائمة.
+    //    الشريط يظهر حين تكفي المحلات ليكون اختياراً لا تكراراً للقائمة تحته.
+    const paintFeatured = (places) => {
+        const nearby = places.filter(p => p.is_open).slice(0, 8);
+        const showNearby = places.length >= 4 && nearby.length >= 2;
+        section.innerHTML =
+            (showNearby ? `<div class="featured-head">قريب منك</div>
+                           <div class="nearby-row" id="nearby-row" role="list" aria-label="محلات قريبة منك"></div>` : '') +
+            HEAD + `<div class="featured-grid" id="featured-grid"></div>`;
+        if (showNearby) renderNearbyCards(nearby, document.getElementById('nearby-row'));
         renderPlacesList(places, document.getElementById('featured-grid'), '', { showCategory: true });
     };
 
@@ -595,8 +607,7 @@ window.loadFeaturedShops = async function () {
             if (!late) { markDistanceUnavailable(section); return; }
             applyFreshLocation(window._featuredPlaces || [], late, sorted => {
                 window._featuredPlaces = sorted;
-                const grid = document.getElementById('featured-grid');
-                if (grid) renderPlacesList(sorted, grid, '', { showCategory: true });
+                if (document.getElementById('featured-grid')) paintFeatured(sorted);
             });
         });
     } catch (err) {
@@ -776,6 +787,43 @@ window.loadFavoritePlaces = async function () {
     } catch (e) {
         section.innerHTML = '';
     }
+};
+
+/**
+ * 🖼️ بطاقة «قريب منك»: غلافٌ كبير ثم الاسم وسطر معلومات — نمط تطبيقات
+ * التوصيل الذي يعرفه العميل. المحل بلا صورة يأخذ غلاف قسمه بلونه وأيقونته
+ * (placeCoverPlaceholder) فلا يبدو فارغاً.
+ */
+window.renderNearbyCards = function(places, container) {
+    if (!container) return;
+    container.innerHTML = places.map(p => {
+        const imgSrc = getFullImageUrl(p.image_url);
+        const dist = isShowableDistance(p.distanceKm) ? formatDistance(p.distanceKm) : '';
+        const rating = p.ratingAvg > 0
+            ? `<span class="meta-item rating"><i class="bi bi-star-fill"></i> ${Number(p.ratingAvg).toFixed(1)}</span>`
+            : `<span class="meta-item is-new">جديد</span>`;
+        const cat = (p.category && typeof p.category === 'object' && p.category.name) ? escapeHtml(p.category.name) : '';
+        return `
+        <div class="nearby-card" role="listitem" data-place-id="${p._id}">
+            <div class="nearby-hit" role="link" tabindex="0" aria-label="${escapeHtml(p.name)}"
+                onclick="openPlaceDetails('${p._id}')"
+                onkeydown="if(event.key==='Enter'){openPlaceDetails('${p._id}')}">
+                <div class="nearby-cover">
+                    ${window.placeCoverPlaceholder(p)}
+                    ${imgSrc ? `<img src="${imgSrc}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+                </div>
+                <div class="nearby-body">
+                    <div class="nearby-name">${escapeHtml(p.name)}</div>
+                    <div class="place-card-meta">
+                        ${rating}
+                        ${dist ? `<span class="meta-dot">·</span><span class="meta-item place-dist">${dist}</span>` : ''}
+                        ${cat ? `<span class="meta-dot">·</span><span class="meta-item">${cat}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            ${window.favBtnHtml(p._id)}
+        </div>`;
+    }).join('');
 };
 
 window.renderPlacesList = function(places, container, prependHtml = '', opts = {}) {
