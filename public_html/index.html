@@ -480,7 +480,7 @@
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/smart-search.css?v=8dc97789">
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً -->
-    <link rel="stylesheet" href="css/client-ui.css?v=896df678">
+    <link rel="stylesheet" href="css/client-ui.css?v=f2ee2776">
 
 
     <script src="js/maps-link-input.js?v=fa876f04"></script>
@@ -674,11 +674,12 @@
                             <!-- 🧭 نقاط إضافية — توصيل متعدد النقاط (رحلة واحدة بعدة محطات) -->
                             <div id="extraStopsList" class="mt-2"></div>
                             <div class="d-flex mt-2" id="multi-stop-actions">
-                                <button type="button" class="cu-link" onclick="addStop('dropoff')">
-                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>وصّل لمكان تاني كمان
+                                <!-- لونٌ لكل نوع، نفسه في الدبّوس والبطاقة: الاستلام أخضر، التسليم ذهبي -->
+                                <button type="button" class="cu-stop-btn cu-stop-btn--pickup" onclick="addStop('pickup')">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>نقطة استلام إضافية
                                 </button>
-                                <button type="button" class="cu-link" onclick="addStop('pickup')">
-                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>استلم من مكان تاني كمان
+                                <button type="button" class="cu-stop-btn cu-stop-btn--dropoff" onclick="addStop('dropoff')">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i>نقطة تسليم إضافية
                                 </button>
                             </div>
                             <div class="text-muted mt-1" id="multi-stop-hint" style="font-size:11.5px;">
@@ -1284,7 +1285,7 @@
 
     <!-- أخطاء الإدخال في خاناتها + فحص الهاتف السوداني — قبل home.js الذي يستعملهما -->
     <script src="js/field-errors.js?v=92e1e909"></script>
-    <script src="js/home.js?v=d66d9e33"></script>
+    <script src="js/home.js?v=3e389597"></script>
     <script src="js/home-simple.js?v=27db7fc9"></script>
     <script src="js/order-feature.js?v=46a8d0d4"></script>
     <script src="js/errand-context.js?v=f33a33bc"></script>

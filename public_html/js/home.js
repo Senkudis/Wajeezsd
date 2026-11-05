@@ -1042,9 +1042,11 @@ window.addStop = function(type) {
     _stopCounter++;
     const id = `stop-${_stopCounter}`;
     const isPickup = type === 'pickup';
-    const color = isPickup ? '#64748b' : '#04553A';
+    // نفس ألوان الأزرار والدبابيس: الاستلام أخضر والتسليم ذهبي — كان الاستلام
+    // الإضافي رمادياً والتسليم أخضر، عكس الاستلام الأساسي فوقه فيتلخبط العميل
+    const color = isPickup ? '#04553A' : '#8A6212';
     const icon = isPickup ? 'bi-geo-alt-fill' : 'bi-flag-fill';
-    const title = isPickup ? 'نقطة استلام إضافية' : 'وجهة تسليم إضافية';
+    const title = isPickup ? 'نقطة استلام إضافية' : 'نقطة تسليم إضافية';
     const namePh = isPickup ? 'اسم المرسل / المحل' : 'اسم المستلم';
 
     const card = document.createElement('div');

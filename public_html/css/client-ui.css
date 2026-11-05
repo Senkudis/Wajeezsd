@@ -1592,3 +1592,60 @@ body.dark-mode .sf-chip[aria-pressed="true"] {
         animation: none;
     }
 }
+
+/* ── الاستلام أخضر والتسليم ذهبي — في الأزرار والدبابيس والبطاقات معاً ── */
+.cu-stop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid;
+}
+
+.cu-stop-btn--pickup {
+    background: #E7F1EC;
+    color: #04553A;
+    border-color: #B9D6C8;
+}
+
+.cu-stop-btn--dropoff {
+    background: #FDF6E3;
+    color: #8A6212;
+    border-color: #EBD9A8;
+}
+
+body.dark-mode .cu-stop-btn--pickup {
+    background: #12352A;
+    color: #6EE7B7;
+    border-color: #1F5A45;
+}
+
+body.dark-mode .cu-stop-btn--dropoff {
+    background: #3A2E12;
+    color: #FCD34D;
+    border-color: #5C4A1E;
+}
+
+#multi-stop-actions {
+    gap: 8px !important;
+}
+
+/* دبّوس التسليم ونقطته في الخط الزمني بالذهبي كذلك */
+#home-section .route-inputs .input-icon.text-danger {
+    color: #8A6212 !important;
+}
+
+#home-section .dropoff-dot {
+    background: #BF8B1F;
+    box-shadow: 0 0 0 2px #BF8B1F;
+}
+
+body.dark-mode #home-section .route-inputs .input-icon.text-danger {
+    color: #FCD34D !important;
+}
