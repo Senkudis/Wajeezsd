@@ -1377,3 +1377,218 @@ body.dark-mode .place-open.is-closed {
 body.dark-mode .place-card.place-row {
     border-color: #374151;
 }
+
+/* ── «كل المحلات»: زرّ الفلترة ولوحته ─────────────────────────────────── */
+.featured-head--tools {
+    justify-content: space-between;
+}
+
+.shop-filter-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--cu-line);
+    background: var(--cu-surface);
+    color: var(--cu-ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.shop-filter-btn .bi {
+    font-size: 16px;
+    color: #04553A;
+}
+
+.shop-filter-btn.is-on {
+    background: #E7F1EC;
+    border-color: #04553A;
+}
+
+.shop-filter-dot {
+    position: absolute;
+    top: 6px;
+    inset-inline-end: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #04553A;
+}
+
+.shop-filter-bar {
+    margin: 0 0 12px;
+    animation: cuDrop .18s ease-out;
+}
+
+.shop-filter-search {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.shop-filter-search .bi {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--cu-ink-2);
+    pointer-events: none;
+}
+
+.shop-filter-search input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 42px 0 14px;
+    border-radius: 14px;
+    border: 1.5px solid var(--cu-line);
+    background: var(--cu-surface);
+    color: var(--cu-ink);
+    font: inherit;
+    font-size: 16px;
+}
+
+.shop-filter-search input:focus {
+    outline: none;
+    border-color: #04553A;
+    box-shadow: 0 0 0 3px rgba(4, 85, 58, 0.15);
+}
+
+.shop-filter-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.shop-filter-chips::-webkit-scrollbar {
+    display: none;
+}
+
+.sf-chip {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--cu-line);
+    background: var(--cu-surface);
+    color: var(--cu-ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.sf-chip[aria-pressed="true"] {
+    background: #04553A;
+    border-color: #04553A;
+    color: #fff;
+}
+
+.sf-empty {
+    text-align: center;
+    padding: 28px 16px;
+    color: var(--cu-ink-2);
+}
+
+.sf-empty > .bi {
+    font-size: 28px;
+    color: var(--cu-ink-2);
+}
+
+.sf-empty-title {
+    margin-top: 8px;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--cu-ink);
+}
+
+.sf-empty-text {
+    font-size: 14px;
+    margin: 4px 0 14px;
+}
+
+.sf-empty-btn {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: #04553A;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+}
+
+body.dark-mode .shop-filter-btn,
+body.dark-mode .sf-chip,
+body.dark-mode .shop-filter-search input {
+    background: #1F2937;
+    border-color: #374151;
+    color: #F3F4F6;
+}
+
+body.dark-mode .shop-filter-btn.is-on {
+    background: #12352A;
+    border-color: #6EE7B7;
+}
+
+body.dark-mode .sf-chip[aria-pressed="true"] {
+    background: #6EE7B7;
+    border-color: #6EE7B7;
+    color: #0F1714;
+}
+
+/* ============================================================
+   التنقّل: انتقالٌ ناعم بين الصفحات وداخلها
+   ============================================================ */
+
+/* بين الصفحات: تلاشٍ قصير بدل الوميض الأبيض (View Transitions —
+   كروم/WebView الحديث؛ المتصفّح الذي لا يدعمه يتجاهله بلا ضرر) */
+@view-transition {
+    navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: .18s;
+    animation-timing-function: ease-out;
+}
+
+/* شريط التنقّل السفلي ثابتٌ بين الصفحات فلا يومض مع التلاشي */
+.mobile-nav-glass {
+    view-transition-name: wj-bottom-nav;
+}
+
+@keyframes cuDrop {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes cuEnter {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* داخل التسوّق: عرض القسم ينزلق داخلاً كصفحة، والرجوع منه يعيد الأقسام */
+#places-view:not(.d-none),
+#categories-view:not(.d-none) {
+    animation: cuEnter .2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
+    }
+
+    #places-view:not(.d-none),
+    #categories-view:not(.d-none),
+    .shop-filter-bar {
+        animation: none;
+    }
+}

@@ -535,7 +535,26 @@ window.loadFeaturedShops = async function () {
     const currentCity = typeof CityService !== 'undefined' ? CityService.getCity() : 'Khartoum';
     const cacheKey = `wajeez_featured_${currentCity}`;
 
-    const HEAD = `<div class="featured-head">كل المحلات</div>`;
+    // «كل المحلات» بزرّ فلترة: بحثٌ بالاسم + «مفتوح الآن» + ترتيب
+    const HEAD = `<div class="featured-head featured-head--tools">
+            <span>كل المحلات</span>
+            <button type="button" class="shop-filter-btn" id="shopFilterBtn" aria-expanded="false"
+                aria-controls="shopFilterBar" onclick="toggleShopFilter()">
+                <i class="bi bi-sliders2" aria-hidden="true"></i> فلترة<span class="shop-filter-dot" hidden></span>
+            </button>
+        </div>
+        <div class="shop-filter-bar" id="shopFilterBar" hidden>
+            <div class="shop-filter-search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" id="shopFilterQ" placeholder="اسم المحل" aria-label="ابحث في المحلات بالاسم"
+                    oninput="setShopFilter('q', this.value)" enterkeyhint="search">
+            </div>
+            <div class="shop-filter-chips" role="group" aria-label="خيارات الفلترة">
+                <button type="button" class="sf-chip" data-sf="open" aria-pressed="false" onclick="setShopFilter('open')">مفتوح الآن</button>
+                <button type="button" class="sf-chip" data-sf="sort:near" aria-pressed="true" onclick="setShopFilter('sort', 'near')">الأقرب</button>
+                <button type="button" class="sf-chip" data-sf="sort:rating" aria-pressed="false" onclick="setShopFilter('sort', 'rating')">الأعلى تقييماً</button>
+            </div>
+        </div>`;
 
     // فلترة (استبعاد متجر التاجر نفسه) + ترتيب بالمسافة + رندر
     const finalize = (places, loc) => {
@@ -567,7 +586,7 @@ window.loadFeaturedShops = async function () {
                            <div class="nearby-row" id="nearby-row" role="list" aria-label="محلات قريبة منك"></div>` : '') +
             HEAD + `<div class="featured-grid" id="featured-grid"></div>`;
         if (showNearby) renderNearbyCards(nearby, document.getElementById('nearby-row'));
-        renderPlacesList(places, document.getElementById('featured-grid'), '', { showCategory: true });
+        applyShopFilter();
     };
 
     // ⚡ SWR: اعرض الكاش فوراً ثم حدّث من الشبكة (نفس نمط loadPlaces)
@@ -788,6 +807,68 @@ window.loadFavoritePlaces = async function () {
         section.innerHTML = '';
     }
 };
+
+// ==========================================
+// 🎛️ فلترة «كل المحلات» — محلّيةٌ على ما جُلب، بلا طلبٍ للخادم
+// ==========================================
+const _shopFilter = { q: '', open: false, sort: 'near' };
+
+window.toggleShopFilter = function () {
+    const bar = document.getElementById('shopFilterBar');
+    const btn = document.getElementById('shopFilterBtn');
+    if (!bar || !btn) return;
+    const show = bar.hidden;
+    bar.hidden = !show;
+    btn.setAttribute('aria-expanded', String(show));
+    btn.classList.toggle('is-on', show);
+    if (show) setTimeout(() => document.getElementById('shopFilterQ')?.focus({ preventScroll: true }), 60);
+};
+
+window.setShopFilter = function (key, value) {
+    if (key === 'q') _shopFilter.q = String(value || '').trim();
+    else if (key === 'open') _shopFilter.open = !_shopFilter.open;
+    else if (key === 'sort') _shopFilter.sort = value;
+    applyShopFilter();
+};
+
+function applyShopFilter() {
+    const grid = document.getElementById('featured-grid');
+    if (!grid) return;
+    const norm = (t) => String(t || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/[ىئ]/g, 'ي').toLowerCase();
+    let list = (window._featuredPlaces || []).slice();
+    if (_shopFilter.q) {
+        const q = norm(_shopFilter.q);
+        list = list.filter(p => norm(p.name).includes(q) || norm(p.category && p.category.name).includes(q));
+    }
+    if (_shopFilter.open) list = list.filter(p => p.is_open);
+    if (_shopFilter.sort === 'rating') {
+        list.sort((a, b) => (b.ratingAvg || 0) - (a.ratingAvg || 0) || (b.ratingCount || 0) - (a.ratingCount || 0));
+    }
+
+    // حالة الأزرار تتبع الفلتر — تُعاد بعد كل رسمٍ للقسم (وصول الموقع مثلاً)
+    document.querySelectorAll('.sf-chip').forEach(c => {
+        const k = c.dataset.sf;
+        const on = k === 'open' ? _shopFilter.open : k === 'sort:' + _shopFilter.sort;
+        c.setAttribute('aria-pressed', String(on));
+    });
+    const qEl = document.getElementById('shopFilterQ');
+    if (qEl && qEl.value !== _shopFilter.q && document.activeElement !== qEl) qEl.value = _shopFilter.q;
+    const active = !!_shopFilter.q || _shopFilter.open || _shopFilter.sort !== 'near';
+    const dot = document.querySelector('.shop-filter-dot');
+    if (dot) dot.hidden = !active;
+    if (active && document.getElementById('shopFilterBar')?.hidden) toggleShopFilter();
+
+    if (!list.length) {
+        grid.innerHTML = `<div class="sf-empty">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <div class="sf-empty-title">ما في محل بالمواصفات دي</div>
+            <div class="sf-empty-text">غيّر الفلتر، أو خلي الكابتن يشتري ليك من أي محل.</div>
+            <button type="button" class="sf-empty-btn" onclick="openErrandPicker()">اشترِ لي من أي محل</button>
+        </div>`;
+        return;
+    }
+    renderPlacesList(list, grid, '', { showCategory: true });
+}
 
 /**
  * 🖼️ بطاقة «قريب منك»: غلافٌ كبير ثم الاسم وسطر معلومات — نمط تطبيقات

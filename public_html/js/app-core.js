@@ -151,6 +151,17 @@ const AppCore = {
         }
         try {
             await App.addListener('backButton', ({ canGoBack }) => {
+                // 0. نافذة تنبيه (SweetAlert) مفتوحة: الرجوع يغلقها لا يغادر الصفحة تحتها
+                if (window.Swal && Swal.isVisible && Swal.isVisible()) {
+                    Swal.close();
+                    return;
+                }
+                // 0.5 طبقةٌ مفتوحة فوق الصفحة (قائمة، ورقة، خريطة، عرض قسم):
+                //     js/back-stack.js أضاف لها مدخلاً في السجلّ ويغلقها عند الرجوع
+                if (window.BackStack && BackStack.depth() > 0) {
+                    window.history.back();
+                    return;
+                }
                 // 1. إغلاق أي Modal مفتوح أولاً
                 const openModal = document.querySelector('.modal.show');
                 if (openModal) {
