@@ -1649,3 +1649,198 @@ body.dark-mode .cu-stop-btn--dropoff {
 body.dark-mode #home-section .route-inputs .input-icon.text-danger {
     color: #FCD34D !important;
 }
+
+/* ============================================================
+   شاشة تحديد الموقع (الخريطة)
+   ============================================================ */
+
+.wj-addr-label {
+    font-size: 13px;
+    color: var(--cu-ink-2);
+}
+
+#map-address-preview {
+    font-size: 16px;
+    color: var(--cu-ink);
+    transition: opacity .15s ease;
+}
+
+.wj-idle-hint {
+    color: var(--cu-ink-2);
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* أثناء الحركة: العنوان القديم يخفت (لم يعد صحيحاً) والتأكيد يهدأ —
+   يعودان فور الاستقرار. يمنع تأكيد عنوانٍ لم يعد تحت الدبوس */
+.wj-sheet.is-moving #map-address-preview {
+    opacity: .35;
+}
+
+.wj-sheet.is-moving .wj-confirm {
+    opacity: .6;
+}
+
+.wj-confirm {
+    background: #04553A;
+    box-shadow: 0 4px 14px rgba(4, 85, 58, .28);
+    transition: opacity .15s ease, transform .16s ease;
+}
+
+.wj-confirm:disabled,
+.wj-confirm.disabled {
+    background: #9AA6A0;
+    box-shadow: none;
+}
+
+/* لون البطاقة يتبع الطرف: أخضر للاستلام وذهبي للتوصيل (كما في النموذج) */
+.wj-sheet[data-mode="dropoff"] .wj-addr-ico {
+    background: #FDF6E3;
+    color: #8A6212;
+}
+
+.wj-sheet[data-mode="dropoff"] .wj-confirm:not(:disabled) {
+    background: #04553A;
+}
+
+/* اختيارٌ بضغطة */
+.wj-quick-picks {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin: 0 -16px 12px;
+    padding: 0 16px 2px;
+    scrollbar-width: none;
+}
+
+.wj-quick-picks::-webkit-scrollbar {
+    display: none;
+}
+
+.wj-quick-picks:empty {
+    display: none;
+}
+
+.wj-pick {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--cu-line);
+    background: var(--cu-surface);
+    color: var(--cu-ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.wj-pick .bi {
+    color: #04553A;
+}
+
+.wj-pick:active {
+    background: #E7F1EC;
+}
+
+/* «الصق رابط خرائط جوجل»: مساعدةٌ ثانوية بلون الهوية لا أزرق الروابط */
+#mapLinkBox summary {
+    color: #04553A !important;
+    font-size: 14px !important;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+/* لافتة التنبيه أعلى الخريطة: نصٌّ يُقرأ */
+#geofence-warning-banner {
+    font-size: 14px !important;
+    background: #B42318 !important;
+}
+
+/* ── الوضع الليلي: البطاقة كانت بيضاء والنصّ يُجبَر فاتحاً — فيختفي ── */
+body.dark-mode .wj-sheet {
+    background: #1F2937 !important;
+    box-shadow: 0 -6px 28px rgba(0, 0, 0, .5);
+}
+
+body.dark-mode .wj-sheet-grip {
+    background: #4B5563;
+}
+
+body.dark-mode .wj-addr-label,
+body.dark-mode .wj-idle-hint {
+    color: #C3CBD4 !important;
+}
+
+body.dark-mode #map-address-preview,
+body.dark-mode #map-address-preview span {
+    color: #F9FAFB !important;
+}
+
+body.dark-mode .wj-addr-ico {
+    background: #12352A;
+    color: #6EE7B7;
+}
+
+body.dark-mode .wj-sheet[data-mode="dropoff"] .wj-addr-ico {
+    background: #3A2E12;
+    color: #FCD34D;
+}
+
+body.dark-mode .wj-pick {
+    background: #111827;
+    border-color: #374151;
+    color: #F3F4F6 !important;
+}
+
+body.dark-mode .wj-pick .bi {
+    color: #6EE7B7;
+}
+
+body.dark-mode #mapLinkBox summary {
+    color: #6EE7B7 !important;
+}
+
+body.dark-mode .wj-confirm,
+body.dark-mode .wj-confirm span {
+    color: #fff !important;
+}
+
+/* شرائح الشريط العلوي (رجوع، «حدّد…»، المدينة) والبحث في الوضع الليلي */
+body.dark-mode .wj-chip {
+    background: #1F2937 !important;
+    color: #F3F4F6 !important;
+}
+
+body.dark-mode #map-search-input {
+    background: #1F2937 !important;
+    color: #F9FAFB !important;
+}
+
+body.dark-mode #map-search-results {
+    background: #1F2937 !important;
+}
+
+body.dark-mode #map-search-results div {
+    color: #E5E7EB !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #map-address-preview,
+    .wj-confirm {
+        transition: none;
+    }
+}
+
+body.dark-mode #mapLinkBox,
+body.dark-mode #mapLinkBox summary {
+    background: transparent !important;
+}

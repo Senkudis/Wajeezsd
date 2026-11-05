@@ -41,7 +41,8 @@
     const LAYERS = [
         {
             id: 'map', sel: '#static-map-container',
-            isOpen: (el) => el.style.display && el.style.display !== 'none',
+            // التسخين المسبق (map-experience.js) يبنيها مخفيّة — ليست مفتوحة
+            isOpen: (el) => el.style.display && el.style.display !== 'none' && el.style.visibility !== 'hidden',
             close: () => window.closeMapUI && window.closeMapUI()
         },
         {

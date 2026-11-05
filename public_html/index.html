@@ -480,7 +480,7 @@
     <link rel="stylesheet" href="css/tour.css?v=92063527">
     <link rel="stylesheet" href="css/smart-search.css?v=8dc97789">
     <!-- طبقة تبسيط واجهات العميل — آخر ملف CSS عمداً -->
-    <link rel="stylesheet" href="css/client-ui.css?v=f2ee2776">
+    <link rel="stylesheet" href="css/client-ui.css?v=1b804860">
 
 
     <script src="js/maps-link-input.js?v=fa876f04"></script>
@@ -1013,6 +1013,8 @@
                 <!-- 🔗 لمن لا يُحسن وضع الدبوس: رابط الموقع يُحرّكه نيابةً عنه.
                      ونُبقي التأكيد على زرّ الخريطة نفسه، فيمرّ الموقع بكل ما
                      يمرّ به اليدويّ — فحص النطاق ومعاينة العنوان. -->
+                <!-- اختيارٌ بضغطة: موقعي الحالي وعناويني المحفوظة — js/map-experience.js -->
+                <div id="wj-quick-picks" class="wj-quick-picks" role="group" aria-label="اختيار سريع"></div>
                 <details id="mapLinkBox" style="margin-bottom:10px;">
                     <summary style="cursor:pointer;font-size:12.5px;font-weight:800;color:#2563eb;list-style:none;">
                         <i class="bi bi-link-45deg"></i> لا تعرف تحديد الموقع؟ الصق رابط خرائط جوجل
@@ -1285,7 +1287,8 @@
 
     <!-- أخطاء الإدخال في خاناتها + فحص الهاتف السوداني — قبل home.js الذي يستعملهما -->
     <script src="js/field-errors.js?v=92e1e909"></script>
-    <script src="js/home.js?v=3e389597"></script>
+    <script src="js/home.js?v=74f25cf4"></script>
+    <script src="js/map-experience.js?v=8b300ea5"></script>
     <script src="js/home-simple.js?v=27db7fc9"></script>
     <script src="js/order-feature.js?v=46a8d0d4"></script>
     <script src="js/errand-context.js?v=f33a33bc"></script>
@@ -1921,6 +1924,6 @@
 })();
 </script>
     <!-- زرّ الرجوع يغلق الطبقات المفتوحة قبل مغادرة الصفحة -->
-    <script src="js/back-stack.js?v=d3983346"></script>
+    <script src="js/back-stack.js?v=6db5391b"></script>
 </body>
 </html>

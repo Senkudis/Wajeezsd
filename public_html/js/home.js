@@ -375,10 +375,10 @@ function initMap() {
 
                 if (!isInside) {
                     shouldBlock = true;
-                    bannerText = "عفواً، الموقع خارج منطقة التوصيل حالياً.";
+                    bannerText = "المكان ده برّه منطقة التوصيل — حرّك الدبوس لجوّه المنطقة المظلّلة";
                 } else if (currentZoom < MIN_ZOOM_LEVEL) {
                     shouldBlock = true;
-                    bannerText = "الرجاء تقريب الخريطة أكثر (Zoom in) لتحديد موقعك بدقة.";
+                    bannerText = "قرّب الخريطة شوية عشان نحدّد المكان بالظبط";
                 }
 
                 if (shouldBlock) {
@@ -873,6 +873,13 @@ window.locateMe = function() {
     const btn  = document.getElementById('locate-me-btn');
     const icon = document.getElementById('locate-me-icon');
 
+    // ⚡ آخر موقعٍ معروف فوراً — والقراءة الدقيقة تصحّحه حين تصل. انتظار GPS
+    //    عالي الدقة على هاتفٍ رخيص قد يطول ثوانٍ بلا أيّ حركة على الشاشة
+    if (window.userLocation && map && mapInitialized) {
+        map.panTo(window.userLocation);
+        if (map.getZoom() < 17) map.setZoom(17);
+    }
+
     // Show spinner
     if (btn)  btn.classList.add('is-locating');
     if (icon) { icon.className = ''; icon.innerHTML = '<span style="width:20px;height:20px;border:2px solid #c8e6c9;border-top-color:#04553A;border-radius:50%;display:inline-block;animation:mapSpin 0.7s linear infinite;"></span>'; }
@@ -884,6 +891,7 @@ window.locateMe = function() {
             if (window.CityService) CityService.noticeLocation(pos.coords.latitude, pos.coords.longitude);
             if (map && mapInitialized) {
                 map.panTo(window.userLocation);
+                if (map.getZoom() < 17) map.setZoom(17);
                 // 📍 أظهر نقطة موقع العميل الحالي (ليتأكّد من مكانه)
                 _showUserLocationDot(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
             }
